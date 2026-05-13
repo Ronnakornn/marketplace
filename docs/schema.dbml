@@ -1,0 +1,529 @@
+Project marketplace {
+  database_type: "PostgreSQL"
+}
+
+Enum role {
+  USER
+  SELLER
+  ADMIN
+}
+
+Enum shop_status {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+Enum product_status {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+Enum cart_status {
+  ACTIVE
+  CHECKED_OUT
+  ABANDONED
+}
+
+Enum checkout_status {
+  OPEN
+  RESERVED
+  PAYMENT_PENDING
+  COMPLETED
+  EXPIRED
+  CANCELED
+}
+
+Enum reservation_status {
+  ACTIVE
+  COMMITTED
+  RELEASED
+  EXPIRED
+}
+
+Enum order_status {
+  PENDING_PAYMENT
+  PAID
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CANCELED
+  REFUNDED
+}
+
+Enum payment_status {
+  REQUIRES_ACTION
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+Enum fulfillment_status {
+  PENDING
+  READY
+  PARTIALLY_SHIPPED
+  SHIPPED
+  DELIVERED
+  CANCELED
+}
+
+Enum shipment_status {
+  PENDING
+  READY
+  SHIPPED
+  DELIVERED
+  CANCELED
+}
+
+Enum discount_type {
+  PERCENT
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
+
+Enum review_status {
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+Enum refund_status {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+Enum return_status {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RECEIVED
+  REFUNDED
+}
+
+Table users {
+  id uuid [pk]
+  email varchar [not null, unique]
+  name varchar [not null]
+  role role [not null, default: "USER"]
+  email_verified boolean [not null, default: false]
+  image varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table sessions {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  token varchar [not null, unique]
+  expires_at timestamp [not null]
+  ip_address varchar
+  user_agent varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    user_id
+  }
+}
+
+Table accounts {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  account_id varchar [not null]
+  provider_id varchar [not null]
+  access_token text
+  refresh_token text
+  id_token text
+  access_token_expires_at timestamp
+  refresh_token_expires_at timestamp
+  scope varchar
+  password varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    user_id
+    (provider_id, account_id) [unique]
+  }
+}
+
+Table verifications {
+  id uuid [pk]
+  identifier varchar [not null]
+  value varchar [not null]
+  expires_at timestamp [not null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table shops {
+  id uuid [pk]
+  owner_id uuid [not null, ref: > users.id]
+  name varchar [not null]
+  slug varchar [not null, unique]
+  status shop_status [not null, default: "PENDING"]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    owner_id
+    status
+  }
+}
+
+Table products {
+  id uuid [pk]
+  shop_id uuid [not null, ref: > shops.id]
+  title varchar [not null]
+  slug varchar [not null]
+  description text
+  status product_status [not null, default: "DRAFT"]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (shop_id, slug) [unique]
+    (shop_id, status)
+  }
+}
+
+Table product_variants {
+  id uuid [pk]
+  product_id uuid [not null, ref: > products.id]
+  sku varchar [not null, unique]
+  title varchar [not null]
+  price_cents int [not null]
+  currency varchar [not null, default: "USD"]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    product_id
+  }
+}
+
+Table inventory {
+  id uuid [pk]
+  variant_id uuid [not null, unique, ref: > product_variants.id]
+  quantity_on_hand int [not null, default: 0]
+  quantity_reserved int [not null, default: 0]
+  reorder_level int [not null, default: 0]
+  updated_at timestamp [not null]
+}
+
+Table carts {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  status cart_status [not null, default: "ACTIVE"]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (user_id, status)
+  }
+}
+
+Table cart_items {
+  id uuid [pk]
+  cart_id uuid [not null, ref: > carts.id]
+  variant_id uuid [not null, ref: > product_variants.id]
+  quantity int [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (cart_id, variant_id) [unique]
+    variant_id
+  }
+}
+
+Table checkouts {
+  id uuid [pk]
+  cart_id uuid [not null, ref: > carts.id]
+  user_id uuid [not null, ref: > users.id]
+  status checkout_status [not null, default: "OPEN"]
+  subtotal_cents int [not null, default: 0]
+  discount_total_cents int [not null, default: 0]
+  shipping_total_cents int [not null, default: 0]
+  tax_total_cents int [not null, default: 0]
+  grand_total_cents int [not null, default: 0]
+  currency varchar [not null, default: "USD"]
+  expires_at timestamp [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    cart_id
+    (user_id, status)
+    (status, expires_at)
+  }
+}
+
+Table inventory_reservations {
+  id uuid [pk]
+  checkout_id uuid [not null, ref: > checkouts.id]
+  variant_id uuid [not null, ref: > product_variants.id]
+  quantity int [not null]
+  status reservation_status [not null, default: "ACTIVE"]
+  expires_at timestamp [not null]
+  created_at timestamp [not null]
+
+  indexes {
+    (checkout_id, variant_id)
+    (variant_id, status)
+    (status, expires_at)
+  }
+}
+
+Table orders {
+  id uuid [pk]
+  checkout_id uuid [not null, unique, ref: > checkouts.id]
+  user_id uuid [not null, ref: > users.id]
+  order_number varchar [not null, unique]
+  status order_status [not null, default: "PENDING_PAYMENT"]
+  payment_status payment_status [not null, default: "PENDING"]
+  subtotal_cents int [not null, default: 0]
+  discount_total_cents int [not null, default: 0]
+  shipping_total_cents int [not null, default: 0]
+  tax_total_cents int [not null, default: 0]
+  grand_total_cents int [not null]
+  currency varchar [not null, default: "USD"]
+  shipping_name varchar [not null]
+  shipping_phone varchar
+  shipping_line1 varchar [not null]
+  shipping_line2 varchar
+  shipping_city varchar [not null]
+  shipping_region varchar
+  shipping_postal_code varchar [not null]
+  shipping_country varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (user_id, created_at)
+    (status, created_at)
+    payment_status
+  }
+}
+
+Table order_items {
+  id uuid [pk]
+  order_id uuid [not null, ref: > orders.id]
+  shop_id uuid [not null, ref: > shops.id]
+  variant_id uuid [not null, ref: > product_variants.id]
+  product_title varchar [not null]
+  product_slug varchar [not null]
+  variant_title varchar [not null]
+  variant_sku varchar [not null]
+  shop_name varchar [not null]
+  shop_slug varchar [not null]
+  quantity int [not null]
+  unit_price_cents int [not null]
+  line_total_cents int [not null]
+  currency varchar [not null, default: "USD"]
+  fulfillment_status fulfillment_status [not null, default: "PENDING"]
+
+  indexes {
+    (order_id, shop_id)
+    (shop_id, fulfillment_status)
+    variant_id
+  }
+}
+
+Table payments {
+  id uuid [pk]
+  order_id uuid [not null, ref: > orders.id]
+  provider varchar [not null]
+  provider_intent_id varchar [not null, unique]
+  status payment_status [not null, default: "PENDING"]
+  amount_cents int [not null]
+  currency varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (order_id, status)
+  }
+}
+
+Table payment_events {
+  id uuid [pk]
+  payment_id uuid [not null, ref: > payments.id]
+  provider_event_id varchar [not null, unique]
+  event_type varchar [not null]
+  payload jsonb [not null]
+  received_at timestamp [not null]
+
+  indexes {
+    payment_id
+    (event_type, received_at)
+  }
+}
+
+Table shipments {
+  id uuid [pk]
+  order_id uuid [not null, ref: > orders.id]
+  shop_id uuid [not null, ref: > shops.id]
+  status shipment_status [not null, default: "PENDING"]
+  carrier varchar
+  tracking_number varchar
+  shipped_at timestamp
+  delivered_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (order_id, shop_id)
+    (shop_id, status)
+    tracking_number
+  }
+}
+
+Table shipment_items {
+  id uuid [pk]
+  shipment_id uuid [not null, ref: > shipments.id]
+  order_item_id uuid [not null, ref: > order_items.id]
+  quantity int [not null]
+
+  indexes {
+    (shipment_id, order_item_id) [unique]
+    order_item_id
+  }
+}
+
+Table coupons {
+  id uuid [pk]
+  shop_id uuid [ref: > shops.id]
+  code varchar [not null, unique]
+  discount_type discount_type [not null]
+  discount_value_cents int
+  discount_percent_bps int
+  starts_at timestamp
+  ends_at timestamp
+  usage_limit int
+  created_at timestamp [not null]
+
+  indexes {
+    shop_id
+    code
+  }
+}
+
+Table coupon_redemptions {
+  id uuid [pk]
+  coupon_id uuid [not null, ref: > coupons.id]
+  user_id uuid [not null, ref: > users.id]
+  order_id uuid [not null, ref: > orders.id]
+  redeemed_at timestamp [not null]
+
+  indexes {
+    coupon_id
+    user_id
+    (coupon_id, order_id) [unique]
+  }
+}
+
+Table reviews {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  product_id uuid [not null, ref: > products.id]
+  order_item_id uuid [not null, unique, ref: > order_items.id]
+  rating int [not null]
+  body text
+  status review_status [not null, default: "PENDING"]
+  created_at timestamp [not null]
+
+  indexes {
+    (product_id, status)
+    user_id
+  }
+}
+
+Table refunds {
+  id uuid [pk]
+  order_id uuid [not null, ref: > orders.id]
+  payment_id uuid [not null, ref: > payments.id]
+  status refund_status [not null, default: "PENDING"]
+  amount_cents int [not null]
+  reason text
+  created_at timestamp [not null]
+
+  indexes {
+    (order_id, status)
+    payment_id
+  }
+}
+
+Table return_requests {
+  id uuid [pk]
+  order_id uuid [not null, ref: > orders.id]
+  user_id uuid [not null, ref: > users.id]
+  status return_status [not null, default: "REQUESTED"]
+  reason text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (order_id, status)
+    (user_id, created_at)
+  }
+}
+
+Table return_items {
+  id uuid [pk]
+  return_request_id uuid [not null, ref: > return_requests.id]
+  order_item_id uuid [not null, ref: > order_items.id]
+  quantity int [not null]
+  condition varchar
+
+  indexes {
+    (return_request_id, order_item_id) [unique]
+    order_item_id
+  }
+}
+
+Table chat_threads {
+  id uuid [pk]
+  buyer_id uuid [not null, ref: > users.id]
+  shop_id uuid [not null, ref: > shops.id]
+  order_id uuid [ref: > orders.id]
+  created_at timestamp [not null]
+
+  indexes {
+    (buyer_id, created_at)
+    (shop_id, created_at)
+    order_id
+  }
+}
+
+Table chat_messages {
+  id uuid [pk]
+  thread_id uuid [not null, ref: > chat_threads.id]
+  sender_id uuid [not null, ref: > users.id]
+  body text [not null]
+  created_at timestamp [not null]
+
+  indexes {
+    (thread_id, created_at)
+    sender_id
+  }
+}
+
+Table notifications {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  type varchar [not null]
+  title varchar [not null]
+  body text
+  read_at timestamp
+  created_at timestamp [not null]
+
+  indexes {
+    (user_id, read_at, created_at)
+    type
+  }
+}

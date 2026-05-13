@@ -1,0 +1,130 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Treaty } from "@elysiajs/eden";
+import { api } from "#/lib/eden";
+
+type CatalogProductsResponse = Treaty.Data<ReturnType<typeof api.api.catalog.products.get>>;
+export type CatalogProduct = CatalogProductsResponse extends { data: (infer T)[] } ? T : never;
+export type CatalogVariant = CatalogProduct["variants"][number];
+
+export interface CreateProductInput {
+  shopId: string;
+  title: string;
+  slug?: string;
+  description?: string | null;
+  status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+}
+
+export interface UpdateProductInput {
+  id: string;
+  title?: string;
+  slug?: string;
+  description?: string | null;
+  status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+}
+
+export interface CreateVariantInput {
+  productId: string;
+  sku: string;
+  title: string;
+  priceCents: number;
+  currency?: string;
+  inventory?: {
+    quantityOnHand: number;
+    quantityReserved?: number;
+    reorderLevel?: number;
+  };
+}
+
+export interface UpdateInventoryInput {
+  variantId: string;
+  quantityOnHand: number;
+  quantityReserved?: number;
+  reorderLevel?: number;
+}
+
+export function useCatalogProducts() {
+  return useQuery({
+    queryKey: ["catalog-products"],
+    queryFn: async () => {
+      const { data, error } = await api.api.catalog.products.get();
+      if (error) throw error;
+      return data?.data ?? [];
+    },
+  });
+}
+
+export function useCatalogProductDetail(id: string | null) {
+  return useQuery({
+    queryKey: ["catalog-product", id],
+    enabled: Boolean(id),
+    queryFn: async () => {
+      if (!id) throw new Error("Product id is required");
+      const { data, error } = await api.api.catalog.products({ id }).get();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCreateCatalogProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body: CreateProductInput) => {
+      const { data, error } = await api.api.seller.products.post(body);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
+    },
+  });
+}
+
+export function useUpdateCatalogProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...body }: UpdateProductInput) => {
+      const { data, error } = await api.api.seller.products({ productId: id }).patch(body);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
+      await queryClient.invalidateQueries({ queryKey: ["catalog-product", data.id] });
+    },
+  });
+}
+
+export function useCreateCatalogVariant() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ productId, ...body }: CreateVariantInput) => {
+      const { inventory: _inventory, ...variantBody } = body;
+      const { data, error } = await api.api.seller.products({ productId }).variants.post(variantBody);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
+      await queryClient.invalidateQueries({ queryKey: ["catalog-product", variables.productId] });
+    },
+  });
+}
+
+export function useUpdateCatalogInventory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (_body: UpdateInventoryInput) => {
+      throw new Error("Inventory management is not implemented in Catalog task");
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
+    },
+  });
+}

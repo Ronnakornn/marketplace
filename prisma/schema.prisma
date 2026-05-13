@@ -1,0 +1,612 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/client"
+}
+
+generator prismabox {
+  provider                    = "prismabox"
+  output                      = "../generated/prismabox"
+  inputModel                  = "true"
+  typeboxImportDependencyName = "elysia"
+  typeboxImportVariableName   = "t"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  SELLER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum ShopStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum CartStatus {
+  ACTIVE
+  CHECKED_OUT
+  ABANDONED
+}
+
+enum CheckoutStatus {
+  OPEN
+  RESERVED
+  PAYMENT_PENDING
+  COMPLETED
+  EXPIRED
+  CANCELED
+}
+
+enum ReservationStatus {
+  ACTIVE
+  COMMITTED
+  RELEASED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CANCELED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  REQUIRES_ACTION
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+enum FulfillmentStatus {
+  PENDING
+  READY
+  PARTIALLY_SHIPPED
+  SHIPPED
+  DELIVERED
+  CANCELED
+}
+
+enum ShipmentStatus {
+  PENDING
+  READY
+  SHIPPED
+  DELIVERED
+  CANCELED
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RECEIVED
+  REFUNDED
+}
+
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  name          String
+  email         String     @unique
+  role          Role       @default(USER)
+  status        UserStatus @default(ACTIVE)
+  emailVerified Boolean    @default(false)
+  image         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  accounts          Account[]
+  cartItems         Cart[]
+  chatMessages      ChatMessage[]
+  chatThreads       ChatThread[]
+  couponRedemptions CouponRedemption[]
+  notifications     Notification[]
+  orders            Order[]
+  returnRequests    ReturnRequest[]
+  reviews           Review[]
+  sessions          Session[]
+  shops             Shop[]
+  checkouts         Checkout[]
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String   @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  accountId             String
+  providerId            String
+  userId                String    @db.Uuid
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String    @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+}
+
+model Shop {
+  id        String     @id @default(uuid()) @db.Uuid
+  ownerId   String     @db.Uuid
+  name      String
+  slug      String     @unique
+  status    ShopStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  chatThreads ChatThread[]
+  coupons     Coupon[]
+  orderItems  OrderItem[]
+  products    Product[]
+  shipments   Shipment[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Product {
+  id          String        @id @default(uuid()) @db.Uuid
+  shopId      String        @db.Uuid
+  title       String
+  slug        String
+  description String?
+  status      ProductStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  shop     Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  reviews  Review[]
+  variants ProductVariant[]
+
+  @@unique([shopId, slug])
+  @@index([shopId, status])
+}
+
+model ProductVariant {
+  id         String   @id @default(uuid()) @db.Uuid
+  productId  String   @db.Uuid
+  sku        String   @unique
+  title      String
+  priceCents Int
+  currency   String   @default("USD")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product               Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems             CartItem[]
+  inventory             Inventory?
+  inventoryReservations InventoryReservation[]
+  orderItems            OrderItem[]
+
+  @@index([productId])
+}
+
+model Inventory {
+  id               String   @id @default(uuid()) @db.Uuid
+  variantId        String   @unique @db.Uuid
+  quantityOnHand   Int      @default(0)
+  quantityReserved Int      @default(0)
+  reorderLevel     Int      @default(0)
+  updatedAt        DateTime @updatedAt
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+}
+
+model Cart {
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String     @db.Uuid
+  status    CartStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkouts Checkout[]
+  items     CartItem[]
+
+  @@index([userId, status])
+}
+
+model CartItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  cartId    String   @db.Uuid
+  variantId String   @db.Uuid
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@unique([cartId, variantId])
+  @@index([variantId])
+}
+
+model Checkout {
+  id                 String         @id @default(uuid()) @db.Uuid
+  cartId             String         @db.Uuid
+  userId             String         @db.Uuid
+  status             CheckoutStatus @default(OPEN)
+  subtotalCents      Int            @default(0)
+  discountTotalCents Int            @default(0)
+  shippingTotalCents Int            @default(0)
+  taxTotalCents      Int            @default(0)
+  grandTotalCents    Int            @default(0)
+  currency           String         @default("USD")
+  expiresAt          DateTime
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  cart                  Cart                   @relation(fields: [cartId], references: [id])
+  user                  User                   @relation(fields: [userId], references: [id])
+  inventoryReservations InventoryReservation[]
+  order                 Order?
+
+  @@index([cartId])
+  @@index([userId, status])
+  @@index([status, expiresAt])
+}
+
+model InventoryReservation {
+  id         String            @id @default(uuid()) @db.Uuid
+  checkoutId String            @db.Uuid
+  variantId  String            @db.Uuid
+  quantity   Int
+  status     ReservationStatus @default(ACTIVE)
+  expiresAt  DateTime
+  createdAt  DateTime          @default(now())
+
+  checkout Checkout       @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  variant  ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@index([checkoutId, variantId])
+  @@index([variantId, status])
+  @@index([status, expiresAt])
+}
+
+model Order {
+  id                 String        @id @default(uuid()) @db.Uuid
+  checkoutId         String        @unique @db.Uuid
+  userId             String        @db.Uuid
+  orderNumber        String        @unique
+  status             OrderStatus   @default(PENDING_PAYMENT)
+  paymentStatus      PaymentStatus @default(PENDING)
+  subtotalCents      Int           @default(0)
+  discountTotalCents Int           @default(0)
+  shippingTotalCents Int           @default(0)
+  taxTotalCents      Int           @default(0)
+  grandTotalCents    Int
+  currency           String        @default("USD")
+  shippingName       String
+  shippingPhone      String?
+  shippingLine1      String
+  shippingLine2      String?
+  shippingCity       String
+  shippingRegion     String?
+  shippingPostalCode String
+  shippingCountry    String
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  checkout          Checkout           @relation(fields: [checkoutId], references: [id])
+  user              User               @relation(fields: [userId], references: [id])
+  chatThreads       ChatThread[]
+  couponRedemptions CouponRedemption[]
+  items             OrderItem[]
+  payments          Payment[]
+  refunds           Refund[]
+  returnRequests    ReturnRequest[]
+  shipments         Shipment[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([paymentStatus])
+}
+
+model OrderItem {
+  id                String            @id @default(uuid()) @db.Uuid
+  orderId           String            @db.Uuid
+  shopId            String            @db.Uuid
+  variantId         String            @db.Uuid
+  productTitle      String
+  productSlug       String
+  variantTitle      String
+  variantSku        String
+  shopName          String
+  shopSlug          String
+  quantity          Int
+  unitPriceCents    Int
+  lineTotalCents    Int
+  currency          String            @default("USD")
+  fulfillmentStatus FulfillmentStatus @default(PENDING)
+
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shop          Shop           @relation(fields: [shopId], references: [id])
+  variant       ProductVariant @relation(fields: [variantId], references: [id])
+  review        Review?
+  returnItems   ReturnItem[]
+  shipmentItems ShipmentItem[]
+
+  @@index([orderId, shopId])
+  @@index([shopId, fulfillmentStatus])
+  @@index([variantId])
+}
+
+model Payment {
+  id               String        @id @default(uuid()) @db.Uuid
+  orderId          String        @db.Uuid
+  provider         String
+  providerIntentId String        @unique
+  status           PaymentStatus @default(PENDING)
+  amountCents      Int
+  currency         String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  events  PaymentEvent[]
+  refunds Refund[]
+
+  @@index([orderId, status])
+}
+
+model PaymentEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  paymentId       String   @db.Uuid
+  providerEventId String   @unique
+  eventType       String
+  payload         Json
+  receivedAt      DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([eventType, receivedAt])
+}
+
+model Shipment {
+  id             String         @id @default(uuid()) @db.Uuid
+  orderId        String         @db.Uuid
+  shopId         String         @db.Uuid
+  status         ShipmentStatus @default(PENDING)
+  carrier        String?
+  trackingNumber String?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shop  Shop           @relation(fields: [shopId], references: [id])
+  items ShipmentItem[]
+
+  @@index([orderId, shopId])
+  @@index([shopId, status])
+  @@index([trackingNumber])
+}
+
+model ShipmentItem {
+  id          String @id @default(uuid()) @db.Uuid
+  shipmentId  String @db.Uuid
+  orderItemId String @db.Uuid
+  quantity    Int
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  shipment  Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([shipmentId, orderItemId])
+  @@index([orderItemId])
+}
+
+model Coupon {
+  id                 String       @id @default(uuid()) @db.Uuid
+  shopId             String?      @db.Uuid
+  code               String       @unique
+  discountType       DiscountType
+  discountValueCents Int?
+  discountPercentBps Int?
+  startsAt           DateTime?
+  endsAt             DateTime?
+  usageLimit         Int?
+  createdAt          DateTime     @default(now())
+
+  shop        Shop?              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  redemptions CouponRedemption[]
+
+  @@index([shopId])
+  @@index([code])
+}
+
+model CouponRedemption {
+  id         String   @id @default(uuid()) @db.Uuid
+  couponId   String   @db.Uuid
+  userId     String   @db.Uuid
+  orderId    String   @db.Uuid
+  redeemedAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, orderId])
+  @@index([couponId])
+  @@index([userId])
+}
+
+model Review {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @db.Uuid
+  productId   String       @db.Uuid
+  orderItemId String       @unique @db.Uuid
+  rating      Int
+  body        String?
+  status      ReviewStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId, status])
+  @@index([userId])
+}
+
+model Refund {
+  id          String       @id @default(uuid()) @db.Uuid
+  orderId     String       @db.Uuid
+  paymentId   String       @db.Uuid
+  status      RefundStatus @default(PENDING)
+  amountCents Int
+  reason      String?
+  createdAt   DateTime     @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([orderId, status])
+  @@index([paymentId])
+}
+
+model ReturnRequest {
+  id        String       @id @default(uuid()) @db.Uuid
+  orderId   String       @db.Uuid
+  userId    String       @db.Uuid
+  status    ReturnStatus @default(REQUESTED)
+  reason    String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  order Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ReturnItem[]
+
+  @@index([orderId, status])
+  @@index([userId, createdAt])
+}
+
+model ReturnItem {
+  id              String  @id @default(uuid()) @db.Uuid
+  returnRequestId String  @db.Uuid
+  orderItemId     String  @db.Uuid
+  quantity        Int
+  condition       String?
+
+  orderItem     OrderItem     @relation(fields: [orderItemId], references: [id])
+  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([returnRequestId, orderItemId])
+  @@index([orderItemId])
+}
+
+model ChatThread {
+  id        String   @id @default(uuid()) @db.Uuid
+  buyerId   String   @db.Uuid
+  shopId    String   @db.Uuid
+  orderId   String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  buyer    User          @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  shop     Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  order    Order?        @relation(fields: [orderId], references: [id])
+  messages ChatMessage[]
+
+  @@index([buyerId, createdAt])
+  @@index([shopId, createdAt])
+  @@index([orderId])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  threadId  String   @db.Uuid
+  senderId  String   @db.Uuid
+  body      String
+  createdAt DateTime @default(now())
+
+  sender User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([senderId])
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  type      String
+  title     String
+  body      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([type])
+}
