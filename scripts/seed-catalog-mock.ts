@@ -25,6 +25,7 @@ interface MockVariant {
 }
 
 interface MockProduct {
+  categorySlug: string;
   title: string;
   slug: string;
   description: string;
@@ -42,6 +43,7 @@ const sellers = [
     },
     products: [
       {
+        categorySlug: "fashion",
         title: "Everyday Oversized Cotton Tee",
         slug: "everyday-oversized-cotton-tee",
         description: "Heavyweight cotton tee with relaxed streetwear fit, made for daily marketplace browsing demos.",
@@ -57,6 +59,7 @@ const sellers = [
         ],
       },
       {
+        categorySlug: "fashion",
         title: "Relaxed Linen Resort Shirt",
         slug: "relaxed-linen-resort-shirt",
         description: "Breathable linen blend shirt with color and size price differences for variant testing.",
@@ -80,6 +83,7 @@ const sellers = [
     },
     products: [
       {
+        categorySlug: "sports",
         title: "High-Rise Active Leggings",
         slug: "high-rise-active-leggings",
         description: "Compression leggings with multiple colors and sizes for price/stock UI states.",
@@ -94,6 +98,7 @@ const sellers = [
         ],
       },
       {
+        categorySlug: "fashion",
         title: "Wide-Leg Washed Denim Jeans",
         slug: "wide-leg-washed-denim-jeans",
         description: "Soft washed denim with size and wash variants for catalog management testing.",
@@ -110,9 +115,41 @@ const sellers = [
   },
 ];
 
+const categories = [
+  { name: "Fashion", slug: "fashion", sortOrder: 10 },
+  { name: "Beauty", slug: "beauty", sortOrder: 20 },
+  { name: "Gadgets", slug: "gadgets", sortOrder: 30 },
+  { name: "Electronics", slug: "electronics", sortOrder: 35 },
+  { name: "Home", slug: "home", sortOrder: 40 },
+  { name: "Sports", slug: "sports", sortOrder: 50 },
+  { name: "Kids", slug: "kids", sortOrder: 60 },
+  { name: "Groceries", slug: "groceries", sortOrder: 70 },
+  { name: "Pets", slug: "pets", sortOrder: 80 },
+  { name: "Deals", slug: "deals", sortOrder: 90 },
+];
+
 async function main() {
   loadEnvLocal();
   const { prisma } = await import("#server/lib/prisma.ts");
+
+  const categoryBySlug = new Map<string, string>();
+  for (const categorySeed of categories) {
+    const category = await prisma.category.upsert({
+      where: { slug: categorySeed.slug },
+      update: {
+        name: categorySeed.name,
+        sortOrder: categorySeed.sortOrder,
+        isActive: true,
+      },
+      create: {
+        name: categorySeed.name,
+        slug: categorySeed.slug,
+        sortOrder: categorySeed.sortOrder,
+        isActive: true,
+      },
+    });
+    categoryBySlug.set(category.slug, category.id);
+  }
 
   for (const seller of sellers) {
     const [user] = await prisma.$queryRaw<Array<{ id: string }>>`
@@ -142,6 +179,9 @@ async function main() {
     if (!shop) throw new Error(`Failed to upsert shop ${seller.shop.slug}`);
 
     for (const productSeed of seller.products) {
+      const categoryId = categoryBySlug.get(productSeed.categorySlug);
+      if (!categoryId) throw new Error(`Unknown category ${productSeed.categorySlug}`);
+
       const product = await prisma.product.upsert({
         where: {
           shopId_slug: {
@@ -150,12 +190,14 @@ async function main() {
           },
         },
         update: {
+          categoryId,
           title: productSeed.title,
           description: productSeed.description,
           status: productSeed.status,
         },
         create: {
           shopId: shop.id,
+          categoryId,
           title: productSeed.title,
           slug: productSeed.slug,
           description: productSeed.description,

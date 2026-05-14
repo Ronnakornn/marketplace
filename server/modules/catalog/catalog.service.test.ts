@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProductStatus, Role } from '#generated/client/enums.ts'
+import { CacheService, type CacheClient } from '#server/modules/cache'
 import type { ICatalogRepository } from './catalog.repository.ts'
 import { CatalogService } from './catalog.service.ts'
 
@@ -24,6 +25,7 @@ function createAppContext() {
 
 function createRepoMock(): ICatalogRepository {
   return {
+    findActiveCategories: vi.fn(),
     findShopById: vi.fn(),
     findFirstShopByOwnerId: vi.fn(),
     findProductById: vi.fn(),
@@ -37,6 +39,31 @@ function createRepoMock(): ICatalogRepository {
   }
 }
 
+function createCacheService() {
+  const store = new Map<string, string>()
+  const client: CacheClient = {
+    get: vi.fn(async (key) => store.get(key) ?? null),
+    set: vi.fn(async (key, value) => {
+      store.set(key, value)
+      return 'OK'
+    }),
+    del: vi.fn(async (...keys) => {
+      keys.forEach((key) => store.delete(key))
+      return keys.length
+    }),
+    keys: vi.fn(async () => []),
+  }
+  return new CacheService(createAppContext(), {
+    enabled: true,
+    redisUrl: 'redis://localhost:6379',
+    defaultTtlSeconds: 300,
+    productTtlSeconds: 120,
+    searchTtlSeconds: 60,
+    sellerDashboardTtlSeconds: 30,
+    keyPrefix: 'v1',
+  }, client)
+}
+
 function createActor(overrides: Partial<{ id: string; role: Role }> = {}) {
   return {
     id: overrides.id ?? 'seller-1',
@@ -47,6 +74,7 @@ function createActor(overrides: Partial<{ id: string; role: Role }> = {}) {
 function createProduct(overrides: Partial<{
   id: string
   shopId: string
+  categoryId: string | null
   title: string
   slug: string
   description: string | null
@@ -59,12 +87,20 @@ function createProduct(overrides: Partial<{
   return {
     id: overrides.id ?? '22222222-2222-4222-8222-222222222222',
     shopId,
+    categoryId: overrides.categoryId ?? null,
     title: overrides.title ?? 'Test Product',
     slug: overrides.slug ?? 'test-product',
     description: overrides.description ?? null,
     status: overrides.status ?? 'DRAFT',
     createdAt: now,
     updatedAt: now,
+    category: overrides.categoryId
+      ? {
+          id: overrides.categoryId,
+          name: 'Fashion',
+          slug: 'fashion',
+        }
+      : null,
     shop: {
       id: shopId,
       name: 'Test Shop',
@@ -136,6 +172,28 @@ describe('CatalogService', () => {
     })
   })
 
+  it('product list uses cache after first database fallback', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
+    const service = new CatalogService(createAppContext(), repo, createCacheService())
+
+    await service.listPublicProducts({ keyword: 'tee' })
+    await service.listPublicProducts({ keyword: 'tee' })
+
+    expect(repo.findProducts).toHaveBeenCalledTimes(1)
+  })
+
+  it('product detail uses cache after first database fallback', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findProductById).mockResolvedValue(createProduct({ status: 'ACTIVE' }))
+    const service = new CatalogService(createAppContext(), repo, createCacheService())
+
+    await service.getPublicProductDetail('22222222-2222-4222-8222-222222222222')
+    await service.getPublicProductDetail('22222222-2222-4222-8222-222222222222')
+
+    expect(repo.findProductById).toHaveBeenCalledTimes(1)
+  })
+
   it('rejects inactive products from public detail', async () => {
     const repo = createRepoMock()
     vi.mocked(repo.findProductById).mockResolvedValue(createProduct({ status: 'DRAFT' }))
@@ -186,6 +244,7 @@ describe('CatalogService', () => {
 
     expect(repo.createProduct).toHaveBeenCalledWith({
       shopId,
+      categoryId: null,
       title: 'Island Bag',
       slug: 'island-bag',
       description: 'Summer collection',

@@ -1,5 +1,6 @@
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { CacheService } from '#server/modules/cache'
 import { SearchServiceError } from './search.errors.ts'
 import type { ISearchRepository, SearchProductRecord } from './search.repository.ts'
 
@@ -71,6 +72,7 @@ export class SearchService {
   constructor(
     appContext: AppContext,
     private repo: ISearchRepository,
+    private cache?: CacheService,
   ) {
     this.logger = appContext.logger
   }
@@ -78,8 +80,21 @@ export class SearchService {
   async searchProducts(input: ProductSearchInput): Promise<ProductSearchResponse> {
     const filters = this.normalizeInput(input)
     this.logger.debug('SearchService.searchProducts', { filters })
+    if (this.cache) {
+      return this.cache.remember(
+        this.cache.keys.productSearch(filters),
+        () => this.searchProductsFromRepository(filters),
+        { ttlSeconds: this.cache.ttl().search },
+      )
+    }
+
+    return this.searchProductsFromRepository(filters)
+  }
+
+  private async searchProductsFromRepository(filters: ReturnType<SearchService['normalizeInput']>): Promise<ProductSearchResponse> {
     const products = await this.repo.findSearchableProducts({
       q: filters.q,
+      categoryId: filters.categoryId,
       shopId: filters.shopId,
       minPriceCents: filters.minPrice,
       maxPriceCents: filters.maxPrice,
@@ -127,9 +142,6 @@ export class SearchService {
     const maxPrice = this.normalizeOptionalNonNegativeInteger(input.maxPrice, 'maxPrice')
     const rating = this.normalizeRating(input.rating)
 
-    if (input.categoryId?.trim()) {
-      throw new SearchServiceError('Category filtering is not available until category schema is added', 400, 'INVALID_FILTER')
-    }
     if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
       throw new SearchServiceError('Minimum price cannot exceed maximum price', 400, 'INVALID_FILTER')
     }

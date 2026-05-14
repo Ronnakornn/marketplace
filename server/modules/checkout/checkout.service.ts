@@ -1,6 +1,7 @@
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { CacheInvalidation } from '#server/modules/cache'
 import { PromotionServiceError } from '#server/modules/promotion/promotion.errors.ts'
 import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import { CheckoutServiceError } from './checkout.errors.ts'
@@ -52,6 +53,7 @@ export class CheckoutService {
     appContext: AppContext,
     private repo: ICheckoutRepository,
     private promotionService: PromotionService,
+    private cacheInvalidation?: CacheInvalidation,
   ) {
     this.logger = appContext.logger
   }
@@ -87,6 +89,8 @@ export class CheckoutService {
           paymentMethod: data.paymentMethod.trim(),
           coupon: couponValidation ? { id: couponValidation.couponId } : null,
         })
+
+      await this.cacheInvalidation?.invalidateInventory()
 
       return {
         orderId: result.order.id,

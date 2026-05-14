@@ -178,6 +178,7 @@ Table shops {
 Table products {
   id uuid [pk]
   shop_id uuid [not null, ref: > shops.id]
+  category_id uuid [ref: > categories.id]
   title varchar [not null]
   slug varchar [not null]
   description text
@@ -187,7 +188,22 @@ Table products {
 
   indexes {
     (shop_id, slug) [unique]
+    (category_id, status)
     (shop_id, status)
+  }
+}
+
+Table categories {
+  id uuid [pk]
+  name varchar [not null]
+  slug varchar [not null, unique]
+  sort_order int [not null, default: 0]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (is_active, sort_order)
   }
 }
 

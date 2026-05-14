@@ -1,6 +1,7 @@
 import type { OrderStatus, ProductStatus, RefundStatus, Role, ShopStatus, UserStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { AuditLogService } from '#server/modules/audit-log'
 import { AdminServiceError } from './admin.errors.ts'
 import type {
   AdminDashboardCounts,
@@ -65,6 +66,7 @@ export class AdminService {
   constructor(
     appContext: AppContext,
     private repository: IAdminRepository,
+    private auditLogService?: AuditLogService,
   ) {
     this.logger = appContext.logger
   }
@@ -93,7 +95,9 @@ export class AdminService {
       throw new AdminServiceError('Admin cannot suspend own account', 409, 'INVALID_STATUS_TRANSITION')
     }
     this.logger.info('AdminService.updateUserStatus', { actorId: actor.id, userId, status })
-    return this.repository.updateUserStatus(userId, status)
+    const updated = await this.repository.updateUserStatus(userId, status)
+    await this.auditStatusChange(actor, 'USER_STATUS_CHANGED', 'User', userId, existing, updated)
+    return updated
   }
 
   async listShops(actor: AdminActor, input: AdminListByStatusInput = {}): Promise<AdminListResponse<AdminShopRecord>> {
@@ -120,7 +124,9 @@ export class AdminService {
       throw new AdminServiceError('Shop not found', 404, 'SHOP_NOT_FOUND')
     }
     this.logger.info('AdminService.updateShopStatus', { actorId: actor.id, shopId, status })
-    return this.repository.updateShopStatus(shopId, status)
+    const updated = await this.repository.updateShopStatus(shopId, status)
+    await this.auditStatusChange(actor, 'SHOP_STATUS_CHANGED', 'Shop', shopId, existing, updated)
+    return updated
   }
 
   async listProducts(actor: AdminActor, input: AdminListByStatusInput = {}): Promise<AdminListResponse<AdminProductRecord>> {
@@ -147,7 +153,9 @@ export class AdminService {
       throw new AdminServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     }
     this.logger.info('AdminService.updateProductStatus', { actorId: actor.id, productId, status })
-    return this.repository.updateProductStatus(productId, status)
+    const updated = await this.repository.updateProductStatus(productId, status)
+    await this.auditStatusChange(actor, 'PRODUCT_STATUS_CHANGED', 'Product', productId, existing, updated)
+    return updated
   }
 
   async listOrders(actor: AdminActor, input: AdminListByStatusInput = {}): Promise<AdminListResponse<AdminOrderRecord>> {
@@ -196,7 +204,31 @@ export class AdminService {
       throw new AdminServiceError('Invalid refund status transition', 409, 'INVALID_STATUS_TRANSITION')
     }
     this.logger.info('AdminService.updateRefundStatus', { actorId: actor.id, refundId, status })
-    return this.repository.updateRefundStatus(refundId, status)
+    const updated = await this.repository.updateRefundStatus(refundId, status)
+    await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', refundId, existing, updated)
+    return updated
+  }
+
+  private async auditStatusChange(
+    actor: AdminActor,
+    action: 'USER_STATUS_CHANGED' | 'SHOP_STATUS_CHANGED' | 'PRODUCT_STATUS_CHANGED' | 'REFUND_STATUS_CHANGED',
+    entityType: string,
+    entityId: string,
+    before: { status: string },
+    after: { status: string },
+  ): Promise<void> {
+    if (!this.auditLogService || before.status === after.status) return
+    await this.auditLogService.createAuditLogBestEffort({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action,
+      entityType,
+      entityId,
+      before: { status: before.status },
+      after: { status: after.status },
+      metadata: { source: 'admin_api' },
+      nonCritical: true,
+    })
   }
 
   private assertAdmin(actor: AdminActor): void {

@@ -18,6 +18,14 @@ function normalizeUsers(data: unknown): AdminUser[] {
   ) {
     return (data as { data: AdminUser[] }).data;
   }
+  if (
+    data &&
+    typeof data === "object" &&
+    "items" in data &&
+    Array.isArray((data as { items?: unknown }).items)
+  ) {
+    return (data as { items: AdminUser[] }).items;
+  }
   return [];
 }
 

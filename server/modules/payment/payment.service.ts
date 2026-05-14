@@ -1,6 +1,7 @@
 import type { PaymentStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { CacheInvalidation } from '#server/modules/cache'
 import type { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
 import { PaymentServiceError } from './payment.errors.ts'
 import type { IPaymentRepository, PaymentWithOrder, ReleaseReservationInput } from './payment.repository.ts'
@@ -15,6 +16,7 @@ export class PaymentService {
     appContext: AppContext,
     private repo: IPaymentRepository,
     private shipmentService: ShipmentService,
+    private cacheInvalidation?: CacheInvalidation,
   ) {
     this.logger = appContext.logger
   }
@@ -62,6 +64,7 @@ export class PaymentService {
         await txRepo.markPaymentSucceeded(payment.id, new Date())
         await txRepo.markOrderPaid(order.id)
         await this.shipmentService.createShipmentsForPaidOrderWithRepo(txRepo, order.id)
+        await this.invalidateOrderAffectedCaches(payment)
         return { ok: true, code: 'PAYMENT_PAID' }
       }
 
@@ -71,11 +74,13 @@ export class PaymentService {
       if (input.eventType === 'payment.failed') {
         await txRepo.markPaymentFailed(payment.id)
         await txRepo.markOrderCanceled(order.id)
+        await this.invalidateOrderAffectedCaches(payment)
         return { ok: true, code: 'PAYMENT_FAILED' }
       }
 
       await txRepo.markPaymentExpired(payment.id)
       await txRepo.markOrderCanceled(order.id)
+      await this.invalidateOrderAffectedCaches(payment)
       return { ok: true, code: 'PAYMENT_EXPIRED' }
     })
   }
@@ -124,5 +129,15 @@ export class PaymentService {
         variantId: reservation.variantId,
         quantity: reservation.quantity,
       }))
+  }
+
+  private async invalidateOrderAffectedCaches(payment: PaymentWithOrder): Promise<void> {
+    const cacheInvalidation = this.cacheInvalidation
+    if (!cacheInvalidation) return
+    await cacheInvalidation.invalidateInventory()
+    await Promise.all(
+      [...new Set(payment.order.items.map((item) => item.shopId))]
+        .map((shopId) => cacheInvalidation.invalidateSellerDashboard(shopId)),
+    )
   }
 }

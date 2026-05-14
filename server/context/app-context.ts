@@ -34,6 +34,17 @@ import { UserService } from '#server/modules/user/user.service.ts'
 import { PrismaUploadRepository } from '#server/modules/upload/upload.repository.ts'
 import { UploadService } from '#server/modules/upload/upload.service.ts'
 import { getStorageConfigFromEnv, S3UploadStorage } from '#server/modules/upload/upload.storage.ts'
+import { JobService, PrismaJobRepository } from '#server/modules/jobs'
+import { BullMqQueueProducer, getQueueConfigFromEnv, OptionalQueueProducer, type QueueProducer } from '#server/modules/queue'
+import { AuditLogService, PrismaAuditLogRepository } from '#server/modules/audit-log'
+import { OwnershipGuards, PrismaOwnershipGuardRepository, SecurityService } from '#server/modules/security'
+import { CacheInvalidation, CacheService, createRedisCacheClient, getCacheConfigFromEnv } from '#server/modules/cache'
+import {
+  getObservabilityConfigFromEnv,
+  MetricsCollector,
+  ObservabilityService,
+  PrismaHealthCheckRepository,
+} from '#server/modules/observability'
 
 export interface AppConfig {
   environment: string
@@ -46,11 +57,17 @@ export interface AppContext {
 
 export interface ServiceContainer {
   appContext: AppContext
+  auditLogService: AuditLogService
   adminService: AdminService
   cartService: CartService
+  cacheInvalidation: CacheInvalidation
+  cacheService: CacheService
   checkoutService: CheckoutService
   catalogService: CatalogService
+  jobService: JobService
   notificationService: NotificationService
+  metricsCollector: MetricsCollector
+  observabilityService: ObservabilityService
   orderService: OrderService
   paymentService: PaymentService
   promotionService: PromotionService
@@ -58,6 +75,8 @@ export interface ServiceContainer {
   returnService: ReturnService
   reviewService: ReviewService
   searchService: SearchService
+  securityService: SecurityService
+  ownershipGuards: OwnershipGuards
   sellerDashboardService: SellerDashboardService
   shipmentService: ShipmentService
   uploadService: UploadService
@@ -66,28 +85,36 @@ export interface ServiceContainer {
 
 export function createContainer(): ServiceContainer {
   const environment = process.env['NODE_ENV'] ?? 'development'
-  const logger = createLogger({ environment })
+  const logger = createLogger({ environment, level: process.env['LOG_LEVEL'] })
   const config: AppConfig = { environment }
   const appContext: AppContext = { logger, config }
+  const observabilityConfig = getObservabilityConfigFromEnv()
+  const metricsCollector = new MetricsCollector()
+  const queueConfig = getQueueConfigFromEnv()
+  const cacheConfig = getCacheConfigFromEnv()
+  const cacheService = new CacheService(appContext, cacheConfig, createRedisCacheClient(cacheConfig))
+  const cacheInvalidation = new CacheInvalidation(cacheService)
 
+  const auditLogRepo = new PrismaAuditLogRepository(appContext, prisma)
+  const auditLogService = new AuditLogService(appContext, auditLogRepo)
   const adminRepo = new PrismaAdminRepository(appContext, prisma)
-  const adminService = new AdminService(appContext, adminRepo)
+  const adminService = new AdminService(appContext, adminRepo, auditLogService)
   const cartRepo = new PrismaCartRepository(appContext, prisma)
   const cartService = new CartService(appContext, cartRepo)
   const promotionRepo = new PrismaPromotionRepository(appContext, prisma)
   const promotionService = new PromotionService(appContext, promotionRepo)
   const checkoutRepo = new PrismaCheckoutRepository(appContext, prisma)
-  const checkoutService = new CheckoutService(appContext, checkoutRepo, promotionService)
+  const checkoutService = new CheckoutService(appContext, checkoutRepo, promotionService, cacheInvalidation)
   const notificationRepo = new PrismaNotificationRepository(appContext, prisma)
   const notificationService = new NotificationService(appContext, notificationRepo)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
-  const catalogService = new CatalogService(appContext, catalogRepo)
+  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
   const orderService = new OrderService(appContext, orderRepo)
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)
   const shipmentService = new ShipmentService(appContext, shipmentRepo)
   const paymentRepo = new PrismaPaymentRepository(appContext, prisma)
-  const paymentService = new PaymentService(appContext, paymentRepo, shipmentService)
+  const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation)
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
   const returnService = new ReturnService(appContext, returnRepo)
   const refundRepo = new PrismaRefundRepository(appContext, prisma)
@@ -95,23 +122,43 @@ export function createContainer(): ServiceContainer {
   const reviewRepo = new PrismaReviewRepository(appContext, prisma)
   const reviewService = new ReviewService(appContext, reviewRepo)
   const searchRepo = new PrismaSearchRepository(appContext, prisma)
-  const searchService = new SearchService(appContext, searchRepo)
+  const searchService = new SearchService(appContext, searchRepo, cacheService)
   const sellerDashboardRepo = new PrismaSellerDashboardRepository(appContext, prisma)
-  const sellerDashboardService = new SellerDashboardService(appContext, sellerDashboardRepo)
+  const sellerDashboardService = new SellerDashboardService(appContext, sellerDashboardRepo, cacheService)
+  const securityService = new SecurityService(appContext)
+  const ownershipGuardRepo = new PrismaOwnershipGuardRepository(appContext, prisma)
+  const ownershipGuards = new OwnershipGuards(ownershipGuardRepo)
   const uploadRepo = new PrismaUploadRepository(appContext, prisma)
   const storageConfig = getStorageConfigFromEnv()
   const uploadStorage = storageConfig ? new S3UploadStorage(storageConfig) : null
   const uploadService = new UploadService(appContext, uploadRepo, uploadStorage)
+  const queueProducer: QueueProducer = new OptionalQueueProducer(
+    queueConfig ? new BullMqQueueProducer(appContext, queueConfig) : null,
+  )
+  const jobRepo = new PrismaJobRepository(appContext, prisma)
+  const jobService = new JobService(appContext, jobRepo, queueProducer, cacheInvalidation)
+  const healthCheckRepo = new PrismaHealthCheckRepository(appContext, prisma)
+  const observabilityService = new ObservabilityService(appContext, healthCheckRepo, metricsCollector, {
+    metricsEnabled: observabilityConfig.metricsEnabled,
+    healthCheckTimeoutMs: observabilityConfig.healthCheckTimeoutMs,
+    queueConfig,
+  })
   const userRepo = new PrismaUserRepository(appContext, prisma)
   const userService = new UserService(appContext, userRepo)
 
   return {
     appContext,
+    auditLogService,
     adminService,
     cartService,
+    cacheInvalidation,
+    cacheService,
     checkoutService,
     catalogService,
+    jobService,
     notificationService,
+    metricsCollector,
+    observabilityService,
     orderService,
     paymentService,
     promotionService,
@@ -119,6 +166,8 @@ export function createContainer(): ServiceContainer {
     returnService,
     reviewService,
     searchService,
+    securityService,
+    ownershipGuards,
     sellerDashboardService,
     shipmentService,
     uploadService,

@@ -9,6 +9,7 @@ import type {
   VariantStatus,
 } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
+import { CacheService, type CacheClient } from '#server/modules/cache'
 import type {
   ISellerDashboardRepository,
   SellerDashboardOrder,
@@ -45,6 +46,31 @@ function createRepoMock(): ISellerDashboardRepository {
     findLowStockVariants: vi.fn(),
     findRecentOrders: vi.fn(),
   }
+}
+
+function createCacheService() {
+  const store = new Map<string, string>()
+  const client: CacheClient = {
+    get: vi.fn(async (key) => store.get(key) ?? null),
+    set: vi.fn(async (key, value) => {
+      store.set(key, value)
+      return 'OK'
+    }),
+    del: vi.fn(async (...keys) => {
+      keys.forEach((key) => store.delete(key))
+      return keys.length
+    }),
+    keys: vi.fn(async () => []),
+  }
+  return new CacheService(createAppContext(), {
+    enabled: true,
+    redisUrl: 'redis://localhost:6379',
+    defaultTtlSeconds: 300,
+    productTtlSeconds: 120,
+    searchTtlSeconds: 60,
+    sellerDashboardTtlSeconds: 30,
+    keyPrefix: 'v1',
+  }, client)
 }
 
 function createActor(role: Role = 'SELLER') {
@@ -182,6 +208,21 @@ describe('SellerDashboardService', () => {
       orders: { pendingPack: 1, shipped: 1, delivered: 1, cancelled: 1 },
       products: { active: 3, inactive: 2, lowStock: 1 },
     })
+  })
+
+  it('seller dashboard cache is shop-scoped', async () => {
+    const cache = createCacheService()
+    service = new SellerDashboardService(createAppContext(), repo, cache)
+
+    await service.getDashboard(createActor())
+    await service.getDashboard(createActor())
+    expect(repo.findSalesOrderItems).toHaveBeenCalledTimes(1)
+
+    vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-2', name: 'Shop Two', slug: 'shop-two' }])
+    await service.getDashboard(createActor())
+
+    expect(repo.findSalesOrderItems).toHaveBeenCalledTimes(2)
+    expect(repo.findSalesOrderItems).toHaveBeenLastCalledWith(['shop-2'])
   })
 
   it('forbids non-seller dashboard access and fails when seller has no shop', async () => {

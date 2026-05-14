@@ -1,10 +1,11 @@
-import type { Prisma, PrismaClient, Product, ProductVariant, Shop } from '#generated/client/client.ts'
+import type { Category, Prisma, PrismaClient, Product, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
 export interface ProductListFilters {
   keyword?: string
+  categoryId?: string
   shopId?: string
   status?: ProductStatus
   minPriceCents?: number
@@ -21,8 +22,11 @@ export interface PaginatedResult<T> {
   }
 }
 
+export type CatalogCategoryListItem = Pick<Category, 'id' | 'name' | 'slug' | 'sortOrder'>
+
 export interface CreateProductRecord {
   shopId: string
+  categoryId?: string | null
   title: string
   slug: string
   description?: string | null
@@ -30,6 +34,7 @@ export interface CreateProductRecord {
 }
 
 export interface UpdateProductRecord {
+  categoryId?: string | null
   title?: string
   slug?: string
   description?: string | null
@@ -52,6 +57,11 @@ export interface UpdateVariantRecord {
 }
 
 export type CatalogProductListItem = Product & {
+  category: {
+    id: string
+    name: string
+    slug: string
+  } | null
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'>
   variants: Array<ProductVariant & {
     inventory: {
@@ -67,6 +77,7 @@ export type CatalogProductListItem = Product & {
 export type CatalogProductDetail = CatalogProductListItem
 
 export interface ICatalogRepository {
+  findActiveCategories(): Promise<CatalogCategoryListItem[]>
   findShopById(id: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findFirstShopByOwnerId(ownerId: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findProductById(id: string): Promise<CatalogProductDetail | null>
@@ -80,6 +91,13 @@ export interface ICatalogRepository {
 }
 
 const productInclude = {
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+    },
+  },
   shop: {
     select: {
       id: true,
@@ -107,6 +125,20 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     private prisma: PrismaClient,
   ) {
     this.logger = appContext.logger
+  }
+
+  findActiveCategories(): Promise<CatalogCategoryListItem[]> {
+    this.logger.debug('PrismaCatalogRepository.findActiveCategories')
+    return this.prisma.category.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        sortOrder: true,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    })
   }
 
   findShopById(id: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null> {
@@ -204,6 +236,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
 
   private buildProductWhere(filters: ProductListFilters): Prisma.ProductWhereInput {
     return {
+      ...(filters.categoryId ? { category: { slug: filters.categoryId, isActive: true } } : {}),
       ...(filters.shopId ? { shopId: filters.shopId } : {}),
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.keyword

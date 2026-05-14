@@ -2,9 +2,11 @@ import type { ProductVariant } from '#generated/client/client.ts'
 import type { ProductStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { CacheInvalidation, CacheService } from '#server/modules/cache'
 import { CatalogServiceError } from './catalog.errors.ts'
 import type {
   CatalogProductDetail,
+  CatalogCategoryListItem,
   CatalogProductListItem,
   ICatalogRepository,
   PaginatedResult,
@@ -20,6 +22,7 @@ export interface CatalogActor {
 
 export interface CreateProductData {
   shopId?: string
+  categoryId?: string | null
   title: string
   slug?: string
   description?: string | null
@@ -27,6 +30,7 @@ export interface CreateProductData {
 }
 
 export interface UpdateProductData {
+  categoryId?: string | null
   title?: string
   slug?: string
   description?: string | null
@@ -49,6 +53,7 @@ export interface UpdateVariantData {
 
 export interface PublicListProductsData {
   keyword?: string
+  categoryId?: string
   shopId?: string
   minPriceCents?: number
   maxPriceCents?: number
@@ -66,16 +71,35 @@ export class CatalogService {
   constructor(
     appContext: AppContext,
     private repo: ICatalogRepository,
+    private cache?: CacheService,
+    private cacheInvalidation?: CacheInvalidation,
   ) {
     this.logger = appContext.logger
   }
 
+  listCategories(): Promise<CatalogCategoryListItem[]> {
+    this.logger.debug('CatalogService.listCategories')
+    if (!this.cache) return this.repo.findActiveCategories()
+    return this.cache.remember(
+      this.cache.keys.categoryList(),
+      () => this.repo.findActiveCategories(),
+      { ttlSeconds: this.cache.ttl().product },
+    )
+  }
+
   listPublicProducts(filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
     this.logger.debug('CatalogService.listPublicProducts', { filters })
-    return this.repo.findProducts({
+    const normalizedFilters = {
       ...this.normalizeListFilters(filters),
       status: 'ACTIVE',
-    })
+    } as const
+
+    if (!this.cache) return this.repo.findProducts(normalizedFilters)
+    return this.cache.remember(
+      this.cache.keys.productList(normalizedFilters),
+      () => this.repo.findProducts(normalizedFilters),
+      { ttlSeconds: this.cache.ttl().product },
+    )
   }
 
   listPublicShopProducts(shopId: string, filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
@@ -85,7 +109,13 @@ export class CatalogService {
 
   async getPublicProductDetail(id: string): Promise<CatalogProductDetail> {
     this.logger.debug('CatalogService.getPublicProductDetail', { id })
-    const product = await this.repo.findProductById(id)
+    const product = this.cache
+      ? await this.cache.remember(
+          this.cache.keys.productDetail(id),
+          () => this.repo.findProductById(id),
+          { ttlSeconds: this.cache.ttl().product },
+        )
+      : await this.repo.findProductById(id)
     if (!product || product.status !== 'ACTIVE') {
       throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     }
@@ -118,14 +148,17 @@ export class CatalogService {
       throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
     }
 
-    return this.handleUniqueConstraint(() =>
+    const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateProduct(product.id, {
+        ...(data.categoryId === undefined ? {} : { categoryId: this.normalizeNullableText(data.categoryId) }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
         ...(data.slug === undefined ? {} : { slug: this.normalizeSlug(data.slug) }),
         ...(data.description === undefined ? {} : { description: this.normalizeNullableText(data.description) }),
         ...(data.status === undefined ? {} : { status: data.status }),
       }),
     )
+    await this.cacheInvalidation?.invalidateProduct(updated.id)
+    return updated
   }
 
   async createAdminVariant(productId: string, data: CreateVariantData): Promise<ProductVariant> {
@@ -134,7 +167,7 @@ export class CatalogService {
     const product = await this.repo.findProductById(productId)
     if (!product) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
 
-    return this.handleUniqueConstraint(() =>
+    const variant = await this.handleUniqueConstraint(() =>
       this.repo.createVariant({
         productId,
         sku: data.sku.trim(),
@@ -143,6 +176,8 @@ export class CatalogService {
         currency: data.currency?.trim().toUpperCase() || 'USD',
       }),
     )
+    await this.cacheInvalidation?.invalidateVariant(productId)
+    return variant
   }
 
   async updateAdminVariant(productId: string, variantId: string, data: UpdateVariantData): Promise<ProductVariant> {
@@ -156,7 +191,7 @@ export class CatalogService {
       throw new CatalogServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
     }
 
-    return this.handleUniqueConstraint(() =>
+    const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateVariant(variantId, {
         ...(data.sku === undefined ? {} : { sku: data.sku.trim() }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
@@ -164,6 +199,8 @@ export class CatalogService {
         ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
       }),
     )
+    await this.cacheInvalidation?.invalidateVariant(productId)
+    return updated
   }
 
   async deleteAdminVariant(productId: string, variantId: string): Promise<ProductVariant> {
@@ -172,7 +209,9 @@ export class CatalogService {
     if (!variant || variant.productId !== productId) {
       throw new CatalogServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
     }
-    return this.repo.deleteVariant(variantId)
+    const deleted = await this.repo.deleteVariant(variantId)
+    await this.cacheInvalidation?.invalidateVariant(productId)
+    return deleted
   }
 
   async listSellerProducts(actor: CatalogActor, filters: SellerListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
@@ -193,15 +232,18 @@ export class CatalogService {
     const shop = await this.resolveSellerShop(actor, data.shopId)
     this.assertCanManageShop(actor, shop.ownerId)
 
-    return this.handleUniqueConstraint(() =>
+    const created = await this.handleUniqueConstraint(() =>
       this.repo.createProduct({
         shopId: shop.id,
+        categoryId: this.normalizeNullableText(data.categoryId),
         title: data.title.trim(),
         slug: this.normalizeSlug(data.slug ?? data.title),
         description: this.normalizeNullableText(data.description),
         status: data.status ?? 'DRAFT',
       }),
     )
+    await this.cacheInvalidation?.invalidateProductListsAndSearch()
+    return created
   }
 
   async updateProduct(actor: CatalogActor, productId: string, data: UpdateProductData): Promise<CatalogProductDetail> {
@@ -216,20 +258,25 @@ export class CatalogService {
       throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
     }
 
-    return this.handleUniqueConstraint(() =>
+    const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateProduct(product.id, {
+        ...(data.categoryId === undefined ? {} : { categoryId: this.normalizeNullableText(data.categoryId) }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
         ...(data.slug === undefined ? {} : { slug: this.normalizeSlug(data.slug) }),
         ...(data.description === undefined ? {} : { description: this.normalizeNullableText(data.description) }),
         ...(data.status === undefined ? {} : { status: data.status }),
       }),
     )
+    await this.cacheInvalidation?.invalidateProduct(updated.id)
+    return updated
   }
 
   async archiveProduct(actor: CatalogActor, productId: string): Promise<CatalogProductDetail> {
     this.logger.info('CatalogService.archiveProduct', { actorId: actor.id, productId })
     const product = await this.getManageableProduct(actor, productId)
-    return this.repo.updateProduct(product.id, { status: 'ARCHIVED' })
+    const updated = await this.repo.updateProduct(product.id, { status: 'ARCHIVED' })
+    await this.cacheInvalidation?.invalidateProduct(updated.id)
+    return updated
   }
 
   async createVariant(actor: CatalogActor, productId: string, data: CreateVariantData): Promise<ProductVariant> {
@@ -237,7 +284,7 @@ export class CatalogService {
     this.validateVariantInput(data)
     await this.getManageableProduct(actor, productId)
 
-    return this.handleUniqueConstraint(() =>
+    const variant = await this.handleUniqueConstraint(() =>
       this.repo.createVariant({
         productId,
         sku: data.sku.trim(),
@@ -246,6 +293,8 @@ export class CatalogService {
         currency: data.currency?.trim().toUpperCase() || 'USD',
       }),
     )
+    await this.cacheInvalidation?.invalidateVariant(productId)
+    return variant
   }
 
   async updateVariant(actor: CatalogActor, productId: string, variantId: string, data: UpdateVariantData): Promise<ProductVariant> {
@@ -256,7 +305,7 @@ export class CatalogService {
     this.validateVariantUpdateInput(data)
     await this.getManageableVariant(actor, productId, variantId)
 
-    return this.handleUniqueConstraint(() =>
+    const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateVariant(variantId, {
         ...(data.sku === undefined ? {} : { sku: data.sku.trim() }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
@@ -264,12 +313,16 @@ export class CatalogService {
         ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
       }),
     )
+    await this.cacheInvalidation?.invalidateVariant(productId)
+    return updated
   }
 
   async deleteVariant(actor: CatalogActor, productId: string, variantId: string): Promise<ProductVariant> {
     this.logger.info('CatalogService.deleteVariant', { actorId: actor.id, productId, variantId })
     await this.getManageableVariant(actor, productId, variantId)
-    return this.repo.deleteVariant(variantId)
+    const deleted = await this.repo.deleteVariant(variantId)
+    await this.cacheInvalidation?.invalidateVariant(productId)
+    return deleted
   }
 
   private async resolveSellerShop(actor: CatalogActor, requestedShopId?: string) {
@@ -312,6 +365,7 @@ export class CatalogService {
 
     return {
       keyword: filters.keyword?.trim() || undefined,
+      categoryId: filters.categoryId?.trim() || undefined,
       shopId: filters.shopId,
       minPriceCents: filters.minPriceCents,
       maxPriceCents: filters.maxPriceCents,

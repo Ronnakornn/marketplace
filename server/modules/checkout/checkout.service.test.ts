@@ -115,6 +115,7 @@ function createItem(overrides: Partial<{
       product: {
         id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
         shopId: '11111111-1111-4111-8111-111111111111',
+        categoryId: null,
         title: 'Oversized Cotton Tee',
         slug: 'oversized-cotton-tee',
         description: null,

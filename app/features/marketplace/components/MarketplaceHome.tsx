@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BellIcon,
   FlameIcon,
   Grid3X3Icon,
   HeartIcon,
   HomeIcon,
+  LogInIcon,
+  LogOutIcon,
   MenuIcon,
   PackageIcon,
   SearchIcon,
@@ -21,8 +26,10 @@ import {
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
+import { Input } from "#/components/ui/input";
 import { Skeleton } from "#/components/ui/skeleton";
-import { useCatalogProducts, type CatalogProduct } from "#/features/catalog";
+import { addCartItem, fetchCart, fetchCategories, fetchProducts, type BuyerProduct } from "#/features/buyer/api";
+import { signOut } from "#/lib/auth-client";
 
 interface MarketplaceHomeProps {
   user?: {
@@ -33,7 +40,9 @@ interface MarketplaceHomeProps {
 
 interface StorefrontProduct {
   id: string;
+  variantId: string | null;
   title: string;
+  description: string | null;
   shopName: string;
   priceCents: number;
   originalPriceCents: number;
@@ -47,18 +56,31 @@ interface StorefrontProduct {
   gradient: string;
 }
 
-const categoryItems = [
-  ["Fashion", "bg-rose-100 text-rose-600"],
-  ["Beauty", "bg-pink-100 text-pink-600"],
-  ["Gadgets", "bg-sky-100 text-sky-600"],
-  ["Home", "bg-emerald-100 text-emerald-600"],
-  ["Sports", "bg-orange-100 text-orange-600"],
-  ["Kids", "bg-violet-100 text-violet-600"],
-  ["Groceries", "bg-lime-100 text-lime-700"],
-  ["Pets", "bg-amber-100 text-amber-700"],
-  ["Deals", "bg-red-100 text-red-600"],
-  ["More", "bg-slate-100 text-slate-600"],
+const fallbackCategoryItems = [
+  ["fashion", "Fashion", "bg-rose-100 text-rose-600"],
+  ["beauty", "Beauty", "bg-pink-100 text-pink-600"],
+  ["gadgets", "Gadgets", "bg-slate-100 text-slate-700"],
+  ["home", "Home", "bg-emerald-100 text-emerald-600"],
+  ["sports", "Sports", "bg-orange-100 text-orange-600"],
+  ["kids", "Kids", "bg-violet-100 text-violet-600"],
+  ["groceries", "Groceries", "bg-lime-100 text-lime-700"],
+  ["pets", "Pets", "bg-amber-100 text-amber-700"],
+  ["deals", "Deals", "bg-red-100 text-red-600"],
+  ["more", "More", "bg-slate-100 text-slate-600"],
 ] as const;
+
+const categoryStyles = [
+  "bg-rose-100 text-rose-600",
+  "bg-pink-100 text-pink-600",
+  "bg-slate-100 text-slate-700",
+  "bg-emerald-100 text-emerald-600",
+  "bg-orange-100 text-orange-600",
+  "bg-violet-100 text-violet-600",
+  "bg-lime-100 text-lime-700",
+  "bg-amber-100 text-amber-700",
+  "bg-red-100 text-red-600",
+  "bg-slate-100 text-slate-600",
+];
 
 const productGradients = [
   "from-orange-100 via-rose-100 to-white",
@@ -72,7 +94,9 @@ const productGradients = [
 const fallbackProducts: StorefrontProduct[] = [
   {
     id: "mock-1",
+    variantId: null,
     title: "Canvas Weekender Bag with laptop sleeve",
+    description: "Durable canvas bag for everyday travel.",
     shopName: "Demo Market Shop",
     priceCents: 4890,
     originalPriceCents: 6890,
@@ -87,7 +111,9 @@ const fallbackProducts: StorefrontProduct[] = [
   },
   {
     id: "mock-2",
+    variantId: null,
     title: "Ceramic Pour Over Coffee Set",
+    description: "A compact pour over set for home coffee.",
     shopName: "Daily Brew",
     priceCents: 3590,
     originalPriceCents: 4590,
@@ -102,7 +128,9 @@ const fallbackProducts: StorefrontProduct[] = [
   },
   {
     id: "mock-3",
+    variantId: null,
     title: "Modular Desk Tray Organizer",
+    description: "Stackable organizer for a cleaner workspace.",
     shopName: "Workmode",
     priceCents: 1890,
     originalPriceCents: 2490,
@@ -117,7 +145,9 @@ const fallbackProducts: StorefrontProduct[] = [
   },
   {
     id: "mock-4",
+    variantId: null,
     title: "Wireless Mini Speaker",
+    description: "Portable speaker with clear everyday sound.",
     shopName: "Sound Lab",
     priceCents: 2990,
     originalPriceCents: 3990,
@@ -132,7 +162,9 @@ const fallbackProducts: StorefrontProduct[] = [
   },
   {
     id: "mock-5",
+    variantId: null,
     title: "Hydrating Lip Tint Duo",
+    description: "Two soft color tints with hydrating finish.",
     shopName: "Glow Cart",
     priceCents: 1490,
     originalPriceCents: 2190,
@@ -147,7 +179,9 @@ const fallbackProducts: StorefrontProduct[] = [
   },
   {
     id: "mock-6",
+    variantId: null,
     title: "Daily Training Shorts",
+    description: "Lightweight shorts for daily movement.",
     shopName: "Move Goods",
     priceCents: 2290,
     originalPriceCents: 3290,
@@ -162,14 +196,16 @@ const fallbackProducts: StorefrontProduct[] = [
   },
 ];
 
-function mapCatalogProduct(product: CatalogProduct, index: number): StorefrontProduct {
+function mapBuyerProduct(product: BuyerProduct, index: number): StorefrontProduct {
   const firstVariant = product.variants[0];
   const priceCents = firstVariant?.priceCents ?? 1990 + index * 320;
   const discountPercent = [18, 22, 25, 30, 35][index % 5];
 
   return {
     id: product.id,
+    variantId: firstVariant?.id ?? null,
     title: product.title,
+    description: product.description,
     shopName: product.shop.name,
     priceCents,
     originalPriceCents: Math.round(priceCents / (1 - discountPercent / 100)),
@@ -177,10 +213,10 @@ function mapCatalogProduct(product: CatalogProduct, index: number): StorefrontPr
     rating: Number((4.5 + (index % 5) * 0.08).toFixed(1)),
     sold: 420 + index * 317,
     discountPercent,
-    category: categoryItems[index % categoryItems.length][0],
+    category: fallbackCategoryItems[index % fallbackCategoryItems.length]?.[1] ?? "Deals",
     freeShipping: index % 3 !== 0,
-    stock: firstVariant?.inventory?.quantityOnHand ?? 20 + index * 3,
-    gradient: productGradients[index % productGradients.length],
+    stock: firstVariant?.stock ?? product.stock,
+    gradient: productGradients[index % productGradients.length] ?? productGradients[0]!,
   };
 }
 
@@ -206,20 +242,76 @@ function duplicateForFeed(products: StorefrontProduct[]) {
 }
 
 export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
-  const { data: catalogProducts = [], isLoading, error } = useCatalogProducts();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const productsQuery = useQuery({
+    queryKey: ["marketplace-home-products", searchTerm, activeCategory],
+    queryFn: () => fetchProducts({
+      q: searchTerm || undefined,
+      categoryId: activeCategory ?? undefined,
+      limit: 50,
+    }),
+  });
+  const categoriesQuery = useQuery({
+    queryKey: ["marketplace-categories"],
+    queryFn: fetchCategories,
+  });
+  const cartQuery = useQuery({
+    queryKey: ["buyer-cart"],
+    queryFn: fetchCart,
+    enabled: Boolean(user),
+  });
+  const addToCartMutation = useMutation({
+    mutationFn: (variantId: string) => addCartItem(variantId, 1),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
+    },
+  });
   const [visibleCount, setVisibleCount] = useState(10);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const products = useMemo(() => {
-    const mapped = catalogProducts.length
-      ? catalogProducts.map(mapCatalogProduct)
-      : fallbackProducts;
-
-    return duplicateForFeed(mapped);
-  }, [catalogProducts]);
+    const liveProducts = productsQuery.data ?? [];
+    if (liveProducts.length) return liveProducts.map(mapBuyerProduct);
+    return duplicateForFeed(fallbackProducts);
+  }, [productsQuery.data]);
 
   const visibleProducts = products.slice(0, visibleCount);
   const flashProducts = products.slice(0, 8);
+  const cartItemCount = cartQuery.data?.shops.reduce(
+    (total, shop) => total + shop.items.reduce((shopTotal, item) => shopTotal + item.quantity, 0),
+    0,
+  ) ?? 0;
+  const categories = useMemo(() => {
+    const apiCategories = categoriesQuery.data ?? [];
+    if (apiCategories.length) return apiCategories.map((category, index) => ({
+      slug: category.slug,
+      label: category.name,
+      className: categoryStyles[index % categoryStyles.length] ?? categoryStyles.at(-1)!,
+    }));
+    return fallbackCategoryItems.map(([slug, label, className]) => ({ slug, label, className }));
+  }, [categoriesQuery.data]);
+
+  async function handleSignOut() {
+    await signOut();
+    router.push("/");
+    router.refresh();
+  }
+
+  function handleAddToCart(product: StorefrontProduct) {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    if (product.variantId) addToCartMutation.mutate(product.variantId);
+  }
+
+  function handleSearchSubmit() {
+    const query = searchTerm.trim();
+    router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+  }
 
   useEffect(() => {
     const element = loadMoreRef.current;
@@ -240,18 +332,33 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   return (
     <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950">
-      <MobileCommerceHeader userName={user?.name} />
+      <MobileCommerceHeader
+        userName={user?.name}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        onSearchSubmit={handleSearchSubmit}
+        isSignedIn={Boolean(user)}
+        cartItemCount={cartItemCount}
+        onSignOut={() => void handleSignOut()}
+      />
 
       <main className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
         <HeroPromo />
-        <VoucherStrip hasFallback={Boolean(error) || catalogProducts.length === 0} />
-        <FlashSaleSection products={flashProducts} isLoading={isLoading} />
-        <CategoryGrid />
+        <VoucherStrip hasFallback={Boolean(productsQuery.error) || (productsQuery.data?.length ?? 0) === 0} />
+        <FlashSaleSection
+          products={flashProducts}
+          isLoading={productsQuery.isLoading}
+          onAddToCart={handleAddToCart}
+          pendingVariantId={addToCartMutation.variables}
+        />
+        <CategoryGrid categories={categories} activeCategory={activeCategory} onSelectCategory={setActiveCategory} />
         <ProductRecommendationGrid
           products={visibleProducts}
-          isLoading={isLoading}
+          isLoading={productsQuery.isLoading}
           hasMore={visibleCount < products.length}
           loadMoreRef={loadMoreRef}
+          onAddToCart={handleAddToCart}
+          pendingVariantId={addToCartMutation.variables}
         />
       </main>
 
@@ -261,24 +368,90 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   );
 }
 
-function MobileCommerceHeader({ userName }: { userName?: string }) {
+function MobileCommerceHeader({
+  userName,
+  searchTerm,
+  onSearchTermChange,
+  onSearchSubmit,
+  isSignedIn,
+  cartItemCount,
+  onSignOut,
+}: {
+  userName?: string;
+  searchTerm: string;
+  onSearchTermChange: (value: string) => void;
+  onSearchSubmit: () => void;
+  isSignedIn: boolean;
+  cartItemCount: number;
+  onSignOut: () => void;
+}) {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center gap-2">
-        <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200">
+        <form
+          className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSearchSubmit();
+          }}
+        >
           <SearchIcon className="size-4 text-slate-500" />
-          <span className="truncate text-sm text-slate-500">
-            Search deals, brands, and shops
-          </span>
-        </div>
-        <Button size="icon-sm" variant="ghost" className="rounded-full">
+          <Input
+            value={searchTerm}
+            onChange={(event) => onSearchTermChange(event.target.value)}
+            placeholder="Search deals, brands, and shops"
+            className="h-8 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+          />
+        </form>
+        <Button size="icon-sm" variant="ghost" className="rounded-full" asChild>
+          <Link href="/notifications">
           <BellIcon className="size-5" />
           <span className="sr-only">Notifications</span>
+          </Link>
         </Button>
-        <Button size="icon-sm" variant="ghost" className="rounded-full">
+        <Button size="icon-sm" variant="ghost" className="relative rounded-full" asChild>
+          <Link href="/cart">
           <ShoppingCartIcon className="size-5" />
+          {cartItemCount > 0 ? (
+            <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
+              {cartItemCount > 99 ? "99+" : cartItemCount}
+            </span>
+          ) : null}
           <span className="sr-only">Cart</span>
+          </Link>
         </Button>
+        {isSignedIn ? (
+          <>
+            <Button size="icon-sm" variant="ghost" className="rounded-full" asChild>
+              <Link href="/profile">
+                <UserCircleIcon className="size-5" />
+                <span className="sr-only">Profile</span>
+              </Link>
+            </Button>
+            <Button size="icon-sm" variant="ghost" className="rounded-full text-slate-600" onClick={onSignOut}>
+              <LogOutIcon className="size-5" />
+              <span className="sr-only">Sign out</span>
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button size="sm" className="hidden rounded-full bg-slate-950 text-white hover:bg-slate-800 sm:inline-flex" asChild>
+              <Link href="/login">
+                <LogInIcon className="size-4" />
+                Sign in
+              </Link>
+            </Button>
+            <Button size="sm" variant="outline" className="hidden rounded-full border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 sm:inline-flex" asChild>
+              <Link href="/signup">Sign up</Link>
+            </Button>
+            <Button size="icon-sm" variant="ghost" className="rounded-full sm:hidden" asChild>
+              <Link href="/login">
+                <LogInIcon className="size-5" />
+                <span className="sr-only">Sign in</span>
+              </Link>
+            </Button>
+          </>
+        )}
       </div>
       {userName ? (
         <p className="mx-auto mt-1 max-w-6xl truncate px-1 text-xs text-slate-500">
@@ -346,7 +519,17 @@ function VoucherStrip({ hasFallback }: { hasFallback: boolean }) {
   );
 }
 
-function FlashSaleSection({ products, isLoading }: { products: StorefrontProduct[]; isLoading: boolean }) {
+function FlashSaleSection({
+  products,
+  isLoading,
+  onAddToCart,
+  pendingVariantId,
+}: {
+  products: StorefrontProduct[];
+  isLoading: boolean;
+  onAddToCart: (product: StorefrontProduct) => void;
+  pendingVariantId?: string;
+}) {
   return (
     <section className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70 sm:p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -368,7 +551,9 @@ function FlashSaleSection({ products, isLoading }: { products: StorefrontProduct
           <Skeleton key={index} className="h-52 min-w-[132px] rounded-2xl" />
         )) : products.map((product) => (
           <article key={product.id} className="min-w-[132px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-            <ProductVisual product={product} compact />
+            <Link href={`/products/${product.id}`}>
+              <ProductVisual product={product} compact />
+            </Link>
             <div className="p-2">
               <p className="line-clamp-2 min-h-9 text-xs font-semibold text-slate-800">{product.title}</p>
               <p className="mt-1 text-base font-extrabold text-orange-600">{formatMoney(product.priceCents, product.currency)}</p>
@@ -376,6 +561,14 @@ function FlashSaleSection({ products, isLoading }: { products: StorefrontProduct
                 <div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: `${Math.min(92, 42 + product.discountPercent)}%` }} />
               </div>
               <p className="mt-1 text-[11px] text-slate-500">{product.sold.toLocaleString()} sold</p>
+              <Button
+                size="sm"
+                className="mt-2 h-8 w-full rounded-full bg-orange-600 text-white hover:bg-orange-700"
+                disabled={!product.variantId || pendingVariantId === product.variantId}
+                onClick={() => onAddToCart(product)}
+              >
+                {pendingVariantId === product.variantId ? "Adding" : "Add"}
+              </Button>
             </div>
           </article>
         ))}
@@ -384,7 +577,15 @@ function FlashSaleSection({ products, isLoading }: { products: StorefrontProduct
   );
 }
 
-function CategoryGrid() {
+function CategoryGrid({
+  categories,
+  activeCategory,
+  onSelectCategory,
+}: {
+  categories: Array<{ slug: string; label: string; className: string }>;
+  activeCategory: string | null;
+  onSelectCategory: (category: string | null) => void;
+}) {
   return (
     <section className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70 sm:p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -392,8 +593,13 @@ function CategoryGrid() {
         <Grid3X3Icon className="size-5 text-slate-400" />
       </div>
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
-        {categoryItems.map(([label, className]) => (
-          <button key={label} type="button" className="group flex min-w-0 flex-col items-center gap-2 rounded-2xl p-2 transition hover:bg-slate-50">
+        {categories.map(({ slug, label, className }) => (
+          <button
+            key={slug}
+            type="button"
+            onClick={() => onSelectCategory(activeCategory === slug ? null : slug)}
+            className={`group flex min-w-0 flex-col items-center gap-2 rounded-2xl p-2 transition hover:bg-slate-50 ${activeCategory === slug ? "bg-orange-50 ring-1 ring-orange-200" : ""}`}
+          >
             <span className={`flex size-11 items-center justify-center rounded-2xl ${className}`}>
               <PackageIcon className="size-5" />
             </span>
@@ -412,6 +618,8 @@ function ProductRecommendationGrid(props: {
   isLoading: boolean;
   hasMore: boolean;
   loadMoreRef: React.RefObject<HTMLDivElement | null>;
+  onAddToCart: (product: StorefrontProduct) => void;
+  pendingVariantId?: string;
 }) {
   return (
     <section className="mt-5">
@@ -424,7 +632,12 @@ function ProductRecommendationGrid(props: {
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
         {props.products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard
+            key={product.id}
+            product={product}
+            onAddToCart={props.onAddToCart}
+            isAdding={props.pendingVariantId === product.variantId}
+          />
         ))}
         {props.isLoading ? Array.from({ length: 6 }).map((_, index) => (
           <Skeleton key={index} className="h-72 rounded-3xl" />
@@ -437,10 +650,20 @@ function ProductRecommendationGrid(props: {
   );
 }
 
-function ProductCard({ product }: { product: StorefrontProduct }) {
+function ProductCard({
+  product,
+  onAddToCart,
+  isAdding,
+}: {
+  product: StorefrontProduct;
+  onAddToCart: (product: StorefrontProduct) => void;
+  isAdding: boolean;
+}) {
   return (
     <Card className="group overflow-hidden rounded-3xl border-slate-200 bg-white py-0 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-      <ProductVisual product={product} />
+      <Link href={`/products/${product.id}`}>
+        <ProductVisual product={product} />
+      </Link>
       <CardContent className="p-3">
         <div className="mb-2 flex flex-wrap gap-1">
           {product.freeShipping ? (
@@ -452,9 +675,11 @@ function ProductCard({ product }: { product: StorefrontProduct }) {
             -{product.discountPercent}%
           </Badge>
         </div>
-        <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-slate-900">
-          {product.title}
-        </h3>
+        <Link href={`/products/${product.id}`}>
+          <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-slate-900">
+            {product.title}
+          </h3>
+        </Link>
         <p className="mt-1 truncate text-xs text-slate-500">{product.shopName}</p>
         <div className="mt-2 flex items-end gap-1">
           <p className="text-lg font-extrabold text-orange-600">{formatMoney(product.priceCents, product.currency)}</p>
@@ -467,8 +692,12 @@ function ProductCard({ product }: { product: StorefrontProduct }) {
           </span>
           <span>{product.sold.toLocaleString()} sold</span>
         </div>
-        <Button className="mt-3 h-9 w-full rounded-full bg-slate-950 text-white hover:bg-slate-800">
-          Add
+        <Button
+          className="mt-3 h-9 w-full rounded-full bg-slate-950 text-white hover:bg-slate-800"
+          disabled={!product.variantId || isAdding}
+          onClick={() => onAddToCart(product)}
+        >
+          {isAdding ? "Adding" : product.stock > 0 ? "Add to cart" : "Out of stock"}
         </Button>
       </CardContent>
     </Card>
@@ -481,10 +710,10 @@ function ProductVisual({ product, compact = false }: { product: StorefrontProduc
       <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-600 shadow-sm">
         -{product.discountPercent}%
       </div>
-      <button type="button" className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-500 shadow-sm">
+      <span className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-500 shadow-sm">
         <HeartIcon className="size-4" />
         <span className="sr-only">Save product</span>
-      </button>
+      </span>
       <div className="absolute inset-0 flex items-center justify-center">
         <ShoppingBagIcon className={`${compact ? "size-12" : "size-20"} text-slate-400/45`} />
       </div>
@@ -510,21 +739,21 @@ function StickyCheckoutCTA() {
 
 function MobileBottomNav() {
   const items = [
-    [HomeIcon, "Home"],
-    [MenuIcon, "Categories"],
-    [FlameIcon, "Deals"],
-    [ShoppingCartIcon, "Cart"],
-    [UserCircleIcon, "Account"],
+    [HomeIcon, "Home", "/"],
+    [MenuIcon, "Categories", "/categories/deals"],
+    [FlameIcon, "Deals", "/search?q=deal"],
+    [ShoppingCartIcon, "Cart", "/cart"],
+    [UserCircleIcon, "Account", "/profile"],
   ] as const;
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.35rem)] pt-1.5 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:hidden">
       <div className="mx-auto grid max-w-md grid-cols-5">
-        {items.map(([Icon, label], index) => (
-          <button key={label} type="button" className={`flex flex-col items-center gap-1 rounded-xl px-1 py-1 text-[11px] font-semibold ${index === 0 ? "text-orange-600" : "text-slate-500"}`}>
+        {items.map(([Icon, label, href], index) => (
+          <Link key={label} href={href} className={`flex flex-col items-center gap-1 rounded-xl px-1 py-1 text-[11px] font-semibold ${index === 0 ? "bg-orange-50 text-orange-600" : "text-slate-500"}`}>
             <Icon className="size-5" />
             <span>{label}</span>
-          </button>
+          </Link>
         ))}
       </div>
     </nav>

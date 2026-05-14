@@ -24,9 +24,20 @@ erDiagram
   PRODUCT {
     string id PK
     string shopId FK
+    string categoryId FK
     string title
     string slug
     string status
+    datetime createdAt
+    datetime updatedAt
+  }
+
+  CATEGORY {
+    string id PK
+    string name
+    string slug UK
+    int sortOrder
+    boolean isActive
     datetime createdAt
     datetime updatedAt
   }

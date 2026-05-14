@@ -52,6 +52,7 @@ function createProduct(overrides: Partial<{
     description: overrides.description ?? 'Soft cotton shirt',
     status: overrides.status ?? 'ACTIVE',
     createdAt: now,
+    category: null,
     shop: {
       id: overrides.shopId ?? 'shop-1',
       name: 'Shop One',
@@ -106,6 +107,7 @@ describe('SearchService', () => {
 
     expect(repo.findSearchableProducts).toHaveBeenCalledWith({
       q: 'cotton',
+      categoryId: undefined,
       shopId: undefined,
       minPriceCents: undefined,
       maxPriceCents: undefined,
@@ -170,7 +172,9 @@ describe('SearchService', () => {
     await expect(service.searchProducts({ sort: 'weird' })).rejects.toMatchObject({ code: 'INVALID_SORT' })
     await expect(service.searchProducts({ minPrice: 500, maxPrice: 100 })).rejects.toMatchObject({ code: 'INVALID_FILTER' })
     await expect(service.searchProducts({ rating: 6 })).rejects.toMatchObject({ code: 'INVALID_FILTER' })
-    await expect(service.searchProducts({ categoryId: 'cat-1' })).rejects.toMatchObject({ code: 'INVALID_FILTER' })
+    await expect(service.searchProducts({ categoryId: 'fashion' })).resolves.toMatchObject({
+      filters: { categoryId: 'fashion' },
+    })
   })
 
   it('returns search suggestions', async () => {

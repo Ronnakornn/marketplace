@@ -1,6 +1,12 @@
 import { Elysia } from "elysia";
 import { authPlugin } from "#server/modules/auth";
 import { createContainer } from "#server/context/app-context";
+import { createAuditLogRoutes } from "#server/modules/audit-log";
+import { getSecurityConfigFromEnv } from "#server/modules/security";
+import { createSecurityPlugin } from "#server/plugins/security.plugin";
+import { getObservabilityConfigFromEnv, createObservabilityRoutes } from "#server/modules/observability";
+import { createObservabilityPlugin } from "#server/plugins/observability.plugin";
+import { createCachePlugin } from "#server/plugins/cache.plugin";
 import { createAdminRoutes } from "#server/modules/admin";
 import { createCartRoutes } from "#server/modules/cart";
 import { createCheckoutRoutes } from "#server/modules/checkout";
@@ -32,11 +38,23 @@ const baseApp = new Elysia()
     });
   })
 
-  // --- health check ---
-  .get("/api/health", () => ({ status: "ok" }))
+  // --- Observability: request IDs, request/error logs, metrics ---
+  .use(createObservabilityPlugin(container.appContext, container.metricsCollector, getObservabilityConfigFromEnv()))
+
+  // --- Security hardening middleware ---
+  .use(createSecurityPlugin(container.appContext, getSecurityConfigFromEnv()))
+
+  // --- Redis-backed backend cache context ---
+  .use(createCachePlugin(container.cacheService))
+
+  // --- health/readiness/liveness/metrics ---
+  .use(createObservabilityRoutes(container))
 
   // --- Better Auth handler + auth macro ---
   .use(authPlugin)
+
+  // --- Audit log admin routes ---
+  .use(createAuditLogRoutes(container))
 
   // --- Review routes ---
   .use(createReviewRoutes(container))

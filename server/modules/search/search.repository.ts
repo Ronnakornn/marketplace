@@ -4,6 +4,7 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
 export interface SearchRepositoryFilters {
   q?: string
+  categoryId?: string
   shopId?: string
   minPriceCents?: number
   maxPriceCents?: number
@@ -16,6 +17,11 @@ export type SearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' |
 }
 
 export type SearchProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'description' | 'createdAt' | 'status'> & {
+  category: {
+    id: string
+    name: string
+    slug: string
+  } | null
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
   variants: SearchProductVariant[]
   reviews: Array<Pick<Review, 'rating' | 'status'>>
@@ -39,6 +45,13 @@ const searchProductSelect = {
       name: true,
       slug: true,
       status: true,
+    },
+  },
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
     },
   },
   variants: {
@@ -108,6 +121,7 @@ export class PrismaSearchRepository implements ISearchRepository {
   private buildProductWhere(filters: SearchRepositoryFilters): Prisma.ProductWhereInput {
     return {
       status: 'ACTIVE',
+      ...(filters.categoryId ? { category: { slug: filters.categoryId, isActive: true } } : {}),
       shop: {
         status: 'ACTIVE',
         ...(filters.shopId ? { id: filters.shopId } : {}),

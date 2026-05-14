@@ -1,6 +1,7 @@
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { CacheService } from '#server/modules/cache'
 import { SellerDashboardServiceError } from './seller-dashboard.errors.ts'
 import type {
   ISellerDashboardRepository,
@@ -82,6 +83,7 @@ export class SellerDashboardService {
   constructor(
     appContext: AppContext,
     private repo: ISellerDashboardRepository,
+    private cache?: CacheService,
   ) {
     this.logger = appContext.logger
   }
@@ -91,6 +93,18 @@ export class SellerDashboardService {
     const recentLimit = this.normalizeLimit(limit)
     this.logger.info('SellerDashboardService.getDashboard', { actorId: actor.id, shopIds, recentLimit })
 
+    if (this.cache && shopIds.length === 1) {
+      return this.cache.remember(
+        this.cache.keys.sellerDashboard(shopIds[0]!),
+        () => this.getDashboardForShopIds(shopIds, recentLimit),
+        { ttlSeconds: this.cache.ttl().sellerDashboard },
+      )
+    }
+
+    return this.getDashboardForShopIds(shopIds, recentLimit)
+  }
+
+  private async getDashboardForShopIds(shopIds: string[], recentLimit: number): Promise<SellerDashboardResponse> {
     const [salesItems, shipments, activeProducts, inactiveProducts, lowStockVariants, recentOrders] = await Promise.all([
       this.repo.findSalesOrderItems(shopIds),
       this.repo.findShipments(shopIds),

@@ -13,8 +13,18 @@ export default function AppChrome({ children }: AppChromeProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith("/admin");
   const isMarketplaceHome = pathname === "/";
+  const isBuyerRoute = [
+    "/search",
+    "/categories",
+    "/products",
+    "/cart",
+    "/checkout",
+    "/orders",
+    "/profile",
+    "/notifications",
+  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
-  if (isAdminRoute || isMarketplaceHome) {
+  if (isAdminRoute || isMarketplaceHome || isBuyerRoute) {
     return <>{children}</>;
   }
 

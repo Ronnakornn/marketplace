@@ -75,6 +75,7 @@ function createVariant(overrides: Partial<{
     product: {
       id: '22222222-2222-4222-8222-222222222222',
       shopId,
+      categoryId: null,
       title: 'Oversized Cotton Tee',
       slug: 'oversized-cotton-tee',
       description: null,

@@ -7,6 +7,13 @@ import { CatalogServiceError } from './catalog.errors.ts'
 
 const ProductStatusSchema = t.Union([t.Literal('DRAFT'), t.Literal('ACTIVE'), t.Literal('ARCHIVED')])
 
+const CategoryResponseSchema = t.Object({
+  id: t.String({ format: 'uuid' }),
+  name: t.String(),
+  slug: t.String(),
+  sortOrder: t.Number(),
+})
+
 const IdParamsSchema = t.Object({
   productId: t.String({ format: 'uuid' }),
 })
@@ -76,6 +83,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
   const listPublicProducts = ({ query }: any) =>
     container.catalogService.listPublicProducts({
       keyword: query.keyword ?? query.q,
+      categoryId: query.categoryId,
       shopId: query.shopId,
       minPriceCents: query.minPriceCents ?? query.minPrice,
       maxPriceCents: query.maxPriceCents ?? query.maxPrice,
@@ -87,6 +95,9 @@ export function createCatalogRoutes(container: ServiceContainer) {
     container.catalogService.getPublicProductDetail(params.productId)
 
   return app
+    .get('/api/categories', () => container.catalogService.listCategories(), {
+      response: t.Array(CategoryResponseSchema),
+    })
     .get('/api/products', listPublicProducts, {
       query: PublicListQuerySchema,
     })
@@ -96,6 +107,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
     .get('/api/shops/:shopId/products', ({ params, query }) =>
       container.catalogService.listPublicShopProducts(params.shopId, {
         keyword: query.keyword ?? query.q,
+        categoryId: query.categoryId,
         minPriceCents: query.minPriceCents ?? query.minPrice,
         maxPriceCents: query.maxPriceCents ?? query.maxPrice,
         cursor: query.cursor,
@@ -113,6 +125,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
     .get('/api/seller/products', ({ authContext, query }: any) =>
       container.catalogService.listSellerProducts(authContext.user, {
         keyword: query.keyword ?? query.q,
+        categoryId: query.categoryId,
         shopId: query.shopId,
         status: query.status,
         minPriceCents: query.minPriceCents ?? query.minPrice,
@@ -126,6 +139,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
     .get('/api/admin/catalog/products', ({ query }: any) =>
       container.catalogService.listAdminProducts({
         keyword: query.keyword ?? query.q,
+        categoryId: query.categoryId,
         shopId: query.shopId,
         status: query.status,
         minPriceCents: query.minPriceCents ?? query.minPrice,
