@@ -3,6 +3,8 @@ import { createLogger } from '#server/infrastructure/logging/index.ts'
 import { prisma } from '#server/lib/prisma.ts'
 import { PrismaCartRepository } from '#server/modules/cart/cart.repository.ts'
 import { CartService } from '#server/modules/cart/cart.service.ts'
+import { PrismaChatRepository } from '#server/modules/chat/chat.repository.ts'
+import { ChatService } from '#server/modules/chat/chat.service.ts'
 import { PrismaAdminRepository } from '#server/modules/admin/admin.repository.ts'
 import { AdminService } from '#server/modules/admin/admin.service.ts'
 import { PrismaCheckoutRepository } from '#server/modules/checkout/checkout.repository.ts'
@@ -15,6 +17,7 @@ import { PrismaPromotionRepository } from '#server/modules/promotion/promotion.r
 import { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import { PrismaNotificationRepository } from '#server/modules/notification/notification.repository.ts'
 import { NotificationService } from '#server/modules/notification/notification.service.ts'
+import { InMemoryRealtimeAdapter, PrismaRealtimeRepository, RealtimeService } from '#server/modules/realtime'
 import { PrismaRefundRepository } from '#server/modules/refund/refund.repository.ts'
 import { RefundService } from '#server/modules/refund/refund.service.ts'
 import { PrismaOrderRepository } from '#server/modules/order/order.repository.ts'
@@ -60,12 +63,14 @@ export interface ServiceContainer {
   auditLogService: AuditLogService
   adminService: AdminService
   cartService: CartService
+  chatService: ChatService
   cacheInvalidation: CacheInvalidation
   cacheService: CacheService
   checkoutService: CheckoutService
   catalogService: CatalogService
   jobService: JobService
   notificationService: NotificationService
+  realtimeService: RealtimeService
   metricsCollector: MetricsCollector
   observabilityService: ObservabilityService
   orderService: OrderService
@@ -101,12 +106,16 @@ export function createContainer(): ServiceContainer {
   const adminService = new AdminService(appContext, adminRepo, auditLogService)
   const cartRepo = new PrismaCartRepository(appContext, prisma)
   const cartService = new CartService(appContext, cartRepo)
+  const chatRepo = new PrismaChatRepository(appContext, prisma)
+  const realtimeRepo = new PrismaRealtimeRepository(appContext, prisma)
+  const realtimeService = new RealtimeService(appContext, realtimeRepo, new InMemoryRealtimeAdapter())
+  const chatService = new ChatService(appContext, chatRepo, realtimeService)
   const promotionRepo = new PrismaPromotionRepository(appContext, prisma)
   const promotionService = new PromotionService(appContext, promotionRepo)
   const checkoutRepo = new PrismaCheckoutRepository(appContext, prisma)
   const checkoutService = new CheckoutService(appContext, checkoutRepo, promotionService, cacheInvalidation)
   const notificationRepo = new PrismaNotificationRepository(appContext, prisma)
-  const notificationService = new NotificationService(appContext, notificationRepo)
+  const notificationService = new NotificationService(appContext, notificationRepo, realtimeService)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
   const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
@@ -151,12 +160,14 @@ export function createContainer(): ServiceContainer {
     auditLogService,
     adminService,
     cartService,
+    chatService,
     cacheInvalidation,
     cacheService,
     checkoutService,
     catalogService,
     jobService,
     notificationService,
+    realtimeService,
     metricsCollector,
     observabilityService,
     orderService,

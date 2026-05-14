@@ -5,15 +5,15 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import {
   ArrowRightIcon,
+  Building2Icon,
   PackageSearchIcon,
-  ShieldCheckIcon,
-  UserCircleIcon,
+  ReceiptTextIcon,
+  RotateCcwIcon,
   UsersIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Skeleton } from "#/components/ui/skeleton";
-import { useAdminUsers } from "#/features/user";
-import { isAdminRole } from "#/lib/roles";
+import { useAdminDashboard } from "../hooks/useAdminOperations";
 import { AdminPageIntro } from "./AdminPageIntro";
 
 interface AdminDashboardOverviewProps {
@@ -24,22 +24,30 @@ interface AdminDashboardOverviewProps {
 const quickLinks = [
   {
     title: "Manage users",
-    description: "Create accounts, update roles, and remove access.",
+    description: "Review roles and account access.",
     href: "/admin/users",
     icon: UsersIcon,
   },
   {
-    title: "Manage catalog",
-    description: "Create products, variants, and inventory records.",
-    href: "/admin/catalog",
+    title: "Moderate products",
+    description: "Approve or archive marketplace listings.",
+    href: "/admin/products",
     icon: PackageSearchIcon,
   },
   {
-    title: "Open profile",
-    description: "Review the account details for the current admin.",
-    href: "/admin/profile",
-    icon: UserCircleIcon,
+    title: "Monitor orders",
+    description: "Inspect order and fulfillment status.",
+    href: "/admin/orders",
+    icon: ReceiptTextIcon,
   },
+] as const;
+
+const summaryCards = [
+  { key: "users", title: "Users", icon: UsersIcon },
+  { key: "shops", title: "Shops", icon: Building2Icon },
+  { key: "products", title: "Products", icon: PackageSearchIcon },
+  { key: "orders", title: "Orders", icon: ReceiptTextIcon },
+  { key: "refunds", title: "Pending refunds", icon: RotateCcwIcon },
 ] as const;
 
 function AdminDashboardLinkSkeleton() {
@@ -58,10 +66,8 @@ export function AdminDashboardOverview({
   userName,
   heroVisual,
 }: AdminDashboardOverviewProps) {
-  const { data: users = [], isLoading, error } = useAdminUsers();
+  const { data: dashboard, isLoading, error } = useAdminDashboard();
   const prefersReducedMotion = useReducedMotion();
-
-  const adminCount = users.filter((user) => isAdminRole(user.role)).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -73,80 +79,39 @@ export function AdminDashboardOverview({
         {heroVisual}
       </AdminPageIntro>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <motion.div
-          initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
-          animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
-          transition={
-            prefersReducedMotion
-              ? undefined
-              : { duration: 0.45, delay: 0.08 }
-          }
-        >
-          <Card className="admin-panel rounded-2xl border-white/10 bg-white/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <UsersIcon className="size-5" />
-                Total users
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <>
-                  <Skeleton className="h-10 w-20 bg-white/12" />
-                  <Skeleton className="mt-3 h-4 w-52 bg-white/10" />
-                </>
-              ) : (
-                <>
-                  <p className="text-3xl font-bold text-white">
-                    {users.length}
-                  </p>
-                  <p className="mt-2 text-sm text-slate-300">
-                    {error
-                      ? "Unable to load user totals right now."
-                      : "All accounts available in the system."}
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
-          animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
-          transition={
-            prefersReducedMotion
-              ? undefined
-              : { duration: 0.45, delay: 0.14 }
-          }
-        >
-          <Card className="admin-panel rounded-2xl border-white/10 bg-white/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <ShieldCheckIcon className="size-5" />
-                Admin users
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <>
-                  <Skeleton className="h-10 w-20 bg-white/12" />
-                  <Skeleton className="mt-3 h-4 w-44 bg-white/10" />
-                </>
-              ) : (
-                <>
-                  <p className="text-3xl font-bold text-white">
-                    {adminCount}
-                  </p>
-                  <p className="mt-2 text-sm text-slate-300">
-                    Active accounts with administrator access.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {summaryCards.map((item, index) => {
+          const value = item.key === "refunds" ? dashboard?.refunds.pending : dashboard?.[item.key].total;
+          return (
+            <motion.div
+              key={item.key}
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? undefined : { duration: 0.45, delay: 0.08 + index * 0.04 }}
+            >
+              <Card className="admin-panel rounded-2xl border-white/10 bg-white/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <item.icon className="size-5" />
+                    {item.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <Skeleton className="h-10 w-20 bg-white/12" />
+                  ) : (
+                    <>
+                      <p className="text-3xl font-bold text-white">{value ?? 0}</p>
+                      <p className="mt-2 text-sm text-slate-300">
+                        {error ? "Unable to load total." : "Current marketplace total."}
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">

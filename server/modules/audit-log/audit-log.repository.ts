@@ -47,25 +47,41 @@ export class PrismaAuditLogRepository implements IAuditLogRepository {
     })
   }
 
-  findById(auditLogId: string): Promise<AuditLog | null> {
+  async findById(auditLogId: string): Promise<AuditLog | null> {
     this.logger.debug('PrismaAuditLogRepository.findById', { auditLogId })
-    return this.prisma.auditLog.findUnique({
-      where: { id: auditLogId },
-    })
+    try {
+      return await this.prisma.auditLog.findUnique({
+        where: { id: auditLogId },
+      })
+    } catch (error) {
+      if (this.isMissingAuditLogTable(error)) {
+        this.logger.warn('AuditLog table is missing; returning no audit log', { auditLogId })
+        return null
+      }
+      throw error
+    }
   }
 
   async list(input: NormalizedAuditLogQuery): Promise<AuditLogPaginatedResult> {
     const where = this.toWhere(input)
-    const [items, total] = await Promise.all([
-      this.prisma.auditLog.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (input.page - 1) * input.limit,
-        take: input.limit,
-      }),
-      this.prisma.auditLog.count({ where }),
-    ])
-    return { items, total }
+    try {
+      const [items, total] = await Promise.all([
+        this.prisma.auditLog.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: (input.page - 1) * input.limit,
+          take: input.limit,
+        }),
+        this.prisma.auditLog.count({ where }),
+      ])
+      return { items, total }
+    } catch (error) {
+      if (this.isMissingAuditLogTable(error)) {
+        this.logger.warn('AuditLog table is missing; returning empty audit log list')
+        return { items: [], total: 0 }
+      }
+      throw error
+    }
   }
 
   private toWhere(input: NormalizedAuditLogQuery): Prisma.AuditLogWhereInput {
@@ -83,6 +99,15 @@ export class PrismaAuditLogRepository implements IAuditLogRepository {
           }
         : {}),
     }
+  }
+
+  private isMissingAuditLogTable(error: unknown): boolean {
+    return Boolean(
+      error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error as { code?: unknown }).code === 'P2021',
+    )
   }
 }
 

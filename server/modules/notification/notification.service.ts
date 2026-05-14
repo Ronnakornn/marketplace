@@ -1,6 +1,7 @@
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { RealtimeService } from '#server/modules/realtime'
 import { NotificationServiceError } from './notification.errors.ts'
 import type { INotificationRepository, NotificationRecord } from './notification.repository.ts'
 import type { NotificationData, NotificationType } from './notification.types.ts'
@@ -26,6 +27,7 @@ export class NotificationService {
   constructor(
     appContext: AppContext,
     private repo: INotificationRepository,
+    private realtimeService?: RealtimeService,
   ) {
     this.logger = appContext.logger
   }
@@ -50,13 +52,17 @@ export class NotificationService {
       throw new NotificationServiceError('Notification does not belong to user', 403, 'NOTIFICATION_FORBIDDEN')
     }
     if (notification.readAt) return this.toResponse(notification)
-    return this.toResponse(await this.repo.markAsRead(notification.id, new Date()))
+    const response = this.toResponse(await this.repo.markAsRead(notification.id, new Date()))
+    this.realtimeService?.publish('notification.read', `user:${userId}:notifications`, response)
+    return response
   }
 
   async markAllAsRead(userId: string): Promise<{ updatedCount: number }> {
-    return {
+    const result = {
       updatedCount: await this.repo.markAllAsRead(userId, new Date()),
     }
+    this.realtimeService?.publish('notification.read', `user:${userId}:notifications`, result)
+    return result
   }
 
   async createNotification(
@@ -73,7 +79,9 @@ export class NotificationService {
       body: this.normalizeBody(body),
       data: this.normalizeData(data),
     })
-    return this.toResponse(notification)
+    const response = this.toResponse(notification)
+    this.realtimeService?.publish('notification.created', `user:${userId}:notifications`, response)
+    return response
   }
 
   async notifyOrderPaid(orderId: string): Promise<void> {

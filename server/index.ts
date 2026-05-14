@@ -9,6 +9,7 @@ import { createObservabilityPlugin } from "#server/plugins/observability.plugin"
 import { createCachePlugin } from "#server/plugins/cache.plugin";
 import { createAdminRoutes } from "#server/modules/admin";
 import { createCartRoutes } from "#server/modules/cart";
+import { createChatRoutes } from "#server/modules/chat";
 import { createCheckoutRoutes } from "#server/modules/checkout";
 import { createCatalogRoutes } from "#server/modules/catalog";
 import { createNotificationRoutes } from "#server/modules/notification";
@@ -16,6 +17,7 @@ import { createOrderRoutes } from "#server/modules/order";
 import { createPaymentRoutes } from "#server/modules/payment";
 import { createPromotionRoutes } from "#server/modules/promotion";
 import { createRefundRoutes } from "#server/modules/refund";
+import { createRealtimeRoutes } from "#server/modules/realtime";
 import { createReturnRoutes } from "#server/modules/return";
 import { createReviewRoutes } from "#server/modules/review";
 import { createSearchRoutes } from "#server/modules/search";
@@ -67,6 +69,12 @@ const baseApp = new Elysia()
 
   // --- Cart routes ---
   .use(createCartRoutes(container))
+
+  // --- Chat routes ---
+  .use(createChatRoutes(container))
+
+  // --- Realtime websocket routes ---
+  .use(createRealtimeRoutes(container))
 
   // --- Checkout routes ---
   .use(createCheckoutRoutes(container))

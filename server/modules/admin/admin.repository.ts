@@ -37,9 +37,9 @@ export type AdminOrderRecord = Order & {
   items: OrderItem[]
   payments: Payment[]
   shipments: Shipment[]
-  refunds: Refund[]
+  refunds: Array<Pick<Refund, 'id' | 'status' | 'amountCents' | 'reason' | 'createdAt'>>
 }
-export type AdminRefundRecord = Refund & {
+export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 'status' | 'amountCents' | 'reason' | 'createdAt'> & {
   order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId'>
   payment: Pick<Payment, 'id' | 'provider' | 'status' | 'amountCents' | 'currency'>
 }
@@ -117,10 +117,26 @@ const orderInclude = {
   items: { orderBy: { id: 'asc' } },
   payments: { orderBy: { createdAt: 'desc' } },
   shipments: { orderBy: { createdAt: 'asc' } },
-  refunds: { orderBy: { createdAt: 'desc' } },
+  refunds: {
+    select: {
+      id: true,
+      status: true,
+      amountCents: true,
+      reason: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  },
 } as const
 
 const refundInclude = {
+  id: true,
+  orderId: true,
+  paymentId: true,
+  status: true,
+  amountCents: true,
+  reason: true,
+  createdAt: true,
   order: {
     select: {
       id: true,
@@ -139,7 +155,7 @@ const refundInclude = {
       currency: true,
     },
   },
-} as const
+} satisfies Prisma.RefundSelect
 
 export class PrismaAdminRepository implements IAdminRepository {
   private logger: ILogger
@@ -269,17 +285,17 @@ export class PrismaAdminRepository implements IAdminRepository {
   listRefunds(filters: { status?: RefundStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminRefundRecord>> {
     const where: Prisma.RefundWhereInput = filters.status ? { status: filters.status } : {}
     return this.paginate(
-      this.prisma.refund.findMany({ where, include: refundInclude, orderBy: { createdAt: 'desc' }, ...this.toSkipTake(pagination) }),
+      this.prisma.refund.findMany({ where, select: refundInclude, orderBy: { createdAt: 'desc' }, ...this.toSkipTake(pagination) }),
       this.prisma.refund.count({ where }),
     )
   }
 
   findRefundById(refundId: string): Promise<AdminRefundRecord | null> {
-    return this.prisma.refund.findUnique({ where: { id: refundId }, include: refundInclude })
+    return this.prisma.refund.findUnique({ where: { id: refundId }, select: refundInclude })
   }
 
   updateRefundStatus(refundId: string, status: RefundStatus): Promise<AdminRefundRecord> {
-    return this.prisma.refund.update({ where: { id: refundId }, data: { status }, include: refundInclude })
+    return this.prisma.refund.update({ where: { id: refundId }, data: { status }, select: refundInclude })
   }
 
   private async paginate<T>(itemsPromise: Promise<T[]>, totalPromise: Promise<number>): Promise<AdminPaginatedResult<T>> {

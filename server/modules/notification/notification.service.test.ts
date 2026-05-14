@@ -160,4 +160,17 @@ describe('NotificationService', () => {
     expect(result.body).toBeUndefined()
     expect(result.data).toBeUndefined()
   })
+
+  it('publishes notification created and read events', async () => {
+    const realtimeService = { publish: vi.fn() }
+    service = new NotificationService(createAppContext(), repo, realtimeService as any)
+
+    await service.createNotification('user-1', 'coupon_available', 'Coupon available')
+    await service.markNotificationAsRead(createActor(), 'notification-1')
+    await service.markAllNotificationsAsRead(createActor())
+
+    expect(realtimeService.publish).toHaveBeenCalledWith('notification.created', 'user:user-1:notifications', expect.objectContaining({ type: 'coupon_available' }))
+    expect(realtimeService.publish).toHaveBeenCalledWith('notification.read', 'user:user-1:notifications', expect.objectContaining({ id: '11111111-1111-4111-8111-111111111111' }))
+    expect(realtimeService.publish).toHaveBeenCalledWith('notification.read', 'user:user-1:notifications', { updatedCount: 3 })
+  })
 })

@@ -6,12 +6,16 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   CommandIcon,
+  Building2Icon,
+  FileClockIcon,
   LayoutDashboardIcon,
   PanelLeftCloseIcon,
   MenuIcon,
   PackageSearchIcon,
+  RotateCcwIcon,
+  SettingsIcon,
   ShieldCheckIcon,
-  UserCircleIcon,
+  ShoppingBagIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,9 +48,9 @@ interface AdminSidebarNavProps {
 const ADMIN_NAV_ITEMS = [
   {
     title: "Dashboard",
-    href: "/admin",
+    href: "/admin/dashboard",
     icon: LayoutDashboardIcon,
-    match: (pathname: string) => pathname === "/admin",
+    match: (pathname: string) => pathname === "/admin" || pathname === "/admin/dashboard",
   },
   {
     title: "Users",
@@ -55,16 +59,40 @@ const ADMIN_NAV_ITEMS = [
     match: (pathname: string) => pathname.startsWith("/admin/users"),
   },
   {
-    title: "Catalog",
-    href: "/admin/catalog",
-    icon: PackageSearchIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/catalog"),
+    title: "Shops",
+    href: "/admin/shops",
+    icon: Building2Icon,
+    match: (pathname: string) => pathname.startsWith("/admin/shops"),
   },
   {
-    title: "Profile",
-    href: "/admin/profile",
-    icon: UserCircleIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/profile"),
+    title: "Products",
+    href: "/admin/products",
+    icon: PackageSearchIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/products") || pathname.startsWith("/admin/catalog"),
+  },
+  {
+    title: "Orders",
+    href: "/admin/orders",
+    icon: ShoppingBagIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/orders"),
+  },
+  {
+    title: "Refunds",
+    href: "/admin/refunds",
+    icon: RotateCcwIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/refunds"),
+  },
+  {
+    title: "Audit Logs",
+    href: "/admin/audit-logs",
+    icon: FileClockIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/audit-logs"),
+  },
+  {
+    title: "Settings",
+    href: "/admin/settings",
+    icon: SettingsIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/settings") || pathname.startsWith("/admin/profile"),
   },
 ] as const;
 

@@ -157,6 +157,11 @@ enum AuditAction {
   ADMIN_CONFIG_CHANGED
 }
 
+enum ChatMessageType {
+  TEXT
+  IMAGE
+}
+
 model User {
   id            String     @id @default(uuid()) @db.Uuid
   name          String
@@ -298,6 +303,7 @@ model Product {
   shop     Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
   reviews  Review[]
   variants ProductVariant[]
+  chatThreads ChatThread[]
 
   @@unique([shopId, slug])
   @@index([categoryId, status])
@@ -659,28 +665,37 @@ model ReturnItem {
 }
 
 model ChatThread {
-  id        String   @id @default(uuid()) @db.Uuid
-  buyerId   String   @db.Uuid
-  shopId    String   @db.Uuid
-  orderId   String?  @db.Uuid
-  createdAt DateTime @default(now())
+  id           String    @id @default(uuid()) @db.Uuid
+  buyerId      String    @db.Uuid
+  shopId       String    @db.Uuid
+  productId    String?   @db.Uuid
+  orderId      String?   @db.Uuid
+  buyerReadAt  DateTime?
+  sellerReadAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   buyer    User          @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   shop     Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product  Product?      @relation(fields: [productId], references: [id])
   order    Order?        @relation(fields: [orderId], references: [id])
   messages ChatMessage[]
 
+  @@unique([buyerId, shopId])
   @@index([buyerId, createdAt])
   @@index([shopId, createdAt])
+  @@index([productId])
   @@index([orderId])
 }
 
 model ChatMessage {
-  id        String   @id @default(uuid()) @db.Uuid
-  threadId  String   @db.Uuid
-  senderId  String   @db.Uuid
-  body      String
-  createdAt DateTime @default(now())
+  id          String          @id @default(uuid()) @db.Uuid
+  threadId    String          @db.Uuid
+  senderId    String          @db.Uuid
+  messageType ChatMessageType @default(TEXT)
+  body        String?
+  attachments String[]        @default([])
+  createdAt   DateTime        @default(now())
 
   sender User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
   thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
