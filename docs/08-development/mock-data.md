@@ -47,12 +47,20 @@ Categories:
 Products:
 - active product with one variant
 - active product with multiple variants
+- clothing product with size variants, color variants, and variant-level price differences
 - flash sale product
 - free shipping product
 - low-stock product
 - out-of-stock product
 - archived product
 - rejected product
+
+Fashion/clothing mock examples:
+- Oversized cotton tee with Black/White/Sage colors and S/M/L sizes.
+- Linen resort shirt with Ivory/Navy/Clay colors and M/L/XL sizes.
+- Active leggings with Black/Cocoa/Ice Blue colors and XS/S/M/L sizes.
+- Wide-leg denim jeans with Light/Dark wash colors and 28/30/32 sizes.
+- Prices must be stored on `ProductVariant.priceCents`, not on `Product`.
 
 Inventory:
 - enough stock

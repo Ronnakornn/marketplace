@@ -38,7 +38,7 @@ export function useUpdateUserRole() {
   return useMutation({
     mutationFn: async (params: { id: string; role: AppRole }) => {
       const { id, role } = params;
-      const { data, error } = await api.api.admin.users({ id }).role.patch({ role });
+      const { data, error } = await api.api.admin.users({ userId: id }).role.patch({ role });
       if (error) throw error;
       return data;
     },
@@ -67,7 +67,7 @@ export function useUpdateAdminUser() {
   return useMutation({
     mutationFn: async (params: { id: string; name: string; email: string; role: AppRole }) => {
       const { id, ...body } = params;
-      const { data, error } = await api.api.admin.users({ id }).patch(body);
+      const { data, error } = await api.api.admin.users({ userId: id }).patch(body);
       if (error) throw error;
       return data;
     },
@@ -81,7 +81,7 @@ export function useDeleteAdminUser() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await api.api.admin.users({ id }).delete();
+      const { data, error } = await api.api.admin.users({ userId: id }).delete();
       if (error) throw error;
       return data;
     },

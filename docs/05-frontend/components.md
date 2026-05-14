@@ -437,6 +437,33 @@ Component principles:
 - **Mobile behavior**: Converts rows to cards; keeps primary action visible.
 - **Interactions**: Sort, filter, select rows, open row detail, run row actions.
 - **MVP priority**: P0.
+- **Implementation rule**: Use the shadcn/ui Radix Data Table pattern from `https://ui.shadcn.com/docs/components/radix/data-table`. This means composing a feature-owned data table from shadcn `Table` primitives plus `@tanstack/react-table`; do not use array `map` alone for admin tables that need filtering, sorting, row actions, selection, pagination, or column visibility.
+- **Required table pieces**: `columns.tsx` or colocated `ColumnDef<TData>[]`, `useReactTable`, `getCoreRowModel`, `flexRender`, and shadcn `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`.
+- **Admin table features**: include row actions through shadcn `DropdownMenu` or a clear primary action button, text filtering with `Input`, sorting through TanStack `SortingState`, pagination controls with shadcn `Button`, and selected-row state when bulk actions exist.
+- **Placement**: keep reusable generic table wrappers in `app/components/` only if two or more screens share the same behavior; otherwise keep columns and table logic in the owning feature folder.
+
+### `AdminCatalogDataTable`
+
+- **Purpose**: Product operations table for `/admin/catalog`.
+- **Used in pages**: `/admin/catalog`.
+- **Props/data needed**: products, shop summary, variant count, status, derived variant price, search/filter state, edit href.
+- **Loading state**: KPI and table skeletons.
+- **Empty state**: No products or no matching search results.
+- **Mobile behavior**: Table can compress horizontally first; card fallback may be added when admin mobile usage becomes common.
+- **Interactions**: Search, sort with TanStack Table, open dedicated edit page.
+- **MVP priority**: P0.
+
+### `AdminVariantEditor`
+
+- **Purpose**: Create, update, and delete product variants from the admin product edit page.
+- **Used in pages**: `/admin/catalog/:productId`.
+- **Props/data needed**: product id, variants, SKU, title, price cents, currency, pending/error state.
+- **Loading state**: Variant data table row skeletons inside product edit page.
+- **Empty state**: No variants with Create Variant CTA.
+- **Mobile behavior**: Keep columns compact with horizontal overflow first; variant rows may become compact stacked cards later if admin mobile usage requires it.
+- **Interactions**: Sort variant columns, open row action menu, open create/edit dialog, validate positive price, delete variant, refresh product detail.
+- **MVP priority**: P0.
+- **Implementation rule**: Use shadcn `Table` primitives with `@tanstack/react-table` `ColumnDef`, `useReactTable`, `getCoreRowModel`, `getSortedRowModel`, and row actions through `DropdownMenu`. Do not manage variants as an ad hoc card/list map on the admin catalog edit page.
 
 ### `AdminUserSegmentedList`
 

@@ -197,6 +197,15 @@ Use TanStack Query for server state:
 - seller dashboards and shipment queues
 - admin management lists
 
+Use TanStack Table for dense management tables:
+- Follow the shadcn/ui Radix Data Table guide: `https://ui.shadcn.com/docs/components/radix/data-table`.
+- Build admin and seller tables from `@tanstack/react-table` plus shadcn `Table` primitives rather than plain array rendering.
+- Define table columns with `ColumnDef<TData>[]`; use `row.original` for row actions and formatted cells.
+- Render headers/cells with `flexRender`, `table.getHeaderGroups()`, and `table.getRowModel().rows`.
+- Add the relevant row models per need: core, sorting, filtering, pagination, column visibility, and row selection.
+- Keep sorting/filtering/pagination/visibility state inside the feature component unless the state must be shareable through URL params.
+- Keep mutations in domain hooks backed by TanStack Query and invalidate only related query keys after create/update/delete actions.
+
 Keep query keys domain-scoped and stable:
 
 ```txt

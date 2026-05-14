@@ -59,30 +59,30 @@ export function createUserRoutes(container: ServiceContainer) {
       body: CreateUserBody,
       response: AdminUserResponse,
     })
-    .patch('/api/admin/users/:id', ({ authContext, params: { id }, body }: any) => container.userService.updateForAdmin(authContext!.user.id, id, body), {
+    .patch('/api/admin/users/:userId', ({ authContext, params: { userId }, body }: any) => container.userService.updateForAdmin(authContext!.user.id, userId, body), {
       withRole: 'ADMIN',
-      params: t.Object({ id: t.String() }),
+      params: t.Object({ userId: t.String() }),
       body: UpdateUserBody,
       response: AdminUserResponse,
     })
-    .patch('/api/admin/users/:id/role', ({ authContext, params: { id }, body }: any) => container.userService.updateRole(authContext!.user.id, id, body.role), {
+    .patch('/api/admin/users/:userId/role', ({ authContext, params: { userId }, body }: any) => container.userService.updateRole(authContext!.user.id, userId, body.role), {
       withRole: 'ADMIN',
-      params: t.Object({ id: t.String() }),
+      params: t.Object({ userId: t.String() }),
       body: UpdateUserRoleBody,
       response: AdminUserResponse,
     })
-    .patch('/api/admin/users/:id/status', ({ authContext, params: { id }, body }: any) => container.userService.updateStatus(authContext!.user.id, id, body.status), {
+    .patch('/api/admin/users/:userId/status', ({ authContext, params: { userId }, body }: any) => container.userService.updateStatus(authContext!.user.id, userId, body.status), {
       withRole: 'ADMIN',
-      params: t.Object({ id: t.String() }),
+      params: t.Object({ userId: t.String() }),
       body: UpdateUserStatusBody,
       response: AdminUserResponse,
     })
-    .delete('/api/admin/users/:id', async ({ authContext, params: { id } }: any) => {
-      await container.userService.deleteForAdmin(authContext!.user.id, id)
+    .delete('/api/admin/users/:userId', async ({ authContext, params: { userId } }: any) => {
+      await container.userService.deleteForAdmin(authContext!.user.id, userId)
       return { success: true }
     }, {
       withRole: 'ADMIN',
-      params: t.Object({ id: t.String() }),
+      params: t.Object({ userId: t.String() }),
       response: t.Object({ success: t.Boolean() }),
     })
     .get('/api/users', () => container.userService.listForAdmin(), {

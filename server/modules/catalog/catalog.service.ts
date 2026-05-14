@@ -92,6 +92,89 @@ export class CatalogService {
     return product
   }
 
+  listAdminProducts(filters: SellerListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
+    this.logger.debug('CatalogService.listAdminProducts', { filters })
+    return this.repo.findProducts({
+      ...this.normalizeListFilters(filters),
+      status: filters.status,
+    })
+  }
+
+  async getAdminProductDetail(id: string): Promise<CatalogProductDetail> {
+    this.logger.debug('CatalogService.getAdminProductDetail', { id })
+    const product = await this.repo.findProductById(id)
+    if (!product) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
+    return product
+  }
+
+  async updateAdminProduct(productId: string, data: UpdateProductData): Promise<CatalogProductDetail> {
+    this.logger.info('CatalogService.updateAdminProduct', { productId })
+    if (Object.keys(data).length === 0) {
+      throw new CatalogServiceError('At least one product field is required', 400, 'PRODUCT_VALIDATION_FAILED')
+    }
+    const product = await this.repo.findProductById(productId)
+    if (!product) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
+    if (data.title !== undefined && !data.title.trim()) {
+      throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
+    }
+
+    return this.handleUniqueConstraint(() =>
+      this.repo.updateProduct(product.id, {
+        ...(data.title === undefined ? {} : { title: data.title.trim() }),
+        ...(data.slug === undefined ? {} : { slug: this.normalizeSlug(data.slug) }),
+        ...(data.description === undefined ? {} : { description: this.normalizeNullableText(data.description) }),
+        ...(data.status === undefined ? {} : { status: data.status }),
+      }),
+    )
+  }
+
+  async createAdminVariant(productId: string, data: CreateVariantData): Promise<ProductVariant> {
+    this.logger.info('CatalogService.createAdminVariant', { productId, sku: data.sku })
+    this.validateVariantInput(data)
+    const product = await this.repo.findProductById(productId)
+    if (!product) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
+
+    return this.handleUniqueConstraint(() =>
+      this.repo.createVariant({
+        productId,
+        sku: data.sku.trim(),
+        title: data.title.trim(),
+        priceCents: data.priceCents,
+        currency: data.currency?.trim().toUpperCase() || 'USD',
+      }),
+    )
+  }
+
+  async updateAdminVariant(productId: string, variantId: string, data: UpdateVariantData): Promise<ProductVariant> {
+    this.logger.info('CatalogService.updateAdminVariant', { productId, variantId })
+    if (Object.keys(data).length === 0) {
+      throw new CatalogServiceError('At least one variant field is required', 400, 'VARIANT_VALIDATION_FAILED')
+    }
+    this.validateVariantUpdateInput(data)
+    const variant = await this.repo.findVariantById(variantId)
+    if (!variant || variant.productId !== productId) {
+      throw new CatalogServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
+    }
+
+    return this.handleUniqueConstraint(() =>
+      this.repo.updateVariant(variantId, {
+        ...(data.sku === undefined ? {} : { sku: data.sku.trim() }),
+        ...(data.title === undefined ? {} : { title: data.title.trim() }),
+        ...(data.priceCents === undefined ? {} : { priceCents: data.priceCents }),
+        ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
+      }),
+    )
+  }
+
+  async deleteAdminVariant(productId: string, variantId: string): Promise<ProductVariant> {
+    this.logger.info('CatalogService.deleteAdminVariant', { productId, variantId })
+    const variant = await this.repo.findVariantById(variantId)
+    if (!variant || variant.productId !== productId) {
+      throw new CatalogServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
+    }
+    return this.repo.deleteVariant(variantId)
+  }
+
   async listSellerProducts(actor: CatalogActor, filters: SellerListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
     this.logger.debug('CatalogService.listSellerProducts', { actorId: actor.id, filters })
     const shop = await this.resolveSellerShop(actor, filters.shopId)

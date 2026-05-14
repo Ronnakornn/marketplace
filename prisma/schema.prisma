@@ -38,6 +38,11 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum VariantStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum CartStatus {
   ACTIVE
   CHECKED_OUT
@@ -63,6 +68,9 @@ enum ReservationStatus {
 enum OrderStatus {
   PENDING_PAYMENT
   PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
   PARTIALLY_FULFILLED
   FULFILLED
   CANCELED
@@ -80,6 +88,7 @@ enum PaymentStatus {
 
 enum FulfillmentStatus {
   PENDING
+  PACKED
   READY
   PARTIALLY_SHIPPED
   SHIPPED
@@ -88,6 +97,8 @@ enum FulfillmentStatus {
 }
 
 enum ShipmentStatus {
+  PENDING_PACK
+  PACKED
   PENDING
   READY
   SHIPPED
@@ -109,9 +120,9 @@ enum ReviewStatus {
 
 enum RefundStatus {
   PENDING
-  SUCCEEDED
+  PROCESSING
+  SUCCESS
   FAILED
-  CANCELED
 }
 
 enum ReturnStatus {
@@ -119,7 +130,19 @@ enum ReturnStatus {
   APPROVED
   REJECTED
   RECEIVED
-  REFUNDED
+  COMPLETED
+  CANCELLED
+}
+
+enum UploadUsage {
+  PRODUCT_IMAGE
+  SHOP_IMAGE
+  REVIEW_IMAGE
+}
+
+enum UploadStatus {
+  PENDING
+  COMPLETED
 }
 
 model User {
@@ -133,6 +156,7 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
+  addresses         Address[]
   accounts          Account[]
   cartItems         Cart[]
   chatMessages      ChatMessage[]
@@ -145,6 +169,27 @@ model User {
   sessions          Session[]
   shops             Shop[]
   checkouts         Checkout[]
+  uploads           Upload[]
+}
+
+model Address {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  recipientName String
+  phone         String?
+  line1         String
+  line2         String?
+  city          String
+  region        String?
+  postalCode    String
+  country       String
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Session {
@@ -237,6 +282,7 @@ model ProductVariant {
   title      String
   priceCents Int
   currency   String   @default("USD")
+  status     VariantStatus @default(ACTIVE)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -246,7 +292,7 @@ model ProductVariant {
   inventoryReservations InventoryReservation[]
   orderItems            OrderItem[]
 
-  @@index([productId])
+  @@index([productId, status])
 }
 
 model Inventory {
@@ -275,12 +321,14 @@ model Cart {
 }
 
 model CartItem {
-  id        String   @id @default(uuid()) @db.Uuid
-  cartId    String   @db.Uuid
-  variantId String   @db.Uuid
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid()) @db.Uuid
+  cartId         String   @db.Uuid
+  variantId      String   @db.Uuid
+  quantity       Int
+  unitPriceCents Int
+  currency       String   @default("USD")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
   variant ProductVariant @relation(fields: [variantId], references: [id])
@@ -407,6 +455,7 @@ model Payment {
   status           PaymentStatus @default(PENDING)
   amountCents      Int
   currency         String
+  paidAt           DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
@@ -435,7 +484,7 @@ model Shipment {
   id             String         @id @default(uuid()) @db.Uuid
   orderId        String         @db.Uuid
   shopId         String         @db.Uuid
-  status         ShipmentStatus @default(PENDING)
+  status         ShipmentStatus @default(PENDING_PACK)
   carrier        String?
   trackingNumber String?
   shippedAt      DateTime?
@@ -450,6 +499,7 @@ model Shipment {
   @@index([orderId, shopId])
   @@index([shopId, status])
   @@index([trackingNumber])
+  @@unique([orderId, shopId])
 }
 
 model ShipmentItem {
@@ -472,10 +522,15 @@ model Coupon {
   discountType       DiscountType
   discountValueCents Int?
   discountPercentBps Int?
+  minOrderCents      Int?
+  maxDiscountCents   Int?
   startsAt           DateTime?
   endsAt             DateTime?
   usageLimit         Int?
+  perUserLimit       Int?
+  isActive           Boolean      @default(true)
   createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   shop        Shop?              @relation(fields: [shopId], references: [id], onDelete: Cascade)
   redemptions CouponRedemption[]
@@ -507,8 +562,10 @@ model Review {
   orderItemId String       @unique @db.Uuid
   rating      Int
   body        String?
+  images      String[]     @default([])
   status      ReviewStatus @default(PENDING)
   createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -519,19 +576,23 @@ model Review {
 }
 
 model Refund {
-  id          String       @id @default(uuid()) @db.Uuid
-  orderId     String       @db.Uuid
-  paymentId   String       @db.Uuid
-  status      RefundStatus @default(PENDING)
-  amountCents Int
-  reason      String?
-  createdAt   DateTime     @default(now())
+  id              String       @id @default(uuid()) @db.Uuid
+  orderId         String       @db.Uuid
+  paymentId       String       @db.Uuid
+  returnRequestId String?      @unique @db.Uuid
+  status          RefundStatus @default(PENDING)
+  amountCents     Int
+  reason          String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  payment Payment @relation(fields: [paymentId], references: [id])
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment       Payment        @relation(fields: [paymentId], references: [id])
+  returnRequest ReturnRequest? @relation(fields: [returnRequestId], references: [id])
 
   @@index([orderId, status])
   @@index([paymentId])
+  @@index([returnRequestId])
 }
 
 model ReturnRequest {
@@ -540,12 +601,15 @@ model ReturnRequest {
   userId    String       @db.Uuid
   status    ReturnStatus @default(REQUESTED)
   reason    String?
+  description String?
+  images    String[]     @default([])
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  order Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items ReturnItem[]
+  order   Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items   ReturnItem[]
+  refunds Refund[]
 
   @@index([orderId, status])
   @@index([userId, createdAt])
@@ -602,6 +666,7 @@ model Notification {
   type      String
   title     String
   body      String?
+  data      Json?
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
@@ -609,4 +674,24 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@index([type])
+}
+
+model Upload {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @db.Uuid
+  usage       UploadUsage
+  status      UploadStatus @default(PENDING)
+  fileName    String
+  contentType String
+  fileSize    Int
+  key         String       @unique
+  publicUrl   String?
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([usage, createdAt])
 }

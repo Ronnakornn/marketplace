@@ -8,7 +8,7 @@ import { CatalogServiceError } from './catalog.errors.ts'
 const ProductStatusSchema = t.Union([t.Literal('DRAFT'), t.Literal('ACTIVE'), t.Literal('ARCHIVED')])
 
 const IdParamsSchema = t.Object({
-  id: t.String({ format: 'uuid' }),
+  productId: t.String({ format: 'uuid' }),
 })
 
 const ShopProductsParamsSchema = t.Object({
@@ -84,13 +84,13 @@ export function createCatalogRoutes(container: ServiceContainer) {
     })
 
   const getPublicProductDetail = ({ params }: any) =>
-    container.catalogService.getPublicProductDetail(params.id)
+    container.catalogService.getPublicProductDetail(params.productId)
 
   return app
     .get('/api/products', listPublicProducts, {
       query: PublicListQuerySchema,
     })
-    .get('/api/products/:id', getPublicProductDetail, {
+    .get('/api/products/:productId', getPublicProductDetail, {
       params: IdParamsSchema,
     })
     .get('/api/shops/:shopId/products', ({ params, query }) =>
@@ -107,7 +107,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
     .get('/api/catalog/products', listPublicProducts, {
       query: PublicListQuerySchema,
     })
-    .get('/api/catalog/products/:id', getPublicProductDetail, {
+    .get('/api/catalog/products/:productId', getPublicProductDetail, {
       params: IdParamsSchema,
     })
     .get('/api/seller/products', ({ authContext, query }: any) =>
@@ -122,6 +122,47 @@ export function createCatalogRoutes(container: ServiceContainer) {
       }), {
       withRole: 'SELLER',
       query: SellerListQuerySchema,
+    })
+    .get('/api/admin/catalog/products', ({ query }: any) =>
+      container.catalogService.listAdminProducts({
+        keyword: query.keyword ?? query.q,
+        shopId: query.shopId,
+        status: query.status,
+        minPriceCents: query.minPriceCents ?? query.minPrice,
+        maxPriceCents: query.maxPriceCents ?? query.maxPrice,
+        cursor: query.cursor,
+        limit: query.limit,
+      }), {
+      withRole: 'ADMIN',
+      query: SellerListQuerySchema,
+    })
+    .get('/api/admin/catalog/products/:productId', ({ params }: any) =>
+      container.catalogService.getAdminProductDetail(params.productId), {
+      withRole: 'ADMIN',
+      params: ProductParamsSchema,
+    })
+    .patch('/api/admin/catalog/products/:productId', ({ params, body }: any) =>
+      container.catalogService.updateAdminProduct(params.productId, body), {
+      withRole: 'ADMIN',
+      params: ProductParamsSchema,
+      body: UpdateProductBodySchema,
+    })
+    .post('/api/admin/catalog/products/:productId/variants', ({ params, body }: any) =>
+      container.catalogService.createAdminVariant(params.productId, body), {
+      withRole: 'ADMIN',
+      params: ProductParamsSchema,
+      body: CreateVariantBodySchema,
+    })
+    .patch('/api/admin/catalog/products/:productId/variants/:variantId', ({ params, body }: any) =>
+      container.catalogService.updateAdminVariant(params.productId, params.variantId, body), {
+      withRole: 'ADMIN',
+      params: ProductVariantParamsSchema,
+      body: UpdateVariantBodySchema,
+    })
+    .delete('/api/admin/catalog/products/:productId/variants/:variantId', ({ params }: any) =>
+      container.catalogService.deleteAdminVariant(params.productId, params.variantId), {
+      withRole: 'ADMIN',
+      params: ProductVariantParamsSchema,
     })
     .post('/api/seller/products', ({ authContext, body }: any) =>
       container.catalogService.createProduct(authContext.user, body), {

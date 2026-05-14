@@ -92,6 +92,7 @@ function createVariant(overrides: Partial<{
     title: overrides.title ?? 'Blue',
     priceCents: overrides.priceCents ?? 1299,
     currency: 'USD',
+    status: 'ACTIVE' as const,
     createdAt: now,
     updatedAt: now,
   }

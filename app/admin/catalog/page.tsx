@@ -6,8 +6,8 @@ export default function AdminCatalogPage() {
     <div className="flex flex-col gap-6">
       <AdminPageIntro
         eyebrow="Catalog"
-        title="Manage marketplace catalog"
-        description="Create products, maintain variants, and update inventory without entering checkout workflows."
+        title="Catalog operations"
+        description="Review product visibility, pricing coverage, and shop ownership from a production-ready catalog console."
       >
         <AdminSpaceCat mode="dashboard" />
       </AdminPageIntro>
