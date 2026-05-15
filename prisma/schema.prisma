@@ -197,6 +197,8 @@ model User {
   chatMessages      ChatMessage[]
   chatThreads       ChatThread[]
   couponRedemptions CouponRedemption[]
+  favoriteProducts  FavoriteProduct[]
+  followedShops     ShopFollow[]
   notifications     Notification[]
   orders            Order[]
   returnRequests    ReturnRequest[]
@@ -281,9 +283,10 @@ model Shop {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner       User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   chatThreads ChatThread[]
   coupons     Coupon[]
+  followers   ShopFollow[]
   orderItems  OrderItem[]
   products    Product[]
   shipments   Shipment[]
@@ -297,6 +300,8 @@ model Shop {
 model Category {
   id        String   @id @default(uuid()) @db.Uuid
   name      String
+  nameTh    String?
+  nameEn    String?
   slug      String   @unique
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
@@ -309,20 +314,25 @@ model Category {
 }
 
 model Product {
-  id          String        @id @default(uuid()) @db.Uuid
-  shopId      String        @db.Uuid
-  categoryId  String?       @db.Uuid
-  title       String
-  slug        String
-  description String?
-  status      ProductStatus @default(DRAFT)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String        @id @default(uuid()) @db.Uuid
+  shopId        String        @db.Uuid
+  categoryId    String?       @db.Uuid
+  title         String
+  titleTh       String?
+  titleEn       String?
+  slug          String
+  description   String?
+  descriptionTh String?
+  descriptionEn String?
+  status        ProductStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  category Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  shop     Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  reviews  Review[]
-  variants ProductVariant[]
+  category    Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  shop        Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  reviews     Review[]
+  favorites   FavoriteProduct[]
+  variants    ProductVariant[]
   chatThreads ChatThread[]
 
   @@unique([shopId, slug])
@@ -330,16 +340,46 @@ model Product {
   @@index([shopId, status])
 }
 
+model FavoriteProduct {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  productId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+  @@index([productId])
+}
+
+model ShopFollow {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  shopId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, shopId])
+  @@index([userId, createdAt])
+  @@index([shopId])
+}
+
 model ProductVariant {
-  id         String   @id @default(uuid()) @db.Uuid
-  productId  String   @db.Uuid
-  sku        String   @unique
+  id         String        @id @default(uuid()) @db.Uuid
+  productId  String        @db.Uuid
+  sku        String        @unique
   title      String
+  titleTh    String?
+  titleEn    String?
   priceCents Int
-  currency   String   @default("USD")
+  currency   String        @default("USD")
   status     VariantStatus @default(ACTIVE)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
   product               Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems             CartItem[]
@@ -458,8 +498,8 @@ model Order {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  checkout          Checkout           @relation(fields: [checkoutId], references: [id])
-  user              User               @relation(fields: [userId], references: [id])
+  checkout          Checkout            @relation(fields: [checkoutId], references: [id])
+  user              User                @relation(fields: [userId], references: [id])
   chatThreads       ChatThread[]
   couponRedemptions CouponRedemption[]
   items             OrderItem[]
@@ -552,10 +592,10 @@ model Shipment {
   shop  Shop           @relation(fields: [shopId], references: [id])
   items ShipmentItem[]
 
+  @@unique([orderId, shopId])
   @@index([orderId, shopId])
   @@index([shopId, status])
   @@index([trackingNumber])
-  @@unique([orderId, shopId])
 }
 
 model ShipmentItem {
@@ -575,6 +615,10 @@ model Coupon {
   id                 String       @id @default(uuid()) @db.Uuid
   shopId             String?      @db.Uuid
   code               String       @unique
+  titleTh            String?
+  titleEn            String?
+  descriptionTh      String?
+  descriptionEn      String?
   discountType       DiscountType
   discountValueCents Int?
   discountPercentBps Int?
@@ -642,9 +686,9 @@ model Refund {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  payment       Payment        @relation(fields: [paymentId], references: [id])
-  returnRequest ReturnRequest? @relation(fields: [returnRequestId], references: [id])
+  order         Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment       Payment             @relation(fields: [paymentId], references: [id])
+  returnRequest ReturnRequest?      @relation(fields: [returnRequestId], references: [id])
   walletEntries WalletLedgerEntry[]
 
   @@index([orderId, status])
@@ -693,26 +737,26 @@ model WalletLedgerEntry {
 }
 
 model SellerPayout {
-  id            String       @id @default(uuid()) @db.Uuid
-  walletId      String       @db.Uuid
-  shopId        String       @db.Uuid
-  amountCents   Int
-  currency      String       @default("USD")
-  status        PayoutStatus @default(requested)
-  requestedById String       @db.Uuid
-  approvedById  String?      @db.Uuid
-  rejectedById  String?      @db.Uuid
-  paidById      String?      @db.Uuid
+  id              String       @id @default(uuid()) @db.Uuid
+  walletId        String       @db.Uuid
+  shopId          String       @db.Uuid
+  amountCents     Int
+  currency        String       @default("USD")
+  status          PayoutStatus @default(requested)
+  requestedById   String       @db.Uuid
+  approvedById    String?      @db.Uuid
+  rejectedById    String?      @db.Uuid
+  paidById        String?      @db.Uuid
   rejectionReason String?
-  requestedAt   DateTime     @default(now())
-  approvedAt    DateTime?
-  rejectedAt    DateTime?
-  paidAt        DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  requestedAt     DateTime     @default(now())
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  wallet SellerWallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  shop   Shop                @relation(fields: [shopId], references: [id])
+  wallet  SellerWallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  shop    Shop                @relation(fields: [shopId], references: [id])
   entries WalletLedgerEntry[]
 
   @@index([walletId, status])
@@ -721,15 +765,15 @@ model SellerPayout {
 }
 
 model ReturnRequest {
-  id        String       @id @default(uuid()) @db.Uuid
-  orderId   String       @db.Uuid
-  userId    String       @db.Uuid
-  status    ReturnStatus @default(REQUESTED)
-  reason    String?
+  id          String       @id @default(uuid()) @db.Uuid
+  orderId     String       @db.Uuid
+  userId      String       @db.Uuid
+  status      ReturnStatus @default(REQUESTED)
+  reason      String?
   description String?
-  images    String[]     @default([])
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  images      String[]     @default([])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   order   Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
   user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)

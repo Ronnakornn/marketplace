@@ -1,6 +1,7 @@
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { CartServiceError } from './cart.errors.ts'
 import type { ActiveCartDetail, CartItemDetail, ICartRepository } from './cart.repository.ts'
 
@@ -68,12 +69,12 @@ export class CartService {
     this.logger = appContext.logger
   }
 
-  async getCart(actor: CartActor): Promise<CartResponse> {
+  async getCart(actor: CartActor, localeInput?: string): Promise<CartResponse> {
     this.assertBuyer(actor)
     this.logger.debug('CartService.getCart', { actorId: actor.id })
 
     const cart = await this.repo.findOrCreateActiveCart(actor.id)
-    return this.toCartResponse(cart)
+    return this.toCartResponse(cart, resolveContentLocale(localeInput))
   }
 
   async addItem(actor: CartActor, data: AddCartItemData): Promise<CartResponse> {
@@ -174,7 +175,7 @@ export class CartService {
     return Math.max(0, inventory.quantityOnHand - inventory.quantityReserved)
   }
 
-  private toCartResponse(cart: ActiveCartDetail): CartResponse {
+  private toCartResponse(cart: ActiveCartDetail, locale: ContentLocale): CartResponse {
     const groups = new Map<string, CartShopGroup>()
 
     for (const item of cart.items) {
@@ -184,14 +185,22 @@ export class CartService {
         id: item.id,
         product: {
           id: item.variant.product.id,
-          title: item.variant.product.title,
+          title: localizedText(locale, {
+            th: item.variant.product.titleTh,
+            en: item.variant.product.titleEn,
+            fallback: item.variant.product.title,
+          }) ?? item.variant.product.title,
           slug: item.variant.product.slug,
           status: item.variant.product.status,
         },
         variant: {
           id: item.variant.id,
           sku: item.variant.sku,
-          title: item.variant.title,
+          title: localizedText(locale, {
+            th: item.variant.titleTh,
+            en: item.variant.titleEn,
+            fallback: item.variant.title,
+          }) ?? item.variant.title,
           priceCents: item.variant.priceCents,
           currency: item.variant.currency,
         },

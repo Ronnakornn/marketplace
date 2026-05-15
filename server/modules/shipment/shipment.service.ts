@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { ShipmentStatus } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { EventPublisherService } from '#server/modules/event-bus'
 import type { WalletService } from '#server/modules/wallet'
 import { ShipmentServiceError } from './shipment.errors.ts'
 import type {
@@ -96,6 +97,7 @@ export class ShipmentService {
     appContext: AppContext,
     private repo: IShipmentRepository,
     private walletService?: WalletService,
+    private eventPublisher?: EventPublisherService,
   ) {
     this.logger = appContext.logger
   }
@@ -176,7 +178,15 @@ export class ShipmentService {
       if (updated.order.status === 'PAID') {
         await txRepo.updateOrderStatus(updated.orderId, 'PROCESSING')
       }
-      return this.toSellerShipmentResponse(updated)
+      const response = this.toSellerShipmentResponse(updated)
+      await this.publishBestEffort('shipment.shipped', response.id, actor.id, {
+        shipmentId: response.id,
+        orderId: response.orderId,
+        shopId: response.shopId,
+        carrier: response.carrier,
+        trackingNumber: response.trackingNumber,
+      })
+      return response
     })
   }
 
@@ -217,6 +227,11 @@ export class ShipmentService {
       return this.toSellerShipmentResponse(updated)
     })
     await this.walletService?.createEarningsForCompletedOrder(response.orderId)
+    await this.publishBestEffort('shipment.delivered', response.id, actor.id, {
+      shipmentId: response.id,
+      orderId: response.orderId,
+      shopId: response.shopId,
+    })
     return response
   }
 
@@ -378,5 +393,28 @@ export class ShipmentService {
 
   private formatShipmentStatus(status: BuyerShipment['status']): string {
     return status === 'PENDING_PACK' ? 'pending_pack' : status.toLowerCase()
+  }
+
+  private async publishBestEffort(
+    eventName: 'shipment.shipped' | 'shipment.delivered',
+    shipmentId: string,
+    actorUserId: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.eventPublisher?.publish({
+        eventName,
+        aggregateType: 'shipment',
+        aggregateId: shipmentId,
+        actorUserId,
+        data,
+      })
+    } catch (error) {
+      this.logger.warn('ShipmentService event publish failed', {
+        eventName,
+        shipmentId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
   }
 }

@@ -3,7 +3,7 @@ import { isAPIError } from 'better-auth/api'
 import type { AppContext } from '#server/context/app-context.ts'
 import { auth } from '#server/lib/auth.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
-import type { AddressData, AdminUserListItem, BuyerAddress, IUserRepository, UserProfile } from './user.repository.ts'
+import type { AddressData, AdminUserListItem, BuyerAddress, FavoriteProductRecord, IUserRepository, ShopFollowRecord, UserProfile } from './user.repository.ts'
 import { UserServiceError } from './user.errors.ts'
 
 export interface CreateAdminUserData {
@@ -34,6 +34,27 @@ export interface AddressInput {
   postalCode?: string
   country?: string
   isDefault?: boolean
+}
+
+export interface FavoriteProductResponse {
+  id: string
+  productId: string
+  title: string
+  priceCents: number
+  currency: string
+  shop: { id: string; name: string; slug: string }
+  createdAt: Date
+}
+
+export interface ShopFollowResponse {
+  id: string
+  shopId: string
+  name: string
+  slug: string
+  followerCount: number
+  productCount: number
+  products: Array<{ id: string; title: string; priceCents: number; currency: string }>
+  createdAt: Date
 }
 
 export class UserService {
@@ -114,6 +135,42 @@ export class UserService {
     this.logger.info('UserService.setDefaultAddress', { userId, addressId })
     await this.assertAddressOwner(userId, addressId)
     return this.repo.setDefaultAddress(userId, addressId)
+  }
+
+  async listFavoriteProducts(userId: string): Promise<FavoriteProductResponse[]> {
+    return (await this.repo.listFavoriteProducts(userId)).map((favorite) => this.toFavoriteProduct(favorite))
+  }
+
+  async getFavoriteStatus(userId: string, productId: string): Promise<{ favorited: boolean }> {
+    return { favorited: Boolean(await this.repo.findFavoriteProduct(userId, productId)) }
+  }
+
+  async addFavoriteProduct(userId: string, productId: string): Promise<{ favorited: true }> {
+    await this.repo.addFavoriteProduct(userId, productId)
+    return { favorited: true }
+  }
+
+  async removeFavoriteProduct(userId: string, productId: string): Promise<{ favorited: false }> {
+    await this.repo.removeFavoriteProduct(userId, productId)
+    return { favorited: false }
+  }
+
+  async listFollowedShops(userId: string): Promise<ShopFollowResponse[]> {
+    return (await this.repo.listFollowedShops(userId)).map((follow) => this.toShopFollow(follow))
+  }
+
+  async getShopFollowStatus(userId: string, shopId: string): Promise<{ following: boolean }> {
+    return { following: Boolean(await this.repo.findShopFollow(userId, shopId)) }
+  }
+
+  async followShop(userId: string, shopId: string): Promise<{ following: true }> {
+    await this.repo.followShop(userId, shopId)
+    return { following: true }
+  }
+
+  async unfollowShop(userId: string, shopId: string): Promise<{ following: false }> {
+    await this.repo.unfollowShop(userId, shopId)
+    return { following: false }
   }
 
   async createForAdmin(data: CreateAdminUserData): Promise<AdminUserListItem> {
@@ -351,6 +408,40 @@ export class UserService {
       image: user.image,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+    }
+  }
+
+  private toFavoriteProduct(favorite: FavoriteProductRecord): FavoriteProductResponse {
+    const variant = favorite.product.variants[0]
+    return {
+      id: favorite.id,
+      productId: favorite.productId,
+      title: favorite.product.title,
+      priceCents: variant?.priceCents ?? 0,
+      currency: variant?.currency ?? 'USD',
+      shop: favorite.product.shop,
+      createdAt: favorite.createdAt,
+    }
+  }
+
+  private toShopFollow(follow: ShopFollowRecord): ShopFollowResponse {
+    return {
+      id: follow.id,
+      shopId: follow.shopId,
+      name: follow.shop.name,
+      slug: follow.shop.slug,
+      followerCount: follow.shop._count.followers,
+      productCount: follow.shop._count.products,
+      products: follow.shop.products.map((product) => {
+        const variant = product.variants[0]
+        return {
+          id: product.id,
+          title: product.title,
+          priceCents: variant?.priceCents ?? 0,
+          currency: variant?.currency ?? 'USD',
+        }
+      }),
+      createdAt: follow.createdAt,
     }
   }
 

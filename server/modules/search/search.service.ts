@@ -1,6 +1,7 @@
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheService } from '#server/modules/cache'
+import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { SearchServiceError } from './search.errors.ts'
 import type { ISearchRepository, SearchProductRecord } from './search.repository.ts'
 
@@ -21,6 +22,7 @@ export interface ProductSearchInput {
   sort?: string
   page?: number
   limit?: number
+  locale?: string
 }
 
 export interface ProductSearchItem {
@@ -101,7 +103,7 @@ export class SearchService {
     })
 
     const items = products
-      .map((product) => this.toSearchItem(product))
+      .map((product) => this.toSearchItem(product, filters.locale))
       .filter((item) => filters.rating === undefined || item.ratingSummary.averageRating >= filters.rating)
 
     const sorted = this.sortItems(items, filters.sort)
@@ -122,14 +124,16 @@ export class SearchService {
     }
   }
 
-  async getSuggestions(input: Pick<ProductSearchInput, 'q' | 'limit'>): Promise<SearchSuggestionsResponse> {
+  async getSuggestions(input: Pick<ProductSearchInput, 'q' | 'limit' | 'locale'>): Promise<SearchSuggestionsResponse> {
     const q = this.normalizeQuery(input.q)
     if (!q) return { recentKeywords: [], productTitles: [] }
     const limit = this.normalizeLimit(input.limit ?? 10)
+    const locale = resolveContentLocale(input.locale)
     const rows = await this.repo.findSuggestions(q, limit)
     return {
       recentKeywords: [],
-      productTitles: [...new Set(rows.map((row) => row.title))],
+      productTitles: [...new Set(rows.map((row) =>
+        localizedText(locale, { th: row.titleTh, en: row.titleEn, fallback: row.title }) ?? row.title))],
     }
   }
 
@@ -148,6 +152,7 @@ export class SearchService {
 
     return {
       q,
+      locale: resolveContentLocale(input.locale),
       categoryId: input.categoryId?.trim() || undefined,
       shopId: input.shopId?.trim() || undefined,
       minPrice,
@@ -207,7 +212,7 @@ export class SearchService {
     return value
   }
 
-  private toSearchItem(product: SearchProductRecord): ProductSearchItem {
+  private toSearchItem(product: SearchProductRecord, locale: ContentLocale): ProductSearchItem {
     const prices = product.variants.map((variant) => variant.priceCents)
     const minPrice = Math.min(...prices)
     const maxPrice = Math.max(...prices)
@@ -221,7 +226,7 @@ export class SearchService {
 
     return {
       productId: product.id,
-      title: product.title,
+      title: localizedText(locale, { th: product.titleTh, en: product.titleEn, fallback: product.title }) ?? product.title,
       coverImage: null,
       minPrice,
       maxPrice: maxPrice === minPrice ? null : maxPrice,

@@ -13,8 +13,9 @@ export class CacheInvalidation {
   }
 
   async invalidateProduct(productId: string): Promise<number> {
+    const prefix = this.prefix()
     const deleted = await Promise.all([
-      this.cache.delete(this.cache.keys.productDetail(productId)),
+      this.cache.deleteByPattern(`${prefix}:product:detail:*:${productId}`),
       this.invalidateProductListsAndSearch(),
     ])
     return deleted.reduce((total, count) => total + count, 0)

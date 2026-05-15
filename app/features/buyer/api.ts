@@ -100,6 +100,8 @@ export interface BuyerAddress {
 export interface BuyerCoupon {
   id: string;
   code: string;
+  title: string;
+  description: string | null;
   discountType: string;
   discountValueCents: number | null;
   discountPercentBps: number | null;
@@ -126,12 +128,34 @@ export interface BuyerProfile {
   image?: string | null;
 }
 
+export interface BuyerFavoriteProduct {
+  id: string;
+  productId: string;
+  title: string;
+  priceCents: number;
+  currency: string;
+  shop: { id: string; name: string; slug: string };
+  createdAt: string;
+}
+
+export interface BuyerFollowedShop {
+  id: string;
+  shopId: string;
+  name: string;
+  slug: string;
+  followerCount: number;
+  productCount: number;
+  products: Array<{ id: string; title: string; priceCents: number; currency: string }>;
+  createdAt: string;
+}
+
 export interface CheckoutInput {
   cartId: string;
   addressId: string;
   couponCode?: string;
   paymentMethod: string;
   shippingMethod?: string;
+  locale?: string;
 }
 
 export interface AddressInput {
@@ -185,21 +209,23 @@ export async function fetchSearchProducts(params: Record<string, string | number
   return rawItems.map(normalizeProduct);
 }
 
-export async function fetchSearchSuggestions(query: string, limit = 8): Promise<string[]> {
-  const response = await apiFetch(`/api/search/suggestions${toQuery({ q: query, limit })}`);
+export async function fetchSearchSuggestions(query: string, limit = 8, locale?: string): Promise<string[]> {
+  const response = await apiFetch(`/api/search/suggestions${toQuery({ q: query, limit, locale })}`);
   const record = toRecord(response);
   const rawItems = readArray(record.items).length ? readArray(record.items) : readArray(record.suggestions).length ? readArray(record.suggestions) : readArray(record.productTitles);
   return rawItems.map((item) => readString(typeof item === "string" ? item : toRecord(item).value)).filter(Boolean);
 }
 
-export async function fetchCoupons(): Promise<BuyerCoupon[]> {
-  const response = await apiFetch("/api/coupons");
+export async function fetchCoupons(locale?: string): Promise<BuyerCoupon[]> {
+  const response = await apiFetch(`/api/coupons${toQuery({ locale })}`);
   const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
   return rawItems.map((item) => {
     const record = toRecord(item);
     return {
       id: readString(record.id, readString(record.code)),
       code: readString(record.code, "DEAL"),
+      title: readString(record.title, readString(record.code, "Deal")),
+      description: optionalString(record.description),
       discountType: readString(record.discountType, "fixed"),
       discountValueCents: optionalNumber(record.discountValueCents),
       discountPercentBps: optionalNumber(record.discountPercentBps),
@@ -210,8 +236,82 @@ export async function fetchCoupons(): Promise<BuyerCoupon[]> {
   });
 }
 
-export async function fetchCategories(): Promise<BuyerCategory[]> {
-  const response = await apiFetch("/api/categories");
+export async function fetchFavoriteProducts(): Promise<BuyerFavoriteProduct[]> {
+  const response = await apiFetch("/api/me/favorites");
+  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
+  return rawItems.map((item) => {
+    const record = toRecord(item);
+    const shop = toRecord(record.shop);
+    return {
+      id: readString(record.id),
+      productId: readString(record.productId),
+      title: readString(record.title, "Product"),
+      priceCents: readNumber(record.priceCents),
+      currency: readString(record.currency, "USD"),
+      shop: {
+        id: readString(shop.id),
+        name: readString(shop.name, "Shop"),
+        slug: readString(shop.slug),
+      },
+      createdAt: readString(record.createdAt, new Date().toISOString()),
+    };
+  });
+}
+
+export async function fetchFavoriteStatus(productId: string): Promise<boolean> {
+  const response = toRecord(await apiFetch(`/api/me/favorites/${productId}`));
+  return Boolean(response.favorited);
+}
+
+export async function addFavoriteProduct(productId: string): Promise<void> {
+  await apiFetch(`/api/me/favorites/${productId}`, { method: "PUT" });
+}
+
+export async function removeFavoriteProduct(productId: string): Promise<void> {
+  await apiFetch(`/api/me/favorites/${productId}`, { method: "DELETE" });
+}
+
+export async function fetchFollowedShops(): Promise<BuyerFollowedShop[]> {
+  const response = await apiFetch("/api/me/followed-shops");
+  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
+  return rawItems.map((item) => {
+    const record = toRecord(item);
+    return {
+      id: readString(record.id),
+      shopId: readString(record.shopId),
+      name: readString(record.name, "Shop"),
+      slug: readString(record.slug),
+      followerCount: readNumber(record.followerCount),
+      productCount: readNumber(record.productCount),
+      products: readArray(record.products).map((productInput) => {
+        const product = toRecord(productInput);
+        return {
+          id: readString(product.id),
+          title: readString(product.title, "Product"),
+          priceCents: readNumber(product.priceCents),
+          currency: readString(product.currency, "USD"),
+        };
+      }),
+      createdAt: readString(record.createdAt, new Date().toISOString()),
+    };
+  });
+}
+
+export async function fetchShopFollowStatus(shopId: string): Promise<boolean> {
+  const response = toRecord(await apiFetch(`/api/shops/${shopId}/follow`));
+  return Boolean(response.following);
+}
+
+export async function followShop(shopId: string): Promise<void> {
+  await apiFetch(`/api/shops/${shopId}/follow`, { method: "PUT" });
+}
+
+export async function unfollowShop(shopId: string): Promise<void> {
+  await apiFetch(`/api/shops/${shopId}/follow`, { method: "DELETE" });
+}
+
+export async function fetchCategories(locale?: string): Promise<BuyerCategory[]> {
+  const response = await apiFetch(`/api/categories${toQuery({ locale })}`);
   const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
   return rawItems.map((item) => {
     const record = toRecord(item);
@@ -224,12 +324,12 @@ export async function fetchCategories(): Promise<BuyerCategory[]> {
   }).filter((category) => category.slug);
 }
 
-export async function fetchProduct(productId: string): Promise<BuyerProduct> {
-  return normalizeProduct(await apiFetch(`/api/products/${productId}`));
+export async function fetchProduct(productId: string, locale?: string): Promise<BuyerProduct> {
+  return normalizeProduct(await apiFetch(`/api/products/${productId}${toQuery({ locale })}`));
 }
 
-export async function fetchCart(): Promise<BuyerCart> {
-  return normalizeCart(await apiFetch("/api/cart"));
+export async function fetchCart(locale?: string): Promise<BuyerCart> {
+  return normalizeCart(await apiFetch(`/api/cart${toQuery({ locale })}`));
 }
 
 export async function addCartItem(variantId: string, quantity: number): Promise<BuyerCart> {

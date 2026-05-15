@@ -2,6 +2,7 @@ import type { Coupon } from '#generated/client/client.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { PromotionServiceError } from './promotion.errors.ts'
 import type {
   CreateCouponInput,
@@ -37,6 +38,10 @@ export interface CouponValidationResult {
 
 export interface CouponPayload {
   code: string
+  titleTh?: string | null
+  titleEn?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   discountType: 'fixed' | 'percent'
   discountValueCents?: number | null
   discountPercentBps?: number | null
@@ -59,8 +64,10 @@ export class PromotionService {
     this.logger = appContext.logger
   }
 
-  listPublicCoupons(): Promise<Coupon[]> {
-    return this.repo.listPublicCoupons()
+  async listPublicCoupons(localeInput?: string): Promise<Array<Coupon & { title: string; description: string | null }>> {
+    const locale = resolveContentLocale(localeInput)
+    const coupons = await this.repo.listPublicCoupons()
+    return coupons.map((coupon) => this.localizeCoupon(coupon, locale))
   }
 
   listAdminCoupons(actor: PromotionActor): Promise<Coupon[]> {
@@ -180,6 +187,10 @@ export class PromotionService {
   private normalizeCouponPayload(payload: Partial<CouponPayload>, partial = false): CreateCouponInput | UpdateCouponInput {
     const data: UpdateCouponInput = {}
     if (!partial || payload.code !== undefined) data.code = this.normalizeCode(payload.code ?? '')
+    if (payload.titleTh !== undefined) data.titleTh = this.normalizeNullableText(payload.titleTh)
+    if (payload.titleEn !== undefined) data.titleEn = this.normalizeNullableText(payload.titleEn)
+    if (payload.descriptionTh !== undefined) data.descriptionTh = this.normalizeNullableText(payload.descriptionTh)
+    if (payload.descriptionEn !== undefined) data.descriptionEn = this.normalizeNullableText(payload.descriptionEn)
     if (!partial || payload.discountType !== undefined) {
       data.discountType = this.normalizeDiscountType(payload.discountType)
     }
@@ -204,5 +215,19 @@ export class PromotionService {
   private normalizeDate(value: string | Date | null | undefined): Date | null {
     if (value === null || value === undefined) return null
     return value instanceof Date ? value : new Date(value)
+  }
+
+  private localizeCoupon<T extends Coupon>(coupon: T, locale: ContentLocale): T & { title: string; description: string | null } {
+    return {
+      ...coupon,
+      title: localizedText(locale, { th: coupon.titleTh, en: coupon.titleEn, fallback: coupon.code }) ?? coupon.code,
+      description: localizedText(locale, { th: coupon.descriptionTh, en: coupon.descriptionEn }),
+    }
+  }
+
+  private normalizeNullableText(value?: string | null): string | null {
+    if (value === null || value === undefined) return null
+    const trimmed = value.trim()
+    return trimmed ? trimmed : null
   }
 }

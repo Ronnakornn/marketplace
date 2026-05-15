@@ -11,15 +11,17 @@ import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 import { fetchCoupons, fetchSearchProducts, formatMoney } from "#/features/buyer/api";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import { useLocale } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
 export function DealsPage() {
   const localePath = useLocalePath();
+  const locale = useLocale();
   const productsQuery = useQuery({
-    queryKey: ["buyer-deals-products"],
-    queryFn: () => fetchSearchProducts({ sort: "best_selling", limit: 24 }),
+    queryKey: ["buyer-deals-products", locale],
+    queryFn: () => fetchSearchProducts({ sort: "best_selling", limit: 24, locale }),
   });
-  const couponsQuery = useQuery({ queryKey: ["buyer-coupons"], queryFn: fetchCoupons });
+  const couponsQuery = useQuery({ queryKey: ["buyer-coupons", locale], queryFn: () => fetchCoupons(locale) });
   const endsAt = useMemo(() => {
     const value = new Date();
     value.setHours(value.getHours() + 6, 0, 0, 0);
@@ -62,7 +64,8 @@ export function DealsPage() {
               {couponsQuery.data.slice(0, 8).map((coupon) => (
                 <div key={coupon.id} className="min-w-60 rounded-3xl border border-orange-100 bg-white p-4 shadow-sm">
                   <p className="text-xs font-bold uppercase text-orange-600">{coupon.code}</p>
-                  <p className="mt-1 text-lg font-extrabold text-slate-950">{couponLabel(coupon)}</p>
+                  <p className="mt-1 text-lg font-extrabold text-slate-950">{coupon.title || couponLabel(coupon)}</p>
+                  {coupon.description ? <p className="mt-1 text-xs text-slate-500">{coupon.description}</p> : null}
                   <p className="mt-1 text-xs text-slate-500">{coupon.minOrderCents ? `Min spend ${formatMoney(coupon.minOrderCents)}` : "No minimum spend shown"}</p>
                 </div>
               ))}

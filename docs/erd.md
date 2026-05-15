@@ -26,7 +26,11 @@ erDiagram
     string shopId FK
     string categoryId FK
     string title
+    string titleTh
+    string titleEn
     string slug
+    string descriptionTh
+    string descriptionEn
     string status
     datetime createdAt
     datetime updatedAt
@@ -35,6 +39,8 @@ erDiagram
   CATEGORY {
     string id PK
     string name
+    string nameTh
+    string nameEn
     string slug UK
     int sortOrder
     boolean isActive
@@ -47,6 +53,8 @@ erDiagram
     string productId FK
     string sku UK
     string title
+    string titleTh
+    string titleEn
     decimal price
     string currency
     datetime createdAt
@@ -171,6 +179,10 @@ erDiagram
     string id PK
     string shopId FK
     string code UK
+    string titleTh
+    string titleEn
+    string descriptionTh
+    string descriptionEn
     string discountType
     decimal discountValue
     datetime startsAt

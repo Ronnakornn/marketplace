@@ -35,6 +35,12 @@ const UpdateUserStatusBody = t.Object({
 const AddressParams = t.Object({
   addressId: t.String({ format: 'uuid' }),
 })
+const ProductFavoriteParams = t.Object({
+  productId: t.String({ format: 'uuid' }),
+})
+const ShopFollowParams = t.Object({
+  shopId: t.String({ format: 'uuid' }),
+})
 const AddressBody = t.Object({
   recipientName: t.String({ minLength: 1 }),
   phone: t.Optional(t.Nullable(t.String())),
@@ -90,6 +96,44 @@ export function createUserRoutes(container: ServiceContainer) {
       container.userService.setDefaultAddress(authContext!.user.id, params.addressId), {
       withAuth: true,
       params: AddressParams,
+    })
+    .get('/api/me/favorites', ({ authContext }: any) =>
+      container.userService.listFavoriteProducts(authContext!.user.id), {
+      withAuth: true,
+    })
+    .get('/api/me/favorites/:productId', ({ authContext, params }: any) =>
+      container.userService.getFavoriteStatus(authContext!.user.id, params.productId), {
+      withAuth: true,
+      params: ProductFavoriteParams,
+    })
+    .put('/api/me/favorites/:productId', ({ authContext, params }: any) =>
+      container.userService.addFavoriteProduct(authContext!.user.id, params.productId), {
+      withAuth: true,
+      params: ProductFavoriteParams,
+    })
+    .delete('/api/me/favorites/:productId', ({ authContext, params }: any) =>
+      container.userService.removeFavoriteProduct(authContext!.user.id, params.productId), {
+      withAuth: true,
+      params: ProductFavoriteParams,
+    })
+    .get('/api/me/followed-shops', ({ authContext }: any) =>
+      container.userService.listFollowedShops(authContext!.user.id), {
+      withAuth: true,
+    })
+    .get('/api/shops/:shopId/follow', ({ authContext, params }: any) =>
+      container.userService.getShopFollowStatus(authContext!.user.id, params.shopId), {
+      withAuth: true,
+      params: ShopFollowParams,
+    })
+    .put('/api/shops/:shopId/follow', ({ authContext, params }: any) =>
+      container.userService.followShop(authContext!.user.id, params.shopId), {
+      withAuth: true,
+      params: ShopFollowParams,
+    })
+    .delete('/api/shops/:shopId/follow', ({ authContext, params }: any) =>
+      container.userService.unfollowShop(authContext!.user.id, params.shopId), {
+      withAuth: true,
+      params: ShopFollowParams,
     })
     .get('/api/admin/users', () => container.userService.listForAdmin(), {
       withRole: 'ADMIN',

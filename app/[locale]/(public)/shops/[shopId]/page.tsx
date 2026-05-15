@@ -3,6 +3,7 @@ import Link from "next/link";
 import { JsonLd } from "#/components/JsonLd";
 import { Badge } from "#/components/ui/badge";
 import { Card, CardContent } from "#/components/ui/card";
+import { ShopFollowButton } from "#/features/buyer";
 import { resolveLocale, withLocale } from "#/i18n/config";
 import { createTranslator } from "#/i18n/server";
 import { publicPageMetadata, requirePublicShopSeo, storeJsonLd } from "#/lib/seo";
@@ -33,8 +34,18 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: s
           <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
             {t("seller.dashboard")}
           </Badge>
-          <h1 className="mt-3 text-2xl font-bold text-slate-950">{shop.name}</h1>
-          <p className="mt-2 text-sm text-slate-600">Browse active products from this marketplace seller.</p>
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-950">{shop.name}</h1>
+              <p className="mt-2 text-sm text-slate-600">Browse active products from this marketplace seller.</p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
+                <span className="rounded-full bg-orange-50 px-3 py-1 text-orange-700">Verified marketplace shop</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1">{shop.products.length} active items</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1">Fast chat available</span>
+              </div>
+            </div>
+            <ShopFollowButton shopId={shop.id} />
+          </div>
         </section>
 
         <section className="space-y-3">

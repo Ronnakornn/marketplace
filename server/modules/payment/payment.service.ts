@@ -2,6 +2,7 @@ import type { PaymentStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation } from '#server/modules/cache'
+import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
 import { PaymentServiceError } from './payment.errors.ts'
 import type { IPaymentRepository, PaymentWithOrder, ReleaseReservationInput } from './payment.repository.ts'
@@ -17,6 +18,7 @@ export class PaymentService {
     private repo: IPaymentRepository,
     private shipmentService: ShipmentService,
     private cacheInvalidation?: CacheInvalidation,
+    private eventPublisher?: EventPublisherService,
   ) {
     this.logger = appContext.logger
   }
@@ -30,7 +32,7 @@ export class PaymentService {
       eventType: input.eventType,
     })
 
-    return this.repo.transaction(async (txRepo) => {
+    const response = await this.repo.transaction(async (txRepo) => {
       const existingEvent = await txRepo.findWebhookEvent(input.providerRef)
       if (existingEvent) {
         return { ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' }
@@ -83,6 +85,17 @@ export class PaymentService {
       await this.invalidateOrderAffectedCaches(payment)
       return { ok: true, code: 'PAYMENT_EXPIRED' }
     })
+
+    if (response.code === 'PAYMENT_PAID') {
+      await this.publishBestEffort('order.paid', input.orderId, {
+        orderId: input.orderId,
+        paymentId: input.paymentId,
+        provider: input.provider,
+        amountCents: input.amountCents,
+      })
+    }
+
+    return response
   }
 
   private validateInput(input: PaymentWebhookBody): void {
@@ -139,5 +152,22 @@ export class PaymentService {
       [...new Set(payment.order.items.map((item) => item.shopId))]
         .map((shopId) => cacheInvalidation.invalidateSellerDashboard(shopId)),
     )
+  }
+
+  private async publishBestEffort(eventName: 'order.paid', orderId: string, data: Record<string, unknown>): Promise<void> {
+    try {
+      await this.eventPublisher?.publish({
+        eventName,
+        aggregateType: 'order',
+        aggregateId: orderId,
+        data,
+      })
+    } catch (error) {
+      this.logger.warn('PaymentService event publish failed', {
+        eventName,
+        orderId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
   }
 }

@@ -24,6 +24,7 @@
     "test": "vitest run",
     "db:generate": "bunx prisma generate",
     "db:push": "bunx prisma db push",
+    "db:seed": "bun run scripts/seed.ts",
     "db:studio": "bunx prisma studio",
     "db:seed-admin": "bun run scripts/seed-admin.ts",
     "db:seed-catalog-mock": "bun run scripts/seed-catalog-mock.ts"

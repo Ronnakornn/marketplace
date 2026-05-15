@@ -13,6 +13,7 @@ import type {
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { localizedText, resolveContentLocale } from '#server/lib/localization.ts'
 import type { IPromotionValidationRepository, PromotionCoupon } from '#server/modules/promotion/promotion.repository.ts'
 import { CheckoutServiceError } from './checkout.errors.ts'
 
@@ -22,9 +23,17 @@ type CheckoutTx = Omit<
 >
 
 export type CheckoutCartItem = CartItem & {
-  variant: ProductVariant & {
+  variant: (Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
+    titleTh?: string | null
+    titleEn?: string | null
+  }) & {
     inventory: Inventory | null
-    product: Product & {
+    product: (Omit<Product, 'titleTh' | 'titleEn' | 'descriptionTh' | 'descriptionEn'> & {
+      titleTh?: string | null
+      titleEn?: string | null
+      descriptionTh?: string | null
+      descriptionEn?: string | null
+    }) & {
       shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
     }
   }
@@ -56,6 +65,7 @@ export interface CreatePendingOrderInput {
   totals: CheckoutTotalsRecord
   items: CheckoutCartItem[]
   paymentMethod: string
+  locale?: string
   coupon?: CheckoutCouponRef | null
 }
 
@@ -210,6 +220,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
       })
     }
 
+    const locale = resolveContentLocale(input.locale)
     const order = await this.prisma.order.create({
       data: {
         checkoutId: checkout.id,
@@ -235,9 +246,17 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
           create: input.items.map((item) => ({
             shopId: item.variant.product.shop.id,
             variantId: item.variantId,
-            productTitle: item.variant.product.title,
+            productTitle: localizedText(locale, {
+              th: item.variant.product.titleTh,
+              en: item.variant.product.titleEn,
+              fallback: item.variant.product.title,
+            }) ?? item.variant.product.title,
             productSlug: item.variant.product.slug,
-            variantTitle: item.variant.title,
+            variantTitle: localizedText(locale, {
+              th: item.variant.titleTh,
+              en: item.variant.titleEn,
+              fallback: item.variant.title,
+            }) ?? item.variant.title,
             variantSku: item.variant.sku,
             shopName: item.variant.product.shop.name,
             shopSlug: item.variant.product.shop.slug,

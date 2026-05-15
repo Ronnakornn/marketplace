@@ -1,6 +1,7 @@
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { EventPublisherService } from '#server/modules/event-bus'
 import { WalletServiceError } from '#server/modules/wallet'
 import type { IPayoutRepository, PayoutRecord } from './payout.repository.ts'
 
@@ -40,6 +41,7 @@ export class PayoutService {
   constructor(
     appContext: AppContext,
     private repo: IPayoutRepository,
+    private eventPublisher?: EventPublisherService,
   ) {
     this.logger = appContext.logger
   }
@@ -77,7 +79,13 @@ export class PayoutService {
         currency: wallet.currency,
         description: 'Payout balance reserved',
       })
-      return this.toResponse(payout)
+      const response = this.toResponse(payout)
+      await this.publishBestEffort('payout.requested', response.id, actor.id, {
+        payoutId: response.id,
+        shopId: response.shop.id,
+        amountCents: response.amountCents,
+      })
+      return response
     })
   }
 
@@ -163,7 +171,14 @@ export class PayoutService {
         currency: payout.currency,
         description: 'Payout marked paid manually',
       })
-      return this.toResponse(updated)
+      const response = this.toResponse(updated)
+      await this.publishBestEffort('payout.paid', response.id, actor.id, {
+        payoutId: response.id,
+        shopId: response.shop.id,
+        sellerUserId: payout.requestedById,
+        amountCents: response.amountCents,
+      })
+      return response
     })
   }
 
@@ -205,6 +220,29 @@ export class PayoutService {
       approvedAt: payout.approvedAt,
       rejectedAt: payout.rejectedAt,
       paidAt: payout.paidAt,
+    }
+  }
+
+  private async publishBestEffort(
+    eventName: 'payout.requested' | 'payout.paid',
+    payoutId: string,
+    actorUserId: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.eventPublisher?.publish({
+        eventName,
+        aggregateType: 'payout',
+        aggregateId: payoutId,
+        actorUserId,
+        data,
+      })
+    } catch (error) {
+      this.logger.warn('PayoutService event publish failed', {
+        eventName,
+        payoutId,
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
   }
 }

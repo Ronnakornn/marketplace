@@ -5,16 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BellIcon,
   FlameIcon,
   Grid3X3Icon,
   HeartIcon,
   HomeIcon,
-  LogInIcon,
-  LogOutIcon,
   MenuIcon,
   PackageIcon,
-  SearchIcon,
   ShoppingBagIcon,
   ShoppingCartIcon,
   SparklesIcon,
@@ -23,21 +19,20 @@ import {
   UserCircleIcon,
   ZapIcon,
 } from "lucide-react";
+import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
-import { Input } from "#/components/ui/input";
 import { Skeleton } from "#/components/ui/skeleton";
-import { LanguageSwitcher } from "#/components/LanguageSwitcher";
-import { addCartItem, fetchCart, fetchCategories, fetchProducts, type BuyerProduct } from "#/features/buyer/api";
-import { useFormatters, useTranslations } from "#/i18n/client";
+import { addCartItem, fetchCategories, fetchCoupons, fetchProducts, type BuyerCoupon, type BuyerProduct } from "#/features/buyer/api";
+import { useFormatters, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
-import { signOut } from "#/lib/auth-client";
 
 interface MarketplaceHomeProps {
   user?: {
     name?: string;
     email?: string;
+    role?: string | null;
   } | null;
 }
 
@@ -240,31 +235,33 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const localePath = useLocalePath();
+  const locale = useLocale();
   const formatters = useFormatters();
   const [mounted, setMounted] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const searchTerm = "";
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const canUseBuyerCart = user?.role === "USER";
   const productsQuery = useQuery({
-    queryKey: ["marketplace-home-products", searchTerm, activeCategory],
+    queryKey: ["marketplace-home-products", locale, searchTerm, activeCategory],
     queryFn: () => fetchProducts({
       q: searchTerm || undefined,
       categoryId: activeCategory ?? undefined,
       limit: 50,
+      locale,
     }),
   });
   const categoriesQuery = useQuery({
-    queryKey: ["marketplace-categories"],
-    queryFn: fetchCategories,
+    queryKey: ["marketplace-categories", locale],
+    queryFn: () => fetchCategories(locale),
   });
-  const cartQuery = useQuery({
-    queryKey: ["buyer-cart"],
-    queryFn: fetchCart,
-    enabled: Boolean(user),
+  const couponsQuery = useQuery({
+    queryKey: ["marketplace-coupons", locale],
+    queryFn: () => fetchCoupons(locale),
   });
   const addToCartMutation = useMutation({
     mutationFn: (variantId: string) => addCartItem(variantId, 1),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
+      await queryClient.invalidateQueries({ queryKey: ["buyer-cart", locale] });
     },
   });
   const [visibleCount, setVisibleCount] = useState(10);
@@ -278,10 +275,6 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   const visibleProducts = products.slice(0, visibleCount);
   const flashProducts = products.slice(0, 8);
-  const cartItemCount = cartQuery.data?.shops.reduce(
-    (total, shop) => total + shop.items.reduce((shopTotal, item) => shopTotal + item.quantity, 0),
-    0,
-  ) ?? 0;
   const categories = useMemo(() => {
     const apiCategories = categoriesQuery.data ?? [];
     if (apiCategories.length) return apiCategories.map((category, index) => ({
@@ -292,23 +285,13 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
     return fallbackCategoryItems.map(([slug, label, className]) => ({ slug, label, className }));
   }, [categoriesQuery.data]);
 
-  async function handleSignOut() {
-    await signOut();
-    router.push(localePath("/"));
-    router.refresh();
-  }
-
   function handleAddToCart(product: StorefrontProduct) {
     if (!user) {
       router.push(localePath("/login"));
       return;
     }
+    if (!canUseBuyerCart) return;
     if (product.variantId) addToCartMutation.mutate(product.variantId);
-  }
-
-  function handleSearchSubmit() {
-    const query = searchTerm.trim();
-    router.push(query ? `${localePath("/search")}?q=${encodeURIComponent(query)}` : localePath("/search"));
   }
 
   useEffect(() => {
@@ -338,19 +321,14 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   return (
     <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950">
-      <MobileCommerceHeader
-        userName={user?.name}
-        searchTerm={searchTerm}
-        onSearchTermChange={setSearchTerm}
-        onSearchSubmit={handleSearchSubmit}
-        isSignedIn={Boolean(user)}
-        cartItemCount={cartItemCount}
-        onSignOut={() => void handleSignOut()}
-      />
+      <BuyerTopBar title={user?.name ? `Welcome back, ${user.name}` : "Marketplace"} />
 
       <main className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
         <HeroPromo />
-        <VoucherStrip hasFallback={Boolean(productsQuery.error) || (productsQuery.data?.length ?? 0) === 0} />
+        <VoucherStrip
+          coupons={couponsQuery.data ?? []}
+          hasFallback={Boolean(productsQuery.error) || (productsQuery.data?.length ?? 0) === 0}
+        />
         <FlashSaleSection
           products={flashProducts}
           isLoading={productsQuery.isLoading}
@@ -373,112 +351,6 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
       <StickyCheckoutCTA />
       <MobileBottomNav />
     </div>
-  );
-}
-
-function MobileCommerceHeader({
-  userName,
-  searchTerm,
-  onSearchTermChange,
-  onSearchSubmit,
-  isSignedIn,
-  cartItemCount,
-  onSignOut,
-}: {
-  userName?: string;
-  searchTerm: string;
-  onSearchTermChange: (value: string) => void;
-  onSearchSubmit: () => void;
-  isSignedIn: boolean;
-  cartItemCount: number;
-  onSignOut: () => void;
-}) {
-  const t = useTranslations();
-  const localePath = useLocalePath();
-
-  return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center gap-2">
-        <form
-          className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200"
-          onSubmit={(event) => {
-            event.preventDefault();
-            onSearchSubmit();
-          }}
-        >
-          <SearchIcon className="size-4 text-slate-500" />
-          <Input
-            value={searchTerm}
-            onChange={(event) => onSearchTermChange(event.target.value)}
-            placeholder={t("home.searchPlaceholder")}
-            className="h-8 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
-          />
-        </form>
-        <Button size="icon-sm" variant="ghost" className="rounded-full" asChild>
-          <Link href={localePath("/notifications")}>
-          <BellIcon className="size-5" />
-          <span className="sr-only">{t("common.notifications")}</span>
-          </Link>
-        </Button>
-        <Button size="icon-sm" variant="ghost" className="relative rounded-full" asChild>
-          <Link href={localePath("/cart")}>
-          <ShoppingCartIcon className="size-5" />
-          {cartItemCount > 0 ? (
-            <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
-              {cartItemCount > 99 ? "99+" : cartItemCount}
-            </span>
-          ) : null}
-          <span className="sr-only">{t("common.cart")}</span>
-          </Link>
-        </Button>
-        {isSignedIn ? (
-          <>
-            <Button size="icon-sm" variant="ghost" className="rounded-full" asChild>
-              <Link href={localePath("/profile")}>
-                <UserCircleIcon className="size-5" />
-                <span className="sr-only">{t("common.profile")}</span>
-              </Link>
-            </Button>
-            <Button size="icon-sm" variant="ghost" className="rounded-full text-slate-600" onClick={onSignOut}>
-              <LogOutIcon className="size-5" />
-              <span className="sr-only">{t("common.logout")}</span>
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button size="sm" className="hidden rounded-full bg-slate-950 text-white hover:bg-slate-800 sm:inline-flex" asChild>
-              <Link href={localePath("/login")}>
-                <LogInIcon className="size-4" />
-                {t("common.login")}
-              </Link>
-            </Button>
-            <Button size="sm" variant="outline" className="hidden rounded-full border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 sm:inline-flex" asChild>
-              <Link href={localePath("/signup")}>{t("common.signup")}</Link>
-            </Button>
-            <Button size="icon-sm" variant="ghost" className="rounded-full sm:hidden" asChild>
-              <Link href={localePath("/login")}>
-                <LogInIcon className="size-5" />
-                <span className="sr-only">{t("common.login")}</span>
-              </Link>
-            </Button>
-          </>
-        )}
-      </div>
-      {userName ? (
-        <div className="mx-auto mt-1 flex max-w-6xl items-center justify-between gap-2 px-1">
-          <p className="truncate text-xs text-slate-500">
-            {t("home.welcomeBack").replace("{name}", userName)}
-          </p>
-          <div>
-            <LanguageSwitcher />
-          </div>
-        </div>
-      ) : (
-        <div className="mx-auto mt-1 flex max-w-6xl justify-end px-1">
-          <LanguageSwitcher />
-        </div>
-      )}
-    </header>
   );
 }
 
@@ -517,14 +389,24 @@ function HeroPromo() {
   );
 }
 
-function VoucherStrip({ hasFallback }: { hasFallback: boolean }) {
+function VoucherStrip({ coupons, hasFallback }: { coupons: BuyerCoupon[]; hasFallback: boolean }) {
   const t = useTranslations();
-  return (
-    <section className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {[
+  const liveVouchers = coupons.slice(0, 3).map((coupon) => [
+    coupon.title,
+    coupon.description ?? coupon.code,
+  ]);
+  const vouchers = liveVouchers.length
+    ? liveVouchers
+    : [
         [t("home.freeShipping"), "THB 500"],
         ["15% OFF", "Selected shops"],
         ["Coins Cashback", t("home.upToCashback")],
+      ];
+
+  return (
+    <section className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {[
+        ...vouchers,
         [hasFallback ? t("home.demoFeed") : t("home.liveCatalog"), hasFallback ? t("home.fallbackReady") : t("home.syncedFromApi")],
       ].map(([title, subtitle]) => (
         <div key={title} className="flex min-w-[154px] items-center gap-2 rounded-2xl border border-orange-100 bg-white px-3 py-2 shadow-sm">

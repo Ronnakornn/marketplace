@@ -1,11 +1,14 @@
-import type { ProductVariant } from '#generated/client/client.ts'
 import type { ProductStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation, CacheService } from '#server/modules/cache'
+import type { EventPublisherService } from '#server/modules/event-bus'
+import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { CatalogServiceError } from './catalog.errors.ts'
 import type {
   CatalogProductDetail,
+  CatalogProductRecord,
+  CatalogVariantRecord,
   CatalogCategoryListItem,
   CatalogProductListItem,
   ICatalogRepository,
@@ -24,22 +27,32 @@ export interface CreateProductData {
   shopId?: string
   categoryId?: string | null
   title: string
+  titleTh?: string | null
+  titleEn?: string | null
   slug?: string
   description?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   status?: ProductStatus
 }
 
 export interface UpdateProductData {
   categoryId?: string | null
   title?: string
+  titleTh?: string | null
+  titleEn?: string | null
   slug?: string
   description?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   status?: ProductStatus
 }
 
 export interface CreateVariantData {
   sku: string
   title: string
+  titleTh?: string | null
+  titleEn?: string | null
   priceCents: number
   currency?: string
 }
@@ -47,6 +60,8 @@ export interface CreateVariantData {
 export interface UpdateVariantData {
   sku?: string
   title?: string
+  titleTh?: string | null
+  titleEn?: string | null
   priceCents?: number
   currency?: string
 }
@@ -59,6 +74,7 @@ export interface PublicListProductsData {
   maxPriceCents?: number
   cursor?: string
   limit?: number
+  locale?: string
 }
 
 export interface SellerListProductsData extends PublicListProductsData {
@@ -73,33 +89,40 @@ export class CatalogService {
     private repo: ICatalogRepository,
     private cache?: CacheService,
     private cacheInvalidation?: CacheInvalidation,
+    private eventPublisher?: EventPublisherService,
   ) {
     this.logger = appContext.logger
   }
 
-  listCategories(): Promise<CatalogCategoryListItem[]> {
+  async listCategories(localeInput?: string): Promise<CatalogCategoryListItem[]> {
     this.logger.debug('CatalogService.listCategories')
-    if (!this.cache) return this.repo.findActiveCategories()
-    return this.cache.remember(
-      this.cache.keys.categoryList(),
+    const locale = resolveContentLocale(localeInput)
+    const categories = !this.cache ? await this.repo.findActiveCategories() : await this.cache.remember(
+      this.cache.keys.categoryList(locale),
       () => this.repo.findActiveCategories(),
       { ttlSeconds: this.cache.ttl().product },
     )
+    return categories.map((category) => this.localizeCategory(category, locale))
   }
 
-  listPublicProducts(filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
+  async listPublicProducts(filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
     this.logger.debug('CatalogService.listPublicProducts', { filters })
+    const locale = resolveContentLocale(filters.locale)
     const normalizedFilters = {
       ...this.normalizeListFilters(filters),
       status: 'ACTIVE',
     } as const
+    const cacheFilters = { ...normalizedFilters, locale }
 
-    if (!this.cache) return this.repo.findProducts(normalizedFilters)
-    return this.cache.remember(
-      this.cache.keys.productList(normalizedFilters),
+    const result = !this.cache ? await this.repo.findProducts(normalizedFilters) : await this.cache.remember(
+      this.cache.keys.productList(cacheFilters),
       () => this.repo.findProducts(normalizedFilters),
       { ttlSeconds: this.cache.ttl().product },
     )
+    return {
+      ...result,
+      data: result.data.map((product) => this.localizeProduct(product, locale)),
+    }
   }
 
   listPublicShopProducts(shopId: string, filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
@@ -107,11 +130,12 @@ export class CatalogService {
     return this.listPublicProducts({ ...filters, shopId })
   }
 
-  async getPublicProductDetail(id: string): Promise<CatalogProductDetail> {
+  async getPublicProductDetail(id: string, localeInput?: string): Promise<CatalogProductDetail> {
     this.logger.debug('CatalogService.getPublicProductDetail', { id })
+    const locale = resolveContentLocale(localeInput)
     const product = this.cache
       ? await this.cache.remember(
-          this.cache.keys.productDetail(id),
+          this.cache.keys.productDetail(id, locale),
           () => this.repo.findProductById(id),
           { ttlSeconds: this.cache.ttl().product },
         )
@@ -119,7 +143,7 @@ export class CatalogService {
     if (!product || product.status !== 'ACTIVE') {
       throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     }
-    return product
+    return this.localizeProduct(product, locale)
   }
 
   listAdminProducts(filters: SellerListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
@@ -152,16 +176,25 @@ export class CatalogService {
       this.repo.updateProduct(product.id, {
         ...(data.categoryId === undefined ? {} : { categoryId: this.normalizeNullableText(data.categoryId) }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
+        ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
+        ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
         ...(data.slug === undefined ? {} : { slug: this.normalizeSlug(data.slug) }),
         ...(data.description === undefined ? {} : { description: this.normalizeNullableText(data.description) }),
+        ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
+        ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
         ...(data.status === undefined ? {} : { status: data.status }),
       }),
     )
     await this.cacheInvalidation?.invalidateProduct(updated.id)
+    await this.publishBestEffort('product.updated', updated.id, undefined, {
+      productId: updated.id,
+      shopId: updated.shopId,
+      changedFields: Object.keys(data),
+    })
     return updated
   }
 
-  async createAdminVariant(productId: string, data: CreateVariantData): Promise<ProductVariant> {
+  async createAdminVariant(productId: string, data: CreateVariantData): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.createAdminVariant', { productId, sku: data.sku })
     this.validateVariantInput(data)
     const product = await this.repo.findProductById(productId)
@@ -172,6 +205,8 @@ export class CatalogService {
         productId,
         sku: data.sku.trim(),
         title: data.title.trim(),
+        ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
+        ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
         priceCents: data.priceCents,
         currency: data.currency?.trim().toUpperCase() || 'USD',
       }),
@@ -180,7 +215,7 @@ export class CatalogService {
     return variant
   }
 
-  async updateAdminVariant(productId: string, variantId: string, data: UpdateVariantData): Promise<ProductVariant> {
+  async updateAdminVariant(productId: string, variantId: string, data: UpdateVariantData): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.updateAdminVariant', { productId, variantId })
     if (Object.keys(data).length === 0) {
       throw new CatalogServiceError('At least one variant field is required', 400, 'VARIANT_VALIDATION_FAILED')
@@ -195,6 +230,8 @@ export class CatalogService {
       this.repo.updateVariant(variantId, {
         ...(data.sku === undefined ? {} : { sku: data.sku.trim() }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
+        ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
+        ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
         ...(data.priceCents === undefined ? {} : { priceCents: data.priceCents }),
         ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
       }),
@@ -203,7 +240,7 @@ export class CatalogService {
     return updated
   }
 
-  async deleteAdminVariant(productId: string, variantId: string): Promise<ProductVariant> {
+  async deleteAdminVariant(productId: string, variantId: string): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.deleteAdminVariant', { productId, variantId })
     const variant = await this.repo.findVariantById(variantId)
     if (!variant || variant.productId !== productId) {
@@ -237,12 +274,21 @@ export class CatalogService {
         shopId: shop.id,
         categoryId: this.normalizeNullableText(data.categoryId),
         title: data.title.trim(),
+        ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
+        ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
         slug: this.normalizeSlug(data.slug ?? data.title),
         description: this.normalizeNullableText(data.description),
+        ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
+        ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
         status: data.status ?? 'DRAFT',
       }),
     )
     await this.cacheInvalidation?.invalidateProductListsAndSearch()
+    await this.publishBestEffort('product.created', created.id, actor.id, {
+      productId: created.id,
+      shopId: created.shopId,
+      status: created.status,
+    })
     return created
   }
 
@@ -262,12 +308,21 @@ export class CatalogService {
       this.repo.updateProduct(product.id, {
         ...(data.categoryId === undefined ? {} : { categoryId: this.normalizeNullableText(data.categoryId) }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
+        ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
+        ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
         ...(data.slug === undefined ? {} : { slug: this.normalizeSlug(data.slug) }),
         ...(data.description === undefined ? {} : { description: this.normalizeNullableText(data.description) }),
+        ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
+        ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
         ...(data.status === undefined ? {} : { status: data.status }),
       }),
     )
     await this.cacheInvalidation?.invalidateProduct(updated.id)
+    await this.publishBestEffort('product.updated', updated.id, actor.id, {
+      productId: updated.id,
+      shopId: updated.shopId,
+      changedFields: Object.keys(data),
+    })
     return updated
   }
 
@@ -276,10 +331,38 @@ export class CatalogService {
     const product = await this.getManageableProduct(actor, productId)
     const updated = await this.repo.updateProduct(product.id, { status: 'ARCHIVED' })
     await this.cacheInvalidation?.invalidateProduct(updated.id)
+    await this.publishBestEffort('product.updated', updated.id, actor.id, {
+      productId: updated.id,
+      shopId: updated.shopId,
+      changedFields: ['status'],
+    })
     return updated
   }
 
-  async createVariant(actor: CatalogActor, productId: string, data: CreateVariantData): Promise<ProductVariant> {
+  private async publishBestEffort(
+    eventName: 'product.created' | 'product.updated',
+    productId: string,
+    actorUserId: string | undefined,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.eventPublisher?.publish({
+        eventName,
+        aggregateType: 'product',
+        aggregateId: productId,
+        ...(actorUserId ? { actorUserId } : {}),
+        data,
+      })
+    } catch (error) {
+      this.logger.warn('CatalogService event publish failed', {
+        eventName,
+        productId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  async createVariant(actor: CatalogActor, productId: string, data: CreateVariantData): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.createVariant', { actorId: actor.id, productId, sku: data.sku })
     this.validateVariantInput(data)
     await this.getManageableProduct(actor, productId)
@@ -297,7 +380,7 @@ export class CatalogService {
     return variant
   }
 
-  async updateVariant(actor: CatalogActor, productId: string, variantId: string, data: UpdateVariantData): Promise<ProductVariant> {
+  async updateVariant(actor: CatalogActor, productId: string, variantId: string, data: UpdateVariantData): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.updateVariant', { actorId: actor.id, productId, variantId })
     if (Object.keys(data).length === 0) {
       throw new CatalogServiceError('At least one variant field is required', 400, 'VARIANT_VALIDATION_FAILED')
@@ -317,7 +400,7 @@ export class CatalogService {
     return updated
   }
 
-  async deleteVariant(actor: CatalogActor, productId: string, variantId: string): Promise<ProductVariant> {
+  async deleteVariant(actor: CatalogActor, productId: string, variantId: string): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.deleteVariant', { actorId: actor.id, productId, variantId })
     await this.getManageableVariant(actor, productId, variantId)
     const deleted = await this.repo.deleteVariant(variantId)
@@ -342,7 +425,7 @@ export class CatalogService {
     return product
   }
 
-  private async getManageableVariant(actor: CatalogActor, productId: string, variantId: string): Promise<ProductVariant> {
+  private async getManageableVariant(actor: CatalogActor, productId: string, variantId: string): Promise<CatalogVariantRecord & { product: CatalogProductRecord }> {
     const variant = await this.repo.findVariantById(variantId)
     if (!variant || variant.productId !== productId) {
       throw new CatalogServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
@@ -364,18 +447,51 @@ export class CatalogService {
     this.validatePriceRange(filters.minPriceCents, filters.maxPriceCents)
 
     return {
-      keyword: filters.keyword?.trim() || undefined,
-      categoryId: filters.categoryId?.trim() || undefined,
-      shopId: filters.shopId,
-      minPriceCents: filters.minPriceCents,
-      maxPriceCents: filters.maxPriceCents,
-      cursor: filters.cursor,
+      ...(filters.keyword?.trim() ? { keyword: filters.keyword.trim() } : {}),
+      ...(filters.categoryId?.trim() ? { categoryId: filters.categoryId.trim() } : {}),
+      ...(filters.shopId ? { shopId: filters.shopId } : {}),
+      ...(filters.minPriceCents !== undefined ? { minPriceCents: filters.minPriceCents } : {}),
+      ...(filters.maxPriceCents !== undefined ? { maxPriceCents: filters.maxPriceCents } : {}),
+      ...(filters.cursor ? { cursor: filters.cursor } : {}),
       limit,
     }
   }
 
   private validateProductInput(data: CreateProductData): void {
     if (!data.title.trim()) throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
+  }
+
+  private localizeCategory(category: CatalogCategoryListItem, locale: ContentLocale): CatalogCategoryListItem {
+    return {
+      ...category,
+      name: localizedText(locale, { th: category.nameTh, en: category.nameEn, fallback: category.name }) ?? category.name,
+    }
+  }
+
+  private localizeProduct<T extends CatalogProductListItem>(product: T, locale: ContentLocale): T {
+    return {
+      ...product,
+      title: localizedText(locale, { th: product.titleTh, en: product.titleEn, fallback: product.title }) ?? product.title,
+      description: localizedText(locale, {
+        th: product.descriptionTh,
+        en: product.descriptionEn,
+        fallback: product.description,
+      }),
+      category: product.category
+        ? {
+            ...product.category,
+            name: localizedText(locale, {
+              th: product.category.nameTh,
+              en: product.category.nameEn,
+              fallback: product.category.name,
+            }) ?? product.category.name,
+          }
+        : null,
+      variants: product.variants.map((variant) => ({
+        ...variant,
+        title: localizedText(locale, { th: variant.titleTh, en: variant.titleEn, fallback: variant.title }) ?? variant.title,
+      })),
+    }
   }
 
   private validateVariantInput(data: CreateVariantData): void {

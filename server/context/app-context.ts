@@ -42,6 +42,8 @@ import { UploadService } from '#server/modules/upload/upload.service.ts'
 import { getStorageConfigFromEnv, S3UploadStorage } from '#server/modules/upload/upload.storage.ts'
 import { PrismaWalletRepository, WalletService } from '#server/modules/wallet'
 import { JobService, PrismaJobRepository } from '#server/modules/jobs'
+import { EventBus, EventHandlerRegistry, EventPublisherService } from '#server/modules/event-bus'
+import { createCoreCommerceEventHandlers } from '#server/modules/events'
 import { BullMqQueueProducer, getQueueConfigFromEnv, OptionalQueueProducer, type QueueProducer } from '#server/modules/queue'
 import { AuditLogService, PrismaAuditLogRepository } from '#server/modules/audit-log'
 import { OwnershipGuards, PrismaOwnershipGuardRepository, SecurityService } from '#server/modules/security'
@@ -73,6 +75,9 @@ export interface ServiceContainer {
   checkoutService: CheckoutService
   commissionService: CommissionService
   catalogService: CatalogService
+  eventBus: EventBus
+  eventHandlerRegistry: EventHandlerRegistry
+  eventPublisherService: EventPublisherService
   jobService: JobService
   notificationService: NotificationService
   realtimeService: RealtimeService
@@ -107,6 +112,9 @@ export function createContainer(): ServiceContainer {
   const cacheConfig = getCacheConfigFromEnv()
   const cacheService = new CacheService(appContext, cacheConfig, createRedisCacheClient(cacheConfig))
   const cacheInvalidation = new CacheInvalidation(cacheService)
+  const eventHandlerRegistry = new EventHandlerRegistry()
+  const eventBus = new EventBus(appContext, eventHandlerRegistry)
+  const eventPublisherService = new EventPublisherService(appContext, eventBus)
 
   const auditLogRepo = new PrismaAuditLogRepository(appContext, prisma)
   const auditLogService = new AuditLogService(appContext, auditLogRepo)
@@ -114,10 +122,8 @@ export function createContainer(): ServiceContainer {
   const adminService = new AdminService(appContext, adminRepo, auditLogService)
   const cartRepo = new PrismaCartRepository(appContext, prisma)
   const cartService = new CartService(appContext, cartRepo)
-  const chatRepo = new PrismaChatRepository(appContext, prisma)
   const realtimeRepo = new PrismaRealtimeRepository(appContext, prisma)
   const realtimeService = new RealtimeService(appContext, realtimeRepo, new InMemoryRealtimeAdapter())
-  const chatService = new ChatService(appContext, chatRepo, realtimeService)
   const promotionRepo = new PrismaPromotionRepository(appContext, prisma)
   const promotionService = new PromotionService(appContext, promotionRepo)
   const commissionService = new CommissionService(appContext)
@@ -127,20 +133,22 @@ export function createContainer(): ServiceContainer {
   const checkoutService = new CheckoutService(appContext, checkoutRepo, promotionService, cacheInvalidation)
   const notificationRepo = new PrismaNotificationRepository(appContext, prisma)
   const notificationService = new NotificationService(appContext, notificationRepo, realtimeService)
+  const chatRepo = new PrismaChatRepository(appContext, prisma)
+  const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
-  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation)
+  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
   const orderService = new OrderService(appContext, orderRepo)
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)
-  const shipmentService = new ShipmentService(appContext, shipmentRepo, walletService)
+  const shipmentService = new ShipmentService(appContext, shipmentRepo, walletService, eventPublisherService)
   const paymentRepo = new PrismaPaymentRepository(appContext, prisma)
-  const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation)
+  const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation, eventPublisherService)
   const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
-  const payoutService = new PayoutService(appContext, payoutRepo)
+  const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService)
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
   const returnService = new ReturnService(appContext, returnRepo)
   const refundRepo = new PrismaRefundRepository(appContext, prisma)
-  const refundService = new RefundService(appContext, refundRepo)
+  const refundService = new RefundService(appContext, refundRepo, eventPublisherService)
   const recommendationRepo = new PrismaRecommendationRepository(appContext, prisma)
   const recommendationService = new RecommendationService(appContext, recommendationRepo, cacheService)
   const reviewRepo = new PrismaReviewRepository(appContext, prisma)
@@ -170,6 +178,13 @@ export function createContainer(): ServiceContainer {
   const userRepo = new PrismaUserRepository(appContext, prisma)
   const userService = new UserService(appContext, userRepo)
 
+  eventHandlerRegistry.registerMany(createCoreCommerceEventHandlers({
+    cacheInvalidation,
+    notificationService,
+    searchService,
+    shipmentService,
+  }))
+
   return {
     appContext,
     auditLogService,
@@ -181,6 +196,9 @@ export function createContainer(): ServiceContainer {
     checkoutService,
     commissionService,
     catalogService,
+    eventBus,
+    eventHandlerRegistry,
+    eventPublisherService,
     jobService,
     notificationService,
     realtimeService,

@@ -14,6 +14,10 @@ const ValidateCouponBodySchema = t.Object({
 
 const CouponBodySchema = t.Object({
   code: t.String({ minLength: 1 }),
+  titleTh: t.Optional(t.Nullable(t.String())),
+  titleEn: t.Optional(t.Nullable(t.String())),
+  descriptionTh: t.Optional(t.Nullable(t.String())),
+  descriptionEn: t.Optional(t.Nullable(t.String())),
   discountType: t.Union([t.Literal('fixed'), t.Literal('percent')]),
   discountValueCents: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
   discountPercentBps: t.Optional(t.Nullable(t.Number({ minimum: 0, maximum: 10_000 }))),
@@ -42,7 +46,9 @@ export function createPromotionRoutes(container: ServiceContainer) {
         })
       }
     })
-    .get('/api/coupons', () => container.promotionService.listPublicCoupons())
+    .get('/api/coupons', ({ query }: any) => container.promotionService.listPublicCoupons(query.locale), {
+      query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
+    })
     .post('/api/coupons/validate', ({ authContext, body }: any) =>
       container.promotionService.validateCoupon(authContext!.user, body), {
       withAuth: true,

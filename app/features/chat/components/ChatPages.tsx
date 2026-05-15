@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageCircleIcon, SendIcon, StoreIcon, UserCircleIcon } from "lucide-react";
@@ -75,6 +75,7 @@ export function ChatThreadPage({ roomId, audience }: { roomId: string; audience:
   const { data: session } = useSession();
   const formatters = useFormatters();
   const markedReadRoomRef = useRef<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [body, setBody] = useState("");
   const roomQuery = useQuery({
     queryKey: ["chat-room", roomId],
@@ -88,6 +89,7 @@ export function ChatThreadPage({ roomId, audience }: { roomId: string; audience:
         queryClient.invalidateQueries({ queryKey: ["chat-room", roomId] }),
         queryClient.invalidateQueries({ queryKey: ["chat-rooms"] }),
       ]);
+      scrollToMessagesEnd("smooth");
     },
   });
   const readMutation = useMutation({
@@ -111,8 +113,40 @@ export function ChatThreadPage({ roomId, audience }: { roomId: string; audience:
     }
   }, [readMutation, roomId, roomQuery.data]);
 
+  const latestMessageId = roomQuery.data?.messages?.at(-1)?.id;
+
+  useEffect(() => {
+    if (!latestMessageId) return;
+    scrollToMessagesEnd("smooth");
+  }, [latestMessageId]);
+
+  function scrollToMessagesEnd(behavior: ScrollBehavior = "auto") {
+    const scroll = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior,
+      });
+    };
+
+    window.requestAnimationFrame(() => {
+      scroll();
+      window.setTimeout(scroll, 80);
+    });
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    submitMessage();
+  }
+
+  function handleMessageKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    submitMessage();
+  }
+
+  function submitMessage() {
     const trimmed = body.trim();
     if (!trimmed || sendMutation.isPending) return;
     sendMutation.mutate(trimmed);
@@ -152,6 +186,7 @@ export function ChatThreadPage({ roomId, audience }: { roomId: string; audience:
                       </div>
                     );
                   })}
+                  <div ref={messagesEndRef} aria-hidden="true" />
                 </div>
               ) : (
                 <BuyerEmptyState title={t("chat.emptyThread")} description={t("chat.emptyThreadDescription")} />
@@ -161,6 +196,7 @@ export function ChatThreadPage({ roomId, audience }: { roomId: string; audience:
               <Textarea
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
+                onKeyDown={handleMessageKeyDown}
                 placeholder={t("chat.typeMessage")}
                 className="min-h-24 resize-none rounded-2xl border-slate-200"
               />

@@ -3,6 +3,8 @@ import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 export interface ProductListFilters {
   keyword?: string
   categoryId?: string
@@ -22,22 +24,33 @@ export interface PaginatedResult<T> {
   }
 }
 
-export type CatalogCategoryListItem = Pick<Category, 'id' | 'name' | 'slug' | 'sortOrder'>
+export type CatalogCategoryListItem = Pick<Category, 'id' | 'name' | 'slug' | 'sortOrder'> & {
+  nameTh?: string | null
+  nameEn?: string | null
+}
 
 export interface CreateProductRecord {
   shopId: string
   categoryId?: string | null
   title: string
+  titleTh?: string | null
+  titleEn?: string | null
   slug: string
   description?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   status: ProductStatus
 }
 
 export interface UpdateProductRecord {
   categoryId?: string | null
   title?: string
+  titleTh?: string | null
+  titleEn?: string | null
   slug?: string
   description?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   status?: ProductStatus
 }
 
@@ -45,6 +58,8 @@ export interface CreateVariantRecord {
   productId: string
   sku: string
   title: string
+  titleTh?: string | null
+  titleEn?: string | null
   priceCents: number
   currency: string
 }
@@ -52,18 +67,29 @@ export interface CreateVariantRecord {
 export interface UpdateVariantRecord {
   sku?: string
   title?: string
+  titleTh?: string | null
+  titleEn?: string | null
   priceCents?: number
   currency?: string
 }
 
-export type CatalogProductListItem = Product & {
+export type CatalogProductListItem = Omit<Product, 'titleTh' | 'titleEn' | 'descriptionTh' | 'descriptionEn'> & {
+  titleTh?: string | null
+  titleEn?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   category: {
     id: string
     name: string
+    nameTh?: string | null
+    nameEn?: string | null
     slug: string
   } | null
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'>
-  variants: Array<ProductVariant & {
+  variants: Array<(Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
+    titleTh?: string | null
+    titleEn?: string | null
+  }) & {
     inventory: {
       id: string
       quantityOnHand: number
@@ -76,6 +102,18 @@ export type CatalogProductListItem = Product & {
 
 export type CatalogProductDetail = CatalogProductListItem
 
+export type CatalogVariantRecord = Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
+  titleTh?: string | null
+  titleEn?: string | null
+}
+
+export type CatalogProductRecord = Omit<Product, 'titleTh' | 'titleEn' | 'descriptionTh' | 'descriptionEn'> & {
+  titleTh?: string | null
+  titleEn?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
+}
+
 export interface ICatalogRepository {
   findActiveCategories(): Promise<CatalogCategoryListItem[]>
   findShopById(id: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
@@ -84,10 +122,10 @@ export interface ICatalogRepository {
   findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>>
   createProduct(data: CreateProductRecord): Promise<CatalogProductDetail>
   updateProduct(id: string, data: UpdateProductRecord): Promise<CatalogProductDetail>
-  createVariant(data: CreateVariantRecord): Promise<ProductVariant>
-  updateVariant(id: string, data: UpdateVariantRecord): Promise<ProductVariant>
-  deleteVariant(id: string): Promise<ProductVariant>
-  findVariantById(id: string): Promise<(ProductVariant & { product: Product }) | null>
+  createVariant(data: CreateVariantRecord): Promise<CatalogVariantRecord>
+  updateVariant(id: string, data: UpdateVariantRecord): Promise<CatalogVariantRecord>
+  deleteVariant(id: string): Promise<CatalogVariantRecord>
+  findVariantById(id: string): Promise<(CatalogVariantRecord & { product: CatalogProductRecord }) | null>
 }
 
 const productInclude = {
@@ -95,6 +133,8 @@ const productInclude = {
     select: {
       id: true,
       name: true,
+      nameTh: true,
+      nameEn: true,
       slug: true,
     },
   },
@@ -134,6 +174,8 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       select: {
         id: true,
         name: true,
+        nameTh: true,
+        nameEn: true,
         slug: true,
         sortOrder: true,
       },
@@ -160,8 +202,13 @@ export class PrismaCatalogRepository implements ICatalogRepository {
 
   findProductById(id: string): Promise<CatalogProductDetail | null> {
     this.logger.debug('PrismaCatalogRepository.findProductById', { id })
-    return this.prisma.product.findUnique({
-      where: { id },
+    return this.prisma.product.findFirst({
+      where: {
+        OR: [
+          ...(UUID_PATTERN.test(id) ? [{ id }] : []),
+          { slug: id },
+        ],
+      },
       include: productInclude,
     })
   }
@@ -206,12 +253,12 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     })
   }
 
-  createVariant(data: CreateVariantRecord): Promise<ProductVariant> {
+  createVariant(data: CreateVariantRecord): Promise<CatalogVariantRecord> {
     this.logger.info('PrismaCatalogRepository.createVariant', { productId: data.productId, sku: data.sku })
     return this.prisma.productVariant.create({ data })
   }
 
-  updateVariant(id: string, data: UpdateVariantRecord): Promise<ProductVariant> {
+  updateVariant(id: string, data: UpdateVariantRecord): Promise<CatalogVariantRecord> {
     this.logger.info('PrismaCatalogRepository.updateVariant', { id })
     return this.prisma.productVariant.update({
       where: { id },
@@ -219,14 +266,14 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     })
   }
 
-  deleteVariant(id: string): Promise<ProductVariant> {
+  deleteVariant(id: string): Promise<CatalogVariantRecord> {
     this.logger.info('PrismaCatalogRepository.deleteVariant', { id })
     return this.prisma.productVariant.delete({
       where: { id },
     })
   }
 
-  findVariantById(id: string): Promise<(ProductVariant & { product: Product }) | null> {
+  findVariantById(id: string): Promise<(CatalogVariantRecord & { product: CatalogProductRecord }) | null> {
     this.logger.debug('PrismaCatalogRepository.findVariantById', { id })
     return this.prisma.productVariant.findUnique({
       where: { id },
@@ -243,8 +290,15 @@ export class PrismaCatalogRepository implements ICatalogRepository {
         ? {
             OR: [
               { title: { contains: filters.keyword, mode: 'insensitive' } },
+              { titleTh: { contains: filters.keyword, mode: 'insensitive' } },
+              { titleEn: { contains: filters.keyword, mode: 'insensitive' } },
               { description: { contains: filters.keyword, mode: 'insensitive' } },
+              { descriptionTh: { contains: filters.keyword, mode: 'insensitive' } },
+              { descriptionEn: { contains: filters.keyword, mode: 'insensitive' } },
               { slug: { contains: filters.keyword, mode: 'insensitive' } },
+              { category: { name: { contains: filters.keyword, mode: 'insensitive' } } },
+              { category: { nameTh: { contains: filters.keyword, mode: 'insensitive' } } },
+              { category: { nameEn: { contains: filters.keyword, mode: 'insensitive' } } },
             ],
           }
         : {}),

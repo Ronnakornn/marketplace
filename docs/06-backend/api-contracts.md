@@ -62,9 +62,11 @@ Query:
 - `sort`
 - `cursor`
 - `limit`
+- `locale` (`th` or `en`, defaults to `th`)
 
 Response data:
-- product id, slug, title
+- product id, slug, localized title
+- localized description when present
 - primary image
 - price range in cents
 - currency
@@ -82,10 +84,13 @@ Errors:
 
 Used by product detail.
 
+Query:
+- `locale` (`th` or `en`, defaults to `th`)
+
 Response data:
 - product detail
 - images
-- variants
+- variants with localized title
 - inventory availability
 - shop card
 - shipping options
@@ -98,8 +103,11 @@ Errors:
 
 ### `GET /api/categories`
 
+Query:
+- `locale` (`th` or `en`, defaults to `th`)
+
 Response data:
-- category id, slug, name
+- category id, slug, localized name
 - icon/image
 - parent id
 - sort order
@@ -171,6 +179,22 @@ Errors:
 - `CART_ITEM_NOT_FOUND`
 
 ## Checkout
+
+## Promotion
+
+### `GET /api/coupons`
+
+Query:
+- `locale` (`th` or `en`, defaults to `th`)
+
+Response data:
+- coupon code and discount fields
+- localized title and description for voucher/deal displays
+- minimum order, max discount, and end date when present
+
+Behavior:
+- Returns active public coupons.
+- Coupon validation still uses `code`; localized display content does not affect discount calculation.
 
 ### `POST /api/checkout`
 

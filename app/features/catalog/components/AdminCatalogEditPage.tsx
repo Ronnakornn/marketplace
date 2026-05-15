@@ -444,8 +444,12 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
   const deleteVariant = useDeleteAdminCatalogVariant();
   const [form, setForm] = useState({
     title: "",
+    titleTh: "",
+    titleEn: "",
     slug: "",
     description: "",
+    descriptionTh: "",
+    descriptionEn: "",
     status: "DRAFT" as ProductStatus,
   });
   const [message, setMessage] = useState<string | null>(null);
@@ -457,8 +461,12 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
     if (!product) return;
     setForm({
       title: product.title,
+      titleTh: product.titleTh ?? "",
+      titleEn: product.titleEn ?? "",
       slug: product.slug,
       description: product.description ?? "",
+      descriptionTh: product.descriptionTh ?? "",
+      descriptionEn: product.descriptionEn ?? "",
       status: product.status,
     });
   }, [product]);
@@ -569,8 +577,12 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                   await updateProduct.mutateAsync({
                     id: product.id,
                     title: form.title,
+                    titleTh: form.titleTh || null,
+                    titleEn: form.titleEn || null,
                     slug: form.slug,
                     description: form.description || null,
+                    descriptionTh: form.descriptionTh || null,
+                    descriptionEn: form.descriptionEn || null,
                     status: form.status,
                   });
                   setMessage("Product saved.");
@@ -610,6 +622,48 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                   onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                   className="min-h-36 border-white/10 bg-slate-950/60 text-slate-100"
                 />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="product-title-th" className="text-slate-200">Title TH</Label>
+                  <Input
+                    id="product-title-th"
+                    value={form.titleTh}
+                    onChange={(event) => setForm((current) => ({ ...current, titleTh: event.target.value }))}
+                    className="border-white/10 bg-slate-950/60 text-slate-100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-title-en" className="text-slate-200">Title EN</Label>
+                  <Input
+                    id="product-title-en"
+                    value={form.titleEn}
+                    onChange={(event) => setForm((current) => ({ ...current, titleEn: event.target.value }))}
+                    className="border-white/10 bg-slate-950/60 text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="product-description-th" className="text-slate-200">Description TH</Label>
+                  <Textarea
+                    id="product-description-th"
+                    value={form.descriptionTh}
+                    onChange={(event) => setForm((current) => ({ ...current, descriptionTh: event.target.value }))}
+                    className="min-h-28 border-white/10 bg-slate-950/60 text-slate-100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-description-en" className="text-slate-200">Description EN</Label>
+                  <Textarea
+                    id="product-description-en"
+                    value={form.descriptionEn}
+                    onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))}
+                    className="min-h-28 border-white/10 bg-slate-950/60 text-slate-100"
+                  />
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">

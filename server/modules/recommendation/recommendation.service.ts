@@ -1,6 +1,7 @@
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheService } from '#server/modules/cache'
+import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { RecommendationServiceError } from './recommendation.errors.ts'
 import type { IRecommendationRepository, RecommendationProductRecord, RecommendedCategory } from './recommendation.repository.ts'
 
@@ -11,6 +12,7 @@ const DEFAULT_PAGE = 1
 export interface RecommendationQueryInput {
   page?: number
   limit?: number
+  locale?: string
 }
 
 export interface RecommendationProductCard {
@@ -52,6 +54,7 @@ type NormalizedQuery = {
   page: number
   limit: number
   offset: number
+  locale: ContentLocale
 }
 
 export class RecommendationService {
@@ -104,9 +107,12 @@ export class RecommendationService {
 
       return {
         sections: {
-          trending: trending.map((product) => this.toProductCard(product)),
-          newest: newest.map((product) => this.toProductCard(product)),
-          recommendedCategories,
+          trending: trending.map((product) => this.toProductCard(product, query.locale)),
+          newest: newest.map((product) => this.toProductCard(product, query.locale)),
+          recommendedCategories: recommendedCategories.map((category) => ({
+            ...category,
+            name: localizedText(query.locale, { th: category.nameTh, en: category.nameEn, fallback: category.name }) ?? category.name,
+          })),
         },
         pagination: {
           page: query.page,
@@ -125,7 +131,7 @@ export class RecommendationService {
     const pageRows = hasNextPage ? rows.slice(0, query.limit) : rows
 
     return {
-      items: pageRows.map((product) => this.toProductCard(product)),
+      items: pageRows.map((product) => this.toProductCard(product, query.locale)),
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -155,10 +161,11 @@ export class RecommendationService {
       page,
       limit,
       offset: (page - 1) * limit,
+      locale: resolveContentLocale(input.locale),
     }
   }
 
-  private toProductCard(product: RecommendationProductRecord): RecommendationProductCard {
+  private toProductCard(product: RecommendationProductRecord, locale: ContentLocale): RecommendationProductCard {
     const prices = product.variants.map((variant) => variant.priceCents)
     const minPriceCents = Math.min(...prices)
     const maxPriceCents = Math.max(...prices)
@@ -172,7 +179,7 @@ export class RecommendationService {
 
     return {
       productId: product.id,
-      title: product.title,
+      title: localizedText(locale, { th: product.titleTh, en: product.titleEn, fallback: product.title }) ?? product.title,
       minPriceCents,
       ...(maxPriceCents !== minPriceCents ? { maxPriceCents } : {}),
       ...(rating !== undefined ? { rating } : {}),

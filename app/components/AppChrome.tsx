@@ -22,15 +22,20 @@ export default function AppChrome({ children }: AppChromeProps) {
   const isSellerRoute = pathWithoutLocale.startsWith("/seller");
   const isMarketplaceHome = pathWithoutLocale === "/";
   const isBuyerRoute = [
+    "/account",
     "/search",
     "/categories",
     "/products",
     "/cart",
     "/chat",
     "/checkout",
+    "/followed-shops",
     "/orders",
+    "/payment",
     "/profile",
     "/notifications",
+    "/vouchers",
+    "/wishlist",
   ].some((route) => pathWithoutLocale === route || pathWithoutLocale.startsWith(`${route}/`));
 
   if (isAdminRoute || isSellerRoute || isMarketplaceHome || isBuyerRoute) {

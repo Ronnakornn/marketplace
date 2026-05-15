@@ -2,23 +2,28 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   BellIcon,
   FlameIcon,
   HomeIcon,
+  LogInIcon,
+  LogOutIcon,
+  MessageCircleIcon,
   PackageIcon,
   SearchIcon,
   ShoppingBagIcon,
   ShoppingCartIcon,
   UserCircleIcon,
 } from "lucide-react";
+import { LanguageSwitcher } from "#/components/LanguageSwitcher";
 import { Input } from "#/components/ui/input";
-import { fetchCart } from "#/features/buyer/api";
-import { useTranslations } from "#/i18n/client";
+import { fetchCart, fetchNotifications } from "#/features/buyer/api";
+import { fetchChatRooms } from "#/features/chat/api";
+import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
-import { useSession } from "#/lib/auth-client";
+import { signOut, useSession } from "#/lib/auth-client";
 import { cn } from "#/lib/utils";
 
 const navItems = [
@@ -41,17 +46,45 @@ export function BuyerPageShell({ children }: { children: ReactNode }) {
 
 export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title?: string; searchQuery?: string }) {
   const { data: session } = useSession();
+  const router = useRouter();
   const t = useTranslations();
+  const locale = useLocale();
   const localePath = useLocalePath();
+  const pathname = usePathname();
+  const isSellerRoute = pathname.includes("/seller/");
+  const notificationHref = isSellerRoute ? "/seller/notifications" : "/notifications";
+  const canUseBuyerCart = session?.user.role === "USER";
+  const canUseChat = session?.user.role === "USER" || session?.user.role === "SELLER";
+  const chatHref = session?.user.role === "SELLER" ? "/seller/chat" : "/chat";
   const cartQuery = useQuery({
-    queryKey: ["buyer-cart"],
-    queryFn: fetchCart,
+    queryKey: ["buyer-cart", locale],
+    queryFn: () => fetchCart(locale),
+    enabled: canUseBuyerCart && !isSellerRoute,
+  });
+  const chatRoomsQuery = useQuery({
+    queryKey: ["chat-rooms", session?.user.role],
+    queryFn: fetchChatRooms,
+    enabled: canUseChat,
+    refetchInterval: 30_000,
+  });
+  const notificationsQuery = useQuery({
+    queryKey: ["buyer-notifications"],
+    queryFn: fetchNotifications,
     enabled: Boolean(session),
+    refetchInterval: 30_000,
   });
   const cartItemCount = cartQuery.data?.shops.reduce(
     (total, shop) => total + shop.items.reduce((shopTotal, item) => shopTotal + item.quantity, 0),
     0,
   ) ?? 0;
+  const chatUnreadCount = chatRoomsQuery.data?.reduce((total, room) => total + room.unreadCount, 0) ?? 0;
+  const notificationUnreadCount = notificationsQuery.data?.filter((notification) => !notification.readAt && !isChatNotification(notification.type)).length ?? 0;
+
+  async function handleSignOut() {
+    await signOut();
+    router.push(localePath("/"));
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-xl">
@@ -60,7 +93,11 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
           <ShoppingBagIcon className="size-4" />
           <span className="hidden sm:inline">{t("common.marketplace")}</span>
         </Link>
-        <form action={localePath("/search")} className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-orange-200">
+        {/* <Link href={localePath("/categories/deals")} className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
+          <MenuIcon className="size-5" />
+          <span className="sr-only">{t("common.categories")}</span>
+        </Link> */}
+        <form action={localePath("/search")} className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-orange-200 md:max-w-[520px] lg:max-w-[640px]">
           <SearchIcon className="size-4 shrink-0 text-slate-500" />
           <Input
             name="q"
@@ -69,23 +106,69 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
             className="h-8 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
           />
         </form>
-        <Link href={localePath("/notifications")} className="flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
+        <Link href={localePath(notificationHref)} className="relative flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
           <BellIcon className="size-5" />
-          <span className="sr-only">{t("common.notifications")}</span>
-        </Link>
-        <Link href={localePath("/cart")} className="relative flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
-          <ShoppingCartIcon className="size-5" />
-          {cartItemCount > 0 ? (
+          {notificationUnreadCount > 0 ? (
             <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
-              {cartItemCount > 99 ? "99+" : cartItemCount}
+              {notificationUnreadCount > 99 ? "99+" : notificationUnreadCount}
             </span>
           ) : null}
-          <span className="sr-only">{t("common.cart")}</span>
+          <span className="sr-only">{t("common.notifications")}</span>
         </Link>
+        {canUseChat ? (
+          <Link href={localePath(chatHref)} className="relative flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
+            <MessageCircleIcon className="size-5" />
+            {chatUnreadCount > 0 ? (
+              <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
+                {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+              </span>
+            ) : null}
+            <span className="sr-only">{t("chat.messages")}</span>
+          </Link>
+        ) : null}
+        {isSellerRoute ? null : (
+          <Link href={localePath("/cart")} className="relative flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
+            <ShoppingCartIcon className="size-5" />
+            {cartItemCount > 0 ? (
+              <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
+                {cartItemCount > 99 ? "99+" : cartItemCount}
+              </span>
+            ) : null}
+            <span className="sr-only">{t("common.cart")}</span>
+          </Link>
+        )}
+        {session ? (
+          <>
+            <Link href={localePath("/profile")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
+              <UserCircleIcon className="size-5" />
+             
+            </Link>
+            <button
+              type="button"
+              onClick={() => void handleSignOut()}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600"
+            >
+              <LogOutIcon className="size-5" />
+              <span className="sr-only">{t("common.logout")}</span>
+            </button>
+          </>
+        ) : (
+          <Link href={localePath("/login")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
+            <LogInIcon className="size-5" />
+            <span className="hidden lg:inline">{t("common.login")}</span>
+          </Link>
+        )}
       </div>
-      <p className="mx-auto mt-1 max-w-6xl px-1 text-xs font-semibold text-orange-600">{title}</p>
+      <div className="mx-auto mt-1 flex max-w-6xl items-center justify-between gap-2 px-1">
+        <p className="min-w-0 truncate text-xs font-semibold text-orange-600">{title}</p>
+        <LanguageSwitcher />
+      </div>
     </header>
   );
+}
+
+function isChatNotification(type: string): boolean {
+  return type.toLowerCase().includes("chat");
 }
 
 export function MobileBottomNavigation() {

@@ -13,6 +13,7 @@ import { Input } from "#/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "#/components/ui/sheet";
 import { fetchCategories, fetchProducts, fetchSearchProducts, fetchSearchSuggestions, type BuyerProduct } from "#/features/buyer/api";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import { useLocale } from "#/i18n/client";
 
 const homeCategories = [
   { id: "fashion", label: "Fashion" },
@@ -42,24 +43,25 @@ export function ProductListingPage({
   sort = "relevance",
   rating,
 }: ProductListingPageProps) {
+  const locale = useLocale();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const minPriceCents = toCents(minPrice);
   const maxPriceCents = toCents(maxPrice);
   const minRating = toNumber(rating);
   const productsQuery = useQuery({
-    queryKey: ["buyer-products", mode, query, categoryId, minPriceCents, maxPriceCents, sort, minRating],
+    queryKey: ["buyer-products", locale, mode, query, categoryId, minPriceCents, maxPriceCents, sort, minRating],
     queryFn: () => mode === "search"
-      ? fetchSearchProducts({ q: query, categoryId, minPrice: minPriceCents, maxPrice: maxPriceCents, sort: sort === "relevance" ? "newest" : sort, rating: minRating, limit: 40 })
-      : fetchProducts({ q: query, categoryId, minPrice: minPriceCents, maxPrice: maxPriceCents }),
+      ? fetchSearchProducts({ q: query, categoryId, minPrice: minPriceCents, maxPrice: maxPriceCents, sort: sort === "relevance" ? "newest" : sort, rating: minRating, limit: 40, locale })
+      : fetchProducts({ q: query, categoryId, minPrice: minPriceCents, maxPrice: maxPriceCents, locale }),
   });
   const suggestionsQuery = useQuery({
-    queryKey: ["buyer-search-suggestions", query],
-    queryFn: () => fetchSearchSuggestions(query),
+    queryKey: ["buyer-search-suggestions", locale, query],
+    queryFn: () => fetchSearchSuggestions(query, 8, locale),
     enabled: mode === "search" && query.trim().length > 0,
   });
   const categoriesQuery = useQuery({
-    queryKey: ["buyer-categories"],
-    queryFn: fetchCategories,
+    queryKey: ["buyer-categories", locale],
+    queryFn: () => fetchCategories(locale),
   });
 
   useEffect(() => {

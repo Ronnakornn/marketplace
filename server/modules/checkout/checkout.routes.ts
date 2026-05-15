@@ -9,6 +9,7 @@ const CreateCheckoutBodySchema = t.Object({
   couponCode: t.Optional(t.String({ minLength: 1 })),
   paymentMethod: t.String({ minLength: 1 }),
   shippingMethod: t.Optional(t.String({ minLength: 1 })),
+  locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
 
 const CheckoutResponseSchema = t.Object({

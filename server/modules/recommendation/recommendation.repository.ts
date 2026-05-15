@@ -16,7 +16,9 @@ export interface SimilarRecommendationQuery extends RecommendationListQuery {
 }
 
 export type RecommendationProductRecord = Pick<Product, 'id' | 'title' | 'createdAt' | 'categoryId' | 'shopId' | 'status'> & {
-  category: Pick<Category, 'id' | 'name' | 'slug' | 'sortOrder'> | null
+  titleTh?: string | null
+  titleEn?: string | null
+  category: (Pick<Category, 'id' | 'name' | 'slug' | 'sortOrder'> & { nameTh?: string | null; nameEn?: string | null }) | null
   shop: Pick<Shop, 'id' | 'name' | 'status'>
   variants: Array<Pick<ProductVariant, 'id' | 'priceCents' | 'status'> & {
     orderItems: Array<{ quantity: number }>
@@ -27,6 +29,8 @@ export type RecommendationProductRecord = Pick<Product, 'id' | 'title' | 'create
 export interface RecommendedCategory {
   id: string
   name: string
+  nameTh?: string | null
+  nameEn?: string | null
   slug: string
 }
 
@@ -42,6 +46,8 @@ export interface IRecommendationRepository {
 const recommendationProductSelect = {
   id: true,
   title: true,
+  titleTh: true,
+  titleEn: true,
   createdAt: true,
   categoryId: true,
   shopId: true,
@@ -50,6 +56,8 @@ const recommendationProductSelect = {
     select: {
       id: true,
       name: true,
+      nameTh: true,
+      nameEn: true,
       slug: true,
       sortOrder: true,
     },
@@ -196,6 +204,8 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
       select: {
         id: true,
         name: true,
+        nameTh: true,
+        nameEn: true,
         slug: true,
       },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],

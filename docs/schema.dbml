@@ -180,8 +180,12 @@ Table products {
   shop_id uuid [not null, ref: > shops.id]
   category_id uuid [ref: > categories.id]
   title varchar [not null]
+  title_th varchar
+  title_en varchar
   slug varchar [not null]
   description text
+  description_th text
+  description_en text
   status product_status [not null, default: "DRAFT"]
   created_at timestamp [not null]
   updated_at timestamp [not null]
@@ -196,6 +200,8 @@ Table products {
 Table categories {
   id uuid [pk]
   name varchar [not null]
+  name_th varchar
+  name_en varchar
   slug varchar [not null, unique]
   sort_order int [not null, default: 0]
   is_active boolean [not null, default: true]
@@ -212,6 +218,8 @@ Table product_variants {
   product_id uuid [not null, ref: > products.id]
   sku varchar [not null, unique]
   title varchar [not null]
+  title_th varchar
+  title_en varchar
   price_cents int [not null]
   currency varchar [not null, default: "USD"]
   created_at timestamp [not null]
@@ -415,6 +423,10 @@ Table coupons {
   id uuid [pk]
   shop_id uuid [ref: > shops.id]
   code varchar [not null, unique]
+  title_th varchar
+  title_en varchar
+  description_th text
+  description_en text
   discount_type discount_type [not null]
   discount_value_cents int
   discount_percent_bps int

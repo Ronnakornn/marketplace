@@ -31,8 +31,8 @@ export interface CacheInvalidationResult {
 
 export interface CacheKeyBuilder {
   productList(query: unknown): string
-  productDetail(productId: string): string
-  categoryList(): string
+  productDetail(productId: string, locale?: string): string
+  categoryList(locale?: string): string
   productSearch(query: unknown): string
   sellerDashboard(shopId: string): string
   recommendations(kind: string, query: unknown): string

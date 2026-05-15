@@ -2,7 +2,11 @@ import type { Cart, CartItem, Coupon, PrismaClient, ProductVariant } from '#gene
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
-export type PromotionCoupon = Coupon & {
+export type PromotionCoupon = Omit<Coupon, 'titleTh' | 'titleEn' | 'descriptionTh' | 'descriptionEn'> & {
+  titleTh?: string | null
+  titleEn?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   _count: {
     redemptions: number
   }
@@ -16,6 +20,10 @@ export type PromotionCart = Cart & {
 
 export interface CreateCouponInput {
   code: string
+  titleTh?: string | null
+  titleEn?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   discountType: 'PERCENT' | 'FIXED_AMOUNT'
   discountValueCents?: number | null
   discountPercentBps?: number | null

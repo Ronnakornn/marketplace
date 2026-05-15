@@ -15,8 +15,8 @@ export function createCacheKeys(prefix: string): CacheKeyBuilder {
   const normalizedPrefix = prefix.trim() || VERSION_PREFIX
   return {
     productList: (query) => `${normalizedPrefix}:product:list:${stableHash(query)}`,
-    productDetail: (productId) => `${normalizedPrefix}:product:detail:${productId}`,
-    categoryList: () => `${normalizedPrefix}:category:list`,
+    productDetail: (productId, locale = 'default') => `${normalizedPrefix}:product:detail:${locale}:${productId}`,
+    categoryList: (locale = 'default') => `${normalizedPrefix}:category:list:${locale}`,
     productSearch: (query) => `${normalizedPrefix}:search:products:${stableHash(query)}`,
     sellerDashboard: (shopId) => `${normalizedPrefix}:seller:${shopId}:dashboard`,
     recommendations: (kind, query) => `${normalizedPrefix}:recommendations:${kind}:${stableHash(query)}`,

@@ -1,17 +1,30 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HeartIcon, MessageCircleIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, TruckIcon } from "lucide-react";
-import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
+import { BuyerEmptyState, BuyerErrorState, BuyerProductDetailSkeleton } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { addCartItem, fetchCart, fetchProduct, fetchProducts, formatMoney } from "#/features/buyer/api";
+import {
+  addCartItem,
+  addFavoriteProduct,
+  fetchCart,
+  fetchFavoriteStatus,
+  fetchProduct,
+  fetchProducts,
+  fetchShopFollowStatus,
+  followShop,
+  formatMoney,
+  removeFavoriteProduct,
+  unfollowShop,
+} from "#/features/buyer/api";
 import { createChatRoom } from "#/features/chat";
 import { ProductCard } from "#/features/product/components/ProductCard";
-import { useTranslations } from "#/i18n/client";
+import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
@@ -19,15 +32,29 @@ import { useSession } from "#/lib/auth-client";
 export function ProductDetailPage({ productId }: { productId: string }) {
   const router = useRouter();
   const t = useTranslations();
+  const locale = useLocale();
   const localePath = useLocalePath();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
-  const productQuery = useQuery({ queryKey: ["buyer-product", productId], queryFn: () => fetchProduct(productId) });
-  const relatedQuery = useQuery({ queryKey: ["buyer-related-products", productId], queryFn: () => fetchProducts({ limit: 4 }) });
+  const canUseBuyerCart = session?.user.role === "USER";
+  const canUseBuyerActions = session?.user.role === "USER";
+  const productQuery = useQuery({ queryKey: ["buyer-product", locale, productId], queryFn: () => fetchProduct(productId, locale) });
+  const relatedQuery = useQuery({ queryKey: ["buyer-related-products", locale, productId], queryFn: () => fetchProducts({ limit: 4, locale }) });
+  const favoriteQuery = useQuery({
+    queryKey: ["buyer-favorite-status", productId],
+    queryFn: () => fetchFavoriteStatus(productId),
+    enabled: canUseBuyerActions,
+  });
+  const shopId = productQuery.data?.shop.id ?? "";
+  const followQuery = useQuery({
+    queryKey: ["buyer-shop-follow-status", shopId],
+    queryFn: () => fetchShopFollowStatus(shopId),
+    enabled: canUseBuyerActions && Boolean(shopId),
+  });
   const cartQuery = useQuery({
-    queryKey: ["buyer-cart"],
-    queryFn: fetchCart,
-    enabled: Boolean(session),
+    queryKey: ["buyer-cart", locale],
+    queryFn: () => fetchCart(locale),
+    enabled: canUseBuyerCart,
   });
   const addCartMutation = useMutation({
     mutationFn: () => {
@@ -37,6 +64,16 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-cart"] }),
   });
+  const favoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (!session) throw new Error("Please sign in to save products.");
+      return favoriteQuery.data ? removeFavoriteProduct(productId) : addFavoriteProduct(productId);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["buyer-favorite-status", productId] });
+      void queryClient.invalidateQueries({ queryKey: ["buyer-favorites"] });
+    },
+  });
   const createChatMutation = useMutation({
     mutationFn: () => {
       const product = productQuery.data;
@@ -45,6 +82,17 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     },
     onSuccess: (room) => {
       router.push(localePath(`/chat/${room.roomId}`));
+    },
+  });
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      if (!session) throw new Error("Please sign in to follow shops.");
+      if (!shopId) throw new Error("Shop not found.");
+      return followQuery.data ? unfollowShop(shopId) : followShop(shopId);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["buyer-shop-follow-status", shopId] });
+      void queryClient.invalidateQueries({ queryKey: ["buyer-followed-shops"] });
     },
   });
   const cartItemCount = cartQuery.data?.shops.reduce(
@@ -57,6 +105,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       router.push(localePath("/login"));
       return;
     }
+    if (!canUseBuyerCart) return;
     addCartMutation.mutate();
   }
 
@@ -65,6 +114,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       router.push(localePath("/login"));
       return;
     }
+    if (!canUseBuyerActions) return;
     createChatMutation.mutate();
   }
 
@@ -72,7 +122,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     return (
       <>
         <BuyerTopBar title="Product" />
-        <div className="mx-auto max-w-6xl px-3 pb-28 pt-4"><BuyerLoadingList /></div>
+        <div className="mx-auto max-w-6xl px-3 pb-28 pt-4"><BuyerProductDetailSkeleton /></div>
       </>
     );
   }
@@ -112,7 +162,15 @@ export function ProductDetailPage({ productId }: { productId: string }) {
           </div>
 
           <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-            <Badge variant="outline" className="rounded-full border-orange-200 bg-orange-50 text-orange-700">{product.shop.name}</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="rounded-full border-orange-200 bg-orange-50 text-orange-700">{product.shop.name}</Badge>
+              <Button variant="outline" size="sm" className="rounded-full" disabled={followMutation.isPending} onClick={() => {
+                if (!session) router.push(localePath("/login"));
+                else followMutation.mutate();
+              }}>
+                {followQuery.data ? "Following" : "Follow shop"}
+              </Button>
+            </div>
             <h1 className="text-2xl font-bold text-slate-950">{product.title}</h1>
             <div className="flex items-center gap-3 text-sm text-slate-500">
               <span className="flex items-center gap-1"><StarIcon className="size-4 fill-amber-400 text-amber-400" />{product.rating.toFixed(1)}</span>
@@ -151,23 +209,37 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)] md:bottom-0">
         <div className="mx-auto flex max-w-6xl gap-2">
-          <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl"><HeartIcon className="size-5" /><span className="sr-only">Wishlist</span></Button>
-          <Button variant="outline" className="h-12 flex-1 rounded-2xl" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
-            <MessageCircleIcon className="size-4" />
-            {t("chat.chatSeller")}
+          <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl" disabled={favoriteMutation.isPending} onClick={() => {
+            if (!session) router.push(localePath("/login"));
+            else if (canUseBuyerActions) favoriteMutation.mutate();
+          }}>
+            <HeartIcon className={`size-5 ${favoriteQuery.data ? "fill-orange-500 text-orange-500" : ""}`} />
+            <span className="sr-only">Wishlist</span>
           </Button>
-          <Button variant="outline" className="h-12 flex-1 rounded-2xl" onClick={handleCartAction} disabled={addCartMutation.isPending}>
-            <span className="relative inline-flex">
-              <ShoppingCartIcon className="size-4" />
-              {cartItemCount > 0 ? (
-                <span className="absolute -right-2.5 -top-2.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white">
-                  {cartItemCount > 99 ? "99+" : cartItemCount}
+          {canUseBuyerActions ? (
+            <>
+              <Button variant="outline" className="h-12 flex-1 rounded-2xl" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
+                <MessageCircleIcon className="size-4" />
+                {t("chat.chatSeller")}
+              </Button>
+              <Button variant="outline" className="h-12 flex-1 rounded-2xl" onClick={handleCartAction} disabled={addCartMutation.isPending}>
+                <span className="relative inline-flex">
+                  <ShoppingCartIcon className="size-4" />
+                  {cartItemCount > 0 ? (
+                    <span className="absolute -right-2.5 -top-2.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white">
+                      {cartItemCount > 99 ? "99+" : cartItemCount}
+                    </span>
+                  ) : null}
                 </span>
-              ) : null}
-            </span>
-            Add to cart
-          </Button>
-          <Button className="h-12 flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={handleCartAction} disabled={addCartMutation.isPending}>Buy now</Button>
+                Add to cart
+              </Button>
+              <Button className="h-12 flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={handleCartAction} disabled={addCartMutation.isPending}>Buy now</Button>
+            </>
+          ) : (
+            <Button asChild className="h-12 flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700">
+              <Link href={localePath("/seller/chat")}>{t("chat.sellerInbox")}</Link>
+            </Button>
+          )}
         </div>
       </div>
     </>

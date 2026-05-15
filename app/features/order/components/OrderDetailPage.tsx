@@ -12,11 +12,14 @@ import { fetchOrder, formatMoney } from "#/features/buyer/api";
 import { createChatRoom } from "#/features/chat";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { useSession } from "#/lib/auth-client";
 
 export function OrderDetailPage({ orderId }: { orderId: string }) {
   const router = useRouter();
   const t = useTranslations();
   const localePath = useLocalePath();
+  const { data: session } = useSession();
+  const canUseBuyerChat = session?.user.role === "USER";
   const orderQuery = useQuery({ queryKey: ["buyer-order", orderId], queryFn: () => fetchOrder(orderId) });
   const createChatMutation = useMutation({
     mutationFn: (shopId: string) => createChatRoom({ shopId, orderId }),
@@ -85,16 +88,18 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                       </div>
                       <Badge variant="outline" className="rounded-md">{shipment.status}</Badge>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 rounded-full"
-                      disabled={createChatMutation.isPending}
-                      onClick={() => createChatMutation.mutate(shipment.shopId)}
-                    >
-                      <MessageCircleIcon className="size-4" />
-                      {t("chat.chatSeller")}
-                    </Button>
+                    {canUseBuyerChat ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 rounded-full"
+                        disabled={createChatMutation.isPending}
+                        onClick={() => createChatMutation.mutate(shipment.shopId)}
+                      >
+                        <MessageCircleIcon className="size-4" />
+                        {t("chat.chatSeller")}
+                      </Button>
+                    ) : null}
                   </div>
                 ))}
               </div>

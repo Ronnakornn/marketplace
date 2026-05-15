@@ -1,6 +1,10 @@
 export { AddressBookPage } from "./components/AddressBookPage";
 export { DealsPage } from "./components/DealsPage";
+export { FollowedShopsPage } from "./components/FollowedShopsPage";
 export { OrderReviewPage } from "./components/OrderReviewPage";
 export { PaymentReturnPage } from "./components/PaymentReturnPage";
 export { ProfilePage } from "./components/ProfilePage";
 export { ReturnRequestPage } from "./components/ReturnRequestPage";
+export { ShopFollowButton } from "./components/ShopFollowButton";
+export { VoucherWalletPage } from "./components/VoucherWalletPage";
+export { WishlistPage } from "./components/WishlistPage";

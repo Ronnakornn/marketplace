@@ -10,12 +10,14 @@ const ProductStatusSchema = t.Union([t.Literal('DRAFT'), t.Literal('ACTIVE'), t.
 const CategoryResponseSchema = t.Object({
   id: t.String({ format: 'uuid' }),
   name: t.String(),
+  nameTh: t.Optional(t.Nullable(t.String())),
+  nameEn: t.Optional(t.Nullable(t.String())),
   slug: t.String(),
   sortOrder: t.Number(),
 })
 
 const IdParamsSchema = t.Object({
-  productId: t.String({ format: 'uuid' }),
+  productId: t.String({ minLength: 1 }),
 })
 
 const ShopProductsParamsSchema = t.Object({
@@ -42,6 +44,7 @@ const PublicListQuerySchema = t.Object({
   cursor: t.Optional(t.String({ format: 'uuid' })),
   limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
   categoryId: t.Optional(t.String()),
+  locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
 
 const SellerListQuerySchema = t.Composite([
@@ -51,19 +54,41 @@ const SellerListQuerySchema = t.Composite([
   }),
 ])
 
+const LocalizedProductFieldsSchema = t.Object({
+  titleTh: t.Optional(t.Nullable(t.String())),
+  titleEn: t.Optional(t.Nullable(t.String())),
+  descriptionTh: t.Optional(t.Nullable(t.String())),
+  descriptionEn: t.Optional(t.Nullable(t.String())),
+})
+
+const LocalizedVariantFieldsSchema = t.Object({
+  titleTh: t.Optional(t.Nullable(t.String())),
+  titleEn: t.Optional(t.Nullable(t.String())),
+})
+
 const CreateProductBodySchema = t.Composite([
   t.Pick(ProductPlainInputCreate, ['title', 'description', 'status']),
+  LocalizedProductFieldsSchema,
   t.Object({
     shopId: t.Optional(t.String({ format: 'uuid' })),
     slug: t.Optional(t.String({ minLength: 1 })),
   }),
 ])
 
-const UpdateProductBodySchema = t.Partial(t.Pick(ProductPlainInputUpdate, ['title', 'slug', 'description', 'status']))
+const UpdateProductBodySchema = t.Partial(t.Composite([
+  t.Pick(ProductPlainInputUpdate, ['title', 'slug', 'description', 'status']),
+  LocalizedProductFieldsSchema,
+]))
 
-const CreateVariantBodySchema = t.Pick(ProductVariantPlainInputCreate, ['sku', 'title', 'priceCents', 'currency'])
+const CreateVariantBodySchema = t.Composite([
+  t.Pick(ProductVariantPlainInputCreate, ['sku', 'title', 'priceCents', 'currency']),
+  LocalizedVariantFieldsSchema,
+])
 
-const UpdateVariantBodySchema = t.Partial(t.Pick(ProductVariantPlainInputUpdate, ['sku', 'title', 'priceCents', 'currency']))
+const UpdateVariantBodySchema = t.Partial(t.Composite([
+  t.Pick(ProductVariantPlainInputUpdate, ['sku', 'title', 'priceCents', 'currency']),
+  LocalizedVariantFieldsSchema,
+]))
 
 export function createCatalogRoutes(container: ServiceContainer) {
   const app = new Elysia()
@@ -84,6 +109,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
     container.catalogService.listPublicProducts({
       keyword: query.keyword ?? query.q,
       categoryId: query.categoryId,
+      locale: query.locale,
       shopId: query.shopId,
       minPriceCents: query.minPriceCents ?? query.minPrice,
       maxPriceCents: query.maxPriceCents ?? query.maxPrice,
@@ -91,11 +117,12 @@ export function createCatalogRoutes(container: ServiceContainer) {
       limit: query.limit,
     })
 
-  const getPublicProductDetail = ({ params }: any) =>
-    container.catalogService.getPublicProductDetail(params.productId)
+  const getPublicProductDetail = ({ params, query }: any) =>
+    container.catalogService.getPublicProductDetail(params.productId, query.locale)
 
   return app
-    .get('/api/categories', () => container.catalogService.listCategories(), {
+    .get('/api/categories', ({ query }: any) => container.catalogService.listCategories(query.locale), {
+      query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
       response: t.Array(CategoryResponseSchema),
     })
     .get('/api/products', listPublicProducts, {
@@ -103,11 +130,13 @@ export function createCatalogRoutes(container: ServiceContainer) {
     })
     .get('/api/products/:productId', getPublicProductDetail, {
       params: IdParamsSchema,
+      query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
     })
     .get('/api/shops/:shopId/products', ({ params, query }) =>
       container.catalogService.listPublicShopProducts(params.shopId, {
         keyword: query.keyword ?? query.q,
         categoryId: query.categoryId,
+        locale: query.locale,
         minPriceCents: query.minPriceCents ?? query.minPrice,
         maxPriceCents: query.maxPriceCents ?? query.maxPrice,
         cursor: query.cursor,
@@ -121,6 +150,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
     })
     .get('/api/catalog/products/:productId', getPublicProductDetail, {
       params: IdParamsSchema,
+      query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
     })
     .get('/api/seller/products', ({ authContext, query }: any) =>
       container.catalogService.listSellerProducts(authContext.user, {

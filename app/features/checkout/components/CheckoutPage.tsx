@@ -12,6 +12,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { createCheckout, fetchAddresses, fetchCart, formatMoney } from "#/features/buyer/api";
+import { useLocale } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
 export function CheckoutPage() {
@@ -19,7 +20,8 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const localePath = useLocalePath();
-  const cartQuery = useQuery({ queryKey: ["buyer-cart"], queryFn: fetchCart });
+  const locale = useLocale();
+  const cartQuery = useQuery({ queryKey: ["buyer-cart", locale], queryFn: () => fetchCart(locale) });
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
   const defaultAddress = addressesQuery.data?.find((address) => address.isDefault) ?? addressesQuery.data?.[0];
   const addressId = selectedAddressId || defaultAddress?.id || "";
@@ -33,6 +35,7 @@ export function CheckoutPage() {
         couponCode: couponCode || undefined,
         paymentMethod,
         shippingMethod: "standard",
+        locale,
       });
     },
   });

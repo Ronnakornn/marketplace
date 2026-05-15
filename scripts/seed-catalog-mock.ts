@@ -19,6 +19,8 @@ function loadEnvLocal() {
 interface MockVariant {
   sku: string;
   title: string;
+  titleTh?: string;
+  titleEn?: string;
   priceCents: number;
   quantityOnHand: number;
   reorderLevel: number;
@@ -27,8 +29,12 @@ interface MockVariant {
 interface MockProduct {
   categorySlug: string;
   title: string;
+  titleTh?: string;
+  titleEn?: string;
   slug: string;
   description: string;
+  descriptionTh?: string;
+  descriptionEn?: string;
   status: "ACTIVE" | "DRAFT" | "ARCHIVED";
   variants: MockVariant[];
 }
@@ -116,16 +122,16 @@ const sellers = [
 ];
 
 const categories = [
-  { name: "Fashion", slug: "fashion", sortOrder: 10 },
-  { name: "Beauty", slug: "beauty", sortOrder: 20 },
-  { name: "Gadgets", slug: "gadgets", sortOrder: 30 },
-  { name: "Electronics", slug: "electronics", sortOrder: 35 },
-  { name: "Home", slug: "home", sortOrder: 40 },
-  { name: "Sports", slug: "sports", sortOrder: 50 },
-  { name: "Kids", slug: "kids", sortOrder: 60 },
-  { name: "Groceries", slug: "groceries", sortOrder: 70 },
-  { name: "Pets", slug: "pets", sortOrder: 80 },
-  { name: "Deals", slug: "deals", sortOrder: 90 },
+  { name: "Fashion", nameTh: "แฟชั่น", nameEn: "Fashion", slug: "fashion", sortOrder: 10 },
+  { name: "Beauty", nameTh: "ความงาม", nameEn: "Beauty", slug: "beauty", sortOrder: 20 },
+  { name: "Gadgets", nameTh: "แกดเจ็ต", nameEn: "Gadgets", slug: "gadgets", sortOrder: 30 },
+  { name: "Electronics", nameTh: "อิเล็กทรอนิกส์", nameEn: "Electronics", slug: "electronics", sortOrder: 35 },
+  { name: "Home", nameTh: "บ้าน", nameEn: "Home", slug: "home", sortOrder: 40 },
+  { name: "Sports", nameTh: "กีฬา", nameEn: "Sports", slug: "sports", sortOrder: 50 },
+  { name: "Kids", nameTh: "เด็ก", nameEn: "Kids", slug: "kids", sortOrder: 60 },
+  { name: "Groceries", nameTh: "ของใช้ประจำวัน", nameEn: "Groceries", slug: "groceries", sortOrder: 70 },
+  { name: "Pets", nameTh: "สัตว์เลี้ยง", nameEn: "Pets", slug: "pets", sortOrder: 80 },
+  { name: "Deals", nameTh: "ดีล", nameEn: "Deals", slug: "deals", sortOrder: 90 },
 ];
 
 async function main() {
@@ -138,11 +144,15 @@ async function main() {
       where: { slug: categorySeed.slug },
       update: {
         name: categorySeed.name,
+        nameTh: categorySeed.nameTh,
+        nameEn: categorySeed.nameEn,
         sortOrder: categorySeed.sortOrder,
         isActive: true,
       },
       create: {
         name: categorySeed.name,
+        nameTh: categorySeed.nameTh,
+        nameEn: categorySeed.nameEn,
         slug: categorySeed.slug,
         sortOrder: categorySeed.sortOrder,
         isActive: true,
@@ -178,7 +188,7 @@ async function main() {
 
     if (!shop) throw new Error(`Failed to upsert shop ${seller.shop.slug}`);
 
-    for (const productSeed of seller.products) {
+    for (const productSeed of seller.products as MockProduct[]) {
       const categoryId = categoryBySlug.get(productSeed.categorySlug);
       if (!categoryId) throw new Error(`Unknown category ${productSeed.categorySlug}`);
 
@@ -192,25 +202,35 @@ async function main() {
         update: {
           categoryId,
           title: productSeed.title,
+          titleTh: productSeed.titleTh ?? productSeed.title,
+          titleEn: productSeed.titleEn ?? productSeed.title,
           description: productSeed.description,
+          descriptionTh: productSeed.descriptionTh ?? productSeed.description,
+          descriptionEn: productSeed.descriptionEn ?? productSeed.description,
           status: productSeed.status,
         },
         create: {
           shopId: shop.id,
           categoryId,
           title: productSeed.title,
+          titleTh: productSeed.titleTh ?? productSeed.title,
+          titleEn: productSeed.titleEn ?? productSeed.title,
           slug: productSeed.slug,
           description: productSeed.description,
+          descriptionTh: productSeed.descriptionTh ?? productSeed.description,
+          descriptionEn: productSeed.descriptionEn ?? productSeed.description,
           status: productSeed.status,
         },
       });
 
-      for (const variantSeed of productSeed.variants) {
+      for (const variantSeed of productSeed.variants as MockVariant[]) {
         const variant = await prisma.productVariant.upsert({
           where: { sku: variantSeed.sku },
           update: {
             productId: product.id,
             title: variantSeed.title,
+            titleTh: variantSeed.titleTh ?? variantSeed.title,
+            titleEn: variantSeed.titleEn ?? variantSeed.title,
             priceCents: variantSeed.priceCents,
             currency: "USD",
           },
@@ -218,6 +238,8 @@ async function main() {
             productId: product.id,
             sku: variantSeed.sku,
             title: variantSeed.title,
+            titleTh: variantSeed.titleTh ?? variantSeed.title,
+            titleEn: variantSeed.titleEn ?? variantSeed.title,
             priceCents: variantSeed.priceCents,
             currency: "USD",
           },

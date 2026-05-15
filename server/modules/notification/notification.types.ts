@@ -8,6 +8,8 @@ export type NotificationType =
   | 'return_rejected'
   | 'refund_processing'
   | 'refund_success'
+  | 'payout_paid'
   | 'coupon_available'
+  | 'chat_message'
 
 export type NotificationData = Record<string, unknown>

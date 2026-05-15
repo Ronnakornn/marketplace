@@ -11,16 +11,24 @@ export type CatalogVariant = CatalogProduct["variants"][number];
 export interface CreateProductInput {
   shopId: string;
   title: string;
+  titleTh?: string | null;
+  titleEn?: string | null;
   slug?: string;
   description?: string | null;
+  descriptionTh?: string | null;
+  descriptionEn?: string | null;
   status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
 }
 
 export interface UpdateProductInput {
   id: string;
   title?: string;
+  titleTh?: string | null;
+  titleEn?: string | null;
   slug?: string;
   description?: string | null;
+  descriptionTh?: string | null;
+  descriptionEn?: string | null;
   status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
 }
 
@@ -28,6 +36,8 @@ export interface CreateVariantInput {
   productId: string;
   sku: string;
   title: string;
+  titleTh?: string | null;
+  titleEn?: string | null;
   priceCents: number;
   currency?: string;
   inventory?: {
@@ -42,6 +52,8 @@ export interface UpdateVariantInput {
   variantId: string;
   sku?: string;
   title?: string;
+  titleTh?: string | null;
+  titleEn?: string | null;
   priceCents?: number;
   currency?: string;
 }

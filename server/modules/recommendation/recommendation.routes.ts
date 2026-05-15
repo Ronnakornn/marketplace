@@ -5,6 +5,7 @@ import { RecommendationServiceError } from './recommendation.errors.ts'
 const RecommendationQuerySchema = t.Object({
   page: t.Optional(t.Number({ minimum: 1 })),
   limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
+  locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
 
 export function createRecommendationRoutes(container: ServiceContainer) {

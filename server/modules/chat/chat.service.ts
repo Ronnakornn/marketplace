@@ -1,6 +1,7 @@
 import type { ChatMessageType, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { NotificationService } from '#server/modules/notification/notification.service.ts'
 import type { RealtimeService } from '#server/modules/realtime'
 import { ChatServiceError } from './chat.errors.ts'
 import type { ChatMessageRecord, ChatRoomRecord, IChatRepository } from './chat.repository.ts'
@@ -22,6 +23,7 @@ export class ChatService {
     appContext: AppContext,
     private repo: IChatRepository,
     private realtimeService?: RealtimeService,
+    private notificationService?: NotificationService,
   ) {
     this.logger = appContext.logger
   }
@@ -86,6 +88,7 @@ export class ChatService {
     if (!updated) throw new ChatServiceError('Chat room not found', 404, 'CHAT_ROOM_NOT_FOUND')
     const response = await this.toRoomResponse(updated, actor)
     this.publishChatMessage(updated, message)
+    await this.notifyRecipient(updated, message)
     return response
   }
 
@@ -216,5 +219,45 @@ export class ChatService {
     }
     this.realtimeService?.publish('chat.message.created', `chat:${room.id}`, payload)
     this.realtimeService?.publish('chat.message.created', `seller:${room.shopId}:chats`, payload)
+  }
+
+  private async notifyRecipient(room: ChatRoomRecord, message: ChatMessageRecord): Promise<void> {
+    if (!this.notificationService) return
+    const recipientId = message.senderId === room.buyerId ? room.shop.ownerId : room.buyerId
+    if (recipientId === message.senderId) return
+
+    const body = message.messageType === 'IMAGE'
+      ? 'Sent an image'
+      : this.truncatePreview(message.body)
+
+    try {
+      await this.notificationService.createNotification(
+        recipientId,
+        'chat_message',
+        'New chat message',
+        body,
+        {
+          roomId: room.id,
+          shopId: room.shopId,
+          buyerId: room.buyerId,
+          senderId: message.senderId,
+          productId: room.productId,
+          orderId: room.orderId,
+        },
+      )
+    } catch (error) {
+      this.logger.warn('ChatService chat notification failed', {
+        roomId: room.id,
+        messageId: message.id,
+        recipientId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  private truncatePreview(body: string | null): string {
+    const normalized = body?.replace(/\s+/g, ' ').trim()
+    if (!normalized) return 'New message'
+    return normalized.length > 120 ? `${normalized.slice(0, 117).trim()}...` : normalized
   }
 }

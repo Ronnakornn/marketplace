@@ -16,6 +16,9 @@ const AddCartItemBodySchema = t.Composite([
 ])
 
 const UpdateCartItemBodySchema = t.Required(t.Pick(CartItemPlainInputUpdate, ['quantity']))
+const LocaleQuerySchema = t.Object({
+  locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
+})
 
 export function createCartRoutes(container: ServiceContainer) {
   return new Elysia()
@@ -31,8 +34,12 @@ export function createCartRoutes(container: ServiceContainer) {
         })
       }
     })
-    .get('/api/cart', ({ authContext }: any) => container.cartService.getCart(authContext!.user), {
+    .get('/api/cart', ({ authContext, query }: any) =>
+      query.locale
+        ? container.cartService.getCart(authContext!.user, query.locale)
+        : container.cartService.getCart(authContext!.user), {
       withAuth: true,
+      query: LocaleQuerySchema,
     })
     .post('/api/cart/items', ({ authContext, body }: any) => container.cartService.addItem(authContext!.user, body), {
       withAuth: true,

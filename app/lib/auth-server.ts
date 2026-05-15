@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "#server/lib/auth";
+import { defaultLocale, isLocale, withLocale } from "#/i18n/config";
 import { isAdminRole, isSellerRole } from "#/lib/roles";
 
 export async function getServerSession() {
@@ -17,7 +18,9 @@ export async function requireUser() {
   const session = await getServerSession();
 
   if (!session) {
-    redirect("/login");
+    const pathname = (await headers()).get("x-pathname") ?? "";
+    const locale = pathname.split("/").find(isLocale) ?? defaultLocale;
+    redirect(withLocale("/login", locale));
   }
 
   return session;

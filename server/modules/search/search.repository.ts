@@ -11,15 +11,23 @@ export interface SearchRepositoryFilters {
 }
 
 export type SearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' | 'priceCents' | 'currency'> & {
+  titleTh?: string | null
+  titleEn?: string | null
   orderItems: Array<{
     quantity: number
   }>
 }
 
 export type SearchProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'description' | 'createdAt' | 'status'> & {
+  titleTh?: string | null
+  titleEn?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   category: {
     id: string
     name: string
+    nameTh?: string | null
+    nameEn?: string | null
     slug: string
   } | null
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
@@ -29,14 +37,18 @@ export type SearchProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'descr
 
 export interface ISearchRepository {
   findSearchableProducts(filters: SearchRepositoryFilters): Promise<SearchProductRecord[]>
-  findSuggestions(q: string, limit: number): Promise<Array<Pick<Product, 'id' | 'title'>>>
+  findSuggestions(q: string, limit: number): Promise<Array<Pick<Product, 'id' | 'title'> & { titleTh?: string | null; titleEn?: string | null }>>
 }
 
 const searchProductSelect = {
   id: true,
   title: true,
+  titleTh: true,
+  titleEn: true,
   slug: true,
   description: true,
+  descriptionTh: true,
+  descriptionEn: true,
   createdAt: true,
   status: true,
   shop: {
@@ -51,6 +63,8 @@ const searchProductSelect = {
     select: {
       id: true,
       name: true,
+      nameTh: true,
+      nameEn: true,
       slug: true,
     },
   },
@@ -62,6 +76,8 @@ const searchProductSelect = {
       id: true,
       sku: true,
       title: true,
+      titleTh: true,
+      titleEn: true,
       priceCents: true,
       currency: true,
       orderItems: {
@@ -101,17 +117,23 @@ export class PrismaSearchRepository implements ISearchRepository {
     })
   }
 
-  findSuggestions(q: string, limit: number): Promise<Array<Pick<Product, 'id' | 'title'>>> {
+  findSuggestions(q: string, limit: number): Promise<Array<Pick<Product, 'id' | 'title'> & { titleTh?: string | null; titleEn?: string | null }>> {
     this.logger.debug('PrismaSearchRepository.findSuggestions', { q, limit })
     return this.prisma.product.findMany({
       where: {
         status: 'ACTIVE',
         shop: { status: 'ACTIVE' },
-        title: { contains: q, mode: 'insensitive' },
+        OR: [
+          { title: { contains: q, mode: 'insensitive' } },
+          { titleTh: { contains: q, mode: 'insensitive' } },
+          { titleEn: { contains: q, mode: 'insensitive' } },
+        ],
       },
       select: {
         id: true,
         title: true,
+        titleTh: true,
+        titleEn: true,
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
@@ -139,7 +161,14 @@ export class PrismaSearchRepository implements ISearchRepository {
         ? {
             OR: [
               { title: { contains: filters.q, mode: 'insensitive' } },
+              { titleTh: { contains: filters.q, mode: 'insensitive' } },
+              { titleEn: { contains: filters.q, mode: 'insensitive' } },
               { description: { contains: filters.q, mode: 'insensitive' } },
+              { descriptionTh: { contains: filters.q, mode: 'insensitive' } },
+              { descriptionEn: { contains: filters.q, mode: 'insensitive' } },
+              { category: { name: { contains: filters.q, mode: 'insensitive' } } },
+              { category: { nameTh: { contains: filters.q, mode: 'insensitive' } } },
+              { category: { nameEn: { contains: filters.q, mode: 'insensitive' } } },
               { variants: { some: { sku: { contains: filters.q, mode: 'insensitive' } } } },
             ],
           }

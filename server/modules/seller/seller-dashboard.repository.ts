@@ -21,7 +21,9 @@ export type SellerDashboardOrder = Pick<Order, 'id' | 'orderNumber' | 'status' |
   items: OrderItem[]
 }
 
-export type SellerLowStockVariant = ProductVariant & {
+export type SellerLowStockVariant = Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
+  titleTh?: string | null
+  titleEn?: string | null
   inventory: Inventory | null
   product: Pick<Product, 'id' | 'title' | 'slug' | 'shopId' | 'status'>
 }

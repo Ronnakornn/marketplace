@@ -6,6 +6,7 @@ const DEFAULT_SITE_URL = "http://localhost:3000";
 const DEFAULT_SITE_NAME = "Marketplace";
 const FALLBACK_IMAGE_PATH = "/logo512.png";
 const DEFAULT_DESCRIPTION = "Shop active products from trusted marketplace sellers.";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function getSiteUrl(): string {
   const rawUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? DEFAULT_SITE_URL;
@@ -86,7 +87,10 @@ export async function getPublicProductSeo(productId: string) {
   const { prisma } = await import("#server/lib/prisma.ts");
   const product = await prisma.product.findFirst({
     where: {
-      id: productId,
+      OR: [
+        ...(UUID_PATTERN.test(productId) ? [{ id: productId }] : []),
+        { slug: productId },
+      ],
       status: "ACTIVE",
       shop: { status: "ACTIVE" },
     },
@@ -200,7 +204,10 @@ export async function getPublicShopSeo(shopId: string) {
   const { prisma } = await import("#server/lib/prisma.ts");
   return prisma.shop.findFirst({
     where: {
-      id: shopId,
+      OR: [
+        ...(UUID_PATTERN.test(shopId) ? [{ id: shopId }] : []),
+        { slug: shopId },
+      ],
       status: "ACTIVE",
     },
     select: {

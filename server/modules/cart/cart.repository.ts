@@ -10,10 +10,22 @@ import type {
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
+type LocalizedProduct = Omit<Product, 'titleTh' | 'titleEn' | 'descriptionTh' | 'descriptionEn'> & {
+  titleTh?: string | null
+  titleEn?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
+}
+
+type LocalizedProductVariant = Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
+  titleTh?: string | null
+  titleEn?: string | null
+}
+
 export type CartItemDetail = CartItem & {
-  variant: ProductVariant & {
+  variant: LocalizedProductVariant & {
     inventory: Inventory | null
-    product: Product & {
+    product: LocalizedProduct & {
       shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
     }
   }

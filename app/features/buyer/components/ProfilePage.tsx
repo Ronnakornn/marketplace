@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { BellIcon, MailIcon, MapPinIcon, PackageIcon, UserCircleIcon } from "lucide-react";
+import { BellIcon, HeartIcon, MailIcon, MapPinIcon, PackageIcon, StoreIcon, TicketIcon, UserCircleIcon } from "lucide-react";
 import { BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
@@ -47,6 +47,9 @@ export function ProfilePage() {
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <Button asChild variant="outline" className="justify-start"><Link href={localePath("/orders")}><PackageIcon className="size-4" />My orders</Link></Button>
                 <Button asChild variant="outline" className="justify-start"><Link href={localePath("/account/addresses")}><MapPinIcon className="size-4" />Addresses</Link></Button>
+                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/wishlist")}><HeartIcon className="size-4" />Wishlist</Link></Button>
+                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/vouchers")}><TicketIcon className="size-4" />Vouchers</Link></Button>
+                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/followed-shops")}><StoreIcon className="size-4" />Followed shops</Link></Button>
                 <Button asChild variant="outline" className="justify-start"><Link href={localePath("/notifications")}><BellIcon className="size-4" />Notifications</Link></Button>
               </div>
             </section>

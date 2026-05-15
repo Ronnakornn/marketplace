@@ -76,6 +76,14 @@ function createRepoMock(): IUserRepository {
     updateAddress: vi.fn(),
     deleteAddress: vi.fn(),
     setDefaultAddress: vi.fn(),
+    listFavoriteProducts: vi.fn(),
+    findFavoriteProduct: vi.fn(),
+    addFavoriteProduct: vi.fn(),
+    removeFavoriteProduct: vi.fn(),
+    listFollowedShops: vi.fn(),
+    findShopFollow: vi.fn(),
+    followShop: vi.fn(),
+    unfollowShop: vi.fn(),
   }
 }
 

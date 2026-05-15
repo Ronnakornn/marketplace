@@ -91,6 +91,13 @@ function createRepo(overrides: Partial<Record<keyof IChatRepository, any>> = {})
   return repo
 }
 
+function createNotificationService(overrides: Record<string, any> = {}) {
+  return {
+    createNotification: vi.fn().mockResolvedValue({ id: 'notification-1' }),
+    ...overrides,
+  }
+}
+
 describe('ChatService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -216,6 +223,95 @@ describe('ChatService', () => {
     expect(realtimeService.publish).toHaveBeenCalledWith('chat.message.created', 'chat:room-1', expect.objectContaining({ roomId: 'room-1' }))
     expect(realtimeService.publish).toHaveBeenCalledWith('chat.message.created', 'seller:shop-1:chats', expect.objectContaining({ roomId: 'room-1' }))
     expect(realtimeService.publish).toHaveBeenCalledWith('chat.room.read', 'chat:room-1', expect.objectContaining({ readerId: 'buyer-1' }))
+  })
+
+  it('notifies the seller when a buyer sends a message', async () => {
+    const notificationService = createNotificationService()
+    const repo = createRepo({
+      findRoomById: vi
+        .fn()
+        .mockResolvedValueOnce(createRoom({ productId: 'product-1', orderId: 'order-1' }))
+        .mockResolvedValueOnce(createRoom({ productId: 'product-1', orderId: 'order-1', messages: [createMessage()] })),
+      createMessage: vi.fn().mockResolvedValue(createMessage({ senderId: 'buyer-1', body: 'Hello seller' })),
+    })
+    const service = new ChatService(appContext, repo, undefined, notificationService as any)
+
+    await service.sendMessage(user('buyer-1'), 'room-1', { messageType: 'text', body: 'Hello seller' })
+
+    expect(notificationService.createNotification).toHaveBeenCalledWith(
+      'seller-1',
+      'chat_message',
+      'New chat message',
+      'Hello seller',
+      expect.objectContaining({
+        roomId: 'room-1',
+        shopId: 'shop-1',
+        buyerId: 'buyer-1',
+        senderId: 'buyer-1',
+        productId: 'product-1',
+        orderId: 'order-1',
+      }),
+    )
+    expect(notificationService.createNotification).not.toHaveBeenCalledWith(
+      'buyer-1',
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    )
+  })
+
+  it('notifies the buyer when a seller sends a message', async () => {
+    const notificationService = createNotificationService()
+    const repo = createRepo({
+      findRoomById: vi
+        .fn()
+        .mockResolvedValueOnce(createRoom())
+        .mockResolvedValueOnce(createRoom({ messages: [createMessage({ senderId: 'seller-1' })] })),
+      createMessage: vi.fn().mockResolvedValue(createMessage({ senderId: 'seller-1', body: 'We are packing your order' })),
+    })
+    const service = new ChatService(appContext, repo, undefined, notificationService as any)
+
+    await service.sendMessage(seller('seller-1'), 'room-1', { messageType: 'text', body: 'We are packing your order' })
+
+    expect(notificationService.createNotification).toHaveBeenCalledWith(
+      'buyer-1',
+      'chat_message',
+      'New chat message',
+      'We are packing your order',
+      expect.objectContaining({
+        roomId: 'room-1',
+        senderId: 'seller-1',
+      }),
+    )
+    expect(notificationService.createNotification).not.toHaveBeenCalledWith(
+      'seller-1',
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    )
+  })
+
+  it('keeps sending messages when chat notification creation fails', async () => {
+    const notificationService = createNotificationService({
+      createNotification: vi.fn().mockRejectedValue(new Error('notification down')),
+    })
+    const repo = createRepo({
+      findRoomById: vi
+        .fn()
+        .mockResolvedValueOnce(createRoom())
+        .mockResolvedValueOnce(createRoom({ messages: [createMessage()] })),
+    })
+    const service = new ChatService(appContext, repo, undefined, notificationService as any)
+
+    const result = await service.sendMessage(user(), 'room-1', { messageType: 'text', body: 'Hello' })
+
+    expect(result.roomId).toBe('room-1')
+    expect(logger.warn).toHaveBeenCalledWith('ChatService chat notification failed', expect.objectContaining({
+      roomId: 'room-1',
+      recipientId: 'seller-1',
+    }))
   })
 
   it('validates optional product and order context', async () => {

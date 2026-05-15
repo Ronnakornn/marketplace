@@ -12,11 +12,13 @@ const SearchQuerySchema = t.Object({
   sort: t.Optional(t.String()),
   page: t.Optional(t.Number({ minimum: 1 })),
   limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
+  locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
 
 const SuggestionsQuerySchema = t.Object({
   q: t.Optional(t.String()),
   limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
+  locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
 
 export function createSearchRoutes(container: ServiceContainer) {

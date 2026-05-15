@@ -26,6 +26,7 @@ export interface CreateCheckoutData {
   couponCode?: string
   paymentMethod: string
   shippingMethod?: string
+  locale?: string
 }
 
 export interface CheckoutResponse {
@@ -87,6 +88,7 @@ export class CheckoutService {
           totals,
           items: cart!.items,
           paymentMethod: data.paymentMethod.trim(),
+          locale: data.locale,
           coupon: couponValidation ? { id: couponValidation.couponId } : null,
         })
 

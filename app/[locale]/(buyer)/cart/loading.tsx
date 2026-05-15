@@ -1,0 +1,13 @@
+import { BuyerLoadingList } from "#/components/BuyerState";
+import { BuyerTopBar } from "#/components/BuyerShell";
+
+export default function CartLoading() {
+  return (
+    <>
+      <BuyerTopBar title="Cart" />
+      <div className="mx-auto max-w-4xl px-3 pb-28 pt-4">
+        <BuyerLoadingList />
+      </div>
+    </>
+  );
+}

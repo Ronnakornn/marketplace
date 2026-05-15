@@ -8,17 +8,19 @@ import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { fetchCart, formatMoney, removeCartItem, updateCartItem } from "#/features/buyer/api";
+import { useLocale } from "#/i18n/client";
 
 export function CartPage() {
   const queryClient = useQueryClient();
-  const cartQuery = useQuery({ queryKey: ["buyer-cart"], queryFn: fetchCart });
+  const locale = useLocale();
+  const cartQuery = useQuery({ queryKey: ["buyer-cart", locale], queryFn: () => fetchCart(locale) });
   const updateMutation = useMutation({
     mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) => updateCartItem(itemId, quantity),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-cart"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-cart", locale] }),
   });
   const removeMutation = useMutation({
     mutationFn: removeCartItem,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-cart"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-cart", locale] }),
   });
 
   const cart = cartQuery.data;

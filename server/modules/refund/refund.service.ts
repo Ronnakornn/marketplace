@@ -1,6 +1,7 @@
 import type { RefundStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { EventPublisherService } from '#server/modules/event-bus'
 import { RefundServiceError } from './refund.errors.ts'
 import type { IRefundRepository, RefundRecord } from './refund.repository.ts'
 
@@ -27,6 +28,7 @@ export class RefundService {
   constructor(
     appContext: AppContext,
     private repo: IRefundRepository,
+    private eventPublisher?: EventPublisherService,
   ) {
     this.logger = appContext.logger
   }
@@ -51,7 +53,16 @@ export class RefundService {
     if (!refund) throw new RefundServiceError('Refund not found', 404, 'REFUND_NOT_FOUND')
     const nextStatus = this.normalizeStatus(status)
     this.assertTransition(refund.status, nextStatus)
-    return this.toResponse(await this.repo.updateRefundStatus(refund.id, nextStatus))
+    const response = this.toResponse(await this.repo.updateRefundStatus(refund.id, nextStatus))
+    if (nextStatus === 'SUCCESS') {
+      await this.publishBestEffort('refund.succeeded', response.id, actor.id, {
+        refundId: response.id,
+        orderId: response.orderId,
+        paymentId: response.paymentId,
+        amountCents: response.amountCents,
+      })
+    }
+    return response
   }
 
   private assertAdmin(actor: RefundActor): void {
@@ -86,6 +97,29 @@ export class RefundService {
       reason: refund.reason,
       createdAt: refund.createdAt,
       updatedAt: refund.updatedAt,
+    }
+  }
+
+  private async publishBestEffort(
+    eventName: 'refund.succeeded',
+    refundId: string,
+    actorUserId: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.eventPublisher?.publish({
+        eventName,
+        aggregateType: 'refund',
+        aggregateId: refundId,
+        actorUserId,
+        data,
+      })
+    } catch (error) {
+      this.logger.warn('RefundService event publish failed', {
+        eventName,
+        refundId,
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
   }
 }
