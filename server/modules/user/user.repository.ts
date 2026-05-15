@@ -1,4 +1,4 @@
-import type { PrismaClient, User } from '#generated/client/client.ts'
+import type { Address, PrismaClient, User } from '#generated/client/client.ts'
 import type { Role, UserStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -25,6 +25,20 @@ export interface UpdateCurrentUserData {
   image?: string | null
 }
 
+export type BuyerAddress = Address
+
+export interface AddressData {
+  recipientName: string
+  phone?: string | null
+  line1: string
+  line2?: string | null
+  city: string
+  region?: string | null
+  postalCode: string
+  country: string
+  isDefault?: boolean
+}
+
 export interface IUserRepository {
   findManyForAdmin(): Promise<AdminUserListItem[]>
   findById(id: string): Promise<User | null>
@@ -34,6 +48,12 @@ export interface IUserRepository {
   updateCurrentUser(id: string, data: UpdateCurrentUserData): Promise<UserProfile>
   delete(id: string): Promise<User>
   promoteByEmails(emails: string[]): Promise<number>
+  listAddresses(userId: string): Promise<BuyerAddress[]>
+  findAddress(userId: string, addressId: string): Promise<BuyerAddress | null>
+  createAddress(userId: string, data: AddressData): Promise<BuyerAddress>
+  updateAddress(userId: string, addressId: string, data: Partial<AddressData>): Promise<BuyerAddress>
+  deleteAddress(userId: string, addressId: string): Promise<BuyerAddress>
+  setDefaultAddress(userId: string, addressId: string): Promise<BuyerAddress>
 }
 
 export class PrismaUserRepository implements IUserRepository {
@@ -122,5 +142,79 @@ export class PrismaUserRepository implements IUserRepository {
       data: { role: 'ADMIN' },
     })
     return result.count
+  }
+
+  listAddresses(userId: string): Promise<BuyerAddress[]> {
+    this.logger.debug('PrismaUserRepository.listAddresses', { userId })
+    return this.prisma.address.findMany({
+      where: { userId },
+      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
+    })
+  }
+
+  findAddress(userId: string, addressId: string): Promise<BuyerAddress | null> {
+    this.logger.debug('PrismaUserRepository.findAddress', { userId, addressId })
+    return this.prisma.address.findFirst({
+      where: { id: addressId, userId },
+    })
+  }
+
+  createAddress(userId: string, data: AddressData): Promise<BuyerAddress> {
+    this.logger.info('PrismaUserRepository.createAddress', { userId, isDefault: data.isDefault })
+    return this.prisma.$transaction(async (tx) => {
+      const existingCount = await tx.address.count({ where: { userId } })
+      const makeDefault = data.isDefault === true || existingCount === 0
+      if (makeDefault) {
+        await tx.address.updateMany({ where: { userId }, data: { isDefault: false } })
+      }
+      return tx.address.create({
+        data: {
+          userId,
+          ...data,
+          isDefault: makeDefault,
+        },
+      })
+    })
+  }
+
+  updateAddress(userId: string, addressId: string, data: Partial<AddressData>): Promise<BuyerAddress> {
+    this.logger.info('PrismaUserRepository.updateAddress', { userId, addressId })
+    return this.prisma.$transaction(async (tx) => {
+      if (data.isDefault === true) {
+        await tx.address.updateMany({ where: { userId }, data: { isDefault: false } })
+      }
+      return tx.address.update({
+        where: { id: addressId },
+        data,
+      })
+    })
+  }
+
+  deleteAddress(userId: string, addressId: string): Promise<BuyerAddress> {
+    this.logger.info('PrismaUserRepository.deleteAddress', { userId, addressId })
+    return this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.address.delete({ where: { id: addressId } })
+      if (deleted.isDefault) {
+        const replacement = await tx.address.findFirst({
+          where: { userId },
+          orderBy: { updatedAt: 'desc' },
+        })
+        if (replacement) {
+          await tx.address.update({ where: { id: replacement.id }, data: { isDefault: true } })
+        }
+      }
+      return deleted
+    })
+  }
+
+  setDefaultAddress(userId: string, addressId: string): Promise<BuyerAddress> {
+    this.logger.info('PrismaUserRepository.setDefaultAddress', { userId, addressId })
+    return this.prisma.$transaction(async (tx) => {
+      await tx.address.updateMany({ where: { userId }, data: { isDefault: false } })
+      return tx.address.update({
+        where: { id: addressId },
+        data: { isDefault: true },
+      })
+    })
   }
 }

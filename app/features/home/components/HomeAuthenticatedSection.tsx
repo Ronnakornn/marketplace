@@ -1,4 +1,4 @@
-import { MarketplaceHome } from "#/features/marketplace";
+import { HomeMarketplaceClient } from "./HomeMarketplaceClient";
 
 interface HomeAuthenticatedSectionProps {
   user: {
@@ -10,5 +10,5 @@ interface HomeAuthenticatedSectionProps {
 export function HomeAuthenticatedSection({
   user,
 }: HomeAuthenticatedSectionProps) {
-  return <MarketplaceHome user={user} />;
+  return <HomeMarketplaceClient user={user} />;
 }

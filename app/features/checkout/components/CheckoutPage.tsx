@@ -4,49 +4,80 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CheckCircle2Icon, CreditCardIcon, MapPinIcon, TicketIcon, TruckIcon } from "lucide-react";
+import { CreditCardIcon, MapPinIcon, TicketIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
-import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Label } from "#/components/ui/label";
-import { createCheckout, fetchCart, formatMoney } from "#/features/buyer/api";
+import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
+import { createCheckout, fetchAddresses, fetchCart, formatMoney } from "#/features/buyer/api";
+import { useLocalePath } from "#/i18n/navigation";
 
-export function CheckoutPage({ resultStatus, orderId }: { resultStatus?: string; orderId?: string }) {
+export function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const localePath = useLocalePath();
   const cartQuery = useQuery({ queryKey: ["buyer-cart"], queryFn: fetchCart });
+  const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
+  const defaultAddress = addressesQuery.data?.find((address) => address.isDefault) ?? addressesQuery.data?.[0];
+  const addressId = selectedAddressId || defaultAddress?.id || "";
   const checkoutMutation = useMutation({
     mutationFn: () => {
-      if (!cartQuery.data?.id) throw new Error("ไม่พบ cart ที่พร้อม checkout");
+      if (!cartQuery.data?.id) throw new Error("No cart is ready for checkout.");
+      if (!addressId) throw new Error("Please add and select a shipping address before placing this order.");
       return createCheckout({
         cartId: cartQuery.data.id,
-        addressId: "default",
+        addressId,
         couponCode: couponCode || undefined,
         paymentMethod,
         shippingMethod: "standard",
       });
     },
   });
-  const total = useMemo(() => (cartQuery.data?.subtotalCents ?? 0) + 0, [cartQuery.data?.subtotalCents]);
+  const total = useMemo(() => cartQuery.data?.subtotalCents ?? 0, [cartQuery.data?.subtotalCents]);
   const itemCount = cartQuery.data?.shops.reduce((sum, shop) => sum + shop.items.length, 0) ?? 0;
 
   return (
     <>
       <BuyerTopBar title="Checkout" />
       <div className="mx-auto max-w-5xl space-y-4 px-3 pb-28 pt-4">
-        {resultStatus ? <PaymentResult status={resultStatus} orderId={orderId} /> : null}
         {cartQuery.isLoading ? <BuyerLoadingList /> : null}
         {cartQuery.isError ? <BuyerErrorState message={cartQuery.error.message} onRetry={() => void cartQuery.refetch()} /> : null}
-        {cartQuery.isSuccess && itemCount === 0 ? <BuyerEmptyState title="ไม่มีสินค้าให้ชำระเงิน" description="กลับไปเลือกสินค้าในรถเข็นก่อนเริ่ม checkout" /> : null}
+        {cartQuery.isSuccess && itemCount === 0 ? (
+          <BuyerEmptyState title="No items to checkout" description="Add products to your cart before starting checkout." />
+        ) : null}
         {cartQuery.data && itemCount > 0 ? (
           <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
               <CheckoutBlock icon={<MapPinIcon className="size-5" />} title="Address">
-                <p className="font-semibold">Default shipping address</p>
-                <p className="text-sm text-slate-500">เลือกที่อยู่จริงจาก API เมื่อ backend เปิด endpoint address สำหรับ buyer</p>
+                {addressesQuery.isLoading ? <p className="text-sm text-slate-500">Loading addresses...</p> : null}
+                {addressesQuery.data?.length ? (
+                  <RadioGroup value={addressId} onValueChange={setSelectedAddressId} className="space-y-2">
+                    {addressesQuery.data.map((address) => (
+                      <label key={address.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-2xl border border-slate-200 p-3 has-[[data-state=checked]]:border-orange-200 has-[[data-state=checked]]:bg-orange-50">
+                        <span>
+                          <span className="font-semibold">{address.recipientName}</span>
+                          {address.isDefault ? <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-700">Default</span> : null}
+                          <span className="mt-1 block text-sm text-slate-600">
+                            {[address.line1, address.line2, address.city, address.region, address.postalCode, address.country].filter(Boolean).join(", ")}
+                          </span>
+                          {address.phone ? <span className="mt-1 block text-xs text-slate-500">{address.phone}</span> : null}
+                        </span>
+                        <RadioGroupItem value={address.id} />
+                      </label>
+                    ))}
+                  </RadioGroup>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50 p-3">
+                    <p className="font-semibold text-slate-950">No shipping address yet</p>
+                    <p className="mt-1 text-sm text-slate-600">Add an address before placing an order.</p>
+                  </div>
+                )}
+                <Button asChild variant="outline" className="mt-3 rounded-full">
+                  <Link href={localePath("/account/addresses")}>Manage addresses</Link>
+                </Button>
               </CheckoutBlock>
               <CheckoutBlock icon={<TruckIcon className="size-5" />} title="Shipping method">
                 <RadioGroup defaultValue="standard">
@@ -97,12 +128,16 @@ export function CheckoutPage({ resultStatus, orderId }: { resultStatus?: string;
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <p className="text-lg font-bold">{formatMoney(total, cartQuery.data.currency)}</p>
-            <Button className="h-12 min-w-40 rounded-2xl bg-orange-600 hover:bg-orange-700" disabled={checkoutMutation.isPending} onClick={() => checkoutMutation.mutate()}>
+            <Button className="h-12 min-w-40 rounded-2xl bg-orange-600 hover:bg-orange-700" disabled={checkoutMutation.isPending || !addressId} onClick={() => checkoutMutation.mutate()}>
               Place order
             </Button>
           </div>
           {checkoutMutation.isError ? <p className="mx-auto mt-2 max-w-5xl text-sm text-red-600">{checkoutMutation.error.message}</p> : null}
-          {checkoutMutation.isSuccess ? <p className="mx-auto mt-2 max-w-5xl text-sm text-emerald-700">Order {checkoutMutation.data.orderNo} created.</p> : null}
+          {checkoutMutation.isSuccess ? (
+            <p className="mx-auto mt-2 max-w-5xl text-sm text-emerald-700">
+              Order {checkoutMutation.data.orderNo} created. <Link className="font-semibold underline" href={localePath(`/payment/return?orderId=${checkoutMutation.data.orderId}`)}>View payment status</Link>
+            </p>
+          ) : null}
         </div>
       ) : null}
     </>
@@ -115,18 +150,5 @@ function CheckoutBlock({ icon, title, children }: { icon: ReactNode; title: stri
       <div className="mb-3 flex items-center gap-2 font-bold text-slate-950">{icon}{title}</div>
       {children}
     </section>
-  );
-}
-
-function PaymentResult({ status, orderId }: { status: string; orderId?: string }) {
-  const isSuccess = status === "success" || status === "paid";
-  return (
-    <Alert className={isSuccess ? "border-emerald-200 bg-emerald-50" : "border-orange-200 bg-orange-50"}>
-      <CheckCircle2Icon className="size-4" />
-      <AlertTitle>{isSuccess ? "Payment completed" : "Payment status updated"}</AlertTitle>
-      <AlertDescription>
-        {orderId ? <Link className="font-semibold underline" href={`/orders/${orderId}`}>View order</Link> : "ตรวจสอบสถานะคำสั่งซื้อได้ในหน้า Orders"}
-      </AlertDescription>
-    </Alert>
   );
 }

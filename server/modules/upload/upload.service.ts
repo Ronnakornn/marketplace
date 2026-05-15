@@ -66,6 +66,7 @@ export class UploadService {
       contentType: input.contentType,
       fileSize: input.fileSize,
       expiresIn: presignedUrlExpiresIn,
+      cacheControl: 'public, max-age=604800, stale-while-revalidate=86400',
     })
 
     this.logger.info('UploadService.createPresignedUrl', {

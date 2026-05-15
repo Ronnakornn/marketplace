@@ -1,0 +1,95 @@
+{
+  "common": {
+    "account": "Account",
+    "admin": "Admin",
+    "allRightsReserved": "All rights reserved.",
+    "builtWith": "Built with Next.js + Elysia + Prisma",
+    "cart": "Cart",
+    "categories": "Categories",
+    "chat": "Chat",
+    "checkout": "Checkout",
+    "deals": "Deals",
+    "home": "Home",
+    "language": "Language",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "marketplace": "Marketplace",
+    "notifications": "Notifications",
+    "orders": "Orders",
+    "profile": "Profile",
+    "search": "Search",
+    "signup": "Sign up"
+  },
+  "nav": {
+    "admin": "Admin",
+    "cart": "Cart",
+    "chat": "Chat",
+    "home": "Home",
+    "orders": "Orders",
+    "profile": "Profile",
+    "search": "Search"
+  },
+  "home": {
+    "claimVoucher": "Claim voucher",
+    "demoFeed": "Demo Feed",
+    "extraOff": "Extra 15% off today",
+    "fallbackReady": "Fallback ready",
+    "flashSale": "Flash Sale",
+    "freeShipping": "Free Shipping",
+    "heroKicker": "5.5 Mega Deals",
+    "heroSubtitle": "Flash deals, free shipping picks, and marketplace favorites curated for quick buying.",
+    "heroTitle": "Shop fast. Checkout faster.",
+    "liveCatalog": "Live Catalog",
+    "loadingMore": "Loading more deals...",
+    "recommendedSubtitle": "Fresh picks based on deals and shop momentum",
+    "recommendedTitle": "Recommended for you",
+    "searchPlaceholder": "Search deals, brands, and shops",
+    "seeAll": "See all",
+    "shopNow": "Shop now",
+    "syncedFromApi": "Synced from API",
+    "upToCashback": "Up to 20%",
+    "voucherAutoApplies": "Voucher auto-applies at cart",
+    "welcomeBack": "Welcome back, {name}",
+    "youAreCaughtUp": "You're all caught up"
+  },
+  "product": {
+    "add": "Add",
+    "addToCart": "Add to cart",
+    "adding": "Adding",
+    "buyNow": "Buy now",
+    "freeShip": "Free ship",
+    "outOfStock": "Out of stock",
+    "saveProduct": "Save product",
+    "sold": "sold"
+  },
+  "checkout": {
+    "placeOrder": "Place order"
+  },
+  "order": {
+    "tracking": "Tracking"
+  },
+  "chat": {
+    "backToInbox": "Back to inbox",
+    "buyer": "Buyer",
+    "chatSeller": "Chat seller",
+    "emptyInbox": "No chats yet",
+    "emptyInboxDescription": "Your buyer-seller conversations will appear here.",
+    "emptyThread": "No messages yet",
+    "emptyThreadDescription": "Send the first message to start this conversation.",
+    "inbox": "Chat inbox",
+    "messages": "Messages",
+    "noMessages": "No messages",
+    "seller": "Seller",
+    "sellerInbox": "Seller chat inbox",
+    "send": "Send",
+    "sending": "Sending",
+    "typeMessage": "Type a message",
+    "unread": "unread"
+  },
+  "seller": {
+    "dashboard": "Seller dashboard"
+  },
+  "admin": {
+    "dashboard": "Admin dashboard"
+  }
+}

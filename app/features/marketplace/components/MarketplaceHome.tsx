@@ -28,7 +28,10 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Skeleton } from "#/components/ui/skeleton";
+import { LanguageSwitcher } from "#/components/LanguageSwitcher";
 import { addCartItem, fetchCart, fetchCategories, fetchProducts, type BuyerProduct } from "#/features/buyer/api";
+import { useFormatters, useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 import { signOut } from "#/lib/auth-client";
 
 interface MarketplaceHomeProps {
@@ -220,14 +223,6 @@ function mapBuyerProduct(product: BuyerProduct, index: number): StorefrontProduc
   };
 }
 
-function formatMoney(cents: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
-}
-
 function duplicateForFeed(products: StorefrontProduct[]) {
   if (products.length >= 18) return products;
   return Array.from({ length: 4 }).flatMap((_, round) =>
@@ -244,6 +239,9 @@ function duplicateForFeed(products: StorefrontProduct[]) {
 export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const localePath = useLocalePath();
+  const formatters = useFormatters();
+  const [mounted, setMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const productsQuery = useQuery({
@@ -296,13 +294,13 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   async function handleSignOut() {
     await signOut();
-    router.push("/");
+    router.push(localePath("/"));
     router.refresh();
   }
 
   function handleAddToCart(product: StorefrontProduct) {
     if (!user) {
-      router.push("/login");
+      router.push(localePath("/login"));
       return;
     }
     if (product.variantId) addToCartMutation.mutate(product.variantId);
@@ -310,8 +308,12 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   function handleSearchSubmit() {
     const query = searchTerm.trim();
-    router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+    router.push(query ? `${localePath("/search")}?q=${encodeURIComponent(query)}` : localePath("/search"));
   }
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const element = loadMoreRef.current;
@@ -329,6 +331,10 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
     observer.observe(element);
     return () => observer.disconnect();
   }, [products.length]);
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950" suppressHydrationWarning />;
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950">
@@ -350,6 +356,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           isLoading={productsQuery.isLoading}
           onAddToCart={handleAddToCart}
           pendingVariantId={addToCartMutation.variables}
+          formatMoney={formatters.currency}
         />
         <CategoryGrid categories={categories} activeCategory={activeCategory} onSelectCategory={setActiveCategory} />
         <ProductRecommendationGrid
@@ -359,6 +366,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           loadMoreRef={loadMoreRef}
           onAddToCart={handleAddToCart}
           pendingVariantId={addToCartMutation.variables}
+          formatMoney={formatters.currency}
         />
       </main>
 
@@ -385,6 +393,9 @@ function MobileCommerceHeader({
   cartItemCount: number;
   onSignOut: () => void;
 }) {
+  const t = useTranslations();
+  const localePath = useLocalePath();
+
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center gap-2">
@@ -399,90 +410,100 @@ function MobileCommerceHeader({
           <Input
             value={searchTerm}
             onChange={(event) => onSearchTermChange(event.target.value)}
-            placeholder="Search deals, brands, and shops"
+            placeholder={t("home.searchPlaceholder")}
             className="h-8 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
           />
         </form>
         <Button size="icon-sm" variant="ghost" className="rounded-full" asChild>
-          <Link href="/notifications">
+          <Link href={localePath("/notifications")}>
           <BellIcon className="size-5" />
-          <span className="sr-only">Notifications</span>
+          <span className="sr-only">{t("common.notifications")}</span>
           </Link>
         </Button>
         <Button size="icon-sm" variant="ghost" className="relative rounded-full" asChild>
-          <Link href="/cart">
+          <Link href={localePath("/cart")}>
           <ShoppingCartIcon className="size-5" />
           {cartItemCount > 0 ? (
             <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
               {cartItemCount > 99 ? "99+" : cartItemCount}
             </span>
           ) : null}
-          <span className="sr-only">Cart</span>
+          <span className="sr-only">{t("common.cart")}</span>
           </Link>
         </Button>
         {isSignedIn ? (
           <>
             <Button size="icon-sm" variant="ghost" className="rounded-full" asChild>
-              <Link href="/profile">
+              <Link href={localePath("/profile")}>
                 <UserCircleIcon className="size-5" />
-                <span className="sr-only">Profile</span>
+                <span className="sr-only">{t("common.profile")}</span>
               </Link>
             </Button>
             <Button size="icon-sm" variant="ghost" className="rounded-full text-slate-600" onClick={onSignOut}>
               <LogOutIcon className="size-5" />
-              <span className="sr-only">Sign out</span>
+              <span className="sr-only">{t("common.logout")}</span>
             </Button>
           </>
         ) : (
           <>
             <Button size="sm" className="hidden rounded-full bg-slate-950 text-white hover:bg-slate-800 sm:inline-flex" asChild>
-              <Link href="/login">
+              <Link href={localePath("/login")}>
                 <LogInIcon className="size-4" />
-                Sign in
+                {t("common.login")}
               </Link>
             </Button>
             <Button size="sm" variant="outline" className="hidden rounded-full border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 sm:inline-flex" asChild>
-              <Link href="/signup">Sign up</Link>
+              <Link href={localePath("/signup")}>{t("common.signup")}</Link>
             </Button>
             <Button size="icon-sm" variant="ghost" className="rounded-full sm:hidden" asChild>
-              <Link href="/login">
+              <Link href={localePath("/login")}>
                 <LogInIcon className="size-5" />
-                <span className="sr-only">Sign in</span>
+                <span className="sr-only">{t("common.login")}</span>
               </Link>
             </Button>
           </>
         )}
       </div>
       {userName ? (
-        <p className="mx-auto mt-1 max-w-6xl truncate px-1 text-xs text-slate-500">
-          Welcome back, {userName}
-        </p>
-      ) : null}
+        <div className="mx-auto mt-1 flex max-w-6xl items-center justify-between gap-2 px-1">
+          <p className="truncate text-xs text-slate-500">
+            {t("home.welcomeBack").replace("{name}", userName)}
+          </p>
+          <div>
+            <LanguageSwitcher />
+          </div>
+        </div>
+      ) : (
+        <div className="mx-auto mt-1 flex max-w-6xl justify-end px-1">
+          <LanguageSwitcher />
+        </div>
+      )}
     </header>
   );
 }
 
 function HeroPromo() {
+  const t = useTranslations();
   return (
     <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-rose-500 to-fuchsia-600 p-4 text-white shadow-[0_18px_48px_rgba(244,63,94,0.24)] sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <Badge className="mb-3 border-white/20 bg-white/20 text-white">
             <ZapIcon className="size-3" />
-            5.5 Mega Deals
+            {t("home.heroKicker")}
           </Badge>
           <h1 className="max-w-xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-            Shop fast. Checkout faster.
+            {t("home.heroTitle")}
           </h1>
           <p className="mt-2 max-w-lg text-sm text-white/85 sm:text-base">
-            Flash deals, free shipping picks, and marketplace favorites curated for quick buying.
+            {t("home.heroSubtitle")}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button className="rounded-full bg-white text-rose-600 hover:bg-white/95">
-              Shop now
+              {t("home.shopNow")}
             </Button>
             <Button variant="outline" className="rounded-full border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-              Claim voucher
+              {t("home.claimVoucher")}
             </Button>
           </div>
         </div>
@@ -497,13 +518,14 @@ function HeroPromo() {
 }
 
 function VoucherStrip({ hasFallback }: { hasFallback: boolean }) {
+  const t = useTranslations();
   return (
     <section className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {[
-        ["Free Shipping", "Min. spend $15"],
+        [t("home.freeShipping"), "THB 500"],
         ["15% OFF", "Selected shops"],
-        ["Coins Cashback", "Up to 20%"],
-        [hasFallback ? "Demo Feed" : "Live Catalog", hasFallback ? "Fallback ready" : "Synced from API"],
+        ["Coins Cashback", t("home.upToCashback")],
+        [hasFallback ? t("home.demoFeed") : t("home.liveCatalog"), hasFallback ? t("home.fallbackReady") : t("home.syncedFromApi")],
       ].map(([title, subtitle]) => (
         <div key={title} className="flex min-w-[154px] items-center gap-2 rounded-2xl border border-orange-100 bg-white px-3 py-2 shadow-sm">
           <div className="flex size-9 items-center justify-center rounded-full bg-orange-50 text-orange-600">
@@ -524,12 +546,16 @@ function FlashSaleSection({
   isLoading,
   onAddToCart,
   pendingVariantId,
+  formatMoney,
 }: {
   products: StorefrontProduct[];
   isLoading: boolean;
   onAddToCart: (product: StorefrontProduct) => void;
   pendingVariantId?: string;
+  formatMoney: (cents: number, currency?: string) => string;
 }) {
+  const t = useTranslations();
+  const localePath = useLocalePath();
   return (
     <section className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70 sm:p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -538,12 +564,12 @@ function FlashSaleSection({
             <FlameIcon className="size-5" />
           </div>
           <div>
-            <h2 className="text-lg font-extrabold text-slate-950">Flash Sale</h2>
+            <h2 className="text-lg font-extrabold text-slate-950">{t("home.flashSale")}</h2>
             <p className="text-xs text-slate-500">Ends in 02:18:44</p>
           </div>
         </div>
         <Button variant="ghost" size="sm" className="rounded-full text-red-600 hover:bg-red-50 hover:text-red-700">
-          See all
+          {t("home.seeAll")}
         </Button>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -551,7 +577,7 @@ function FlashSaleSection({
           <Skeleton key={index} className="h-52 min-w-[132px] rounded-2xl" />
         )) : products.map((product) => (
           <article key={product.id} className="min-w-[132px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-            <Link href={`/products/${product.id}`}>
+            <Link href={localePath(`/products/${product.id}`)}>
               <ProductVisual product={product} compact />
             </Link>
             <div className="p-2">
@@ -560,14 +586,14 @@ function FlashSaleSection({
               <div className="mt-2 h-2 rounded-full bg-orange-100">
                 <div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: `${Math.min(92, 42 + product.discountPercent)}%` }} />
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">{product.sold.toLocaleString()} sold</p>
+              <p className="mt-1 text-[11px] text-slate-500">{product.sold.toLocaleString()} {t("product.sold")}</p>
               <Button
                 size="sm"
                 className="mt-2 h-8 w-full rounded-full bg-orange-600 text-white hover:bg-orange-700"
                 disabled={!product.variantId || pendingVariantId === product.variantId}
                 onClick={() => onAddToCart(product)}
               >
-                {pendingVariantId === product.variantId ? "Adding" : "Add"}
+                {pendingVariantId === product.variantId ? t("product.adding") : t("product.add")}
               </Button>
             </div>
           </article>
@@ -586,10 +612,11 @@ function CategoryGrid({
   activeCategory: string | null;
   onSelectCategory: (category: string | null) => void;
 }) {
+  const t = useTranslations();
   return (
     <section className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70 sm:p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-extrabold text-slate-950">Categories</h2>
+        <h2 className="text-lg font-extrabold text-slate-950">{t("common.categories")}</h2>
         <Grid3X3Icon className="size-5 text-slate-400" />
       </div>
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
@@ -620,13 +647,15 @@ function ProductRecommendationGrid(props: {
   loadMoreRef: React.RefObject<HTMLDivElement | null>;
   onAddToCart: (product: StorefrontProduct) => void;
   pendingVariantId?: string;
+  formatMoney: (cents: number, currency?: string) => string;
 }) {
+  const t = useTranslations();
   return (
     <section className="mt-5">
       <div className="mb-3 flex items-center justify-between px-1">
         <div>
-          <h2 className="text-lg font-extrabold text-slate-950">Recommended for you</h2>
-          <p className="text-xs text-slate-500">Fresh picks based on deals and shop momentum</p>
+          <h2 className="text-lg font-extrabold text-slate-950">{t("home.recommendedTitle")}</h2>
+          <p className="text-xs text-slate-500">{t("home.recommendedSubtitle")}</p>
         </div>
         <SparklesIcon className="size-5 text-orange-500" />
       </div>
@@ -637,6 +666,7 @@ function ProductRecommendationGrid(props: {
             product={product}
             onAddToCart={props.onAddToCart}
             isAdding={props.pendingVariantId === product.variantId}
+            formatMoney={props.formatMoney}
           />
         ))}
         {props.isLoading ? Array.from({ length: 6 }).map((_, index) => (
@@ -644,7 +674,7 @@ function ProductRecommendationGrid(props: {
         )) : null}
       </div>
       <div ref={props.loadMoreRef} className="py-6 text-center text-xs text-slate-500">
-        {props.hasMore ? "Loading more deals..." : "You're all caught up"}
+        {props.hasMore ? t("home.loadingMore") : t("home.youAreCaughtUp")}
       </div>
     </section>
   );
@@ -654,28 +684,32 @@ function ProductCard({
   product,
   onAddToCart,
   isAdding,
+  formatMoney,
 }: {
   product: StorefrontProduct;
   onAddToCart: (product: StorefrontProduct) => void;
   isAdding: boolean;
+  formatMoney: (cents: number, currency?: string) => string;
 }) {
+  const t = useTranslations();
+  const localePath = useLocalePath();
   return (
     <Card className="group overflow-hidden rounded-3xl border-slate-200 bg-white py-0 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-      <Link href={`/products/${product.id}`}>
+      <Link href={localePath(`/products/${product.id}`)}>
         <ProductVisual product={product} />
       </Link>
       <CardContent className="p-3">
         <div className="mb-2 flex flex-wrap gap-1">
           {product.freeShipping ? (
             <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-1.5 text-[10px] text-emerald-700">
-              Free ship
+              {t("product.freeShip")}
             </Badge>
           ) : null}
           <Badge variant="outline" className="border-orange-200 bg-orange-50 px-1.5 text-[10px] text-orange-700">
             -{product.discountPercent}%
           </Badge>
         </div>
-        <Link href={`/products/${product.id}`}>
+        <Link href={localePath(`/products/${product.id}`)}>
           <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-slate-900">
             {product.title}
           </h3>
@@ -690,14 +724,14 @@ function ProductCard({
             <StarIcon className="size-3 fill-amber-400 text-amber-400" />
             {product.rating}
           </span>
-          <span>{product.sold.toLocaleString()} sold</span>
+          <span>{product.sold.toLocaleString()} {t("product.sold")}</span>
         </div>
         <Button
           className="mt-3 h-9 w-full rounded-full bg-slate-950 text-white hover:bg-slate-800"
           disabled={!product.variantId || isAdding}
           onClick={() => onAddToCart(product)}
         >
-          {isAdding ? "Adding" : product.stock > 0 ? "Add to cart" : "Out of stock"}
+          {isAdding ? t("product.adding") : product.stock > 0 ? t("product.addToCart") : t("product.outOfStock")}
         </Button>
       </CardContent>
     </Card>
@@ -705,6 +739,7 @@ function ProductCard({
 }
 
 function ProductVisual({ product, compact = false }: { product: StorefrontProduct; compact?: boolean }) {
+  const t = useTranslations();
   return (
     <div className={`relative bg-gradient-to-br ${product.gradient} ${compact ? "h-28" : "aspect-square"}`}>
       <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-600 shadow-sm">
@@ -712,7 +747,7 @@ function ProductVisual({ product, compact = false }: { product: StorefrontProduc
       </div>
       <span className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-500 shadow-sm">
         <HeartIcon className="size-4" />
-        <span className="sr-only">Save product</span>
+        <span className="sr-only">{t("product.saveProduct")}</span>
       </span>
       <div className="absolute inset-0 flex items-center justify-center">
         <ShoppingBagIcon className={`${compact ? "size-12" : "size-20"} text-slate-400/45`} />
@@ -722,15 +757,16 @@ function ProductVisual({ product, compact = false }: { product: StorefrontProduc
 }
 
 function StickyCheckoutCTA() {
+  const t = useTranslations();
   return (
     <div className="fixed inset-x-0 bottom-16 z-40 px-3 sm:hidden">
       <div className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-white/95 p-2 shadow-[0_18px_48px_rgba(15,23,42,0.18)] backdrop-blur-xl">
         <div className="min-w-0 pl-2">
-          <p className="truncate text-sm font-extrabold text-slate-950">Extra 15% off today</p>
-          <p className="text-xs text-slate-500">Voucher auto-applies at cart</p>
+          <p className="truncate text-sm font-extrabold text-slate-950">{t("home.extraOff")}</p>
+          <p className="text-xs text-slate-500">{t("home.voucherAutoApplies")}</p>
         </div>
         <Button className="rounded-xl bg-orange-600 px-4 text-white hover:bg-orange-700">
-          Buy now
+          {t("product.buyNow")}
         </Button>
       </div>
     </div>
@@ -738,19 +774,21 @@ function StickyCheckoutCTA() {
 }
 
 function MobileBottomNav() {
+  const t = useTranslations();
+  const localePath = useLocalePath();
   const items = [
-    [HomeIcon, "Home", "/"],
-    [MenuIcon, "Categories", "/categories/deals"],
-    [FlameIcon, "Deals", "/search?q=deal"],
-    [ShoppingCartIcon, "Cart", "/cart"],
-    [UserCircleIcon, "Account", "/profile"],
+    [HomeIcon, t("common.home"), "/"],
+    [MenuIcon, t("common.categories"), "/categories/deals"],
+    [FlameIcon, t("common.deals"), "/search?q=deal"],
+    [ShoppingCartIcon, t("common.cart"), "/cart"],
+    [UserCircleIcon, t("common.account"), "/profile"],
   ] as const;
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.35rem)] pt-1.5 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:hidden">
       <div className="mx-auto grid max-w-md grid-cols-5">
         {items.map(([Icon, label, href], index) => (
-          <Link key={label} href={href} className={`flex flex-col items-center gap-1 rounded-xl px-1 py-1 text-[11px] font-semibold ${index === 0 ? "bg-orange-50 text-orange-600" : "text-slate-500"}`}>
+          <Link key={label} href={localePath(href)} className={`flex flex-col items-center gap-1 rounded-xl px-1 py-1 text-[11px] font-semibold ${index === 0 ? "bg-orange-50 text-orange-600" : "text-slate-500"}`}>
             <Icon className="size-5" />
             <span>{label}</span>
           </Link>

@@ -3,17 +3,23 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { HeartIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, TruckIcon } from "lucide-react";
+import { HeartIcon, MessageCircleIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { addCartItem, fetchCart, fetchProduct, fetchProducts, formatMoney } from "#/features/buyer/api";
+import { createChatRoom } from "#/features/chat";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import { useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
+import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
 
 export function ProductDetailPage({ productId }: { productId: string }) {
   const router = useRouter();
+  const t = useTranslations();
+  const localePath = useLocalePath();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const productQuery = useQuery({ queryKey: ["buyer-product", productId], queryFn: () => fetchProduct(productId) });
@@ -31,6 +37,16 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-cart"] }),
   });
+  const createChatMutation = useMutation({
+    mutationFn: () => {
+      const product = productQuery.data;
+      if (!product?.shop.id) throw new Error("Shop not found");
+      return createChatRoom({ shopId: product.shop.id, productId: product.id });
+    },
+    onSuccess: (room) => {
+      router.push(localePath(`/chat/${room.roomId}`));
+    },
+  });
   const cartItemCount = cartQuery.data?.shops.reduce(
     (total, shop) => total + shop.items.reduce((shopTotal, item) => shopTotal + item.quantity, 0),
     0,
@@ -38,10 +54,18 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
   function handleCartAction() {
     if (!session) {
-      router.push("/login");
+      router.push(localePath("/login"));
       return;
     }
     addCartMutation.mutate();
+  }
+
+  function handleChatSeller() {
+    if (!session) {
+      router.push(localePath("/login"));
+      return;
+    }
+    createChatMutation.mutate();
   }
 
   if (productQuery.isLoading) {
@@ -64,7 +88,8 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
   const product = productQuery.data;
   if (!product) return null;
-  const mainImage = product.images[0];
+  const mainImage = resolveUploadedImageUrl(product.images[0]);
+  const galleryImages = product.images.length > 0 ? product.images.map((image) => resolveUploadedImageUrl(image)) : [mainImage];
 
   return (
     <>
@@ -73,11 +98,11 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
-              {mainImage ? <Image src={mainImage} alt={product.title} fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400">No image</div>}
+              <Image src={mainImage} alt={product.title} fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
             </div>
-            {product.images.length > 1 ? (
+            {galleryImages.length > 1 ? (
               <div className="flex gap-2 overflow-x-auto p-3">
-                {product.images.slice(0, 6).map((image) => (
+                {galleryImages.slice(0, 6).map((image) => (
                   <div key={image} className="relative size-16 shrink-0 overflow-hidden rounded-md bg-slate-100">
                     <Image src={image} alt="" fill sizes="64px" className="object-cover" />
                   </div>
@@ -127,6 +152,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)] md:bottom-0">
         <div className="mx-auto flex max-w-6xl gap-2">
           <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl"><HeartIcon className="size-5" /><span className="sr-only">Wishlist</span></Button>
+          <Button variant="outline" className="h-12 flex-1 rounded-2xl" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
+            <MessageCircleIcon className="size-4" />
+            {t("chat.chatSeller")}
+          </Button>
           <Button variant="outline" className="h-12 flex-1 rounded-2xl" onClick={handleCartAction} disabled={addCartMutation.isPending}>
             <span className="relative inline-flex">
               <ShoppingCartIcon className="size-4" />

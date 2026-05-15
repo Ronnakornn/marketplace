@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">Shop image placeholder</title>
+  <desc id="desc">A neutral placeholder for shops without images.</desc>
+  <rect width="800" height="800" fill="#f8fafc"/>
+  <path d="M168 326h464l-38-132c-8-27-33-46-61-46H267c-28 0-53 19-61 46l-38 132Z" fill="#fed7aa"/>
+  <path d="M168 326h464v62c0 48-39 86-86 86-35 0-65-21-79-51-14 30-44 51-79 51s-65-21-79-51c-14 30-44 51-79 51-47 0-86-38-86-86v-62Z" fill="#fb923c"/>
+  <rect x="214" y="450" width="372" height="206" rx="22" fill="#fff7ed" stroke="#fed7aa" stroke-width="14"/>
+  <rect x="300" y="512" width="200" height="144" rx="12" fill="#fdba74"/>
+  <text x="400" y="724" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#9a3412">Shop image coming soon</text>
+</svg>

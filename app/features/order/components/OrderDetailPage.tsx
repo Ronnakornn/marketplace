@@ -1,16 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { PackageCheckIcon, TruckIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { MessageCircleIcon, PackageCheckIcon, TruckIcon } from "lucide-react";
 import { BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { fetchOrder, formatMoney } from "#/features/buyer/api";
+import { createChatRoom } from "#/features/chat";
+import { useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 
 export function OrderDetailPage({ orderId }: { orderId: string }) {
+  const router = useRouter();
+  const t = useTranslations();
+  const localePath = useLocalePath();
   const orderQuery = useQuery({ queryKey: ["buyer-order", orderId], queryFn: () => fetchOrder(orderId) });
+  const createChatMutation = useMutation({
+    mutationFn: (shopId: string) => createChatRoom({ shopId, orderId }),
+    onSuccess: (room) => {
+      router.push(localePath(`/chat/${room.roomId}`));
+    },
+  });
 
   return (
     <>
@@ -50,6 +63,14 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                   </div>
                 ))}
               </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link href={localePath(`/orders/${orderQuery.data.id}/review`)}>Review items</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link href={localePath(`/orders/${orderQuery.data.id}/returns/new`)}>Return / refund</Link>
+                </Button>
+              </div>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4">
@@ -64,10 +85,20 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                       </div>
                       <Badge variant="outline" className="rounded-md">{shipment.status}</Badge>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 rounded-full"
+                      disabled={createChatMutation.isPending}
+                      onClick={() => createChatMutation.mutate(shipment.shopId)}
+                    >
+                      <MessageCircleIcon className="size-4" />
+                      {t("chat.chatSeller")}
+                    </Button>
                   </div>
                 ))}
               </div>
-              <Button asChild className="mt-4 bg-orange-600 hover:bg-orange-700"><Link href={`/orders/${orderQuery.data.id}/tracking`}>Track order</Link></Button>
+              <Button asChild className="mt-4 bg-orange-600 hover:bg-orange-700"><Link href={localePath(`/orders/${orderQuery.data.id}/tracking`)}>Track order</Link></Button>
             </section>
           </>
         ) : null}

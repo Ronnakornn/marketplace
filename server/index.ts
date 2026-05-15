@@ -15,8 +15,10 @@ import { createCatalogRoutes } from "#server/modules/catalog";
 import { createNotificationRoutes } from "#server/modules/notification";
 import { createOrderRoutes } from "#server/modules/order";
 import { createPaymentRoutes } from "#server/modules/payment";
+import { createPayoutRoutes } from "#server/modules/payout";
 import { createPromotionRoutes } from "#server/modules/promotion";
 import { createRefundRoutes } from "#server/modules/refund";
+import { createRecommendationRoutes } from "#server/modules/recommendation";
 import { createRealtimeRoutes } from "#server/modules/realtime";
 import { createReturnRoutes } from "#server/modules/return";
 import { createReviewRoutes } from "#server/modules/review";
@@ -25,6 +27,7 @@ import { createSellerDashboardRoutes } from "#server/modules/seller";
 import { createShipmentRoutes } from "#server/modules/shipment";
 import { createUploadRoutes } from "#server/modules/upload";
 import { createUserRoutes } from "#server/modules/user";
+import { createWalletRoutes } from "#server/modules/wallet";
 const port = Number(process.env.API_PORT ?? 3001);
 
 // --- Composition Root: wire all dependencies via container ---
@@ -91,11 +94,18 @@ const baseApp = new Elysia()
   // --- Refund routes ---
   .use(createRefundRoutes(container))
 
+  // --- Public recommendation routes ---
+  .use(createRecommendationRoutes(container))
+
   // --- Order routes ---
   .use(createOrderRoutes(container))
 
   // --- Payment webhook routes ---
   .use(createPaymentRoutes(container))
+
+  // --- Seller wallet and payout routes ---
+  .use(createWalletRoutes(container))
+  .use(createPayoutRoutes(container))
 
   // --- Seller shipment routes ---
   .use(createShipmentRoutes(container))

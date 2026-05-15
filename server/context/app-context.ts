@@ -13,6 +13,8 @@ import { PrismaCatalogRepository } from '#server/modules/catalog/catalog.reposit
 import { CatalogService } from '#server/modules/catalog/catalog.service.ts'
 import { PrismaPaymentRepository } from '#server/modules/payment/payment.repository.ts'
 import { PaymentService } from '#server/modules/payment/payment.service.ts'
+import { CommissionService } from '#server/modules/commission'
+import { PayoutService, PrismaPayoutRepository } from '#server/modules/payout'
 import { PrismaPromotionRepository } from '#server/modules/promotion/promotion.repository.ts'
 import { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import { PrismaNotificationRepository } from '#server/modules/notification/notification.repository.ts'
@@ -24,6 +26,7 @@ import { PrismaOrderRepository } from '#server/modules/order/order.repository.ts
 import { OrderService } from '#server/modules/order/order.service.ts'
 import { PrismaReturnRepository } from '#server/modules/return/return.repository.ts'
 import { ReturnService } from '#server/modules/return/return.service.ts'
+import { PrismaRecommendationRepository, RecommendationService } from '#server/modules/recommendation'
 import { PrismaSearchRepository } from '#server/modules/search/search.repository.ts'
 import { SearchService } from '#server/modules/search/search.service.ts'
 import { PrismaSellerDashboardRepository } from '#server/modules/seller/seller-dashboard.repository.ts'
@@ -37,6 +40,7 @@ import { UserService } from '#server/modules/user/user.service.ts'
 import { PrismaUploadRepository } from '#server/modules/upload/upload.repository.ts'
 import { UploadService } from '#server/modules/upload/upload.service.ts'
 import { getStorageConfigFromEnv, S3UploadStorage } from '#server/modules/upload/upload.storage.ts'
+import { PrismaWalletRepository, WalletService } from '#server/modules/wallet'
 import { JobService, PrismaJobRepository } from '#server/modules/jobs'
 import { BullMqQueueProducer, getQueueConfigFromEnv, OptionalQueueProducer, type QueueProducer } from '#server/modules/queue'
 import { AuditLogService, PrismaAuditLogRepository } from '#server/modules/audit-log'
@@ -67,6 +71,7 @@ export interface ServiceContainer {
   cacheInvalidation: CacheInvalidation
   cacheService: CacheService
   checkoutService: CheckoutService
+  commissionService: CommissionService
   catalogService: CatalogService
   jobService: JobService
   notificationService: NotificationService
@@ -75,8 +80,10 @@ export interface ServiceContainer {
   observabilityService: ObservabilityService
   orderService: OrderService
   paymentService: PaymentService
+  payoutService: PayoutService
   promotionService: PromotionService
   refundService: RefundService
+  recommendationService: RecommendationService
   returnService: ReturnService
   reviewService: ReviewService
   searchService: SearchService
@@ -86,6 +93,7 @@ export interface ServiceContainer {
   shipmentService: ShipmentService
   uploadService: UploadService
   userService: UserService
+  walletService: WalletService
 }
 
 export function createContainer(): ServiceContainer {
@@ -112,6 +120,9 @@ export function createContainer(): ServiceContainer {
   const chatService = new ChatService(appContext, chatRepo, realtimeService)
   const promotionRepo = new PrismaPromotionRepository(appContext, prisma)
   const promotionService = new PromotionService(appContext, promotionRepo)
+  const commissionService = new CommissionService(appContext)
+  const walletRepo = new PrismaWalletRepository(appContext, prisma)
+  const walletService = new WalletService(appContext, walletRepo, commissionService)
   const checkoutRepo = new PrismaCheckoutRepository(appContext, prisma)
   const checkoutService = new CheckoutService(appContext, checkoutRepo, promotionService, cacheInvalidation)
   const notificationRepo = new PrismaNotificationRepository(appContext, prisma)
@@ -121,13 +132,17 @@ export function createContainer(): ServiceContainer {
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
   const orderService = new OrderService(appContext, orderRepo)
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)
-  const shipmentService = new ShipmentService(appContext, shipmentRepo)
+  const shipmentService = new ShipmentService(appContext, shipmentRepo, walletService)
   const paymentRepo = new PrismaPaymentRepository(appContext, prisma)
   const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation)
+  const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
+  const payoutService = new PayoutService(appContext, payoutRepo)
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
   const returnService = new ReturnService(appContext, returnRepo)
   const refundRepo = new PrismaRefundRepository(appContext, prisma)
   const refundService = new RefundService(appContext, refundRepo)
+  const recommendationRepo = new PrismaRecommendationRepository(appContext, prisma)
+  const recommendationService = new RecommendationService(appContext, recommendationRepo, cacheService)
   const reviewRepo = new PrismaReviewRepository(appContext, prisma)
   const reviewService = new ReviewService(appContext, reviewRepo)
   const searchRepo = new PrismaSearchRepository(appContext, prisma)
@@ -164,6 +179,7 @@ export function createContainer(): ServiceContainer {
     cacheInvalidation,
     cacheService,
     checkoutService,
+    commissionService,
     catalogService,
     jobService,
     notificationService,
@@ -172,8 +188,10 @@ export function createContainer(): ServiceContainer {
     observabilityService,
     orderService,
     paymentService,
+    payoutService,
     promotionService,
     refundService,
+    recommendationService,
     returnService,
     reviewService,
     searchService,
@@ -183,5 +201,6 @@ export function createContainer(): ServiceContainer {
     shipmentService,
     uploadService,
     userService,
+    walletService,
   }
 }

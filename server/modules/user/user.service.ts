@@ -3,7 +3,7 @@ import { isAPIError } from 'better-auth/api'
 import type { AppContext } from '#server/context/app-context.ts'
 import { auth } from '#server/lib/auth.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
-import type { AdminUserListItem, IUserRepository, UserProfile } from './user.repository.ts'
+import type { AddressData, AdminUserListItem, BuyerAddress, IUserRepository, UserProfile } from './user.repository.ts'
 import { UserServiceError } from './user.errors.ts'
 
 export interface CreateAdminUserData {
@@ -22,6 +22,18 @@ export interface UpdateAdminUserData {
 export interface UpdateCurrentUserData {
   name?: string
   image?: string | null
+}
+
+export interface AddressInput {
+  recipientName?: string
+  phone?: string | null
+  line1?: string
+  line2?: string | null
+  city?: string
+  region?: string | null
+  postalCode?: string
+  country?: string
+  isDefault?: boolean
 }
 
 export class UserService {
@@ -70,6 +82,38 @@ export class UserService {
     }
 
     return this.repo.updateCurrentUser(userId, updateData)
+  }
+
+  listAddresses(userId: string): Promise<BuyerAddress[]> {
+    this.logger.debug('UserService.listAddresses', { userId })
+    return this.repo.listAddresses(userId)
+  }
+
+  async createAddress(userId: string, input: AddressInput): Promise<BuyerAddress> {
+    this.logger.info('UserService.createAddress', { userId })
+    return this.repo.createAddress(userId, this.normalizeAddress(input, true))
+  }
+
+  async updateAddress(userId: string, addressId: string, input: AddressInput): Promise<BuyerAddress> {
+    this.logger.info('UserService.updateAddress', { userId, addressId })
+    await this.assertAddressOwner(userId, addressId)
+    const data = this.normalizeAddress(input, false)
+    if (Object.keys(data).length === 0) {
+      throw new UserServiceError('At least one address field is required', 400)
+    }
+    return this.repo.updateAddress(userId, addressId, data)
+  }
+
+  async deleteAddress(userId: string, addressId: string): Promise<void> {
+    this.logger.info('UserService.deleteAddress', { userId, addressId })
+    await this.assertAddressOwner(userId, addressId)
+    await this.repo.deleteAddress(userId, addressId)
+  }
+
+  async setDefaultAddress(userId: string, addressId: string): Promise<BuyerAddress> {
+    this.logger.info('UserService.setDefaultAddress', { userId, addressId })
+    await this.assertAddressOwner(userId, addressId)
+    return this.repo.setDefaultAddress(userId, addressId)
   }
 
   async createForAdmin(data: CreateAdminUserData): Promise<AdminUserListItem> {
@@ -232,6 +276,56 @@ export class UserService {
     if (status !== 'ACTIVE' && status !== 'SUSPENDED') {
       throw new UserServiceError('Invalid status', 400)
     }
+  }
+
+  private async assertAddressOwner(userId: string, addressId: string): Promise<void> {
+    const address = await this.repo.findAddress(userId, addressId)
+    if (!address) {
+      throw new UserServiceError('Address not found', 404)
+    }
+  }
+
+  private normalizeAddress(input: AddressInput, requireAll: true): AddressData
+  private normalizeAddress(input: AddressInput, requireAll: false): Partial<AddressData>
+  private normalizeAddress(input: AddressInput, requireAll: boolean): AddressData | Partial<AddressData> {
+    const data: Partial<AddressData> = {}
+    this.copyRequiredText(input, data, 'recipientName', 'Recipient name is required', requireAll)
+    this.copyOptionalText(input, data, 'phone')
+    this.copyRequiredText(input, data, 'line1', 'Address line 1 is required', requireAll)
+    this.copyOptionalText(input, data, 'line2')
+    this.copyRequiredText(input, data, 'city', 'City is required', requireAll)
+    this.copyOptionalText(input, data, 'region')
+    this.copyRequiredText(input, data, 'postalCode', 'Postal code is required', requireAll)
+    this.copyRequiredText(input, data, 'country', 'Country is required', requireAll)
+    if (input.isDefault !== undefined) data.isDefault = input.isDefault
+    return data as AddressData | Partial<AddressData>
+  }
+
+  private copyRequiredText(
+    input: AddressInput,
+    data: Partial<AddressData>,
+    key: keyof Pick<AddressData, 'recipientName' | 'line1' | 'city' | 'postalCode' | 'country'>,
+    message: string,
+    requireAll: boolean,
+  ): void {
+    const value = input[key]
+    if (value === undefined) {
+      if (requireAll) throw new UserServiceError(message, 400)
+      return
+    }
+    const trimmed = value.trim()
+    if (!trimmed) throw new UserServiceError(message, 400)
+    data[key] = trimmed
+  }
+
+  private copyOptionalText(
+    input: AddressInput,
+    data: Partial<AddressData>,
+    key: keyof Pick<AddressData, 'phone' | 'line2' | 'region'>,
+  ): void {
+    if (input[key] === undefined) return
+    const trimmed = input[key]?.trim()
+    data[key] = trimmed ? trimmed : null
   }
 
   private toAdminUser(user: AdminUserListItem): AdminUserListItem {

@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { ShipmentStatus } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { WalletService } from '#server/modules/wallet'
 import { ShipmentServiceError } from './shipment.errors.ts'
 import type {
   BuyerShipment,
@@ -94,6 +95,7 @@ export class ShipmentService {
   constructor(
     appContext: AppContext,
     private repo: IShipmentRepository,
+    private walletService?: WalletService,
   ) {
     this.logger = appContext.logger
   }
@@ -203,7 +205,7 @@ export class ShipmentService {
     this.assertSeller(actor)
     this.logger.info('ShipmentService.deliverSellerShipment', { actorId: actor.id, shipmentId })
 
-    return this.repo.transaction(async (txRepo) => {
+    const response = await this.repo.transaction(async (txRepo) => {
       const shipment = await this.findSellerShipment(txRepo, actor.id, shipmentId)
       this.assertTransition(shipment.status, 'DELIVERED')
 
@@ -214,6 +216,8 @@ export class ShipmentService {
       }
       return this.toSellerShipmentResponse(updated)
     })
+    await this.walletService?.createEarningsForCompletedOrder(response.orderId)
+    return response
   }
 
   private getMissingShipmentShopIds(order: ShipmentOrderForCreation): string[] {

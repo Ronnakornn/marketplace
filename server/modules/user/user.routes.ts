@@ -32,6 +32,21 @@ const UpdateCurrentUserBody = t.Partial(t.Pick(UserPlainInputUpdate, ['name', 'i
 const UpdateUserStatusBody = t.Object({
   status: t.Union([t.Literal('ACTIVE'), t.Literal('SUSPENDED')]),
 })
+const AddressParams = t.Object({
+  addressId: t.String({ format: 'uuid' }),
+})
+const AddressBody = t.Object({
+  recipientName: t.String({ minLength: 1 }),
+  phone: t.Optional(t.Nullable(t.String())),
+  line1: t.String({ minLength: 1 }),
+  line2: t.Optional(t.Nullable(t.String())),
+  city: t.String({ minLength: 1 }),
+  region: t.Optional(t.Nullable(t.String())),
+  postalCode: t.String({ minLength: 1 }),
+  country: t.String({ minLength: 1 }),
+  isDefault: t.Optional(t.Boolean()),
+})
+const UpdateAddressBody = t.Partial(AddressBody)
 
 export function createUserRoutes(container: ServiceContainer) {
   return new Elysia()
@@ -49,6 +64,32 @@ export function createUserRoutes(container: ServiceContainer) {
       withAuth: true,
       body: UpdateCurrentUserBody,
       response: CurrentUserResponse,
+    })
+    .get('/api/addresses', ({ authContext }: any) => container.userService.listAddresses(authContext!.user.id), {
+      withAuth: true,
+    })
+    .post('/api/addresses', ({ authContext, body }: any) => container.userService.createAddress(authContext!.user.id, body), {
+      withAuth: true,
+      body: AddressBody,
+    })
+    .patch('/api/addresses/:addressId', ({ authContext, params, body }: any) =>
+      container.userService.updateAddress(authContext!.user.id, params.addressId, body), {
+      withAuth: true,
+      params: AddressParams,
+      body: UpdateAddressBody,
+    })
+    .delete('/api/addresses/:addressId', async ({ authContext, params }: any) => {
+      await container.userService.deleteAddress(authContext!.user.id, params.addressId)
+      return { success: true }
+    }, {
+      withAuth: true,
+      params: AddressParams,
+      response: t.Object({ success: t.Boolean() }),
+    })
+    .patch('/api/addresses/:addressId/default', ({ authContext, params }: any) =>
+      container.userService.setDefaultAddress(authContext!.user.id, params.addressId), {
+      withAuth: true,
+      params: AddressParams,
     })
     .get('/api/admin/users', () => container.userService.listForAdmin(), {
       withRole: 'ADMIN',

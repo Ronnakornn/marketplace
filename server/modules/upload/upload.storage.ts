@@ -2,6 +2,8 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import type { CreatePresignedPutUrlInput, StorageConfig, UploadStorage } from './upload.types.ts'
 
+const publicUploadCacheControl = 'public, max-age=604800, stale-while-revalidate=86400'
+
 export function getStorageConfigFromEnv(env: NodeJS.ProcessEnv = process.env): StorageConfig | null {
   const endpoint = env['S3_ENDPOINT']
   const region = env['S3_REGION']
@@ -18,6 +20,7 @@ export function getStorageConfigFromEnv(env: NodeJS.ProcessEnv = process.env): S
     accessKeyId,
     secretAccessKey,
     publicBaseUrl: env['S3_PUBLIC_BASE_URL'],
+    cdnBaseUrl: env['NEXT_PUBLIC_CDN_URL'],
   }
 }
 
@@ -42,13 +45,15 @@ export class S3UploadStorage implements UploadStorage {
       Key: input.key,
       ContentType: input.contentType,
       ContentLength: input.fileSize,
+      CacheControl: input.cacheControl ?? publicUploadCacheControl,
     })
 
     return getSignedUrl(this.client, command, { expiresIn: input.expiresIn })
   }
 
   getPublicUrl(key: string): string | undefined {
-    if (!this.config.publicBaseUrl) return undefined
-    return `${this.config.publicBaseUrl.replace(/\/+$/, '')}/${key}`
+    const baseUrl = this.config.cdnBaseUrl || this.config.publicBaseUrl
+    if (!baseUrl) return undefined
+    return `${baseUrl.replace(/\/+$/, '')}/${key}`
   }
 }

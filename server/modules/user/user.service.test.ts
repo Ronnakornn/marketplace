@@ -70,6 +70,12 @@ function createRepoMock(): IUserRepository {
     updateCurrentUser: vi.fn(),
     delete: vi.fn(),
     promoteByEmails: vi.fn(),
+    listAddresses: vi.fn(),
+    findAddress: vi.fn(),
+    createAddress: vi.fn(),
+    updateAddress: vi.fn(),
+    deleteAddress: vi.fn(),
+    setDefaultAddress: vi.fn(),
   }
 }
 

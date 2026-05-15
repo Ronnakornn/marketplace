@@ -96,6 +96,10 @@ describe('UploadService', () => {
       userId: 'seller-1',
       usage: 'PRODUCT_IMAGE',
       contentType: 'image/png',
+      publicUrl: expect.stringMatching(/^https:\/\/cdn\.example\.com\/uploads\/product_image\//),
+    }))
+    expect(storage.createPresignedPutUrl).toHaveBeenCalledWith(expect.objectContaining({
+      cacheControl: 'public, max-age=604800, stale-while-revalidate=86400',
     }))
   })
 

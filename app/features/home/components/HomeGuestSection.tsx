@@ -1,5 +1,5 @@
-import { MarketplaceHome } from "#/features/marketplace";
+import { HomeMarketplaceClient } from "./HomeMarketplaceClient";
 
 export function HomeGuestSection() {
-  return <MarketplaceHome />;
+  return <HomeMarketplaceClient />;
 }

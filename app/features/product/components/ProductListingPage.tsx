@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { SlidersHorizontalIcon, StarIcon } from "lucide-react";
@@ -9,7 +10,8 @@ import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { fetchCategories, fetchProducts, type BuyerProduct } from "#/features/buyer/api";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "#/components/ui/sheet";
+import { fetchCategories, fetchProducts, fetchSearchProducts, fetchSearchSuggestions, type BuyerProduct } from "#/features/buyer/api";
 import { ProductCard } from "#/features/product/components/ProductCard";
 
 const homeCategories = [
@@ -19,6 +21,7 @@ const homeCategories = [
   { id: "home", label: "Home" },
   { id: "groceries", label: "Groceries" },
 ];
+const trendingKeywords = ["phone", "beauty", "fashion", "home", "deal", "gaming"];
 
 interface ProductListingPageProps {
   mode: "home" | "search" | "category";
@@ -39,23 +42,53 @@ export function ProductListingPage({
   sort = "relevance",
   rating,
 }: ProductListingPageProps) {
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const minPriceCents = toCents(minPrice);
   const maxPriceCents = toCents(maxPrice);
   const minRating = toNumber(rating);
   const productsQuery = useQuery({
-    queryKey: ["buyer-products", mode, query, categoryId, minPriceCents, maxPriceCents],
-    queryFn: () => fetchProducts({ q: query, categoryId, minPrice: minPriceCents, maxPrice: maxPriceCents }),
+    queryKey: ["buyer-products", mode, query, categoryId, minPriceCents, maxPriceCents, sort, minRating],
+    queryFn: () => mode === "search"
+      ? fetchSearchProducts({ q: query, categoryId, minPrice: minPriceCents, maxPrice: maxPriceCents, sort: sort === "relevance" ? "newest" : sort, rating: minRating, limit: 40 })
+      : fetchProducts({ q: query, categoryId, minPrice: minPriceCents, maxPrice: maxPriceCents }),
+  });
+  const suggestionsQuery = useQuery({
+    queryKey: ["buyer-search-suggestions", query],
+    queryFn: () => fetchSearchSuggestions(query),
+    enabled: mode === "search" && query.trim().length > 0,
   });
   const categoriesQuery = useQuery({
     queryKey: ["buyer-categories"],
     queryFn: fetchCategories,
   });
 
+  useEffect(() => {
+    if (mode !== "search") return;
+    const stored = JSON.parse(window.localStorage.getItem("buyer-recent-searches") ?? "[]") as unknown;
+    setRecentSearches(Array.isArray(stored) ? stored.filter((item): item is string => typeof item === "string").slice(0, 6) : []);
+  }, [mode]);
+
+  useEffect(() => {
+    const value = query.trim();
+    if (mode !== "search" || !value) return;
+    const next = [value, ...recentSearches.filter((item) => item.toLowerCase() !== value.toLowerCase())].slice(0, 6);
+    window.localStorage.setItem("buyer-recent-searches", JSON.stringify(next));
+  }, [mode, query]);
+
   const title = mode === "home" ? "Discover" : mode === "category" ? categoryId ?? "Category" : "Search";
   const products = sortProducts(
     (productsQuery.data ?? []).filter((product) => minRating === undefined || product.rating >= minRating),
     sort,
   );
+  const filterProps = useMemo(() => ({
+    categories: categoriesQuery.data ?? [],
+    query,
+    categoryId,
+    minPrice,
+    maxPrice,
+    sort,
+    rating,
+  }), [categoriesQuery.data, query, categoryId, minPrice, maxPrice, sort, rating]);
   const resultTitle = query ? `Search results for "${query}"` : mode === "category" ? `${categoryId} products` : "Products";
 
   return (
@@ -71,17 +104,36 @@ export function ProductListingPage({
           </div>
         ) : null}
 
+        {mode === "search" && !query ? (
+          <SearchDiscovery recentSearches={recentSearches} />
+        ) : null}
+
+        {mode === "search" && suggestionsQuery.data?.length ? (
+          <div className="flex gap-2 overflow-x-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
+            {suggestionsQuery.data.map((suggestion) => (
+              <Button key={suggestion} asChild variant="outline" size="sm" className="rounded-full">
+                <Link href={buildSearchHref({ q: suggestion })}>{suggestion}</Link>
+              </Button>
+            ))}
+          </div>
+        ) : null}
+
         <div className={mode === "search" ? "grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]" : ""}>
           {mode === "search" ? (
-            <SearchFilterSidebar
-              categories={categoriesQuery.data ?? []}
-              query={query}
-              categoryId={categoryId}
-              minPrice={minPrice}
-              maxPrice={maxPrice}
-              sort={sort}
-              rating={rating}
-            />
+            <>
+              <div className="lg:hidden">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="w-full rounded-2xl"><SlidersHorizontalIcon className="size-4" />Filter and sort</Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-3xl p-0">
+                    <SheetHeader><SheetTitle>Filter and sort</SheetTitle></SheetHeader>
+                    <div className="p-4"><SearchFilterSidebar {...filterProps} compact /></div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+              <SearchFilterSidebar {...filterProps} />
+            </>
           ) : null}
 
           <section className="space-y-3">
@@ -115,6 +167,35 @@ export function ProductListingPage({
         </div>
       </div>
     </>
+  );
+}
+
+function SearchDiscovery({ recentSearches }: { recentSearches: string[] }) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h1 className="text-xl font-bold text-slate-950">Search marketplace</h1>
+      <div className="mt-4 space-y-3">
+        {recentSearches.length ? (
+          <KeywordRow title="Recent searches" keywords={recentSearches} />
+        ) : null}
+        <KeywordRow title="Trending now" keywords={trendingKeywords} />
+      </div>
+    </section>
+  );
+}
+
+function KeywordRow({ title, keywords }: { title: string; keywords: string[] }) {
+  return (
+    <div>
+      <h2 className="text-sm font-bold text-slate-950">{title}</h2>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {keywords.map((keyword) => (
+          <Button key={keyword} asChild variant="outline" size="sm" className="rounded-full">
+            <Link href={buildSearchHref({ q: keyword })}>{keyword}</Link>
+          </Button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -152,6 +233,7 @@ function SearchFilterSidebar(props: {
   maxPrice?: string;
   rating?: string;
   sort: string;
+  compact?: boolean;
 }) {
   const base = {
     q: props.query,
@@ -162,7 +244,7 @@ function SearchFilterSidebar(props: {
   };
 
   return (
-    <aside className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-20 lg:self-start">
+    <aside className={`space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-20 lg:self-start ${props.compact ? "" : "hidden lg:block"}`}>
       <div className="flex items-center gap-2 font-bold text-slate-950">
         <SlidersHorizontalIcon className="size-4 text-orange-600" />
         Search Filter

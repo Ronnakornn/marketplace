@@ -49,6 +49,7 @@ export interface StorageConfig {
   accessKeyId: string
   secretAccessKey: string
   publicBaseUrl?: string
+  cdnBaseUrl?: string
 }
 
 export interface CreatePresignedPutUrlInput {
@@ -56,6 +57,7 @@ export interface CreatePresignedPutUrlInput {
   contentType: string
   fileSize: number
   expiresIn: number
+  cacheControl?: string
 }
 
 export interface UploadStorage {

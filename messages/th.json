@@ -1,0 +1,95 @@
+{
+    "common":  {
+                   "account":  "บัญชี",
+                   "admin":  "ผู้ดูแล",
+                   "allRightsReserved":  "สงวนลิขสิทธิ์",
+                   "builtWith":  "สร้างด้วย Next.js + Elysia + Prisma",
+                   "cart":  "รถเข็น",
+                   "categories":  "หมวดหมู่",
+                   "checkout":  "ชำระเงิน",
+                   "deals":  "ดีล",
+                   "home":  "หน้าแรก",
+                   "language":  "ภาษา",
+                   "login":  "เข้าสู่ระบบ",
+                   "logout":  "ออกจากระบบ",
+                   "marketplace":  "มาร์เก็ตเพลส",
+                   "notifications":  "การแจ้งเตือน",
+                   "orders":  "คำสั่งซื้อ",
+                   "profile":  "โปรไฟล์",
+                   "search":  "ค้นหา",
+                   "signup":  "สมัครสมาชิก",
+                   "chat":  "แชท"
+               },
+    "nav":  {
+                "admin":  "ผู้ดูแล",
+                "cart":  "รถเข็น",
+                "home":  "หน้าแรก",
+                "orders":  "คำสั่งซื้อ",
+                "profile":  "โปรไฟล์",
+                "search":  "ค้นหา",
+                "chat":  "แชท"
+            },
+    "home":  {
+                 "claimVoucher":  "รับโค้ดส่วนลด",
+                 "demoFeed":  "รายการตัวอย่าง",
+                 "extraOff":  "ลดเพิ่ม 15% วันนี้",
+                 "fallbackReady":  "พร้อมแสดงข้อมูลสำรอง",
+                 "flashSale":  "แฟลชเซล",
+                 "freeShipping":  "ส่งฟรี",
+                 "heroKicker":  "ดีลใหญ่ 5.5",
+                 "heroSubtitle":  "ดีลแฟลชเซล สินค้าส่งฟรี และรายการยอดนิยมที่คัดมาเพื่อให้ซื้อได้เร็วขึ้น",
+                 "heroTitle":  "เลือกซื้อไว ชำระเงินไวกว่า",
+                 "liveCatalog":  "แคตตาล็อกจริง",
+                 "loadingMore":  "กำลังโหลดดีลเพิ่มเติม...",
+                 "recommendedSubtitle":  "สินค้าคัดสรรจากดีลและร้านค้าที่กำลังมาแรง",
+                 "recommendedTitle":  "แนะนำสำหรับคุณ",
+                 "searchPlaceholder":  "ค้นหาดีล แบรนด์ และร้านค้า",
+                 "seeAll":  "ดูทั้งหมด",
+                 "shopNow":  "ช้อปเลย",
+                 "syncedFromApi":  "ซิงก์จาก API",
+                 "upToCashback":  "สูงสุด 20%",
+                 "voucherAutoApplies":  "ใช้โค้ดอัตโนมัติในรถเข็น",
+                 "welcomeBack":  "ยินดีต้อนรับกลับมา {name}",
+                 "youAreCaughtUp":  "คุณดูครบแล้ว"
+             },
+    "product":  {
+                    "add":  "เพิ่ม",
+                    "addToCart":  "เพิ่มลงรถเข็น",
+                    "adding":  "กำลังเพิ่ม",
+                    "buyNow":  "ซื้อเลย",
+                    "freeShip":  "ส่งฟรี",
+                    "outOfStock":  "สินค้าหมด",
+                    "saveProduct":  "บันทึกสินค้า",
+                    "sold":  "ขายแล้ว"
+                },
+    "checkout":  {
+                     "placeOrder":  "สั่งซื้อ"
+                 },
+    "order":  {
+                  "tracking":  "ติดตามพัสดุ"
+              },
+    "seller":  {
+                   "dashboard":  "แดชบอร์ดผู้ขาย"
+               },
+    "admin":  {
+                  "dashboard":  "แดชบอร์ดผู้ดูแล"
+              },
+    "chat":  {
+                 "backToInbox":  "กลับไปกล่องแชท",
+                 "buyer":  "ผู้ซื้อ",
+                 "chatSeller":  "แชทกับผู้ขาย",
+                 "emptyInbox":  "ยังไม่มีแชท",
+                 "emptyInboxDescription":  "บทสนทนาระหว่างผู้ซื้อและผู้ขายจะแสดงที่นี่",
+                 "emptyThread":  "ยังไม่มีข้อความ",
+                 "emptyThreadDescription":  "ส่งข้อความแรกเพื่อเริ่มบทสนทนา",
+                 "inbox":  "กล่องแชท",
+                 "messages":  "ข้อความ",
+                 "noMessages":  "ไม่มีข้อความ",
+                 "seller":  "ผู้ขาย",
+                 "sellerInbox":  "กล่องแชทผู้ขาย",
+                 "send":  "ส่ง",
+                 "sending":  "กำลังส่ง",
+                 "typeMessage":  "พิมพ์ข้อความ",
+                 "unread":  "ยังไม่ได้อ่าน"
+             }
+}

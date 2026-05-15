@@ -1,5 +1,7 @@
 "use client";
 
+import { isSecretStorageUrl } from "#/lib/assets";
+
 export interface BuyerProduct {
   id: string;
   title: string;
@@ -63,11 +65,13 @@ export interface BuyerOrder {
   createdAt: string;
   items: Array<{
     id: string;
+    shopId: string;
     productTitle: string;
     variantTitle: string;
     quantity: number;
     lineTotalCents: number;
     shopName: string;
+    fulfillmentStatus: string;
   }>;
   shipments: Array<{
     id: string;
@@ -78,6 +82,30 @@ export interface BuyerOrder {
     trackingNumber: string | null;
     timeline: Array<{ label: string; status: string; timestamp: string }>;
   }>;
+}
+
+export interface BuyerAddress {
+  id: string;
+  recipientName: string;
+  phone: string | null;
+  line1: string;
+  line2: string | null;
+  city: string;
+  region: string | null;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface BuyerCoupon {
+  id: string;
+  code: string;
+  discountType: string;
+  discountValueCents: number | null;
+  discountPercentBps: number | null;
+  minOrderCents: number | null;
+  maxDiscountCents: number | null;
+  endsAt: string | null;
 }
 
 export interface BuyerNotification {
@@ -106,6 +134,33 @@ export interface CheckoutInput {
   shippingMethod?: string;
 }
 
+export interface AddressInput {
+  recipientName: string;
+  phone?: string | null;
+  line1: string;
+  line2?: string | null;
+  city: string;
+  region?: string | null;
+  postalCode: string;
+  country: string;
+  isDefault?: boolean;
+}
+
+export interface ReviewInput {
+  orderItemId: string;
+  rating: number;
+  comment?: string;
+  images?: string[];
+}
+
+export interface ReturnRequestInput {
+  orderId: string;
+  orderItemId: string;
+  reason: string;
+  description?: string;
+  images?: string[];
+}
+
 export interface CheckoutResult {
   orderId: string;
   orderNo: string;
@@ -120,6 +175,39 @@ export async function fetchProducts(params: Record<string, string | number | und
   const record = toRecord(response);
   const rawItems = Array.isArray(response) ? response : readArray(record.data).length ? readArray(record.data) : readArray(record.items);
   return rawItems.map(normalizeProduct);
+}
+
+export async function fetchSearchProducts(params: Record<string, string | number | undefined> = {}): Promise<BuyerProduct[]> {
+  const query = toQuery(params);
+  const response = await apiFetch(`/api/search/products${query}`);
+  const record = toRecord(response);
+  const rawItems = readArray(record.items).length ? readArray(record.items) : readArray(record.data);
+  return rawItems.map(normalizeProduct);
+}
+
+export async function fetchSearchSuggestions(query: string, limit = 8): Promise<string[]> {
+  const response = await apiFetch(`/api/search/suggestions${toQuery({ q: query, limit })}`);
+  const record = toRecord(response);
+  const rawItems = readArray(record.items).length ? readArray(record.items) : readArray(record.suggestions).length ? readArray(record.suggestions) : readArray(record.productTitles);
+  return rawItems.map((item) => readString(typeof item === "string" ? item : toRecord(item).value)).filter(Boolean);
+}
+
+export async function fetchCoupons(): Promise<BuyerCoupon[]> {
+  const response = await apiFetch("/api/coupons");
+  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
+  return rawItems.map((item) => {
+    const record = toRecord(item);
+    return {
+      id: readString(record.id, readString(record.code)),
+      code: readString(record.code, "DEAL"),
+      discountType: readString(record.discountType, "fixed"),
+      discountValueCents: optionalNumber(record.discountValueCents),
+      discountPercentBps: optionalNumber(record.discountPercentBps),
+      minOrderCents: optionalNumber(record.minOrderCents),
+      maxDiscountCents: optionalNumber(record.maxDiscountCents),
+      endsAt: optionalString(record.endsAt),
+    };
+  });
 }
 
 export async function fetchCategories(): Promise<BuyerCategory[]> {
@@ -174,6 +262,48 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
     totalCents: readNumber(response.totalCents),
     paymentUrl: optionalString(response.paymentUrl) ?? undefined,
   };
+}
+
+export async function fetchAddresses(): Promise<BuyerAddress[]> {
+  const response = await apiFetch("/api/addresses");
+  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
+  return rawItems.map(normalizeAddress);
+}
+
+export async function createAddress(input: AddressInput): Promise<BuyerAddress> {
+  return normalizeAddress(await apiFetch("/api/addresses", {
+    method: "POST",
+    body: JSON.stringify(input),
+  }));
+}
+
+export async function updateAddress(addressId: string, input: Partial<AddressInput>): Promise<BuyerAddress> {
+  return normalizeAddress(await apiFetch(`/api/addresses/${addressId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  }));
+}
+
+export async function deleteAddress(addressId: string): Promise<void> {
+  await apiFetch(`/api/addresses/${addressId}`, { method: "DELETE" });
+}
+
+export async function setDefaultAddress(addressId: string): Promise<BuyerAddress> {
+  return normalizeAddress(await apiFetch(`/api/addresses/${addressId}/default`, { method: "PATCH" }));
+}
+
+export async function createReview(input: ReviewInput): Promise<unknown> {
+  return apiFetch("/api/reviews", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function createReturnRequest(input: ReturnRequestInput): Promise<unknown> {
+  return apiFetch("/api/returns", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export async function fetchOrders(): Promise<BuyerOrder[]> {
@@ -252,13 +382,15 @@ function normalizeProduct(input: unknown, index = 0): BuyerProduct {
     };
   });
   const firstVariant = variants[0];
+  const ratingSummary = toRecord(record.ratingSummary);
+  const minPrice = readNumber(record.minPrice, readNumber(record.priceCents));
   return {
-    id: readString(record.id, `product-${index}`),
+    id: readString(record.id, readString(record.productId, `product-${index}`)),
     title: readString(record.title, "Untitled product"),
     description: optionalString(record.description),
-    priceCents: firstVariant?.priceCents ?? readNumber(record.priceCents),
+    priceCents: firstVariant?.priceCents ?? minPrice,
     currency: firstVariant?.currency ?? readString(record.currency, "USD"),
-    rating: readNumber(record.rating, 4.7),
+    rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 4.7)),
     soldCount: readNumber(record.soldCount, readNumber(record.sold, 0)),
     stock: firstVariant?.stock ?? readNumber(record.stock),
     shop: {
@@ -267,7 +399,9 @@ function normalizeProduct(input: unknown, index = 0): BuyerProduct {
       location: readString(shop.location, readString(shop.city, "Local")),
     },
     variants,
-    images: readArray(record.images).map((image) => String(image)).filter(Boolean),
+    images: readArray(record.images).length ? readArray(record.images)
+      .map((image) => String(image))
+      .filter((image) => Boolean(image) && !isSecretStorageUrl(image)) : optionalString(record.coverImage) ? [optionalString(record.coverImage)!] : [],
   };
 }
 
@@ -306,17 +440,35 @@ function normalizeCart(input: unknown): BuyerCart {
   };
 }
 
+function normalizeAddress(input: unknown): BuyerAddress {
+  const record = toRecord(input);
+  return {
+    id: readString(record.id),
+    recipientName: readString(record.recipientName, "Recipient"),
+    phone: optionalString(record.phone),
+    line1: readString(record.line1),
+    line2: optionalString(record.line2),
+    city: readString(record.city),
+    region: optionalString(record.region),
+    postalCode: readString(record.postalCode),
+    country: readString(record.country, "TH"),
+    isDefault: Boolean(record.isDefault),
+  };
+}
+
 function normalizeOrder(input: unknown): BuyerOrder {
   const record = toRecord(input);
   const items = readArray(record.items).map((itemInput) => {
     const item = toRecord(itemInput);
     return {
       id: readString(item.id),
+      shopId: readString(item.shopId),
       productTitle: readString(item.productTitle, "Product"),
       variantTitle: readString(item.variantTitle, "Default"),
       quantity: readNumber(item.quantity, 1),
       lineTotalCents: readNumber(item.lineTotalCents),
       shopName: readString(item.shopName, "Shop"),
+      fulfillmentStatus: readString(item.fulfillmentStatus, "pending"),
     };
   });
   const shipments = readArray(record.shipments).map((shipmentInput) => {
@@ -343,8 +495,8 @@ function normalizeOrder(input: unknown): BuyerOrder {
     orderNo: readString(record.orderNo, readString(record.orderNumber, "Order")),
     status: readString(record.status, "pending"),
     paymentStatus: readString(record.paymentStatus, "pending"),
-    totalCents: readNumber(record.totalCents, readNumber(record.grandTotalCents)),
-    currency: readString(record.currency, "USD"),
+    totalCents: readNumber(record.totalCents, readNumber(record.grandTotalCents, readNumber(toRecord(record.totals).grandTotalCents))),
+    currency: readString(record.currency, readString(toRecord(record.totals).currency, "USD")),
     createdAt: readString(record.createdAt, new Date().toISOString()),
     items,
     shipments,
@@ -374,6 +526,10 @@ function readString(value: unknown, fallback = ""): string {
 
 function optionalString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
+}
+
+function optionalNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function readNumber(value: unknown, fallback = 0): number {

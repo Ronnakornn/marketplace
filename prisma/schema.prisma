@@ -162,6 +162,24 @@ enum ChatMessageType {
   IMAGE
 }
 
+enum WalletLedgerEntryType {
+  order_earning
+  commission_fee
+  payout_reserved
+  payout_paid
+  payout_rejected
+  refund_adjustment
+  manual_adjustment
+}
+
+enum PayoutStatus {
+  requested
+  approved
+  rejected
+  paid
+  cancelled
+}
+
 model User {
   id            String     @id @default(uuid()) @db.Uuid
   name          String
@@ -269,6 +287,8 @@ model Shop {
   orderItems  OrderItem[]
   products    Product[]
   shipments   Shipment[]
+  wallet      SellerWallet?
+  payouts     SellerPayout[]
 
   @@index([ownerId])
   @@index([status])
@@ -447,6 +467,7 @@ model Order {
   refunds           Refund[]
   returnRequests    ReturnRequest[]
   shipments         Shipment[]
+  walletEntries     WalletLedgerEntry[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -624,10 +645,79 @@ model Refund {
   order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   payment       Payment        @relation(fields: [paymentId], references: [id])
   returnRequest ReturnRequest? @relation(fields: [returnRequestId], references: [id])
+  walletEntries WalletLedgerEntry[]
 
   @@index([orderId, status])
   @@index([paymentId])
   @@index([returnRequestId])
+}
+
+model SellerWallet {
+  id        String   @id @default(uuid()) @db.Uuid
+  shopId    String   @unique @db.Uuid
+  currency  String   @default("USD")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop    Shop                @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  entries WalletLedgerEntry[]
+  payouts SellerPayout[]
+
+  @@index([shopId])
+}
+
+model WalletLedgerEntry {
+  id          String                @id @default(uuid()) @db.Uuid
+  walletId    String                @db.Uuid
+  shopId      String                @db.Uuid
+  type        WalletLedgerEntryType
+  amountCents Int
+  currency    String                @default("USD")
+  orderId     String?               @db.Uuid
+  payoutId    String?               @db.Uuid
+  refundId    String?               @db.Uuid
+  description String?
+  metadata    Json?
+  createdAt   DateTime              @default(now())
+
+  wallet SellerWallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  order  Order?        @relation(fields: [orderId], references: [id])
+  payout SellerPayout? @relation(fields: [payoutId], references: [id])
+  refund Refund?       @relation(fields: [refundId], references: [id])
+
+  @@index([walletId, createdAt])
+  @@index([shopId, createdAt])
+  @@index([orderId, type])
+  @@index([payoutId])
+  @@index([refundId])
+}
+
+model SellerPayout {
+  id            String       @id @default(uuid()) @db.Uuid
+  walletId      String       @db.Uuid
+  shopId        String       @db.Uuid
+  amountCents   Int
+  currency      String       @default("USD")
+  status        PayoutStatus @default(requested)
+  requestedById String       @db.Uuid
+  approvedById  String?      @db.Uuid
+  rejectedById  String?      @db.Uuid
+  paidById      String?      @db.Uuid
+  rejectionReason String?
+  requestedAt   DateTime     @default(now())
+  approvedAt    DateTime?
+  rejectedAt    DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  wallet SellerWallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  shop   Shop                @relation(fields: [shopId], references: [id])
+  entries WalletLedgerEntry[]
+
+  @@index([walletId, status])
+  @@index([shopId, status])
+  @@index([status, requestedAt])
 }
 
 model ReturnRequest {

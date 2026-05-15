@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Footer from "#/components/Footer";
 import Header from "#/components/Header";
+import { isLocale, stripLocale } from "#/i18n/config";
 
 interface AppChromeProps {
   children: ReactNode;
@@ -11,20 +12,28 @@ interface AppChromeProps {
 
 export default function AppChrome({ children }: AppChromeProps) {
   const pathname = usePathname();
-  const isAdminRoute = pathname.startsWith("/admin");
-  const isMarketplaceHome = pathname === "/";
+  const hasLocaleSegment = isLocale(pathname.split("/")[1]);
+  if (!hasLocaleSegment) {
+    return <>{children}</>;
+  }
+
+  const pathWithoutLocale = stripLocale(pathname);
+  const isAdminRoute = pathWithoutLocale.startsWith("/admin");
+  const isSellerRoute = pathWithoutLocale.startsWith("/seller");
+  const isMarketplaceHome = pathWithoutLocale === "/";
   const isBuyerRoute = [
     "/search",
     "/categories",
     "/products",
     "/cart",
+    "/chat",
     "/checkout",
     "/orders",
     "/profile",
     "/notifications",
-  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  ].some((route) => pathWithoutLocale === route || pathWithoutLocale.startsWith(`${route}/`));
 
-  if (isAdminRoute || isMarketplaceHome || isBuyerRoute) {
+  if (isAdminRoute || isSellerRoute || isMarketplaceHome || isBuyerRoute) {
     return <>{children}</>;
   }
 

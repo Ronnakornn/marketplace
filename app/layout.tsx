@@ -1,13 +1,38 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import AppChrome from "#/components/AppChrome";
+import { getSiteName, getSiteUrl, resolveSeoImage, safeDescription } from "#/lib/seo";
 import { Providers } from "#/providers";
 import "./styles.css";
 
+const siteName = getSiteName();
+const siteUrl = getSiteUrl();
+const description = safeDescription(
+  undefined,
+  "Shop active products, trusted sellers, and marketplace deals.",
+);
+
 export const metadata: Metadata = {
-  title: "Marketplace",
-  description:
-    "Full-stack marketplace with Next.js, Elysia, Prisma, and Better Auth.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: siteName,
+    template: `%s | ${siteName}`,
+  },
+  description,
+  applicationName: siteName,
+  openGraph: {
+    title: siteName,
+    description,
+    url: siteUrl,
+    siteName,
+    type: "website",
+    images: [{ url: resolveSeoImage() }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteName,
+    description,
+    images: [resolveSeoImage()],
+  },
 };
 
 interface RootLayoutProps {
@@ -16,10 +41,10 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="th" suppressHydrationWarning>
       <body className="min-h-screen">
         <Providers>
-          <AppChrome>{children}</AppChrome>
+          {children}
         </Providers>
       </body>
     </html>
