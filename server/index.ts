@@ -8,6 +8,7 @@ import { getObservabilityConfigFromEnv, createObservabilityRoutes } from "#serve
 import { createObservabilityPlugin } from "#server/plugins/observability.plugin";
 import { createCachePlugin } from "#server/plugins/cache.plugin";
 import { createAdminRoutes } from "#server/modules/admin";
+import { createAffiliateRoutes } from "#server/modules/affiliate";
 import { createCartRoutes } from "#server/modules/cart";
 import { createChatRoutes } from "#server/modules/chat";
 import { createCheckoutRoutes } from "#server/modules/checkout";
@@ -60,6 +61,9 @@ const baseApp = new Elysia()
 
   // --- Audit log admin routes ---
   .use(createAuditLogRoutes(container))
+
+  // --- Affiliate tracking and commission routes ---
+  .use(createAffiliateRoutes(container))
 
   // --- Review routes ---
   .use(createReviewRoutes(container))

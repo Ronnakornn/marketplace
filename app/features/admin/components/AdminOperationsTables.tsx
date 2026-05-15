@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BoxesIcon, Building2Icon, RotateCcwIcon, ShoppingBagIcon, UsersIcon } from "lucide-react";
+import { BoxesIcon, Building2Icon, LinkIcon, RotateCcwIcon, ShoppingBagIcon, UsersIcon } from "lucide-react";
 import { CardContent } from "#/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
@@ -11,16 +11,19 @@ import { AdminStatusBadge } from "./AdminStatusBadge";
 import { AdminTablePagination } from "./AdminTablePagination";
 import {
   PAGE_SIZE,
+  type AdminAffiliate,
   type AdminOrder,
   type AdminProduct,
   type AdminRefund,
   type AdminShop,
   type AdminUser,
+  useAdminAffiliatesList,
   useAdminOrdersList,
   useAdminProductsList,
   useAdminRefundsList,
   useAdminShopsList,
   useAdminUsersList,
+  useUpdateAffiliateStatus,
   useUpdateProductStatus,
   useUpdateRefundStatus,
   useUpdateShopStatus,
@@ -33,6 +36,7 @@ const SHOP_STATUSES = ["PENDING", "ACTIVE", "SUSPENDED"] as const;
 const PRODUCT_STATUSES = ["DRAFT", "ACTIVE", "ARCHIVED"] as const;
 const ORDER_STATUSES = ["PENDING_PAYMENT", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "PARTIALLY_FULFILLED", "FULFILLED", "CANCELED", "REFUNDED"] as const;
 const REFUND_STATUSES = ["PENDING", "PROCESSING", "SUCCESS", "FAILED"] as const;
+const AFFILIATE_STATUSES = ["ACTIVE", "DISABLED"] as const;
 
 function formatDate(value: string | Date) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -171,6 +175,52 @@ export function AdminRefundsTable() {
       <CardContent className="p-0"><Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Refund</TableHead><TableHead className="text-slate-300">Order</TableHead><TableHead className="text-slate-300">Amount</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-right text-slate-300">Action</TableHead></TableRow></TableHeader><TableBody>
         {rows.length ? rows.map((refund: AdminRefund) => <TableRow key={refund.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{refund.reason ?? "Refund request"}</p><p className="text-xs text-slate-500">{formatDate(refund.createdAt)}</p></TableCell><TableCell><p className="text-sm text-slate-200">{refund.order.orderNumber}</p><p className="text-xs text-slate-500">{refund.payment.provider}</p></TableCell><TableCell className="text-sm text-slate-200">{formatMoney(refund.amountCents, refund.payment.currency)}</TableCell><TableCell><AdminStatusBadge status={refund.status} /></TableCell><TableCell className="flex justify-end"><AdminStatusAction label={refund.order.orderNumber} currentStatus={refund.status} options={REFUND_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: refund.id, status: next })} /></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
       </TableBody></Table><AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} /></CardContent>
+    </AdminDataShell>
+  );
+}
+
+export function AdminAffiliatesTable() {
+  const [search, setSearch] = useState("");
+  const query = useAdminAffiliatesList();
+  const updateStatus = useUpdateAffiliateStatus();
+  const rows = useMemo(() => (query.data ?? []).filter((affiliate: AdminAffiliate) =>
+    textMatch([affiliate.user.name, affiliate.user.email, affiliate.status, affiliate.links.map((link) => link.code).join(" ")], search),
+  ), [query.data, search]);
+
+  return (
+    <AdminDataShell title="Affiliates" description="Monitor creator accounts, tracking links, and account availability." icon={LinkIcon} search={search} searchPlaceholder="Search affiliates" onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={null}>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
+              <TableHead className="px-5 text-slate-300">Creator</TableHead>
+              <TableHead className="text-slate-300">Links</TableHead>
+              <TableHead className="text-slate-300">Status</TableHead>
+              <TableHead className="text-slate-300">Created</TableHead>
+              <TableHead className="text-right text-slate-300">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length ? rows.map((affiliate: AdminAffiliate) => (
+              <TableRow key={affiliate.id} className="border-white/8 hover:bg-white/4">
+                <TableCell className="px-5 py-4">
+                  <p className="font-medium text-white">{affiliate.user.name}</p>
+                  <p className="text-xs text-slate-500">{affiliate.user.email}</p>
+                </TableCell>
+                <TableCell>
+                  <p className="text-sm font-semibold text-slate-200">{affiliate.links.length} links</p>
+                  <p className="max-w-64 truncate text-xs text-slate-500">{affiliate.links.map((link) => link.code).join(", ") || "No links yet"}</p>
+                </TableCell>
+                <TableCell><AdminStatusBadge status={affiliate.status} /></TableCell>
+                <TableCell className="text-sm text-slate-300">{formatDate(affiliate.createdAt)}</TableCell>
+                <TableCell className="flex justify-end">
+                  <AdminStatusAction label={affiliate.user.email} currentStatus={affiliate.status} options={AFFILIATE_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ affiliateId: affiliate.id, status: next as "ACTIVE" | "DISABLED" })} />
+                </TableCell>
+              </TableRow>
+            )) : <EmptyRow colSpan={5} />}
+          </TableBody>
+        </Table>
+      </CardContent>
     </AdminDataShell>
   );
 }

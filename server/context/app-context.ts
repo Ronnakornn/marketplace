@@ -7,6 +7,7 @@ import { PrismaChatRepository } from '#server/modules/chat/chat.repository.ts'
 import { ChatService } from '#server/modules/chat/chat.service.ts'
 import { PrismaAdminRepository } from '#server/modules/admin/admin.repository.ts'
 import { AdminService } from '#server/modules/admin/admin.service.ts'
+import { AffiliateService, PrismaAffiliateRepository } from '#server/modules/affiliate'
 import { PrismaCheckoutRepository } from '#server/modules/checkout/checkout.repository.ts'
 import { CheckoutService } from '#server/modules/checkout/checkout.service.ts'
 import { PrismaCatalogRepository } from '#server/modules/catalog/catalog.repository.ts'
@@ -68,6 +69,7 @@ export interface ServiceContainer {
   appContext: AppContext
   auditLogService: AuditLogService
   adminService: AdminService
+  affiliateService: AffiliateService
   cartService: CartService
   chatService: ChatService
   cacheInvalidation: CacheInvalidation
@@ -120,6 +122,8 @@ export function createContainer(): ServiceContainer {
   const auditLogService = new AuditLogService(appContext, auditLogRepo)
   const adminRepo = new PrismaAdminRepository(appContext, prisma)
   const adminService = new AdminService(appContext, adminRepo, auditLogService)
+  const affiliateRepo = new PrismaAffiliateRepository(appContext, prisma)
+  const affiliateService = new AffiliateService(appContext, affiliateRepo)
   const cartRepo = new PrismaCartRepository(appContext, prisma)
   const cartService = new CartService(appContext, cartRepo)
   const realtimeRepo = new PrismaRealtimeRepository(appContext, prisma)
@@ -142,7 +146,7 @@ export function createContainer(): ServiceContainer {
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)
   const shipmentService = new ShipmentService(appContext, shipmentRepo, walletService, eventPublisherService)
   const paymentRepo = new PrismaPaymentRepository(appContext, prisma)
-  const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation, eventPublisherService)
+  const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation, eventPublisherService, affiliateService)
   const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
   const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService)
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
@@ -189,6 +193,7 @@ export function createContainer(): ServiceContainer {
     appContext,
     auditLogService,
     adminService,
+    affiliateService,
     cartService,
     chatService,
     cacheInvalidation,

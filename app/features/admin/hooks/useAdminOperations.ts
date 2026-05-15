@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
+import { fetchAdminAffiliates, updateAdminAffiliateStatus, type AdminAffiliate } from "#/features/affiliate/api";
 
 export const PAGE_SIZE = 10;
 
@@ -17,6 +18,7 @@ export type AdminOrdersResponse = Treaty.Data<ReturnType<typeof api.api.admin.or
 export type AdminOrder = AdminOrdersResponse extends { items: Array<infer T> } ? T : never;
 export type AdminRefundsResponse = Treaty.Data<ReturnType<typeof api.api.admin.refunds.get>>;
 export type AdminRefund = AdminRefundsResponse extends { items: Array<infer T> } ? T : never;
+export type { AdminAffiliate };
 
 export interface AdminListFilters {
   page: number;
@@ -106,6 +108,13 @@ export function useAdminRefundsList(filters: AdminListFilters) {
   });
 }
 
+export function useAdminAffiliatesList() {
+  return useQuery({
+    queryKey: ["admin", "affiliates"],
+    queryFn: fetchAdminAffiliates,
+  });
+}
+
 export function useUpdateUserStatus() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -151,5 +160,13 @@ export function useUpdateRefundStatus() {
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useUpdateAffiliateStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateAdminAffiliateStatus,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "affiliates"] }),
   });
 }

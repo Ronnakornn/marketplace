@@ -180,6 +180,28 @@ enum PayoutStatus {
   cancelled
 }
 
+enum AffiliateStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AffiliateLinkStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AffiliateTargetType {
+  product
+  shop
+  campaign
+}
+
+enum AffiliateCommissionStatus {
+  PENDING
+  APPROVED
+  VOID
+}
+
 model User {
   id            String     @id @default(uuid()) @db.Uuid
   name          String
@@ -207,6 +229,8 @@ model User {
   shops             Shop[]
   checkouts         Checkout[]
   uploads           Upload[]
+  affiliate         Affiliate?
+  affiliateClicks   AffiliateClick[]
 }
 
 model Address {
@@ -498,16 +522,17 @@ model Order {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  checkout          Checkout            @relation(fields: [checkoutId], references: [id])
-  user              User                @relation(fields: [userId], references: [id])
-  chatThreads       ChatThread[]
-  couponRedemptions CouponRedemption[]
-  items             OrderItem[]
-  payments          Payment[]
-  refunds           Refund[]
-  returnRequests    ReturnRequest[]
-  shipments         Shipment[]
-  walletEntries     WalletLedgerEntry[]
+  checkout            Checkout             @relation(fields: [checkoutId], references: [id])
+  user                User                 @relation(fields: [userId], references: [id])
+  chatThreads         ChatThread[]
+  couponRedemptions   CouponRedemption[]
+  items               OrderItem[]
+  payments            Payment[]
+  refunds             Refund[]
+  returnRequests      ReturnRequest[]
+  shipments           Shipment[]
+  walletEntries       WalletLedgerEntry[]
+  affiliateCommission AffiliateCommission?
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -892,4 +917,86 @@ model AuditLog {
   @@index([action, createdAt])
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+model Affiliate {
+  id        String          @id @default(uuid()) @db.Uuid
+  userId    String          @unique @db.Uuid
+  status    AffiliateStatus @default(ACTIVE)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links       AffiliateLink[]
+  clicks      AffiliateClick[]
+  commissions AffiliateCommission[]
+
+  @@index([status])
+}
+
+model AffiliateLink {
+  id          String              @id @default(uuid()) @db.Uuid
+  affiliateId String              @db.Uuid
+  code        String              @unique
+  targetType  AffiliateTargetType
+  targetId    String
+  status      AffiliateLinkStatus @default(ACTIVE)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  affiliate   Affiliate             @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  clicks      AffiliateClick[]
+  commissions AffiliateCommission[]
+
+  @@index([affiliateId, createdAt])
+  @@index([targetType, targetId])
+  @@index([status])
+}
+
+model AffiliateClick {
+  id            String   @id @default(uuid()) @db.Uuid
+  affiliateId   String   @db.Uuid
+  linkId        String   @db.Uuid
+  buyerUserId   String?  @db.Uuid
+  sessionId     String?
+  refParam      String?
+  ipHash        String?
+  userAgentHash String?
+  clickedAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  affiliate   Affiliate             @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  link        AffiliateLink         @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  buyerUser   User?                 @relation(fields: [buyerUserId], references: [id], onDelete: SetNull)
+  commissions AffiliateCommission[]
+
+  @@index([affiliateId, clickedAt])
+  @@index([linkId, clickedAt])
+  @@index([buyerUserId, clickedAt])
+  @@index([sessionId, clickedAt])
+  @@index([expiresAt])
+}
+
+model AffiliateCommission {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  affiliateId           String                    @db.Uuid
+  linkId                String                    @db.Uuid
+  clickId               String?                   @db.Uuid
+  orderId               String                    @unique @db.Uuid
+  eligibleSubtotalCents Int
+  commissionBps         Int
+  commissionCents       Int
+  currency              String                    @default("USD")
+  status                AffiliateCommissionStatus @default(PENDING)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  affiliate Affiliate       @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  link      AffiliateLink   @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  click     AffiliateClick? @relation(fields: [clickId], references: [id], onDelete: SetNull)
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([affiliateId, createdAt])
+  @@index([linkId, createdAt])
+  @@index([status])
 }

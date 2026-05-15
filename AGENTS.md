@@ -4,6 +4,8 @@
 
 This repository is a production-ready marketplace e-commerce platform inspired by Shopee/Lazada.
 
+read CLAUDE.md
+
 Architecture style:
 
 * Modular Monolith

@@ -8,6 +8,7 @@ import {
   CommandIcon,
   Building2Icon,
   FileClockIcon,
+  LinkIcon,
   LayoutDashboardIcon,
   PanelLeftCloseIcon,
   MenuIcon,
@@ -81,6 +82,12 @@ const ADMIN_NAV_ITEMS = [
     href: "/admin/refunds",
     icon: RotateCcwIcon,
     match: (pathname: string) => pathname.startsWith("/admin/refunds"),
+  },
+  {
+    title: "Affiliates",
+    href: "/admin/affiliates",
+    icon: LinkIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/affiliates"),
   },
   {
     title: "Audit Logs",

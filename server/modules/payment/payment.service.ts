@@ -4,6 +4,7 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
+import type { AffiliateService } from '#server/modules/affiliate'
 import { PaymentServiceError } from './payment.errors.ts'
 import type { IPaymentRepository, PaymentWithOrder, ReleaseReservationInput } from './payment.repository.ts'
 import type { PaymentWebhookBody, PaymentWebhookResponse } from './payment.types.ts'
@@ -19,6 +20,7 @@ export class PaymentService {
     private shipmentService: ShipmentService,
     private cacheInvalidation?: CacheInvalidation,
     private eventPublisher?: EventPublisherService,
+    private affiliateService?: AffiliateService,
   ) {
     this.logger = appContext.logger
   }
@@ -65,6 +67,10 @@ export class PaymentService {
       if (input.eventType === 'payment.paid') {
         await txRepo.markPaymentSucceeded(payment.id, new Date())
         await txRepo.markOrderPaid(order.id)
+        await this.affiliateService?.createCommissionForPaidOrderWithRepo(txRepo, {
+          orderId: order.id,
+          buyerUserId: order.userId,
+        })
         await this.shipmentService.createShipmentsForPaidOrderWithRepo(txRepo, order.id)
         await this.invalidateOrderAffectedCaches(payment)
         return { ok: true, code: 'PAYMENT_PAID' }

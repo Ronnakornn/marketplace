@@ -5,6 +5,7 @@ export { AdminDashboardOverview } from "./components/AdminDashboardOverview";
 export { AdminGalaxyScene } from "./components/AdminGalaxyScene";
 export {
   AdminOrdersMonitoringTable,
+  AdminAffiliatesTable,
   AdminProductsModerationTable,
   AdminRefundsTable,
   AdminShopsTable,
