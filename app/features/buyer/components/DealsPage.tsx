@@ -11,12 +11,13 @@ import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 import { fetchCoupons, fetchSearchProducts, formatMoney } from "#/features/buyer/api";
 import { ProductCard } from "#/features/product/components/ProductCard";
-import { useLocale } from "#/i18n/client";
+import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
 export function DealsPage() {
   const localePath = useLocalePath();
   const locale = useLocale();
+  const t = useTranslations();
   const productsQuery = useQuery({
     queryKey: ["buyer-deals-products", locale],
     queryFn: () => fetchSearchProducts({ sort: "best_selling", limit: 24, locale }),
@@ -30,14 +31,14 @@ export function DealsPage() {
 
   return (
     <>
-      <BuyerTopBar title="Deals" />
+      <BuyerTopBar title={t("common.deals")} />
       <div className="mx-auto max-w-6xl space-y-5 px-3 pb-28 pt-4">
         <section className="overflow-hidden rounded-3xl border border-orange-100 bg-white shadow-sm">
           <div className="bg-orange-600 p-4 text-white">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="flex items-center gap-2 text-sm font-bold uppercase"><FlameIcon className="size-4" />Flash sale</p>
-                <h1 className="mt-1 text-2xl font-extrabold">Limited-time marketplace deals</h1>
+                <p className="flex items-center gap-2 text-sm font-bold uppercase"><FlameIcon className="size-4" />{t("buyer.flashSale")}</p>
+                <h1 className="mt-1 text-2xl font-extrabold">{t("buyer.limitedDeals")}</h1>
               </div>
               <Badge className="rounded-full bg-white text-orange-700 hover:bg-white"><ClockIcon className="mr-1 size-3" />Ends {endsAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Badge>
             </div>
@@ -48,7 +49,7 @@ export function DealsPage() {
                 <p className="line-clamp-2 min-h-10 text-sm font-bold text-slate-950">{product.title}</p>
                 <p className="mt-2 text-lg font-extrabold text-orange-600">{formatMoney(product.priceCents, product.currency)}</p>
                 <Progress value={Math.min(100, 35 + index * 20 + product.soldCount)} className="mt-3 h-2" />
-                <p className="mt-1 text-xs font-semibold text-slate-500">Selling fast</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">{t("buyer.sellingFast")}</p>
               </Link>
             ))}
           </div>
@@ -57,8 +58,8 @@ export function DealsPage() {
         {couponsQuery.data?.length ? (
           <section className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950"><TicketIcon className="size-5 text-orange-600" />Vouchers</h2>
-              <Button asChild variant="ghost" size="sm"><Link href={localePath("/cart")}>Use in cart</Link></Button>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950"><TicketIcon className="size-5 text-orange-600" />{t("buyer.vouchers")}</h2>
+              <Button asChild variant="ghost" size="sm"><Link href={localePath("/cart")}>{t("buyer.useInCart")}</Link></Button>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-1">
               {couponsQuery.data.slice(0, 8).map((coupon) => (
@@ -76,10 +77,10 @@ export function DealsPage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-950">Deal feed</h2>
-              <p className="text-xs text-slate-500">Best-selling and campaign-ready products.</p>
+              <h2 className="text-lg font-bold text-slate-950">{t("buyer.dealFeed")}</h2>
+              <p className="text-xs text-slate-500">{t("buyer.dealFeedDescription")}</p>
             </div>
-            <Button asChild variant="outline" className="rounded-full"><Link href={localePath("/search?sort=best_selling")}>Filter more</Link></Button>
+            <Button asChild variant="outline" className="rounded-full"><Link href={localePath("/search?sort=best_selling")}>{t("buyer.filterMore")}</Link></Button>
           </div>
           {productsQuery.isLoading ? <BuyerLoadingGrid /> : null}
           {productsQuery.isError ? <BuyerErrorState message={productsQuery.error.message} onRetry={() => void productsQuery.refetch()} /> : null}

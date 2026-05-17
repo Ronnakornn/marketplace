@@ -1,0 +1,7 @@
+export * from './ai-search.config.ts'
+export * from './ai-search.errors.ts'
+export * from './ai-search.routes.ts'
+export * from './ai-search.service.ts'
+export * from './embedding.service.ts'
+export * from './shopping-assistant.service.ts'
+export * from './vector-search.adapter.ts'

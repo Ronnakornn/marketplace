@@ -8,7 +8,6 @@ import {
   BellIcon,
   FlameIcon,
   HomeIcon,
-  LogInIcon,
   LogOutIcon,
   MessageCircleIcon,
   PackageIcon,
@@ -153,10 +152,20 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
             </button>
           </>
         ) : (
-          <Link href={localePath("/login")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
-            <LogInIcon className="size-5" />
-            <span className="hidden lg:inline">{t("common.login")}</span>
-          </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href={localePath("/login")}
+                className="rounded-full border border-[rgba(23,58,64,0.2)] bg-white/50 px-3 py-1.5 text-xs font-semibold text-[var(--sea-ink)] no-underline transition hover:border-[rgba(23,58,64,0.35)] hover:bg-white/80"
+              >
+                {t("common.login")}
+              </Link>
+              <Link
+                href={localePath("/signup")}
+                className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-3 py-1.5 text-xs font-semibold text-[var(--lagoon-deep)] no-underline transition hover:bg-[rgba(79,184,178,0.24)]"
+              >
+                {t("common.signup")}
+              </Link>
+            </div>
         )}
       </div>
       <div className="mx-auto mt-1 flex max-w-6xl items-center justify-between gap-2 px-1">

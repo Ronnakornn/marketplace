@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -59,14 +59,14 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const addCartMutation = useMutation({
     mutationFn: () => {
       const variantId = productQuery.data?.variants[0]?.id;
-      if (!variantId) throw new Error("ไม่มีตัวเลือกสินค้าพร้อมขาย");
+      if (!variantId) throw new Error(t("product.noPurchasableVariant"));
       return addCartItem(variantId, 1);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-cart"] }),
   });
   const favoriteMutation = useMutation({
     mutationFn: async () => {
-      if (!session) throw new Error("Please sign in to save products.");
+      if (!session) throw new Error(t("common.login"));
       return favoriteQuery.data ? removeFavoriteProduct(productId) : addFavoriteProduct(productId);
     },
     onSuccess: () => {
@@ -77,7 +77,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const createChatMutation = useMutation({
     mutationFn: () => {
       const product = productQuery.data;
-      if (!product?.shop.id) throw new Error("Shop not found");
+      if (!product?.shop.id) throw new Error(t("product.shopNotFound"));
       return createChatRoom({ shopId: product.shop.id, productId: product.id });
     },
     onSuccess: (room) => {
@@ -86,8 +86,8 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   });
   const followMutation = useMutation({
     mutationFn: async () => {
-      if (!session) throw new Error("Please sign in to follow shops.");
-      if (!shopId) throw new Error("Shop not found.");
+      if (!session) throw new Error(t("common.login"));
+      if (!shopId) throw new Error(t("product.shopNotFound"));
       return followQuery.data ? unfollowShop(shopId) : followShop(shopId);
     },
     onSuccess: () => {
@@ -121,7 +121,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   if (productQuery.isLoading) {
     return (
       <>
-        <BuyerTopBar title="Product" />
+        <BuyerTopBar title={t("product.products")} />
         <div className="mx-auto max-w-6xl px-3 pb-28 pt-4"><BuyerProductDetailSkeleton /></div>
       </>
     );
@@ -130,7 +130,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   if (productQuery.isError) {
     return (
       <>
-        <BuyerTopBar title="Product" />
+        <BuyerTopBar title={t("product.products")} />
         <div className="mx-auto max-w-6xl px-3 pb-28 pt-4"><BuyerErrorState message={productQuery.error.message} onRetry={() => void productQuery.refetch()} /></div>
       </>
     );
@@ -168,39 +168,39 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                 if (!session) router.push(localePath("/login"));
                 else followMutation.mutate();
               }}>
-                {followQuery.data ? "Following" : "Follow shop"}
+                {followQuery.data ? t("product.following") : t("product.followShop")}
               </Button>
             </div>
             <h1 className="text-2xl font-bold text-slate-950">{product.title}</h1>
             <div className="flex items-center gap-3 text-sm text-slate-500">
               <span className="flex items-center gap-1"><StarIcon className="size-4 fill-amber-400 text-amber-400" />{product.rating.toFixed(1)}</span>
-              <span>{product.soldCount} sold</span>
-              <span>{product.stock} in stock</span>
+              <span>{product.soldCount} {t("product.sold")}</span>
+              <span>{product.stock} {t("product.inStock")}</span>
             </div>
             <p className="text-3xl font-bold text-orange-600">{formatMoney(product.priceCents, product.currency)}</p>
             <div className="space-y-2">
-              <h2 className="font-semibold">Variants</h2>
+              <h2 className="font-semibold">{t("product.variants")}</h2>
               <div className="flex flex-wrap gap-2">
-                {(product.variants.length ? product.variants : [{ id: product.id, title: "Default", stock: product.stock }]).map((variant) => (
+                {(product.variants.length ? product.variants : [{ id: product.id, title: t("common.default"), stock: product.stock }]).map((variant) => (
                   <Badge key={variant.id} variant="outline" className="rounded-md px-3 py-1">{variant.title}</Badge>
                 ))}
               </div>
             </div>
             <div className="grid gap-2 rounded-2xl bg-orange-50 p-3 text-sm text-slate-700">
-              <span className="flex items-center gap-2"><TruckIcon className="size-4 text-orange-600" />Shipping calculated at checkout</span>
-              <span className="flex items-center gap-2"><ShieldCheckIcon className="size-4 text-emerald-600" />Buyer protection on eligible orders</span>
+              <span className="flex items-center gap-2"><TruckIcon className="size-4 text-orange-600" />{t("product.shippingCalculated")}</span>
+              <span className="flex items-center gap-2"><ShieldCheckIcon className="size-4 text-emerald-600" />{t("product.buyerProtection")}</span>
             </div>
-            <p className="text-sm leading-6 text-slate-600">{product.description ?? "ยังไม่มีรายละเอียดสินค้า"}</p>
+            <p className="text-sm leading-6 text-slate-600">{product.description ?? t("product.noDescription")}</p>
           </div>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-bold">Reviews</h2>
-          <BuyerEmptyState title="ยังไม่มีรีวิว" description="รีวิวจากผู้ซื้อจะแสดงที่นี่เมื่อมีข้อมูลจาก API" />
+          <h2 className="text-lg font-bold">{t("product.reviews")}</h2>
+          <BuyerEmptyState title={t("product.noReviewsTitle")} description={t("product.noReviewsDescription")} />
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-bold">Related products</h2>
+          <h2 className="text-lg font-bold">{t("product.relatedProducts")}</h2>
           {relatedQuery.isSuccess && relatedQuery.data.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{relatedQuery.data.filter((item) => item.id !== product.id).slice(0, 4).map((item) => <ProductCard key={item.id} product={item} />)}</div>
           ) : null}
@@ -214,7 +214,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
             else if (canUseBuyerActions) favoriteMutation.mutate();
           }}>
             <HeartIcon className={`size-5 ${favoriteQuery.data ? "fill-orange-500 text-orange-500" : ""}`} />
-            <span className="sr-only">Wishlist</span>
+            <span className="sr-only">{t("product.wishlist")}</span>
           </Button>
           {canUseBuyerActions ? (
             <>
@@ -231,9 +231,9 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                     </span>
                   ) : null}
                 </span>
-                Add to cart
+                {t("product.addToCart")}
               </Button>
-              <Button className="h-12 flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={handleCartAction} disabled={addCartMutation.isPending}>Buy now</Button>
+              <Button className="h-12 flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={handleCartAction} disabled={addCartMutation.isPending}>{t("product.buyNow")}</Button>
             </>
           ) : (
             <Button asChild className="h-12 flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700">

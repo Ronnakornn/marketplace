@@ -8,20 +8,22 @@ import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { fetchOrders, formatMoney } from "#/features/buyer/api";
+import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
 const orderFilters = [
-  { value: "all", label: "All" },
-  { value: "pending_payment", label: "To pay" },
-  { value: "paid", label: "Paid" },
-  { value: "shipped", label: "Shipping" },
-  { value: "delivered", label: "Delivered" },
-  { value: "canceled", label: "Canceled" },
-  { value: "refunded", label: "Refunded" },
-];
+  { value: "all", labelKey: "order.all" },
+  { value: "pending_payment", labelKey: "order.toPay" },
+  { value: "paid", labelKey: "order.paid" },
+  { value: "shipped", labelKey: "order.shipping" },
+  { value: "delivered", labelKey: "order.delivered" },
+  { value: "canceled", labelKey: "order.canceled" },
+  { value: "refunded", labelKey: "order.refunded" },
+] as const;
 
 export function OrderListPage() {
   const localePath = useLocalePath();
+  const t = useTranslations();
   const [filter, setFilter] = useState("all");
   const ordersQuery = useQuery({ queryKey: ["buyer-orders"], queryFn: fetchOrders });
   const orders = useMemo(() => {
@@ -32,19 +34,19 @@ export function OrderListPage() {
 
   return (
     <>
-      <BuyerTopBar title="Orders" />
+      <BuyerTopBar title={t("common.orders")} />
       <div className="mx-auto max-w-5xl space-y-3 px-3 py-4">
         <div className="flex gap-2 overflow-x-auto rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
           {orderFilters.map((item) => (
             <Button key={item.value} size="sm" variant={filter === item.value ? "default" : "ghost"} className={filter === item.value ? "rounded-full bg-orange-600 hover:bg-orange-700" : "rounded-full"} onClick={() => setFilter(item.value)}>
-              {item.label}
+              {t(item.labelKey)}
             </Button>
           ))}
         </div>
         {ordersQuery.isLoading ? <BuyerLoadingList /> : null}
         {ordersQuery.isError ? <BuyerErrorState message={ordersQuery.error.message} onRetry={() => void ordersQuery.refetch()} /> : null}
-        {ordersQuery.isSuccess && ordersQuery.data.length === 0 ? <BuyerEmptyState title="No orders yet" description="Paid and in-progress orders will appear here." /> : null}
-        {ordersQuery.isSuccess && ordersQuery.data.length > 0 && orders.length === 0 ? <BuyerEmptyState title="No orders in this tab" description="Try another status filter." /> : null}
+        {ordersQuery.isSuccess && ordersQuery.data.length === 0 ? <BuyerEmptyState title={t("order.noOrdersTitle")} description={t("order.noOrdersDescription")} /> : null}
+        {ordersQuery.isSuccess && ordersQuery.data.length > 0 && orders.length === 0 ? <BuyerEmptyState title={t("order.noOrdersTabTitle")} description={t("order.noOrdersTabDescription")} /> : null}
         {orders.map((order) => (
           <article key={order.id} className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
@@ -59,7 +61,7 @@ export function OrderListPage() {
             </div>
             <div className="mt-4 flex items-center justify-between gap-3">
               <p className="font-bold text-orange-600">{formatMoney(order.totalCents, order.currency)}</p>
-              <Button asChild variant="outline" size="sm"><Link href={localePath(`/orders/${order.id}`)}>Details</Link></Button>
+              <Button asChild variant="outline" size="sm"><Link href={localePath(`/orders/${order.id}`)}>{t("order.details")}</Link></Button>
             </div>
           </article>
         ))}

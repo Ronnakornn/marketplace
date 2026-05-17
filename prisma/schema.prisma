@@ -153,6 +153,8 @@ enum AuditAction {
   SHIPMENT_STATUS_CHANGED
   REFUND_STATUS_CHANGED
   RETURN_STATUS_CHANGED
+  FRAUD_CASE_REVIEWED
+  FRAUD_CASE_RESOLVED
   ADMIN_LOGIN
   ADMIN_CONFIG_CHANGED
 }
@@ -202,6 +204,27 @@ enum AffiliateCommissionStatus {
   VOID
 }
 
+enum FraudEntityType {
+  ORDER
+  REFUND
+  AFFILIATE
+  COUPON
+}
+
+enum FraudRiskLevel {
+  low
+  medium
+  high
+  critical
+}
+
+enum FraudCaseStatus {
+  OPEN
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
 model User {
   id            String     @id @default(uuid()) @db.Uuid
   name          String
@@ -231,6 +254,7 @@ model User {
   uploads           Upload[]
   affiliate         Affiliate?
   affiliateClicks   AffiliateClick[]
+  fraudCases        FraudCase[]
 }
 
 model Address {
@@ -358,10 +382,28 @@ model Product {
   favorites   FavoriteProduct[]
   variants    ProductVariant[]
   chatThreads ChatThread[]
+  embeddings  ProductEmbedding[]
 
   @@unique([shopId, slug])
   @@index([categoryId, status])
   @@index([shopId, status])
+}
+
+model ProductEmbedding {
+  id          String                  @id @default(uuid()) @db.Uuid
+  productId   String                  @db.Uuid
+  locale      String                  @default("default")
+  model       String
+  contentHash String
+  embedding   Unsupported("vector(1536)")
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locale, model])
+  @@index([productId])
+  @@index([model, locale])
 }
 
 model FavoriteProduct {
@@ -917,6 +959,31 @@ model AuditLog {
   @@index([action, createdAt])
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+model FraudCase {
+  id         String          @id @default(uuid()) @db.Uuid
+  entityType FraudEntityType
+  entityId   String
+  userId     String?         @db.Uuid
+  riskScore  Int
+  riskLevel  FraudRiskLevel
+  reasons    String[]        @default([])
+  status     FraudCaseStatus @default(OPEN)
+  metadata   Json?
+  reviewedBy String?         @db.Uuid
+  reviewedAt DateTime?
+  resolvedBy String?         @db.Uuid
+  resolvedAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([entityType, entityId])
+  @@index([status, riskLevel, createdAt])
+  @@index([userId, createdAt])
+  @@index([reviewedBy])
 }
 
 model Affiliate {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Footer from "#/components/Footer";
 import Header from "#/components/Header";
@@ -12,6 +12,16 @@ interface AppChromeProps {
 
 export default function AppChrome({ children }: AppChromeProps) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <>{children}</>;
+  }
+
   const hasLocaleSegment = isLocale(pathname.split("/")[1]);
   if (!hasLocaleSegment) {
     return <>{children}</>;
@@ -23,6 +33,7 @@ export default function AppChrome({ children }: AppChromeProps) {
   const isMarketplaceHome = pathWithoutLocale === "/";
   const isBuyerRoute = [
     "/account",
+    "/affiliates",
     "/search",
     "/categories",
     "/products",

@@ -8,6 +8,8 @@ export const auditActions = [
   'SHIPMENT_STATUS_CHANGED',
   'REFUND_STATUS_CHANGED',
   'RETURN_STATUS_CHANGED',
+  'FRAUD_CASE_REVIEWED',
+  'FRAUD_CASE_RESOLVED',
   'ADMIN_LOGIN',
   'ADMIN_CONFIG_CHANGED',
 ] as const satisfies readonly AuditAction[]

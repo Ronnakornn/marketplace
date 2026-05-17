@@ -19,6 +19,7 @@ const events = createJobQueueEvents(container, config)
 logger.info('Job worker running', {
   concurrency: config.concurrency,
   attempts: config.attempts,
+  skipRedisVersionCheck: config.skipRedisVersionCheck,
 })
 
 async function shutdown(signal: string): Promise<void> {

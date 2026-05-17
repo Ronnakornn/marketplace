@@ -7,6 +7,13 @@ import { PrismaChatRepository } from '#server/modules/chat/chat.repository.ts'
 import { ChatService } from '#server/modules/chat/chat.service.ts'
 import { PrismaAdminRepository } from '#server/modules/admin/admin.repository.ts'
 import { AdminService } from '#server/modules/admin/admin.service.ts'
+import {
+  AiSearchService,
+  EmbeddingService,
+  getAiSearchConfigFromEnv,
+  PgVectorSearchAdapter,
+  ShoppingAssistantService,
+} from '#server/modules/ai-search'
 import { AffiliateService, PrismaAffiliateRepository } from '#server/modules/affiliate'
 import { PrismaCheckoutRepository } from '#server/modules/checkout/checkout.repository.ts'
 import { CheckoutService } from '#server/modules/checkout/checkout.service.ts'
@@ -45,6 +52,7 @@ import { PrismaWalletRepository, WalletService } from '#server/modules/wallet'
 import { JobService, PrismaJobRepository } from '#server/modules/jobs'
 import { EventBus, EventHandlerRegistry, EventPublisherService } from '#server/modules/event-bus'
 import { createCoreCommerceEventHandlers } from '#server/modules/events'
+import { createFraudEventHandlers, FraudService, getFraudRuleConfigFromEnv, PrismaFraudRepository } from '#server/modules/fraud'
 import { BullMqQueueProducer, getQueueConfigFromEnv, OptionalQueueProducer, type QueueProducer } from '#server/modules/queue'
 import { AuditLogService, PrismaAuditLogRepository } from '#server/modules/audit-log'
 import { OwnershipGuards, PrismaOwnershipGuardRepository, SecurityService } from '#server/modules/security'
@@ -69,6 +77,7 @@ export interface ServiceContainer {
   appContext: AppContext
   auditLogService: AuditLogService
   adminService: AdminService
+  aiSearchService: AiSearchService
   affiliateService: AffiliateService
   cartService: CartService
   chatService: ChatService
@@ -80,6 +89,7 @@ export interface ServiceContainer {
   eventBus: EventBus
   eventHandlerRegistry: EventHandlerRegistry
   eventPublisherService: EventPublisherService
+  fraudService: FraudService
   jobService: JobService
   notificationService: NotificationService
   realtimeService: RealtimeService
@@ -98,6 +108,7 @@ export interface ServiceContainer {
   ownershipGuards: OwnershipGuards
   sellerDashboardService: SellerDashboardService
   shipmentService: ShipmentService
+  shoppingAssistantService: ShoppingAssistantService
   uploadService: UploadService
   userService: UserService
   walletService: WalletService
@@ -109,6 +120,8 @@ export function createContainer(): ServiceContainer {
   const config: AppConfig = { environment }
   const appContext: AppContext = { logger, config }
   const observabilityConfig = getObservabilityConfigFromEnv()
+  const aiSearchConfig = getAiSearchConfigFromEnv()
+  const fraudRuleConfig = getFraudRuleConfigFromEnv()
   const metricsCollector = new MetricsCollector()
   const queueConfig = getQueueConfigFromEnv()
   const cacheConfig = getCacheConfigFromEnv()
@@ -120,6 +133,8 @@ export function createContainer(): ServiceContainer {
 
   const auditLogRepo = new PrismaAuditLogRepository(appContext, prisma)
   const auditLogService = new AuditLogService(appContext, auditLogRepo)
+  const fraudRepo = new PrismaFraudRepository(appContext, prisma)
+  const fraudService = new FraudService(appContext, fraudRepo, fraudRuleConfig, auditLogService)
   const adminRepo = new PrismaAdminRepository(appContext, prisma)
   const adminService = new AdminService(appContext, adminRepo, auditLogService)
   const affiliateRepo = new PrismaAffiliateRepository(appContext, prisma)
@@ -159,6 +174,17 @@ export function createContainer(): ServiceContainer {
   const reviewService = new ReviewService(appContext, reviewRepo)
   const searchRepo = new PrismaSearchRepository(appContext, prisma)
   const searchService = new SearchService(appContext, searchRepo, cacheService)
+  const embeddingService = new EmbeddingService(appContext, aiSearchConfig)
+  const vectorSearchAdapter = new PgVectorSearchAdapter(appContext, prisma)
+  const aiSearchService = new AiSearchService(
+    appContext,
+    aiSearchConfig,
+    embeddingService,
+    vectorSearchAdapter,
+    searchService,
+    cacheService,
+  )
+  const shoppingAssistantService = new ShoppingAssistantService(appContext, aiSearchConfig, aiSearchService)
   const sellerDashboardRepo = new PrismaSellerDashboardRepository(appContext, prisma)
   const sellerDashboardService = new SellerDashboardService(appContext, sellerDashboardRepo, cacheService)
   const securityService = new SecurityService(appContext)
@@ -188,11 +214,13 @@ export function createContainer(): ServiceContainer {
     searchService,
     shipmentService,
   }))
+  eventHandlerRegistry.registerMany(createFraudEventHandlers({ fraudService }))
 
   return {
     appContext,
     auditLogService,
     adminService,
+    aiSearchService,
     affiliateService,
     cartService,
     chatService,
@@ -204,6 +232,7 @@ export function createContainer(): ServiceContainer {
     eventBus,
     eventHandlerRegistry,
     eventPublisherService,
+    fraudService,
     jobService,
     notificationService,
     realtimeService,
@@ -222,6 +251,7 @@ export function createContainer(): ServiceContainer {
     ownershipGuards,
     sellerDashboardService,
     shipmentService,
+    shoppingAssistantService,
     uploadService,
     userService,
     walletService,

@@ -14,6 +14,7 @@ describe('queue config', () => {
       redisUrl: 'redis://localhost:6379',
       concurrency: 7,
       attempts: 4,
+      skipRedisVersionCheck: true,
     })
     expect(getDefaultJobOptions(config!)).toMatchObject({
       attempts: 4,
@@ -27,5 +28,22 @@ describe('queue config', () => {
 
   it('returns null when Redis is not configured', () => {
     expect(getQueueConfigFromEnv({})).toBeNull()
+  })
+
+  it('keeps Redis version checks enabled in production unless explicitly skipped', () => {
+    expect(getQueueConfigFromEnv({
+      REDIS_URL: 'redis://localhost:6379',
+      NODE_ENV: 'production',
+    })).toMatchObject({
+      skipRedisVersionCheck: false,
+    })
+
+    expect(getQueueConfigFromEnv({
+      REDIS_URL: 'redis://localhost:6379',
+      NODE_ENV: 'production',
+      QUEUE_SKIP_REDIS_VERSION_CHECK: 'true',
+    })).toMatchObject({
+      skipRedisVersionCheck: true,
+    })
   })
 })

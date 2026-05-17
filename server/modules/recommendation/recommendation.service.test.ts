@@ -45,6 +45,7 @@ function createCacheMock(rememberImpl?: CacheService['remember']): CacheService 
       productDetail: vi.fn(),
       categoryList: vi.fn(),
       productSearch: vi.fn(),
+      aiSearch: vi.fn(),
       sellerDashboard: vi.fn(),
       recommendations: vi.fn((kind: string) => `recommendations:${kind}`),
     },

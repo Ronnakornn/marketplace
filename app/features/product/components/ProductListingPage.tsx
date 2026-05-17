@@ -13,7 +13,8 @@ import { Input } from "#/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "#/components/ui/sheet";
 import { fetchCategories, fetchProducts, fetchSearchProducts, fetchSearchSuggestions, type BuyerProduct } from "#/features/buyer/api";
 import { ProductCard } from "#/features/product/components/ProductCard";
-import { useLocale } from "#/i18n/client";
+import { useLocale, useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 
 const homeCategories = [
   { id: "fashion", label: "Fashion" },
@@ -44,6 +45,8 @@ export function ProductListingPage({
   rating,
 }: ProductListingPageProps) {
   const locale = useLocale();
+  const t = useTranslations();
+  const localePath = useLocalePath();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const minPriceCents = toCents(minPrice);
   const maxPriceCents = toCents(maxPrice);
@@ -77,7 +80,7 @@ export function ProductListingPage({
     window.localStorage.setItem("buyer-recent-searches", JSON.stringify(next));
   }, [mode, query]);
 
-  const title = mode === "home" ? "Discover" : mode === "category" ? categoryId ?? "Category" : "Search";
+  const title = mode === "home" ? t("product.discover") : mode === "category" ? categoryId ?? t("product.category") : t("common.search");
   const products = sortProducts(
     (productsQuery.data ?? []).filter((product) => minRating === undefined || product.rating >= minRating),
     sort,
@@ -91,7 +94,11 @@ export function ProductListingPage({
     sort,
     rating,
   }), [categoriesQuery.data, query, categoryId, minPrice, maxPrice, sort, rating]);
-  const resultTitle = query ? `Search results for "${query}"` : mode === "category" ? `${categoryId} products` : "Products";
+  const resultTitle = query
+    ? t("product.searchResultsFor").replace("{query}", query)
+    : mode === "category"
+      ? `${categoryId} ${t("product.products")}`
+      : t("product.products");
 
   return (
     <>
@@ -101,7 +108,7 @@ export function ProductListingPage({
 
         {mode === "category" ? (
           <div className="rounded-3xl border border-orange-100 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase text-orange-600">Category</p>
+            <p className="text-xs font-semibold uppercase text-orange-600">{t("product.category")}</p>
             <h1 className="mt-1 text-xl font-bold capitalize text-slate-950">{categoryId}</h1>
           </div>
         ) : null}
@@ -126,10 +133,10 @@ export function ProductListingPage({
               <div className="lg:hidden">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full rounded-2xl"><SlidersHorizontalIcon className="size-4" />Filter and sort</Button>
+                    <Button variant="outline" className="w-full rounded-2xl"><SlidersHorizontalIcon className="size-4" />{t("product.filterAndSort")}</Button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-3xl p-0">
-                    <SheetHeader><SheetTitle>Filter and sort</SheetTitle></SheetHeader>
+                    <SheetHeader><SheetTitle>{t("product.filterAndSort")}</SheetTitle></SheetHeader>
                     <div className="p-4"><SearchFilterSidebar {...filterProps} compact /></div>
                   </SheetContent>
                 </Sheet>
@@ -141,16 +148,16 @@ export function ProductListingPage({
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-slate-950">{mode === "home" ? "Recommended products" : resultTitle}</h2>
+                <h2 className="text-lg font-bold text-slate-950">{mode === "home" ? t("product.recommendedProducts") : resultTitle}</h2>
                 <p className="text-xs text-slate-500">
-                  {productsQuery.isSuccess ? `${products.length} items found` : "Loading marketplace results"}
+                  {productsQuery.isSuccess ? t("product.itemsFound").replace("{count}", String(products.length)) : t("product.loadingResults")}
                 </p>
               </div>
               {mode === "search" ? (
                 <SortTabs query={query} categoryId={categoryId} minPrice={minPrice} maxPrice={maxPrice} rating={rating} sort={sort} />
               ) : (
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/search">View all</Link>
+                  <Link href={localePath("/search")}>{t("product.viewAll")}</Link>
                 </Button>
               )}
             </div>
@@ -158,7 +165,7 @@ export function ProductListingPage({
             {productsQuery.isLoading ? <BuyerLoadingGrid /> : null}
             {productsQuery.isError ? <BuyerErrorState message={productsQuery.error.message} onRetry={() => void productsQuery.refetch()} /> : null}
             {productsQuery.isSuccess && products.length === 0 ? (
-              <BuyerEmptyState title="No products found" description="Try another keyword, category, price range, or rating filter." />
+              <BuyerEmptyState title={t("product.noProductsFound")} description={t("product.noProductsDescription")} />
             ) : null}
             {productsQuery.isSuccess && products.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
@@ -173,14 +180,15 @@ export function ProductListingPage({
 }
 
 function SearchDiscovery({ recentSearches }: { recentSearches: string[] }) {
+  const t = useTranslations();
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h1 className="text-xl font-bold text-slate-950">Search marketplace</h1>
+      <h1 className="text-xl font-bold text-slate-950">{t("product.searchMarketplace")}</h1>
       <div className="mt-4 space-y-3">
         {recentSearches.length ? (
-          <KeywordRow title="Recent searches" keywords={recentSearches} />
+          <KeywordRow title={t("product.recentSearches")} keywords={recentSearches} />
         ) : null}
-        <KeywordRow title="Trending now" keywords={trendingKeywords} />
+        <KeywordRow title={t("product.trendingNow")} keywords={trendingKeywords} />
       </div>
     </section>
   );
@@ -202,13 +210,15 @@ function KeywordRow({ title, keywords }: { title: string; keywords: string[] }) 
 }
 
 function HomeBlocks() {
+  const t = useTranslations();
+  const localePath = useLocalePath();
   return (
     <>
       <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-        <h1 className="text-xl font-bold text-slate-950">Shop from trusted marketplace stores</h1>
+        <h1 className="text-xl font-bold text-slate-950">{t("product.shopTrustedStores")}</h1>
         <div className="mt-4 grid grid-cols-5 gap-2">
           {homeCategories.map((category) => (
-            <Link key={category.id} href={`/categories/${category.id}`} className="rounded-2xl border border-orange-100 bg-orange-50 px-2 py-3 text-center text-xs font-semibold text-orange-700 transition hover:bg-orange-100">
+            <Link key={category.id} href={localePath(`/categories/${category.id}`)} className="rounded-2xl border border-orange-100 bg-orange-50 px-2 py-3 text-center text-xs font-semibold text-orange-700 transition hover:bg-orange-100">
               {category.label}
             </Link>
           ))}
@@ -217,10 +227,10 @@ function HomeBlocks() {
       <section className="rounded-3xl border border-orange-200 bg-orange-50 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase text-orange-600">Flash sale</p>
-            <h2 className="mt-1 text-lg font-bold text-slate-950">Special deals will appear when campaign APIs are enabled</h2>
+            <p className="text-xs font-semibold uppercase text-orange-600">{t("product.flashSale")}</p>
+            <h2 className="mt-1 text-lg font-bold text-slate-950">{t("product.specialDealsSoon")}</h2>
           </div>
-          <Badge className="rounded-md bg-orange-600">Soon</Badge>
+          <Badge className="rounded-md bg-orange-600">{t("product.soon")}</Badge>
         </div>
       </section>
     </>
@@ -237,6 +247,7 @@ function SearchFilterSidebar(props: {
   sort: string;
   compact?: boolean;
 }) {
+  const t = useTranslations();
   const base = {
     q: props.query,
     minPrice: props.minPrice,
@@ -249,12 +260,12 @@ function SearchFilterSidebar(props: {
     <aside className={`space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-20 lg:self-start ${props.compact ? "" : "hidden lg:block"}`}>
       <div className="flex items-center gap-2 font-bold text-slate-950">
         <SlidersHorizontalIcon className="size-4 text-orange-600" />
-        Search Filter
+        {t("product.searchFilter")}
       </div>
 
-      <FilterBlock title="Category">
+      <FilterBlock title={t("product.category")}>
         <div className="space-y-1">
-          <FilterLink active={!props.categoryId} href={buildSearchHref(base)}>All Categories</FilterLink>
+          <FilterLink active={!props.categoryId} href={buildSearchHref(base)}>{t("product.allCategories")}</FilterLink>
           {props.categories.map((category) => (
             <FilterLink
               key={category.slug}
@@ -267,50 +278,50 @@ function SearchFilterSidebar(props: {
         </div>
       </FilterBlock>
 
-      <FilterBlock title="Price Range">
+      <FilterBlock title={t("product.priceRange")}>
         <form action="/search" className="space-y-2">
           <input type="hidden" name="q" value={props.query} />
           {props.categoryId ? <input type="hidden" name="categoryId" value={props.categoryId} /> : null}
           {props.rating ? <input type="hidden" name="rating" value={props.rating} /> : null}
           <input type="hidden" name="sort" value={props.sort} />
           <div className="grid grid-cols-2 gap-2">
-            <Input name="minPrice" defaultValue={props.minPrice} inputMode="numeric" placeholder="Min" className="h-9 rounded-xl" />
-            <Input name="maxPrice" defaultValue={props.maxPrice} inputMode="numeric" placeholder="Max" className="h-9 rounded-xl" />
+            <Input name="minPrice" defaultValue={props.minPrice} inputMode="numeric" placeholder={t("product.min")} className="h-9 rounded-xl" />
+            <Input name="maxPrice" defaultValue={props.maxPrice} inputMode="numeric" placeholder={t("product.max")} className="h-9 rounded-xl" />
           </div>
-          <Button type="submit" size="sm" className="w-full rounded-full bg-orange-600 hover:bg-orange-700">Apply</Button>
+          <Button type="submit" size="sm" className="w-full rounded-full bg-orange-600 hover:bg-orange-700">{t("product.applyFilters")}</Button>
         </form>
       </FilterBlock>
 
-      <FilterBlock title="Rating">
+      <FilterBlock title={t("product.rating")}>
         <div className="space-y-1">
           {[5, 4, 3].map((value) => (
             <FilterLink key={value} active={props.rating === String(value)} href={buildSearchHref({ ...base, categoryId: props.categoryId, rating: String(value) })}>
               <span className="inline-flex items-center gap-1">
                 {Array.from({ length: value }).map((_, index) => <StarIcon key={index} className="size-3 fill-amber-400 text-amber-400" />)}
-                & up
+                & {t("product.up")}
               </span>
             </FilterLink>
           ))}
         </div>
       </FilterBlock>
 
-      <FilterBlock title="Service & Promotion">
+      <FilterBlock title={t("product.servicePromotion")}>
         <label className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-slate-600">
           <input type="checkbox" className="size-4 rounded border-slate-300 accent-orange-600" />
-          Shopee Mall
+          {t("product.shopeeMall")}
         </label>
         <label className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-slate-600">
           <input type="checkbox" className="size-4 rounded border-slate-300 accent-orange-600" />
-          Free Shipping
+          {t("product.freeShipping")}
         </label>
         <label className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-slate-600">
           <input type="checkbox" className="size-4 rounded border-slate-300 accent-orange-600" />
-          On Sale
+          {t("product.onSale")}
         </label>
       </FilterBlock>
 
       <Button variant="outline" className="w-full rounded-full" asChild>
-        <Link href={buildSearchHref({ q: props.query })}>Clear filters</Link>
+        <Link href={buildSearchHref({ q: props.query })}>{t("product.clearFilters")}</Link>
       </Button>
     </aside>
   );
@@ -324,12 +335,13 @@ function SortTabs(props: {
   rating?: string;
   sort: string;
 }) {
+  const t = useTranslations();
   const sorts = [
-    ["relevance", "Relevant"],
-    ["newest", "Latest"],
-    ["best_selling", "Top Sales"],
-    ["price_asc", "Price Low"],
-    ["price_desc", "Price High"],
+    ["relevance", t("product.relevant")],
+    ["newest", t("product.latest")],
+    ["best_selling", t("product.topSales")],
+    ["price_asc", t("product.priceLow")],
+    ["price_desc", t("product.priceHigh")],
   ] as const;
 
   return (

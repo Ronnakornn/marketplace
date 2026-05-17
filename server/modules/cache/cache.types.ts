@@ -34,6 +34,7 @@ export interface CacheKeyBuilder {
   productDetail(productId: string, locale?: string): string
   categoryList(locale?: string): string
   productSearch(query: unknown): string
+  aiSearch(query: unknown): string
   sellerDashboard(shopId: string): string
   recommendations(kind: string, query: unknown): string
 }

@@ -30,7 +30,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
 
   return (
     <>
-      <BuyerTopBar title="Order detail" />
+      <BuyerTopBar title={t("order.details")} />
       <div className="mx-auto max-w-5xl space-y-4 px-3 py-4">
         {orderQuery.isLoading ? <BuyerLoadingList /> : null}
         {orderQuery.isError ? <BuyerErrorState message={orderQuery.error.message} onRetry={() => void orderQuery.refetch()} /> : null}
@@ -45,13 +45,13 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                 <Badge className="rounded-md bg-orange-600">{orderQuery.data.status}</Badge>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <Info label="Payment" value={orderQuery.data.paymentStatus} />
-                <Info label="Total" value={formatMoney(orderQuery.data.totalCents, orderQuery.data.currency)} />
+                <Info label={t("order.payment")} value={orderQuery.data.paymentStatus} />
+                <Info label={t("common.total")} value={formatMoney(orderQuery.data.totalCents, orderQuery.data.currency)} />
               </div>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4">
-              <h2 className="mb-3 flex items-center gap-2 font-bold"><PackageCheckIcon className="size-5" />Items</h2>
+              <h2 className="mb-3 flex items-center gap-2 font-bold"><PackageCheckIcon className="size-5" />{t("order.items")}</h2>
               <div className="divide-y divide-slate-100">
                 {orderQuery.data.items.map((item) => (
                   <div key={item.id} className="flex justify-between gap-3 py-3 text-sm">
@@ -68,16 +68,16 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button asChild variant="outline" className="rounded-full">
-                  <Link href={localePath(`/orders/${orderQuery.data.id}/review`)}>Review items</Link>
+                  <Link href={localePath(`/orders/${orderQuery.data.id}/review`)}>{t("order.reviewItems")}</Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-full">
-                  <Link href={localePath(`/orders/${orderQuery.data.id}/returns/new`)}>Return / refund</Link>
+                  <Link href={localePath(`/orders/${orderQuery.data.id}/returns/new`)}>{t("order.returnRefund")}</Link>
                 </Button>
               </div>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4">
-              <h2 className="mb-3 flex items-center gap-2 font-bold"><TruckIcon className="size-5" />Shipments</h2>
+              <h2 className="mb-3 flex items-center gap-2 font-bold"><TruckIcon className="size-5" />{t("order.shipments")}</h2>
               <div className="space-y-3">
                 {orderQuery.data.shipments.map((shipment) => (
                   <div key={shipment.id} className="rounded-lg border border-slate-200 p-3">
@@ -103,7 +103,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                   </div>
                 ))}
               </div>
-              <Button asChild className="mt-4 bg-orange-600 hover:bg-orange-700"><Link href={localePath(`/orders/${orderQuery.data.id}/tracking`)}>Track order</Link></Button>
+              <Button asChild className="mt-4 bg-orange-600 hover:bg-orange-700"><Link href={localePath(`/orders/${orderQuery.data.id}/tracking`)}>{t("order.trackOrder")}</Link></Button>
             </section>
           </>
         ) : null}

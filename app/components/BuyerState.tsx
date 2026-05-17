@@ -3,6 +3,7 @@
 import { AlertCircleIcon, PackageOpenIcon, RefreshCwIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Skeleton } from "#/components/ui/skeleton";
+import { useTranslations } from "#/i18n/client";
 
 export function BuyerLoadingGrid() {
   return (
@@ -91,17 +92,19 @@ export function BuyerEmptyState({ title, description }: { title: string; descrip
 }
 
 export function BuyerErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const t = useTranslations();
+
   return (
     <div className="rounded-3xl border border-red-200 bg-red-50 p-4 text-red-900 shadow-sm">
       <div className="flex gap-3">
         <AlertCircleIcon className="mt-0.5 size-5 shrink-0" />
         <div className="min-w-0">
-          <h2 className="font-semibold">ไม่สามารถโหลดข้อมูลได้</h2>
+          <h2 className="font-semibold">{t("state.loadErrorTitle")}</h2>
           <p className="mt-1 text-sm text-red-700">{message}</p>
           {onRetry ? (
             <Button className="mt-3" variant="outline" size="sm" onClick={onRetry}>
               <RefreshCwIcon className="size-4" />
-              ลองใหม่
+              {t("state.retry")}
             </Button>
           ) : null}
         </div>

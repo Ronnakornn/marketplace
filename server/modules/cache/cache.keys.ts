@@ -18,6 +18,7 @@ export function createCacheKeys(prefix: string): CacheKeyBuilder {
     productDetail: (productId, locale = 'default') => `${normalizedPrefix}:product:detail:${locale}:${productId}`,
     categoryList: (locale = 'default') => `${normalizedPrefix}:category:list:${locale}`,
     productSearch: (query) => `${normalizedPrefix}:search:products:${stableHash(query)}`,
+    aiSearch: (query) => `${normalizedPrefix}:ai-search:products:${stableHash(query)}`,
     sellerDashboard: (shopId) => `${normalizedPrefix}:seller:${shopId}:dashboard`,
     recommendations: (kind, query) => `${normalizedPrefix}:recommendations:${kind}:${stableHash(query)}`,
   }

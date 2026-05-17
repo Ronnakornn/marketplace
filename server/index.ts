@@ -8,11 +8,13 @@ import { getObservabilityConfigFromEnv, createObservabilityRoutes } from "#serve
 import { createObservabilityPlugin } from "#server/plugins/observability.plugin";
 import { createCachePlugin } from "#server/plugins/cache.plugin";
 import { createAdminRoutes } from "#server/modules/admin";
+import { createAiSearchRoutes } from "#server/modules/ai-search";
 import { createAffiliateRoutes } from "#server/modules/affiliate";
 import { createCartRoutes } from "#server/modules/cart";
 import { createChatRoutes } from "#server/modules/chat";
 import { createCheckoutRoutes } from "#server/modules/checkout";
 import { createCatalogRoutes } from "#server/modules/catalog";
+import { createFraudRoutes } from "#server/modules/fraud";
 import { createNotificationRoutes } from "#server/modules/notification";
 import { createOrderRoutes } from "#server/modules/order";
 import { createPaymentRoutes } from "#server/modules/payment";
@@ -74,6 +76,9 @@ const baseApp = new Elysia()
   // --- Search routes ---
   .use(createSearchRoutes(container))
 
+  // --- AI-assisted product discovery routes ---
+  .use(createAiSearchRoutes(container))
+
   // --- Cart routes ---
   .use(createCartRoutes(container))
 
@@ -124,7 +129,10 @@ const baseApp = new Elysia()
   .use(createUserRoutes(container))
 
   // --- Task 17 admin marketplace routes ---
-  .use(createAdminRoutes(container));
+  .use(createAdminRoutes(container))
+
+  // --- Fraud detection admin review queue routes ---
+  .use(createFraudRoutes(container));
 
 const app = baseApp.listen(port);
 
