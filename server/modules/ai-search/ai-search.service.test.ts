@@ -41,7 +41,7 @@ function product(overrides: Partial<{
   titleEn: string
   status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
   shopStatus: 'ACTIVE' | 'PENDING' | 'SUSPENDED'
-  price: number
+  price: number | undefined
   quantityOnHand: number
   quantityReserved: number
 }> = {}): AiSearchProductRecord {
@@ -73,7 +73,7 @@ function product(overrides: Partial<{
       id: 'variant-1',
       sku: 'TEE-1',
       title: 'Default',
-      priceCents: overrides.price ?? 1200,
+      price: overrides.price ? BigInt(`${overrides.price}`) : BigInt(1200),
       currency: 'USD',
       inventory: {
         quantityOnHand: overrides.quantityOnHand ?? 5,
@@ -153,8 +153,8 @@ describe('AiSearchService', () => {
       productId: 'p1',
       title: 'Cotton Shirt',
       price: {
-        minPriceCents: 1200,
-        maxPriceCents: null,
+        minPrice: 1200,
+        maxPrice: null,
         currency: 'USD',
       },
       stockAvailability: 'in_stock',

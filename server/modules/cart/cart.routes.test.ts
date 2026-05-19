@@ -16,11 +16,11 @@ vi.mock('#server/modules/auth/auth.context.ts', () => ({
 function createContainer() {
   return {
     cartService: {
-      getCart: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotalCents: 0, currency: null }),
-      addItem: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotalCents: 0, currency: null }),
-      updateItem: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotalCents: 0, currency: null }),
-      deleteItem: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotalCents: 0, currency: null }),
-      clearCart: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotalCents: 0, currency: null }),
+      getCart: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotal: 0, currency: null }),
+      addItem: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotal: 0, currency: null }),
+      updateItem: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotal: 0, currency: null }),
+      deleteItem: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotal: 0, currency: null }),
+      clearCart: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotal: 0, currency: null }),
     },
   } as any
 }
@@ -29,7 +29,7 @@ function createApp(container = createContainer()) {
   return new Elysia().use(createCartRoutes(container))
 }
 
-function mockAuth(role: 'USER' | 'SELLER' | 'ADMIN' = 'USER') {
+function mockAuth(role: 'USER' | 'ADMIN' = 'USER') {
   vi.mocked(getAuthContext).mockResolvedValue({
     user: {
       id: `${role.toLowerCase()}-1`,
@@ -81,11 +81,11 @@ describe('cart routes', () => {
     )
   })
 
-  it('lets the service reject seller and admin users on buyer cart APIs', async () => {
-    mockAuth('SELLER')
+  it('passes authenticated users through to buyer cart APIs', async () => {
+    mockAuth('USER')
     const container = createContainer()
     await createApp(container).handle(new Request('http://localhost/api/cart'))
 
-    expect(container.cartService.getCart).toHaveBeenCalledWith(expect.objectContaining({ role: 'SELLER' }))
+    expect(container.cartService.getCart).toHaveBeenCalledWith(expect.objectContaining({ role: 'USER' }))
   })
 })

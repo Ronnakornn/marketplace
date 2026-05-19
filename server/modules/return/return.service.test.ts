@@ -38,11 +38,15 @@ function createRepoMock(): IReturnRepository {
   }
 }
 
-function createActor(role: Role = 'USER') {
+function createActor(role: Role = 'USER', id = role === 'ADMIN' ? 'admin-1' : 'user-1') {
   return {
-    id: role === 'SELLER' ? 'seller-1' : 'user-1',
+    id,
     role,
   }
+}
+
+function sellerActor() {
+  return createActor('USER', 'seller-1')
 }
 
 const now = new Date('2026-05-13T00:00:00.000Z')
@@ -51,7 +55,7 @@ function createOrderItem(overrides: Partial<{
   userId: string
   shopId: string
   fulfillmentStatus: FulfillmentStatus
-  lineTotalCents: number
+  lineTotal: number
   returnStatus: ReturnStatus
 }> = {}): ReturnOrderItem {
   return {
@@ -66,8 +70,8 @@ function createOrderItem(overrides: Partial<{
     shopName: 'Shop One',
     shopSlug: 'shop-one',
     quantity: 2,
-    unitPriceCents: 1200,
-    lineTotalCents: overrides.lineTotalCents ?? 2400,
+    unitPrice: 1200,
+    lineTotal: overrides.lineTotal ?? 2400,
     currency: 'USD',
     fulfillmentStatus: overrides.fulfillmentStatus ?? 'DELIVERED',
     order: {
@@ -77,11 +81,11 @@ function createOrderItem(overrides: Partial<{
       orderNumber: 'ORD-1',
       status: 'DELIVERED',
       paymentStatus: 'SUCCEEDED',
-      subtotalCents: 2400,
-      discountTotalCents: 0,
-      shippingTotalCents: 500,
-      taxTotalCents: 0,
-      grandTotalCents: 2900,
+      subtotal: 2400,
+      discountTotal: 0,
+      shippingTotal: 500,
+      taxTotal: 0,
+      grandTotal: 2900,
       currency: 'USD',
       shippingName: 'Buyer',
       shippingPhone: null,
@@ -116,7 +120,7 @@ function createPayment(status: PaymentStatus = 'SUCCEEDED') {
     provider: 'mock',
     providerIntentId: 'pi_1',
     status,
-    amountCents: 2900,
+    amount: 2900,
     currency: 'USD',
     paidAt: now,
     createdAt: now,
@@ -127,7 +131,7 @@ function createPayment(status: PaymentStatus = 'SUCCEEDED') {
 function createReturnRecord(overrides: Partial<{
   status: ReturnStatus
   shopId: string
-  lineTotalCents: number
+  lineTotal: number
   refunds: ReturnRecord['refunds']
 }> = {}): ReturnRecord {
   return {
@@ -140,27 +144,27 @@ function createReturnRecord(overrides: Partial<{
     images: ['https://example.com/a.jpg'],
     createdAt: now,
     updatedAt: now,
-    order: createOrderItem({ shopId: overrides.shopId, lineTotalCents: overrides.lineTotalCents }).order,
+    order: createOrderItem({ shopId: overrides.shopId, lineTotal: overrides.lineTotal }).order,
     items: [{
       id: '55555555-5555-4555-8555-555555555555',
       returnRequestId: '66666666-6666-4666-8666-666666666666',
       orderItemId: '22222222-2222-4222-8222-222222222222',
       quantity: 2,
       condition: null,
-      orderItem: createOrderItem({ shopId: overrides.shopId, lineTotalCents: overrides.lineTotalCents }),
+      orderItem: createOrderItem({ shopId: overrides.shopId, lineTotal: overrides.lineTotal }),
     }],
     refunds: overrides.refunds ?? [],
   }
 }
 
-function createRefund(amountCents = 2400) {
+function createRefund(amount = 2400) {
   return {
     id: '88888888-8888-4888-8888-888888888888',
     orderId: '11111111-1111-4111-8111-111111111111',
     paymentId: '77777777-7777-4777-8777-777777777777',
     returnRequestId: '66666666-6666-4666-8666-666666666666',
     status: 'PENDING' as const,
-    amountCents,
+    amount,
     reason: 'Damaged',
     createdAt: now,
     updatedAt: now,
@@ -180,7 +184,7 @@ function setup() {
   vi.mocked(repo.findSellerReturnById).mockResolvedValue(createReturnRecord())
   vi.mocked(repo.updateReturnStatus).mockImplementation(async (_id, status) => createReturnRecord({ status }))
   vi.mocked(repo.createPendingRefundForReturn).mockImplementation(async (returnRecord) =>
-    createRefund(returnRecord.items[0]!.orderItem.lineTotalCents))
+    createRefund(returnRecord.items[0]!.orderItem.lineTotal))
 }
 
 describe('ReturnService', () => {
@@ -239,7 +243,7 @@ describe('ReturnService', () => {
       createReturnRecord({ shopId: 'shop-2' }),
     ])
 
-    const results = await service.listSellerReturns(createActor('SELLER'))
+    const results = await service.listSellerReturns(sellerActor())
 
     expect(repo.findSellerReturns).toHaveBeenCalledWith(['shop-1'])
     expect(results).toHaveLength(2)
@@ -250,24 +254,24 @@ describe('ReturnService', () => {
   it('returns not found when seller cannot access another shop return', async () => {
     vi.mocked(repo.findSellerReturnById).mockResolvedValue(null)
 
-    await expect(service.getSellerReturn(createActor('SELLER'), 'return-1')).rejects.toMatchObject({ code: 'RETURN_NOT_FOUND' })
+    await expect(service.getSellerReturn(sellerActor(), 'return-1')).rejects.toMatchObject({ code: 'RETURN_NOT_FOUND' })
   })
 
   it('lets sellers approve returns and creates a pending refund with server-side amount', async () => {
-    vi.mocked(repo.findSellerReturnById).mockResolvedValue(createReturnRecord({ lineTotalCents: 1999 }))
-    vi.mocked(repo.updateReturnStatus).mockResolvedValue(createReturnRecord({ status: 'APPROVED', lineTotalCents: 1999 }))
+    vi.mocked(repo.findSellerReturnById).mockResolvedValue(createReturnRecord({ lineTotal: 1999 }))
+    vi.mocked(repo.updateReturnStatus).mockResolvedValue(createReturnRecord({ status: 'APPROVED', lineTotal: 1999 }))
 
-    const result = await service.approveSellerReturn(createActor('SELLER'), 'return-1')
+    const result = await service.approveSellerReturn(sellerActor(), 'return-1')
 
     expect(repo.updateReturnStatus).toHaveBeenCalledWith('66666666-6666-4666-8666-666666666666', 'APPROVED')
     expect(repo.createPendingRefundForReturn).toHaveBeenCalledWith(expect.objectContaining({
       status: 'APPROVED',
     }))
-    expect(result.refund).toMatchObject({ status: 'pending', amountCents: 1999 })
+    expect(result.refund).toMatchObject({ status: 'pending', amount: 1999 })
   })
 
   it('lets sellers reject requested returns', async () => {
-    const result = await service.rejectSellerReturn(createActor('SELLER'), 'return-1')
+    const result = await service.rejectSellerReturn(sellerActor(), 'return-1')
 
     expect(repo.updateReturnStatus).toHaveBeenCalledWith('66666666-6666-4666-8666-666666666666', 'REJECTED')
     expect(result.status).toBe('rejected')
@@ -275,11 +279,11 @@ describe('ReturnService', () => {
 
   it('rejects invalid return transitions and rolls back repository failures', async () => {
     vi.mocked(repo.findSellerReturnById).mockResolvedValueOnce(createReturnRecord({ status: 'APPROVED' }))
-    await expect(service.rejectSellerReturn(createActor('SELLER'), 'return-1')).rejects.toMatchObject({ code: 'INVALID_RETURN_STATE' })
+    await expect(service.rejectSellerReturn(sellerActor(), 'return-1')).rejects.toMatchObject({ code: 'INVALID_RETURN_STATE' })
 
     vi.mocked(repo.findSellerReturnById).mockResolvedValueOnce(createReturnRecord())
     vi.mocked(repo.createPendingRefundForReturn).mockRejectedValueOnce(new Error('rollback'))
-    await expect(service.approveSellerReturn(createActor('SELLER'), 'return-1')).rejects.toThrow('rollback')
+    await expect(service.approveSellerReturn(sellerActor(), 'return-1')).rejects.toThrow('rollback')
     expect(repo.transaction).toHaveBeenCalled()
   })
 })

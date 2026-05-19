@@ -8,18 +8,21 @@ import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { fetchNotifications } from "#/features/buyer/api";
+import { useFormatters, useTranslations } from "#/i18n/client";
 
 const tabs = [
-  { value: "all", label: "All" },
-  { value: "order", label: "Orders" },
-  { value: "payment", label: "Payments" },
-  { value: "refund", label: "Returns" },
-  { value: "chat", label: "Chat" },
-  { value: "promotion", label: "Promos" },
-];
+  { value: "all", labelKey: "notification.all" },
+  { value: "order", labelKey: "notification.orders" },
+  { value: "payment", labelKey: "notification.payments" },
+  { value: "refund", labelKey: "notification.returns" },
+  { value: "chat", labelKey: "notification.chat" },
+  { value: "promotion", labelKey: "notification.promos" },
+] as const;
 
 export function NotificationsPage() {
   const queryClient = useQueryClient();
+  const t = useTranslations();
+  const formatters = useFormatters();
   const [tab, setTab] = useState("all");
   const notificationsQuery = useQuery({ queryKey: ["buyer-notifications"], queryFn: fetchNotifications });
   const readAllMutation = useMutation({
@@ -34,25 +37,25 @@ export function NotificationsPage() {
 
   return (
     <>
-      <BuyerTopBar title="Notifications" />
+      <BuyerTopBar title={t("buyer.notifications")} />
       <div className="mx-auto max-w-3xl space-y-3 px-3 py-4">
         <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
           <div className="flex gap-2 overflow-x-auto">
             {tabs.map((item) => (
               <Button key={item.value} size="sm" variant={tab === item.value ? "default" : "ghost"} className={tab === item.value ? "rounded-full bg-orange-600 hover:bg-orange-700" : "rounded-full"} onClick={() => setTab(item.value)}>
-                {item.label}
+                {t(item.labelKey)}
               </Button>
             ))}
             <Button size="sm" variant="outline" className="ml-auto rounded-full" disabled={readAllMutation.isPending} onClick={() => readAllMutation.mutate()}>
               <CheckCheckIcon className="size-4" />
-              Read all
+              {t("notification.readAll")}
             </Button>
           </div>
         </div>
         {notificationsQuery.isLoading ? <BuyerLoadingList /> : null}
         {notificationsQuery.isError ? <BuyerErrorState message={notificationsQuery.error.message} onRetry={() => void notificationsQuery.refetch()} /> : null}
-        {notificationsQuery.isSuccess && notificationsQuery.data.length === 0 ? <BuyerEmptyState title="No notifications yet" description="Order updates, promotions, and system messages will appear here." /> : null}
-        {notificationsQuery.isSuccess && notificationsQuery.data.length > 0 && notifications.length === 0 ? <BuyerEmptyState title="No notifications in this category" description="Try another notification filter." /> : null}
+        {notificationsQuery.isSuccess && notificationsQuery.data.length === 0 ? <BuyerEmptyState title={t("notification.emptyTitle")} description={t("notification.emptyDescription")} /> : null}
+        {notificationsQuery.isSuccess && notificationsQuery.data.length > 0 && notifications.length === 0 ? <BuyerEmptyState title={t("notification.emptyCategoryTitle")} description={t("notification.emptyCategoryDescription")} /> : null}
         {notifications.map((notification) => {
           const Icon = notificationIcon(notification.type);
           return (
@@ -65,7 +68,7 @@ export function NotificationsPage() {
                     <Badge variant={notification.readAt ? "outline" : "default"} className="rounded-md">{notification.type}</Badge>
                   </div>
                   {notification.body ? <p className="mt-1 text-sm text-slate-600">{notification.body}</p> : null}
-                  <p className="mt-2 text-xs text-slate-400">{new Date(notification.createdAt).toLocaleString()}</p>
+                  <p className="mt-2 text-xs text-slate-400">{formatters.date(notification.createdAt)}</p>
                 </div>
               </div>
             </article>

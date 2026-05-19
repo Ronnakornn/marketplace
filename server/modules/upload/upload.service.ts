@@ -13,21 +13,29 @@ import type {
   UploadUsageInput,
 } from './upload.types.ts'
 
-const allowedContentTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const allowedContentTypesByUsage: Record<UploadUsageInput, string[]> = {
+  product_image: ['image/jpeg', 'image/png', 'image/webp'],
+  shop_image: ['image/jpeg', 'image/png', 'image/webp'],
+  review_image: ['image/jpeg', 'image/png', 'image/webp'],
+  kyc_document: ['application/pdf', 'image/jpeg', 'image/png'],
+}
 const maxFileSizeByUsage: Record<UploadUsageInput, number> = {
   product_image: 5 * 1024 * 1024,
   shop_image: 5 * 1024 * 1024,
   review_image: 3 * 1024 * 1024,
+  kyc_document: 10 * 1024 * 1024,
 }
 const usageToRecord: Record<UploadUsageInput, UploadUsage> = {
   product_image: 'PRODUCT_IMAGE',
   shop_image: 'SHOP_IMAGE',
   review_image: 'REVIEW_IMAGE',
+  kyc_document: 'KYC_DOCUMENT',
 }
-const recordToUsage: Record<UploadUsage, UploadUsageInput> = {
+const recordToUsage: Partial<Record<UploadUsage, UploadUsageInput>> = {
   PRODUCT_IMAGE: 'product_image',
   SHOP_IMAGE: 'shop_image',
   REVIEW_IMAGE: 'review_image',
+  KYC_DOCUMENT: 'kyc_document',
 }
 const presignedUrlExpiresIn = 900
 
@@ -45,8 +53,8 @@ export class UploadService {
   async createPresignedUrl(actor: UploadActor, input: PresignedUploadInput): Promise<PresignedUploadResponse> {
     this.assertStorageConfigured()
     this.assertUsage(input.usage)
-    this.assertRoleAllowed(actor, input.usage)
-    this.assertContentType(input.contentType)
+    await this.assertRoleAllowed(actor, input.usage)
+    this.assertContentType(input.usage, input.contentType)
     this.assertFileSize(input.usage, input.fileSize)
 
     const safeFileName = this.toSafeFileName(input.fileName)
@@ -115,10 +123,11 @@ export class UploadService {
     }
   }
 
-  private assertRoleAllowed(actor: UploadActor, usage: UploadUsageInput): void {
+  private async assertRoleAllowed(actor: UploadActor, usage: UploadUsageInput): Promise<void> {
     if (actor.role === 'ADMIN') return
-    if ((usage === 'product_image' || usage === 'shop_image') && actor.role === 'SELLER') return
-    if (usage === 'review_image' && actor.role === 'USER') return
+    if (usage === 'kyc_document') return
+    if ((usage === 'product_image' || usage === 'shop_image') && await this.repo.hasActiveShop(actor.id)) return
+    if (usage === 'review_image') return
 
     throw new UploadServiceError('Upload usage is not allowed for this user', 403, 'UPLOAD_FORBIDDEN')
   }
@@ -130,10 +139,11 @@ export class UploadService {
     }
   }
 
-  private assertContentType(contentType: string): void {
-    if (!allowedContentTypes.has(contentType)) {
+  private assertContentType(usage: UploadUsageInput, contentType: string): void {
+    const allowedContentTypes = allowedContentTypesByUsage[usage]
+    if (!allowedContentTypes.includes(contentType)) {
       throw new UploadServiceError('Invalid file type', 400, 'INVALID_FILE_TYPE', {
-        allowedContentTypes: [...allowedContentTypes],
+        allowedContentTypes,
       })
     }
   }
@@ -168,10 +178,14 @@ export class UploadService {
   }
 
   private toResponse(upload: UploadRecord): UploadResponse {
+    const usage = recordToUsage[upload.usage]
+    if (!usage) {
+      throw new UploadServiceError('Unsupported upload usage', 400, 'INVALID_UPLOAD_USAGE')
+    }
     return {
       id: upload.id,
       userId: upload.userId,
-      usage: recordToUsage[upload.usage],
+      usage,
       status: upload.status === 'COMPLETED' ? 'completed' : 'pending',
       fileName: upload.fileName,
       contentType: upload.contentType,

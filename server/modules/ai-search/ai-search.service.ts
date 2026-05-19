@@ -28,8 +28,8 @@ export interface AiSearchProductItem {
     slug: string
   } | null
   price: {
-    minPriceCents: number
-    maxPriceCents: number | null
+    minPrice: number
+    maxPrice: number | null
     currency: string
   }
   rating: {
@@ -164,9 +164,9 @@ export class AiSearchService {
   }
 
   private toProductItem(product: AiSearchProductRecord, locale: ContentLocale): AiSearchProductItem {
-    const prices = product.variants.map((variant) => variant.priceCents)
-    const minPriceCents = Math.min(...prices)
-    const maxPriceCents = Math.max(...prices)
+    const prices = product.variants.map((variant) => variant.price)
+    const minPrice = Math.min(...prices.map((price: string | bigint) => Number(price)));
+    const maxPrice = Math.max(...prices.map((price: string | bigint) => Number(price)));
     const currency = product.variants[0]?.currency ?? 'USD'
     const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0)
     const totalReviewCount = product.reviews.length
@@ -192,8 +192,8 @@ export class AiSearchService {
           }
         : null,
       price: {
-        minPriceCents,
-        maxPriceCents: maxPriceCents === minPriceCents ? null : maxPriceCents,
+        minPrice,
+        maxPrice: maxPrice === minPrice ? null : maxPrice,
         currency,
       },
       rating: {
@@ -228,8 +228,8 @@ export class AiSearchService {
       description: null,
       category: null,
       price: {
-        minPriceCents: item.minPrice,
-        maxPriceCents: item.maxPrice,
+        minPrice: item.minPrice,
+        maxPrice: item.maxPrice,
         currency: 'USD',
       },
       rating: item.ratingSummary,

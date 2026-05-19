@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { EventPublisherService } from '#server/modules/event-bus'
+import type { ActiveShopResolver } from '#server/modules/security'
 import { WalletServiceError } from '#server/modules/wallet'
 import type { IPayoutRepository, PayoutRecord } from './payout.repository.ts'
 
@@ -11,7 +12,7 @@ export interface PayoutActor {
 }
 
 export interface CreatePayoutInput {
-  amountCents: number
+  amount: number
 }
 
 export interface RejectPayoutInput {
@@ -25,7 +26,7 @@ export interface PayoutResponse {
     id: string
     name: string
   }
-  amountCents: number
+  amount: number
   currency: string
   status: string
   rejectionReason: string | null
@@ -42,13 +43,13 @@ export class PayoutService {
     appContext: AppContext,
     private repo: IPayoutRepository,
     private eventPublisher?: EventPublisherService,
+    private activeShopResolver?: ActiveShopResolver,
   ) {
     this.logger = appContext.logger
   }
 
   async createSellerPayout(actor: PayoutActor, input: CreatePayoutInput): Promise<PayoutResponse> {
-    this.assertSeller(actor)
-    if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+    if (!Number.isInteger(input.amount) || input.amount <= 0) {
       throw new WalletServiceError('Payout amount must be positive cents', 400, 'INVALID_PAYOUT_STATE')
     }
 
@@ -57,7 +58,7 @@ export class PayoutService {
       if (!shop) throw new WalletServiceError('Wallet not found', 404, 'WALLET_NOT_FOUND')
       const wallet = await txRepo.ensureWallet(shop.id, 'USD')
       const balance = await txRepo.sumLedger(wallet.id)
-      if (input.amountCents > balance) {
+      if (input.amount > balance) {
         throw new WalletServiceError('Payout request cannot exceed available balance', 409, 'INSUFFICIENT_BALANCE', {
           availableBalanceCents: balance,
         })
@@ -66,7 +67,7 @@ export class PayoutService {
       const payout = await txRepo.createPayout({
         walletId: wallet.id,
         shopId: shop.id,
-        amountCents: input.amountCents,
+        amount: input.amount,
         currency: wallet.currency,
         requestedById: actor.id,
       })
@@ -75,7 +76,7 @@ export class PayoutService {
         shopId: shop.id,
         payoutId: payout.id,
         type: 'payout_reserved',
-        amountCents: -input.amountCents,
+        amount: -input.amount,
         currency: wallet.currency,
         description: 'Payout balance reserved',
       })
@@ -83,15 +84,17 @@ export class PayoutService {
       await this.publishBestEffort('payout.requested', response.id, actor.id, {
         payoutId: response.id,
         shopId: response.shop.id,
-        amountCents: response.amountCents,
+        amount: response.amount,
       })
       return response
     })
   }
 
   async listSellerPayouts(actor: PayoutActor): Promise<PayoutResponse[]> {
-    this.assertSeller(actor)
-    const shopIds = (await this.repo.findSellerShops(actor.id)).map((shop) => shop.id)
+    const shopIds = this.activeShopResolver
+      ? (await this.activeShopResolver.resolveActiveShops(actor.id)).map((shop) => shop.id)
+      : (await this.repo.findSellerShops(actor.id)).map((shop) => shop.id)
+    if (shopIds.length === 0) throw new WalletServiceError('Active seller shop not found', 403, 'PAYOUT_FORBIDDEN')
     return (await this.repo.listSellerPayouts(shopIds)).map((payout) => this.toResponse(payout))
   }
 
@@ -142,7 +145,7 @@ export class PayoutService {
         shopId: payout.shopId,
         payoutId: payout.id,
         type: 'payout_rejected',
-        amountCents: payout.amountCents,
+        amount: payout.amount,
         currency: payout.currency,
         description: 'Payout reserve released after rejection',
       })
@@ -167,7 +170,7 @@ export class PayoutService {
         shopId: payout.shopId,
         payoutId: payout.id,
         type: 'payout_paid',
-        amountCents: 0,
+        amount: 0,
         currency: payout.currency,
         description: 'Payout marked paid manually',
       })
@@ -176,7 +179,7 @@ export class PayoutService {
         payoutId: response.id,
         shopId: response.shop.id,
         sellerUserId: payout.requestedById,
-        amountCents: response.amountCents,
+        amount: response.amount,
       })
       return response
     })
@@ -186,10 +189,6 @@ export class PayoutService {
     const payout = await repo.findPayoutById(payoutId)
     if (!payout) throw new WalletServiceError('Payout not found', 404, 'PAYOUT_NOT_FOUND')
     return payout
-  }
-
-  private assertSeller(actor: PayoutActor): void {
-    if (actor.role !== 'SELLER') throw new WalletServiceError('Seller payout APIs require seller role', 403, 'PAYOUT_FORBIDDEN')
   }
 
   private assertAdmin(actor: PayoutActor): void {
@@ -212,7 +211,7 @@ export class PayoutService {
         id: payout.shop.id,
         name: payout.shop.name,
       },
-      amountCents: payout.amountCents,
+      amount: payout.amount,
       currency: payout.currency,
       status: payout.status,
       rejectionReason: payout.rejectionReason,

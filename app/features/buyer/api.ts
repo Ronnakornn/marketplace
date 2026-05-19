@@ -1,12 +1,13 @@
 "use client";
 
+import { defaultCurrency } from "#/i18n/config";
 import { isSecretStorageUrl } from "#/lib/assets";
 
 export interface BuyerProduct {
   id: string;
   title: string;
   description: string | null;
-  priceCents: number;
+  price: number;
   currency: string;
   rating: number;
   soldCount: number;
@@ -20,7 +21,7 @@ export interface BuyerProduct {
     id: string;
     title: string;
     sku: string;
-    priceCents: number;
+    price: number;
     currency: string;
     stock: number;
   }>;
@@ -46,12 +47,12 @@ export interface BuyerCart {
       title: string;
       variantTitle: string;
       quantity: number;
-      unitPriceCents: number;
+      unitPrice: number;
       currency: string;
     }>;
-    subtotalCents: number;
+    subtotal: number;
   }>;
-  subtotalCents: number;
+  subtotal: number;
   currency: string;
 }
 
@@ -69,7 +70,7 @@ export interface BuyerOrder {
     productTitle: string;
     variantTitle: string;
     quantity: number;
-    lineTotalCents: number;
+    lineTotal: number;
     shopName: string;
     fulfillmentStatus: string;
   }>;
@@ -132,7 +133,7 @@ export interface BuyerFavoriteProduct {
   id: string;
   productId: string;
   title: string;
-  priceCents: number;
+  price: number;
   currency: string;
   shop: { id: string; name: string; slug: string };
   createdAt: string;
@@ -145,7 +146,7 @@ export interface BuyerFollowedShop {
   slug: string;
   followerCount: number;
   productCount: number;
-  products: Array<{ id: string; title: string; priceCents: number; currency: string }>;
+  products: Array<{ id: string; title: string; price: number; currency: string }>;
   createdAt: string;
 }
 
@@ -246,8 +247,8 @@ export async function fetchFavoriteProducts(): Promise<BuyerFavoriteProduct[]> {
       id: readString(record.id),
       productId: readString(record.productId),
       title: readString(record.title, "Product"),
-      priceCents: readNumber(record.priceCents),
-      currency: readString(record.currency, "USD"),
+      price: readNumber(record.price),
+      currency: readString(record.currency, defaultCurrency),
       shop: {
         id: readString(shop.id),
         name: readString(shop.name, "Shop"),
@@ -288,8 +289,8 @@ export async function fetchFollowedShops(): Promise<BuyerFollowedShop[]> {
         return {
           id: readString(product.id),
           title: readString(product.title, "Product"),
-          priceCents: readNumber(product.priceCents),
-          currency: readString(product.currency, "USD"),
+          price: readNumber(product.price),
+          currency: readString(product.currency, defaultCurrency),
         };
       }),
       createdAt: readString(record.createdAt, new Date().toISOString()),
@@ -476,20 +477,20 @@ function normalizeProduct(input: unknown, index = 0): BuyerProduct {
       id: readString(variant.id, `${readString(record.id)}-variant-${variantIndex}`),
       title: readString(variant.title, "Default"),
       sku: readString(variant.sku),
-      priceCents: readNumber(variant.priceCents, readNumber(record.priceCents, 0)),
-      currency: readString(variant.currency, readString(record.currency, "USD")),
+      price: readNumber(variant.price, readNumber(record.price, 0)),
+      currency: readString(variant.currency, readString(record.currency, defaultCurrency)),
       stock: readNumber(inventory.quantityOnHand, readNumber(variant.stock, 0)),
     };
   });
   const firstVariant = variants[0];
   const ratingSummary = toRecord(record.ratingSummary);
-  const minPrice = readNumber(record.minPrice, readNumber(record.priceCents));
+  const minPrice = readNumber(record.minPrice, readNumber(record.price));
   return {
     id: readString(record.id, readString(record.productId, `product-${index}`)),
     title: readString(record.title, "Untitled product"),
     description: optionalString(record.description),
-    priceCents: firstVariant?.priceCents ?? minPrice,
-    currency: firstVariant?.currency ?? readString(record.currency, "USD"),
+    price: firstVariant?.price ?? minPrice,
+    currency: firstVariant?.currency ?? readString(record.currency, defaultCurrency),
     rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 4.7)),
     soldCount: readNumber(record.soldCount, readNumber(record.sold, 0)),
     stock: firstVariant?.stock ?? readNumber(record.stock),
@@ -521,22 +522,22 @@ function normalizeCart(input: unknown): BuyerCart {
         title: readString(product.title, readString(item.productTitle, "Product")),
         variantTitle: readString(variant.title, readString(item.variantTitle, "Default")),
         quantity: readNumber(item.quantity, 1),
-        unitPriceCents: readNumber(item.unitPriceCents, readNumber(variant.priceCents)),
-        currency: readString(item.currency, readString(variant.currency, "USD")),
+        unitPrice: readNumber(item.unitPrice, readNumber(variant.price)),
+        currency: readString(item.currency, readString(variant.currency, defaultCurrency)),
       };
     });
     return {
       shopId: readString(shop.shopId, readString(shop.id, readString(shopDetail.id))),
       shopName: readString(shop.shopName, readString(shop.name, readString(shopDetail.name, "Shop"))),
       items,
-      subtotalCents: readNumber(shop.subtotalCents, items.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0)),
+      subtotal: readNumber(shop.subtotal, items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)),
     };
   });
   return {
     id: optionalString(record.id),
     shops,
-    subtotalCents: readNumber(record.subtotalCents, shops.reduce((sum, shop) => sum + shop.subtotalCents, 0)),
-    currency: readString(record.currency, shops[0]?.items[0]?.currency ?? "USD"),
+    subtotal: readNumber(record.subtotal, shops.reduce((sum, shop) => sum + shop.subtotal, 0)),
+    currency: readString(record.currency, shops[0]?.items[0]?.currency ?? defaultCurrency),
   };
 }
 
@@ -566,7 +567,7 @@ function normalizeOrder(input: unknown): BuyerOrder {
       productTitle: readString(item.productTitle, "Product"),
       variantTitle: readString(item.variantTitle, "Default"),
       quantity: readNumber(item.quantity, 1),
-      lineTotalCents: readNumber(item.lineTotalCents),
+      lineTotal: readNumber(item.lineTotal),
       shopName: readString(item.shopName, "Shop"),
       fulfillmentStatus: readString(item.fulfillmentStatus, "pending"),
     };
@@ -595,8 +596,8 @@ function normalizeOrder(input: unknown): BuyerOrder {
     orderNo: readString(record.orderNo, readString(record.orderNumber, "Order")),
     status: readString(record.status, "pending"),
     paymentStatus: readString(record.paymentStatus, "pending"),
-    totalCents: readNumber(record.totalCents, readNumber(record.grandTotalCents, readNumber(toRecord(record.totals).grandTotalCents))),
-    currency: readString(record.currency, readString(toRecord(record.totals).currency, "USD")),
+    totalCents: readNumber(record.totalCents, readNumber(record.grandTotal, readNumber(toRecord(record.totals).grandTotal))),
+    currency: readString(record.currency, readString(toRecord(record.totals).currency, defaultCurrency)),
     createdAt: readString(record.createdAt, new Date().toISOString()),
     items,
     shipments,
@@ -636,10 +637,10 @@ function readNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-export function formatMoney(cents: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
+export function formatMoney(cents: number, _currency = defaultCurrency): string {
+  return new Intl.NumberFormat("th-TH", {
     style: "currency",
-    currency,
+    currency: defaultCurrency,
     maximumFractionDigits: 2,
   }).format(cents / 100);
 }

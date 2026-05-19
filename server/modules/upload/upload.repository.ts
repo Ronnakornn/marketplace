@@ -17,6 +17,7 @@ export interface IUploadRepository {
   createUpload(input: CreateUploadRecord): Promise<Upload>
   findUploadById(fileId: string): Promise<Upload | null>
   markCompleted(fileId: string, completedAt: Date): Promise<Upload>
+  hasActiveShop(ownerId: string): Promise<boolean>
 }
 
 export class PrismaUploadRepository implements IUploadRepository {
@@ -59,6 +60,15 @@ export class PrismaUploadRepository implements IUploadRepository {
         completedAt,
       },
     })
+  }
+
+  async hasActiveShop(ownerId: string): Promise<boolean> {
+    this.logger.debug('PrismaUploadRepository.hasActiveShop', { ownerId })
+    const shop = await this.prisma.shop.findFirst({
+      where: { ownerId, status: 'ACTIVE' },
+      select: { id: true },
+    })
+    return Boolean(shop)
   }
 }
 

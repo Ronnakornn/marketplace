@@ -24,11 +24,11 @@ export function createWalletRoutes(container: ServiceContainer) {
     })
     .get('/api/seller/wallet', ({ authContext }: any) =>
       container.walletService.getSellerWallet(actor(authContext)), {
-      withRole: 'SELLER',
+      withAuth: true,
     })
     .get('/api/seller/wallet/transactions', ({ authContext, query }: any) =>
       container.walletService.listSellerTransactions(actor(authContext), query), {
-      withRole: 'SELLER',
+      withAuth: true,
       query: PaginationQuery,
     })
 }

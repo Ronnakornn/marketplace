@@ -56,8 +56,8 @@ Query:
 - `categoryId`
 - `shopId`
 - `status`
-- `minPriceCents`
-- `maxPriceCents`
+- `minPrice`
+- `maxPrice`
 - `rating`
 - `sort`
 - `cursor`
@@ -439,6 +439,39 @@ Errors:
 
 ## Seller
 
+All seller operational APIs require an authenticated user with an `ACTIVE` owned shop. Seller onboarding/status APIs require only authentication.
+
+### `GET /api/seller/application`
+
+Response data:
+- current seller application
+- linked shop status when available
+- masked KYC identifiers only
+- uploaded KYC document metadata
+
+### `POST /api/seller/application/draft`
+
+Behavior:
+- Saves shop profile, legal/KYC summary, pickup address, payout bank data, and document references.
+- Does not unlock seller operations.
+
+Errors:
+- `SELLER_APPLICATION_INVALID`
+- `SELLER_SHOP_SLUG_EXISTS`
+- `SELLER_DOCUMENT_INVALID`
+
+### `POST /api/seller/application/submit`
+
+Behavior:
+- Validates required fields and KYC documents.
+- Creates or updates a pending shop/application for admin review.
+
+Errors:
+- `SELLER_APPLICATION_INCOMPLETE`
+- `SELLER_DOCUMENTS_REQUIRED`
+- `SELLER_DOCUMENT_INVALID`
+- `SELLER_SHOP_SLUG_EXISTS`
+
 ### `GET /api/seller/dashboard`
 
 Response data:
@@ -503,6 +536,34 @@ Response data:
 
 Query:
 - status
+
+### `GET /api/admin/seller-applications`
+
+Query:
+- status
+
+Response data:
+- pending/submitted seller applications
+- applicant profile
+- shop/KYC summary with masked identifiers
+- document metadata
+
+### `GET /api/admin/seller-applications/:applicationId`
+
+Response data:
+- seller application detail
+- linked shop/profile state
+- document metadata
+
+### `PATCH /api/admin/seller-applications/:applicationId/review`
+
+Body:
+- decision: `APPROVED` or `REJECTED`
+- rejectionReason for rejected applications
+
+Behavior:
+- Approve creates or updates seller profile, activates the shop, creates wallet/settings/address records if missing, and writes audit/activity logs.
+- Reject stores reason and keeps shop operations locked.
 
 ### `PATCH /api/admin/shops/:shopId/status`
 

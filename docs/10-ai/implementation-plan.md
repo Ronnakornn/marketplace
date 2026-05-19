@@ -39,27 +39,27 @@ Before every task, read `AGENTS.md`, `docs/ARCHITECTURE.md`, the relevant domain
   Read AGENTS.md, docs/schema.dbml, docs/erd.md, docs/ARCHITECTURE.md, and .agents Prisma skills. Update prisma/schema.prisma to match the marketplace schema. Use PostgreSQL, UUID primary keys, enums, relations, integer cents money fields, order item snapshots, address snapshots, and indexes. Run Prisma format/validate, generate client, create a migration, then run typecheck and tests. Do not hand-edit generated files.
   ```
 
-## Task 2. Auth Roles and Authorization Foundation
+## Task 2. Auth and Authorization Foundation
 
-- **Goal**: Ensure Better Auth users support Buyer, Seller, and Admin flows with backend auth macros and frontend role helpers.
+- **Goal**: Ensure Better Auth users support buyer, active-shop seller, and admin flows with backend auth macros and shop ownership guards.
 - **Affected files**: `server/lib/auth*`, `server/lib/auth-plugin*`, `server/context/app-context.ts`, `app/lib/auth-client.ts`, `app/lib/auth-server.ts`, `app/lib/roles.ts`, seed/admin scripts, tests.
 - **Affected modules**: Auth, User, Seller, Admin.
-- **Database impact**: Uses `User.role`; may add seed data or role migration if missing.
-- **API impact**: Standardizes `{ withAuth: true }`, `{ withRole: "SELLER" }`, `{ withRole: "ADMIN" }`.
-- **Frontend impact**: Role-aware redirects and protected page guards for seller/admin entrypoints.
+- **Database impact**: Uses `User.role` only for `USER`/`ADMIN`; seller access comes from `SellerProfile`, `Shop.ownerId`, active shop status, and later `ShopStaff`.
+- **API impact**: Standardizes `{ withAuth: true }`, `{ withRole: "ADMIN" }`, and service-level active shop ownership guards.
+- **Frontend impact**: Application/shop-aware redirects and protected page guards for seller/admin entrypoints.
 - **Test cases**:
   - Guest can access public catalog routes.
   - Buyer-only route rejects guest.
-  - Seller route rejects buyer.
+  - Seller operational route rejects users without an active owned shop.
   - Admin route rejects non-admin.
   - Admin seed promotes configured emails.
 - **Acceptance criteria**:
   - No repeated inline auth checks where macros should be used.
-  - Role helpers are centralized.
-  - Seller/admin route protection is test-covered.
+  - Role helpers and seller access helpers are centralized.
+  - Seller active-shop/admin route protection is test-covered.
 - **Codex prompt**:
   ```text
-  Read docs/04-security/auth-permissions.md and existing auth code. Implement or tighten role-based auth helpers and macros for Buyer, Seller, and Admin. Keep auth logic centralized, update seed-admin behavior if needed, add authorization tests, then run typecheck and tests.
+  Read docs/04-security/auth-permissions.md and existing auth code. Implement or tighten auth helpers and active-shop ownership guards for buyer, seller, and admin flows. Keep auth logic centralized, update seed/admin behavior if needed, add authorization tests, then run typecheck and tests.
   ```
 
 ## Task 3. Catalog Backend Module
@@ -303,7 +303,7 @@ Before every task, read `AGENTS.md`, `docs/ARCHITECTURE.md`, the relevant domain
 
 ## Task 12. Seller Center Foundation
 
-- **Goal**: Build seller dashboard, product management, inventory management, and order processing UI around existing seller APIs.
+- **Goal**: Build seller onboarding/status plus dashboard, product management, inventory management, and order processing UI around existing seller APIs.
 - **Affected files**: `app/seller/**`, `app/features/seller/**`, `app/features/catalog/**`, `app/features/inventory/**`, tests.
 - **Affected modules**: Seller, Catalog, Inventory, Shipping.
 - **Database impact**: None unless missing seller/shop metadata is discovered.
@@ -314,9 +314,11 @@ Before every task, read `AGENTS.md`, `docs/ARCHITECTURE.md`, the relevant domain
   - Product list handles draft/active/archived/rejected.
   - Inventory editor shows on-hand/reserved/available.
   - Shipment processing form validates tracking.
-  - Buyer role cannot access seller UI.
+  - User without active shop cannot access operational seller UI.
+  - Pending/rejected application can access status but not seller operations.
 - **Acceptance criteria**:
-  - Seller pages are role-protected.
+  - Seller operational pages are active-shop protected.
+  - Seller onboarding/status pages work for authenticated buyer accounts.
   - Seller UI never exposes another shop resources.
   - Mobile views use cards; desktop can use tables.
 - **Codex prompt**:

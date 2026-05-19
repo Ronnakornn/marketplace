@@ -96,6 +96,7 @@ BETTER_AUTH_URL="http://localhost:3000"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 API_BASE_URL="http://localhost:3001"
 ADMIN_EMAILS="admin@example.com"
+PAYMENT_WEBHOOK_SECRET="your-payment-webhook-secret-at-least-32-chars"
 ```
 
 ### 3. Set Up Database

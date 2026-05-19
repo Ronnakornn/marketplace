@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { Refund } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { ActiveShopResolver } from '#server/modules/security'
 import { ReturnServiceError } from './return.errors.ts'
 import type { IReturnRepository, ReturnRecord } from './return.repository.ts'
 
@@ -29,7 +30,7 @@ export interface ReturnResponse {
   refund?: {
     id: string
     status: string
-    amountCents: number
+    amount: number
   } | null
   items: Array<{
     id: string
@@ -38,7 +39,7 @@ export interface ReturnResponse {
     productTitle: string
     variantTitle: string
     quantity: number
-    lineTotalCents: number
+    lineTotal: number
     currency: string
     fulfillmentStatus: string
   }>
@@ -54,6 +55,7 @@ export class ReturnService {
   constructor(
     appContext: AppContext,
     private repo: IReturnRepository,
+    private activeShopResolver?: ActiveShopResolver,
   ) {
     this.logger = appContext.logger
   }
@@ -118,14 +120,12 @@ export class ReturnService {
   }
 
   async listSellerReturns(actor: ReturnActor): Promise<ReturnResponse[]> {
-    this.assertSeller(actor)
     const shopIds = await this.getSellerShopIds(actor.id)
     const returns = await this.repo.findSellerReturns(shopIds)
     return returns.map((returnRecord) => this.toResponse(this.filterReturnItems(returnRecord, shopIds)))
   }
 
   async getSellerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
-    this.assertSeller(actor)
     const shopIds = await this.getSellerShopIds(actor.id)
     const returnRecord = await this.repo.findSellerReturnById(returnId, shopIds)
     if (!returnRecord) throw new ReturnServiceError('Return not found', 404, 'RETURN_NOT_FOUND')
@@ -133,7 +133,6 @@ export class ReturnService {
   }
 
   async approveSellerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
-    this.assertSeller(actor)
     return this.repo.transaction(async (txRepo) => {
       const returnRecord = await this.findSellerReturn(txRepo, actor.id, returnId)
       if (returnRecord.status !== 'REQUESTED') {
@@ -153,7 +152,6 @@ export class ReturnService {
   }
 
   async rejectSellerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
-    this.assertSeller(actor)
     return this.repo.transaction(async (txRepo) => {
       const returnRecord = await this.findSellerReturn(txRepo, actor.id, returnId)
       if (returnRecord.status !== 'REQUESTED') {
@@ -164,23 +162,26 @@ export class ReturnService {
   }
 
   private assertBuyer(actor: ReturnActor): void {
-    if (actor.role !== 'USER') {
+    if (actor.role === 'ADMIN') {
       throw new ReturnServiceError('Buyer return APIs are only available to buyers', 403, 'RETURN_FORBIDDEN')
     }
   }
 
-  private assertSeller(actor: ReturnActor): void {
-    if (actor.role !== 'SELLER') {
-      throw new ReturnServiceError('Seller return APIs are only available to sellers', 403, 'RETURN_FORBIDDEN')
-    }
-  }
-
   private async getSellerShopIds(ownerId: string): Promise<string[]> {
-    return (await this.repo.findSellerShops(ownerId)).map((shop) => shop.id)
+    const shopIds = this.activeShopResolver
+      ? (await this.activeShopResolver.resolveActiveShops(ownerId)).map((shop) => shop.id)
+      : (await this.repo.findSellerShops(ownerId)).map((shop) => shop.id)
+    if (shopIds.length === 0) {
+      throw new ReturnServiceError('Active seller shop not found', 403, 'RETURN_FORBIDDEN')
+    }
+    return shopIds
   }
 
   private async findSellerReturn(repo: IReturnRepository, ownerId: string, returnId: string): Promise<ReturnRecord> {
     const shopIds = (await repo.findSellerShops(ownerId)).map((shop) => shop.id)
+    if (shopIds.length === 0) {
+      throw new ReturnServiceError('Active seller shop not found', 403, 'RETURN_FORBIDDEN')
+    }
     const returnRecord = await repo.findSellerReturnById(returnId, shopIds)
     if (!returnRecord) throw new ReturnServiceError('Return not found', 404, 'RETURN_NOT_FOUND')
     return this.filterReturnItems(returnRecord, shopIds)
@@ -220,7 +221,7 @@ export class ReturnService {
       refund: refund ? {
         id: refund.id,
         status: refund.status.toLowerCase(),
-        amountCents: refund.amountCents,
+        amount: refund.amount,
       } : null,
       items: returnRecord.items.map((item) => ({
         id: item.id,
@@ -229,7 +230,7 @@ export class ReturnService {
         productTitle: item.orderItem.productTitle,
         variantTitle: item.orderItem.variantTitle,
         quantity: item.quantity,
-        lineTotalCents: item.orderItem.lineTotalCents,
+        lineTotal: item.orderItem.lineTotal,
         currency: item.orderItem.currency,
         fulfillmentStatus: item.orderItem.fulfillmentStatus,
       })),

@@ -1,8 +1,9 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "#server/lib/auth";
+import { prisma } from "#server/lib/prisma";
 import { defaultLocale, isLocale, withLocale } from "#/i18n/config";
-import { isAdminRole, isSellerRole } from "#/lib/roles";
+import { isAdminRole } from "#/lib/roles";
 
 export async function getServerSession() {
   try {
@@ -37,11 +38,35 @@ export async function requireAdmin() {
 }
 
 export async function requireSeller() {
-  const session = await requireUser();
+  const access = await getSellerAccess();
 
-  if (!isSellerRole(session.user.role)) {
+  if (!access.hasActiveShop) {
     notFound();
   }
 
-  return session;
+  return access.session;
+}
+
+export async function getSellerAccess() {
+  const session = await requireUser();
+
+  const [activeShop, application] = await Promise.all([
+    prisma.shop.findFirst({
+      where: { ownerId: session.user.id, status: "ACTIVE" },
+      select: { id: true, name: true, slug: true, status: true },
+    }),
+
+    prisma.sellerApplication.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, status: true, rejectionReason: true, shopId: true },
+    }),
+  ]);
+
+  return {
+    session,
+    hasActiveShop: Boolean(activeShop),
+    activeShop,
+    application,
+  };
 }

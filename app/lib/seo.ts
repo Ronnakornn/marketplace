@@ -34,6 +34,10 @@ export function safeDescription(value?: string | null, fallback = DEFAULT_DESCRI
   return description.length > 160 ? `${description.slice(0, 157).trim()}...` : description;
 }
 
+export function formatSeoPriceCents(value?: bigint | number | null): string {
+  return (Number(value ?? 0) / 100).toFixed(2);
+}
+
 export function publicPageMetadata(input: {
   title: string;
   description: string;
@@ -120,7 +124,7 @@ export async function getPublicProductSeo(productId: string) {
         orderBy: { createdAt: "asc" },
         select: {
           id: true,
-          priceCents: true,
+          price: true,
           currency: true,
           inventory: {
             select: {
@@ -158,7 +162,7 @@ export async function getPublicProductSeo(productId: string) {
     updatedAt: product.updatedAt,
     urlPath: `/products/${product.id}`,
     image: resolveSeoImage(),
-    price: firstVariant ? (firstVariant.priceCents / 100).toFixed(2) : "0.00",
+    price: formatSeoPriceCents(firstVariant?.price),
     currency: firstVariant?.currency ?? "USD",
     availability: availableStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
     shop: product.shop,
@@ -228,7 +232,7 @@ export async function getPublicShopSeo(shopId: string) {
             orderBy: { createdAt: "asc" },
             take: 1,
             select: {
-              priceCents: true,
+              price: true,
               currency: true,
             },
           },

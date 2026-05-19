@@ -34,6 +34,7 @@ function createRepoMock(): IUploadRepository {
       status: 'COMPLETED',
       completedAt,
     })),
+    hasActiveShop: vi.fn(async () => true),
   }
 }
 
@@ -63,7 +64,7 @@ function createUpload(overrides: Partial<Upload> = {}): Upload {
 }
 
 function sellerActor() {
-  return { id: 'seller-1', role: 'SELLER' as const }
+  return { id: 'seller-1', role: 'USER' as const }
 }
 
 let repo: IUploadRepository
@@ -112,6 +113,34 @@ describe('UploadService', () => {
     })).rejects.toMatchObject({ code: 'INVALID_FILE_TYPE' })
   })
 
+  it('allows authenticated users to create KYC document uploads', async () => {
+    const result = await service.createPresignedUrl({ id: 'buyer-1', role: 'USER' }, {
+      fileName: 'id-card.pdf',
+      contentType: 'application/pdf',
+      fileSize: 1024,
+      usage: 'kyc_document',
+    })
+
+    expect(result.key).toContain('uploads/kyc_document/buyer-1/')
+    expect(repo.createUpload).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'buyer-1',
+      usage: 'KYC_DOCUMENT',
+      contentType: 'application/pdf',
+    }))
+  })
+
+  it('rejects webp files for KYC document uploads', async () => {
+    await expect(service.createPresignedUrl({ id: 'buyer-1', role: 'USER' }, {
+      fileName: 'id-card.webp',
+      contentType: 'image/webp',
+      fileSize: 1024,
+      usage: 'kyc_document',
+    })).rejects.toMatchObject({
+      code: 'INVALID_FILE_TYPE',
+      details: { allowedContentTypes: ['application/pdf', 'image/jpeg', 'image/png'] },
+    })
+  })
+
   it('rejects files larger than the usage limit', async () => {
     await expect(service.createPresignedUrl({ id: 'buyer-1', role: 'USER' }, {
       fileName: 'review.png',
@@ -145,14 +174,14 @@ describe('UploadService', () => {
   })
 
   it('prevents users from completing another user upload', async () => {
-    vi.mocked(repo.findUploadById).mockResolvedValue(createUpload({ userId: 'seller-2' }))
+    ;(repo.findUploadById as ReturnType<typeof vi.fn>).mockResolvedValue(createUpload({ userId: 'seller-2' }))
 
     await expect(service.completeUpload(sellerActor(), '11111111-1111-4111-8111-111111111111'))
       .rejects.toMatchObject({ code: 'UPLOAD_FORBIDDEN' })
   })
 
   it('completes a pending upload', async () => {
-    vi.mocked(repo.findUploadById).mockResolvedValue(createUpload())
+    ;(repo.findUploadById as ReturnType<typeof vi.fn>).mockResolvedValue(createUpload())
 
     const result = await service.completeUpload(sellerActor(), '11111111-1111-4111-8111-111111111111')
 
@@ -161,7 +190,7 @@ describe('UploadService', () => {
   })
 
   it('rejects duplicate complete calls', async () => {
-    vi.mocked(repo.findUploadById).mockResolvedValue(createUpload({ status: 'COMPLETED' as UploadStatus }))
+    ;(repo.findUploadById as ReturnType<typeof vi.fn>).mockResolvedValue(createUpload({ status: 'COMPLETED' as UploadStatus }))
 
     await expect(service.completeUpload(sellerActor(), '11111111-1111-4111-8111-111111111111'))
       .rejects.toMatchObject({ code: 'UPLOAD_ALREADY_COMPLETED' })

@@ -55,7 +55,7 @@ describe('WalletService', () => {
   })
 
   it('seller wallet summary works', async () => {
-    await expect(service.getSellerWallet({ id: 'seller-1', role: 'SELLER' })).resolves.toEqual({
+    await expect(service.getSellerWallet({ id: 'seller-1', role: 'USER' })).resolves.toEqual({
       walletId: 'wallet-1',
       shopId: 'shop-1',
       shopName: 'Shop One',
@@ -67,7 +67,7 @@ describe('WalletService', () => {
   it('seller cannot see another wallet', async () => {
     vi.mocked(repo.findWalletByShopId).mockResolvedValue(walletRecord('seller-2'))
 
-    await expect(service.getSellerWallet({ id: 'seller-1', role: 'SELLER' })).rejects.toMatchObject({
+    await expect(service.getSellerWallet({ id: 'seller-1', role: 'USER' })).rejects.toMatchObject({
       code: 'WALLET_FORBIDDEN',
     })
   })
@@ -80,11 +80,11 @@ describe('WalletService', () => {
       orderNumber: 'ORD-1',
       status: 'DELIVERED',
       paymentStatus: 'SUCCEEDED',
-      subtotalCents: 10000,
-      discountTotalCents: 0,
-      shippingTotalCents: 0,
-      taxTotalCents: 0,
-      grandTotalCents: 10000,
+      subtotal: BigInt(10000),
+      discountTotal: BigInt(0),
+      shippingTotal: BigInt(0),
+      taxTotal: BigInt(0),
+      grandTotal: BigInt(10000),
       currency: 'USD',
       shippingName: 'Buyer',
       shippingPhone: null,
@@ -108,8 +108,8 @@ describe('WalletService', () => {
         shopName: 'Shop One',
         shopSlug: 'shop-one',
         quantity: 1,
-        unitPriceCents: 10000,
-        lineTotalCents: 10000,
+        unitPrice: BigInt(10000),
+        lineTotal: BigInt(10000),
         currency: 'USD',
         fulfillmentStatus: 'DELIVERED',
       }],
@@ -120,11 +120,11 @@ describe('WalletService', () => {
 
     expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       type: 'order_earning',
-      amountCents: 10000,
+      amount: 10000,
     }))
     expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       type: 'commission_fee',
-      amountCents: -1000,
+      amount: -1000,
     }))
   })
 
@@ -133,7 +133,7 @@ describe('WalletService', () => {
 
     expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       type: 'refund_adjustment',
-      amountCents: -2500,
+      amount: -2500,
       refundId: 'refund-1',
     }))
   })

@@ -48,14 +48,12 @@ export function ProductListingPage({
   const t = useTranslations();
   const localePath = useLocalePath();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const minPriceCents = toCents(minPrice);
-  const maxPriceCents = toCents(maxPrice);
   const minRating = toNumber(rating);
   const productsQuery = useQuery({
-    queryKey: ["buyer-products", locale, mode, query, categoryId, minPriceCents, maxPriceCents, sort, minRating],
+    queryKey: ["buyer-products", locale, mode, query, categoryId, minPrice, maxPrice, sort, minRating],
     queryFn: () => mode === "search"
-      ? fetchSearchProducts({ q: query, categoryId, minPrice: minPriceCents, maxPrice: maxPriceCents, sort: sort === "relevance" ? "newest" : sort, rating: minRating, limit: 40, locale })
-      : fetchProducts({ q: query, categoryId, minPrice: minPriceCents, maxPrice: maxPriceCents, locale }),
+      ? fetchSearchProducts({ q: query, categoryId, minPrice, maxPrice, sort: sort === "relevance" ? "newest" : sort, rating: minRating, limit: 40, locale })
+      : fetchProducts({ q: query, categoryId, minPrice, maxPrice, locale }),
   });
   const suggestionsQuery = useQuery({
     queryKey: ["buyer-search-suggestions", locale, query],
@@ -381,12 +379,6 @@ function FilterLink({ href, active, children }: { href: string; active?: boolean
   );
 }
 
-function toCents(value?: string): number | undefined {
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : undefined;
-}
-
 function toNumber(value?: string): number | undefined {
   if (!value) return undefined;
   const parsed = Number(value);
@@ -397,9 +389,9 @@ function sortProducts(products: BuyerProduct[], sort: string): BuyerProduct[] {
   const items = [...products];
   switch (sort) {
     case "price_asc":
-      return items.sort((a, b) => a.priceCents - b.priceCents || a.title.localeCompare(b.title));
+      return items.sort((a, b) => a.prices - b.prices || a.title.localeCompare(b.title));
     case "price_desc":
-      return items.sort((a, b) => b.priceCents - a.priceCents || a.title.localeCompare(b.title));
+      return items.sort((a, b) => b.prices - a.prices || a.title.localeCompare(b.title));
     case "best_selling":
       return items.sort((a, b) => b.soldCount - a.soldCount || a.title.localeCompare(b.title));
     case "rating":

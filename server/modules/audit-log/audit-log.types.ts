@@ -2,6 +2,8 @@ import type { AuditAction, Role } from '#generated/client/enums.ts'
 
 export const auditActions = [
   'USER_STATUS_CHANGED',
+  'SELLER_APPLICATION_STATUS_CHANGED',
+  'SELLER_PROFILE_STATUS_CHANGED',
   'SHOP_STATUS_CHANGED',
   'PRODUCT_STATUS_CHANGED',
   'ORDER_STATUS_CHANGED',

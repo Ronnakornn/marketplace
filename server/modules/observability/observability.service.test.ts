@@ -86,6 +86,7 @@ describe('ObservabilityService', () => {
         redisUrl: 'redis://localhost:6379',
         attempts: 3,
         concurrency: 1,
+        skipRedisVersionCheck: true,
       },
     })
     vi.mocked(repo.checkRedis).mockResolvedValue(false)

@@ -35,11 +35,11 @@ export function createOrderRoutes(container: ServiceContainer) {
       params: OrderParamsSchema,
     })
     .get('/api/seller/orders', ({ authContext }: any) => container.orderService.listSellerOrders(authContext!.user), {
-      withRole: 'SELLER',
+      withAuth: true,
     })
     .get('/api/seller/orders/:orderId', ({ authContext, params }: any) =>
       container.orderService.getSellerOrder(authContext!.user, params.orderId), {
-      withRole: 'SELLER',
+      withAuth: true,
       params: OrderParamsSchema,
     })
 }

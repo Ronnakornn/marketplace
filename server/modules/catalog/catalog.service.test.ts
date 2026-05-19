@@ -36,6 +36,7 @@ function createRepoMock(): ICatalogRepository {
     updateVariant: vi.fn(),
     deleteVariant: vi.fn(),
     findVariantById: vi.fn(),
+    updateVariantInventory: vi.fn(),
   }
 }
 
@@ -67,19 +68,28 @@ function createCacheService() {
 function createActor(overrides: Partial<{ id: string; role: Role }> = {}) {
   return {
     id: overrides.id ?? 'seller-1',
-    role: overrides.role ?? 'SELLER',
+    role: overrides.role ?? 'USER',
   }
 }
 
 function createProduct(overrides: Partial<{
-  id: string
-  shopId: string
-  categoryId: string | null
-  title: string
-  slug: string
-  description: string | null
-  status: ProductStatus
-  ownerId: string
+  id: string;
+  shopId: string;
+  categoryId: string | null;
+  title: string;
+  slug: string;
+  description: string | null;
+  status: ProductStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  category: { id: string; name: string; slug: string } | null;
+  shop: { id: string; name: string; slug: string; ownerId: string; status: 'ACTIVE' };
+  variants: never[];
+  sellerProfileId: string | null;
+  sellerIdentityHash: string | null;
+  productFingerprintHash: string | null;
+  duplicateOfProductId: string | null; // Add duplicateOfProductId property here
+  deletedAt: Date | null; // Add deletedAt property here
 }> = {}) {
   const now = new Date('2026-05-12T00:00:00.000Z')
   const shopId = overrides.shopId ?? '11111111-1111-4111-8111-111111111111'
@@ -109,15 +119,19 @@ function createProduct(overrides: Partial<{
       status: 'ACTIVE' as const,
     },
     variants: [],
+    sellerProfileId: overrides.sellerProfileId ?? null,
+    sellerIdentityHash: overrides.sellerIdentityHash ?? null,
+    productFingerprintHash: overrides.productFingerprintHash ?? null,
+    duplicateStatus: overrides.duplicateStatus ?? null,
   }
 }
-
 function createVariant(overrides: Partial<{
   id: string
   productId: string
   sku: string
   title: string
-  priceCents: number
+  price: bigint
+  currency: string
 }> = {}) {
   const now = new Date('2026-05-12T00:00:00.000Z')
 
@@ -126,7 +140,7 @@ function createVariant(overrides: Partial<{
     productId: overrides.productId ?? '22222222-2222-4222-8222-222222222222',
     sku: overrides.sku ?? 'SKU-1',
     title: overrides.title ?? 'Blue',
-    priceCents: overrides.priceCents ?? 1299,
+    price: overrides.price ?? 1299,
     currency: 'USD',
     status: 'ACTIVE' as const,
     createdAt: now,
@@ -153,8 +167,8 @@ describe('CatalogService', () => {
     await expect(service.listPublicProducts({
       keyword: ' bag ',
       shopId: '11111111-1111-4111-8111-111111111111',
-      minPriceCents: 100,
-      maxPriceCents: 2000,
+      minPrice: 100,
+      maxPrice: 2000,
       cursor: '99999999-9999-4999-8999-999999999999',
       limit: 10,
     })).resolves.toMatchObject({
@@ -164,8 +178,8 @@ describe('CatalogService', () => {
     expect(repo.findProducts).toHaveBeenCalledWith({
       keyword: 'bag',
       shopId: '11111111-1111-4111-8111-111111111111',
-      minPriceCents: 100,
-      maxPriceCents: 2000,
+      minPrice: 100,
+      maxPrice: 2000,
       cursor: '99999999-9999-4999-8999-999999999999',
       limit: 10,
       status: 'ACTIVE',
@@ -220,8 +234,8 @@ describe('CatalogService', () => {
     expect(repo.findProducts).toHaveBeenCalledWith({
       keyword: undefined,
       shopId: '11111111-1111-4111-8111-111111111111',
-      minPriceCents: undefined,
-      maxPriceCents: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
       cursor: undefined,
       limit: 5,
       status: 'DRAFT',
@@ -294,26 +308,26 @@ describe('CatalogService', () => {
     await service.createVariant(createActor(), product.id, {
       sku: ' SKU-1 ',
       title: ' Blue ',
-      priceCents: 1299,
+      price: 1299,
     })
 
     expect(repo.createVariant).toHaveBeenCalledWith({
       productId: product.id,
       sku: 'SKU-1',
       title: 'Blue',
-      priceCents: 1299,
+      price: 1299,
       currency: 'USD',
     })
   })
 
-  it('rejects non-positive variant prices', async () => {
+  it('rejects non-positive variant price', async () => {
     const repo = createRepoMock()
     const service = new CatalogService(createAppContext(), repo)
 
     await expect(service.createVariant(createActor(), '22222222-2222-4222-8222-222222222222', {
       sku: 'SKU-1',
       title: 'Blue',
-      priceCents: 0,
+      price: 0,
     })).rejects.toMatchObject({
       status: 400,
       code: 'VARIANT_VALIDATION_FAILED',
@@ -328,17 +342,17 @@ describe('CatalogService', () => {
       product,
     })
     vi.mocked(repo.findProductById).mockResolvedValue(product)
-    vi.mocked(repo.updateVariant).mockResolvedValue(createVariant({ title: 'Red', priceCents: 1499 }))
+    vi.mocked(repo.updateVariant).mockResolvedValue(createVariant({ title: 'Red', price: BigInt(1499) }))
     const service = new CatalogService(createAppContext(), repo)
 
     await service.updateVariant(createActor(), product.id, '33333333-3333-4333-8333-333333333333', {
       title: ' Red ',
-      priceCents: 1499,
+      price: 1499,
     })
 
     expect(repo.updateVariant).toHaveBeenCalledWith('33333333-3333-4333-8333-333333333333', {
       title: 'Red',
-      priceCents: 1499,
+      price: 1499,
     })
   })
 
@@ -356,6 +370,44 @@ describe('CatalogService', () => {
     expect(repo.deleteVariant).toHaveBeenCalledWith(variant.id)
   })
 
+  it('updates seller inventory while preserving reserved stock ownership rules', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    const variant = createVariant({ productId: product.id })
+    vi.mocked(repo.findVariantById).mockResolvedValue({ ...variant, product })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.updateVariantInventory).mockResolvedValue({
+      id: 'inventory-1',
+      quantityOnHand: 12,
+      quantityReserved: 3,
+      reorderLevel: 4,
+      updatedAt: new Date('2026-05-12T00:00:00.000Z'),
+    })
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.updateSellerInventory(createActor(), variant.id, {
+      quantityOnHand: 12,
+      reorderLevel: 4,
+    })).resolves.toMatchObject({ quantityOnHand: 12, quantityReserved: 3, reorderLevel: 4 })
+
+    expect(repo.updateVariantInventory).toHaveBeenCalledWith(variant.id, {
+      quantityOnHand: 12,
+      reorderLevel: 4,
+    })
+  })
+
+  it('rejects invalid seller inventory quantities', async () => {
+    const repo = createRepoMock()
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.updateSellerInventory(createActor(), 'variant-1', {
+      quantityOnHand: -1,
+    })).rejects.toMatchObject({
+      status: 400,
+      code: 'INVENTORY_VALIDATION_FAILED',
+    })
+  })
+
   it('maps duplicate SKU or slug errors to conflict', async () => {
     const repo = createRepoMock()
     const product = createProduct({ ownerId: 'seller-1' })
@@ -366,7 +418,7 @@ describe('CatalogService', () => {
     await expect(service.createVariant(createActor(), product.id, {
       sku: 'SKU-1',
       title: 'Blue',
-      priceCents: 1299,
+      price: 1299,
     })).rejects.toMatchObject({
       status: 409,
       code: 'CATALOG_CONFLICT',

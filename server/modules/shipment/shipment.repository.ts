@@ -155,7 +155,7 @@ export class PrismaShipmentRepository implements IShipmentRepository {
   findSellerShops(ownerId: string): Promise<Pick<Shop, 'id'>[]> {
     this.logger.debug('PrismaShipmentRepository.findSellerShops', { ownerId })
     return this.prisma.shop.findMany({
-      where: { ownerId },
+      where: { ownerId, status: 'ACTIVE' },
       select: { id: true },
     })
   }

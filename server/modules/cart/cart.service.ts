@@ -22,7 +22,7 @@ export interface UpdateCartItemData {
 export interface CartResponse {
   id: string
   shops: CartShopGroup[]
-  subtotalCents: number
+  subtotal: number
   currency: string | null
 }
 
@@ -33,7 +33,7 @@ export interface CartShopGroup {
     slug: string
   }
   items: CartResponseItem[]
-  subtotalCents: number
+  subtotal: number
   currency: string | null
 }
 
@@ -49,13 +49,13 @@ export interface CartResponseItem {
     id: string
     sku: string
     title: string
-    priceCents: number
+    price: number
     currency: string
   }
   quantity: number
-  unitPriceCents: number
+  unitPrice: number
   currency: string
-  lineTotalCents: number
+  lineTotal: number
   availableQuantity: number
 }
 
@@ -97,7 +97,7 @@ export class CartService {
         cartId: cart.id,
         variantId: variant!.id,
         quantity: data.quantity,
-        unitPriceCents: variant!.priceCents,
+        unitPrice: this.toMoneyNumber(this.getVariantPrice(variant!)),
         currency: variant!.currency,
       })
     }
@@ -139,7 +139,7 @@ export class CartService {
   }
 
   private assertBuyer(actor: CartActor): void {
-    if (actor.role !== 'USER') {
+    if (actor.role === 'ADMIN') {
       throw new CartServiceError('Buyer cart APIs are only available to buyer accounts', 403, 'CART_FORBIDDEN')
     }
   }
@@ -180,7 +180,8 @@ export class CartService {
 
     for (const item of cart.items) {
       const shop = item.variant.product.shop
-      const lineTotalCents = item.unitPriceCents * item.quantity
+      const unitPrice = this.toMoneyNumber(item.unitPrice)
+      const lineTotal = unitPrice * item.quantity
       const responseItem: CartResponseItem = {
         id: item.id,
         product: {
@@ -201,13 +202,13 @@ export class CartService {
             en: item.variant.titleEn,
             fallback: item.variant.title,
           }) ?? item.variant.title,
-          priceCents: item.variant.priceCents,
+          price: this.toMoneyNumber(this.getVariantPrice(item.variant)),
           currency: item.variant.currency,
         },
         quantity: item.quantity,
-        unitPriceCents: item.unitPriceCents,
+        unitPrice,
         currency: item.currency,
-        lineTotalCents,
+        lineTotal,
         availableQuantity: this.getAvailableQuantity(item.variant),
       }
 
@@ -218,18 +219,18 @@ export class CartService {
           slug: shop.slug,
         },
         items: [],
-        subtotalCents: 0,
+        subtotal: 0,
         currency: item.currency,
       }
 
       group.items.push(responseItem)
-      group.subtotalCents += lineTotalCents
+      group.subtotal += lineTotal
       if (group.currency !== item.currency) group.currency = null
       groups.set(shop.id, group)
     }
 
     const shops = [...groups.values()]
-    const subtotalCents = shops.reduce((total, shop) => total + shop.subtotalCents, 0)
+    const subtotal = shops.reduce((total, shop) => total + shop.subtotal, 0)
     const currency = shops.reduce<string | null>((current, shop) => {
       if (current === undefined) return shop.currency
       return current === shop.currency ? current : null
@@ -238,8 +239,16 @@ export class CartService {
     return {
       id: cart.id,
       shops,
-      subtotalCents,
+      subtotal,
       currency,
     }
+  }
+
+  private toMoneyNumber(value: bigint | number): number {
+    return typeof value === 'bigint' ? Number(value) : value
+  }
+
+  private getVariantPrice(variant: CartItemDetail['variant']): bigint | number {
+    return variant.price ?? (variant as unknown as { prices: bigint | number }).prices
   }
 }

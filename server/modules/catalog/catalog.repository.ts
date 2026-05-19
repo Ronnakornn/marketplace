@@ -10,8 +10,8 @@ export interface ProductListFilters {
   categoryId?: string
   shopId?: string
   status?: ProductStatus
-  minPriceCents?: number
-  maxPriceCents?: number
+  minPrice?: number
+  maxPrice?: number
   cursor?: string
   limit: number
 }
@@ -60,7 +60,7 @@ export interface CreateVariantRecord {
   title: string
   titleTh?: string | null
   titleEn?: string | null
-  priceCents: number
+  prices: number
   currency: string
 }
 
@@ -69,8 +69,13 @@ export interface UpdateVariantRecord {
   title?: string
   titleTh?: string | null
   titleEn?: string | null
-  priceCents?: number
+  prices?: number
   currency?: string
+}
+
+export interface UpdateInventoryRecord {
+  quantityOnHand?: number
+  reorderLevel?: number
 }
 
 export type CatalogProductListItem = Omit<Product, 'titleTh' | 'titleEn' | 'descriptionTh' | 'descriptionEn'> & {
@@ -126,6 +131,7 @@ export interface ICatalogRepository {
   updateVariant(id: string, data: UpdateVariantRecord): Promise<CatalogVariantRecord>
   deleteVariant(id: string): Promise<CatalogVariantRecord>
   findVariantById(id: string): Promise<(CatalogVariantRecord & { product: CatalogProductRecord }) | null>
+  updateVariantInventory(variantId: string, data: UpdateInventoryRecord): Promise<NonNullable<CatalogProductListItem['variants'][number]['inventory']>>
 }
 
 const productInclude = {
@@ -194,7 +200,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   findFirstShopByOwnerId(ownerId: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null> {
     this.logger.debug('PrismaCatalogRepository.findFirstShopByOwnerId', { ownerId })
     return this.prisma.shop.findFirst({
-      where: { ownerId },
+      where: { ownerId, status: 'ACTIVE' },
       orderBy: { createdAt: 'asc' },
       select: { id: true, ownerId: true, status: true },
     })
@@ -281,6 +287,19 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     })
   }
 
+  updateVariantInventory(variantId: string, data: UpdateInventoryRecord): Promise<NonNullable<CatalogProductListItem['variants'][number]['inventory']>> {
+    this.logger.info('PrismaCatalogRepository.updateVariantInventory', { variantId })
+    return this.prisma.inventory.upsert({
+      where: { variantId },
+      create: {
+        variantId,
+        quantityOnHand: data.quantityOnHand ?? 0,
+        reorderLevel: data.reorderLevel ?? 0,
+      },
+      update: data,
+    })
+  }
+
   private buildProductWhere(filters: ProductListFilters): Prisma.ProductWhereInput {
     return {
       ...(filters.categoryId ? { category: { slug: filters.categoryId, isActive: true } } : {}),
@@ -302,13 +321,13 @@ export class PrismaCatalogRepository implements ICatalogRepository {
             ],
           }
         : {}),
-      ...(filters.minPriceCents !== undefined || filters.maxPriceCents !== undefined
+      ...(filters.minPrice !== undefined || filters.maxPrice !== undefined
         ? {
             variants: {
               some: {
-                priceCents: {
-                  ...(filters.minPriceCents !== undefined ? { gte: filters.minPriceCents } : {}),
-                  ...(filters.maxPriceCents !== undefined ? { lte: filters.maxPriceCents } : {}),
+                price: {
+                  ...(filters.minPrice !== undefined ? { gte: filters.minPrice } : {}),
+                  ...(filters.maxPrice !== undefined ? { lte: filters.maxPrice } : {}),
                 },
               },
             },

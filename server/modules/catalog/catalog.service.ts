@@ -3,6 +3,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation, CacheService } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
+import type { ActiveShopResolver } from '#server/modules/security'
 import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { CatalogServiceError } from './catalog.errors.ts'
 import type {
@@ -53,7 +54,7 @@ export interface CreateVariantData {
   title: string
   titleTh?: string | null
   titleEn?: string | null
-  priceCents: number
+  price: number
   currency?: string
 }
 
@@ -62,16 +63,21 @@ export interface UpdateVariantData {
   title?: string
   titleTh?: string | null
   titleEn?: string | null
-  priceCents?: number
+  price?: number
   currency?: string
+}
+
+export interface UpdateInventoryData {
+  quantityOnHand?: number
+  reorderLevel?: number
 }
 
 export interface PublicListProductsData {
   keyword?: string
   categoryId?: string
   shopId?: string
-  minPriceCents?: number
-  maxPriceCents?: number
+  minPrice?: number
+  maxPrice?: number
   cursor?: string
   limit?: number
   locale?: string
@@ -90,6 +96,7 @@ export class CatalogService {
     private cache?: CacheService,
     private cacheInvalidation?: CacheInvalidation,
     private eventPublisher?: EventPublisherService,
+    private activeShopResolver?: ActiveShopResolver,
   ) {
     this.logger = appContext.logger
   }
@@ -200,14 +207,14 @@ export class CatalogService {
     const product = await this.repo.findProductById(productId)
     if (!product) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
 
-    const variant = await this.handleUniqueConstraint(() =>
+   const variant = await this.handleUniqueConstraint(() =>
       this.repo.createVariant({
         productId,
         sku: data.sku.trim(),
         title: data.title.trim(),
         ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
-        priceCents: data.priceCents,
+        prices: data.price,
         currency: data.currency?.trim().toUpperCase() || 'USD',
       }),
     )
@@ -232,7 +239,7 @@ export class CatalogService {
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
         ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
-        ...(data.priceCents === undefined ? {} : { priceCents: data.priceCents }),
+        ...(data.price === undefined ? {} : { price: data.price }),
         ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
       }),
     )
@@ -372,7 +379,7 @@ export class CatalogService {
         productId,
         sku: data.sku.trim(),
         title: data.title.trim(),
-        priceCents: data.priceCents,
+        prices: data.price, // Update the property name to 'prices'
         currency: data.currency?.trim().toUpperCase() || 'USD',
       }),
     )
@@ -392,7 +399,7 @@ export class CatalogService {
       this.repo.updateVariant(variantId, {
         ...(data.sku === undefined ? {} : { sku: data.sku.trim() }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
-        ...(data.priceCents === undefined ? {} : { priceCents: data.priceCents }),
+        ...(data.price === undefined ? {} : { price: data.price }),
         ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
       }),
     )
@@ -408,20 +415,68 @@ export class CatalogService {
     return deleted
   }
 
+  async updateSellerInventory(actor: CatalogActor, variantId: string, data: UpdateInventoryData) {
+    this.logger.info('CatalogService.updateSellerInventory', { actorId: actor.id, variantId })
+    if (Object.keys(data).length === 0) {
+      throw new CatalogServiceError('At least one inventory field is required', 400, 'INVENTORY_VALIDATION_FAILED')
+    }
+    const update: UpdateInventoryData = {}
+    if (data.quantityOnHand !== undefined) {
+      if (!Number.isInteger(data.quantityOnHand) || data.quantityOnHand < 0) {
+        throw new CatalogServiceError('Quantity on hand must be a non-negative integer', 400, 'INVENTORY_VALIDATION_FAILED')
+      }
+      update.quantityOnHand = data.quantityOnHand
+    }
+    if (data.reorderLevel !== undefined) {
+      if (!Number.isInteger(data.reorderLevel) || data.reorderLevel < 0) {
+        throw new CatalogServiceError('Reorder level must be a non-negative integer', 400, 'INVENTORY_VALIDATION_FAILED')
+      }
+      update.reorderLevel = data.reorderLevel
+    }
+    const variant = await this.repo.findVariantById(variantId)
+    if (!variant) throw new CatalogServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
+    await this.getManageableProduct(actor, variant.productId)
+    const inventory = await this.repo.updateVariantInventory(variantId, update)
+    await this.cacheInvalidation?.invalidateVariant(variant.productId)
+    return inventory
+  }
+
   private async resolveSellerShop(actor: CatalogActor, requestedShopId?: string) {
+    if (this.activeShopResolver) {
+      const resolvedShopId = requestedShopId ?? (await this.activeShopResolver.resolveActiveShops(actor.id))[0]?.id
+      const activeShop = requestedShopId
+        ? await this.activeShopResolver.hasActiveShop(actor.id, requestedShopId)
+          ? await this.repo.findShopById(requestedShopId)
+          : null
+        : resolvedShopId
+          ? await this.repo.findShopById(resolvedShopId)
+          : null
+
+      if (!activeShop) throw new CatalogServiceError('Seller shop not found', 404, 'SELLER_SHOP_REQUIRED')
+      return activeShop
+    }
+
     const shop = requestedShopId
       ? await this.repo.findShopById(requestedShopId)
       : await this.repo.findFirstShopByOwnerId(actor.id)
 
     if (!shop) throw new CatalogServiceError('Seller shop not found', 404, 'SELLER_SHOP_REQUIRED')
     this.assertCanManageShop(actor, shop.ownerId)
+    this.assertShopActive(shop.status)
     return shop
   }
 
   private async getManageableProduct(actor: CatalogActor, productId: string): Promise<CatalogProductDetail> {
     const product = await this.repo.findProductById(productId)
     if (!product) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
+    if (this.activeShopResolver) {
+      if (!await this.activeShopResolver.hasActiveShop(actor.id, product.shopId)) {
+        throw new CatalogServiceError('You do not have access to this shop catalog', 403, 'PRODUCT_FORBIDDEN')
+      }
+      return product
+    }
     this.assertCanManageShop(actor, product.shop.ownerId)
+    this.assertShopActive(product.shop.status)
     return product
   }
 
@@ -444,14 +499,14 @@ export class CatalogService {
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_LIMIT) {
       throw new CatalogServiceError(`Limit must be between 1 and ${MAX_PAGE_LIMIT}`, 400, 'CATALOG_QUERY_INVALID')
     }
-    this.validatePriceRange(filters.minPriceCents, filters.maxPriceCents)
+    this.validatePriceRange(filters.minPrice, filters.maxPrice)
 
     return {
       ...(filters.keyword?.trim() ? { keyword: filters.keyword.trim() } : {}),
       ...(filters.categoryId?.trim() ? { categoryId: filters.categoryId.trim() } : {}),
       ...(filters.shopId ? { shopId: filters.shopId } : {}),
-      ...(filters.minPriceCents !== undefined ? { minPriceCents: filters.minPriceCents } : {}),
-      ...(filters.maxPriceCents !== undefined ? { maxPriceCents: filters.maxPriceCents } : {}),
+      ...(filters.minPrice !== undefined ? { minPrice: filters.minPrice } : {}),
+      ...(filters.maxPrice !== undefined ? { maxPrice: filters.maxPrice } : {}),
       ...(filters.cursor ? { cursor: filters.cursor } : {}),
       limit,
     }
@@ -497,7 +552,7 @@ export class CatalogService {
   private validateVariantInput(data: CreateVariantData): void {
     if (!data.sku.trim()) throw new CatalogServiceError('Variant SKU is required', 400, 'VARIANT_VALIDATION_FAILED')
     if (!data.title.trim()) throw new CatalogServiceError('Variant title is required', 400, 'VARIANT_VALIDATION_FAILED')
-    if (!Number.isInteger(data.priceCents) || data.priceCents <= 0) {
+    if (!Number.isInteger(data.price) || data.price <= 0) {
       throw new CatalogServiceError('Variant price must be a positive integer in cents', 400, 'VARIANT_VALIDATION_FAILED')
     }
   }
@@ -509,26 +564,31 @@ export class CatalogService {
     if (data.title !== undefined && !data.title.trim()) {
       throw new CatalogServiceError('Variant title is required', 400, 'VARIANT_VALIDATION_FAILED')
     }
-    if (data.priceCents !== undefined && (!Number.isInteger(data.priceCents) || data.priceCents <= 0)) {
+    if (data.price !== undefined && (!Number.isInteger(data.price) || data.price <= 0)) {
       throw new CatalogServiceError('Variant price must be a positive integer in cents', 400, 'VARIANT_VALIDATION_FAILED')
     }
   }
 
-  private validatePriceRange(minPriceCents?: number, maxPriceCents?: number): void {
-    if (minPriceCents !== undefined && (!Number.isInteger(minPriceCents) || minPriceCents < 0)) {
+  private validatePriceRange(minPrice?: number, maxPrice?: number): void {
+    if (minPrice !== undefined && (!Number.isInteger(minPrice) || minPrice < 0)) {
       throw new CatalogServiceError('Minimum price must be a non-negative integer in cents', 400, 'CATALOG_QUERY_INVALID')
     }
-    if (maxPriceCents !== undefined && (!Number.isInteger(maxPriceCents) || maxPriceCents < 0)) {
+    if (maxPrice !== undefined && (!Number.isInteger(maxPrice) || maxPrice < 0)) {
       throw new CatalogServiceError('Maximum price must be a non-negative integer in cents', 400, 'CATALOG_QUERY_INVALID')
     }
-    if (minPriceCents !== undefined && maxPriceCents !== undefined && minPriceCents > maxPriceCents) {
+    if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
       throw new CatalogServiceError('Minimum price cannot exceed maximum price', 400, 'CATALOG_QUERY_INVALID')
     }
   }
 
   private assertCanManageShop(actor: CatalogActor, ownerId: string): void {
-    if (actor.role === 'SELLER' && actor.id === ownerId) return
+    if (actor.id === ownerId) return
     throw new CatalogServiceError('You do not have access to this shop catalog', 403, 'PRODUCT_FORBIDDEN')
+  }
+
+  private assertShopActive(status: string): void {
+    if (status === 'ACTIVE') return
+    throw new CatalogServiceError('Seller shop is not active', 403, 'SELLER_SHOP_NOT_ACTIVE')
   }
 
   private normalizeSlug(value: string): string {

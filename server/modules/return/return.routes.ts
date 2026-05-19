@@ -50,21 +50,21 @@ export function createReturnRoutes(container: ServiceContainer) {
     })
     .get('/api/seller/returns', ({ authContext }: any) =>
       container.returnService.listSellerReturns(authContext!.user), {
-      withRole: 'SELLER',
+      withAuth: true,
     })
     .get('/api/seller/returns/:returnId', ({ authContext, params }: any) =>
       container.returnService.getSellerReturn(authContext!.user, params.returnId), {
-      withRole: 'SELLER',
+      withAuth: true,
       params: ReturnParamsSchema,
     })
     .patch('/api/seller/returns/:returnId/approve', ({ authContext, params }: any) =>
       container.returnService.approveSellerReturn(authContext!.user, params.returnId), {
-      withRole: 'SELLER',
+      withAuth: true,
       params: ReturnParamsSchema,
     })
     .patch('/api/seller/returns/:returnId/reject', ({ authContext, params }: any) =>
       container.returnService.rejectSellerReturn(authContext!.user, params.returnId), {
-      withRole: 'SELLER',
+      withAuth: true,
       params: ReturnParamsSchema,
     })
 }

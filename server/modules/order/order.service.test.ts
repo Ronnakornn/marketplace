@@ -40,11 +40,11 @@ function createOrder(): OrderRecord {
     orderNumber: 'ORD-TEST',
     status: 'PAID',
     paymentStatus: 'SUCCEEDED',
-    subtotalCents: 5000,
-    discountTotalCents: 0,
-    shippingTotalCents: 500,
-    taxTotalCents: 0,
-    grandTotalCents: 5500,
+    subtotal: BigInt(5000),
+    discountTotal: BigInt(0),
+    shippingTotal: BigInt(500),
+    taxTotal: BigInt(0),
+    grandTotal: BigInt(5500),
     currency: 'USD',
     shippingName: 'Jane Buyer',
     shippingPhone: '0800000000',
@@ -69,8 +69,8 @@ function createOrder(): OrderRecord {
         shopName: 'Shop One',
         shopSlug: 'shop-one',
         quantity: 2,
-        unitPriceCents: 1200,
-        lineTotalCents: 2400,
+        unitPrice: BigInt(1200),
+        lineTotal: BigInt(2400),
         currency: 'USD',
         fulfillmentStatus: 'PENDING',
       },
@@ -86,8 +86,8 @@ function createOrder(): OrderRecord {
         shopName: 'Shop Two',
         shopSlug: 'shop-two',
         quantity: 1,
-        unitPriceCents: 2600,
-        lineTotalCents: 2600,
+        unitPrice: BigInt(2600),
+        lineTotal: BigInt(2600),
         currency: 'USD',
         fulfillmentStatus: 'PENDING',
       },
@@ -122,8 +122,8 @@ function createOrder(): OrderRecord {
               shopName: 'Shop One',
               shopSlug: 'shop-one',
               quantity: 2,
-              unitPriceCents: 1200,
-              lineTotalCents: 2400,
+              unitPrice: BigInt(1200),
+              lineTotal: BigInt(2400),
               currency: 'USD',
               fulfillmentStatus: 'PENDING',
             },
@@ -159,8 +159,8 @@ function createOrder(): OrderRecord {
               shopName: 'Shop Two',
               shopSlug: 'shop-two',
               quantity: 1,
-              unitPriceCents: 2600,
-              lineTotalCents: 2600,
+              unitPrice: BigInt(2600),
+              lineTotal: BigInt(2600),
               currency: 'USD',
               fulfillmentStatus: 'PENDING',
             },
@@ -191,6 +191,9 @@ describe('OrderService', () => {
     expect(result[0]!.shops).toHaveLength(2)
     expect(result[0]!.shops[0]!.items).toHaveLength(1)
     expect(result[0]!.shipments[0]!.status).toBe('pending_pack')
+    expect(result[0]!.totals.grandTotal).toBe(5500)
+    expect(result[0]!.items[0]!.lineTotal).toBe(2400)
+    expect(() => JSON.stringify(result)).not.toThrow()
   })
 
   it('does not let a buyer see another buyer order', async () => {
@@ -248,7 +251,7 @@ describe('OrderService', () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', name: 'Shop One', slug: 'shop-one' }])
     vi.mocked(repo.findSellerOrders).mockResolvedValue([createOrder()])
 
-    const result = await service.listSellerOrders({ id: 'seller-1', role: 'SELLER' })
+    const result = await service.listSellerOrders({ id: 'seller-1', role: 'USER' })
 
     expect(repo.findSellerOrders).toHaveBeenCalledWith(['shop-1'])
     expect(result[0]!.items).toHaveLength(1)

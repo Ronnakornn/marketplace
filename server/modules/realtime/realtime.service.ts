@@ -60,8 +60,8 @@ export class RealtimeService {
       if (!roomId) throw new RealtimeServiceError('Invalid realtime channel', 400, 'REALTIME_INVALID_CHANNEL')
       const room = await this.repo.findChatRoomAccess(roomId)
       if (!room) throw new RealtimeServiceError('Chat room not found', 404, 'REALTIME_CHANNEL_NOT_FOUND')
-      if (actor.role === 'USER' && room.buyerId === actor.id) return
-      if (actor.role === 'SELLER' && room.shop.ownerId === actor.id) return
+      if (room.buyerId === actor.id) return
+      if (room.shop.ownerId === actor.id && room.shop.status === 'ACTIVE') return
       throw new RealtimeServiceError('Chat channel forbidden', 403, 'REALTIME_FORBIDDEN')
     }
 
@@ -70,7 +70,7 @@ export class RealtimeService {
       if (!shopId) throw new RealtimeServiceError('Invalid realtime channel', 400, 'REALTIME_INVALID_CHANNEL')
       const ownerId = await this.repo.findShopOwnerId(shopId)
       if (!ownerId) throw new RealtimeServiceError('Seller channel not found', 404, 'REALTIME_CHANNEL_NOT_FOUND')
-      if (actor.role === 'SELLER' && ownerId === actor.id) return
+      if (ownerId === actor.id) return
       throw new RealtimeServiceError('Seller chat channel forbidden', 403, 'REALTIME_FORBIDDEN')
     }
 

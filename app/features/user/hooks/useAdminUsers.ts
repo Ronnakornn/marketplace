@@ -5,8 +5,8 @@ import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
 import type { AppRole } from "#/lib/roles";
 
-type GetUsersResponse = Treaty.Data<ReturnType<typeof api.api.users.get>>;
-export type AdminUser = GetUsersResponse extends (infer T)[] ? T : never;
+type GetUsersResponse = Treaty.Data<ReturnType<typeof api.api.admin.users.get>>;
+export type AdminUser = GetUsersResponse extends { items: Array<infer T> } ? T : never;
 
 function normalizeUsers(data: unknown): AdminUser[] {
   if (Array.isArray(data)) return data as AdminUser[];
@@ -51,7 +51,10 @@ export function useUpdateUserRole() {
       return data;
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin"] }),
+      ]),
   });
 }
 
@@ -65,7 +68,10 @@ export function useCreateAdminUser() {
       return data;
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin"] }),
+      ]),
   });
 }
 
@@ -80,7 +86,10 @@ export function useUpdateAdminUser() {
       return data;
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin"] }),
+      ]),
   });
 }
 
@@ -94,6 +103,9 @@ export function useDeleteAdminUser() {
       return data;
     },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin"] }),
+      ]),
   });
 }

@@ -1,6 +1,6 @@
 import type { Role } from '#generated/client/enums.ts'
 
-export const uploadUsages = ['product_image', 'shop_image', 'review_image'] as const
+export const uploadUsages = ['product_image', 'shop_image', 'review_image', 'kyc_document'] as const
 export type UploadUsageInput = typeof uploadUsages[number]
 
 export interface UploadActor {

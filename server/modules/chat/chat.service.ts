@@ -30,9 +30,12 @@ export class ChatService {
 
   async listRooms(actor: ChatActor): Promise<ChatRoomResponse[]> {
     this.assertSupportedRole(actor.role)
-    const rooms = actor.role === 'SELLER'
-      ? await this.repo.listSellerRooms(actor.id)
-      : await this.repo.listBuyerRooms(actor.id)
+    const [buyerRooms, sellerRooms] = await Promise.all([
+      this.repo.listBuyerRooms(actor.id),
+      this.repo.listSellerRooms(actor.id),
+    ])
+    const roomsById = new Map([...buyerRooms, ...sellerRooms].map((room) => [room.id, room]))
+    const rooms = [...roomsById.values()].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
     return Promise.all(rooms.map((room) => this.toRoomResponse(room, actor)))
   }
 
@@ -50,11 +53,12 @@ export class ChatService {
   }
 
   async createRoom(actor: ChatActor, input: CreateChatRoomInput): Promise<ChatRoomResponse> {
-    if (actor.role !== 'USER') {
+    if (actor.role === 'ADMIN') {
       throw new ChatServiceError('Only buyers can create chat rooms', 403, 'CHAT_FORBIDDEN')
     }
     const shop = await this.repo.findShopById(input.shopId)
     if (!shop) throw new ChatServiceError('Shop not found', 404, 'SHOP_NOT_FOUND')
+    if (shop.status !== 'ACTIVE') throw new ChatServiceError('Shop is unavailable', 403, 'SELLER_SHOP_NOT_ACTIVE')
     if (shop.ownerId === actor.id) {
       throw new ChatServiceError('Buyer cannot create chat with own shop', 403, 'CHAT_FORBIDDEN')
     }
@@ -67,8 +71,6 @@ export class ChatService {
     const room = await this.repo.createRoom({
       buyerId: actor.id,
       shopId: input.shopId,
-      productId: input.productId,
-      orderId: input.orderId,
     })
     return this.toRoomResponse(room, actor)
   }
@@ -96,7 +98,7 @@ export class ChatService {
     this.assertSupportedRole(actor.role)
     const room = await this.findAccessibleRoom(actor, roomId)
     const readAt = new Date()
-    const updated = actor.role === 'SELLER'
+    const updated = this.isSellerParticipant(actor, room)
       ? await this.repo.markSellerRead(room.id, readAt)
       : await this.repo.markBuyerRead(room.id, readAt)
     const response = await this.toRoomResponse(updated, actor)
@@ -128,8 +130,8 @@ export class ChatService {
   private async findAccessibleRoom(actor: ChatActor, roomId: string): Promise<ChatRoomRecord> {
     const room = await this.repo.findRoomById(roomId)
     if (!room) throw new ChatServiceError('Chat room not found', 404, 'CHAT_ROOM_NOT_FOUND')
-    if (actor.role === 'USER' && room.buyerId === actor.id) return room
-    if (actor.role === 'SELLER' && room.shop.ownerId === actor.id) return room
+    if (room.buyerId === actor.id) return room
+    if (this.isSellerParticipant(actor, room)) return room
     throw new ChatServiceError('Chat access forbidden', 403, 'CHAT_FORBIDDEN')
   }
 
@@ -169,9 +171,13 @@ export class ChatService {
   }
 
   private assertSupportedRole(role: Role): void {
-    if (role !== 'USER' && role !== 'SELLER') {
+    if (role === 'ADMIN') {
       throw new ChatServiceError('Chat access forbidden', 403, 'CHAT_FORBIDDEN')
     }
+  }
+
+  private isSellerParticipant(actor: ChatActor, room: ChatRoomRecord): boolean {
+    return room.shop.ownerId === actor.id && room.shop.status === 'ACTIVE'
   }
 
   private async toRoomResponse(
@@ -180,14 +186,12 @@ export class ChatService {
     messages?: ChatMessageRecord[],
     pagination?: ChatRoomResponse['pagination'],
   ): Promise<ChatRoomResponse> {
-    const readAt = actor.role === 'SELLER' ? room.sellerReadAt : room.buyerReadAt
+    const readAt = this.isSellerParticipant(actor, room) ? room.sellerReadAt : room.buyerReadAt
     const unreadCount = await this.repo.countUnreadMessages(room.id, actor.id, readAt)
     return {
       roomId: room.id,
       shop: room.shop,
       buyer: room.buyer,
-      product: room.product,
-      order: room.order,
       lastMessage: room.messages[0] ? this.toMessageResponse(room.messages[0]) : null,
       unreadCount,
       ...(messages ? { messages: messages.map((message) => this.toMessageResponse(message)) } : {}),
@@ -241,8 +245,6 @@ export class ChatService {
           shopId: room.shopId,
           buyerId: room.buyerId,
           senderId: message.senderId,
-          productId: room.productId,
-          orderId: room.orderId,
         },
       )
     } catch (error) {

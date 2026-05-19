@@ -16,13 +16,13 @@ export interface IPayoutRepository {
   ensureWallet(shopId: string, currency: string): Promise<SellerWallet>
   findWalletByShopId(shopId: string): Promise<(SellerWallet & { shop: Pick<Shop, 'id' | 'name' | 'ownerId'> }) | null>
   sumLedger(walletId: string): Promise<number>
-  createPayout(input: { walletId: string; shopId: string; amountCents: number; currency: string; requestedById: string }): Promise<PayoutRecord>
+  createPayout(input: { walletId: string; shopId: string; amount: number; currency: string; requestedById: string }): Promise<PayoutRecord>
   createLedgerEntry(input: {
     walletId: string
     shopId: string
     payoutId: string
     type: 'payout_reserved' | 'payout_paid' | 'payout_rejected'
-    amountCents: number
+    amount: number
     currency: string
     description?: string | null
   }): Promise<WalletLedgerEntry>
@@ -63,7 +63,7 @@ export class PrismaPayoutRepository implements IPayoutRepository {
 
   findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'name' | 'ownerId'>>> {
     return this.prisma.shop.findMany({
-      where: { ownerId },
+      where: { ownerId, status: 'ACTIVE' },
       select: { id: true, name: true, ownerId: true },
       orderBy: { createdAt: 'asc' },
     })
@@ -87,18 +87,18 @@ export class PrismaPayoutRepository implements IPayoutRepository {
   async sumLedger(walletId: string): Promise<number> {
     const result = await this.prisma.walletLedgerEntry.aggregate({
       where: { walletId },
-      _sum: { amountCents: true },
+      _sum: { amount: true },
     })
-    return result._sum.amountCents ?? 0
+    return result._sum.amount ?? 0
   }
 
-  createPayout(input: { walletId: string; shopId: string; amountCents: number; currency: string; requestedById: string }): Promise<PayoutRecord> {
-    this.logger.info('PrismaPayoutRepository.createPayout', { shopId: input.shopId, amountCents: input.amountCents })
+  createPayout(input: { walletId: string; shopId: string; amount: number; currency: string; requestedById: string }): Promise<PayoutRecord> {
+    this.logger.info('PrismaPayoutRepository.createPayout', { shopId: input.shopId, amount: input.amount })
     return this.prisma.sellerPayout.create({
       data: {
         walletId: input.walletId,
         shopId: input.shopId,
-        amountCents: input.amountCents,
+        amount: input.amount,
         currency: input.currency,
         requestedById: input.requestedById,
       },
@@ -111,7 +111,7 @@ export class PrismaPayoutRepository implements IPayoutRepository {
     shopId: string
     payoutId: string
     type: 'payout_reserved' | 'payout_paid' | 'payout_rejected'
-    amountCents: number
+    amount: number
     currency: string
     description?: string | null
   }): Promise<WalletLedgerEntry> {
@@ -121,7 +121,7 @@ export class PrismaPayoutRepository implements IPayoutRepository {
         shopId: input.shopId,
         payoutId: input.payoutId,
         type: input.type,
-        amountCents: input.amountCents,
+        amount: input.amount,
         currency: input.currency,
         description: input.description ?? null,
       },

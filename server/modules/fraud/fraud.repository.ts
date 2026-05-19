@@ -30,7 +30,7 @@ export interface FraudOrderRiskContext {
     id: string
     userId: string
     checkoutId: string
-    grandTotalCents: number
+    grandTotal: number
     status: string
     paymentStatus: string
     createdAt: Date
@@ -46,7 +46,7 @@ export interface FraudOrderRiskContext {
 export interface FraudRefundRiskContext {
   refund: {
     id: string
-    amountCents: number
+    amount: number
     order: {
       userId: string
     }
@@ -104,7 +104,7 @@ export class PrismaFraudRepository implements IFraudRepository {
         id: true,
         userId: true,
         checkoutId: true,
-        grandTotalCents: true,
+        grandTotal: true,
         status: true,
         paymentStatus: true,
         createdAt: true,
@@ -138,7 +138,7 @@ export class PrismaFraudRepository implements IFraudRepository {
       where: { id: refundId },
       select: {
         id: true,
-        amountCents: true,
+        amount: true,
         order: {
           select: {
             userId: true,

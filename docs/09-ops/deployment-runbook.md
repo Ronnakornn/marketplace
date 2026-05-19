@@ -27,6 +27,7 @@ Each environment should have:
 - `API_BASE_URL`
 - `ADMIN_EMAILS`
 - `NODE_ENV`
+- `PAYMENT_WEBHOOK_SECRET`
 
 Provider integrations:
 - payment provider API key

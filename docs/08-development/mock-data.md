@@ -60,7 +60,7 @@ Fashion/clothing mock examples:
 - Linen resort shirt with Ivory/Navy/Clay colors and M/L/XL sizes.
 - Active leggings with Black/Cocoa/Ice Blue colors and XS/S/M/L sizes.
 - Wide-leg denim jeans with Light/Dark wash colors and 28/30/32 sizes.
-- Prices must be stored on `ProductVariant.priceCents`, not on `Product`.
+- Prices must be stored on `ProductVariant.prices`, not on `Product`.
 
 Inventory:
 - enough stock

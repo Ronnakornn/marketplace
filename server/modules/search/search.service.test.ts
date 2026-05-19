@@ -64,7 +64,7 @@ function createProduct(overrides: Partial<{
         id: 'variant-1',
         sku: 'TEE-1',
         title: 'Default',
-        priceCents: overrides.price ?? 1000,
+        price: overrides.price ? BigInt(overrides.price) : BigInt(1000),
         currency: 'USD',
         orderItems: [{ quantity: overrides.soldCount ?? 0 }],
       },
@@ -72,10 +72,10 @@ function createProduct(overrides: Partial<{
         id: 'variant-2',
         sku: 'TEE-2',
         title: 'Large',
-        priceCents: overrides.secondPrice,
+        price: BigInt(overrides.secondPrice), // Convert price to bigint
         currency: 'USD',
         orderItems: [],
-      }] : []),
+      }] : [])
     ],
     reviews: Array.from({ length: reviewCount }, () => ({
       rating,
@@ -109,8 +109,8 @@ describe('SearchService', () => {
       q: 'cotton',
       categoryId: undefined,
       shopId: undefined,
-      minPriceCents: undefined,
-      maxPriceCents: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
     })
     expect(result.items[0]).toMatchObject({ productId: 'p1', title: 'Cotton Tee' })
   })
@@ -162,8 +162,8 @@ describe('SearchService', () => {
     const result = await service.searchProducts({ minPrice: 2000, maxPrice: 4000 })
 
     expect(repo.findSearchableProducts).toHaveBeenCalledWith(expect.objectContaining({
-      minPriceCents: 2000,
-      maxPriceCents: 4000,
+      minPrice: 2000,
+      maxPrice: 4000,
     }))
     expect(result.items[0]).toMatchObject({ minPrice: 2500, maxPrice: 3500 })
   })

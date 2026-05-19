@@ -20,7 +20,7 @@ export type RecommendationProductRecord = Pick<Product, 'id' | 'title' | 'create
   titleEn?: string | null
   category: (Pick<Category, 'id' | 'name' | 'slug' | 'sortOrder'> & { nameTh?: string | null; nameEn?: string | null }) | null
   shop: Pick<Shop, 'id' | 'name' | 'status'>
-  variants: Array<Pick<ProductVariant, 'id' | 'priceCents' | 'status'> & {
+  variants: Array<Pick<ProductVariant, 'id' | 'price' | 'status'> & {
     orderItems: Array<{ quantity: number }>
   }>
   reviews: Array<Pick<Review, 'rating' | 'status'>>
@@ -73,7 +73,7 @@ const recommendationProductSelect = {
     where: { status: 'ACTIVE' },
     select: {
       id: true,
-      priceCents: true,
+      price: true,
       status: true,
       orderItems: {
         select: {
@@ -159,7 +159,7 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
 
   findSimilarProducts(query: SimilarRecommendationQuery, source: RecommendationProductRecord): Promise<RecommendationProductRecord[]> {
     this.logger.debug('PrismaRecommendationRepository.findSimilarProducts', { query })
-    const prices = source.variants.map((variant) => variant.priceCents)
+    const prices = source.variants.map((variant) => variant.prices)
     const minPrice = prices.length === 0 ? undefined : Math.min(...prices)
     const maxPrice = prices.length === 0 ? undefined : Math.max(...prices)
     const pricePadding = minPrice === undefined || maxPrice === undefined
@@ -176,7 +176,7 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
               variants: {
                 some: {
                   status: 'ACTIVE',
-                  priceCents: {
+                  price: {
                     gte: Math.max(0, minPrice - pricePadding),
                     lte: maxPrice + pricePadding,
                   },

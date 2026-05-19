@@ -22,12 +22,12 @@ function createApp() {
     .get("/admin", ({ authContext }: any) => ({ role: authContext!.user.role }), {
       withRole: "ADMIN",
     })
-    .get("/seller", ({ authContext }: any) => ({ role: authContext!.user.role }), {
-      withRole: "SELLER",
+    .get("/user-role", ({ authContext }: any) => ({ role: authContext!.user.role }), {
+      withRole: "USER",
     });
 }
 
-function mockUser(role: "USER" | "SELLER" | "ADMIN", status: "ACTIVE" | "SUSPENDED" = "ACTIVE") {
+function mockUser(role: "USER" | "ADMIN", status: "ACTIVE" | "SUSPENDED" = "ACTIVE") {
   return {
     user: {
       id: `${role.toLowerCase()}-1`,
@@ -58,7 +58,7 @@ describe("authPlugin", () => {
   });
 
   it("protects admin-only routes", async () => {
-    vi.mocked(getAuthContext).mockResolvedValue(mockUser("SELLER"));
+    vi.mocked(getAuthContext).mockResolvedValue(mockUser("USER"));
     const response = await createApp().handle(new Request("http://localhost/admin"));
     expect(response.status).toBe(403);
   });
@@ -69,15 +69,15 @@ describe("authPlugin", () => {
     expect(response.status).toBe(200);
   });
 
-  it("protects seller-only routes", async () => {
-    vi.mocked(getAuthContext).mockResolvedValue(mockUser("USER"));
-    const response = await createApp().handle(new Request("http://localhost/seller"));
+  it("protects role-specific routes", async () => {
+    vi.mocked(getAuthContext).mockResolvedValue(mockUser("ADMIN"));
+    const response = await createApp().handle(new Request("http://localhost/user-role"));
     expect(response.status).toBe(403);
   });
 
-  it("allows seller-only routes for sellers", async () => {
-    vi.mocked(getAuthContext).mockResolvedValue(mockUser("SELLER"));
-    const response = await createApp().handle(new Request("http://localhost/seller"));
+  it("allows role-specific routes for matching users", async () => {
+    vi.mocked(getAuthContext).mockResolvedValue(mockUser("USER"));
+    const response = await createApp().handle(new Request("http://localhost/user-role"));
     expect(response.status).toBe(200);
   });
 });

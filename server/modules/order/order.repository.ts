@@ -75,7 +75,7 @@ export class PrismaOrderRepository implements IOrderRepository {
   findSellerShops(ownerId: string): Promise<Pick<Shop, 'id' | 'name' | 'slug'>[]> {
     this.logger.debug('PrismaOrderRepository.findSellerShops', { ownerId })
     return this.prisma.shop.findMany({
-      where: { ownerId },
+      where: { ownerId, status: 'ACTIVE' },
       select: { id: true, name: true, slug: true },
       orderBy: { createdAt: 'asc' },
     })

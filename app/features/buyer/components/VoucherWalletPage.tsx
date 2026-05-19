@@ -7,21 +7,23 @@ import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Button } from "#/components/ui/button";
 import { fetchCoupons, formatMoney, type BuyerCoupon } from "#/features/buyer/api";
-import { useLocale } from "#/i18n/client";
+import { useFormatters, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
 export function VoucherWalletPage() {
   const localePath = useLocalePath();
   const locale = useLocale();
+  const t = useTranslations();
+  const formatters = useFormatters();
   const couponsQuery = useQuery({ queryKey: ["buyer-coupons", locale], queryFn: () => fetchCoupons(locale) });
 
   return (
     <>
-      <BuyerTopBar title="Voucher wallet" />
+      <BuyerTopBar title={t("buyer.voucherWallet")} />
       <div className="mx-auto max-w-5xl space-y-3 px-3 pb-28 pt-4">
         {couponsQuery.isLoading ? <BuyerLoadingList /> : null}
         {couponsQuery.isError ? <BuyerErrorState message={couponsQuery.error.message} onRetry={() => void couponsQuery.refetch()} /> : null}
-        {couponsQuery.isSuccess && couponsQuery.data.length === 0 ? <BuyerEmptyState title="No vouchers available" description="Active marketplace and shop vouchers will appear here." /> : null}
+        {couponsQuery.isSuccess && couponsQuery.data.length === 0 ? <BuyerEmptyState title={t("buyer.noVouchersTitle")} description={t("buyer.noVouchersDescription")} /> : null}
         <div className="grid gap-3 sm:grid-cols-2">
           {couponsQuery.data?.map((coupon) => (
             <article key={coupon.id} className="rounded-3xl border border-orange-100 bg-white p-4 shadow-sm">
@@ -29,14 +31,16 @@ export function VoucherWalletPage() {
                 <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600"><TicketIcon className="size-5" /></div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold uppercase text-orange-600">{coupon.code}</p>
-                  <h2 className="mt-1 text-lg font-extrabold text-slate-950">{coupon.title || couponLabel(coupon)}</h2>
+                  <h2 className="mt-1 text-lg font-extrabold text-slate-950">{coupon.title || couponLabel(coupon, t)}</h2>
                   {coupon.description ? <p className="mt-1 text-sm text-slate-500">{coupon.description}</p> : null}
-                  <p className="mt-1 text-sm text-slate-500">{coupon.minOrderCents ? `Min spend ${formatMoney(coupon.minOrderCents)}` : "Ready to apply at checkout"}</p>
-                  {coupon.endsAt ? <p className="mt-1 text-xs text-slate-400">Ends {new Date(coupon.endsAt).toLocaleString()}</p> : null}
+                  <p className="mt-1 text-sm text-slate-500">
+                    {coupon.minOrderCents ? t("buyer.minSpend").replace("{amount}", formatMoney(coupon.minOrderCents)) : t("buyer.readyToApplyAtCheckout")}
+                  </p>
+                  {coupon.endsAt ? <p className="mt-1 text-xs text-slate-400">{t("buyer.endsAt").replace("{time}", formatters.date(coupon.endsAt))}</p> : null}
                 </div>
               </div>
               <Button asChild className="mt-4 w-full rounded-2xl bg-orange-600 hover:bg-orange-700">
-                <Link href={localePath(`/cart?voucher=${encodeURIComponent(coupon.code)}`)}>Use voucher</Link>
+                <Link href={localePath(`/cart?voucher=${encodeURIComponent(coupon.code)}`)}>{t("buyer.useVoucher")}</Link>
               </Button>
             </article>
           ))}
@@ -46,9 +50,9 @@ export function VoucherWalletPage() {
   );
 }
 
-function couponLabel(coupon: BuyerCoupon) {
+function couponLabel(coupon: BuyerCoupon, t: ReturnType<typeof useTranslations>) {
   if (coupon.discountType.toLowerCase().includes("percent") && coupon.discountPercentBps) return `${coupon.discountPercentBps / 100}% off`;
   if (coupon.discountValueCents) return `${formatMoney(coupon.discountValueCents)} off`;
-  if (coupon.discountType.toLowerCase().includes("shipping")) return "Free shipping";
-  return "Special voucher";
+  if (coupon.discountType.toLowerCase().includes("shipping")) return t("product.freeShipping");
+  return t("buyer.specialVoucher");
 }

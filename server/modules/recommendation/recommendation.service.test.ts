@@ -93,13 +93,13 @@ function product(overrides: Partial<{
     variants: [
       {
         id: `${id}-v1`,
-        priceCents: overrides.price ?? 1000,
+        price: overrides.price ?? 1000,
         status: 'ACTIVE',
         orderItems: [{ quantity: overrides.soldCount ?? 0 }],
       },
       ...(overrides.secondPrice ? [{
         id: `${id}-v2`,
-        priceCents: overrides.secondPrice,
+        price: overrides.secondPrice,
         status: 'ACTIVE' as const,
         orderItems: [],
       }] : []),
@@ -130,7 +130,7 @@ describe('RecommendationService', () => {
     expect(result.items).toEqual([{
       productId: 'p1',
       title: 'Cotton Tee',
-      minPriceCents: 1000,
+      minPrice: 1000,
       rating: 4,
       soldCount: 12,
       shop: {
@@ -213,8 +213,8 @@ describe('RecommendationService', () => {
     expect(result.items[0]).toEqual({
       productId: 'p1',
       title: 'Cotton Tee',
-      minPriceCents: 1000,
-      maxPriceCents: 1500,
+      minPrice: 1000,
+      maxPrice: 1500,
       soldCount: 0,
       shop: {
         id: 'shop-1',

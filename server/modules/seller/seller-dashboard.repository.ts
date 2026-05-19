@@ -13,7 +13,7 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
 export type SellerDashboardShop = Pick<Shop, 'id' | 'name' | 'slug'>
 
-export type SellerSalesOrderItem = Pick<OrderItem, 'id' | 'shopId' | 'lineTotalCents' | 'quantity'> & {
+export type SellerSalesOrderItem = Pick<OrderItem, 'id' | 'shopId' | 'lineTotal' | 'quantity'> & {
   order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'createdAt'>
 }
 
@@ -50,7 +50,7 @@ export class PrismaSellerDashboardRepository implements ISellerDashboardReposito
   findSellerShops(ownerId: string): Promise<SellerDashboardShop[]> {
     this.logger.debug('PrismaSellerDashboardRepository.findSellerShops', { ownerId })
     return this.prisma.shop.findMany({
-      where: { ownerId },
+      where: { ownerId, status: 'ACTIVE' },
       select: { id: true, name: true, slug: true },
       orderBy: { createdAt: 'asc' },
     })
@@ -71,7 +71,7 @@ export class PrismaSellerDashboardRepository implements ISellerDashboardReposito
       select: {
         id: true,
         shopId: true,
-        lineTotalCents: true,
+        lineTotal: true,
         quantity: true,
         order: {
           select: {

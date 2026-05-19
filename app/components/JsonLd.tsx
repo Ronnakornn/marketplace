@@ -3,8 +3,12 @@ export function JsonLd({ data }: { data: Record<string, unknown> }) {
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(data).replace(/</g, "\\u003c"),
+        __html: JSON.stringify(data, jsonLdReplacer).replace(/</g, "\\u003c"),
       }}
     />
   );
+}
+
+function jsonLdReplacer(_key: string, value: unknown): unknown {
+  return typeof value === "bigint" ? value.toString() : value;
 }

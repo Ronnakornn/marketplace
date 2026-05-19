@@ -49,7 +49,7 @@ export interface CreateAffiliateCommissionInput {
   linkId: string
   clickId?: string | null
   orderId: string
-  eligibleSubtotalCents: number
+  eligiblesubtotal: number
   commissionBps: number
   commissionCents: number
   currency: string

@@ -40,7 +40,7 @@ export function CartPage() {
           <section key={shop.shopId} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
               <h2 className="font-bold text-slate-950">{shop.shopName}</h2>
-              <Badge variant="outline" className="rounded-full border-orange-200 bg-orange-50 text-orange-700">{formatMoney(shop.subtotalCents, cart.currency)}</Badge>
+              <Badge variant="outline" className="rounded-full border-orange-200 bg-orange-50 text-orange-700">{formatMoney(shop.subtotal, cart.currency)}</Badge>
             </div>
             <div className="divide-y divide-slate-100">
               {shop.items.map((item) => (
@@ -48,7 +48,7 @@ export function CartPage() {
                   <div>
                     <Link href={localePath(`/products/${item.productId}`)} className="font-semibold text-slate-950 hover:text-orange-600">{item.title}</Link>
                     <p className="mt-1 text-sm text-slate-500">{item.variantTitle}</p>
-                    <p className="mt-2 font-bold text-orange-600">{formatMoney(item.unitPriceCents, item.currency)}</p>
+                    <p className="mt-2 font-bold text-orange-600">{formatMoney(item.unitPrice, item.currency)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button size="icon" variant="outline" className="rounded-full" disabled={item.quantity <= 1 || updateMutation.isPending} onClick={() => updateMutation.mutate({ itemId: item.id, quantity: item.quantity - 1 })}>
@@ -74,7 +74,7 @@ export function CartPage() {
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div>
               <p className="text-xs text-slate-500">{t("cart.subtotal")}</p>
-              <p className="text-lg font-bold text-slate-950">{formatMoney(cart.subtotalCents, cart.currency)}</p>
+              <p className="text-lg font-bold text-slate-950">{formatMoney(cart.subtotal, cart.currency)}</p>
             </div>
             <Button asChild className="h-12 min-w-36 rounded-2xl bg-orange-600 hover:bg-orange-700"><Link href={localePath("/checkout")}>{t("cart.checkout")}</Link></Button>
           </div>

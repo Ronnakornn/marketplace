@@ -28,8 +28,10 @@ function createRepoMock(): IPromotionRepository {
     findCouponByCode: vi.fn(),
     countCouponRedemptionsForUser: vi.fn(),
     findCartForCouponValidation: vi.fn(),
+    findSellerShops: vi.fn(),
     listPublicCoupons: vi.fn(),
     listAdminCoupons: vi.fn(),
+    listSellerCoupons: vi.fn(),
     findCouponById: vi.fn(),
     createCoupon: vi.fn(),
     updateCoupon: vi.fn(),
@@ -38,6 +40,7 @@ function createRepoMock(): IPromotionRepository {
 }
 
 function createCoupon(overrides: Partial<{
+  shopId: string | null
   discountType: DiscountType
   discountValueCents: number | null
   discountPercentBps: number | null
@@ -53,7 +56,7 @@ function createCoupon(overrides: Partial<{
   const now = new Date('2026-05-13T00:00:00.000Z')
   return {
     id: '99999999-9999-4999-8999-999999999999',
-    shopId: null,
+    shopId: overrides.shopId ?? null,
     code: 'SAVE',
     discountType: overrides.discountType ?? 'FIXED_AMOUNT',
     discountValueCents: overrides.discountValueCents ?? 500,
@@ -76,11 +79,11 @@ function createCoupon(overrides: Partial<{
 let repo: IPromotionRepository
 let service: PromotionService
 
-async function validate(subtotalCents = 2_000) {
-  return service.validateCouponForSubtotal(repo, {
+async function validate(subtotal = 2_000) {
+  return service.validateCouponForsubtotal(repo, {
     userId: 'user-1',
     couponCode: ' save ',
-    subtotalCents,
+    subtotal,
   })
 }
 
@@ -100,7 +103,7 @@ describe('PromotionService', () => {
       couponId: '99999999-9999-4999-8999-999999999999',
       couponCode: 'SAVE',
       discountCents: 700,
-      subtotalCents: 2_000,
+      subtotal: 2_000,
     })
     expect(repo.findCouponByCode).toHaveBeenCalledWith('SAVE')
   })
@@ -167,5 +170,34 @@ describe('PromotionService', () => {
     vi.mocked(repo.countCouponRedemptionsForUser).mockResolvedValue(1)
 
     await expect(validate()).rejects.toMatchObject({ code: 'COUPON_USER_LIMIT_REACHED' })
+  })
+
+  it('lists and creates seller coupons for owned shops', async () => {
+    vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', ownerId: 'seller-1' }])
+    vi.mocked(repo.listSellerCoupons).mockResolvedValue([createCoupon({ shopId: 'shop-1' }) as any])
+    vi.mocked(repo.createCoupon).mockResolvedValue(createCoupon({ shopId: 'shop-1' }) as any)
+
+    await expect(service.listSellerCoupons({ id: 'seller-1', role: 'USER' })).resolves.toHaveLength(1)
+    expect(repo.listSellerCoupons).toHaveBeenCalledWith(['shop-1'])
+
+    await service.createSellerCoupon({ id: 'seller-1', role: 'USER' }, {
+      code: 'seller10',
+      discountType: 'fixed',
+      discountValueCents: 1000,
+    })
+    expect(repo.createCoupon).toHaveBeenCalledWith(expect.objectContaining({
+      shopId: 'shop-1',
+      code: 'SELLER10',
+      discountType: 'FIXED_AMOUNT',
+    }))
+  })
+
+  it('prevents sellers from updating another shop coupon', async () => {
+    vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', ownerId: 'seller-1' }])
+    vi.mocked(repo.findCouponById).mockResolvedValue(createCoupon({ shopId: 'shop-2' }) as any)
+
+    await expect(service.updateSellerCoupon({ id: 'seller-1', role: 'USER' }, 'coupon-1', {
+      isActive: false,
+    })).rejects.toMatchObject({ code: 'COUPON_NOT_FOUND' })
   })
 })

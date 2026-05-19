@@ -180,7 +180,7 @@ export function ChatThreadPage({ roomId, audience }: { roomId: string; audience:
                         )}>
                           <p className="whitespace-pre-wrap break-words">{message.body}</p>
                           <p className={cn("mt-1 text-[11px]", mine ? "text-orange-100" : "text-slate-500")}>
-                            {message.sender.name} · {formatters.date(message.createdAt)}
+                            {message.sender.name} - {formatters.date(message.createdAt)}
                           </p>
                         </div>
                       </div>

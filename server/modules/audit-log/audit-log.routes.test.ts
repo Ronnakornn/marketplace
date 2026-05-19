@@ -26,7 +26,7 @@ function createApp(container = createContainer()) {
   return new Elysia().use(createAuditLogRoutes(container))
 }
 
-function mockAuth(role: 'USER' | 'SELLER' | 'ADMIN' = 'ADMIN') {
+function mockAuth(role: 'USER' | 'ADMIN' = 'ADMIN') {
   vi.mocked(getAuthContext).mockResolvedValue({
     user: {
       id: `${role.toLowerCase()}-1`,

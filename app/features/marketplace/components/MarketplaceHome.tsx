@@ -42,8 +42,8 @@ interface StorefrontProduct {
   title: string;
   description: string | null;
   shopName: string;
-  priceCents: number;
-  originalPriceCents: number;
+  price: number;
+  originalprice: number;
   currency: string;
   rating: number;
   sold: number;
@@ -96,8 +96,8 @@ const fallbackProducts: StorefrontProduct[] = [
     title: "Canvas Weekender Bag with laptop sleeve",
     description: "Durable canvas bag for everyday travel.",
     shopName: "Demo Market Shop",
-    priceCents: 4890,
-    originalPriceCents: 6890,
+    price: 4890,
+    originalprice: 6890,
     currency: "USD",
     rating: 4.8,
     sold: 2380,
@@ -113,8 +113,8 @@ const fallbackProducts: StorefrontProduct[] = [
     title: "Ceramic Pour Over Coffee Set",
     description: "A compact pour over set for home coffee.",
     shopName: "Daily Brew",
-    priceCents: 3590,
-    originalPriceCents: 4590,
+    price: 3590,
+    originalprice: 4590,
     currency: "USD",
     rating: 4.9,
     sold: 1540,
@@ -130,8 +130,8 @@ const fallbackProducts: StorefrontProduct[] = [
     title: "Modular Desk Tray Organizer",
     description: "Stackable organizer for a cleaner workspace.",
     shopName: "Workmode",
-    priceCents: 1890,
-    originalPriceCents: 2490,
+    price: 1890,
+    originalprice: 2490,
     currency: "USD",
     rating: 4.7,
     sold: 890,
@@ -147,8 +147,8 @@ const fallbackProducts: StorefrontProduct[] = [
     title: "Wireless Mini Speaker",
     description: "Portable speaker with clear everyday sound.",
     shopName: "Sound Lab",
-    priceCents: 2990,
-    originalPriceCents: 3990,
+    price: 2990,
+    originalprice: 3990,
     currency: "USD",
     rating: 4.6,
     sold: 3210,
@@ -164,8 +164,8 @@ const fallbackProducts: StorefrontProduct[] = [
     title: "Hydrating Lip Tint Duo",
     description: "Two soft color tints with hydrating finish.",
     shopName: "Glow Cart",
-    priceCents: 1490,
-    originalPriceCents: 2190,
+    price: 1490,
+    originalprice: 2190,
     currency: "USD",
     rating: 4.8,
     sold: 4120,
@@ -181,8 +181,8 @@ const fallbackProducts: StorefrontProduct[] = [
     title: "Daily Training Shorts",
     description: "Lightweight shorts for daily movement.",
     shopName: "Move Goods",
-    priceCents: 2290,
-    originalPriceCents: 3290,
+    price: 2290,
+    originalprice: 3290,
     currency: "USD",
     rating: 4.5,
     sold: 710,
@@ -196,7 +196,7 @@ const fallbackProducts: StorefrontProduct[] = [
 
 function mapBuyerProduct(product: BuyerProduct, index: number): StorefrontProduct {
   const firstVariant = product.variants[0];
-  const priceCents = firstVariant?.priceCents ?? 1990 + index * 320;
+  const price = firstVariant?.price ?? 1990 + index * 320;
   const discountPercent = [18, 22, 25, 30, 35][index % 5];
 
   return {
@@ -205,8 +205,8 @@ function mapBuyerProduct(product: BuyerProduct, index: number): StorefrontProduc
     title: product.title,
     description: product.description,
     shopName: product.shop.name,
-    priceCents,
-    originalPriceCents: Math.round(priceCents / (1 - discountPercent / 100)),
+    price,
+    originalprice: Math.round(price / (1 - discountPercent / 100)),
     currency: firstVariant?.currency ?? "USD",
     rating: Number((4.5 + (index % 5) * 0.08).toFixed(1)),
     sold: 420 + index * 317,
@@ -464,7 +464,7 @@ function FlashSaleSection({
             </Link>
             <div className="p-2">
               <p className="line-clamp-2 min-h-9 text-xs font-semibold text-slate-800">{product.title}</p>
-              <p className="mt-1 text-base font-extrabold text-orange-600">{formatMoney(product.priceCents, product.currency)}</p>
+              <p className="mt-1 text-base font-extrabold text-orange-600">{formatMoney(product.price, product.currency)}</p>
               <div className="mt-2 h-2 rounded-full bg-orange-100">
                 <div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: `${Math.min(92, 42 + product.discountPercent)}%` }} />
               </div>
@@ -598,8 +598,8 @@ function ProductCard({
         </Link>
         <p className="mt-1 truncate text-xs text-slate-500">{product.shopName}</p>
         <div className="mt-2 flex items-end gap-1">
-          <p className="text-lg font-extrabold text-orange-600">{formatMoney(product.priceCents, product.currency)}</p>
-          <p className="mb-0.5 text-xs text-slate-400 line-through">{formatMoney(product.originalPriceCents, product.currency)}</p>
+          <p className="text-lg font-extrabold text-orange-600">{formatMoney(product.price, product.currency)}</p>
+          <p className="mb-0.5 text-xs text-slate-400 line-through">{formatMoney(product.originalprice, product.currency)}</p>
         </div>
         <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500">
           <span className="inline-flex items-center gap-1">

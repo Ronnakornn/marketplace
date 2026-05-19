@@ -84,7 +84,7 @@ function enforceRateLimit(request: Request, config: SecurityConfig, securityServ
 
 function getRateLimitCategory(pathname: string): 'auth' | 'checkout' | 'admin' | 'public' {
   if (pathname.startsWith('/api/auth') || pathname.includes('/login') || pathname.includes('/signup')) return 'auth'
-  if (pathname.startsWith('/api/checkout') || pathname.startsWith('/api/payments')) return 'checkout'
+  if (pathname.startsWith('/api/checkout') || pathname.startsWith('/api/payment')) return 'checkout'
   if (pathname.startsWith('/api/admin')) return 'admin'
   return 'public'
 }

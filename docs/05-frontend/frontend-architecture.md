@@ -45,6 +45,8 @@ Recommended seller routes:
 
 ```txt
 app/
+  seller/register/page.tsx          # Seller onboarding and KYC
+  seller/status/page.tsx            # Application pending/rejected state
   seller/page.tsx
   seller/products/page.tsx
   seller/products/new/page.tsx
@@ -57,6 +59,8 @@ app/
   seller/promotions/page.tsx
   seller/chat/page.tsx
 ```
+
+Operational seller pages must be guarded by active shop ownership. `/seller/register` and `/seller/status` require only authentication and must remain reachable for buyer accounts before approval.
 
 Recommended admin routes:
 

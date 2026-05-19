@@ -2,6 +2,7 @@ import type { Coupon } from '#generated/client/client.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { ActiveShopResolver } from '#server/modules/security'
 import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { PromotionServiceError } from './promotion.errors.ts'
 import type {
@@ -26,14 +27,14 @@ export interface ValidateCouponInput {
 export interface CouponValidationContext {
   userId: string
   couponCode: string
-  subtotalCents: number
+  subtotal: number
 }
 
 export interface CouponValidationResult {
   couponId: string
   couponCode: string
-  discountCents: number
-  subtotalCents: number
+  discount: number
+  subtotal: number
 }
 
 export interface CouponPayload {
@@ -43,10 +44,10 @@ export interface CouponPayload {
   descriptionTh?: string | null
   descriptionEn?: string | null
   discountType: 'fixed' | 'percent'
-  discountValueCents?: number | null
+  discountValue?: number | null
   discountPercentBps?: number | null
-  minOrderCents?: number | null
-  maxDiscountCents?: number | null
+  minOrder?: number | null
+  maxDiscount?: number | null
   startsAt?: string | Date | null
   endsAt?: string | Date | null
   usageLimit?: number | null
@@ -60,6 +61,7 @@ export class PromotionService {
   constructor(
     appContext: AppContext,
     private repo: IPromotionRepository,
+    private activeShopResolver?: ActiveShopResolver,
   ) {
     this.logger = appContext.logger
   }
@@ -75,33 +77,38 @@ export class PromotionService {
     return this.repo.listAdminCoupons()
   }
 
+  async listSellerCoupons(actor: PromotionActor): Promise<Coupon[]> {
+    const shopIds = await this.getSellerShopIds(actor)
+    return this.repo.listSellerCoupons(shopIds)
+  }
+
   async validateCoupon(actor: PromotionActor, input: ValidateCouponInput): Promise<CouponValidationResult> {
     this.assertBuyer(actor)
     const code = this.normalizeCode(input.couponCode)
     const cart = await this.repo.findCartForCouponValidation(input.cartId, actor.id)
     if (!cart) throw new PromotionServiceError('Cart not found', 404, 'INVALID_COUPON')
-    const subtotalCents = this.calculateCartSubtotal(cart)
-    return this.validateCouponForSubtotal(this.repo, { userId: actor.id, couponCode: code, subtotalCents })
+    const subtotal = this.calculateCartsubtotal(cart)
+    return this.validateCouponForsubtotal(this.repo, { userId: actor.id, couponCode: code, subtotal })
   }
 
-  async validateCouponForSubtotal(
+  async validateCouponForsubtotal(
     repo: IPromotionValidationRepository,
     context: CouponValidationContext,
   ): Promise<CouponValidationResult> {
     const code = this.normalizeCode(context.couponCode)
-    this.logger.debug('PromotionService.validateCouponForSubtotal', {
+    this.logger.debug('PromotionService.validateCouponForsubtotal', {
       userId: context.userId,
       couponCode: code,
-      subtotalCents: context.subtotalCents,
+      subtotal: context.subtotal,
     })
     const coupon = await repo.findCouponByCode(code)
     if (!coupon) throw new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND')
-    await this.assertCouponUsable(repo, coupon, context.userId, context.subtotalCents)
+    await this.assertCouponUsable(repo, coupon, context.userId, context.subtotal)
     return {
       couponId: coupon.id,
       couponCode: coupon.code,
-      discountCents: this.calculateDiscount(coupon, context.subtotalCents),
-      subtotalCents: context.subtotalCents,
+      discount: this.calculateDiscount(coupon, context.subtotal),
+      subtotal: context.subtotal,
     }
   }
 
@@ -110,11 +117,22 @@ export class PromotionService {
     return this.repo.createCoupon(this.normalizeCouponPayload(payload) as CreateCouponInput)
   }
 
+  async createSellerCoupon(actor: PromotionActor, payload: CouponPayload): Promise<Coupon> {
+    const shopId = (await this.getSellerShopIds(actor))[0]
+    if (!shopId) throw new PromotionServiceError('Seller shop not found', 404, 'COUPON_FORBIDDEN')
+    return this.repo.createCoupon({ ...this.normalizeCouponPayload(payload) as CreateCouponInput, shopId })
+  }
+
   async updateCoupon(actor: PromotionActor, couponId: string, payload: Partial<CouponPayload>): Promise<Coupon> {
     this.assertAdmin(actor)
     const coupon = await this.repo.findCouponById(couponId)
     if (!coupon) throw new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND')
     return this.repo.updateCoupon(couponId, this.normalizeCouponPayload(payload, true))
+  }
+
+  async updateSellerCoupon(actor: PromotionActor, couponId: string, payload: Partial<CouponPayload>): Promise<Coupon> {
+    const coupon = await this.getSellerCoupon(actor, couponId)
+    return this.repo.updateCoupon(coupon.id, this.normalizeCouponPayload(payload, true))
   }
 
   async deleteCoupon(actor: PromotionActor, couponId: string): Promise<{ ok: true }> {
@@ -125,8 +143,14 @@ export class PromotionService {
     return { ok: true }
   }
 
+  async deleteSellerCoupon(actor: PromotionActor, couponId: string): Promise<{ ok: true }> {
+    const coupon = await this.getSellerCoupon(actor, couponId)
+    await this.repo.deleteCoupon(coupon.id)
+    return { ok: true }
+  }
+
   private assertBuyer(actor: PromotionActor): void {
-    if (actor.role !== 'USER') {
+    if (actor.role === 'ADMIN') {
       throw new PromotionServiceError('Coupon validation is only available to buyers', 403, 'INVALID_COUPON')
     }
   }
@@ -137,17 +161,34 @@ export class PromotionService {
     }
   }
 
+  private async getSellerShopIds(actor: PromotionActor): Promise<string[]> {
+    const shops = this.activeShopResolver
+      ? await this.activeShopResolver.resolveActiveShops(actor.id)
+      : await this.repo.findSellerShops(actor.id)
+    if (shops.length === 0) throw new PromotionServiceError('Active seller shop not found', 403, 'COUPON_FORBIDDEN')
+    return shops.map((shop) => shop.id)
+  }
+
+  private async getSellerCoupon(actor: PromotionActor, couponId: string): Promise<Coupon> {
+    const shopIds = await this.getSellerShopIds(actor)
+    const coupon = await this.repo.findCouponById(couponId)
+    if (!coupon || !coupon.shopId || !shopIds.includes(coupon.shopId)) {
+      throw new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND')
+    }
+    return coupon
+  }
+
   private async assertCouponUsable(
     repo: IPromotionValidationRepository,
     coupon: PromotionCoupon,
     userId: string,
-    subtotalCents: number,
+    subtotal: number,
   ): Promise<void> {
     const now = new Date()
     if (!coupon.isActive) throw new PromotionServiceError('Coupon is inactive', 400, 'COUPON_INACTIVE')
     if (coupon.startsAt && coupon.startsAt > now) throw new PromotionServiceError('Coupon has not started', 400, 'COUPON_NOT_STARTED')
     if (coupon.endsAt && coupon.endsAt < now) throw new PromotionServiceError('Coupon has expired', 400, 'COUPON_EXPIRED')
-    if (coupon.minOrderCents !== null && subtotalCents < coupon.minOrderCents) {
+    if (coupon.minOrder !== null && subtotal < coupon.minOrder) {
       throw new PromotionServiceError('Minimum order amount not met', 400, 'COUPON_MIN_ORDER_NOT_MET')
     }
     if (coupon.usageLimit !== null && coupon._count.redemptions >= coupon.usageLimit) {
@@ -161,21 +202,21 @@ export class PromotionService {
     }
   }
 
-  private calculateDiscount(coupon: PromotionCoupon, subtotalCents: number): number {
-    let discountCents = 0
+  private calculateDiscount(coupon: PromotionCoupon, subtotal: number): number {
+    let discount = 0
     if (coupon.discountType === 'FIXED_AMOUNT') {
-      discountCents = coupon.discountValueCents ?? 0
+      discount = this.toMoneyNumber(coupon.discountValue ?? 0)
     } else if (coupon.discountType === 'PERCENT') {
-      discountCents = Math.floor(subtotalCents * (coupon.discountPercentBps ?? 0) / 10_000)
-      if (coupon.maxDiscountCents !== null) {
-        discountCents = Math.min(discountCents, coupon.maxDiscountCents)
+      discount = Math.floor(subtotal * (coupon.discountPercentBps ?? 0) / 10_000)
+      if (coupon.maxDiscount !== null) {
+        discount = Math.min(discount, this.toMoneyNumber(coupon.maxDiscount))
       }
     }
-    return Math.min(Math.max(0, discountCents), subtotalCents)
+    return Math.min(Math.max(0, discount), subtotal)
   }
 
-  private calculateCartSubtotal(cart: PromotionCart): number {
-    return cart.items.reduce((total, item) => total + item.variant.priceCents * item.quantity, 0)
+  private calculateCartsubtotal(cart: PromotionCart): number {
+    return cart.items.reduce((total, item) => total + this.toMoneyNumber(item.variant.price) * item.quantity, 0)
   }
 
   private normalizeCode(code: string): string {
@@ -194,10 +235,10 @@ export class PromotionService {
     if (!partial || payload.discountType !== undefined) {
       data.discountType = this.normalizeDiscountType(payload.discountType)
     }
-    if (payload.discountValueCents !== undefined) data.discountValueCents = payload.discountValueCents
+    if (payload.discountValue !== undefined) data.discountValue = payload.discountValue
     if (payload.discountPercentBps !== undefined) data.discountPercentBps = payload.discountPercentBps
-    if (payload.minOrderCents !== undefined) data.minOrderCents = payload.minOrderCents
-    if (payload.maxDiscountCents !== undefined) data.maxDiscountCents = payload.maxDiscountCents
+    if (payload.minOrder !== undefined) data.minOrder = payload.minOrder
+    if (payload.maxDiscount !== undefined) data.maxDiscount = payload.maxDiscount
     if (payload.startsAt !== undefined) data.startsAt = this.normalizeDate(payload.startsAt)
     if (payload.endsAt !== undefined) data.endsAt = this.normalizeDate(payload.endsAt)
     if (payload.usageLimit !== undefined) data.usageLimit = payload.usageLimit
@@ -229,5 +270,9 @@ export class PromotionService {
     if (value === null || value === undefined) return null
     const trimmed = value.trim()
     return trimmed ? trimmed : null
+  }
+
+  private toMoneyNumber(value: bigint | number): number {
+    return typeof value === 'bigint' ? Number(value) : value
   }
 }

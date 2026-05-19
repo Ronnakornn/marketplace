@@ -6,10 +6,13 @@ import { motion, useReducedMotion } from "motion/react";
 import {
   ArrowRightIcon,
   Building2Icon,
+  BanknoteIcon,
   PackageSearchIcon,
   ReceiptTextIcon,
   RotateCcwIcon,
+  ShieldAlertIcon,
   UsersIcon,
+  Undo2Icon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Skeleton } from "#/components/ui/skeleton";
@@ -40,6 +43,24 @@ const quickLinks = [
     href: "/admin/orders",
     icon: ReceiptTextIcon,
   },
+  {
+    title: "Resolve returns",
+    description: "Review return and refund escalations.",
+    href: "/admin/returns",
+    icon: Undo2Icon,
+  },
+  {
+    title: "Approve payouts",
+    description: "Move seller payouts through finance review.",
+    href: "/admin/payouts",
+    icon: BanknoteIcon,
+  },
+  {
+    title: "Review fraud",
+    description: "Triage open marketplace risk cases.",
+    href: "/admin/fraud",
+    icon: ShieldAlertIcon,
+  },
 ] as const;
 
 const summaryCards = [
@@ -48,6 +69,16 @@ const summaryCards = [
   { key: "products", title: "Products", icon: PackageSearchIcon },
   { key: "orders", title: "Orders", icon: ReceiptTextIcon },
   { key: "refunds", title: "Pending refunds", icon: RotateCcwIcon },
+] as const;
+
+const exceptionCards = [
+  { key: "pendingPayments", title: "Pending payments", href: "/admin/orders", icon: ReceiptTextIcon },
+  { key: "failedPayments", title: "Failed payments", href: "/admin/orders", icon: ReceiptTextIcon },
+  { key: "delayedShipments", title: "Delayed shipments", href: "/admin/orders", icon: PackageSearchIcon },
+  { key: "returnEscalations", title: "Return escalations", href: "/admin/returns", icon: Undo2Icon },
+  { key: "refundEscalations", title: "Refund escalations", href: "/admin/refunds", icon: RotateCcwIcon },
+  { key: "payoutApprovals", title: "Payout approvals", href: "/admin/payouts", icon: BanknoteIcon },
+  { key: "fraudOpen", title: "Open fraud cases", href: "/admin/fraud", icon: ShieldAlertIcon },
 ] as const;
 
 function AdminDashboardLinkSkeleton() {
@@ -72,12 +103,36 @@ export function AdminDashboardOverview({
   return (
     <div className="flex flex-col gap-6">
       <AdminPageIntro
-        eyebrow="Mission Control"
+        eyebrow="Operations"
         title={`Welcome back, ${userName}`}
-        description="Track admin access and marketplace operations from a single orbital console."
+        description="Prioritize marketplace exceptions before reviewing aggregate totals."
       >
         {heroVisual}
       </AdminPageIntro>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {exceptionCards.map((item, index) => {
+          const value = dashboard?.exceptions?.[item.key] ?? 0;
+          return (
+            <motion.div
+              key={item.key}
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 14 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={prefersReducedMotion ? undefined : { duration: 0.35, delay: index * 0.03 }}
+            >
+              <Link href={item.href} className="admin-panel block rounded-lg border border-white/10 bg-white/5 px-4 py-4 no-underline">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-300">{item.title}</p>
+                    {isLoading ? <Skeleton className="mt-3 h-8 w-16 bg-white/12" /> : <p className="mt-2 text-3xl font-semibold text-white">{value}</p>}
+                  </div>
+                  <item.icon className="size-5 text-cyan-200" />
+                </div>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {summaryCards.map((item, index) => {
@@ -89,7 +144,7 @@ export function AdminDashboardOverview({
               animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
               transition={prefersReducedMotion ? undefined : { duration: 0.45, delay: 0.08 + index * 0.04 }}
             >
-              <Card className="admin-panel rounded-2xl border-white/10 bg-white/5">
+              <Card className="admin-panel rounded-lg border-white/10 bg-white/5">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-white">
                     <item.icon className="size-5" />
@@ -103,7 +158,7 @@ export function AdminDashboardOverview({
                     <>
                       <p className="text-3xl font-bold text-white">{value ?? 0}</p>
                       <p className="mt-2 text-sm text-slate-300">
-                        {error ? "Unable to load total." : "Current marketplace total."}
+                        {error ? "Unable to load total." : "Marketplace total."}
                       </p>
                     </>
                   )}
@@ -114,7 +169,7 @@ export function AdminDashboardOverview({
         })}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {isLoading
           ? quickLinks.map((item) => (
               <AdminDashboardLinkSkeleton key={item.href} />

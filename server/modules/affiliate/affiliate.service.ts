@@ -196,9 +196,9 @@ export class AffiliateService {
       throw new AffiliateServiceError('Self-referral is not allowed', 403, 'AFFILIATE_FORBIDDEN')
     }
 
-    const eligibleSubtotalCents = this.calculateEligibleSubtotal(order)
-    if (eligibleSubtotalCents <= 0) return null
-    const commissionCents = Math.floor((eligibleSubtotalCents * this.config.commissionBps) / 10000)
+    const eligiblesubtotal = this.calculateEligiblesubtotal(order)
+    if (eligiblesubtotal <= 0) return null
+    const commissionCents = Math.floor((eligiblesubtotal * this.config.commissionBps) / 10000)
     if (commissionCents <= 0) return null
 
     return repo.createCommission({
@@ -206,17 +206,17 @@ export class AffiliateService {
       linkId: click.linkId,
       clickId: click.id,
       orderId: order.id,
-      eligibleSubtotalCents,
+      eligiblesubtotal,
       commissionBps: this.config.commissionBps,
       commissionCents,
       currency: order.currency,
     })
   }
 
-  private calculateEligibleSubtotal(order: { subtotalCents: number; discountTotalCents: number; items: Array<{ lineTotalCents: number }> }): number {
-    const itemSubtotal = order.items.reduce((sum, item) => sum + item.lineTotalCents, 0)
-    const subtotal = itemSubtotal || order.subtotalCents
-    return Math.max(0, subtotal - order.discountTotalCents)
+  private calculateEligiblesubtotal(order: { subtotal: number; discountTotal: number; items: Array<{ lineTotal: number }> }): number {
+    const itemsubtotal = order.items.reduce((sum, item) => sum + item.lineTotal, 0)
+    const subtotal = itemsubtotal || order.subtotal
+    return Math.max(0, subtotal - order.discountTotal)
   }
 
   private async assertValidTarget(targetType: AffiliateTargetType, targetId: string): Promise<void> {

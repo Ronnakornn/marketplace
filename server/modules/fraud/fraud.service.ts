@@ -89,7 +89,7 @@ export class FraudService {
       const signals: FraudSignalInput = {
         failedPayments: context.sameUserFailedPayments,
         cancelledOrders: context.sameUserCancelledOrders,
-        orderAmountCents: context.order.grandTotalCents,
+        orderamount: context.order.grandTotal,
         checkoutDurationSeconds,
       }
 

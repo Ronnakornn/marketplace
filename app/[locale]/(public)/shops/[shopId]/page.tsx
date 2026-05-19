@@ -71,7 +71,7 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: s
                         {new Intl.NumberFormat(resolvedLocale, {
                           style: "currency",
                           currency: variant.currency,
-                        }).format(variant.priceCents / 100)}
+                        }).format(variant.prices[0])}
                       </p>
                     ) : null}
                   </CardContent>

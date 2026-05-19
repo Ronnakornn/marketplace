@@ -51,9 +51,11 @@ function createOwnershipRepo(overrides: Partial<Record<keyof OwnershipGuardRepos
   return {
     cartBelongsToUser: vi.fn(async () => overrides.cartBelongsToUser ?? true),
     orderBelongsToUser: vi.fn(async () => overrides.orderBelongsToUser ?? true),
-    shopBelongsToSeller: vi.fn(async () => overrides.shopBelongsToSeller ?? true),
-    productBelongsToSeller: vi.fn(async () => overrides.productBelongsToSeller ?? true),
-    shipmentBelongsToSeller: vi.fn(async () => overrides.shipmentBelongsToSeller ?? true),
+    activeShopBelongsToUser: vi.fn(async () => overrides.activeShopBelongsToUser ?? true),
+    productBelongsToActiveShop: vi.fn(async () => overrides.productBelongsToActiveShop ?? true),
+    shipmentBelongsToActiveShop: vi.fn(async () => overrides.shipmentBelongsToActiveShop ?? true),
+    findActiveShopsForUser: vi.fn(async () => [{ id: 'shop-1', ownerId: 'seller-1', status: 'ACTIVE' as const }]),
+    findActiveShopForUser: vi.fn(async () => ({ id: 'shop-1', ownerId: 'seller-1', status: 'ACTIVE' as const })),
   }
 }
 
@@ -103,10 +105,19 @@ describe('security hardening', () => {
   })
 
   it('seller ownership guard blocks wrong seller', async () => {
-    const guards = new OwnershipGuards(createOwnershipRepo({ shopBelongsToSeller: false }))
+    const guards = new OwnershipGuards(createOwnershipRepo({ activeShopBelongsToUser: false }))
 
     await expect(guards.assertSellerOwnsShop('seller-1', 'shop-2'))
       .rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+
+  it('seller ownership guard requires active shop ownership', async () => {
+    const repo = createOwnershipRepo({ activeShopBelongsToUser: false })
+    const guards = new OwnershipGuards(repo)
+
+    await expect(guards.assertSellerOwnsShop('seller-1', 'shop-1'))
+      .rejects.toMatchObject({ status: 403, code: 'FORBIDDEN' })
+    expect(repo.activeShopBelongsToUser).toHaveBeenCalledWith('seller-1', 'shop-1')
   })
 
   it('buyer ownership guard blocks wrong buyer', async () => {

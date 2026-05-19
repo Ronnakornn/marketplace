@@ -15,7 +15,7 @@ export interface VectorSearchMatch {
   score: number
 }
 
-export type AiSearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' | 'priceCents' | 'currency'> & {
+export type AiSearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' | 'price' | 'currency'> & {
   titleTh?: string | null
   titleEn?: string | null
   inventory: {
@@ -89,7 +89,7 @@ const aiSearchProductSelect = {
       title: true,
       titleTh: true,
       titleEn: true,
-      priceCents: true,
+      prices: true,
       currency: true,
       inventory: {
         select: {

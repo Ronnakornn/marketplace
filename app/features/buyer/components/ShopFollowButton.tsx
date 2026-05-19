@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "#/components/ui/button";
 import { fetchShopFollowStatus, followShop, unfollowShop } from "#/features/buyer/api";
+import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
 
 export function ShopFollowButton({ shopId }: { shopId: string }) {
   const router = useRouter();
   const localePath = useLocalePath();
+  const t = useTranslations();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const followQuery = useQuery({
@@ -30,7 +32,7 @@ export function ShopFollowButton({ shopId }: { shopId: string }) {
       if (!session) router.push(localePath("/login"));
       else followMutation.mutate();
     }}>
-      {followQuery.data ? "Following" : "Follow shop"}
+      {followQuery.data ? t("product.following") : t("product.followShop")}
     </Button>
   );
 }

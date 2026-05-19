@@ -1,6 +1,7 @@
 export { getSecurityConfigFromEnv, type SecurityConfig } from './security.config.ts'
 export { SecurityError } from './security.errors.ts'
 export { SecurityService } from './security.service.ts'
+export { ActiveShopResolver, type ActiveSellerShop, type ActiveShopRepository } from './active-shop.ts'
 export { OwnershipGuards, type OwnershipGuardRepository } from './ownership-guards.ts'
 export { PrismaOwnershipGuardRepository } from './security.repository.ts'
 export { allowedImageMimeTypes, validateUploadInput } from './upload-validation.ts'

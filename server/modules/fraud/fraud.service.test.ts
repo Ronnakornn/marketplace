@@ -45,7 +45,7 @@ function createRepo(): IFraudRepository {
         id: 'order-1',
         userId: 'user-1',
         checkoutId: 'checkout-1',
-        grandTotalCents: 2500,
+        grandTotal: 2500,
         status: 'PAID',
         paymentStatus: 'SUCCEEDED',
         createdAt: new Date('2026-05-15T00:01:00.000Z'),
@@ -58,7 +58,7 @@ function createRepo(): IFraudRepository {
     getRefundRiskContext: vi.fn().mockResolvedValue({
       refund: {
         id: 'refund-1',
-        amountCents: 1000,
+        amount: 1000,
         order: { userId: 'user-1' },
       },
       userOrderCount: 4,
@@ -133,7 +133,7 @@ describe('FraudService', () => {
         id: 'order-1',
         userId: 'user-1',
         checkoutId: 'checkout-1',
-        grandTotalCents: 2500,
+        grandTotal: 2500,
         status: 'PENDING_PAYMENT',
         paymentStatus: 'FAILED',
         createdAt: new Date('2026-05-15T00:05:00.000Z'),

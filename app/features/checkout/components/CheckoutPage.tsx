@@ -40,7 +40,7 @@ export function CheckoutPage() {
       });
     },
   });
-  const total = useMemo(() => cartQuery.data?.subtotalCents ?? 0, [cartQuery.data?.subtotalCents]);
+  const total = useMemo(() => cartQuery.data?.subtotal ?? 0, [cartQuery.data?.subtotal]);
   const itemCount = cartQuery.data?.shops.reduce((sum, shop) => sum + shop.items.length, 0) ?? 0;
 
   return (
@@ -113,7 +113,7 @@ export function CheckoutPage() {
                 {cartQuery.data.shops.map((shop) => (
                   <div key={shop.shopId} className="flex justify-between gap-3 text-sm">
                     <span className="text-slate-600">{shop.shopName}</span>
-                    <span className="font-semibold">{formatMoney(shop.subtotalCents, cartQuery.data.currency)}</span>
+                    <span className="font-semibold">{formatMoney(shop.subtotal, cartQuery.data.currency)}</span>
                   </div>
                 ))}
                 <div className="border-t border-slate-200 pt-3">

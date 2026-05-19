@@ -1,4 +1,5 @@
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { validateProductionRuntimeEnv } from '#server/config/production-env.ts'
 import { createLogger } from '#server/infrastructure/logging/index.ts'
 import { prisma } from '#server/lib/prisma.ts'
 import { PrismaCartRepository } from '#server/modules/cart/cart.repository.ts'
@@ -39,6 +40,7 @@ import { PrismaSearchRepository } from '#server/modules/search/search.repository
 import { SearchService } from '#server/modules/search/search.service.ts'
 import { PrismaSellerDashboardRepository } from '#server/modules/seller/seller-dashboard.repository.ts'
 import { SellerDashboardService } from '#server/modules/seller/seller-dashboard.service.ts'
+import { PrismaSellerOnboardingRepository, SellerOnboardingService } from '#server/modules/seller-onboarding'
 import { PrismaShipmentRepository } from '#server/modules/shipment/shipment.repository.ts'
 import { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
 import { PrismaReviewRepository } from '#server/modules/review/review.repository.ts'
@@ -55,7 +57,7 @@ import { createCoreCommerceEventHandlers } from '#server/modules/events'
 import { createFraudEventHandlers, FraudService, getFraudRuleConfigFromEnv, PrismaFraudRepository } from '#server/modules/fraud'
 import { BullMqQueueProducer, getQueueConfigFromEnv, OptionalQueueProducer, type QueueProducer } from '#server/modules/queue'
 import { AuditLogService, PrismaAuditLogRepository } from '#server/modules/audit-log'
-import { OwnershipGuards, PrismaOwnershipGuardRepository, SecurityService } from '#server/modules/security'
+import { ActiveShopResolver, OwnershipGuards, PrismaOwnershipGuardRepository, SecurityService } from '#server/modules/security'
 import { CacheInvalidation, CacheService, createRedisCacheClient, getCacheConfigFromEnv } from '#server/modules/cache'
 import {
   getObservabilityConfigFromEnv,
@@ -105,8 +107,10 @@ export interface ServiceContainer {
   reviewService: ReviewService
   searchService: SearchService
   securityService: SecurityService
+  activeShopResolver: ActiveShopResolver
   ownershipGuards: OwnershipGuards
   sellerDashboardService: SellerDashboardService
+  sellerOnboardingService: SellerOnboardingService
   shipmentService: ShipmentService
   shoppingAssistantService: ShoppingAssistantService
   uploadService: UploadService
@@ -115,6 +119,7 @@ export interface ServiceContainer {
 }
 
 export function createContainer(): ServiceContainer {
+  validateProductionRuntimeEnv()
   const environment = process.env['NODE_ENV'] ?? 'development'
   const logger = createLogger({ environment, level: process.env['LOG_LEVEL'] })
   const config: AppConfig = { environment }
@@ -130,6 +135,10 @@ export function createContainer(): ServiceContainer {
   const eventHandlerRegistry = new EventHandlerRegistry()
   const eventBus = new EventBus(appContext, eventHandlerRegistry)
   const eventPublisherService = new EventPublisherService(appContext, eventBus)
+  const securityService = new SecurityService(appContext)
+  const ownershipGuardRepo = new PrismaOwnershipGuardRepository(appContext, prisma)
+  const activeShopResolver = new ActiveShopResolver(ownershipGuardRepo)
+  const ownershipGuards = new OwnershipGuards(ownershipGuardRepo)
 
   const auditLogRepo = new PrismaAuditLogRepository(appContext, prisma)
   const auditLogService = new AuditLogService(appContext, auditLogRepo)
@@ -144,10 +153,10 @@ export function createContainer(): ServiceContainer {
   const realtimeRepo = new PrismaRealtimeRepository(appContext, prisma)
   const realtimeService = new RealtimeService(appContext, realtimeRepo, new InMemoryRealtimeAdapter())
   const promotionRepo = new PrismaPromotionRepository(appContext, prisma)
-  const promotionService = new PromotionService(appContext, promotionRepo)
+  const promotionService = new PromotionService(appContext, promotionRepo, activeShopResolver)
   const commissionService = new CommissionService(appContext)
   const walletRepo = new PrismaWalletRepository(appContext, prisma)
-  const walletService = new WalletService(appContext, walletRepo, commissionService)
+  const walletService = new WalletService(appContext, walletRepo, commissionService, activeShopResolver)
   const checkoutRepo = new PrismaCheckoutRepository(appContext, prisma)
   const checkoutService = new CheckoutService(appContext, checkoutRepo, promotionService, cacheInvalidation)
   const notificationRepo = new PrismaNotificationRepository(appContext, prisma)
@@ -155,17 +164,17 @@ export function createContainer(): ServiceContainer {
   const chatRepo = new PrismaChatRepository(appContext, prisma)
   const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
-  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService)
+  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
-  const orderService = new OrderService(appContext, orderRepo)
+  const orderService = new OrderService(appContext, orderRepo, activeShopResolver)
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)
-  const shipmentService = new ShipmentService(appContext, shipmentRepo, walletService, eventPublisherService)
+  const shipmentService = new ShipmentService(appContext, shipmentRepo, walletService, eventPublisherService, activeShopResolver)
   const paymentRepo = new PrismaPaymentRepository(appContext, prisma)
   const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation, eventPublisherService, affiliateService)
   const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
-  const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService)
+  const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService, activeShopResolver)
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
-  const returnService = new ReturnService(appContext, returnRepo)
+  const returnService = new ReturnService(appContext, returnRepo, activeShopResolver)
   const refundRepo = new PrismaRefundRepository(appContext, prisma)
   const refundService = new RefundService(appContext, refundRepo, eventPublisherService)
   const recommendationRepo = new PrismaRecommendationRepository(appContext, prisma)
@@ -186,10 +195,9 @@ export function createContainer(): ServiceContainer {
   )
   const shoppingAssistantService = new ShoppingAssistantService(appContext, aiSearchConfig, aiSearchService)
   const sellerDashboardRepo = new PrismaSellerDashboardRepository(appContext, prisma)
-  const sellerDashboardService = new SellerDashboardService(appContext, sellerDashboardRepo, cacheService)
-  const securityService = new SecurityService(appContext)
-  const ownershipGuardRepo = new PrismaOwnershipGuardRepository(appContext, prisma)
-  const ownershipGuards = new OwnershipGuards(ownershipGuardRepo)
+  const sellerDashboardService = new SellerDashboardService(appContext, sellerDashboardRepo, cacheService, activeShopResolver)
+  const sellerOnboardingRepo = new PrismaSellerOnboardingRepository(appContext, prisma)
+  const sellerOnboardingService = new SellerOnboardingService(appContext, sellerOnboardingRepo)
   const uploadRepo = new PrismaUploadRepository(appContext, prisma)
   const storageConfig = getStorageConfigFromEnv()
   const uploadStorage = storageConfig ? new S3UploadStorage(storageConfig) : null
@@ -248,8 +256,10 @@ export function createContainer(): ServiceContainer {
     reviewService,
     searchService,
     securityService,
+    activeShopResolver,
     ownershipGuards,
     sellerDashboardService,
+    sellerOnboardingService,
     shipmentService,
     shoppingAssistantService,
     uploadService,

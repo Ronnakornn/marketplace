@@ -421,6 +421,8 @@ Buyer-facing routes:
 
 Seller routes:
 - `/seller/login` - Seller login or redirect to shared auth.
+- `/seller/register` - Shop onboarding, Thailand KYC, pickup address, payout, and document upload.
+- `/seller/status` - Pending/rejected seller application status and resubmission path.
 - `/seller` - Seller dashboard.
 - `/seller/products` - Product management list.
 - `/seller/products/new` - Create product.
@@ -616,7 +618,7 @@ Implementation rules:
 ### Catalog and Search
 
 - `GET /api/catalog/products`
-  - Query: `q`, `categoryId`, `shopId`, `status`, `minPriceCents`, `maxPriceCents`, `rating`, `sort`, `cursor`, `limit`.
+  - Query: `q`, `categoryId`, `shopId`, `status`, `minPrice`, `maxPrice`, `rating`, `sort`, `cursor`, `limit`.
   - Returns: product cards with product id, title, slug, primary image, price range, discount, rating, sold count, shop summary, free shipping flag, stock hint.
   - Used by: home feed, search, category product list.
 
@@ -730,25 +732,44 @@ Implementation rules:
 
 ### Seller
 
+- `GET /api/seller/application`
+  - Auth: authenticated user.
+  - Returns: current application, linked shop status, masked KYC fields, and document metadata.
+
+- `POST /api/seller/application/draft`
+  - Auth: authenticated user.
+  - Saves draft onboarding data and KYC document references.
+
+- `POST /api/seller/application/submit`
+  - Auth: authenticated user.
+  - Validates KYC data/documents and moves application into admin review.
+
 - `GET /api/seller/dashboard`
+  - Auth: active shop owner.
   - Returns: pending shipments, low-stock variants, active promotions, unread chats, finance summary.
 
 - `GET /api/seller/products`
+  - Auth: active shop owner.
   - Returns: seller-owned product list.
 
 - `POST /api/seller/products`
+  - Auth: active shop owner.
   - Creates product and variants for seller shop.
 
 - `PATCH /api/seller/products/:productId`
+  - Auth: active shop owner.
   - Updates product content/status.
 
 - `PATCH /api/seller/variants/:variantId/inventory`
+  - Auth: active shop owner.
   - Updates inventory fields.
 
 - `GET /api/seller/finance`
+  - Auth: active shop owner.
   - Returns: sales, fees, refunds, payout placeholder.
 
 - `GET /api/seller/promotions`
+  - Auth: active shop owner.
   - Returns: coupons and campaigns.
 
 ### Admin
@@ -758,6 +779,13 @@ Implementation rules:
 
 - `GET /api/admin/users`
   - Returns: customers and system users.
+
+- `GET /api/admin/seller-applications`
+  - Returns: seller application review queue.
+
+- `PATCH /api/admin/seller-applications/:applicationId/review`
+  - Approves or rejects seller applications.
+  - Approval activates the shop and unlocks seller operations.
 
 - `GET /api/admin/shops`
   - Query: status.

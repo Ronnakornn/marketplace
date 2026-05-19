@@ -3,7 +3,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type enMessages from "../../messages/en.json";
 import type { Locale } from "./config";
-import { defaultCurrency, fallbackLocale, resolveLocale } from "./config";
+import { defaultCurrency, defaultTimeZone, fallbackLocale, resolveLocale } from "./config";
 
 type Messages = typeof enMessages;
 type TranslationKey = Leaves<Messages>;
@@ -80,9 +80,13 @@ export function useFormatters() {
 export function formatCurrency(cents: number, locale: Locale | string, currency = defaultCurrency) {
   return new Intl.NumberFormat(resolveLocale(locale), {
     style: "currency",
-    currency,
+    currency: normalizeDisplayCurrency(currency),
     maximumFractionDigits: 2,
   }).format(cents / 100);
+}
+
+function normalizeDisplayCurrency(_currency: string) {
+  return defaultCurrency;
 }
 
 export function formatDate(
@@ -90,5 +94,8 @@ export function formatDate(
   locale: Locale | string = fallbackLocale,
   options: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" },
 ) {
-  return new Intl.DateTimeFormat(resolveLocale(locale), options).format(new Date(value));
+  return new Intl.DateTimeFormat(resolveLocale(locale), {
+    timeZone: defaultTimeZone,
+    ...options,
+  }).format(new Date(value));
 }

@@ -1,11 +1,12 @@
 import { SecurityError } from './security.errors.ts'
+import type { ActiveShopRepository } from './active-shop.ts'
 
-export interface OwnershipGuardRepository {
+export interface OwnershipGuardRepository extends ActiveShopRepository {
   cartBelongsToUser(userId: string, cartId: string): Promise<boolean>
   orderBelongsToUser(userId: string, orderId: string): Promise<boolean>
-  shopBelongsToSeller(userId: string, shopId: string): Promise<boolean>
-  productBelongsToSeller(userId: string, productId: string): Promise<boolean>
-  shipmentBelongsToSeller(userId: string, shipmentId: string): Promise<boolean>
+  activeShopBelongsToUser(userId: string, shopId: string): Promise<boolean>
+  productBelongsToActiveShop(userId: string, productId: string): Promise<boolean>
+  shipmentBelongsToActiveShop(userId: string, shipmentId: string): Promise<boolean>
 }
 
 export class OwnershipGuards {
@@ -20,15 +21,15 @@ export class OwnershipGuards {
   }
 
   async assertSellerOwnsShop(userId: string, shopId: string): Promise<void> {
-    await this.assertAllowed(await this.repo.shopBelongsToSeller(userId, shopId), 'Seller does not own shop')
+    await this.assertAllowed(await this.repo.activeShopBelongsToUser(userId, shopId), 'Active seller shop access required')
   }
 
   async assertSellerOwnsProduct(userId: string, productId: string): Promise<void> {
-    await this.assertAllowed(await this.repo.productBelongsToSeller(userId, productId), 'Seller does not own product')
+    await this.assertAllowed(await this.repo.productBelongsToActiveShop(userId, productId), 'Active seller product access required')
   }
 
   async assertSellerOwnsShipment(userId: string, shipmentId: string): Promise<void> {
-    await this.assertAllowed(await this.repo.shipmentBelongsToSeller(userId, shipmentId), 'Seller does not own shipment')
+    await this.assertAllowed(await this.repo.shipmentBelongsToActiveShop(userId, shipmentId), 'Active seller shipment access required')
   }
 
   private async assertAllowed(allowed: boolean, message: string): Promise<void> {

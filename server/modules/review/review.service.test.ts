@@ -51,8 +51,8 @@ function createOrderItem(overrides: Partial<ReviewOrderItem> = {}): ReviewOrderI
     shopName: 'Urban Thread',
     shopSlug: 'urban-thread',
     quantity: 1,
-    unitPriceCents: 1200,
-    lineTotalCents: 1200,
+    unitPrice: 1200,
+    lineTotal: 1200,
     currency: 'USD',
     fulfillmentStatus: 'DELIVERED',
     order: {
@@ -157,7 +157,7 @@ describe('ReviewService', () => {
     await expect(service.createReview({ id: 'buyer-1', role: 'USER' }, { orderItemId: 'item-1', rating: 5 }))
       .rejects.toMatchObject({ code: 'REVIEW_ALREADY_EXISTS' })
 
-    await expect(service.createReview({ id: 'seller-1', role: 'SELLER' }, { orderItemId: 'item-1', rating: 5 }))
+    await expect(service.createReview({ id: 'seller-1', role: 'USER' }, { orderItemId: 'item-1', rating: 5 }))
       .rejects.toMatchObject({ code: 'REVIEW_FORBIDDEN' })
 
     await expect(service.createReview({ id: 'buyer-1', role: 'USER' }, { orderItemId: 'item-1', rating: 6 }))

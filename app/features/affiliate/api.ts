@@ -106,8 +106,8 @@ export async function updateAdminAffiliateStatus(input: { affiliateId: string; s
   });
 }
 
-export function formatAffiliateMoney(cents: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+export function formatAffiliateMoney(cents: number, _currency = "THB"): string {
+  return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(cents / 100);
 }
 
 export function affiliateTrackingUrl(code: string): string {

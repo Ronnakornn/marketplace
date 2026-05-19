@@ -39,7 +39,7 @@ export interface CreateCartItemData {
   cartId: string
   variantId: string
   quantity: number
-  unitPriceCents: number
+  unitPrice: number
   currency: string
 }
 

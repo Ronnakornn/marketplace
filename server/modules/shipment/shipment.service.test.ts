@@ -55,11 +55,11 @@ function createPaidOrder(overrides: Partial<ShipmentOrderForCreation> = {}): Shi
     orderNumber: 'ORD-TEST',
     status: 'PAID',
     paymentStatus: 'SUCCEEDED',
-    subtotalCents: 5000,
-    discountTotalCents: 0,
-    shippingTotalCents: 500,
-    taxTotalCents: 0,
-    grandTotalCents: 5500,
+    subtotal: 5000,
+    discountTotal: 0,
+    shippingTotal: 500,
+    taxTotal: 0,
+    grandTotal: 5500,
     currency: 'USD',
     shippingName: 'Jane Buyer',
     shippingPhone: null,
@@ -84,8 +84,8 @@ function createPaidOrder(overrides: Partial<ShipmentOrderForCreation> = {}): Shi
         shopName: 'Shop One',
         shopSlug: 'shop-one',
         quantity: 2,
-        unitPriceCents: 1200,
-        lineTotalCents: 2400,
+        unitPrice: 1200,
+        lineTotal: 2400,
         currency: 'USD',
         fulfillmentStatus: 'PENDING',
       },
@@ -101,8 +101,8 @@ function createPaidOrder(overrides: Partial<ShipmentOrderForCreation> = {}): Shi
         shopName: 'Shop Two',
         shopSlug: 'shop-two',
         quantity: 1,
-        unitPriceCents: 2600,
-        lineTotalCents: 2600,
+        unitPrice: 2600,
+        lineTotal: 2600,
         currency: 'USD',
         fulfillmentStatus: 'PENDING',
       },
@@ -157,11 +157,11 @@ function createSellerShipment(overrides: Partial<SellerShipment> = {}): SellerSh
       orderNumber: 'ORD-TEST',
       status: 'PAID',
       paymentStatus: 'SUCCEEDED',
-      subtotalCents: 2400,
-      discountTotalCents: 0,
-      shippingTotalCents: 500,
-      taxTotalCents: 0,
-      grandTotalCents: 2900,
+      subtotal: 2400,
+      discountTotal: 0,
+      shippingTotal: 500,
+      taxTotal: 0,
+      grandTotal: 2900,
       currency: 'USD',
       shippingName: 'Jane Buyer',
       shippingPhone: null,
@@ -206,8 +206,8 @@ function createSellerShipment(overrides: Partial<SellerShipment> = {}): SellerSh
           shopName: 'Shop One',
           shopSlug: 'shop-one',
           quantity: 2,
-          unitPriceCents: 1200,
-          lineTotalCents: 2400,
+          unitPrice: 1200,
+          lineTotal: 2400,
           currency: 'USD',
           fulfillmentStatus: 'PENDING',
         },
@@ -286,12 +286,12 @@ describe('ShipmentService', () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
     vi.mocked(repo.findSellerShipments).mockResolvedValue([createSellerShipment()])
 
-    const list = await service.listSellerShipments({ id: 'seller-1', role: 'SELLER' })
+    const list = await service.listSellerShipments({ id: 'seller-1', role: 'USER' })
     expect(list).toHaveLength(1)
     expect(list[0]!.shopId).toBe('shop-1')
 
     vi.mocked(repo.findSellerShipmentById).mockResolvedValue(null)
-    await expect(service.getSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-2')).rejects.toMatchObject({
+    await expect(service.getSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-2')).rejects.toMatchObject({
       code: 'SHIPMENT_NOT_FOUND',
     })
   })
@@ -344,7 +344,7 @@ describe('ShipmentService', () => {
     vi.mocked(repo.findSellerShipmentById).mockResolvedValue(createSellerShipment({ status: 'PENDING_PACK' }))
     vi.mocked(repo.updateShipmentPacked).mockResolvedValue(createSellerShipment({ status: 'PACKED' }))
 
-    const result = await service.packSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-1')
+    const result = await service.packSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1')
 
     expect(result.status).toBe('packed')
     expect(repo.updateOrderItemsStatus).toHaveBeenCalledWith(['item-1'], 'PACKED')
@@ -355,17 +355,17 @@ describe('ShipmentService', () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
     vi.mocked(repo.findSellerShipmentById).mockResolvedValue(createSellerShipment({ status: 'PENDING_PACK' }))
 
-    await expect(service.shipSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-1', {
+    await expect(service.shipSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1', {
       carrier: 'DHL',
       trackingNo: 'TRACK-1',
     })).rejects.toMatchObject({ code: 'INVALID_SHIPMENT_STATE' })
 
-    await expect(service.shipSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-1', {
+    await expect(service.shipSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1', {
       carrier: 'DHL',
       trackingNo: '',
     })).rejects.toMatchObject({ code: 'TRACKING_REQUIRED' })
 
-    await expect(service.shipSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-1', {
+    await expect(service.shipSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1', {
       carrier: '',
       trackingNo: 'TRACK-1',
     })).rejects.toMatchObject({ code: 'CARRIER_REQUIRED' })
@@ -381,7 +381,7 @@ describe('ShipmentService', () => {
       order: createSellerShipment({ status: 'SHIPPED' }).order,
     }))
 
-    const result = await service.shipSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-1', {
+    const result = await service.shipSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1', {
       carrier: 'DHL',
       trackingNo: 'TRACK-1',
     })
@@ -438,7 +438,7 @@ describe('ShipmentService', () => {
       },
     }))
 
-    await service.deliverSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-1')
+    await service.deliverSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1')
     expect(repo.updateOrderItemsStatus).toHaveBeenCalledWith(['item-1'], 'DELIVERED')
     expect(repo.updateOrderStatus).not.toHaveBeenCalledWith('order-1', 'DELIVERED')
 
@@ -450,7 +450,7 @@ describe('ShipmentService', () => {
       },
     }))
 
-    await service.deliverSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-1')
+    await service.deliverSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1')
     expect(repo.updateOrderStatus).toHaveBeenCalledWith('order-1', 'DELIVERED')
   })
 
@@ -458,7 +458,7 @@ describe('ShipmentService', () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
     vi.mocked(repo.findSellerShipmentById).mockResolvedValue(createSellerShipment({ status: 'DELIVERED' }))
 
-    await expect(service.packSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-1')).rejects.toMatchObject({
+    await expect(service.packSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1')).rejects.toMatchObject({
       code: 'INVALID_SHIPMENT_STATE',
     })
 
@@ -466,7 +466,7 @@ describe('ShipmentService', () => {
     vi.mocked(repo.updateShipmentPacked).mockResolvedValue(createSellerShipment({ status: 'PACKED' }))
     vi.mocked(repo.updateOrderItemsStatus).mockRejectedValue(new Error('rollback marker'))
 
-    await expect(service.packSellerShipment({ id: 'seller-1', role: 'SELLER' }, 'shipment-1')).rejects.toThrow('rollback marker')
+    await expect(service.packSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1')).rejects.toThrow('rollback marker')
     expect(repo.updateOrderStatus).not.toHaveBeenCalledWith('order-1', 'PROCESSING')
   })
 })

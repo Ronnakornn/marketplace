@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { swagger } from "@elysiajs/swagger";
 import { authPlugin } from "#server/modules/auth";
 import { createContainer } from "#server/context/app-context";
 import { createAuditLogRoutes } from "#server/modules/audit-log";
@@ -27,6 +28,7 @@ import { createReturnRoutes } from "#server/modules/return";
 import { createReviewRoutes } from "#server/modules/review";
 import { createSearchRoutes } from "#server/modules/search";
 import { createSellerDashboardRoutes } from "#server/modules/seller";
+import { createSellerOnboardingRoutes } from "#server/modules/seller-onboarding";
 import { createShipmentRoutes } from "#server/modules/shipment";
 import { createUploadRoutes } from "#server/modules/upload";
 import { createUserRoutes } from "#server/modules/user";
@@ -51,6 +53,46 @@ const baseApp = new Elysia()
 
   // --- Security hardening middleware ---
   .use(createSecurityPlugin(container.appContext, getSecurityConfigFromEnv()))
+
+  // --- Swagger/OpenAPI documentation ---
+  .use(swagger({
+    path: "/swagger",
+    specPath: "/swagger/json",
+    provider: "swagger-ui",
+    documentation: {
+      info: {
+        title: "Marketplace API",
+        version: "1.0.0",
+        description: "API documentation for the multi-vendor marketplace backend.",
+      },
+      tags: [
+        { name: "Admin", description: "Marketplace administration" },
+        { name: "AI Search", description: "AI-assisted product discovery" },
+        { name: "Audit Log", description: "Administrative audit records" },
+        { name: "Auth", description: "Authentication and session management" },
+        { name: "Cart", description: "Buyer cart management" },
+        { name: "Catalog", description: "Products, variants, categories, and inventory" },
+        { name: "Checkout", description: "Checkout creation, totals, and reservations" },
+        { name: "Chat", description: "Buyer and shop messaging" },
+        { name: "Fraud", description: "Fraud detection and review workflows" },
+        { name: "Notification", description: "User notifications" },
+        { name: "Observability", description: "Health, readiness, and metrics" },
+        { name: "Order", description: "Orders and order lifecycle" },
+        { name: "Payment", description: "Payments and provider webhooks" },
+        { name: "Promotion", description: "Coupons and promotions" },
+        { name: "Recommendation", description: "Product recommendations" },
+        { name: "Refund", description: "Refund workflows" },
+        { name: "Return", description: "Return request workflows" },
+        { name: "Review", description: "Product review workflows" },
+        { name: "Search", description: "Marketplace search" },
+        { name: "Seller", description: "Seller dashboard and shop operations" },
+        { name: "Shipment", description: "Shop-based fulfillment and shipments" },
+        { name: "Upload", description: "Upload and storage workflows" },
+        { name: "User", description: "User administration" },
+        { name: "Wallet", description: "Seller wallet and payout balances" },
+      ],
+    },
+  }))
 
   // --- Redis-backed backend cache context ---
   .use(createCachePlugin(container.cacheService))
@@ -124,6 +166,9 @@ const baseApp = new Elysia()
 
   // --- Seller dashboard routes ---
   .use(createSellerDashboardRoutes(container))
+
+  // --- Seller onboarding routes ---
+  .use(createSellerOnboardingRoutes(container))
 
   // --- User admin routes (role-protected via { withRole: 'ADMIN' }) ---
   .use(createUserRoutes(container))

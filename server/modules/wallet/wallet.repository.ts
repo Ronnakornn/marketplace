@@ -20,7 +20,7 @@ export interface CreateLedgerEntryInput {
   walletId: string
   shopId: string
   type: WalletLedgerEntryType
-  amountCents: number
+  amount: number
   currency: string
   orderId?: string | null
   payoutId?: string | null
@@ -62,7 +62,7 @@ export class PrismaWalletRepository implements IWalletRepository {
   findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'name' | 'ownerId'>>> {
     this.logger.debug('PrismaWalletRepository.findSellerShops', { ownerId })
     return this.prisma.shop.findMany({
-      where: { ownerId },
+      where: { ownerId, status: 'ACTIVE' },
       select: { id: true, name: true, ownerId: true },
       orderBy: { createdAt: 'asc' },
     })
@@ -98,23 +98,23 @@ export class PrismaWalletRepository implements IWalletRepository {
   async sumLedger(walletId: string): Promise<number> {
     const result = await this.prisma.walletLedgerEntry.aggregate({
       where: { walletId },
-      _sum: { amountCents: true },
+      _sum: { amount: true },
     })
-    return result._sum.amountCents ?? 0
+    return result._sum.amount ?? 0
   }
 
   createLedgerEntry(input: CreateLedgerEntryInput): Promise<WalletLedgerEntry> {
     this.logger.info('PrismaWalletRepository.createLedgerEntry', {
       walletId: input.walletId,
       type: input.type,
-      amountCents: input.amountCents,
+      amount: input.amount,
     })
     return this.prisma.walletLedgerEntry.create({
       data: {
         walletId: input.walletId,
         shopId: input.shopId,
         type: input.type,
-        amountCents: input.amountCents,
+        amount: input.amount,
         currency: input.currency,
         orderId: input.orderId ?? null,
         payoutId: input.payoutId ?? null,

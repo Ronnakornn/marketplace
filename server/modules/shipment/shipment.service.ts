@@ -3,6 +3,7 @@ import type { ShipmentStatus } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { EventPublisherService } from '#server/modules/event-bus'
+import type { ActiveShopResolver } from '#server/modules/security'
 import type { WalletService } from '#server/modules/wallet'
 import { ShipmentServiceError } from './shipment.errors.ts'
 import type {
@@ -77,8 +78,8 @@ export interface BuyerShipmentTrackingResponse {
       variantTitle: string
       variantSku: string
       quantity: number
-      unitPriceCents: number
-      lineTotalCents: number
+      unitPrice: number
+      lineTotal: number
       currency: string
       fulfillmentStatus: string
     }>
@@ -98,6 +99,7 @@ export class ShipmentService {
     private repo: IShipmentRepository,
     private walletService?: WalletService,
     private eventPublisher?: EventPublisherService,
+    private activeShopResolver?: ActiveShopResolver,
   ) {
     this.logger = appContext.logger
   }
@@ -137,14 +139,12 @@ export class ShipmentService {
   }
 
   async listSellerShipments(actor: ShipmentActor): Promise<ShipmentResponse[]> {
-    this.assertSeller(actor)
     const shopIds = await this.getSellerShopIds(actor.id)
     const shipments = await this.repo.findSellerShipments(shopIds)
     return shipments.map((shipment) => this.toSellerShipmentResponse(shipment))
   }
 
   async getSellerShipment(actor: ShipmentActor, shipmentId: string): Promise<ShipmentResponse> {
-    this.assertSeller(actor)
     const shopIds = await this.getSellerShopIds(actor.id)
     const shipment = await this.repo.findSellerShipmentById(shipmentId, shopIds)
     if (!shipment) throw new ShipmentServiceError('Shipment not found', 404, 'SHIPMENT_NOT_FOUND')
@@ -166,7 +166,6 @@ export class ShipmentService {
   }
 
   async packSellerShipment(actor: ShipmentActor, shipmentId: string): Promise<ShipmentResponse> {
-    this.assertSeller(actor)
     this.logger.info('ShipmentService.packSellerShipment', { actorId: actor.id, shipmentId })
 
     return this.repo.transaction(async (txRepo) => {
@@ -191,7 +190,6 @@ export class ShipmentService {
   }
 
   async shipSellerShipment(actor: ShipmentActor, shipmentId: string, input: ShipShipmentInput): Promise<ShipmentResponse> {
-    this.assertSeller(actor)
     const carrier = input.carrier?.trim()
     const trackingNo = input.trackingNo?.trim()
     if (!carrier) throw new ShipmentServiceError('Carrier is required when shipping', 400, 'CARRIER_REQUIRED')
@@ -212,7 +210,6 @@ export class ShipmentService {
   }
 
   async deliverSellerShipment(actor: ShipmentActor, shipmentId: string): Promise<ShipmentResponse> {
-    this.assertSeller(actor)
     this.logger.info('ShipmentService.deliverSellerShipment', { actorId: actor.id, shipmentId })
 
     const response = await this.repo.transaction(async (txRepo) => {
@@ -241,20 +238,17 @@ export class ShipmentService {
     return [...itemShopIds].filter((shopId) => !existingShopIds.has(shopId))
   }
 
-  private assertSeller(actor: ShipmentActor): void {
-    if (actor.role !== 'SELLER') {
-      throw new ShipmentServiceError('Seller shipment APIs are only available to seller accounts', 403, 'SHIPMENT_FORBIDDEN')
-    }
-  }
-
   private assertBuyer(actor: ShipmentActor): void {
-    if (actor.role !== 'USER') {
+    if (actor.role === 'ADMIN') {
       throw new ShipmentServiceError('Buyer shipment APIs are only available to buyer accounts', 403, 'SHIPMENT_FORBIDDEN')
     }
   }
 
   private async getSellerShopIds(ownerId: string): Promise<string[]> {
-    const shops = await this.repo.findSellerShops(ownerId)
+    const shops = this.activeShopResolver
+      ? await this.activeShopResolver.resolveActiveShops(ownerId)
+      : await this.repo.findSellerShops(ownerId)
+    if (shops.length === 0) throw new ShipmentServiceError('Active seller shop not found', 403, 'SHIPMENT_FORBIDDEN')
     return shops.map((shop) => shop.id)
   }
 
@@ -264,6 +258,7 @@ export class ShipmentService {
     shipmentId: string,
   ): Promise<SellerShipment> {
     const shopIds = (await repo.findSellerShops(ownerId)).map((shop) => shop.id)
+    if (shopIds.length === 0) throw new ShipmentServiceError('Active seller shop not found', 403, 'SHIPMENT_FORBIDDEN')
     const shipment = await repo.findSellerShipmentById(shipmentId, shopIds)
     if (!shipment) throw new ShipmentServiceError('Shipment not found', 404, 'SHIPMENT_NOT_FOUND')
     return shipment
@@ -346,8 +341,8 @@ export class ShipmentService {
         variantTitle: item.orderItem.variantTitle,
         variantSku: item.orderItem.variantSku,
         quantity: item.quantity,
-        unitPriceCents: item.orderItem.unitPriceCents,
-        lineTotalCents: item.orderItem.lineTotalCents,
+        unitPrice: item.orderItem.unitPrice,
+        lineTotal: item.orderItem.lineTotal,
         currency: item.orderItem.currency,
         fulfillmentStatus: item.orderItem.fulfillmentStatus,
       })),

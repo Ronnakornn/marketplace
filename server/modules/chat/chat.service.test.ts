@@ -21,7 +21,7 @@ function user(id = 'buyer-1') {
 }
 
 function seller(id = 'seller-1') {
-  return { id, role: 'SELLER' as const }
+  return { id, role: 'USER' as const }
 }
 
 function createMessage(overrides: Record<string, any> = {}) {
@@ -64,6 +64,7 @@ function createRoom(overrides: Record<string, any> = {}) {
       name: 'Shop',
       slug: 'shop',
       ownerId: 'seller-1',
+      status: 'ACTIVE',
     },
     product: overrides.product ?? null,
     order: overrides.order ?? null,
@@ -73,7 +74,7 @@ function createRoom(overrides: Record<string, any> = {}) {
 
 function createRepo(overrides: Partial<Record<keyof IChatRepository, any>> = {}) {
   const repo: IChatRepository = {
-    findShopById: vi.fn().mockResolvedValue({ id: 'shop-1', name: 'Shop', slug: 'shop', ownerId: 'seller-1' }),
+    findShopById: vi.fn().mockResolvedValue({ id: 'shop-1', name: 'Shop', slug: 'shop', ownerId: 'seller-1', status: 'ACTIVE' }),
     findProductById: vi.fn().mockResolvedValue(null),
     findOrderContext: vi.fn().mockResolvedValue(null),
     findRoomByBuyerAndShop: vi.fn().mockResolvedValue(null),
@@ -109,7 +110,7 @@ describe('ChatService', () => {
 
     const result = await service.createRoom(user(), { shopId: 'shop-1' })
 
-    expect(repo.createRoom).toHaveBeenCalledWith({ buyerId: 'buyer-1', shopId: 'shop-1', productId: undefined, orderId: undefined })
+    expect(repo.createRoom).toHaveBeenCalledWith({ buyerId: 'buyer-1', shopId: 'shop-1' })
     expect(result.roomId).toBe('room-1')
     expect(result.shop.id).toBe('shop-1')
   })
@@ -132,7 +133,7 @@ describe('ChatService', () => {
     await service.listRooms(user('buyer-2'))
 
     expect(repo.listBuyerRooms).toHaveBeenCalledWith('buyer-2')
-    expect(repo.listSellerRooms).not.toHaveBeenCalled()
+    expect(repo.listSellerRooms).toHaveBeenCalledWith('buyer-2')
   })
 
   it('lets sellers list only rooms from their shops', async () => {
@@ -142,7 +143,7 @@ describe('ChatService', () => {
     await service.listRooms(seller('seller-2'))
 
     expect(repo.listSellerRooms).toHaveBeenCalledWith('seller-2')
-    expect(repo.listBuyerRooms).not.toHaveBeenCalled()
+    expect(repo.listBuyerRooms).toHaveBeenCalledWith('seller-2')
   })
 
   it('blocks a buyer from reading another buyer room', async () => {
@@ -248,8 +249,6 @@ describe('ChatService', () => {
         shopId: 'shop-1',
         buyerId: 'buyer-1',
         senderId: 'buyer-1',
-        productId: 'product-1',
-        orderId: 'order-1',
       }),
     )
     expect(notificationService.createNotification).not.toHaveBeenCalledWith(

@@ -48,11 +48,11 @@ export type CheckoutAddress = Address
 export type CheckoutCouponRef = Pick<Coupon, 'id'>
 
 export interface CheckoutTotalsRecord {
-  subtotalCents: number
-  discountTotalCents: number
-  shippingTotalCents: number
-  taxTotalCents: number
-  grandTotalCents: number
+  subtotal: number
+  discountTotal: number
+  shippingTotal: number
+  taxTotal: number
+  grandTotal: number
   currency: string
 }
 
@@ -171,11 +171,11 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         cartId: input.cartId,
         userId: input.userId,
         status: 'PAYMENT_PENDING',
-        subtotalCents: input.totals.subtotalCents,
-        discountTotalCents: input.totals.discountTotalCents,
-        shippingTotalCents: input.totals.shippingTotalCents,
-        taxTotalCents: input.totals.taxTotalCents,
-        grandTotalCents: input.totals.grandTotalCents,
+        subtotal: input.totals.subtotal,
+        discountTotal: input.totals.discountTotal,
+        shippingTotal: input.totals.shippingTotal,
+        taxTotal: input.totals.taxTotal,
+        grandTotal: input.totals.grandTotal,
         currency: input.totals.currency,
         expiresAt: input.checkoutExpiresAt,
       },
@@ -228,11 +228,11 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         orderNumber: input.orderNumber,
         status: 'PENDING_PAYMENT',
         paymentStatus: 'PENDING',
-        subtotalCents: input.totals.subtotalCents,
-        discountTotalCents: input.totals.discountTotalCents,
-        shippingTotalCents: input.totals.shippingTotalCents,
-        taxTotalCents: input.totals.taxTotalCents,
-        grandTotalCents: input.totals.grandTotalCents,
+        subtotal: input.totals.subtotal,
+        discountTotal: input.totals.discountTotal,
+        shippingTotal: input.totals.shippingTotal,
+        taxTotal: input.totals.taxTotal,
+        grandTotal: input.totals.grandTotal,
         currency: input.totals.currency,
         shippingName: input.address.recipientName,
         shippingPhone: input.address.phone,
@@ -261,8 +261,8 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
             shopName: item.variant.product.shop.name,
             shopSlug: item.variant.product.shop.slug,
             quantity: item.quantity,
-            unitPriceCents: item.variant.priceCents,
-            lineTotalCents: item.variant.priceCents * item.quantity,
+            unitPrice: item.variant.prices,
+            lineTotal: item.variant.prices * item.quantity,
             currency: item.variant.currency,
             fulfillmentStatus: 'PENDING',
           })),
@@ -286,7 +286,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         provider: input.paymentMethod,
         providerIntentId: `pending_${input.orderNumber}`,
         status: 'PENDING',
-        amountCents: input.totals.grandTotalCents,
+        amount: input.totals.grandTotal,
         currency: input.totals.currency,
       },
     })

@@ -19,7 +19,7 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
       <div className="space-y-2 p-3">
         <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-slate-900">{product.title}</h3>
         <div className="flex items-end justify-between gap-2">
-          <p className="text-base font-bold text-orange-600">{formatMoney(product.priceCents, product.currency)}</p>
+          <p className="text-base font-bold text-orange-600">{formatMoney(product.price, product.currency)}</p>
           <span className="text-xs text-slate-500">{product.soldCount} sold</span>
         </div>
         <div className="flex items-center justify-between gap-2 text-xs text-slate-500">

@@ -19,8 +19,8 @@ export interface RecommendationProductCard {
   productId: string
   title: string
   coverImage?: string
-  minPriceCents: number
-  maxPriceCents?: number
+  minPrice: number
+  maxPrice?: number
   rating?: number
   soldCount?: number
   shop?: {
@@ -166,9 +166,9 @@ export class RecommendationService {
   }
 
   private toProductCard(product: RecommendationProductRecord, locale: ContentLocale): RecommendationProductCard {
-    const prices = product.variants.map((variant) => variant.priceCents)
-    const minPriceCents = Math.min(...prices)
-    const maxPriceCents = Math.max(...prices)
+    const prices = product.variants.map((variant) => variant.prices)
+    const minPrice = Math.min(...prices)
+    const maxPrice = Math.max(...prices)
     const soldCount = product.variants.reduce(
       (sum, variant) => sum + variant.orderItems.reduce((variantSum, item) => variantSum + item.quantity, 0),
       0,
@@ -180,8 +180,8 @@ export class RecommendationService {
     return {
       productId: product.id,
       title: localizedText(locale, { th: product.titleTh, en: product.titleEn, fallback: product.title }) ?? product.title,
-      minPriceCents,
-      ...(maxPriceCents !== minPriceCents ? { maxPriceCents } : {}),
+      minPrice,
+      ...(maxPrice !== minPrice ? { maxPrice } : {}),
       ...(rating !== undefined ? { rating } : {}),
       soldCount,
       shop: {

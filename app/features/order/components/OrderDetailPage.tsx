@@ -10,13 +10,14 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { fetchOrder, formatMoney } from "#/features/buyer/api";
 import { createChatRoom } from "#/features/chat";
-import { useTranslations } from "#/i18n/client";
+import { useFormatters, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
 
 export function OrderDetailPage({ orderId }: { orderId: string }) {
   const router = useRouter();
   const t = useTranslations();
+  const formatters = useFormatters();
   const localePath = useLocalePath();
   const { data: session } = useSession();
   const canUseBuyerChat = session?.user.role === "USER";
@@ -40,7 +41,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h1 className="text-xl font-bold text-slate-950">{orderQuery.data.orderNo}</h1>
-                  <p className="text-sm text-slate-500">{new Date(orderQuery.data.createdAt).toLocaleString()}</p>
+                  <p className="text-sm text-slate-500">{formatters.date(orderQuery.data.createdAt)}</p>
                 </div>
                 <Badge className="rounded-md bg-orange-600">{orderQuery.data.status}</Badge>
               </div>
@@ -57,11 +58,11 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                   <div key={item.id} className="flex justify-between gap-3 py-3 text-sm">
                     <div>
                       <p className="font-semibold text-slate-950">{item.productTitle}</p>
-                      <p className="text-slate-500">{item.variantTitle} · {item.shopName}</p>
+                      <p className="text-slate-500">{item.variantTitle} - {item.shopName}</p>
                     </div>
                     <div className="text-right">
                       <p>x{item.quantity}</p>
-                      <p className="font-semibold">{formatMoney(item.lineTotalCents, orderQuery.data.currency)}</p>
+                      <p className="font-semibold">{formatMoney(item.lineTotal, orderQuery.data.currency)}</p>
                     </div>
                   </div>
                 ))}
@@ -84,7 +85,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="font-semibold">{shipment.shopName}</p>
-                        <p className="text-sm text-slate-500">{shipment.carrier ?? "Carrier pending"} {shipment.trackingNumber ?? ""}</p>
+                        <p className="text-sm text-slate-500">{shipment.carrier ?? t("order.carrierPending")} {shipment.trackingNumber ?? ""}</p>
                       </div>
                       <Badge variant="outline" className="rounded-md">{shipment.status}</Badge>
                     </div>

@@ -8,7 +8,7 @@ import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { fetchOrders, formatMoney } from "#/features/buyer/api";
-import { useTranslations } from "#/i18n/client";
+import { useFormatters, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
 const orderFilters = [
@@ -24,6 +24,7 @@ const orderFilters = [
 export function OrderListPage() {
   const localePath = useLocalePath();
   const t = useTranslations();
+  const formatters = useFormatters();
   const [filter, setFilter] = useState("all");
   const ordersQuery = useQuery({ queryKey: ["buyer-orders"], queryFn: fetchOrders });
   const orders = useMemo(() => {
@@ -52,7 +53,7 @@ export function OrderListPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-bold text-slate-950">{order.orderNo}</h2>
-                <p className="text-sm text-slate-500">{new Date(order.createdAt).toLocaleString()}</p>
+                <p className="text-sm text-slate-500">{formatters.date(order.createdAt)}</p>
               </div>
               <Badge variant="secondary" className="rounded-md">{order.status}</Badge>
             </div>

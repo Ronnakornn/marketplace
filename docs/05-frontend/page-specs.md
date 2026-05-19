@@ -92,6 +92,33 @@ Acceptance:
 - Shows order-level and shipment-level status separately.
 - Displays per-shop shipments.
 
+## Seller Register `/seller/register`
+
+Required sections:
+- shop profile
+- business/legal KYC
+- pickup and return address
+- payout bank information
+- KYC document upload
+- review and submit
+
+Acceptance:
+- Authenticated buyer accounts can start onboarding without losing buyer cart/checkout/order access.
+- Draft state is recoverable.
+- Submit validates required KYC documents before moving to review.
+
+## Seller Status `/seller/status`
+
+Required sections:
+- application status badge
+- submitted shop summary
+- rejection reason and resubmit action when rejected
+- pending review messaging when submitted
+
+Acceptance:
+- Pending/rejected users cannot access operational seller pages.
+- Approved users are redirected to seller dashboard.
+
 ## Seller Dashboard `/seller`
 
 Required sections:
@@ -102,6 +129,7 @@ Required sections:
 
 Acceptance:
 - Seller sees only own shop data.
+- Page requires an active owned shop.
 - Primary CTA routes to pending shipment processing.
 
 ## Seller Orders `/seller/orders`

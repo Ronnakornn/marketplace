@@ -69,7 +69,7 @@ const baseBody: PaymentWebhookBody = {
   eventType: 'payment.paid',
   paymentId: '14141414-1414-4141-8141-141414141414',
   orderId: '13131313-1313-4131-8131-131313131313',
-  amountCents: 2900,
+  amount: 2900,
 }
 
 function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<PaymentWithOrder> = {}): PaymentWithOrder {
@@ -82,7 +82,7 @@ function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<Pay
     provider: overrides.provider ?? 'mock',
     providerIntentId: overrides.providerIntentId ?? 'pending_ORD-TEST',
     status,
-    amountCents: overrides.amountCents ?? 2900,
+    amount: overrides.amount ?? 2900,
     currency: overrides.currency ?? 'USD',
     paidAt: null,
     createdAt: now,
@@ -94,11 +94,11 @@ function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<Pay
       orderNumber: 'ORD-TEST',
       status: status === 'SUCCEEDED' ? 'PAID' : 'PENDING_PAYMENT',
       paymentStatus: status,
-      subtotalCents: 2400,
-      discountTotalCents: 0,
-      shippingTotalCents: 500,
-      taxTotalCents: 0,
-      grandTotalCents: 2900,
+      subtotal: 2400,
+      discountTotal: 0,
+      shippingTotal: 500,
+      taxTotal: 0,
+      grandTotal: 2900,
       currency: 'USD',
       shippingName: 'Jane Buyer',
       shippingPhone: null,
@@ -123,8 +123,8 @@ function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<Pay
           shopName: 'Everyday Studio',
           shopSlug: 'everyday-studio',
           quantity: 2,
-          unitPriceCents: 1200,
-          lineTotalCents: 2400,
+          unitPrice: 1200,
+          lineTotal: 2400,
           currency: 'USD',
           fulfillmentStatus: 'PENDING',
         },
@@ -134,11 +134,11 @@ function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<Pay
         cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
         userId: 'user-1',
         status: 'PAYMENT_PENDING',
-        subtotalCents: 2400,
-        discountTotalCents: 0,
-        shippingTotalCents: 500,
-        taxTotalCents: 0,
-        grandTotalCents: 2900,
+        subtotal: 2400,
+        discountTotal: 0,
+        shippingTotal: 500,
+        taxTotal: 0,
+        grandTotal: 2900,
         currency: 'USD',
         expiresAt: new Date('2026-05-13T00:15:00.000Z'),
         createdAt: now,
@@ -217,7 +217,7 @@ describe('PaymentService', () => {
   })
 
   it('fails amount mismatch and unknown payment', async () => {
-    await expect((await setup()).handleWebhook({ ...baseBody, amountCents: 999 })).rejects.toMatchObject({
+    await expect((await setup()).handleWebhook({ ...baseBody, amount: 999 })).rejects.toMatchObject({
       code: 'AMOUNT_MISMATCH',
     })
 

@@ -8,6 +8,7 @@ export interface RealtimeChatRoomAccess {
   shop: {
     id: string
     ownerId: string
+    status: string
   }
 }
 
@@ -37,6 +38,7 @@ export class PrismaRealtimeRepository implements IRealtimeRepository {
           select: {
             id: true,
             ownerId: true,
+            status: true,
           },
         },
       },
@@ -47,8 +49,8 @@ export class PrismaRealtimeRepository implements IRealtimeRepository {
     this.logger.debug('PrismaRealtimeRepository.findShopOwnerId', { shopId })
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
-      select: { ownerId: true },
+      select: { ownerId: true, status: true },
     })
-    return shop?.ownerId ?? null
+    return shop?.status === 'ACTIVE' ? shop.ownerId : null
   }
 }

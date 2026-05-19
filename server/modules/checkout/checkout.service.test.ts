@@ -43,7 +43,7 @@ function createRepoMock(): ICheckoutRepository {
 }
 
 let repo: ICheckoutRepository
-let promotionService: Pick<PromotionService, 'validateCouponForSubtotal'>
+let promotionService: Pick<PromotionService, 'validateCouponForsubtotal'>
 
 function createActor(role: Role = 'USER') {
   return {
@@ -75,7 +75,7 @@ function createItem(overrides: Partial<{
   id: string
   variantId: string
   quantity: number
-  priceCents: number
+  prices: number
   currency: string
   productStatus: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
   variantStatus: 'ACTIVE' | 'INACTIVE'
@@ -90,7 +90,7 @@ function createItem(overrides: Partial<{
     cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
     variantId,
     quantity: overrides.quantity ?? 2,
-    unitPriceCents: 1000,
+    unitPrice: 1000,
     currency: overrides.currency ?? 'USD',
     createdAt: now,
     updatedAt: now,
@@ -99,7 +99,7 @@ function createItem(overrides: Partial<{
       productId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
       sku: 'TEE-BLK-M',
       title: 'Black / M',
-      priceCents: overrides.priceCents ?? 1200,
+      prices: overrides.prices ?? 1200,
       currency: overrides.currency ?? 'USD',
       status: overrides.variantStatus ?? 'ACTIVE',
       createdAt: now,
@@ -160,11 +160,11 @@ function createCreatedOrder(input?: Partial<CreatePendingOrderInput>): CreatedCh
       orderNumber: input?.orderNumber ?? 'ORD-TEST',
       status: 'PENDING_PAYMENT',
       paymentStatus: 'PENDING',
-      subtotalCents: input?.totals?.subtotalCents ?? 2400,
-      discountTotalCents: input?.totals?.discountTotalCents ?? 0,
-      shippingTotalCents: input?.totals?.shippingTotalCents ?? 500,
-      taxTotalCents: input?.totals?.taxTotalCents ?? 0,
-      grandTotalCents: input?.totals?.grandTotalCents ?? 2900,
+      subtotal: input?.totals?.subtotal ?? 2400,
+      discountTotal: input?.totals?.discountTotal ?? 0,
+      shippingTotal: input?.totals?.shippingTotal ?? 500,
+      taxTotal: input?.totals?.taxTotal ?? 0,
+      grandTotal: input?.totals?.grandTotal ?? 2900,
       currency: input?.totals?.currency ?? 'USD',
       shippingName: 'Jane Buyer',
       shippingPhone: '0800000000',
@@ -183,7 +183,7 @@ function createCreatedOrder(input?: Partial<CreatePendingOrderInput>): CreatedCh
       provider: 'stripe',
       providerIntentId: `pending_${input?.orderNumber ?? 'ORD-TEST'}`,
       status: 'PENDING',
-      amountCents: input?.totals?.grandTotalCents ?? 2900,
+      amount: input?.totals?.grandTotal ?? 2900,
       currency: input?.totals?.currency ?? 'USD',
       paidAt: null,
       createdAt: now,
@@ -200,7 +200,7 @@ async function setupSuccess(overrides: {
 } = {}) {
   repo = createRepoMock()
   promotionService = {
-    validateCouponForSubtotal: vi.fn(),
+    validateCouponForsubtotal: vi.fn(),
   }
   vi.mocked(repo.findCartForCheckout).mockResolvedValue(overrides.cart ?? createCart())
   vi.mocked(repo.findAddressForUser).mockResolvedValue(overrides.address === undefined ? createAddress() : overrides.address)
@@ -208,13 +208,13 @@ async function setupSuccess(overrides: {
   vi.mocked(repo.countCouponRedemptionsForUser).mockResolvedValue(0)
   vi.mocked(repo.createPendingOrder).mockImplementation(async (input) => createCreatedOrder(input))
   if (overrides.couponError) {
-    vi.mocked(promotionService.validateCouponForSubtotal).mockRejectedValue(overrides.couponError)
+    vi.mocked(promotionService.validateCouponForsubtotal).mockRejectedValue(overrides.couponError)
   } else {
-    vi.mocked(promotionService.validateCouponForSubtotal).mockResolvedValue({
+    vi.mocked(promotionService.validateCouponForsubtotal).mockResolvedValue({
       couponId: '99999999-9999-4999-8999-999999999999',
       couponCode: 'SAVE10',
       discountCents: overrides.couponDiscountCents ?? 0,
-      subtotalCents: 2400,
+      subtotal: 2400,
     })
   }
   return new CheckoutService(createAppContext(), repo, promotionService as PromotionService)
@@ -242,10 +242,10 @@ describe('CheckoutService', () => {
       totalCents: 2660,
     })
     expect(repo.transaction).toHaveBeenCalledOnce()
-    expect(promotionService.validateCouponForSubtotal).toHaveBeenCalledWith(repo, {
+    expect(promotionService.validateCouponForsubtotal).toHaveBeenCalledWith(repo, {
       userId: 'user-1',
       couponCode: ' save10 ',
-      subtotalCents: 2400,
+      subtotal: 2400,
     })
     expect(repo.createPendingOrder).toHaveBeenCalledWith(expect.objectContaining({
       cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -253,11 +253,11 @@ describe('CheckoutService', () => {
       paymentMethod: 'stripe',
       coupon: { id: '99999999-9999-4999-8999-999999999999' },
       totals: {
-        subtotalCents: 2400,
-        discountTotalCents: 240,
-        shippingTotalCents: 500,
-        taxTotalCents: 0,
-        grandTotalCents: 2660,
+        subtotal: 2400,
+        discountTotal: 240,
+        shippingTotal: 500,
+        taxTotal: 0,
+        grandTotal: 2660,
         currency: 'USD',
       },
     }))
@@ -272,8 +272,8 @@ describe('CheckoutService', () => {
     })
 
     const input = vi.mocked(repo.createPendingOrder).mock.calls[0]![0]
-    expect(input.items[0]!.unitPriceCents).toBe(1000)
-    expect(input.items[0]!.variant.priceCents).toBe(1200)
+    expect(input.items[0]!.unitPrice).toBe(1000)
+    expect(input.items[0]!.variant.prices).toBe(1200)
     expect(input.items[0]!.variant.product.title).toBe('Oversized Cotton Tee')
     expect(input.items[0]!.variant.product.shop.name).toBe('Everyday Studio')
   })
@@ -331,8 +331,8 @@ describe('CheckoutService', () => {
       paymentMethod: 'stripe',
     })
     expect(vi.mocked(repo.createPendingOrder).mock.calls[0]![0].totals).toMatchObject({
-      discountTotalCents: 2400,
-      grandTotalCents: 500,
+      discountTotal: 2400,
+      grandTotal: 500,
     })
 
     const cappedDiscountService = await setupSuccess({ couponDiscountCents: 999999 })
@@ -343,8 +343,8 @@ describe('CheckoutService', () => {
       paymentMethod: 'stripe',
     })
     expect(vi.mocked(repo.createPendingOrder).mock.calls[0]![0].totals).toMatchObject({
-      discountTotalCents: 2400,
-      grandTotalCents: 500,
+      discountTotal: 2400,
+      grandTotal: 500,
     })
 
     await expect((await setupSuccess({
@@ -357,14 +357,14 @@ describe('CheckoutService', () => {
     })).rejects.toMatchObject({ code: 'INVALID_COUPON', details: { reason: 'COUPON_NOT_FOUND' } })
   })
 
-  it('rejects seller/admin users and rolls back through repository transaction failures', async () => {
-    await expect((await setupSuccess()).createCheckout(createActor('SELLER'), {
+  it('rejects admins and rolls back through repository transaction failures', async () => {
+    const service = await setupSuccess()
+    await expect(service.createCheckout(createActor('ADMIN'), {
       cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       paymentMethod: 'stripe',
     })).rejects.toMatchObject({ code: 'CHECKOUT_FORBIDDEN' })
 
-    const service = await setupSuccess()
     vi.mocked(repo.createPendingOrder).mockRejectedValue(new Error('forced rollback'))
 
     await expect(service.createCheckout(createActor(), {

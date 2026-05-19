@@ -39,11 +39,11 @@ export interface CheckoutResponse {
 }
 
 interface CalculatedTotals {
-  subtotalCents: number
-  discountTotalCents: number
-  shippingTotalCents: number
-  taxTotalCents: number
-  grandTotalCents: number
+  subtotal: number
+  discountTotal: number
+  shippingTotal: number
+  taxTotal: number
+  grandTotal: number
   currency: string
 }
 
@@ -73,7 +73,7 @@ export class CheckoutService {
       this.validateItems(cart!.items)
       const baseTotals = this.calculateTotals(cart!.items)
       const couponValidation = data.couponCode
-        ? await this.validateCouponForCheckout(txRepo, actor.id, data.couponCode, baseTotals.subtotalCents)
+        ? await this.validateCouponForCheckout(txRepo, actor.id, data.couponCode, baseTotals.subtotal)
         : null
       const totals = this.calculateTotals(cart!.items, couponValidation?.discountCents ?? 0)
       const orderNumber = this.createOrderNumber()
@@ -99,13 +99,13 @@ export class CheckoutService {
         orderNo: result.order.orderNumber,
         paymentId: result.payment.id,
         paymentStatus: 'pending',
-        totalCents: totals.grandTotalCents,
+        totalCents: totals.grandTotal,
       }
     })
   }
 
   private assertBuyer(actor: CheckoutActor): void {
-    if (actor.role !== 'USER') {
+    if (actor.role === 'ADMIN') {
       throw new CheckoutServiceError('Checkout is only available to buyer accounts', 403, 'CHECKOUT_FORBIDDEN')
     }
   }
@@ -162,18 +162,18 @@ export class CheckoutService {
       throw new CheckoutServiceError('Mixed currencies are not supported in checkout', 400, 'CHECKOUT_FAILED')
     }
 
-    const subtotalCents = items.reduce((total, item) => total + item.variant.priceCents * item.quantity, 0)
-    const shippingTotalCents = items.length > 0 ? FLAT_SHIPPING_CENTS : 0
-    const taxTotalCents = 0
-    const discountTotalCents = Math.min(Math.max(0, discountCents), subtotalCents)
-    const grandTotalCents = Math.max(0, subtotalCents - discountTotalCents + shippingTotalCents + taxTotalCents)
+    const subtotal = items.reduce((total, item) => total + item.variant.prices * item.quantity, 0)
+    const shippingTotal = items.length > 0 ? FLAT_SHIPPING_CENTS : 0
+    const taxTotal = 0
+    const discountTotal = Math.min(Math.max(0, discountCents), subtotal)
+    const grandTotal = Math.max(0, subtotal - discountTotal + shippingTotal + taxTotal)
 
     return {
-      subtotalCents,
-      discountTotalCents,
-      shippingTotalCents,
-      taxTotalCents,
-      grandTotalCents,
+      subtotal,
+      discountTotal,
+      shippingTotal,
+      taxTotal,
+      grandTotal,
       currency,
     }
   }
@@ -182,13 +182,13 @@ export class CheckoutService {
     repo: ICheckoutRepository,
     userId: string,
     couponCode: string,
-    subtotalCents: number,
+    subtotal: number,
   ) {
     try {
-      return await this.promotionService.validateCouponForSubtotal(repo, {
+      return await this.promotionService.validateCouponForsubtotal(repo, {
         userId,
         couponCode,
-        subtotalCents,
+        subtotal,
       })
     } catch (error) {
       if (error instanceof PromotionServiceError) {

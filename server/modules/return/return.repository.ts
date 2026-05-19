@@ -168,7 +168,7 @@ export class PrismaReturnRepository implements IReturnRepository {
   findSellerShops(ownerId: string): Promise<Pick<Shop, 'id'>[]> {
     this.logger.debug('PrismaReturnRepository.findSellerShops', { ownerId })
     return this.prisma.shop.findMany({
-      where: { ownerId },
+      where: { ownerId, status: 'ACTIVE' },
       select: { id: true },
     })
   }
@@ -226,7 +226,7 @@ export class PrismaReturnRepository implements IReturnRepository {
     this.logger.info('PrismaReturnRepository.createPendingRefundForReturn', {
       returnId: returnRecord.id,
       orderId: returnRecord.orderId,
-      amountCents: orderItem?.lineTotalCents,
+      amount: orderItem?.lineTotal,
     })
     return this.prisma.refund.create({
       data: {
@@ -234,7 +234,7 @@ export class PrismaReturnRepository implements IReturnRepository {
         paymentId: payment!.id,
         returnRequestId: returnRecord.id,
         status: 'PENDING',
-        amountCents: orderItem!.lineTotalCents,
+        amount: orderItem!.lineTotal,
         reason: returnRecord.reason,
       },
     })

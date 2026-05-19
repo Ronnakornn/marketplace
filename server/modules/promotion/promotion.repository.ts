@@ -1,4 +1,4 @@
-import type { Cart, CartItem, Coupon, PrismaClient, ProductVariant } from '#generated/client/client.ts'
+import type { Cart, CartItem, Coupon, PrismaClient, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -14,21 +14,22 @@ export type PromotionCoupon = Omit<Coupon, 'titleTh' | 'titleEn' | 'descriptionT
 
 export type PromotionCart = Cart & {
   items: Array<CartItem & {
-    variant: Pick<ProductVariant, 'id' | 'priceCents' | 'currency'>
+    variant: Pick<ProductVariant, 'id' | 'price' | 'currency'>
   }>
 }
 
 export interface CreateCouponInput {
+  shopId?: string | null
   code: string
   titleTh?: string | null
   titleEn?: string | null
   descriptionTh?: string | null
   descriptionEn?: string | null
   discountType: 'PERCENT' | 'FIXED_AMOUNT'
-  discountValueCents?: number | null
+  discountValue?: number | null
   discountPercentBps?: number | null
-  minOrderCents?: number | null
-  maxDiscountCents?: number | null
+  minOrder?: number | null
+  maxDiscount?: number | null
   startsAt?: Date | null
   endsAt?: Date | null
   usageLimit?: number | null
@@ -45,8 +46,10 @@ export interface IPromotionValidationRepository {
 
 export interface IPromotionRepository extends IPromotionValidationRepository {
   findCartForCouponValidation(cartId: string, userId: string): Promise<PromotionCart | null>
+  findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'ownerId'>>>
   listPublicCoupons(): Promise<Coupon[]>
   listAdminCoupons(): Promise<Coupon[]>
+  listSellerCoupons(shopIds: string[]): Promise<Coupon[]>
   findCouponById(couponId: string): Promise<Coupon | null>
   createCoupon(input: CreateCouponInput): Promise<Coupon>
   updateCoupon(couponId: string, input: UpdateCouponInput): Promise<Coupon>
@@ -98,13 +101,22 @@ export class PrismaPromotionRepository implements IPromotionRepository {
             variant: {
               select: {
                 id: true,
-                priceCents: true,
+                price: true,
                 currency: true,
               },
             },
           },
         },
       },
+    })
+  }
+
+  findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'ownerId'>>> {
+    this.logger.debug('PrismaPromotionRepository.findSellerShops', { ownerId })
+    return this.prisma.shop.findMany({
+      where: { ownerId, status: 'ACTIVE' },
+      select: { id: true, ownerId: true },
+      orderBy: { createdAt: 'asc' },
     })
   }
 
@@ -119,6 +131,15 @@ export class PrismaPromotionRepository implements IPromotionRepository {
   listAdminCoupons(): Promise<Coupon[]> {
     this.logger.debug('PrismaPromotionRepository.listAdminCoupons')
     return this.prisma.coupon.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  listSellerCoupons(shopIds: string[]): Promise<Coupon[]> {
+    this.logger.debug('PrismaPromotionRepository.listSellerCoupons', { shopIds })
+    if (shopIds.length === 0) return Promise.resolve([])
+    return this.prisma.coupon.findMany({
+      where: { shopId: { in: shopIds } },
       orderBy: { createdAt: 'desc' },
     })
   }

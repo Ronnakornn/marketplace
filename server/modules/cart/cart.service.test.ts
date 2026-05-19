@@ -49,7 +49,7 @@ function createVariant(overrides: Partial<{
   shopStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
   quantityOnHand: number
   quantityReserved: number
-  priceCents: number
+  prices: number
 }> = {}) {
   const now = new Date('2026-05-13T00:00:00.000Z')
   const shopId = overrides.shopId ?? '11111111-1111-4111-8111-111111111111'
@@ -59,7 +59,7 @@ function createVariant(overrides: Partial<{
     productId: '22222222-2222-4222-8222-222222222222',
     sku: 'TSHIRT-BLK-M',
     title: 'Black / M',
-    priceCents: overrides.priceCents ?? 1590,
+    prices: overrides.prices ?? 1590,
     currency: 'USD',
     status: 'ACTIVE' as const,
     createdAt: now,
@@ -111,7 +111,7 @@ function createCart(overrides: Partial<{
 function createItem(overrides: Partial<{
   id: string
   quantity: number
-  unitPriceCents: number
+  unitPrice: number
   variant: ReturnType<typeof createVariant>
 }> = {}) {
   const now = new Date('2026-05-13T00:00:00.000Z')
@@ -121,7 +121,7 @@ function createItem(overrides: Partial<{
     cartId: '55555555-5555-4555-8555-555555555555',
     variantId: variant.id,
     quantity: overrides.quantity ?? 2,
-    unitPriceCents: overrides.unitPriceCents ?? 1490,
+    unitPrice: overrides.unitPrice ?? 1490,
     currency: 'USD',
     createdAt: now,
     updatedAt: now,
@@ -136,40 +136,42 @@ describe('CartService', () => {
 
   it('returns a cart grouped by shop with captured unit prices and subtotal', async () => {
     const repo = createRepoMock()
-    const item = createItem({ quantity: 2, unitPriceCents: 1490 })
+    const item = createItem({ quantity: 2, unitPrice: BigInt(1490) as unknown as number })
     vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart({ items: [item] }))
     const service = new CartService(createAppContext(), repo)
 
     await expect(service.getCart(createActor())).resolves.toMatchObject({
       id: '55555555-5555-4555-8555-555555555555',
-      subtotalCents: 2980,
+      subtotal: 2980,
       shops: [
         {
           shop: { id: '11111111-1111-4111-8111-111111111111' },
-          subtotalCents: 2980,
+          subtotal: 2980,
           items: [
             {
               id: '66666666-6666-4666-8666-666666666666',
               quantity: 2,
-              unitPriceCents: 1490,
-              lineTotalCents: 2980,
+              unitPrice: 1490,
+              lineTotal: 2980,
               availableQuantity: 8,
             },
           ],
         },
       ],
     })
+    const result = await service.getCart(createActor())
+    expect(() => JSON.stringify(result)).not.toThrow()
   })
 
   it('adds an active variant and captures current unit price', async () => {
     const repo = createRepoMock()
     const cart = createCart()
-    const variant = createVariant({ priceCents: 1590 })
+    const variant = createVariant({ prices: 1590 })
     vi.mocked(repo.findOrCreateActiveCart)
       .mockResolvedValueOnce(cart)
-      .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 1, unitPriceCents: 1590, variant })] }))
+      .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 1, unitPrice: 1590, variant })] }))
     vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
-    vi.mocked(repo.createItem).mockResolvedValue(createItem({ quantity: 1, unitPriceCents: 1590, variant }))
+    vi.mocked(repo.createItem).mockResolvedValue(createItem({ quantity: 1, unitPrice: 1590, variant }))
     const service = new CartService(createAppContext(), repo)
 
     await service.addItem(createActor(), { variantId: variant.id, quantity: 1 })
@@ -178,7 +180,7 @@ describe('CartService', () => {
       cartId: cart.id,
       variantId: variant.id,
       quantity: 1,
-      unitPriceCents: 1590,
+      unitPrice: 1590,
       currency: 'USD',
     })
   })
@@ -199,13 +201,22 @@ describe('CartService', () => {
     expect(repo.createItem).not.toHaveBeenCalled()
   })
 
-  it('rejects seller and admin access to buyer cart APIs', async () => {
-    const service = new CartService(createAppContext(), createRepoMock())
+  it('allows shop owners to use buyer cart APIs and rejects admins', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart())
+    const service = new CartService(createAppContext(), repo)
 
-    await expect(service.getCart(createActor('SELLER'))).rejects.toMatchObject({
+    await expect(service.getCart(createActor('USER'))).resolves.toMatchObject({ id: expect.any(String) })
+
+    await expect(service.getCart(createActor('ADMIN'))).rejects.toMatchObject({
       status: 403,
       code: 'CART_FORBIDDEN',
     })
+  })
+
+  it('rejects admin access to buyer cart APIs', async () => {
+    const service = new CartService(createAppContext(), createRepoMock())
+
     await expect(service.getCart(createActor('ADMIN'))).rejects.toMatchObject({
       status: 403,
       code: 'CART_FORBIDDEN',

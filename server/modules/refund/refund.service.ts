@@ -16,7 +16,7 @@ export interface RefundResponse {
   paymentId: string
   returnRequestId: string | null
   status: string
-  amountCents: number
+  amount: number
   reason: string | null
   createdAt: Date
   updatedAt: Date
@@ -59,7 +59,7 @@ export class RefundService {
         refundId: response.id,
         orderId: response.orderId,
         paymentId: response.paymentId,
-        amountCents: response.amountCents,
+        amount: response.amount,
       })
     }
     return response
@@ -93,7 +93,7 @@ export class RefundService {
       paymentId: refund.paymentId,
       returnRequestId: refund.returnRequestId,
       status: refund.status.toLowerCase(),
-      amountCents: refund.amountCents,
+      amount: refund.amount,
       reason: refund.reason,
       createdAt: refund.createdAt,
       updatedAt: refund.updatedAt,

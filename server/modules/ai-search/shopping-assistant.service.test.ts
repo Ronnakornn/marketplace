@@ -37,8 +37,8 @@ const recommendedProduct: AiSearchProductItem = {
     slug: 'fashion',
   },
   price: {
-    minPriceCents: 1234,
-    maxPriceCents: null,
+    minPrice: 1234,
+    maxPrice: null,
     currency: 'USD',
   },
   rating: {

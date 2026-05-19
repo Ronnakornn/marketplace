@@ -8,6 +8,7 @@ import { fetchAdminAffiliates, updateAdminAffiliateStatus, type AdminAffiliate }
 export const PAGE_SIZE = 10;
 
 export type AdminDashboard = Treaty.Data<ReturnType<typeof api.api.admin.dashboard.get>>;
+export type AdminReports = Treaty.Data<ReturnType<typeof api.api.admin.reports.get>>;
 export type AdminUsersResponse = Treaty.Data<ReturnType<typeof api.api.admin.users.get>>;
 export type AdminUser = AdminUsersResponse extends { items: Array<infer T> } ? T : never;
 export type AdminShopsResponse = Treaty.Data<ReturnType<typeof api.api.admin.shops.get>>;
@@ -18,12 +19,26 @@ export type AdminOrdersResponse = Treaty.Data<ReturnType<typeof api.api.admin.or
 export type AdminOrder = AdminOrdersResponse extends { items: Array<infer T> } ? T : never;
 export type AdminRefundsResponse = Treaty.Data<ReturnType<typeof api.api.admin.refunds.get>>;
 export type AdminRefund = AdminRefundsResponse extends { items: Array<infer T> } ? T : never;
+export type AdminReturnsResponse = Treaty.Data<ReturnType<typeof api.api.admin.returns.get>>;
+export type AdminReturn = AdminReturnsResponse extends { items: Array<infer T> } ? T : never;
+export type AdminPayoutsResponse = Treaty.Data<ReturnType<typeof api.api.admin.payouts.get>>;
+export type AdminPayout = AdminPayoutsResponse extends Array<infer T> ? T : never;
+export type AdminFraudCasesResponse = Treaty.Data<ReturnType<typeof api.api.admin.fraud.cases.get>>;
+export type AdminFraudCase = AdminFraudCasesResponse extends { items: Array<infer T> } ? T : never;
 export type { AdminAffiliate };
 
 export interface AdminListFilters {
   page: number;
   limit?: number;
   role?: string;
+  status?: string;
+}
+
+export interface AdminShopMutationInput {
+  ownerId?: string;
+  ownerEmail?: string;
+  name?: string;
+  slug?: string;
   status?: string;
 }
 
@@ -47,6 +62,17 @@ export function useAdminDashboard() {
     queryKey: ["admin", "dashboard"],
     queryFn: async () => {
       const { data, error } = await api.api.admin.dashboard.get();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminReports() {
+  return useQuery({
+    queryKey: ["admin", "reports"],
+    queryFn: async () => {
+      const { data, error } = await api.api.admin.reports.get();
       if (error) throw error;
       return data;
     },
@@ -108,6 +134,44 @@ export function useAdminRefundsList(filters: AdminListFilters) {
   });
 }
 
+export function useAdminReturnsList(filters: AdminListFilters) {
+  return useQuery({
+    queryKey: listKey("returns", filters),
+    queryFn: async () => {
+      const { data, error } = await api.api.admin.returns.get({ query: cleanQuery(filters) });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminPayoutsList(filters: { status?: string } = {}) {
+  return useQuery({
+    queryKey: ["admin", "payouts", filters.status || "ALL"],
+    queryFn: async () => {
+      const { data, error } = await api.api.admin.payouts.get({ query: { status: filters.status || undefined } });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminFraudCasesList(filters: AdminListFilters & { riskLevel?: string }) {
+  return useQuery({
+    queryKey: ["admin", "fraud-cases", cleanQuery(filters), filters.riskLevel || ""],
+    queryFn: async () => {
+      const { data, error } = await api.api.admin.fraud.cases.get({
+        query: {
+          ...cleanQuery(filters),
+          riskLevel: filters.riskLevel || undefined,
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useAdminAffiliatesList() {
   return useQuery({
     queryKey: ["admin", "affiliates"],
@@ -139,6 +203,42 @@ export function useUpdateShopStatus() {
   });
 }
 
+export function useCreateAdminShop() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminShopMutationInput) => {
+      const { data, error } = await api.api.admin.shops.post(input as { ownerId?: string; ownerEmail?: string; name: string; slug?: string; status?: string });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useUpdateAdminShop() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: AdminShopMutationInput & { id: string }) => {
+      const { data, error } = await api.api.admin.shops({ shopId: id }).patch(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useDeleteAdminShop() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await api.api.admin.shops({ shopId: id }).delete();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
 export function useUpdateProductStatus() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -156,6 +256,78 @@ export function useUpdateRefundStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { data, error } = await api.api.admin.refunds({ refundId: id }).status.patch({ status });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useUpdateReturnStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data, error } = await api.api.admin.returns({ returnId: id }).status.patch({ status });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useApprovePayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await api.api.admin.payouts({ payoutId: id }).approve.patch();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useRejectPayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      const { data, error } = await api.api.admin.payouts({ payoutId: id }).reject.patch({ reason });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useMarkPayoutPaid() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await api.api.admin.payouts({ payoutId: id })["mark-paid"].patch();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useReviewFraudCase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await api.api.admin.fraud.cases({ caseId: id }).review.patch();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useResolveFraudCase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "RESOLVED" | "DISMISSED" }) => {
+      const { data, error } = await api.api.admin.fraud.cases({ caseId: id }).resolve.patch({ status });
       if (error) throw error;
       return data;
     },

@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheService } from '#server/modules/cache'
+import type { ActiveShopResolver } from '#server/modules/security'
 import { SellerDashboardServiceError } from './seller-dashboard.errors.ts'
 import type {
   ISellerDashboardRepository,
@@ -59,7 +60,7 @@ export interface SellerRecentOrderResponse {
     variantTitle: string
     variantSku: string
     quantity: number
-    lineTotalCents: number
+    lineTotal: number
     fulfillmentStatus: string
   }>
 }
@@ -84,6 +85,7 @@ export class SellerDashboardService {
     appContext: AppContext,
     private repo: ISellerDashboardRepository,
     private cache?: CacheService,
+    private activeShopResolver?: ActiveShopResolver,
   ) {
     this.logger = appContext.logger
   }
@@ -149,17 +151,12 @@ export class SellerDashboardService {
     return this.toLowStockItems(await this.repo.findLowStockVariants(shopIds))
   }
 
-  private assertSeller(actor: SellerDashboardActor): void {
-    if (actor.role !== 'SELLER') {
-      throw new SellerDashboardServiceError('Seller dashboard requires a seller account', 403, 'DASHBOARD_FORBIDDEN')
-    }
-  }
-
   private async getSellerShopIds(actor: SellerDashboardActor): Promise<string[]> {
-    this.assertSeller(actor)
-    const shops = await this.repo.findSellerShops(actor.id)
+    const shops = this.activeShopResolver
+      ? await this.activeShopResolver.resolveActiveShops(actor.id)
+      : await this.repo.findSellerShops(actor.id)
     if (shops.length === 0) {
-      throw new SellerDashboardServiceError('Seller shop not found', 404, 'SELLER_SHOP_NOT_FOUND')
+      throw new SellerDashboardServiceError('Active seller shop not found', 403, 'SELLER_SHOP_NOT_ACTIVE')
     }
     return shops.map((shop) => shop.id)
   }
@@ -186,7 +183,7 @@ export class SellerDashboardService {
   }
 
   private sumSales(items: SellerSalesOrderItem[]): number {
-    return items.reduce((total, item) => total + item.lineTotalCents, 0)
+    return items.reduce((total, item) => total + item.lineTotal, 0)
   }
 
   private toRecentOrder(order: SellerDashboardOrder): SellerRecentOrderResponse {
@@ -196,7 +193,7 @@ export class SellerDashboardService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       createdAt: order.createdAt,
-      totalCents: order.items.reduce((total, item) => total + item.lineTotalCents, 0),
+      totalCents: order.items.reduce((total, item) => total + item.lineTotal, 0),
       items: order.items.map((item) => ({
         orderItemId: item.id,
         productTitle: item.productTitle,
@@ -204,7 +201,7 @@ export class SellerDashboardService {
         variantTitle: item.variantTitle,
         variantSku: item.variantSku,
         quantity: item.quantity,
-        lineTotalCents: item.lineTotalCents,
+        lineTotal: item.lineTotal,
         fulfillmentStatus: item.fulfillmentStatus,
       })),
     }

@@ -7,11 +7,13 @@ import type {
   Product,
   ProductVariant,
   Refund,
+  ReturnItem,
+  ReturnRequest,
   Shipment,
   Shop,
   User,
 } from '#generated/client/client.ts'
-import type { OrderStatus, ProductStatus, RefundStatus, Role, ShopStatus, UserStatus } from '#generated/client/enums.ts'
+import type { OrderStatus, ProductStatus, RefundStatus, ReturnStatus, Role, ShopStatus, UserStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -25,23 +27,59 @@ export interface AdminPaginatedResult<T> {
   total: number
 }
 
+export interface AdminShopWriteInput {
+  ownerId: string
+  name: string
+  slug: string
+  status: ShopStatus
+}
+
+export interface AdminShopUpdateInput {
+  ownerId?: string
+  name?: string
+  slug?: string
+  status?: ShopStatus
+}
+
+export interface AdminUserCreateInput {
+  id: string
+  name: string
+  email: string
+  role: Role
+}
+
+export interface AdminUserUpdateInput {
+  name?: string
+  email?: string
+  role?: Role
+  status?: UserStatus
+}
+
 export type AdminUserRecord = Pick<User, 'id' | 'name' | 'email' | 'role' | 'status' | 'createdAt' | 'updatedAt'>
 export type AdminShopRecord = Shop & {
   owner: Pick<User, 'id' | 'name' | 'email' | 'status'>
 }
 export type AdminProductRecord = Product & {
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
-  variants: Array<Pick<ProductVariant, 'id' | 'sku' | 'title' | 'priceCents' | 'currency' | 'status'>>
+  variants: Array<Pick<ProductVariant, 'id' | 'sku' | 'title' | 'prices' | 'currency' | 'status'>>
 }
 export type AdminOrderRecord = Order & {
   items: OrderItem[]
   payments: Payment[]
   shipments: Shipment[]
-  refunds: Array<Pick<Refund, 'id' | 'status' | 'amountCents' | 'reason' | 'createdAt'>>
+  refunds: Array<Pick<Refund, 'id' | 'status' | 'amount' | 'reason' | 'createdAt'>>
 }
-export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 'status' | 'amountCents' | 'reason' | 'createdAt'> & {
+export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 'status' | 'amount' | 'reason' | 'createdAt'> & {
   order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId'>
-  payment: Pick<Payment, 'id' | 'provider' | 'status' | 'amountCents' | 'currency'>
+  payment: Pick<Payment, 'id' | 'provider' | 'status' | 'amount' | 'currency'>
+}
+export type AdminReturnRecord = ReturnRequest & {
+  order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId' | 'currency'>
+  user: Pick<User, 'id' | 'name' | 'email'>
+  items: Array<ReturnItem & {
+    orderItem: Pick<OrderItem, 'id' | 'shopId' | 'shopName' | 'productTitle' | 'variantTitle' | 'quantity' | 'lineTotal' | 'currency' | 'fulfillmentStatus'>
+  }>
+  refunds: Array<Pick<Refund, 'id' | 'status' | 'amount' | 'reason' | 'createdAt'>>
 }
 
 export interface AdminDashboardCounts {
@@ -50,16 +88,48 @@ export interface AdminDashboardCounts {
   products: { total: number; active: number; banned: number }
   orders: { total: number; paid: number; delivered: number; cancelled: number }
   refunds: { pending: number; success: number; failed: number }
+  exceptions: {
+    pendingPayments: number
+    failedPayments: number
+    delayedShipments: number
+    returnEscalations: number
+    refundEscalations: number
+    pendingShops: number
+    pendingProducts: number
+    payoutApprovals: number
+    fraudOpen: number
+  }
+}
+
+export interface AdminReportMetrics {
+  sales: { grossCents: number; paidOrderCount: number; averageOrderValueCents: number }
+  orders: { total: number; pendingPayment: number; paid: number; shipped: number; delivered: number; cancelled: number; refunded: number }
+  refunds: { totalCents: number; pending: number; processing: number; success: number; failed: number }
+  payouts: { requestedCents: number; approvedCents: number; paidCents: number; requested: number; approved: number; paid: number }
+  commissions: { pendingCents: number; approvedCents: number; voidCents: number }
+  marketplace: { users: number; sellers: number; shops: number; products: number; activeProducts: number }
 }
 
 export interface IAdminRepository {
   getDashboardCounts(): Promise<AdminDashboardCounts>
+  getReportMetrics(): Promise<AdminReportMetrics>
   listUsers(filters: { role?: Role; status?: UserStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminUserRecord>>
   findUserById(userId: string): Promise<User | null>
+  findUserByEmail(email: string): Promise<User | null>
+  countAdmins(excludeUserId?: string): Promise<number>
+  createUser(input: AdminUserCreateInput): Promise<AdminUserRecord>
+  updateUser(userId: string, input: AdminUserUpdateInput): Promise<AdminUserRecord>
+  deleteUser(userId: string): Promise<AdminUserRecord>
   updateUserStatus(userId: string, status: UserStatus): Promise<AdminUserRecord>
   listShops(filters: { status?: ShopStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminShopRecord>>
+  createShop(input: AdminShopWriteInput): Promise<AdminShopRecord>
   findShopById(shopId: string): Promise<AdminShopRecord | null>
+  findShopBySlug(slug: string): Promise<AdminShopRecord | null>
+  findUserForShopOwner(input: { ownerId?: string; ownerEmail?: string }): Promise<Pick<User, 'id' | 'role' | 'status'> | null>
+  countShopBlockingRelations(shopId: string): Promise<number>
+  updateShop(shopId: string, input: AdminShopUpdateInput): Promise<AdminShopRecord>
   updateShopStatus(shopId: string, status: ShopStatus): Promise<AdminShopRecord>
+  deleteShop(shopId: string): Promise<AdminShopRecord>
   listProducts(filters: { status?: ProductStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminProductRecord>>
   findProductById(productId: string): Promise<AdminProductRecord | null>
   updateProductStatus(productId: string, status: ProductStatus): Promise<AdminProductRecord>
@@ -68,6 +138,9 @@ export interface IAdminRepository {
   listRefunds(filters: { status?: RefundStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminRefundRecord>>
   findRefundById(refundId: string): Promise<AdminRefundRecord | null>
   updateRefundStatus(refundId: string, status: RefundStatus): Promise<AdminRefundRecord>
+  listReturns(filters: { status?: ReturnStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminReturnRecord>>
+  findReturnById(returnId: string): Promise<AdminReturnRecord | null>
+  updateReturnStatus(returnId: string, status: ReturnStatus): Promise<AdminReturnRecord>
 }
 
 const userSelect = {
@@ -105,7 +178,7 @@ const productInclude = {
       id: true,
       sku: true,
       title: true,
-      priceCents: true,
+      price: true,
       currency: true,
       status: true,
     },
@@ -121,7 +194,7 @@ const orderInclude = {
     select: {
       id: true,
       status: true,
-      amountCents: true,
+      amount: true,
       reason: true,
       createdAt: true,
     },
@@ -134,7 +207,7 @@ const refundInclude = {
   orderId: true,
   paymentId: true,
   status: true,
-  amountCents: true,
+  amount: true,
   reason: true,
   createdAt: true,
   order: {
@@ -151,11 +224,61 @@ const refundInclude = {
       id: true,
       provider: true,
       status: true,
-      amountCents: true,
+      amount: true,
       currency: true,
     },
   },
 } satisfies Prisma.RefundSelect
+
+const returnInclude = {
+  order: {
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      paymentStatus: true,
+      userId: true,
+      currency: true,
+    },
+  },
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  items: {
+    include: {
+      orderItem: {
+        select: {
+          id: true,
+          shopId: true,
+          shopName: true,
+          productTitle: true,
+          variantTitle: true,
+          quantity: true,
+          lineTotal: true,
+          currency: true,
+          fulfillmentStatus: true,
+        },
+      },
+    },
+    orderBy: { id: 'asc' },
+  },
+  refunds: {
+    select: {
+      id: true,
+      status: true,
+      amount: true,
+      reason: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  },
+} as const
+
+const shipmentDelayCutoff = () => new Date(Date.now() - 72 * 60 * 60 * 1000)
 
 export class PrismaAdminRepository implements IAdminRepository {
   private logger: ILogger
@@ -186,10 +309,19 @@ export class PrismaAdminRepository implements IAdminRepository {
       pendingRefunds,
       successRefunds,
       failedRefunds,
+      pendingPayments,
+      failedPayments,
+      delayedShipments,
+      returnEscalations,
+      refundEscalations,
+      pendingShops,
+      pendingProducts,
+      payoutApprovals,
+      fraudOpen,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.user.count({ where: { role: 'USER' } }),
-      this.prisma.user.count({ where: { role: 'SELLER' } }),
+      this.prisma.user.count({ where: { shops: { some: { status: 'ACTIVE' } } } }),
       this.prisma.shop.count(),
       this.prisma.shop.count({ where: { status: 'ACTIVE' } }),
       this.prisma.shop.count({ where: { status: 'SUSPENDED' } }),
@@ -203,6 +335,15 @@ export class PrismaAdminRepository implements IAdminRepository {
       this.prisma.refund.count({ where: { status: 'PENDING' } }),
       this.prisma.refund.count({ where: { status: 'SUCCESS' } }),
       this.prisma.refund.count({ where: { status: 'FAILED' } }),
+      this.prisma.payment.count({ where: { status: { in: ['PENDING', 'REQUIRES_ACTION'] } } }),
+      this.prisma.payment.count({ where: { status: 'FAILED' } }),
+      this.prisma.shipment.count({ where: { status: { in: ['PENDING_PACK', 'PACKED', 'PENDING', 'READY'] }, createdAt: { lt: shipmentDelayCutoff() } } }),
+      this.prisma.returnRequest.count({ where: { status: { in: ['REQUESTED', 'APPROVED', 'RECEIVED'] } } }),
+      this.prisma.refund.count({ where: { status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } }),
+      this.prisma.shop.count({ where: { status: 'PENDING' } }),
+      this.prisma.product.count({ where: { status: 'DRAFT' } }),
+      this.prisma.sellerPayout.count({ where: { status: { in: ['requested', 'approved'] } } }),
+      this.prisma.fraudCase.count({ where: { status: { in: ['OPEN', 'REVIEWED'] } } }),
     ])
 
     return {
@@ -211,6 +352,98 @@ export class PrismaAdminRepository implements IAdminRepository {
       products: { total: totalProducts, active: activeProducts, banned: bannedProducts },
       orders: { total: totalOrders, paid: paidOrders, delivered: deliveredOrders, cancelled: cancelledOrders },
       refunds: { pending: pendingRefunds, success: successRefunds, failed: failedRefunds },
+      exceptions: {
+        pendingPayments,
+        failedPayments,
+        delayedShipments,
+        returnEscalations,
+        refundEscalations,
+        pendingShops,
+        pendingProducts,
+        payoutApprovals,
+        fraudOpen,
+      },
+    }
+  }
+
+  async getReportMetrics(): Promise<AdminReportMetrics> {
+    this.logger.debug('PrismaAdminRepository.getReportMetrics')
+    const [
+      paidSales,
+      paidOrderCount,
+      totalOrders,
+      pendingPaymentOrders,
+      paidOrders,
+      shippedOrders,
+      deliveredOrders,
+      cancelledOrders,
+      refundedOrders,
+      refundTotal,
+      pendingRefunds,
+      processingRefunds,
+      successRefunds,
+      failedRefunds,
+      requestedPayouts,
+      approvedPayouts,
+      paidPayouts,
+      pendingCommissions,
+      approvedCommissions,
+      voidCommissions,
+      totalUsers,
+      sellers,
+      totalShops,
+      totalProducts,
+      activeProducts,
+    ] = await Promise.all([
+      this.prisma.order.aggregate({ where: { paymentStatus: 'SUCCEEDED' }, _sum: { grandTotal: true } }),
+      this.prisma.order.count({ where: { paymentStatus: 'SUCCEEDED' } }),
+      this.prisma.order.count(),
+      this.prisma.order.count({ where: { status: 'PENDING_PAYMENT' } }),
+      this.prisma.order.count({ where: { status: 'PAID' } }),
+      this.prisma.order.count({ where: { status: 'SHIPPED' } }),
+      this.prisma.order.count({ where: { status: 'DELIVERED' } }),
+      this.prisma.order.count({ where: { status: 'CANCELED' } }),
+      this.prisma.order.count({ where: { status: 'REFUNDED' } }),
+      this.prisma.refund.aggregate({ _sum: { amount: true } }),
+      this.prisma.refund.count({ where: { status: 'PENDING' } }),
+      this.prisma.refund.count({ where: { status: 'PROCESSING' } }),
+      this.prisma.refund.count({ where: { status: 'SUCCESS' } }),
+      this.prisma.refund.count({ where: { status: 'FAILED' } }),
+      this.prisma.sellerPayout.aggregate({ where: { status: 'requested' }, _sum: { amount: true }, _count: true }),
+      this.prisma.sellerPayout.aggregate({ where: { status: 'approved' }, _sum: { amount: true }, _count: true }),
+      this.prisma.sellerPayout.aggregate({ where: { status: 'paid' }, _sum: { amount: true }, _count: true }),
+      this.prisma.affiliateCommission.aggregate({ where: { status: 'PENDING' }, _sum: { commissionCents: true } }),
+      this.prisma.affiliateCommission.aggregate({ where: { status: 'APPROVED' }, _sum: { commissionCents: true } }),
+      this.prisma.affiliateCommission.aggregate({ where: { status: 'VOID' }, _sum: { commissionCents: true } }),
+      this.prisma.user.count(),
+      this.prisma.user.count({ where: { shops: { some: { status: 'ACTIVE' } } } }),
+      this.prisma.shop.count(),
+      this.prisma.product.count(),
+      this.prisma.product.count({ where: { status: 'ACTIVE' } }),
+    ])
+    const grossCents = paidSales._sum.grandTotal ?? 0
+    return {
+      sales: {
+        grossCents,
+        paidOrderCount,
+        averageOrderValueCents: paidOrderCount === 0 ? 0 : Math.round(grossCents / paidOrderCount),
+      },
+      orders: { total: totalOrders, pendingPayment: pendingPaymentOrders, paid: paidOrders, shipped: shippedOrders, delivered: deliveredOrders, cancelled: cancelledOrders, refunded: refundedOrders },
+      refunds: { totalCents: refundTotal._sum.amount ?? 0, pending: pendingRefunds, processing: processingRefunds, success: successRefunds, failed: failedRefunds },
+      payouts: {
+        requestedCents: requestedPayouts._sum.amount ?? 0,
+        approvedCents: approvedPayouts._sum.amount ?? 0,
+        paidCents: paidPayouts._sum.amount ?? 0,
+        requested: requestedPayouts._count,
+        approved: approvedPayouts._count,
+        paid: paidPayouts._count,
+      },
+      commissions: {
+        pendingCents: pendingCommissions._sum.commissionCents ?? 0,
+        approvedCents: approvedCommissions._sum.commissionCents ?? 0,
+        voidCents: voidCommissions._sum.commissionCents ?? 0,
+      },
+      marketplace: { users: totalUsers, sellers, shops: totalShops, products: totalProducts, activeProducts },
     }
   }
 
@@ -234,6 +467,35 @@ export class PrismaAdminRepository implements IAdminRepository {
     return this.prisma.user.findUnique({ where: { id: userId } })
   }
 
+  findUserByEmail(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { email } })
+  }
+
+  countAdmins(excludeUserId?: string): Promise<number> {
+    return this.prisma.user.count({
+      where: {
+        role: 'ADMIN',
+        ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+      },
+    })
+  }
+
+  createUser(input: AdminUserCreateInput): Promise<AdminUserRecord> {
+    return this.prisma.user.update({
+      where: { id: input.id },
+      data: { name: input.name, email: input.email, role: input.role },
+      select: userSelect,
+    })
+  }
+
+  updateUser(userId: string, input: AdminUserUpdateInput): Promise<AdminUserRecord> {
+    return this.prisma.user.update({ where: { id: userId }, data: input, select: userSelect })
+  }
+
+  deleteUser(userId: string): Promise<AdminUserRecord> {
+    return this.prisma.user.delete({ where: { id: userId }, select: userSelect })
+  }
+
   updateUserStatus(userId: string, status: UserStatus): Promise<AdminUserRecord> {
     return this.prisma.user.update({ where: { id: userId }, data: { status }, select: userSelect })
   }
@@ -246,12 +508,52 @@ export class PrismaAdminRepository implements IAdminRepository {
     )
   }
 
+  createShop(input: AdminShopWriteInput): Promise<AdminShopRecord> {
+    return this.prisma.shop.create({ data: input, include: shopInclude })
+  }
+
   findShopById(shopId: string): Promise<AdminShopRecord | null> {
     return this.prisma.shop.findUnique({ where: { id: shopId }, include: shopInclude })
   }
 
+  findShopBySlug(slug: string): Promise<AdminShopRecord | null> {
+    return this.prisma.shop.findUnique({ where: { slug }, include: shopInclude })
+  }
+
+  findUserForShopOwner(input: { ownerId?: string; ownerEmail?: string }): Promise<Pick<User, 'id' | 'role' | 'status'> | null> {
+    if (input.ownerId) {
+      return this.prisma.user.findUnique({ where: { id: input.ownerId }, select: { id: true, role: true, status: true } })
+    }
+    if (input.ownerEmail) {
+      return this.prisma.user.findUnique({ where: { email: input.ownerEmail }, select: { id: true, role: true, status: true } })
+    }
+    return Promise.resolve(null)
+  }
+
+  async countShopBlockingRelations(shopId: string): Promise<number> {
+    const [products, orderItems, shipments, coupons, chatThreads, followers, wallet, payouts] = await Promise.all([
+      this.prisma.product.count({ where: { shopId } }),
+      this.prisma.orderItem.count({ where: { shopId } }),
+      this.prisma.shipment.count({ where: { shopId } }),
+      this.prisma.coupon.count({ where: { shopId } }),
+      this.prisma.chatThread.count({ where: { shopId } }),
+      this.prisma.shopFollow.count({ where: { shopId } }),
+      this.prisma.sellerWallet.count({ where: { shopId } }),
+      this.prisma.sellerPayout.count({ where: { shopId } }),
+    ])
+    return products + orderItems + shipments + coupons + chatThreads + followers + wallet + payouts
+  }
+
+  updateShop(shopId: string, input: AdminShopUpdateInput): Promise<AdminShopRecord> {
+    return this.prisma.shop.update({ where: { id: shopId }, data: input, include: shopInclude })
+  }
+
   updateShopStatus(shopId: string, status: ShopStatus): Promise<AdminShopRecord> {
     return this.prisma.shop.update({ where: { id: shopId }, data: { status }, include: shopInclude })
+  }
+
+  deleteShop(shopId: string): Promise<AdminShopRecord> {
+    return this.prisma.shop.delete({ where: { id: shopId }, include: shopInclude })
   }
 
   listProducts(filters: { status?: ProductStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminProductRecord>> {
@@ -296,6 +598,22 @@ export class PrismaAdminRepository implements IAdminRepository {
 
   updateRefundStatus(refundId: string, status: RefundStatus): Promise<AdminRefundRecord> {
     return this.prisma.refund.update({ where: { id: refundId }, data: { status }, select: refundInclude })
+  }
+
+  listReturns(filters: { status?: ReturnStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminReturnRecord>> {
+    const where: Prisma.ReturnRequestWhereInput = filters.status ? { status: filters.status } : {}
+    return this.paginate(
+      this.prisma.returnRequest.findMany({ where, include: returnInclude, orderBy: { createdAt: 'desc' }, ...this.toSkipTake(pagination) }),
+      this.prisma.returnRequest.count({ where }),
+    )
+  }
+
+  findReturnById(returnId: string): Promise<AdminReturnRecord | null> {
+    return this.prisma.returnRequest.findUnique({ where: { id: returnId }, include: returnInclude })
+  }
+
+  updateReturnStatus(returnId: string, status: ReturnStatus): Promise<AdminReturnRecord> {
+    return this.prisma.returnRequest.update({ where: { id: returnId }, data: { status }, include: returnInclude })
   }
 
   private async paginate<T>(itemsPromise: Promise<T[]>, totalPromise: Promise<number>): Promise<AdminPaginatedResult<T>> {

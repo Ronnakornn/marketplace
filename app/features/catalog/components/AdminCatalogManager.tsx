@@ -69,7 +69,7 @@ function statusTone(status: CatalogProduct["status"]) {
 }
 
 function lowestVariantPrice(product: CatalogProduct) {
-  const sorted = [...product.variants].sort((a, b) => a.priceCents - b.priceCents);
+  const sorted = [...product.variants].sort((a, b) => a.prices - b.prices);
   return sorted[0] ?? null;
 }
 
@@ -161,7 +161,7 @@ export function AdminCatalogManager() {
       header: "Price",
       cell: ({ row }) => {
         const price = lowestVariantPrice(row.original);
-        return price ? formatMoney(price.priceCents, price.currency) : "No variants";
+        return price ? formatMoney(price.prices, price.currency) : "No variants";
       },
     },
     {

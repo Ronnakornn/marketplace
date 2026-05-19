@@ -6,11 +6,11 @@ export interface SearchRepositoryFilters {
   q?: string
   categoryId?: string
   shopId?: string
-  minPriceCents?: number
-  maxPriceCents?: number
+  minPrice?: number
+  maxPrice?: number
 }
 
-export type SearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' | 'priceCents' | 'currency'> & {
+export type SearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' | 'price' | 'currency'> & {
   titleTh?: string | null
   titleEn?: string | null
   orderItems: Array<{
@@ -78,7 +78,7 @@ const searchProductSelect = {
       title: true,
       titleTh: true,
       titleEn: true,
-      priceCents: true,
+      price: true,
       currency: true,
       orderItems: {
         select: {
@@ -149,13 +149,16 @@ export class PrismaSearchRepository implements ISearchRepository {
         ...(filters.shopId ? { id: filters.shopId } : {}),
       },
       variants: {
-        some: {
-          status: 'ACTIVE',
-          priceCents: {
-            ...(filters.minPriceCents !== undefined ? { gte: filters.minPriceCents } : {}),
-            ...(filters.maxPriceCents !== undefined ? { lte: filters.maxPriceCents } : {}),
-          },
-        },
+        some: (() => {
+          const v: Prisma.ProductVariantWhereInput = { status: 'ACTIVE' }
+          if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+            v.price = {
+              ...(filters.minPrice !== undefined ? { gte: BigInt(filters.minPrice) } : {}),
+              ...(filters.maxPrice !== undefined ? { lte: BigInt(filters.maxPrice) } : {}),
+            } as unknown as Prisma.BigIntFilter
+          }
+          return v
+        })(),
       },
       ...(filters.q
         ? {

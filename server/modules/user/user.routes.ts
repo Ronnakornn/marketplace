@@ -20,18 +20,15 @@ const CreateUserBody = t.Object({
   name: t.String({ minLength: 1 }),
   email: t.String({ format: 'email' }),
   password: t.String({ minLength: 8 }),
-  role: t.Union([t.Literal('USER'), t.Literal('SELLER'), t.Literal('ADMIN')]),
+  role: t.Union([t.Literal('USER'), t.Literal('ADMIN')]),
 })
 const UpdateUserBody = t.Object({
   name: t.String({ minLength: 1 }),
   email: t.String({ format: 'email' }),
-  role: t.Union([t.Literal('USER'), t.Literal('SELLER'), t.Literal('ADMIN')]),
+  role: t.Union([t.Literal('USER'), t.Literal('ADMIN')]),
 })
 const UpdateUserRoleBody = t.Required(t.Pick(UserPlainInputUpdate, ['role']))
 const UpdateCurrentUserBody = t.Partial(t.Pick(UserPlainInputUpdate, ['name', 'image']))
-const UpdateUserStatusBody = t.Object({
-  status: t.Union([t.Literal('ACTIVE'), t.Literal('SUSPENDED')]),
-})
 const AddressParams = t.Object({
   addressId: t.String({ format: 'uuid' }),
 })
@@ -134,41 +131,6 @@ export function createUserRoutes(container: ServiceContainer) {
       container.userService.unfollowShop(authContext!.user.id, params.shopId), {
       withAuth: true,
       params: ShopFollowParams,
-    })
-    .get('/api/admin/users', () => container.userService.listForAdmin(), {
-      withRole: 'ADMIN',
-      response: t.Array(AdminUserResponse),
-    })
-    .post('/api/admin/users', ({ body }) => container.userService.createForAdmin(body), {
-      withRole: 'ADMIN',
-      body: CreateUserBody,
-      response: AdminUserResponse,
-    })
-    .patch('/api/admin/users/:userId', ({ authContext, params: { userId }, body }: any) => container.userService.updateForAdmin(authContext!.user.id, userId, body), {
-      withRole: 'ADMIN',
-      params: t.Object({ userId: t.String() }),
-      body: UpdateUserBody,
-      response: AdminUserResponse,
-    })
-    .patch('/api/admin/users/:userId/role', ({ authContext, params: { userId }, body }: any) => container.userService.updateRole(authContext!.user.id, userId, body.role), {
-      withRole: 'ADMIN',
-      params: t.Object({ userId: t.String() }),
-      body: UpdateUserRoleBody,
-      response: AdminUserResponse,
-    })
-    .patch('/api/admin/users/:userId/status', ({ authContext, params: { userId }, body }: any) => container.userService.updateStatus(authContext!.user.id, userId, body.status), {
-      withRole: 'ADMIN',
-      params: t.Object({ userId: t.String() }),
-      body: UpdateUserStatusBody,
-      response: AdminUserResponse,
-    })
-    .delete('/api/admin/users/:userId', async ({ authContext, params: { userId } }: any) => {
-      await container.userService.deleteForAdmin(authContext!.user.id, userId)
-      return { success: true }
-    }, {
-      withRole: 'ADMIN',
-      params: t.Object({ userId: t.String() }),
-      response: t.Object({ success: t.Boolean() }),
     })
     .get('/api/users', () => container.userService.listForAdmin(), {
       withRole: 'ADMIN',

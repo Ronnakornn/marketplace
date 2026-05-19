@@ -1,4 +1,4 @@
-import { AdminPageIntro, AdminShopsTable, AdminSpaceCat } from "#/features/admin";
+import { AdminPageIntro, AdminSellerApplicationsTable, AdminShopsTable, AdminSpaceCat } from "#/features/admin";
 
 export default function AdminShopsPage() {
   return (
@@ -6,6 +6,7 @@ export default function AdminShopsPage() {
       <AdminPageIntro eyebrow="Marketplace Operations" title="Shops" description="Review seller storefront status and ownership signals.">
         <AdminSpaceCat mode="dashboard" />
       </AdminPageIntro>
+      <AdminSellerApplicationsTable />
       <AdminShopsTable />
     </div>
   );

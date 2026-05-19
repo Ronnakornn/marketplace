@@ -98,8 +98,8 @@ export class SearchService {
       q: filters.q,
       categoryId: filters.categoryId,
       shopId: filters.shopId,
-      minPriceCents: filters.minPrice,
-      maxPriceCents: filters.maxPrice,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
     })
 
     const items = products
@@ -213,7 +213,7 @@ export class SearchService {
   }
 
   private toSearchItem(product: SearchProductRecord, locale: ContentLocale): ProductSearchItem {
-    const prices = product.variants.map((variant) => variant.priceCents)
+    const prices = product.variants.map((variant) => Number(variant.price))
     const minPrice = Math.min(...prices)
     const maxPrice = Math.max(...prices)
     const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0)

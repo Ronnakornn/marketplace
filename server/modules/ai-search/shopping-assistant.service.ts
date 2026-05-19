@@ -133,9 +133,9 @@ export class ShoppingAssistantService {
       return 'I could not find matching active products from the available catalog. Please share a little more detail, such as category, budget, or preferred brand.'
     }
     const topProducts = products.slice(0, 3).map((product) => {
-      const price = product.price.maxPriceCents === null
-        ? `${product.price.minPriceCents} ${product.price.currency}`
-        : `${product.price.minPriceCents}-${product.price.maxPriceCents} ${product.price.currency}`
+      const price = product.price.maxPrice === null
+        ? `${product.price.minPrice} ${product.price.currency}`
+        : `${product.price.minPrice}-${product.price.maxPrice} ${product.price.currency}`
       return `${product.title} from ${product.shop.name} at ${price}, stock ${product.stockAvailability}`
     })
     return `Based on active catalog matches, consider ${topProducts.join('; ')}. Pricing and stock are from the current product records. If you need a tighter recommendation, please clarify budget, size, or preferred category.`

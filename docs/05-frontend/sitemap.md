@@ -39,7 +39,9 @@ flowchart TD
   Account --> Chat[/chat]
   Chat --> ChatThread[/chat/:threadId]
 
-  SellerLogin[/seller/login] --> SellerDashboard[/seller]
+  SellerLogin[/seller/login] --> SellerRegister[/seller/register]
+  SellerRegister --> SellerStatus[/seller/status]
+  SellerStatus --> SellerDashboard[/seller]
   SellerDashboard --> SellerProducts[/seller/products]
   SellerProducts --> SellerProductNew[/seller/products/new]
   SellerProducts --> SellerProductEdit[/seller/products/:productId]
@@ -91,17 +93,19 @@ flowchart TD
 | Route | Auth | Purpose | Primary CTA | Navigation |
 | --- | --- | --- | --- | --- |
 | `/seller/login` | Public | Seller login or redirect to shared auth | Login | Minimal |
-| `/seller` | Seller | Seller dashboard with operational alerts | Process orders | Seller sidebar or mobile tabs |
-| `/seller/products` | Seller | Seller product list and status filters | Create product | Seller nav |
-| `/seller/products/new` | Seller | Create product and variants | Save draft / Submit | Step header |
-| `/seller/products/:productId` | Seller | Edit product, variants, content, status | Save changes | Step header |
-| `/seller/inventory` | Seller | Inventory and low-stock management | Update stock | Seller nav |
-| `/seller/orders` | Seller | Paid shipment queue by shop | Process shipment | Seller nav |
-| `/seller/orders/:shipmentId` | Seller | Pack shipment, add tracking, mark shipped | Mark shipped | Sticky action |
-| `/seller/shipping` | Seller | Shipping labels and tracking tools | Create label | Seller nav |
-| `/seller/finance` | Seller | Sales, fees, refunds, payout placeholder | Export report | Seller nav |
-| `/seller/promotions` | Seller | Coupons and campaigns | Create coupon | Seller nav |
-| `/seller/chat` | Seller | Seller chat inbox | Reply | Seller nav |
+| `/seller/register` | User | Shop onboarding, KYC, payout, pickup address, document upload | Submit for review | Seller onboarding |
+| `/seller/status` | User | Pending/rejected seller application state | Edit / resubmit | Seller onboarding |
+| `/seller` | Active shop owner | Seller dashboard with operational alerts | Process orders | Seller sidebar or mobile tabs |
+| `/seller/products` | Active shop owner | Seller product list and status filters | Create product | Seller nav |
+| `/seller/products/new` | Active shop owner | Create product and variants | Save draft / Submit | Step header |
+| `/seller/products/:productId` | Active shop owner | Edit product, variants, content, status | Save changes | Step header |
+| `/seller/inventory` | Active shop owner | Inventory and low-stock management | Update stock | Seller nav |
+| `/seller/orders` | Active shop owner | Paid shipment queue by shop | Process shipment | Seller nav |
+| `/seller/orders/:shipmentId` | Active shop owner | Pack shipment, add tracking, mark shipped | Mark shipped | Sticky action |
+| `/seller/shipping` | Active shop owner | Shipping labels and tracking tools | Create label | Seller nav |
+| `/seller/finance` | Active shop owner | Sales, fees, refunds, payout placeholder | Export report | Seller nav |
+| `/seller/promotions` | Active shop owner | Coupons and campaigns | Create coupon | Seller nav |
+| `/seller/chat` | Active shop owner | Seller chat inbox | Reply | Seller nav |
 
 ## Admin Routes
 
@@ -109,7 +113,7 @@ flowchart TD
 | --- | --- | --- | --- | --- |
 | `/admin` | Admin | Admin dashboard with operational exceptions | Review exceptions | Admin sidebar |
 | `/admin/users` | Admin | Customer and system user management | Update role/status | Admin sidebar |
-| `/admin/shops` | Admin | Shop approval and suspension | Approve / Suspend | Admin sidebar |
+| `/admin/shops` | Admin | Seller application review, shop approval, suspension | Approve / Reject / Suspend | Admin sidebar |
 | `/admin/products` | Admin | Product moderation queue | Approve / Reject | Admin sidebar |
 | `/admin/orders` | Admin | Order, payment, shipment monitoring | Inspect order | Admin sidebar |
 | `/admin/refunds` | Admin | Refund and return escalation queue | Decide case | Admin sidebar |
@@ -144,6 +148,7 @@ High-conversion shortcuts:
 
 - Public browse routes must render useful content for guests.
 - Buyer-only routes redirect unauthenticated users to login and return to the intended route after auth.
-- Seller routes must enforce seller ownership for products, inventory, shipments, promotions, and chats.
+- Seller operational routes must enforce active shop ownership for products, inventory, shipments, promotions, finance, and chats.
+- Buyer routes remain available to users who also own active shops.
 - Admin routes must never be publicly exposed and must use admin role protection.
 - Route-level UI should preserve bottom padding equal to fixed bottom navigation or sticky CTA height.

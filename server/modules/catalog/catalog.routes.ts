@@ -33,14 +33,16 @@ const ProductVariantParamsSchema = t.Object({
   variantId: t.String({ format: 'uuid' }),
 })
 
+const VariantParamsSchema = t.Object({
+  variantId: t.String({ format: 'uuid' }),
+})
+
 const PublicListQuerySchema = t.Object({
   keyword: t.Optional(t.String({ minLength: 1 })),
   q: t.Optional(t.String({ minLength: 1 })),
   shopId: t.Optional(t.String({ format: 'uuid' })),
   minPrice: t.Optional(t.Number({ minimum: 0 })),
   maxPrice: t.Optional(t.Number({ minimum: 0 })),
-  minPriceCents: t.Optional(t.Number({ minimum: 0 })),
-  maxPriceCents: t.Optional(t.Number({ minimum: 0 })),
   cursor: t.Optional(t.String({ format: 'uuid' })),
   limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
   categoryId: t.Optional(t.String()),
@@ -81,14 +83,19 @@ const UpdateProductBodySchema = t.Partial(t.Composite([
 ]))
 
 const CreateVariantBodySchema = t.Composite([
-  t.Pick(ProductVariantPlainInputCreate, ['sku', 'title', 'priceCents', 'currency']),
+  t.Pick(ProductVariantPlainInputCreate, ['sku', 'title', 'prices', 'currency']),
   LocalizedVariantFieldsSchema,
 ])
 
 const UpdateVariantBodySchema = t.Partial(t.Composite([
-  t.Pick(ProductVariantPlainInputUpdate, ['sku', 'title', 'priceCents', 'currency']),
+  t.Pick(ProductVariantPlainInputUpdate, ['sku', 'title', 'prices', 'currency']),
   LocalizedVariantFieldsSchema,
 ]))
+
+const UpdateInventoryBodySchema = t.Partial(t.Object({
+  quantityOnHand: t.Number({ minimum: 0 }),
+  reorderLevel: t.Number({ minimum: 0 }),
+}))
 
 export function createCatalogRoutes(container: ServiceContainer) {
   const app = new Elysia()
@@ -111,8 +118,8 @@ export function createCatalogRoutes(container: ServiceContainer) {
       categoryId: query.categoryId,
       locale: query.locale,
       shopId: query.shopId,
-      minPriceCents: query.minPriceCents ?? query.minPrice,
-      maxPriceCents: query.maxPriceCents ?? query.maxPrice,
+      minPrice: query.minPrice ?? query.minPrice,
+      maxPrice: query.maxPrice ?? query.maxPrice,
       cursor: query.cursor,
       limit: query.limit,
     })
@@ -137,8 +144,8 @@ export function createCatalogRoutes(container: ServiceContainer) {
         keyword: query.keyword ?? query.q,
         categoryId: query.categoryId,
         locale: query.locale,
-        minPriceCents: query.minPriceCents ?? query.minPrice,
-        maxPriceCents: query.maxPriceCents ?? query.maxPrice,
+        minPrice: query.minPrice ?? query.minPrice,
+        maxPrice: query.maxPrice ?? query.maxPrice,
         cursor: query.cursor,
         limit: query.limit,
       }), {
@@ -158,12 +165,12 @@ export function createCatalogRoutes(container: ServiceContainer) {
         categoryId: query.categoryId,
         shopId: query.shopId,
         status: query.status,
-        minPriceCents: query.minPriceCents ?? query.minPrice,
-        maxPriceCents: query.maxPriceCents ?? query.maxPrice,
+        minPrice: query.minPrice ?? query.minPrice,
+        maxPrice: query.maxPrice ?? query.maxPrice,
         cursor: query.cursor,
         limit: query.limit,
       }), {
-      withRole: 'SELLER',
+      withAuth: true,
       query: SellerListQuerySchema,
     })
     .get('/api/admin/catalog/products', ({ query }: any) =>
@@ -172,8 +179,8 @@ export function createCatalogRoutes(container: ServiceContainer) {
         categoryId: query.categoryId,
         shopId: query.shopId,
         status: query.status,
-        minPriceCents: query.minPriceCents ?? query.minPrice,
-        maxPriceCents: query.maxPriceCents ?? query.maxPrice,
+        minPrice: query.minPrice ?? query.minPrice,
+        maxPrice: query.maxPrice ?? query.maxPrice,
         cursor: query.cursor,
         limit: query.limit,
       }), {
@@ -210,35 +217,41 @@ export function createCatalogRoutes(container: ServiceContainer) {
     })
     .post('/api/seller/products', ({ authContext, body }: any) =>
       container.catalogService.createProduct(authContext.user, body), {
-      withRole: 'SELLER',
+      withAuth: true,
       body: CreateProductBodySchema,
     })
     .patch('/api/seller/products/:productId', ({ authContext, params, body }: any) =>
       container.catalogService.updateProduct(authContext.user, params.productId, body), {
-      withRole: 'SELLER',
+      withAuth: true,
       params: ProductParamsSchema,
       body: UpdateProductBodySchema,
     })
     .delete('/api/seller/products/:productId', ({ authContext, params }: any) =>
       container.catalogService.archiveProduct(authContext.user, params.productId), {
-      withRole: 'SELLER',
+      withAuth: true,
       params: ProductParamsSchema,
     })
     .post('/api/seller/products/:productId/variants', ({ authContext, params, body }: any) =>
       container.catalogService.createVariant(authContext.user, params.productId, body), {
-      withRole: 'SELLER',
+      withAuth: true,
       params: ProductParamsSchema,
       body: CreateVariantBodySchema,
     })
     .patch('/api/seller/products/:productId/variants/:variantId', ({ authContext, params, body }: any) =>
       container.catalogService.updateVariant(authContext.user, params.productId, params.variantId, body), {
-      withRole: 'SELLER',
+      withAuth: true,
       params: ProductVariantParamsSchema,
       body: UpdateVariantBodySchema,
     })
     .delete('/api/seller/products/:productId/variants/:variantId', ({ authContext, params }: any) =>
       container.catalogService.deleteVariant(authContext.user, params.productId, params.variantId), {
-      withRole: 'SELLER',
+      withAuth: true,
       params: ProductVariantParamsSchema,
+    })
+    .patch('/api/seller/variants/:variantId/inventory', ({ authContext, params, body }: any) =>
+      container.catalogService.updateSellerInventory(authContext.user, params.variantId, body), {
+      withAuth: true,
+      params: VariantParamsSchema,
+      body: UpdateInventoryBodySchema,
     })
 }

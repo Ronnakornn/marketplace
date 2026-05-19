@@ -73,7 +73,7 @@ function createCacheService() {
   }, client)
 }
 
-function createActor(role: Role = 'SELLER') {
+function createActor(role: Role = 'USER') {
   return {
     id: 'seller-1',
     role,
@@ -84,7 +84,7 @@ const now = new Date()
 
 function createSalesItem(overrides: Partial<{
   shopId: string
-  lineTotalCents: number
+  lineTotal: number
   createdAt: Date
   status: OrderStatus
   paymentStatus: PaymentStatus
@@ -92,7 +92,7 @@ function createSalesItem(overrides: Partial<{
   return {
     id: 'item-1',
     shopId: overrides.shopId ?? 'shop-1',
-    lineTotalCents: overrides.lineTotalCents ?? 1000,
+    lineTotal: overrides.lineTotal ?? 1000,
     quantity: 1,
     order: {
       id: 'order-1',
@@ -107,7 +107,7 @@ function createSalesItem(overrides: Partial<{
 function createOrderItem(overrides: Partial<{
   id: string
   shopId: string
-  lineTotalCents: number
+  lineTotal: number
   fulfillmentStatus: FulfillmentStatus
 }> = {}) {
   return {
@@ -122,8 +122,8 @@ function createOrderItem(overrides: Partial<{
     shopName: 'Shop One',
     shopSlug: 'shop-one',
     quantity: 2,
-    unitPriceCents: 1200,
-    lineTotalCents: overrides.lineTotalCents ?? 2400,
+    unitPrice: 1200,
+    lineTotal: overrides.lineTotal ?? 2400,
     currency: 'USD',
     fulfillmentStatus: overrides.fulfillmentStatus ?? 'PENDING',
   }
@@ -151,7 +151,7 @@ function createLowStockVariant(overrides: Partial<{
     productId: 'product-1',
     sku: 'TEE-BLK-M',
     title: 'Black / M',
-    priceCents: 1200,
+    prices: 1200,
     currency: 'USD',
     status: 'ACTIVE' as VariantStatus,
     createdAt: now,
@@ -181,7 +181,7 @@ function setup() {
   repo = createRepoMock()
   service = new SellerDashboardService(createAppContext(), repo)
   vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', name: 'Shop One', slug: 'shop-one' }])
-  vi.mocked(repo.findSalesOrderItems).mockResolvedValue([createSalesItem({ lineTotalCents: 1000 })])
+  vi.mocked(repo.findSalesOrderItems).mockResolvedValue([createSalesItem({ lineTotal: 1000 })])
   vi.mocked(repo.findShipments).mockResolvedValue([
     { id: 's1', status: 'PENDING_PACK' as ShipmentStatus },
     { id: 's2', status: 'SHIPPED' as ShipmentStatus },
@@ -225,17 +225,15 @@ describe('SellerDashboardService', () => {
     expect(repo.findSalesOrderItems).toHaveBeenLastCalledWith(['shop-2'])
   })
 
-  it('forbids non-seller dashboard access and fails when seller has no shop', async () => {
-    await expect(service.getDashboard(createActor('USER'))).rejects.toMatchObject({ code: 'DASHBOARD_FORBIDDEN' })
-
+  it('fails when a user has no active shop', async () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([])
-    await expect(service.getDashboard(createActor())).rejects.toMatchObject({ code: 'SELLER_SHOP_NOT_FOUND' })
+    await expect(service.getDashboard(createActor())).rejects.toMatchObject({ code: 'SELLER_SHOP_NOT_ACTIVE' })
   })
 
   it('counts sales only for seller shop items returned by repository', async () => {
     vi.mocked(repo.findSalesOrderItems).mockResolvedValue([
-      createSalesItem({ shopId: 'shop-1', lineTotalCents: 1000 }),
-      createSalesItem({ shopId: 'shop-1', lineTotalCents: 2500 }),
+      createSalesItem({ shopId: 'shop-1', lineTotal: 1000 }),
+      createSalesItem({ shopId: 'shop-1', lineTotal: 2500 }),
     ])
 
     const result = await service.getSalesSummary(createActor())
@@ -246,7 +244,7 @@ describe('SellerDashboardService', () => {
 
   it('recent orders include only seller items', async () => {
     vi.mocked(repo.findRecentOrders).mockResolvedValue([
-      createRecentOrder([createOrderItem({ id: 'own-item', shopId: 'shop-1', lineTotalCents: 1500 })]),
+      createRecentOrder([createOrderItem({ id: 'own-item', shopId: 'shop-1', lineTotal: 1500 })]),
     ])
 
     const result = await service.getRecentOrders(createActor(), 5)

@@ -5,6 +5,7 @@ export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "th";
 export const fallbackLocale: Locale = "en";
 export const defaultCurrency = "THB";
+export const defaultTimeZone = "Asia/Bangkok";
 
 export function isLocale(value: string | undefined | null): value is Locale {
   return Boolean(value && locales.includes(value as Locale));

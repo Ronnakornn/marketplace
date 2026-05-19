@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   CommandIcon,
+  BanknoteIcon,
+  BarChart3Icon,
   Building2Icon,
   FileClockIcon,
   LinkIcon,
@@ -16,7 +18,9 @@ import {
   RotateCcwIcon,
   SettingsIcon,
   ShieldCheckIcon,
+  ShieldAlertIcon,
   ShoppingBagIcon,
+  Undo2Icon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -84,16 +88,40 @@ const ADMIN_NAV_ITEMS = [
     match: (pathname: string) => pathname.startsWith("/admin/refunds"),
   },
   {
+    title: "Returns",
+    href: "/admin/returns",
+    icon: Undo2Icon,
+    match: (pathname: string) => pathname.startsWith("/admin/returns"),
+  },
+  {
+    title: "Payouts",
+    href: "/admin/payouts",
+    icon: BanknoteIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/payouts") || pathname.startsWith("/admin/commissions"),
+  },
+  {
     title: "Affiliates",
     href: "/admin/affiliates",
     icon: LinkIcon,
     match: (pathname: string) => pathname.startsWith("/admin/affiliates"),
   },
   {
+    title: "Fraud",
+    href: "/admin/fraud",
+    icon: ShieldAlertIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/fraud"),
+  },
+  {
     title: "Audit Logs",
     href: "/admin/audit-logs",
     icon: FileClockIcon,
     match: (pathname: string) => pathname.startsWith("/admin/audit-logs"),
+  },
+  {
+    title: "Reports",
+    href: "/admin/reports",
+    icon: BarChart3Icon,
+    match: (pathname: string) => pathname.startsWith("/admin/reports"),
   },
   {
     title: "Settings",

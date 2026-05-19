@@ -130,7 +130,7 @@ export class ReviewService {
   }
 
   private assertBuyer(actor: ReviewActor): void {
-    if (actor.role !== 'USER') {
+    if (actor.role === 'ADMIN') {
       throw new ReviewServiceError('Only buyer accounts can write reviews', 403, 'REVIEW_FORBIDDEN')
     }
   }

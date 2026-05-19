@@ -22,7 +22,7 @@ type Prisma = Awaited<typeof import("#server/lib/prisma.ts")>["prisma"];
 type SeedUser = {
   email: string;
   name: string;
-  role: "USER" | "SELLER" | "ADMIN";
+  role: "USER" | "ADMIN";
 };
 
 const DEMO_PASSWORD = "DemoPass123!";
@@ -30,7 +30,7 @@ const DEMO_PASSWORD = "DemoPass123!";
 type SeedVariant = {
   sku: string;
   title: string;
-  priceCents: number;
+  price: number;
   quantityOnHand: number;
   reorderLevel: number;
 };
@@ -48,6 +48,7 @@ type SeedShop = {
   ownerEmail: string;
   name: string;
   slug: string;
+  contactPhone: string;
   products: SeedProduct[];
 };
 
@@ -57,7 +58,7 @@ type SeedContext = {
   shops: Map<string, { id: string; name: string; slug: string; ownerEmail: string }>;
   categories: Map<string, string>;
   products: Map<string, { id: string; title: string; slug: string; shopSlug: string }>;
-  variants: Map<string, { id: string; sku: string; title: string; priceCents: number; productSlug: string }>;
+  variants: Map<string, { id: string; sku: string; title: string; price: number; productSlug: string }>;
   wallets: Map<string, string>;
 };
 
@@ -65,9 +66,9 @@ const users: SeedUser[] = [
   { email: "admin@example.com", name: "Demo Admin", role: "ADMIN" },
   { email: "buyer.demo@example.com", name: "Demo Buyer", role: "USER" },
   { email: "buyer.return@example.com", name: "Return Buyer", role: "USER" },
-  { email: "seller-fashion@example.com", name: "Fashion Seller", role: "SELLER" },
-  { email: "seller-gadget@example.com", name: "Gadget Seller", role: "SELLER" },
-  { email: "seller-home@example.com", name: "Home Seller", role: "SELLER" },
+  { email: "seller-fashion@example.com", name: "Fashion Seller", role: "USER" },
+  { email: "seller-gadget@example.com", name: "Gadget Seller", role: "USER" },
+  { email: "seller-home@example.com", name: "Home Seller", role: "USER" },
 ];
 
 const categories = [
@@ -89,6 +90,7 @@ const shops: SeedShop[] = [
     ownerEmail: "seller-fashion@example.com",
     name: "Urban Thread Co.",
     slug: "urban-thread-co",
+    contactPhone: "+66812345678",
     products: [
       product("fashion", "Everyday Oversized Cotton Tee", "everyday-oversized-cotton-tee", 790, ["Black S", "Black M", "White M"]),
       product("fashion", "Relaxed Linen Resort Shirt", "relaxed-linen-resort-shirt", 1290, ["Ivory M", "Navy L"]),
@@ -103,6 +105,7 @@ const shops: SeedShop[] = [
     ownerEmail: "seller-gadget@example.com",
     name: "Gadget Harbor",
     slug: "gadget-harbor",
+    contactPhone: "+66812345679",
     products: [
       product("gadgets", "Magnetic Wireless Power Bank", "magnetic-wireless-power-bank", 1490, ["5000 mAh", "10000 mAh"]),
       product("electronics", "Noise Cancelling Earbuds Lite", "noise-cancelling-earbuds-lite", 2290, ["Black", "White"]),
@@ -117,8 +120,8 @@ const shops: SeedShop[] = [
     ownerEmail: "seller-home@example.com",
     name: "Nest & Glow Market",
     slug: "nest-glow-market",
+    contactPhone: "+66812345680",
     products: [
-      product("home", "Stackable Pantry Storage Set", "stackable-pantry-storage-set", 1190, ["6 Piece", "10 Piece"]),
       product("beauty", "Hydrating Gel Cleanser", "hydrating-gel-cleanser", 590, ["150 ml", "300 ml"]),
       product("home", "Cotton Waffle Throw Blanket", "cotton-waffle-throw-blanket", 1490, ["Sage", "Cream"]),
       product("groceries", "Single Origin Drip Coffee Box", "single-origin-drip-coffee-box", 450, ["10 Bags", "30 Bags"]),
@@ -153,7 +156,7 @@ function product(
     variants: variants.map((variant, index) => ({
       sku: `${prefix}-${index + 1}`,
       title: variant,
-      priceCents: basePrice + index * 100,
+      price: basePrice + index * 100,
       quantityOnHand: status === "ACTIVE" ? 30 + index * 7 : 5,
       reorderLevel: 5,
     })),
@@ -277,59 +280,96 @@ async function seedCatalog(prisma: Prisma, ctx: SeedContext) {
 
   for (const seed of shops) {
     const ownerId = required(ctx.users, seed.ownerEmail);
-    const shop = await prisma.shop.upsert({
-      where: { slug: seed.slug },
-      update: { ownerId, name: seed.name, status: "ACTIVE" },
-      create: { ownerId, name: seed.name, slug: seed.slug, status: "ACTIVE" },
+    // ensure a SellerProfile exists for the shop owner (schema requires sellerProfileId)
+    const sellerProfile = await prisma.sellerProfile.upsert({
+      where: { userId: ownerId },
+      update: {},
+      create: { userId: ownerId },
     });
+    const shop = await upsertByFindFirst(
+      () => prisma.shop.findFirst({ where: { slug: seed.slug } }),
+      () =>
+        prisma.shop.create({
+          data: {
+            ownerId,
+            sellerProfileId: sellerProfile.id,
+            name: seed.name,
+            slug: seed.slug,
+            status: "ACTIVE",
+            contactEmail: seed.ownerEmail,
+            contactPhone: seed.contactPhone,
+          },
+        }),
+      (id) =>
+        prisma.shop.update({
+          where: { id },
+          data: {
+            ownerId,
+            name: seed.name,
+            status: "ACTIVE",
+            sellerProfileId: sellerProfile.id,
+            contactEmail: seed.ownerEmail,
+            contactPhone: seed.contactPhone,
+          },
+        }),
+      (row) => row.id,
+    );
     ctx.shops.set(seed.slug, { id: shop.id, name: shop.name, slug: shop.slug, ownerEmail: seed.ownerEmail });
 
-    const wallet = await prisma.sellerWallet.upsert({
+    const wallet = await prisma.shopWallet.upsert({
       where: { shopId: shop.id },
-      update: { currency: "USD" },
-      create: { shopId: shop.id, currency: "USD" },
+      update: { currency: "THB" },
+      create: { shopId: shop.id, currency: "THB" },
     });
     ctx.wallets.set(seed.slug, wallet.id);
 
     for (const productSeed of seed.products) {
       const categoryId = required(ctx.categories, productSeed.categorySlug);
-      const item = await prisma.product.upsert({
-        where: { shopId_slug: { shopId: shop.id, slug: productSeed.slug } },
-        update: {
-          categoryId,
-          title: productSeed.title,
-          titleTh: productSeed.title,
-          titleEn: productSeed.title,
-          description: productSeed.description,
-          descriptionTh: productSeed.description,
-          descriptionEn: productSeed.description,
-          status: productSeed.status ?? "ACTIVE",
-        },
-        create: {
-          shopId: shop.id,
-          categoryId,
-          title: productSeed.title,
-          titleTh: productSeed.title,
-          titleEn: productSeed.title,
-          slug: productSeed.slug,
-          description: productSeed.description,
-          descriptionTh: productSeed.description,
-          descriptionEn: productSeed.description,
-          status: productSeed.status ?? "ACTIVE",
-        },
-      });
+      const item = await upsertByFindFirst(
+        () => prisma.product.findFirst({ where: { shopId: shop.id, slug: productSeed.slug } }),
+        () =>
+          prisma.product.create({
+            data: {
+              shopId: shop.id,
+              categoryId,
+              title: productSeed.title,
+              titleTh: productSeed.title,
+              titleEn: productSeed.title,
+              slug: productSeed.slug,
+              description: productSeed.description,
+              descriptionTh: productSeed.description,
+              descriptionEn: productSeed.description,
+              status: productSeed.status ?? "ACTIVE",
+            },
+          }),
+        (id) =>
+          prisma.product.update({
+            where: { id },
+            data: {
+              categoryId,
+              title: productSeed.title,
+              titleTh: productSeed.title,
+              titleEn: productSeed.title,
+              description: productSeed.description,
+              descriptionTh: productSeed.description,
+              descriptionEn: productSeed.description,
+              status: productSeed.status ?? "ACTIVE",
+            },
+          }),
+        (row) => row.id,
+      );
       ctx.products.set(productSeed.slug, { id: item.id, title: item.title, slug: item.slug, shopSlug: shop.slug });
 
       for (const variantSeed of productSeed.variants) {
         const variant = await prisma.productVariant.upsert({
-          where: { sku: variantSeed.sku },
+          where: { productId_sku: { productId: item.id, sku: variantSeed.sku } },
           update: {
             productId: item.id,
             title: variantSeed.title,
             titleTh: variantSeed.title,
             titleEn: variantSeed.title,
-            priceCents: variantSeed.priceCents,
-            currency: "USD",
+            price: BigInt(variantSeed.price),
+            currency: "THB",
             status: "ACTIVE",
           },
           create: {
@@ -338,8 +378,8 @@ async function seedCatalog(prisma: Prisma, ctx: SeedContext) {
             title: variantSeed.title,
             titleTh: variantSeed.title,
             titleEn: variantSeed.title,
-            priceCents: variantSeed.priceCents,
-            currency: "USD",
+            price: BigInt(variantSeed.price),
+            currency: "THB",
             status: "ACTIVE",
           },
         });
@@ -347,7 +387,7 @@ async function seedCatalog(prisma: Prisma, ctx: SeedContext) {
           id: variant.id,
           sku: variant.sku,
           title: variant.title,
-          priceCents: variant.priceCents,
+          price: Number(variant.price),
           productSlug: productSeed.slug,
         });
 
@@ -381,9 +421,9 @@ async function seedCoupons(prisma: Prisma, ctx: SeedContext) {
       titleEn: "Demo 10%",
       discountType: "PERCENT" as const,
       discountPercentBps: 1000,
-      discountValueCents: null,
-      minOrderCents: 500,
-      maxDiscountCents: 500,
+      discountValue: null,
+      minOrder: 500,
+      maxDiscount: 500,
       isActive: true,
       startsAt: new Date(now - 86_400_000),
       endsAt: new Date(now + 30 * 86_400_000),
@@ -395,9 +435,9 @@ async function seedCoupons(prisma: Prisma, ctx: SeedContext) {
       titleEn: "Fashion 200 off",
       discountType: "FIXED_AMOUNT" as const,
       discountPercentBps: null,
-      discountValueCents: 200,
-      minOrderCents: 1000,
-      maxDiscountCents: null,
+      discountValue: 200,
+      minOrder: 1000,
+      maxDiscount: null,
       isActive: true,
       startsAt: new Date(now - 86_400_000),
       endsAt: new Date(now + 14 * 86_400_000),
@@ -409,9 +449,9 @@ async function seedCoupons(prisma: Prisma, ctx: SeedContext) {
       titleEn: "Expired demo",
       discountType: "PERCENT" as const,
       discountPercentBps: 500,
-      discountValueCents: null,
-      minOrderCents: null,
-      maxDiscountCents: null,
+      discountValue: null,
+      minOrder: null,
+      maxDiscount: null,
       isActive: false,
       startsAt: new Date(now - 30 * 86_400_000),
       endsAt: new Date(now - 86_400_000),
@@ -419,11 +459,17 @@ async function seedCoupons(prisma: Prisma, ctx: SeedContext) {
   ];
 
   for (const coupon of coupons) {
-    await prisma.coupon.upsert({
-      where: { code: coupon.code },
-      update: { ...coupon, descriptionTh: coupon.titleTh, descriptionEn: coupon.titleEn, usageLimit: 500, perUserLimit: 5 },
-      create: { ...coupon, descriptionTh: coupon.titleTh, descriptionEn: coupon.titleEn, usageLimit: 500, perUserLimit: 5 },
-    });
+    const upsertData = {
+      ...coupon,
+      descriptionTh: coupon.titleTh,
+      descriptionEn: coupon.titleEn,
+      usageLimit: 500,
+      perUserLimit: 5,
+      discountValue: coupon.discountValue ? BigInt(coupon.discountValue) : null,
+      minOrder: coupon.minOrder ? BigInt(coupon.minOrder) : null,
+      maxDiscount: coupon.maxDiscount ? BigInt(coupon.maxDiscount) : null,
+    } as any;
+    await prisma.coupon.upsert({ where: { code: coupon.code }, update: upsertData, create: upsertData });
   }
 }
 
@@ -464,7 +510,7 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
       ["EOCT-2", 2],
       ["MWPB-1", 1],
     ],
-    shippingCents: 500,
+    shipping: 500,
   });
   await setReservedQuantities(prisma, pending.reservations);
 
@@ -479,11 +525,11 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
     items: [
       ["RLRS-1", 1],
       ["MWPB-2", 1],
-      ["SPSS-1", 2],
+      ["PBS-1", 2],
     ],
     couponCode: "DEMO10",
-    discountCents: 300,
-    shippingCents: 500,
+    discount: 300,
+    shipping: 500,
     paymentEventType: "payment.paid",
   });
   await seedShipments(prisma, paid.order.id, "PENDING_PACK");
@@ -501,7 +547,7 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
       ["NCEL-1", 1],
       ["CWTB-1", 1],
     ],
-    shippingCents: 500,
+    shipping: 500,
     paymentEventType: "payment.paid",
   });
   await seedShipments(prisma, shipped.order.id, "SHIPPED");
@@ -518,7 +564,7 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
       ["RLRS-2", 1],
       ["HGC-1", 2],
     ],
-    shippingCents: 500,
+    shipping: 500,
     paymentEventType: "payment.paid",
   });
   await seedShipments(prisma, delivered.order.id, "DELIVERED");
@@ -533,7 +579,7 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
     paymentStatus: "FAILED",
     reservationStatus: "RELEASED",
     items: [["UCTD7-1", 1]],
-    shippingCents: 500,
+    shipping: 500,
     paymentEventType: "payment.failed",
   });
   await seedPaymentEvent(prisma, failed.payment.id, "DEMO-FAILED-1005", "payment.failed");
@@ -556,8 +602,8 @@ async function seedActiveCart(prisma: Prisma, ctx: SeedContext) {
 async function upsertCartItem(prisma: Prisma, cartId: string, variant: SeedContext["variants"] extends Map<string, infer T> ? T : never, quantity: number) {
   await prisma.cartItem.upsert({
     where: { cartId_variantId: { cartId, variantId: variant.id } },
-    update: { quantity, unitPriceCents: variant.priceCents, currency: "USD" },
-    create: { cartId, variantId: variant.id, quantity, unitPriceCents: variant.priceCents, currency: "USD" },
+    update: { quantity, unitPrice: BigInt(variant.price), currency: "THB" },
+    create: { cartId, variantId: variant.id, quantity, unitPrice: BigInt(variant.price), currency: "THB" },
   });
 }
 
@@ -573,8 +619,8 @@ async function seedOrderScenario(
     paymentStatus: "PENDING" | "SUCCEEDED" | "FAILED";
     reservationStatus: "ACTIVE" | "COMMITTED" | "RELEASED";
     items: Array<[string, number]>;
-    shippingCents: number;
-    discountCents?: number;
+    shipping: number;
+    discount?: number;
     couponCode?: string;
     paymentEventType?: "payment.paid" | "payment.failed";
   },
@@ -589,11 +635,11 @@ async function seedOrderScenario(
     (row) => row.id,
   );
 
-  let subtotalCents = 0;
+  let subtotal = 0;
   const orderItems = [];
   for (const [sku, quantity] of input.items) {
     const variant = requiredVariant(ctx, sku);
-    subtotalCents += variant.priceCents * quantity;
+    subtotal += variant.price * quantity;
     await upsertCartItem(prisma, cart.id, variant, quantity);
     const product = requiredProduct(ctx, variant.productSlug);
     const shop = [...ctx.shops.values()].find((candidate) => candidate.slug === product.shopSlug);
@@ -610,27 +656,27 @@ async function seedOrderScenario(
       shopName: shop.name,
       shopSlug: shop.slug,
       quantity,
-      unitPriceCents: variant.priceCents,
-      lineTotalCents: variant.priceCents * quantity,
-      currency: "USD",
+      unitPrice: variant.price,
+      lineTotal: variant.price * quantity,
+      currency: "THB",
       fulfillmentStatus,
     });
   }
 
-  const discountTotalCents = input.discountCents ?? 0;
-  const grandTotalCents = subtotalCents - discountTotalCents + input.shippingCents;
+  const discountTotal = input.discount ?? 0;
+  const grandTotal = subtotal - discountTotal + input.shipping;
   const checkoutData = {
     cartId: cart.id,
     userId,
     status: input.checkoutStatus,
-    subtotalCents,
-    discountTotalCents,
-    shippingTotalCents: input.shippingCents,
-    taxTotalCents: 0,
-    grandTotalCents,
-    currency: "USD",
+    subtotal: BigInt(subtotal),
+    discountTotal: BigInt(discountTotal),
+    shippingTotal: BigInt(input.shipping),
+    taxTotal: BigInt(0),
+    grandTotal: BigInt(grandTotal),
+    currency: "THB",
     expiresAt: new Date(Date.now() + 15 * 60_000),
-  };
+  } as any;
   const checkout = await upsertByFindFirst(
     () => prisma.checkout.findFirst({ where: { cartId: cart.id } }),
     () => prisma.checkout.create({ data: checkoutData }),
@@ -642,11 +688,12 @@ async function seedOrderScenario(
   const reservations = [];
   for (const [sku, quantity] of input.items) {
     const variant = requiredVariant(ctx, sku);
+    const inventory = await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } });
     reservations.push(
       await prisma.inventoryReservation.create({
         data: {
           checkoutId: checkout.id,
-          variantId: variant.id,
+          inventoryId: inventory.id,
           quantity,
           status: input.reservationStatus,
           expiresAt: new Date(Date.now() + 15 * 60_000),
@@ -662,12 +709,12 @@ async function seedOrderScenario(
       userId,
       status: input.orderStatus,
       paymentStatus: input.paymentStatus,
-      subtotalCents,
-      discountTotalCents,
-      shippingTotalCents: input.shippingCents,
-      taxTotalCents: 0,
-      grandTotalCents,
-      currency: "USD",
+      subtotal: BigInt(subtotal),
+      discountTotal: BigInt(discountTotal),
+      shippingTotal: BigInt(input.shipping),
+      taxTotal: BigInt(0),
+      grandTotal: BigInt(grandTotal),
+      currency: "THB",
       shippingName: address.recipientName,
       shippingPhone: address.phone,
       shippingLine1: address.line1,
@@ -683,12 +730,12 @@ async function seedOrderScenario(
       orderNumber: input.orderNumber,
       status: input.orderStatus,
       paymentStatus: input.paymentStatus,
-      subtotalCents,
-      discountTotalCents,
-      shippingTotalCents: input.shippingCents,
-      taxTotalCents: 0,
-      grandTotalCents,
-      currency: "USD",
+      subtotal: BigInt(subtotal),
+      discountTotal: BigInt(discountTotal),
+      shippingTotal: BigInt(input.shipping),
+      taxTotal: BigInt(0),
+      grandTotal: BigInt(grandTotal),
+      currency: "THB",
       shippingName: address.recipientName,
       shippingPhone: address.phone,
       shippingLine1: address.line1,
@@ -706,7 +753,9 @@ async function seedOrderScenario(
   await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
   const createdItems = [];
   for (const item of orderItems) {
-    createdItems.push(await prisma.orderItem.create({ data: { ...item, orderId: order.id } }));
+    createdItems.push(
+      await prisma.orderItem.create({ data: { ...item, unitPrice: BigInt(item.unitPrice), lineTotal: BigInt(item.lineTotal), orderId: order.id } }),
+    );
   }
 
   const payment = await prisma.payment.upsert({
@@ -715,8 +764,8 @@ async function seedOrderScenario(
       orderId: order.id,
       provider: "mock",
       status: input.paymentStatus,
-      amountCents: grandTotalCents,
-      currency: "USD",
+      amount: BigInt(grandTotal),
+      currency: "THB",
       paidAt: input.paymentStatus === "SUCCEEDED" ? new Date() : null,
     },
     create: {
@@ -724,8 +773,8 @@ async function seedOrderScenario(
       provider: "mock",
       providerIntentId: `demo_${input.orderNumber}`,
       status: input.paymentStatus,
-      amountCents: grandTotalCents,
-      currency: "USD",
+      amount: BigInt(grandTotal),
+      currency: "THB",
       paidAt: input.paymentStatus === "SUCCEEDED" ? new Date() : null,
     },
   });
@@ -752,11 +801,13 @@ async function seedPaymentEvent(prisma: Prisma, paymentId: string, orderNumber: 
   });
 }
 
-async function setReservedQuantities(prisma: Prisma, reservations: Array<{ variantId: string; quantity: number; status: string }>) {
+async function setReservedQuantities(prisma: Prisma, reservations: Array<any>) {
   for (const reservation of reservations) {
+    // reservations created from seedOrderScenario contain inventoryId
     if (reservation.status !== "ACTIVE") continue;
+    const inventoryId = reservation.inventoryId ?? reservation.inventory?.id ?? reservation.variantId;
     await prisma.inventory.update({
-      where: { variantId: reservation.variantId },
+      where: { id: inventoryId },
       data: { quantityReserved: reservation.quantity },
     });
   }
@@ -812,14 +863,13 @@ async function seedReviewReturnRefund(
   const buyerId = required(ctx.users, "buyer.return@example.com");
   const firstItem = scenario.orderItems[0];
   const product = await prisma.product.findFirstOrThrow({ where: { slug: firstItem.productSlug, shopId: firstItem.shopId } });
-  await prisma.review.upsert({
+  const review = await prisma.review.upsert({
     where: { orderItemId: firstItem.id },
     update: {
       userId: buyerId,
       productId: product.id,
       rating: 5,
       body: "Delivered quickly and matched the listing.",
-      images: ["https://example.com/demo/review-1.jpg"],
       status: "PUBLISHED",
     },
     create: {
@@ -828,14 +878,25 @@ async function seedReviewReturnRefund(
       orderItemId: firstItem.id,
       rating: 5,
       body: "Delivered quickly and matched the listing.",
-      images: ["https://example.com/demo/review-1.jpg"],
       status: "PUBLISHED",
     },
   });
 
+  const existingMedia = await prisma.reviewMedia.findFirst({ where: { reviewId: review.id, url: "https://example.com/demo/review-1.jpg" } });
+  if (!existingMedia) {
+    await prisma.reviewMedia.create({
+      data: {
+        reviewId: review.id,
+        uploadedById: buyerId,
+        type: "IMAGE",
+        url: "https://example.com/demo/review-1.jpg",
+      },
+    });
+  }
+
   const returnRequest = await upsertByFindFirst(
     () => prisma.returnRequest.findFirst({ where: { orderId: scenario.order.id, userId: buyerId } }),
-    () => prisma.returnRequest.create({ data: { orderId: scenario.order.id, userId: buyerId, status: "APPROVED", reason: "Changed mind", description: "Demo approved return." } }),
+    () => prisma.returnRequest.create({ data: { orderId: scenario.order.id, shopId: firstItem.shopId, userId: buyerId, status: "APPROVED", reason: "Changed mind", description: "Demo approved return." } }),
     (id) => prisma.returnRequest.update({ where: { id }, data: { status: "APPROVED", reason: "Changed mind", description: "Demo approved return." } }),
     (row) => row.id,
   );
@@ -851,7 +912,7 @@ async function seedReviewReturnRefund(
       orderId: scenario.order.id,
       paymentId: scenario.payment.id,
       status: "SUCCESS",
-      amountCents: firstItem.unitPriceCents,
+      amount: BigInt(Number(firstItem.unitPrice)),
       reason: "Approved return refund",
     },
     create: {
@@ -859,14 +920,14 @@ async function seedReviewReturnRefund(
       paymentId: scenario.payment.id,
       returnRequestId: returnRequest.id,
       status: "SUCCESS",
-      amountCents: firstItem.unitPriceCents,
+      amount: BigInt(Number(firstItem.unitPrice)),
       reason: "Approved return refund",
     },
   });
 
   await seedWalletEntry(prisma, ctx, firstItem.shopSlug, {
     type: "refund_adjustment",
-    amountCents: -firstItem.unitPriceCents,
+    amount: -Number(firstItem.unitPrice),
     orderId: scenario.order.id,
     refundId: refund.id,
     description: "Demo refund adjustment",
@@ -878,10 +939,20 @@ async function seedChatNotificationsWallets(prisma: Prisma, ctx: SeedContext, pa
   const shop = requiredShop(ctx, "urban-thread-co");
   const thread = await prisma.chatThread.upsert({
     where: { buyerId_shopId: { buyerId, shopId: shop.id } },
-    update: { productId: requiredProduct(ctx, "everyday-oversized-cotton-tee").id, orderId: paidOrderId },
-    create: { buyerId, shopId: shop.id, productId: requiredProduct(ctx, "everyday-oversized-cotton-tee").id, orderId: paidOrderId },
+    update: {},
+    create: { buyerId, shopId: shop.id },
   });
-  await seedChatMessage(prisma, thread.id, buyerId, "Hi, when will this order ship?", "demo-chat-buyer-1");
+  await seedChatMessage(
+    prisma,
+    thread.id,
+    buyerId,
+    "Hi, when will this order ship?",
+    "demo-chat-buyer-1",
+    {
+      productId: requiredProduct(ctx, "everyday-oversized-cotton-tee").id,
+      orderId: paidOrderId,
+    },
+  );
   await seedChatMessage(prisma, thread.id, required(ctx.users, shop.ownerEmail), "We are packing it today.", "demo-chat-seller-1");
 
   for (const [userEmail, type, title] of [
@@ -897,19 +968,45 @@ async function seedChatNotificationsWallets(prisma: Prisma, ctx: SeedContext, pa
     );
   }
 
-  await seedWalletEntry(prisma, ctx, "urban-thread-co", { type: "order_earning", amountCents: 2080, orderId: paidOrderId, description: "Demo paid order earning" });
-  await seedWalletEntry(prisma, ctx, "urban-thread-co", { type: "commission_fee", amountCents: -208, orderId: paidOrderId, description: "Demo platform commission" });
-  await seedWalletEntry(prisma, ctx, "gadget-harbor", { type: "order_earning", amountCents: 2390, orderId: paidOrderId, description: "Demo paid order earning" });
-  await seedWalletEntry(prisma, ctx, "nest-glow-market", { type: "order_earning", amountCents: 1490, orderId: deliveredOrderId, description: "Demo delivered order earning" });
+  await seedWalletEntry(prisma, ctx, "urban-thread-co", { type: "order_earning", amount: 2080, orderId: paidOrderId, description: "Demo paid order earning" });
+  await seedWalletEntry(prisma, ctx, "urban-thread-co", { type: "commission_fee", amount: -208, orderId: paidOrderId, description: "Demo platform commission" });
+  await seedWalletEntry(prisma, ctx, "gadget-harbor", { type: "order_earning", amount: 2390, orderId: paidOrderId, description: "Demo paid order earning" });
+  await seedWalletEntry(prisma, ctx, "nest-glow-market", { type: "order_earning", amount: 1490, orderId: deliveredOrderId, description: "Demo delivered order earning" });
 
   await seedPayouts(prisma, ctx);
 }
 
-async function seedChatMessage(prisma: Prisma, threadId: string, senderId: string, body: string, marker: string) {
+async function seedChatMessage(
+  prisma: Prisma,
+  threadId: string,
+  senderId: string,
+  body: string,
+  marker: string,
+  opts?: { productId?: string; orderId?: string },
+) {
   await upsertByFindFirst(
     () => prisma.chatMessage.findFirst({ where: { threadId, body: { contains: marker } } }),
-    () => prisma.chatMessage.create({ data: { threadId, senderId, messageType: "TEXT", body: `${body} [${marker}]` } }),
-    (id) => prisma.chatMessage.update({ where: { id }, data: { senderId, body: `${body} [${marker}]` } }),
+    () =>
+      prisma.chatMessage.create({
+        data: {
+          threadId,
+          senderId,
+          messageType: "TEXT",
+          body: `${body} [${marker}]`,
+          productId: opts?.productId ?? undefined,
+          orderId: opts?.orderId ?? undefined,
+        },
+      }),
+    (id) =>
+      prisma.chatMessage.update({
+        where: { id },
+        data: {
+          senderId,
+          body: `${body} [${marker}]`,
+          ...(opts?.productId ? { productId: opts.productId } : {}),
+          ...(opts?.orderId ? { orderId: opts.orderId } : {}),
+        },
+      }),
     (row) => row.id,
   );
 }
@@ -920,7 +1017,7 @@ async function seedWalletEntry(
   shopSlug: string,
   input: {
     type: "order_earning" | "commission_fee" | "refund_adjustment" | "payout_reserved" | "payout_paid" | "payout_rejected" | "manual_adjustment";
-    amountCents: number;
+    amount: number;
     orderId?: string;
     payoutId?: string;
     refundId?: string;
@@ -940,8 +1037,8 @@ async function seedWalletEntry(
         description: input.description,
       },
     }),
-    () => prisma.walletLedgerEntry.create({ data: { walletId, shopId: shop.id, currency: "USD", metadata: { seeded: true }, ...input } }),
-    (id) => prisma.walletLedgerEntry.update({ where: { id }, data: { amountCents: input.amountCents, description: input.description, metadata: { seeded: true } } }),
+    () => prisma.walletLedgerEntry.create({ data: { walletId, shopId: shop.id, currency: "THB", metadata: { seeded: true }, type: input.type, amount: BigInt(input.amount), orderId: input.orderId ?? null, payoutId: input.payoutId ?? null, refundId: input.refundId ?? null, description: input.description } }),
+    (id) => prisma.walletLedgerEntry.update({ where: { id }, data: { amount: BigInt(input.amount), description: input.description, metadata: { seeded: true } } }),
     (row) => row.id,
   );
 }
@@ -953,20 +1050,20 @@ async function seedPayouts(prisma: Prisma, ctx: SeedContext) {
   const walletId = required(ctx.wallets, "urban-thread-co");
 
   const requested = await upsertByFindFirst(
-    () => prisma.sellerPayout.findFirst({ where: { walletId, amountCents: 500, requestedById: sellerId, status: "requested" } }),
-    () => prisma.sellerPayout.create({ data: { walletId, shopId: shop.id, amountCents: 500, currency: "USD", status: "requested", requestedById: sellerId } }),
-    (id) => prisma.sellerPayout.update({ where: { id }, data: { amountCents: 500, status: "requested" } }),
+    () => prisma.sellerPayout.findFirst({ where: { walletId, amount: BigInt(500), requestedById: sellerId, status: "requested" } }),
+    () => prisma.sellerPayout.create({ data: { walletId, shopId: shop.id, amount: BigInt(500), currency: "THB", status: "requested", requestedById: sellerId } }),
+    (id) => prisma.sellerPayout.update({ where: { id }, data: { amount: BigInt(500), status: "requested" } }),
     (row) => row.id,
   );
-  await seedWalletEntry(prisma, ctx, "urban-thread-co", { type: "payout_reserved", amountCents: -500, payoutId: requested.id, description: "Demo requested payout reserve" });
+  await seedWalletEntry(prisma, ctx, "urban-thread-co", { type: "payout_reserved", amount: -500, payoutId: requested.id, description: "Demo requested payout reserve" });
 
   const paid = await upsertByFindFirst(
-    () => prisma.sellerPayout.findFirst({ where: { walletId, amountCents: 300, requestedById: sellerId, status: "paid" } }),
-    () => prisma.sellerPayout.create({ data: { walletId, shopId: shop.id, amountCents: 300, currency: "USD", status: "paid", requestedById: sellerId, approvedById: adminId, paidById: adminId, approvedAt: new Date(), paidAt: new Date() } }),
+    () => prisma.sellerPayout.findFirst({ where: { walletId, amount: BigInt(300), requestedById: sellerId, status: "paid" } }),
+    () => prisma.sellerPayout.create({ data: { walletId, shopId: shop.id, amount: BigInt(300), currency: "THB", status: "paid", requestedById: sellerId, approvedById: adminId, paidById: adminId, approvedAt: new Date(), paidAt: new Date() } }),
     (id) => prisma.sellerPayout.update({ where: { id }, data: { status: "paid", approvedById: adminId, paidById: adminId, approvedAt: new Date(), paidAt: new Date() } }),
     (row) => row.id,
   );
-  await seedWalletEntry(prisma, ctx, "urban-thread-co", { type: "payout_paid", amountCents: 0, payoutId: paid.id, description: "Demo paid payout marker" });
+  await seedWalletEntry(prisma, ctx, "urban-thread-co", { type: "payout_paid", amount: 0, payoutId: paid.id, description: "Demo paid payout marker" });
 }
 
 async function seedUploadsAndAudit(prisma: Prisma, ctx: SeedContext) {

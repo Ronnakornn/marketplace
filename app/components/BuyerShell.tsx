@@ -14,6 +14,7 @@ import {
   SearchIcon,
   ShoppingBagIcon,
   ShoppingCartIcon,
+  StoreIcon,
   UserCircleIcon,
 } from "lucide-react";
 import { LanguageSwitcher } from "#/components/LanguageSwitcher";
@@ -52,9 +53,9 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
   const pathname = usePathname();
   const isSellerRoute = pathname.includes("/seller/");
   const notificationHref = isSellerRoute ? "/seller/notifications" : "/notifications";
-  const canUseBuyerCart = session?.user.role === "USER";
-  const canUseChat = session?.user.role === "USER" || session?.user.role === "SELLER";
-  const chatHref = session?.user.role === "SELLER" ? "/seller/chat" : "/chat";
+  const canUseBuyerCart = Boolean(session && session.user.role !== "ADMIN");
+  const canUseChat = Boolean(session && session.user.role !== "ADMIN");
+  const chatHref = isSellerRoute ? "/seller/chat" : "/chat";
   const cartQuery = useQuery({
     queryKey: ["buyer-cart", locale],
     queryFn: () => fetchCart(locale),
@@ -138,6 +139,12 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
         )}
         {session ? (
           <>
+            {session.user.role !== "ADMIN" && !isSellerRoute ? (
+              <Link href={localePath("/seller/register")} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 sm:flex">
+                <StoreIcon className="size-4" />
+                Start Selling
+              </Link>
+            ) : null}
             <Link href={localePath("/profile")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
               <UserCircleIcon className="size-5" />
              

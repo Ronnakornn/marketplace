@@ -4,7 +4,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
 export type ChatUserRecord = Pick<User, 'id' | 'name' | 'email' | 'role'>
-export type ChatShopRecord = Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId'>
+export type ChatShopRecord = Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'>
 export type ChatProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'shopId'>
 export type ChatOrderRecord = Pick<Order, 'id' | 'orderNumber' | 'status' | 'userId'>
 
@@ -12,11 +12,9 @@ export type ChatMessageRecord = Pick<ChatMessage, 'id' | 'threadId' | 'senderId'
   sender: ChatUserRecord
 }
 
-export type ChatRoomRecord = Pick<ChatThread, 'id' | 'buyerId' | 'shopId' | 'productId' | 'orderId' | 'buyerReadAt' | 'sellerReadAt' | 'createdAt' | 'updatedAt'> & {
+export type ChatRoomRecord = Pick<ChatThread, 'id' | 'buyerId' | 'shopId' | 'lastMessageAt' | 'buyerReadAt' | 'sellerReadAt' | 'createdAt' | 'updatedAt'> & {
   buyer: ChatUserRecord
   shop: ChatShopRecord
-  product: Pick<Product, 'id' | 'title' | 'slug'> | null
-  order: Pick<Order, 'id' | 'orderNumber' | 'status'> | null
   messages: ChatMessageRecord[]
 }
 
@@ -54,9 +52,7 @@ const messageInclude = {
 
 const roomInclude = {
   buyer: { select: userSelect },
-  shop: { select: { id: true, name: true, slug: true, ownerId: true } },
-  product: { select: { id: true, title: true, slug: true } },
-  order: { select: { id: true, orderNumber: true, status: true } },
+  shop: { select: { id: true, name: true, slug: true, ownerId: true, status: true } },
   messages: {
     include: messageInclude,
     orderBy: { createdAt: 'desc' },
@@ -78,7 +74,7 @@ export class PrismaChatRepository implements IChatRepository {
     this.logger.debug('PrismaChatRepository.findShopById', { shopId })
     return this.prisma.shop.findUnique({
       where: { id: shopId },
-      select: { id: true, name: true, slug: true, ownerId: true },
+      select: { id: true, name: true, slug: true, ownerId: true, status: true },
     })
   }
 
@@ -120,14 +116,12 @@ export class PrismaChatRepository implements IChatRepository {
     })
   }
 
-  createRoom(input: { buyerId: string; shopId: string; productId?: string; orderId?: string }): Promise<ChatRoomRecord> {
+  createRoom(input: { buyerId: string; shopId: string }): Promise<ChatRoomRecord> {
     this.logger.info('PrismaChatRepository.createRoom', { buyerId: input.buyerId, shopId: input.shopId })
     return this.prisma.chatThread.create({
       data: {
         buyerId: input.buyerId,
         shopId: input.shopId,
-        productId: input.productId,
-        orderId: input.orderId,
       },
       include: roomInclude,
     })
@@ -145,7 +139,7 @@ export class PrismaChatRepository implements IChatRepository {
   listSellerRooms(ownerId: string): Promise<ChatRoomRecord[]> {
     this.logger.debug('PrismaChatRepository.listSellerRooms', { ownerId })
     return this.prisma.chatThread.findMany({
-      where: { shop: { ownerId } },
+      where: { shop: { ownerId, status: 'ACTIVE' } },
       include: roomInclude,
       orderBy: { updatedAt: 'desc' },
     })

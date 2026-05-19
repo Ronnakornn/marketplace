@@ -8,6 +8,33 @@ const PaginationQuery = t.Object({
   limit: t.Optional(t.Numeric()),
 })
 const StatusBody = t.Object({ status: t.String({ minLength: 1 }) })
+const UserWriteBody = t.Object({
+  name: t.String({ minLength: 1 }),
+  email: t.String({ format: 'email' }),
+  password: t.String({ minLength: 8 }),
+  role: t.Optional(t.String()),
+})
+const UserUpdateBody = t.Partial(t.Object({
+  name: t.String({ minLength: 1 }),
+  email: t.String({ format: 'email' }),
+  role: t.String(),
+  status: t.String(),
+}))
+const RoleBody = t.Object({ role: t.String({ minLength: 1 }) })
+const ShopWriteBody = t.Object({
+  ownerId: t.Optional(t.String()),
+  ownerEmail: t.Optional(t.String()),
+  name: t.String({ minLength: 1 }),
+  slug: t.Optional(t.String()),
+  status: t.Optional(t.String()),
+})
+const ShopUpdateBody = t.Object({
+  ownerId: t.Optional(t.String()),
+  ownerEmail: t.Optional(t.String()),
+  name: t.Optional(t.String()),
+  slug: t.Optional(t.String()),
+  status: t.Optional(t.String()),
+})
 
 function adminActor(authContext: any) {
   return { id: authContext!.user.id, role: authContext!.user.role }
@@ -30,6 +57,9 @@ export function createAdminRoutes(container: ServiceContainer) {
     .get('/api/admin/dashboard', ({ authContext }: any) => container.adminService.getDashboard(adminActor(authContext)), {
       withRole: 'ADMIN',
     })
+    .get('/api/admin/reports', ({ authContext }: any) => container.adminService.getReports(adminActor(authContext)), {
+      withRole: 'ADMIN',
+    })
     .get('/api/admin/users', ({ authContext, query }: any) => container.adminService.listUsers(adminActor(authContext), query), {
       withRole: 'ADMIN',
       query: t.Composite([
@@ -40,6 +70,20 @@ export function createAdminRoutes(container: ServiceContainer) {
         }),
       ]),
     })
+    .post('/api/admin/users', ({ authContext, body }: any) => container.adminService.createUser(adminActor(authContext), body), {
+      withRole: 'ADMIN',
+      body: UserWriteBody,
+    })
+    .patch('/api/admin/users/:userId', ({ authContext, params: { userId }, body }: any) => container.adminService.updateUser(adminActor(authContext), userId, body), {
+      withRole: 'ADMIN',
+      params: t.Object({ userId: t.String() }),
+      body: UserUpdateBody,
+    })
+    .patch('/api/admin/users/:userId/role', ({ authContext, params: { userId }, body }: any) => container.adminService.updateUserRole(adminActor(authContext), userId, body.role), {
+      withRole: 'ADMIN',
+      params: t.Object({ userId: t.String() }),
+      body: RoleBody,
+    })
     .patch(
       '/api/admin/users/:userId/status',
       ({ authContext, params: { userId }, body }: any) => container.adminService.updateUserStatus(adminActor(authContext), userId, body.status),
@@ -49,11 +93,28 @@ export function createAdminRoutes(container: ServiceContainer) {
         body: StatusBody,
       },
     )
+    .delete('/api/admin/users/:userId', ({ authContext, params: { userId } }: any) => container.adminService.deleteUser(adminActor(authContext), userId), {
+      withRole: 'ADMIN',
+      params: t.Object({ userId: t.String() }),
+    })
     .get('/api/admin/shops', ({ authContext, query }: any) => container.adminService.listShops(adminActor(authContext), query), {
       withRole: 'ADMIN',
       query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()) })]),
     })
+    .post('/api/admin/shops', ({ authContext, body }: any) => container.adminService.createShop(adminActor(authContext), body), {
+      withRole: 'ADMIN',
+      body: ShopWriteBody,
+    })
     .get('/api/admin/shops/:shopId', ({ authContext, params: { shopId } }: any) => container.adminService.getShop(adminActor(authContext), shopId), {
+      withRole: 'ADMIN',
+      params: t.Object({ shopId: t.String() }),
+    })
+    .patch('/api/admin/shops/:shopId', ({ authContext, params: { shopId }, body }: any) => container.adminService.updateShop(adminActor(authContext), shopId, body), {
+      withRole: 'ADMIN',
+      params: t.Object({ shopId: t.String() }),
+      body: ShopUpdateBody,
+    })
+    .delete('/api/admin/shops/:shopId', ({ authContext, params: { shopId } }: any) => container.adminService.deleteShop(adminActor(authContext), shopId), {
       withRole: 'ADMIN',
       params: t.Object({ shopId: t.String() }),
     })
@@ -117,6 +178,27 @@ export function createAdminRoutes(container: ServiceContainer) {
       {
         withRole: 'ADMIN',
         params: t.Object({ refundId: t.String() }),
+        body: StatusBody,
+      },
+    )
+    .get('/api/admin/returns', ({ authContext, query }: any) => container.adminService.listReturns(adminActor(authContext), query), {
+      withRole: 'ADMIN',
+      query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()) })]),
+    })
+    .get(
+      '/api/admin/returns/:returnId',
+      ({ authContext, params: { returnId } }: any) => container.adminService.getReturn(adminActor(authContext), returnId),
+      {
+        withRole: 'ADMIN',
+        params: t.Object({ returnId: t.String() }),
+      },
+    )
+    .patch(
+      '/api/admin/returns/:returnId/status',
+      ({ authContext, params: { returnId }, body }: any) => container.adminService.updateReturnStatus(adminActor(authContext), returnId, body.status),
+      {
+        withRole: 'ADMIN',
+        params: t.Object({ returnId: t.String() }),
         body: StatusBody,
       },
     )

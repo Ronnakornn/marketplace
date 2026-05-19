@@ -23,20 +23,20 @@ export function createSellerDashboardRoutes(container: ServiceContainer) {
     })
     .get('/api/seller/dashboard', ({ authContext, query }: any) =>
       container.sellerDashboardService.getDashboard(authContext!.user, query.limit), {
-      withRole: 'SELLER',
+      withAuth: true,
       query: DashboardQuerySchema,
     })
     .get('/api/seller/dashboard/sales-summary', ({ authContext }: any) =>
       container.sellerDashboardService.getSalesSummary(authContext!.user), {
-      withRole: 'SELLER',
+      withAuth: true,
     })
     .get('/api/seller/dashboard/recent-orders', ({ authContext, query }: any) =>
       container.sellerDashboardService.getRecentOrders(authContext!.user, query.limit), {
-      withRole: 'SELLER',
+      withAuth: true,
       query: DashboardQuerySchema,
     })
     .get('/api/seller/dashboard/low-stock', ({ authContext }: any) =>
       container.sellerDashboardService.getLowStock(authContext!.user), {
-      withRole: 'SELLER',
+      withAuth: true,
     })
 }

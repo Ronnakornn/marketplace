@@ -22,7 +22,7 @@ function createRepo(overrides: Partial<IRealtimeRepository> = {}): IRealtimeRepo
     findChatRoomAccess: vi.fn().mockResolvedValue({
       id: 'room-1',
       buyerId: 'buyer-1',
-      shop: { id: 'shop-1', ownerId: 'seller-1' },
+      shop: { id: 'shop-1', ownerId: 'seller-1', status: 'ACTIVE' },
     }),
     findShopOwnerId: vi.fn().mockResolvedValue('seller-1'),
     ...overrides,
@@ -58,13 +58,13 @@ describe('RealtimeService', () => {
   it('allows a seller to subscribe to their shop chat room', async () => {
     const service = new RealtimeService(appContext, createRepo(), new InMemoryRealtimeAdapter())
 
-    await expect(service.assertCanSubscribe({ id: 'seller-1', role: 'SELLER' }, 'chat:room-1')).resolves.toBeUndefined()
+    await expect(service.assertCanSubscribe({ id: 'seller-1', role: 'USER' }, 'chat:room-1')).resolves.toBeUndefined()
   })
 
   it('blocks sellers from another shop chat room', async () => {
     const service = new RealtimeService(appContext, createRepo(), new InMemoryRealtimeAdapter())
 
-    await expect(service.assertCanSubscribe({ id: 'seller-2', role: 'SELLER' }, 'chat:room-1')).rejects.toMatchObject({
+    await expect(service.assertCanSubscribe({ id: 'seller-2', role: 'USER' }, 'chat:room-1')).rejects.toMatchObject({
       code: 'REALTIME_FORBIDDEN',
       status: 403,
     } satisfies Partial<RealtimeServiceError>)
@@ -73,7 +73,7 @@ describe('RealtimeService', () => {
   it('allows sellers to subscribe to their shop aggregate chat channel', async () => {
     const service = new RealtimeService(appContext, createRepo(), new InMemoryRealtimeAdapter())
 
-    await expect(service.assertCanSubscribe({ id: 'seller-1', role: 'SELLER' }, 'seller:shop-1:chats')).resolves.toBeUndefined()
+    await expect(service.assertCanSubscribe({ id: 'seller-1', role: 'USER' }, 'seller:shop-1:chats')).resolves.toBeUndefined()
   })
 
   it('publishes only to subscribers of the target channel', async () => {

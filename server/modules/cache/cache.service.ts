@@ -57,7 +57,7 @@ export class CacheService {
 
     try {
       const ttlSeconds = options.ttlSeconds ?? this.config.defaultTtlSeconds
-      await this.client!.set(key, JSON.stringify(value), 'EX', ttlSeconds)
+      await this.client!.set(key, JSON.stringify(value, cacheJsonReplacer), 'EX', ttlSeconds)
     } catch (error) {
       this.logger.warn('Cache set failed', {
         code: 'CACHE_CONNECTION_FAILED',
@@ -113,4 +113,8 @@ export class CacheService {
 function dateReviver(_key: string, value: unknown): unknown {
   if (typeof value === 'string' && isoDatePattern.test(value)) return new Date(value)
   return value
+}
+
+function cacheJsonReplacer(_key: string, value: unknown): unknown {
+  return typeof value === 'bigint' ? value.toString() : value
 }

@@ -1,8 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { BoxesIcon, Building2Icon, LinkIcon, RotateCcwIcon, ShoppingBagIcon, UsersIcon } from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
+import { BoxesIcon, Building2Icon, Edit3Icon, LinkIcon, PlusIcon, RotateCcwIcon, ShoppingBagIcon, Trash2Icon, UsersIcon } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "#/components/ui/alert-dialog";
+import { Button } from "#/components/ui/button";
 import { CardContent } from "#/components/ui/card";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
 import { AdminDataShell } from "./AdminDataShell";
@@ -23,6 +36,9 @@ import {
   useAdminRefundsList,
   useAdminShopsList,
   useAdminUsersList,
+  useCreateAdminShop,
+  useDeleteAdminShop,
+  useUpdateAdminShop,
   useUpdateAffiliateStatus,
   useUpdateProductStatus,
   useUpdateRefundStatus,
@@ -37,6 +53,7 @@ const PRODUCT_STATUSES = ["DRAFT", "ACTIVE", "ARCHIVED"] as const;
 const ORDER_STATUSES = ["PENDING_PAYMENT", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "PARTIALLY_FULFILLED", "FULFILLED", "CANCELED", "REFUNDED"] as const;
 const REFUND_STATUSES = ["PENDING", "PROCESSING", "SUCCESS", "FAILED"] as const;
 const AFFILIATE_STATUSES = ["ACTIVE", "DISABLED"] as const;
+const emptyShopForm = { name: "", slug: "", ownerEmail: "", status: "PENDING" };
 
 function formatDate(value: string | Date) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -80,6 +97,38 @@ function EmptyRow({ colSpan }: { colSpan: number }) {
   );
 }
 
+function AdminShopField(props: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={props.id} className="text-slate-300">{props.label}</Label>
+      <Input
+        id={props.id}
+        value={props.value}
+        onChange={(event) => props.onChange(event.target.value)}
+        placeholder={props.placeholder}
+        required={props.required}
+        className="border-white/10 bg-slate-950/60 text-slate-100 placeholder:text-slate-600"
+      />
+    </div>
+  );
+}
+
+function readErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const record = error as { value?: { error?: { message?: string } }; error?: { message?: string }; message?: string };
+    return record.value?.error?.message ?? record.error?.message ?? record.message ?? "Operation failed.";
+  }
+  return "Operation failed.";
+}
+
 export function AdminUsersTable() {
   const [page, setPage] = useState(1);
   const [role, setRole] = useState("");
@@ -116,15 +165,108 @@ export function AdminShopsTable() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
+  const [form, setForm] = useState(emptyShopForm);
+  const [editingShop, setEditingShop] = useState<AdminShop | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminShop | null>(null);
   const query = useAdminShopsList({ page, limit: PAGE_SIZE, status });
   const updateStatus = useUpdateShopStatus();
+  const createShop = useCreateAdminShop();
+  const updateShop = useUpdateAdminShop();
+  const deleteShop = useDeleteAdminShop();
   const rows = useMemo(() => (query.data?.items ?? []).filter((shop: AdminShop) => textMatch([shop.name, shop.slug, shop.owner.name, shop.owner.email, shop.status], search)), [query.data, search]);
+  const isMutating = createShop.isPending || updateShop.isPending;
+  const mutationError = createShop.error ?? updateShop.error ?? deleteShop.error;
+
+  function resetForm() {
+    setForm(emptyShopForm);
+    setEditingShop(null);
+  }
+
+  function startEdit(shop: AdminShop) {
+    setEditingShop(shop);
+    setForm({ name: shop.name, slug: shop.slug, ownerEmail: shop.owner.email, status: shop.status });
+  }
+
+  function submitShop(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload = {
+      name: form.name,
+      slug: form.slug || undefined,
+      ownerEmail: form.ownerEmail,
+      status: form.status,
+    };
+    if (editingShop) {
+      updateShop.mutate({ id: editingShop.id, ...payload }, { onSuccess: resetForm });
+      return;
+    }
+    createShop.mutate(payload, { onSuccess: resetForm });
+  }
 
   return (
     <AdminDataShell title="Shops" description="Approve, activate, or suspend seller storefronts." icon={Building2Icon} search={search} searchPlaceholder="Search shops" onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder="Statuses" options={SHOP_STATUSES} />}>
-      <CardContent className="p-0"><Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Shop</TableHead><TableHead className="text-slate-300">Owner</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-slate-300">Created</TableHead><TableHead className="text-right text-slate-300">Action</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((shop: AdminShop) => <TableRow key={shop.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{shop.name}</p><p className="text-xs text-slate-500">{shop.slug}</p></TableCell><TableCell><p className="text-sm text-slate-200">{shop.owner.name}</p><p className="text-xs text-slate-500">{shop.owner.email}</p></TableCell><TableCell><AdminStatusBadge status={shop.status} /></TableCell><TableCell className="text-sm text-slate-300">{formatDate(shop.createdAt)}</TableCell><TableCell className="flex justify-end"><AdminStatusAction label={shop.name} currentStatus={shop.status} options={SHOP_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: shop.id, status: next })} /></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
-      </TableBody></Table><AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} /></CardContent>
+      <CardContent className="space-y-4 p-5">
+        <form onSubmit={submitShop} className="rounded-lg border border-white/10 bg-slate-950/50 p-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
+            <div className="grid flex-1 gap-3 md:grid-cols-4">
+              <AdminShopField id="shop-name" label="Shop name" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} required />
+              <AdminShopField id="shop-slug" label="Slug" value={form.slug} onChange={(value) => setForm((current) => ({ ...current, slug: value }))} placeholder="auto-from-name" />
+              <AdminShopField id="shop-owner" label="Owner email" value={form.ownerEmail} onChange={(value) => setForm((current) => ({ ...current, ownerEmail: value }))} required />
+              <div className="space-y-2">
+                <Label htmlFor="shop-status" className="text-slate-300">Status</Label>
+                <Select value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value }))}>
+                  <SelectTrigger id="shop-status" className="border-white/10 bg-slate-950/60 text-slate-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SHOP_STATUSES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={isMutating} className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+                <PlusIcon className="size-4" />
+                {editingShop ? "Save shop" : "Create shop"}
+              </Button>
+              {editingShop ? <Button type="button" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={resetForm}>Cancel</Button> : null}
+            </div>
+          </div>
+          {mutationError ? <p className="mt-3 text-sm text-red-300">{readErrorMessage(mutationError)}</p> : null}
+          <p className="mt-2 text-xs text-slate-500">Owner must be an ACTIVE account. Delete is only available for shops without marketplace records.</p>
+        </form>
+
+        <div className="overflow-hidden rounded-lg border border-white/10">
+          <Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Shop</TableHead><TableHead className="text-slate-300">Owner</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-slate-300">Created</TableHead><TableHead className="text-right text-slate-300">Actions</TableHead></TableRow></TableHeader><TableBody>
+            {rows.length ? rows.map((shop: AdminShop) => <TableRow key={shop.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{shop.name}</p><p className="text-xs text-slate-500">{shop.slug}</p></TableCell><TableCell><p className="text-sm text-slate-200">{shop.owner.name}</p><p className="text-xs text-slate-500">{shop.owner.email}</p></TableCell><TableCell><AdminStatusBadge status={shop.status} /></TableCell><TableCell className="text-sm text-slate-300">{formatDate(shop.createdAt)}</TableCell><TableCell><div className="flex justify-end gap-2"><Button type="button" size="icon-sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={() => startEdit(shop)}><Edit3Icon className="size-4" /><span className="sr-only">Edit {shop.name}</span></Button><Button type="button" size="icon-sm" variant="outline" className="border-red-400/30 bg-red-500/10 text-red-200" disabled={deleteShop.isPending} onClick={() => setDeleteTarget(shop)}><Trash2Icon className="size-4" /><span className="sr-only">Delete {shop.name}</span></Button><AdminStatusAction label={shop.name} currentStatus={shop.status} options={SHOP_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: shop.id, status: next })} /></div></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
+          </TableBody></Table>
+        </div>
+        <AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} />
+        <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete shop</AlertDialogTitle>
+              <AlertDialogDescription>
+                Delete {deleteTarget?.name}. This only succeeds when the shop has no products, orders, shipments, coupons, followers, chat, wallet, or payout records.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button
+                  variant="destructive"
+                  disabled={!deleteTarget || deleteShop.isPending}
+                  onClick={() => {
+                    if (!deleteTarget) return;
+                    deleteShop.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) });
+                  }}
+                >
+                  Delete
+                </Button>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
     </AdminDataShell>
   );
 }
@@ -156,7 +298,7 @@ export function AdminOrdersMonitoringTable() {
   return (
     <AdminDataShell title="Orders" description="Monitor order payment, fulfillment, shipment, and refund signals." icon={ShoppingBagIcon} search={search} searchPlaceholder="Search orders" onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder="Statuses" options={ORDER_STATUSES} />}>
       <CardContent className="p-0"><Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Order</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-slate-300">Payment</TableHead><TableHead className="text-slate-300">Total</TableHead><TableHead className="text-slate-300">Activity</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((order: AdminOrder) => <TableRow key={order.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{order.orderNumber}</p><p className="text-xs text-slate-500">{formatDate(order.createdAt)}</p></TableCell><TableCell><AdminStatusBadge status={order.status} /></TableCell><TableCell><AdminStatusBadge status={order.paymentStatus} /></TableCell><TableCell className="text-sm text-slate-200">{formatMoney(order.grandTotalCents, order.currency)}</TableCell><TableCell className="text-sm text-slate-300">{order.items.length} items, {order.shipments.length} shipments, {order.refunds.length} refunds</TableCell></TableRow>) : <EmptyRow colSpan={5} />}
+        {rows.length ? rows.map((order: AdminOrder) => <TableRow key={order.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{order.orderNumber}</p><p className="text-xs text-slate-500">{formatDate(order.createdAt)}</p></TableCell><TableCell><AdminStatusBadge status={order.status} /></TableCell><TableCell><AdminStatusBadge status={order.paymentStatus} /></TableCell><TableCell className="text-sm text-slate-200">{formatMoney(order.grandTotal, order.currency)}</TableCell><TableCell className="text-sm text-slate-300">{order.items.length} items, {order.shipments.length} shipments, {order.refunds.length} refunds</TableCell></TableRow>) : <EmptyRow colSpan={5} />}
       </TableBody></Table><AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} /></CardContent>
     </AdminDataShell>
   );
@@ -173,7 +315,7 @@ export function AdminRefundsTable() {
   return (
     <AdminDataShell title="Refunds" description="Process refund review states while keeping provider confirmation separate." icon={RotateCcwIcon} search={search} searchPlaceholder="Search refunds" onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder="Statuses" options={REFUND_STATUSES} />}>
       <CardContent className="p-0"><Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Refund</TableHead><TableHead className="text-slate-300">Order</TableHead><TableHead className="text-slate-300">Amount</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-right text-slate-300">Action</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((refund: AdminRefund) => <TableRow key={refund.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{refund.reason ?? "Refund request"}</p><p className="text-xs text-slate-500">{formatDate(refund.createdAt)}</p></TableCell><TableCell><p className="text-sm text-slate-200">{refund.order.orderNumber}</p><p className="text-xs text-slate-500">{refund.payment.provider}</p></TableCell><TableCell className="text-sm text-slate-200">{formatMoney(refund.amountCents, refund.payment.currency)}</TableCell><TableCell><AdminStatusBadge status={refund.status} /></TableCell><TableCell className="flex justify-end"><AdminStatusAction label={refund.order.orderNumber} currentStatus={refund.status} options={REFUND_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: refund.id, status: next })} /></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
+        {rows.length ? rows.map((refund: AdminRefund) => <TableRow key={refund.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{refund.reason ?? "Refund request"}</p><p className="text-xs text-slate-500">{formatDate(refund.createdAt)}</p></TableCell><TableCell><p className="text-sm text-slate-200">{refund.order.orderNumber}</p><p className="text-xs text-slate-500">{refund.payment.provider}</p></TableCell><TableCell className="text-sm text-slate-200">{formatMoney(refund.amount, refund.payment.currency)}</TableCell><TableCell><AdminStatusBadge status={refund.status} /></TableCell><TableCell className="flex justify-end"><AdminStatusAction label={refund.order.orderNumber} currentStatus={refund.status} options={REFUND_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: refund.id, status: next })} /></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
       </TableBody></Table><AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} /></CardContent>
     </AdminDataShell>
   );

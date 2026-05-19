@@ -20,7 +20,7 @@ function payout(status: PayoutRecord['status'] = 'requested'): PayoutRecord {
     id: 'payout-1',
     walletId: 'wallet-1',
     shopId: 'shop-1',
-    amountCents: 5000,
+    amount: 5000,
     currency: 'USD',
     status,
     requestedById: 'seller-1',
@@ -82,19 +82,19 @@ describe('PayoutService', () => {
   })
 
   it('payout request reserves balance', async () => {
-    await service.createSellerPayout({ id: 'seller-1', role: 'SELLER' }, { amountCents: 5000 })
+    await service.createSellerPayout({ id: 'seller-1', role: 'USER' }, { amount: 5000 })
 
-    expect(repo.createPayout).toHaveBeenCalledWith(expect.objectContaining({ amountCents: 5000 }))
+    expect(repo.createPayout).toHaveBeenCalledWith(expect.objectContaining({ amount: 5000 }))
     expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       type: 'payout_reserved',
-      amountCents: -5000,
+      amount: -5000,
     }))
   })
 
   it('payout cannot exceed available balance', async () => {
     vi.mocked(repo.sumLedger).mockResolvedValue(100)
 
-    await expect(service.createSellerPayout({ id: 'seller-1', role: 'SELLER' }, { amountCents: 5000 }))
+    await expect(service.createSellerPayout({ id: 'seller-1', role: 'USER' }, { amount: 5000 }))
       .rejects.toMatchObject({ code: 'INSUFFICIENT_BALANCE' })
   })
 
@@ -114,7 +114,7 @@ describe('PayoutService', () => {
       .resolves.toMatchObject({ status: 'rejected', rejectionReason: 'bad details' })
     expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       type: 'payout_rejected',
-      amountCents: 5000,
+      amount: 5000,
     }))
   })
 
@@ -126,7 +126,7 @@ describe('PayoutService', () => {
       .resolves.toMatchObject({ status: 'paid' })
     expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       type: 'payout_paid',
-      amountCents: 0,
+      amount: 0,
     }))
   })
 

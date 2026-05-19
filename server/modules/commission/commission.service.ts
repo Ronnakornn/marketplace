@@ -5,9 +5,9 @@ import { WalletServiceError } from '#server/modules/wallet/wallet.errors.ts'
 const DEFAULT_COMMISSION_BPS = 1000
 
 export interface CommissionCalculation {
-  grossAmountCents: number
-  commissionAmountCents: number
-  netAmountCents: number
+  grossamount: number
+  commissionamount: number
+  netamount: number
   commissionBps: number
 }
 
@@ -20,19 +20,19 @@ export class CommissionService {
     this.commissionBps = commissionBps
   }
 
-  calculate(grossAmountCents: number): CommissionCalculation {
-    this.logger.debug('CommissionService.calculate', { grossAmountCents })
+  calculate(grossamount: number): CommissionCalculation {
+    this.logger.debug('CommissionService.calculate', { grossamount })
     if (!Number.isInteger(this.commissionBps) || this.commissionBps < 0 || this.commissionBps > 10000) {
       throw new WalletServiceError('Commission rule not found', 500, 'COMMISSION_RULE_NOT_FOUND')
     }
-    if (!Number.isInteger(grossAmountCents) || grossAmountCents < 0) {
+    if (!Number.isInteger(grossamount) || grossamount < 0) {
       throw new WalletServiceError('Gross amount must be a non-negative integer', 400, 'COMMISSION_RULE_NOT_FOUND')
     }
-    const commissionAmountCents = Math.floor((grossAmountCents * this.commissionBps) / 10000)
+    const commissionamount = Math.floor((grossamount * this.commissionBps) / 10000)
     return {
-      grossAmountCents,
-      commissionAmountCents,
-      netAmountCents: grossAmountCents - commissionAmountCents,
+      grossamount,
+      commissionamount,
+      netamount: grossamount - commissionamount,
       commissionBps: this.commissionBps,
     }
   }

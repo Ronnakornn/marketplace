@@ -177,7 +177,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               <span>{product.soldCount} {t("product.sold")}</span>
               <span>{product.stock} {t("product.inStock")}</span>
             </div>
-            <p className="text-3xl font-bold text-orange-600">{formatMoney(product.priceCents, product.currency)}</p>
+            <p className="text-3xl font-bold text-orange-600">{formatMoney(product.price, product.currency)}</p>
             <div className="space-y-2">
               <h2 className="font-semibold">{t("product.variants")}</h2>
               <div className="flex flex-wrap gap-2">

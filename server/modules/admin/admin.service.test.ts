@@ -27,12 +27,24 @@ function createAppContext(): AppContext {
 function createRepoMock(): IAdminRepository {
   return {
     getDashboardCounts: vi.fn(),
+    getReportMetrics: vi.fn(),
     listUsers: vi.fn(),
     findUserById: vi.fn(),
+    findUserByEmail: vi.fn(),
+    countAdmins: vi.fn(),
+    createUser: vi.fn(),
+    updateUser: vi.fn(),
+    deleteUser: vi.fn(),
     updateUserStatus: vi.fn(),
     listShops: vi.fn(),
+    createShop: vi.fn(),
     findShopById: vi.fn(),
+    findShopBySlug: vi.fn(),
+    findUserForShopOwner: vi.fn(),
+    countShopBlockingRelations: vi.fn(),
+    updateShop: vi.fn(),
     updateShopStatus: vi.fn(),
+    deleteShop: vi.fn(),
     listProducts: vi.fn(),
     findProductById: vi.fn(),
     updateProductStatus: vi.fn(),
@@ -41,6 +53,9 @@ function createRepoMock(): IAdminRepository {
     listRefunds: vi.fn(),
     findRefundById: vi.fn(),
     updateRefundStatus: vi.fn(),
+    listReturns: vi.fn(),
+    findReturnById: vi.fn(),
+    updateReturnStatus: vi.fn(),
   }
 }
 
@@ -56,6 +71,17 @@ const dashboard: AdminDashboardCounts = {
   products: { total: 3, active: 2, banned: 1 },
   orders: { total: 4, paid: 1, delivered: 1, cancelled: 1 },
   refunds: { pending: 1, success: 1, failed: 1 },
+  exceptions: {
+    pendingPayments: 1,
+    failedPayments: 1,
+    delayedShipments: 1,
+    returnEscalations: 1,
+    refundEscalations: 1,
+    pendingShops: 1,
+    pendingProducts: 1,
+    payoutApprovals: 1,
+    fraudOpen: 1,
+  },
 }
 
 function user(overrides: Record<string, unknown> = {}) {
@@ -80,7 +106,7 @@ function shop(overrides: Record<string, unknown> = {}) {
     status: 'ACTIVE',
     createdAt: now,
     updatedAt: now,
-    owner: user({ id: 'seller-1', role: 'SELLER' }),
+    owner: user({ id: 'seller-1', role: 'USER' }),
     ...overrides,
   } as any
 }
@@ -124,12 +150,31 @@ function refund(status: RefundStatus = 'PENDING'): AdminRefundRecord {
     paymentId: 'payment-1',
     returnRequestId: 'return-1',
     status,
-    amountCents: 1000,
+    amount: 1000,
     reason: 'Return',
     createdAt: now,
     updatedAt: now,
     order: { id: 'order-1', orderNumber: 'ORD-1', status: 'PAID', paymentStatus: 'SUCCEEDED', userId: 'user-1' },
-    payment: { id: 'payment-1', provider: 'mock', status: 'PAID', amountCents: 1000, currency: 'USD' },
+    payment: { id: 'payment-1', provider: 'mock', status: 'PAID', amount: 1000, currency: 'USD' },
+  } as any
+}
+
+function returnRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'return-1',
+    orderId: 'order-1',
+    userId: 'user-1',
+    status: 'REQUESTED',
+    reason: 'Damaged',
+    description: null,
+    images: [],
+    createdAt: now,
+    updatedAt: now,
+    order: { id: 'order-1', orderNumber: 'ORD-1', status: 'DELIVERED', paymentStatus: 'SUCCEEDED', userId: 'user-1', currency: 'USD' },
+    user: { id: 'user-1', name: 'User', email: 'user@example.com' },
+    items: [],
+    refunds: [],
+    ...overrides,
   } as any
 }
 
@@ -144,7 +189,7 @@ describe('AdminService', () => {
 
   it('rejects buyer and seller actors', async () => {
     expect(() => service.getDashboard(actor('USER'))).toThrow(AdminServiceError)
-    expect(() => service.getDashboard(actor('SELLER'))).toThrow(AdminServiceError)
+    expect(() => service.getDashboard(actor('USER'))).toThrow(AdminServiceError)
   })
 
   it('returns dashboard counts including archived products as banned', async () => {
@@ -154,17 +199,32 @@ describe('AdminService', () => {
     expect(repo.getDashboardCounts).toHaveBeenCalledOnce()
   })
 
+  it('returns derived report metrics', async () => {
+    const reports = {
+      sales: { grossCents: 10000, paidOrderCount: 2, averageOrderValueCents: 5000 },
+      orders: { total: 3, pendingPayment: 1, paid: 1, shipped: 0, delivered: 1, cancelled: 0, refunded: 0 },
+      refunds: { totalCents: 1000, pending: 1, processing: 0, success: 0, failed: 0 },
+      payouts: { requestedCents: 2000, approvedCents: 0, paidCents: 0, requested: 1, approved: 0, paid: 0 },
+      commissions: { pendingCents: 300, approvedCents: 0, voidCents: 0 },
+      marketplace: { users: 4, sellers: 1, shops: 1, products: 2, activeProducts: 1 },
+    }
+    vi.mocked(repo.getReportMetrics).mockResolvedValue(reports)
+
+    await expect(service.getReports(actor())).resolves.toEqual(reports)
+  })
+
   it('lists users with role/status filters and pagination metadata', async () => {
-    vi.mocked(repo.listUsers).mockResolvedValue({ items: [user({ role: 'SELLER' })], total: 12 })
+    vi.mocked(repo.listUsers).mockResolvedValue({ items: [user({ role: 'USER' })], total: 12 })
 
-    const result = await service.listUsers(actor(), { role: 'SELLER', status: 'ACTIVE', page: 2, limit: 5 })
+    const result = await service.listUsers(actor(), { role: 'USER', status: 'ACTIVE', page: 2, limit: 5 })
 
-    expect(repo.listUsers).toHaveBeenCalledWith({ role: 'SELLER', status: 'ACTIVE' }, { page: 2, limit: 5 })
+    expect(repo.listUsers).toHaveBeenCalledWith({ role: 'USER', status: 'ACTIVE' }, { page: 2, limit: 5 })
     expect(result.pagination).toEqual({ page: 2, limit: 5, total: 12, totalPages: 3 })
   })
 
   it('updates user status and validates not found and invalid status', async () => {
     vi.mocked(repo.findUserById).mockResolvedValueOnce(user())
+    vi.mocked(repo.countAdmins).mockResolvedValue(1)
     vi.mocked(repo.updateUserStatus).mockResolvedValue(user({ status: 'SUSPENDED' }))
 
     await expect(service.updateUserStatus(actor(), 'user-1', 'SUSPENDED')).resolves.toMatchObject({ status: 'SUSPENDED' })
@@ -172,6 +232,31 @@ describe('AdminService', () => {
 
     vi.mocked(repo.findUserById).mockResolvedValueOnce(null)
     await expect(service.updateUserStatus(actor(), 'missing', 'ACTIVE')).rejects.toMatchObject({ code: 'USER_NOT_FOUND' })
+  })
+
+  it('updates admin users while protecting self admin access', async () => {
+    vi.mocked(repo.findUserById).mockResolvedValue(user({ id: 'admin-1', role: 'ADMIN' }))
+
+    await expect(service.updateUser(actor('ADMIN'), 'admin-1', { role: 'USER' })).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+
+    vi.mocked(repo.findUserById).mockResolvedValue(user({ id: 'seller-1', role: 'USER' }))
+    vi.mocked(repo.findUserByEmail).mockResolvedValue(null)
+    vi.mocked(repo.updateUser).mockResolvedValue(user({ id: 'seller-1', role: 'ADMIN', email: 'seller@example.com' }))
+
+    await expect(service.updateUser(actor(), 'seller-1', { role: 'ADMIN', email: 'seller@example.com' })).resolves.toMatchObject({ role: 'ADMIN' })
+  })
+
+  it('deletes users but not self or last admin', async () => {
+    vi.mocked(repo.findUserById).mockResolvedValueOnce(user({ id: 'admin-1', role: 'ADMIN' }))
+    await expect(service.deleteUser(actor('ADMIN'), 'admin-1')).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+
+    vi.mocked(repo.findUserById).mockResolvedValueOnce(user({ id: 'admin-2', role: 'ADMIN' }))
+    vi.mocked(repo.countAdmins).mockResolvedValueOnce(0)
+    await expect(service.deleteUser(actor('ADMIN'), 'admin-2')).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+
+    vi.mocked(repo.findUserById).mockResolvedValueOnce(user({ id: 'user-2', role: 'USER' }))
+    vi.mocked(repo.deleteUser).mockResolvedValue(user({ id: 'user-2' }))
+    await expect(service.deleteUser(actor(), 'user-2')).resolves.toEqual({ id: 'user-2', deleted: true })
   })
 
   it('lists shops and updates shop status', async () => {
@@ -182,6 +267,36 @@ describe('AdminService', () => {
     await service.listShops(actor(), { status: 'ACTIVE' })
     expect(repo.listShops).toHaveBeenCalledWith({ status: 'ACTIVE' }, { page: 1, limit: 20 })
     await expect(service.updateShopStatus(actor(), 'shop-1', 'SUSPENDED')).resolves.toMatchObject({ status: 'SUSPENDED' })
+  })
+
+  it('creates and updates shops with validated owner and slug', async () => {
+    vi.mocked(repo.findUserForShopOwner).mockResolvedValue({ id: 'seller-1', role: 'USER', status: 'ACTIVE' } as any)
+    vi.mocked(repo.findShopBySlug).mockResolvedValue(null)
+    vi.mocked(repo.createShop).mockResolvedValue(shop({ name: 'New Shop', slug: 'new-shop', status: 'PENDING' }))
+    vi.mocked(repo.findShopById).mockResolvedValue(shop())
+    vi.mocked(repo.updateShop).mockResolvedValue(shop({ name: 'Updated', slug: 'updated', status: 'ACTIVE' }))
+
+    await expect(service.createShop(actor(), { ownerEmail: 'seller@example.com', name: 'New Shop' })).resolves.toMatchObject({ slug: 'new-shop' })
+    expect(repo.createShop).toHaveBeenCalledWith({ ownerId: 'seller-1', name: 'New Shop', slug: 'new-shop', status: 'PENDING' })
+
+    await expect(service.updateShop(actor(), 'shop-1', { name: 'Updated', slug: 'Updated', status: 'ACTIVE' })).resolves.toMatchObject({ name: 'Updated' })
+    expect(repo.updateShop).toHaveBeenCalledWith('shop-1', { name: 'Updated', slug: 'updated', status: 'ACTIVE' })
+  })
+
+  it('blocks shop deletes when marketplace records exist', async () => {
+    vi.mocked(repo.findShopById).mockResolvedValue(shop())
+    vi.mocked(repo.countShopBlockingRelations).mockResolvedValue(1)
+
+    await expect(service.deleteShop(actor(), 'shop-1')).rejects.toMatchObject({ code: 'SHOP_DELETE_BLOCKED' })
+  })
+
+  it('deletes empty shops', async () => {
+    vi.mocked(repo.findShopById).mockResolvedValue(shop())
+    vi.mocked(repo.countShopBlockingRelations).mockResolvedValue(0)
+    vi.mocked(repo.deleteShop).mockResolvedValue(shop())
+
+    await expect(service.deleteShop(actor(), 'shop-1')).resolves.toEqual({ id: 'shop-1', deleted: true })
+    expect(repo.deleteShop).toHaveBeenCalledWith('shop-1')
   })
 
   it('lists products and updates product status', async () => {
@@ -224,6 +339,19 @@ describe('AdminService', () => {
 
     vi.mocked(repo.findRefundById).mockResolvedValueOnce(refund('SUCCESS'))
     await expect(service.updateRefundStatus(actor(), 'refund-1', 'PROCESSING')).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+  })
+
+  it('lists and updates return escalations', async () => {
+    vi.mocked(repo.listReturns).mockResolvedValue({ items: [returnRecord()], total: 1 })
+    vi.mocked(repo.findReturnById).mockResolvedValueOnce(returnRecord())
+    vi.mocked(repo.updateReturnStatus).mockResolvedValue(returnRecord({ status: 'APPROVED' }))
+
+    await service.listReturns(actor(), { status: 'REQUESTED' })
+    expect(repo.listReturns).toHaveBeenCalledWith({ status: 'REQUESTED' }, { page: 1, limit: 20 })
+    await expect(service.updateReturnStatus(actor(), 'return-1', 'APPROVED')).resolves.toMatchObject({ status: 'APPROVED' })
+
+    vi.mocked(repo.findReturnById).mockResolvedValueOnce(returnRecord({ status: 'COMPLETED' }))
+    await expect(service.updateReturnStatus(actor(), 'return-1', 'APPROVED')).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
   })
 
   it('caps pagination limit at 50', async () => {

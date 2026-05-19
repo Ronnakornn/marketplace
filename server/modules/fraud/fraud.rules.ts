@@ -9,7 +9,7 @@ export interface FraudRuleConfig {
   highRefundRateThreshold: number
   highRefundCountThreshold: number
   repeatedCouponUseThreshold: number
-  abnormalOrderAmountCents: number
+  abnormalOrderamount: number
   rapidCheckoutSeconds: number
   repeatedCancelledOrdersThreshold: number
 }
@@ -22,7 +22,7 @@ export interface FraudSignalInput {
   repeatedCouponUse?: number
   sameDeviceAccounts?: number
   affiliateSelfReferral?: boolean
-  orderAmountCents?: number
+  orderamount?: number
   checkoutDurationSeconds?: number | null
   cancelledOrders?: number
 }
@@ -43,7 +43,7 @@ export function getFraudRuleConfigFromEnv(env: Record<string, string | undefined
     highRefundRateThreshold: parseRate(env['FRAUD_HIGH_REFUND_RATE_THRESHOLD'], 0.5),
     highRefundCountThreshold: parsePositiveInteger(env['FRAUD_HIGH_REFUND_COUNT_THRESHOLD'], 3),
     repeatedCouponUseThreshold: parsePositiveInteger(env['FRAUD_COUPON_USE_THRESHOLD'], 5),
-    abnormalOrderAmountCents: parsePositiveInteger(env['FRAUD_ABNORMAL_ORDER_AMOUNT_CENTS'], 100_000),
+    abnormalOrderamount: parsePositiveInteger(env['FRAUD_ABNORMAL_ORDER_AMOUNT_CENTS'], 100_000),
     rapidCheckoutSeconds: parsePositiveInteger(env['FRAUD_RAPID_CHECKOUT_SECONDS'], 60),
     repeatedCancelledOrdersThreshold: parsePositiveInteger(env['FRAUD_CANCELLED_ORDERS_THRESHOLD'], 3),
   }
@@ -77,7 +77,7 @@ export function evaluateFraudRules(signals: FraudSignalInput, config: FraudRuleC
     riskScore += 80
     reasons.push('affiliate_self_referral')
   }
-  if ((signals.orderAmountCents ?? 0) >= config.abnormalOrderAmountCents) {
+  if ((signals.orderamount ?? 0) >= config.abnormalOrderamount) {
     riskScore += 20
     reasons.push('abnormal_order_amount')
   }

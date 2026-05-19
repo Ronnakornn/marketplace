@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { OrderItem } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { ActiveShopResolver } from '#server/modules/security'
 import { OrderServiceError } from './order.errors.ts'
 import type { IOrderRepository, OrderRecord, OrderShipment } from './order.repository.ts'
 
@@ -18,8 +19,8 @@ export interface OrderItemResponse {
   variantTitle: string
   variantSku: string
   quantity: number
-  unitPriceCents: number
-  lineTotalCents: number
+  unitPrice: number
+  lineTotal: number
   currency: string
   fulfillmentStatus: string
 }
@@ -79,11 +80,11 @@ export interface OrderDetailResponse {
   status: string
   paymentStatus: string
   totals: {
-    subtotalCents: number
-    discountTotalCents: number
-    shippingTotalCents: number
-    taxTotalCents: number
-    grandTotalCents: number
+    subtotal: number
+    discountTotal: number
+    shippingTotal: number
+    taxTotal: number
+    grandTotal: number
     currency: string
   }
   shippingAddress: {
@@ -107,6 +108,7 @@ export class OrderService {
   constructor(
     appContext: AppContext,
     private repo: IOrderRepository,
+    private activeShopResolver?: ActiveShopResolver,
   ) {
     this.logger = appContext.logger
   }
@@ -141,7 +143,6 @@ export class OrderService {
   }
 
   async listSellerOrders(actor: OrderActor): Promise<OrderDetailResponse[]> {
-    this.assertSeller(actor)
     this.logger.info('OrderService.listSellerOrders', { actorId: actor.id })
     const shopIds = await this.getSellerShopIds(actor.id)
     const orders = await this.repo.findSellerOrders(shopIds)
@@ -149,7 +150,6 @@ export class OrderService {
   }
 
   async getSellerOrder(actor: OrderActor, orderId: string): Promise<OrderDetailResponse> {
-    this.assertSeller(actor)
     this.logger.info('OrderService.getSellerOrder', { actorId: actor.id, orderId })
     const shopIds = await this.getSellerShopIds(actor.id)
     const order = await this.repo.findSellerOrderById(orderId, shopIds)
@@ -158,19 +158,16 @@ export class OrderService {
   }
 
   private assertBuyer(actor: OrderActor): void {
-    if (actor.role !== 'USER') {
+    if (actor.role === 'ADMIN') {
       throw new OrderServiceError('Buyer order APIs are only available to buyer accounts', 403, 'ORDER_FORBIDDEN')
     }
   }
 
-  private assertSeller(actor: OrderActor): void {
-    if (actor.role !== 'SELLER') {
-      throw new OrderServiceError('Seller order APIs are only available to seller accounts', 403, 'ORDER_FORBIDDEN')
-    }
-  }
-
   private async getSellerShopIds(ownerId: string): Promise<string[]> {
-    const shops = await this.repo.findSellerShops(ownerId)
+    const shops = this.activeShopResolver
+      ? await this.activeShopResolver.resolveActiveShops(ownerId)
+      : await this.repo.findSellerShops(ownerId)
+    if (shops.length === 0) throw new OrderServiceError('Active seller shop not found', 403, 'ORDER_FORBIDDEN')
     return shops.map((shop) => shop.id)
   }
 
@@ -202,11 +199,11 @@ export class OrderService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       totals: {
-        subtotalCents: order.subtotalCents,
-        discountTotalCents: order.discountTotalCents,
-        shippingTotalCents: order.shippingTotalCents,
-        taxTotalCents: order.taxTotalCents,
-        grandTotalCents: order.grandTotalCents,
+        subtotal: this.toMoneyNumber(order.subtotal),
+        discountTotal: this.toMoneyNumber(order.discountTotal),
+        shippingTotal: this.toMoneyNumber(order.shippingTotal),
+        taxTotal: this.toMoneyNumber(order.taxTotal),
+        grandTotal: this.toMoneyNumber(order.grandTotal),
         currency: order.currency,
       },
       shippingAddress: {
@@ -250,8 +247,8 @@ export class OrderService {
       variantTitle: item.variantTitle,
       variantSku: item.variantSku,
       quantity: item.quantity,
-      unitPriceCents: item.unitPriceCents,
-      lineTotalCents: item.lineTotalCents,
+      unitPrice: this.toMoneyNumber(item.unitPrice),
+      lineTotal: this.toMoneyNumber(item.lineTotal),
       currency: item.currency,
       fulfillmentStatus: item.fulfillmentStatus,
     }
@@ -328,5 +325,9 @@ export class OrderService {
 
   private formatShipmentStatus(status: OrderShipment['status']): string {
     return status === 'PENDING_PACK' ? 'pending_pack' : status.toLowerCase()
+  }
+
+  private toMoneyNumber(value: bigint | number): number {
+    return typeof value === 'bigint' ? Number(value) : value
   }
 }

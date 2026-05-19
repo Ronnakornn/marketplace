@@ -40,7 +40,7 @@ export interface FavoriteProductResponse {
   id: string
   productId: string
   title: string
-  priceCents: number
+  price: number
   currency: string
   shop: { id: string; name: string; slug: string }
   createdAt: Date
@@ -53,7 +53,7 @@ export interface ShopFollowResponse {
   slug: string
   followerCount: number
   productCount: number
-  products: Array<{ id: string; title: string; priceCents: number; currency: string }>
+  products: Array<{ id: string; title: string; price: number; currency: string }>
   createdAt: Date
 }
 
@@ -324,7 +324,7 @@ export class UserService {
   }
 
   private assertRole(role: Role): void {
-    if (role !== 'USER' && role !== 'SELLER' && role !== 'ADMIN') {
+    if (role !== 'USER' && role !== 'ADMIN') {
       throw new UserServiceError('Invalid role', 400)
     }
   }
@@ -417,7 +417,7 @@ export class UserService {
       id: favorite.id,
       productId: favorite.productId,
       title: favorite.product.title,
-      priceCents: variant?.priceCents ?? 0,
+      price: Number(variant?.price) ?? 0,
       currency: variant?.currency ?? 'USD',
       shop: favorite.product.shop,
       createdAt: favorite.createdAt,
@@ -433,11 +433,11 @@ export class UserService {
       followerCount: follow.shop._count.followers,
       productCount: follow.shop._count.products,
       products: follow.shop.products.map((product) => {
-        const variant = product.variants[0]
+        const variant = product.variants[0] ?? 0
         return {
           id: product.id,
           title: product.title,
-          priceCents: variant?.priceCents ?? 0,
+          price: variant?.price !== null && variant?.price !== undefined ? Number(variant?.price) : 0,
           currency: variant?.currency ?? 'USD',
         }
       }),

@@ -21,7 +21,7 @@ interface MockVariant {
   title: string;
   titleTh?: string;
   titleEn?: string;
-  priceCents: number;
+  price: number;
   quantityOnHand: number;
   reorderLevel: number;
 }
@@ -55,13 +55,13 @@ const sellers = [
         description: "Heavyweight cotton tee with relaxed streetwear fit, made for daily marketplace browsing demos.",
         status: "ACTIVE",
         variants: [
-          { sku: "UTC-TEE-BLK-S", title: "Black / S", priceCents: 790, quantityOnHand: 32, reorderLevel: 8 },
-          { sku: "UTC-TEE-BLK-M", title: "Black / M", priceCents: 790, quantityOnHand: 46, reorderLevel: 8 },
-          { sku: "UTC-TEE-BLK-L", title: "Black / L", priceCents: 850, quantityOnHand: 28, reorderLevel: 8 },
-          { sku: "UTC-TEE-WHT-S", title: "White / S", priceCents: 750, quantityOnHand: 24, reorderLevel: 8 },
-          { sku: "UTC-TEE-WHT-M", title: "White / M", priceCents: 750, quantityOnHand: 41, reorderLevel: 8 },
-          { sku: "UTC-TEE-SGE-M", title: "Sage / M", priceCents: 890, quantityOnHand: 16, reorderLevel: 6 },
-          { sku: "UTC-TEE-SGE-L", title: "Sage / L", priceCents: 890, quantityOnHand: 11, reorderLevel: 6 },
+          { sku: "UTC-TEE-BLK-S", title: "Black / S", price: 790, quantityOnHand: 32, reorderLevel: 8 },
+          { sku: "UTC-TEE-BLK-M", title: "Black / M", price: 790, quantityOnHand: 46, reorderLevel: 8 },
+          { sku: "UTC-TEE-BLK-L", title: "Black / L", price: 850, quantityOnHand: 28, reorderLevel: 8 },
+          { sku: "UTC-TEE-WHT-S", title: "White / S", price: 750, quantityOnHand: 24, reorderLevel: 8 },
+          { sku: "UTC-TEE-WHT-M", title: "White / M", price: 750, quantityOnHand: 41, reorderLevel: 8 },
+          { sku: "UTC-TEE-SGE-M", title: "Sage / M", price: 890, quantityOnHand: 16, reorderLevel: 6 },
+          { sku: "UTC-TEE-SGE-L", title: "Sage / L", price: 890, quantityOnHand: 11, reorderLevel: 6 },
         ],
       },
       {
@@ -71,11 +71,11 @@ const sellers = [
         description: "Breathable linen blend shirt with color and size price differences for variant testing.",
         status: "ACTIVE",
         variants: [
-          { sku: "UTC-LIN-IVR-M", title: "Ivory / M", priceCents: 1290, quantityOnHand: 18, reorderLevel: 5 },
-          { sku: "UTC-LIN-IVR-L", title: "Ivory / L", priceCents: 1290, quantityOnHand: 21, reorderLevel: 5 },
-          { sku: "UTC-LIN-NVY-M", title: "Navy / M", priceCents: 1390, quantityOnHand: 13, reorderLevel: 5 },
-          { sku: "UTC-LIN-NVY-L", title: "Navy / L", priceCents: 1390, quantityOnHand: 9, reorderLevel: 5 },
-          { sku: "UTC-LIN-CLY-XL", title: "Clay / XL", priceCents: 1490, quantityOnHand: 6, reorderLevel: 4 },
+          { sku: "UTC-LIN-IVR-M", title: "Ivory / M", price: 1290, quantityOnHand: 18, reorderLevel: 5 },
+          { sku: "UTC-LIN-IVR-L", title: "Ivory / L", price: 1290, quantityOnHand: 21, reorderLevel: 5 },
+          { sku: "UTC-LIN-NVY-M", title: "Navy / M", price: 1390, quantityOnHand: 13, reorderLevel: 5 },
+          { sku: "UTC-LIN-NVY-L", title: "Navy / L", price: 1390, quantityOnHand: 9, reorderLevel: 5 },
+          { sku: "UTC-LIN-CLY-XL", title: "Clay / XL", price: 1490, quantityOnHand: 6, reorderLevel: 4 },
         ],
       },
     ] satisfies MockProduct[],
@@ -95,12 +95,12 @@ const sellers = [
         description: "Compression leggings with multiple colors and sizes for price/stock UI states.",
         status: "ACTIVE",
         variants: [
-          { sku: "FLA-LEG-BLK-XS", title: "Black / XS", priceCents: 1590, quantityOnHand: 14, reorderLevel: 5 },
-          { sku: "FLA-LEG-BLK-S", title: "Black / S", priceCents: 1590, quantityOnHand: 25, reorderLevel: 5 },
-          { sku: "FLA-LEG-BLK-M", title: "Black / M", priceCents: 1690, quantityOnHand: 30, reorderLevel: 5 },
-          { sku: "FLA-LEG-COC-S", title: "Cocoa / S", priceCents: 1790, quantityOnHand: 12, reorderLevel: 4 },
-          { sku: "FLA-LEG-COC-M", title: "Cocoa / M", priceCents: 1790, quantityOnHand: 7, reorderLevel: 4 },
-          { sku: "FLA-LEG-ICE-L", title: "Ice Blue / L", priceCents: 1890, quantityOnHand: 3, reorderLevel: 4 },
+          { sku: "FLA-LEG-BLK-XS", title: "Black / XS", price: 1590, quantityOnHand: 14, reorderLevel: 5 },
+          { sku: "FLA-LEG-BLK-S", title: "Black / S", price: 1590, quantityOnHand: 25, reorderLevel: 5 },
+          { sku: "FLA-LEG-BLK-M", title: "Black / M", price: 1690, quantityOnHand: 30, reorderLevel: 5 },
+          { sku: "FLA-LEG-COC-S", title: "Cocoa / S", price: 1790, quantityOnHand: 12, reorderLevel: 4 },
+          { sku: "FLA-LEG-COC-M", title: "Cocoa / M", price: 1790, quantityOnHand: 7, reorderLevel: 4 },
+          { sku: "FLA-LEG-ICE-L", title: "Ice Blue / L", price: 1890, quantityOnHand: 3, reorderLevel: 4 },
         ],
       },
       {
@@ -110,11 +110,11 @@ const sellers = [
         description: "Soft washed denim with size and wash variants for catalog management testing.",
         status: "DRAFT",
         variants: [
-          { sku: "FLA-DNM-LGT-28", title: "Light Wash / 28", priceCents: 1890, quantityOnHand: 10, reorderLevel: 4 },
-          { sku: "FLA-DNM-LGT-30", title: "Light Wash / 30", priceCents: 1890, quantityOnHand: 15, reorderLevel: 4 },
-          { sku: "FLA-DNM-LGT-32", title: "Light Wash / 32", priceCents: 1990, quantityOnHand: 8, reorderLevel: 4 },
-          { sku: "FLA-DNM-DRK-30", title: "Dark Wash / 30", priceCents: 2090, quantityOnHand: 11, reorderLevel: 4 },
-          { sku: "FLA-DNM-DRK-32", title: "Dark Wash / 32", priceCents: 2190, quantityOnHand: 5, reorderLevel: 3 },
+          { sku: "FLA-DNM-LGT-28", title: "Light Wash / 28", price: 1890, quantityOnHand: 10, reorderLevel: 4 },
+          { sku: "FLA-DNM-LGT-30", title: "Light Wash / 30", price: 1890, quantityOnHand: 15, reorderLevel: 4 },
+          { sku: "FLA-DNM-LGT-32", title: "Light Wash / 32", price: 1990, quantityOnHand: 8, reorderLevel: 4 },
+          { sku: "FLA-DNM-DRK-30", title: "Dark Wash / 30", price: 2090, quantityOnHand: 11, reorderLevel: 4 },
+          { sku: "FLA-DNM-DRK-32", title: "Dark Wash / 32", price: 2190, quantityOnHand: 5, reorderLevel: 3 },
         ],
       },
     ] satisfies MockProduct[],
@@ -161,78 +161,107 @@ async function main() {
     categoryBySlug.set(category.slug, category.id);
   }
 
+  const sellerPhoneByEmail: Record<string, string> = {
+    "seller-fashion-a@example.com": "+66812345681",
+    "seller-fashion-b@example.com": "+66812345682",
+  };
+
   for (const seller of sellers) {
-    const [user] = await prisma.$queryRaw<Array<{ id: string }>>`
-      INSERT INTO "User" ("id", "name", "email", "emailVerified", "role", "status", "createdAt", "updatedAt")
-      VALUES (gen_random_uuid(), ${seller.name}, ${seller.email}, true, 'SELLER'::"Role", 'ACTIVE'::"UserStatus", now(), now())
-      ON CONFLICT ("email") DO UPDATE
-      SET "name" = EXCLUDED."name",
-          "role" = 'SELLER'::"Role",
-          "status" = 'ACTIVE'::"UserStatus",
-          "updatedAt" = now()
-      RETURNING "id"
-    `;
+    const user = await prisma.user.upsert({
+      where: { email: seller.email },
+      update: {
+        name: seller.name,
+        role: "USER",
+        status: "ACTIVE",
+        emailVerified: true,
+        updatedAt: new Date(),
+      },
+      create: {
+        email: seller.email,
+        name: seller.name,
+        role: "USER",
+        status: "ACTIVE",
+        emailVerified: true,
+      },
+    });
 
-    if (!user) throw new Error(`Failed to upsert seller user ${seller.email}`);
+    const sellerProfile = await prisma.sellerProfile.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: { userId: user.id },
+    });
 
-    const [shop] = await prisma.$queryRaw<Array<{ id: string }>>`
-      INSERT INTO "Shop" ("id", "ownerId", "name", "slug", "status", "createdAt", "updatedAt")
-      VALUES (gen_random_uuid(), ${user.id}::uuid, ${seller.shop.name}, ${seller.shop.slug}, 'ACTIVE'::"ShopStatus", now(), now())
-      ON CONFLICT ("slug") DO UPDATE
-      SET "ownerId" = ${user.id}::uuid,
-          "name" = EXCLUDED."name",
-          "status" = 'ACTIVE'::"ShopStatus",
-          "updatedAt" = now()
-      RETURNING "id"
-    `;
+    const existingShop = await prisma.shop.findFirst({ where: { slug: seller.shop.slug } });
+    const shop = existingShop
+      ? await prisma.shop.update({
+          where: { id: existingShop.id },
+          data: {
+            ownerId: user.id,
+            sellerProfileId: sellerProfile.id,
+            name: seller.shop.name,
+            status: "ACTIVE",
+            contactEmail: seller.email,
+            contactPhone: sellerPhoneByEmail[seller.email] ?? "+66812345699",
+            updatedAt: new Date(),
+          },
+        })
+      : await prisma.shop.create({
+          data: {
+            ownerId: user.id,
+            sellerProfileId: sellerProfile.id,
+            name: seller.shop.name,
+            slug: seller.shop.slug,
+            status: "ACTIVE",
+            contactEmail: seller.email,
+            contactPhone: sellerPhoneByEmail[seller.email] ?? "+66812345699",
+          },
+        });
 
-    if (!shop) throw new Error(`Failed to upsert shop ${seller.shop.slug}`);
+    if (!shop) throw new Error(`Failed to create or update shop ${seller.shop.slug}`);
 
     for (const productSeed of seller.products as MockProduct[]) {
       const categoryId = categoryBySlug.get(productSeed.categorySlug);
       if (!categoryId) throw new Error(`Unknown category ${productSeed.categorySlug}`);
 
-      const product = await prisma.product.upsert({
-        where: {
-          shopId_slug: {
-            shopId: shop.id,
-            slug: productSeed.slug,
-          },
-        },
-        update: {
-          categoryId,
-          title: productSeed.title,
-          titleTh: productSeed.titleTh ?? productSeed.title,
-          titleEn: productSeed.titleEn ?? productSeed.title,
-          description: productSeed.description,
-          descriptionTh: productSeed.descriptionTh ?? productSeed.description,
-          descriptionEn: productSeed.descriptionEn ?? productSeed.description,
-          status: productSeed.status,
-        },
-        create: {
-          shopId: shop.id,
-          categoryId,
-          title: productSeed.title,
-          titleTh: productSeed.titleTh ?? productSeed.title,
-          titleEn: productSeed.titleEn ?? productSeed.title,
-          slug: productSeed.slug,
-          description: productSeed.description,
-          descriptionTh: productSeed.descriptionTh ?? productSeed.description,
-          descriptionEn: productSeed.descriptionEn ?? productSeed.description,
-          status: productSeed.status,
-        },
-      });
+      const existingProduct = await prisma.product.findFirst({ where: { shopId: shop.id, slug: productSeed.slug } });
+      const product = existingProduct
+        ? await prisma.product.update({
+            where: { id: existingProduct.id },
+            data: {
+              categoryId,
+              title: productSeed.title,
+              titleTh: productSeed.titleTh ?? productSeed.title,
+              titleEn: productSeed.titleEn ?? productSeed.title,
+              description: productSeed.description,
+              descriptionTh: productSeed.descriptionTh ?? productSeed.description,
+              descriptionEn: productSeed.descriptionEn ?? productSeed.description,
+              status: productSeed.status,
+            },
+          })
+        : await prisma.product.create({
+            data: {
+              shopId: shop.id,
+              categoryId,
+              title: productSeed.title,
+              titleTh: productSeed.titleTh ?? productSeed.title,
+              titleEn: productSeed.titleEn ?? productSeed.title,
+              slug: productSeed.slug,
+              description: productSeed.description,
+              descriptionTh: productSeed.descriptionTh ?? productSeed.description,
+              descriptionEn: productSeed.descriptionEn ?? productSeed.description,
+              status: productSeed.status,
+            },
+          });
 
       for (const variantSeed of productSeed.variants as MockVariant[]) {
         const variant = await prisma.productVariant.upsert({
-          where: { sku: variantSeed.sku },
+          where: { productId_sku: { productId: product.id, sku: variantSeed.sku } },
           update: {
-            productId: product.id,
             title: variantSeed.title,
             titleTh: variantSeed.titleTh ?? variantSeed.title,
             titleEn: variantSeed.titleEn ?? variantSeed.title,
-            priceCents: variantSeed.priceCents,
-            currency: "USD",
+            price: BigInt(variantSeed.price),
+            currency: "THB",
           },
           create: {
             productId: product.id,
@@ -240,8 +269,8 @@ async function main() {
             title: variantSeed.title,
             titleTh: variantSeed.titleTh ?? variantSeed.title,
             titleEn: variantSeed.titleEn ?? variantSeed.title,
-            priceCents: variantSeed.priceCents,
-            currency: "USD",
+            price: BigInt(variantSeed.price),
+            currency: "THB",
           },
         });
 

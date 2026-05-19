@@ -6,23 +6,26 @@ import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { fetchOrderTracking } from "#/features/buyer/api";
+import { useFormatters, useTranslations } from "#/i18n/client";
 
 export function OrderTrackingPage({ orderId }: { orderId: string }) {
+  const t = useTranslations();
+  const formatters = useFormatters();
   const trackingQuery = useQuery({ queryKey: ["buyer-order-tracking", orderId], queryFn: () => fetchOrderTracking(orderId) });
 
   return (
     <>
-      <BuyerTopBar title="Tracking" />
+      <BuyerTopBar title={t("order.tracking")} />
       <div className="mx-auto max-w-4xl space-y-4 px-3 py-4">
         {trackingQuery.isLoading ? <BuyerLoadingList /> : null}
         {trackingQuery.isError ? <BuyerErrorState message={trackingQuery.error.message} onRetry={() => void trackingQuery.refetch()} /> : null}
-        {trackingQuery.data?.shipments.length === 0 ? <BuyerEmptyState title="ยังไม่มีข้อมูลการจัดส่ง" description="เมื่อร้านค้าแยก shipment แล้ว timeline จะแสดงในหน้านี้" /> : null}
+        {trackingQuery.data?.shipments.length === 0 ? <BuyerEmptyState title={t("order.noTrackingTitle")} description={t("order.noTrackingDescription")} /> : null}
         {trackingQuery.data?.shipments.map((shipment) => (
           <section key={shipment.id} className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h2 className="flex items-center gap-2 font-bold"><TruckIcon className="size-5 text-orange-600" />{shipment.shopName}</h2>
-                <p className="mt-1 text-sm text-slate-500">{shipment.carrier ?? "Carrier pending"} {shipment.trackingNumber ?? ""}</p>
+                <p className="mt-1 text-sm text-slate-500">{shipment.carrier ?? t("order.carrierPending")} {shipment.trackingNumber ?? ""}</p>
               </div>
               <Badge variant="secondary" className="rounded-md">{shipment.status}</Badge>
             </div>
@@ -35,7 +38,7 @@ export function OrderTrackingPage({ orderId }: { orderId: string }) {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-950">{step.label}</p>
-                    <p className="text-sm text-slate-500">{step.status} · {new Date(step.timestamp).toLocaleString()}</p>
+                    <p className="text-sm text-slate-500">{step.status} - {formatters.date(step.timestamp)}</p>
                   </div>
                 </div>
               ))}

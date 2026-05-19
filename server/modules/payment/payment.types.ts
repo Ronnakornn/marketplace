@@ -9,7 +9,7 @@ export const PaymentWebhookBodySchema = t.Object({
   eventType: t.String({ minLength: 1 }),
   paymentId: t.String({ format: 'uuid' }),
   orderId: t.String({ format: 'uuid' }),
-  amountCents: t.Number(),
+  amount: t.Number(),
 })
 
 export const PaymentWebhookResponseSchema = t.Object({

@@ -76,11 +76,12 @@ Recommended domains:
 Use route macros:
 - `{ withAuth: true }`
 - `{ withRole: "ADMIN" }`
-- `{ withRole: "SELLER" }`
 
 Authorization rules:
 - Buyers can only access their own cart, checkout, orders, reviews, returns, chats, and addresses.
-- Sellers can only access resources owned by their shop.
+- Seller onboarding uses `{ withAuth: true }`.
+- Seller operations use `{ withAuth: true }` plus service-level active shop ownership checks (`Shop.ownerId === user.id`, `Shop.status === ACTIVE`).
+- Platform roles are `USER` and `ADMIN`; do not check for a `SELLER` role.
 - Admin routes require admin role.
 - Webhook routes require provider signature verification, not user session auth.
 

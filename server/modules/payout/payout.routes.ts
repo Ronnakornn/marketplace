@@ -4,7 +4,7 @@ import { authPlugin } from '#server/modules/auth'
 import { WalletServiceError } from '#server/modules/wallet'
 
 const PayoutRequestBody = t.Object({
-  amountCents: t.Number({ minimum: 1 }),
+  amount: t.Number({ minimum: 1 }),
 })
 
 const RejectBody = t.Object({
@@ -27,12 +27,12 @@ export function createPayoutRoutes(container: ServiceContainer) {
     })
     .post('/api/seller/payouts', ({ authContext, body }: any) =>
       container.payoutService.createSellerPayout(actor(authContext), body), {
-      withRole: 'SELLER',
+      withAuth: true,
       body: PayoutRequestBody,
     })
     .get('/api/seller/payouts', ({ authContext }: any) =>
       container.payoutService.listSellerPayouts(actor(authContext)), {
-      withRole: 'SELLER',
+      withAuth: true,
     })
     .get('/api/admin/payouts', ({ authContext, query }: any) =>
       container.payoutService.listAdminPayouts(actor(authContext), query), {
