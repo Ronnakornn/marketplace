@@ -212,7 +212,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
       await this.prisma.inventoryReservation.create({
         data: {
           checkoutId: checkout.id,
-          variantId: item.variantId,
+          inventoryId: inventory.id,
           quantity: item.quantity,
           status: 'ACTIVE',
           expiresAt: input.checkoutExpiresAt,
@@ -261,8 +261,8 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
             shopName: item.variant.product.shop.name,
             shopSlug: item.variant.product.shop.slug,
             quantity: item.quantity,
-            unitPrice: item.variant.prices,
-            lineTotal: item.variant.prices * item.quantity,
+            unitPrice: item.variant.price,
+            lineTotal: item.variant.price * BigInt(item.quantity),
             currency: item.variant.currency,
             fulfillmentStatus: 'PENDING',
           })),

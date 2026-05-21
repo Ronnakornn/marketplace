@@ -93,7 +93,7 @@ export class RefundService {
       paymentId: refund.paymentId,
       returnRequestId: refund.returnRequestId,
       status: refund.status.toLowerCase(),
-      amount: refund.amount,
+      amount: Number(refund.amount),
       reason: refund.reason,
       createdAt: refund.createdAt,
       updatedAt: refund.updatedAt,

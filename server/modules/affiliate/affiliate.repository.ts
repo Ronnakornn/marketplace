@@ -290,7 +290,18 @@ export class PrismaAffiliateRepository implements IAffiliateRepository {
   }
 
   createCommission(input: CreateAffiliateCommissionInput): Promise<AffiliateCommission> {
-    return this.prisma.affiliateCommission.create({ data: input })
+    return this.prisma.affiliateCommission.create({
+      data: {
+        affiliateId: input.affiliateId,
+        linkId: input.linkId,
+        clickId: input.clickId,
+        orderId: input.orderId,
+        eligiblesubtotal: input.eligiblesubtotal,
+        commissionBps: input.commissionBps,
+        commission: input.commissionCents,
+        currency: input.currency,
+      },
+    })
   }
 
   async getStats(userId: string): Promise<{ clicks: number; conversions: number; commissionCents: number }> {
@@ -302,14 +313,14 @@ export class PrismaAffiliateRepository implements IAffiliateRepository {
       this.prisma.affiliateCommission.count({ where: { affiliateId: affiliate.id, status: { not: 'VOID' } } }),
       this.prisma.affiliateCommission.aggregate({
         where: { affiliateId: affiliate.id, status: { not: 'VOID' } },
-        _sum: { commissionCents: true },
+        _sum: { commission: true },
       }),
     ])
 
     return {
       clicks,
       conversions,
-      commissionCents: commission._sum.commissionCents ?? 0,
+      commissionCents: Number(commission._sum.commission ?? 0),
     }
   }
 }

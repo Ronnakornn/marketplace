@@ -37,8 +37,8 @@ import {
   useUpdateSellerInventory,
 } from "../hooks/useSellerManage";
 
-function formatMoney(cents: number | undefined, currency = "USD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format((cents ?? 0) / 100);
+function formatMoney(cents: number | bigint | undefined, currency = "USD") {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(cents ?? 0) / 100);
 }
 
 function formatDate(value: string | Date | null | undefined) {
@@ -163,7 +163,7 @@ export function SellerProductsPage() {
                 <TableCell><StatusPill value={product.status} /></TableCell>
                 <TableCell>{product.variants.length}</TableCell>
                 <TableCell>
-                  <form className="flex justify-end gap-2" onSubmit={(event) => { event.preventDefault(); createVariant.mutate({ productId: product.id, sku: form.sku, title: form.variantTitle, prices: Math.round(Number(form.price) * 100), currency: "USD" }); }}>
+                  <form className="flex justify-end gap-2" onSubmit={(event) => { event.preventDefault(); createVariant.mutate({ productId: product.id, sku: form.sku, title: form.variantTitle, price: Math.round(Number(form.price) * 100), currency: "USD" }); }}>
                     <Input className="w-28" value={form.sku} onChange={(e) => setForm((c) => ({ ...c, sku: e.target.value }))} placeholder="SKU" />
                     <Input className="w-32" value={form.variantTitle} onChange={(e) => setForm((c) => ({ ...c, variantTitle: e.target.value }))} placeholder="Variant" />
                     <Input className="w-24" value={form.price} onChange={(e) => setForm((c) => ({ ...c, price: e.target.value }))} placeholder="Price" />

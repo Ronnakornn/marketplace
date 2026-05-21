@@ -153,7 +153,7 @@ export class JobService {
       .filter((reservation) => reservation.status === 'ACTIVE')
       .map((reservation) => ({
         reservationId: reservation.id,
-        variantId: reservation.variantId,
+        inventoryId: reservation.inventoryId,
         quantity: reservation.quantity,
       }))
   }

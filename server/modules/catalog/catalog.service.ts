@@ -214,7 +214,7 @@ export class CatalogService {
         title: data.title.trim(),
         ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
-        prices: data.price,
+        price: data.price,
         currency: data.currency?.trim().toUpperCase() || 'USD',
       }),
     )
@@ -379,7 +379,7 @@ export class CatalogService {
         productId,
         sku: data.sku.trim(),
         title: data.title.trim(),
-        prices: data.price, // Update the property name to 'prices'
+        price: data.price, // Update the property name to 'price'
         currency: data.currency?.trim().toUpperCase() || 'USD',
       }),
     )

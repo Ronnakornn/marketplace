@@ -83,12 +83,12 @@ const UpdateProductBodySchema = t.Partial(t.Composite([
 ]))
 
 const CreateVariantBodySchema = t.Composite([
-  t.Pick(ProductVariantPlainInputCreate, ['sku', 'title', 'prices', 'currency']),
+  t.Pick(ProductVariantPlainInputCreate, ['sku', 'title', 'price', 'currency']),
   LocalizedVariantFieldsSchema,
 ])
 
 const UpdateVariantBodySchema = t.Partial(t.Composite([
-  t.Pick(ProductVariantPlainInputUpdate, ['sku', 'title', 'prices', 'currency']),
+  t.Pick(ProductVariantPlainInputUpdate, ['sku', 'title', 'price', 'currency']),
   LocalizedVariantFieldsSchema,
 ]))
 

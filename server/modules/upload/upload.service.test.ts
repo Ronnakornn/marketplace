@@ -129,6 +129,34 @@ describe('UploadService', () => {
     }))
   })
 
+  it('allows authenticated users to create review video uploads', async () => {
+    const result = await service.createPresignedUrl({ id: 'buyer-1', role: 'USER' }, {
+      fileName: 'review.mp4',
+      contentType: 'video/mp4',
+      fileSize: 5 * 1024 * 1024,
+      usage: 'review_video',
+    })
+
+    expect(result.key).toContain('uploads/review_video/buyer-1/')
+    expect(repo.createUpload).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'buyer-1',
+      usage: 'REVIEW_VIDEO',
+      contentType: 'video/mp4',
+    }))
+  })
+
+  it('maps completed review video records back to the public upload usage', async () => {
+    ;(repo.findUploadById as ReturnType<typeof vi.fn>).mockResolvedValue(createUpload({
+      usage: 'REVIEW_VIDEO' as UploadUsage,
+      contentType: 'video/mp4',
+      fileName: 'review.mp4',
+    }))
+
+    const result = await service.getUpload({ id: 'seller-1', role: 'USER' }, '11111111-1111-4111-8111-111111111111')
+
+    expect(result.usage).toBe('review_video')
+  })
+
   it('rejects webp files for KYC document uploads', async () => {
     await expect(service.createPresignedUrl({ id: 'buyer-1', role: 'USER' }, {
       fileName: 'id-card.webp',

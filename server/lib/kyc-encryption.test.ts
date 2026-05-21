@@ -3,25 +3,26 @@ import { validateProductionRuntimeEnv } from '#server/config/production-env.ts'
 import { encryptKycValue, hashKycValue, maskLast4 } from './kyc-encryption.ts'
 
 describe('KYC encryption helpers', () => {
+  const mutableEnv = process.env as Record<string, string | undefined>
   const originalNodeEnv = process.env['NODE_ENV']
   const originalKycKey = process.env['KYC_ENCRYPTION_KEY']
 
   afterEach(() => {
     if (originalNodeEnv === undefined) {
-      delete process.env['NODE_ENV']
+      delete mutableEnv['NODE_ENV']
     } else {
-      process.env['NODE_ENV'] = originalNodeEnv
+      mutableEnv['NODE_ENV'] = originalNodeEnv
     }
     if (originalKycKey === undefined) {
-      delete process.env['KYC_ENCRYPTION_KEY']
+      delete mutableEnv['KYC_ENCRYPTION_KEY']
     } else {
-      process.env['KYC_ENCRYPTION_KEY'] = originalKycKey
+      mutableEnv['KYC_ENCRYPTION_KEY'] = originalKycKey
     }
   })
 
   it('encrypts KYC values without returning plaintext', () => {
-    process.env['NODE_ENV'] = 'test'
-    delete process.env['KYC_ENCRYPTION_KEY']
+    mutableEnv['NODE_ENV'] = 'test'
+    delete mutableEnv['KYC_ENCRYPTION_KEY']
 
     const encrypted = encryptKycValue('1101700206789')
     const hash = hashKycValue('1101700206789')
@@ -43,7 +44,7 @@ describe('KYC encryption helpers', () => {
       API_BASE_URL: 'https://api.marketplace.example.com',
       PAYMENT_WEBHOOK_SECRET: 'production-payment-secret-at-least-32-chars',
       KYC_ENCRYPTION_KEY: 'your-kyc-encryption-key-at-least-32-chars',
-    }
+    } as const
 
     expect(() => validateProductionRuntimeEnv(env)).toThrow(/KYC_ENCRYPTION_KEY/)
   })

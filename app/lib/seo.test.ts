@@ -105,7 +105,7 @@ describe("SEO helpers", () => {
     expect(safeDescription("x".repeat(200))).toHaveLength(160);
   });
 
-  it("formats BigInt product prices for JSON-LD offers", () => {
+  it("formats BigInt product price for JSON-LD offers", () => {
     expect(formatSeoPriceCents(BigInt(4890))).toBe("48.90");
   });
 });

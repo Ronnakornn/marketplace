@@ -60,7 +60,7 @@ export interface CreateVariantRecord {
   title: string
   titleTh?: string | null
   titleEn?: string | null
-  prices: number
+  price: number
   currency: string
 }
 
@@ -69,7 +69,7 @@ export interface UpdateVariantRecord {
   title?: string
   titleTh?: string | null
   titleEn?: string | null
-  prices?: number
+  price?: number
   currency?: string
 }
 

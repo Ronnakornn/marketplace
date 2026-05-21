@@ -34,6 +34,7 @@ export interface CouponValidationResult {
   couponId: string
   couponCode: string
   discount: number
+  discountCents: number
   subtotal: number
 }
 
@@ -45,6 +46,7 @@ export interface CouponPayload {
   descriptionEn?: string | null
   discountType: 'fixed' | 'percent'
   discountValue?: number | null
+  discountValueCents?: number | null
   discountPercentBps?: number | null
   minOrder?: number | null
   maxDiscount?: number | null
@@ -104,10 +106,12 @@ export class PromotionService {
     const coupon = await repo.findCouponByCode(code)
     if (!coupon) throw new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND')
     await this.assertCouponUsable(repo, coupon, context.userId, context.subtotal)
+    const discount = this.calculateDiscount(coupon, context.subtotal)
     return {
       couponId: coupon.id,
       couponCode: coupon.code,
-      discount: this.calculateDiscount(coupon, context.subtotal),
+      discount,
+      discountCents: discount,
       subtotal: context.subtotal,
     }
   }
@@ -188,7 +192,8 @@ export class PromotionService {
     if (!coupon.isActive) throw new PromotionServiceError('Coupon is inactive', 400, 'COUPON_INACTIVE')
     if (coupon.startsAt && coupon.startsAt > now) throw new PromotionServiceError('Coupon has not started', 400, 'COUPON_NOT_STARTED')
     if (coupon.endsAt && coupon.endsAt < now) throw new PromotionServiceError('Coupon has expired', 400, 'COUPON_EXPIRED')
-    if (coupon.minOrder !== null && subtotal < coupon.minOrder) {
+    const minOrder = coupon.minOrder ?? coupon.minOrderCents ?? null
+    if (minOrder !== null && subtotal < minOrder) {
       throw new PromotionServiceError('Minimum order amount not met', 400, 'COUPON_MIN_ORDER_NOT_MET')
     }
     if (coupon.usageLimit !== null && coupon._count.redemptions >= coupon.usageLimit) {
@@ -205,11 +210,12 @@ export class PromotionService {
   private calculateDiscount(coupon: PromotionCoupon, subtotal: number): number {
     let discount = 0
     if (coupon.discountType === 'FIXED_AMOUNT') {
-      discount = this.toMoneyNumber(coupon.discountValue ?? 0)
+      discount = this.toMoneyNumber(coupon.discountValue ?? coupon.discountValueCents ?? 0)
     } else if (coupon.discountType === 'PERCENT') {
       discount = Math.floor(subtotal * (coupon.discountPercentBps ?? 0) / 10_000)
-      if (coupon.maxDiscount !== null) {
-        discount = Math.min(discount, this.toMoneyNumber(coupon.maxDiscount))
+      const maxDiscount = coupon.maxDiscount ?? coupon.maxDiscountCents ?? null
+      if (maxDiscount !== null) {
+        discount = Math.min(discount, this.toMoneyNumber(maxDiscount))
       }
     }
     return Math.min(Math.max(0, discount), subtotal)
@@ -235,7 +241,9 @@ export class PromotionService {
     if (!partial || payload.discountType !== undefined) {
       data.discountType = this.normalizeDiscountType(payload.discountType)
     }
-    if (payload.discountValue !== undefined) data.discountValue = payload.discountValue
+    if (payload.discountValue !== undefined || payload.discountValueCents !== undefined) {
+      data.discountValue = payload.discountValue ?? payload.discountValueCents ?? null
+    }
     if (payload.discountPercentBps !== undefined) data.discountPercentBps = payload.discountPercentBps
     if (payload.minOrder !== undefined) data.minOrder = payload.minOrder
     if (payload.maxDiscount !== undefined) data.maxDiscount = payload.maxDiscount

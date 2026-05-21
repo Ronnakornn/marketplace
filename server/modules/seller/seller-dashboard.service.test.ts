@@ -12,9 +12,6 @@ import type { AppContext } from '#server/context/app-context.ts'
 import { CacheService, type CacheClient } from '#server/modules/cache'
 import type {
   ISellerDashboardRepository,
-  SellerDashboardOrder,
-  SellerLowStockVariant,
-  SellerSalesOrderItem,
 } from './seller-dashboard.repository.ts'
 import { SellerDashboardService } from './seller-dashboard.service.ts'
 
@@ -88,7 +85,7 @@ function createSalesItem(overrides: Partial<{
   createdAt: Date
   status: OrderStatus
   paymentStatus: PaymentStatus
-}> = {}): SellerSalesOrderItem {
+}> = {}): any {
   return {
     id: 'item-1',
     shopId: overrides.shopId ?? 'shop-1',
@@ -109,7 +106,7 @@ function createOrderItem(overrides: Partial<{
   shopId: string
   lineTotal: number
   fulfillmentStatus: FulfillmentStatus
-}> = {}) {
+}> = {}): any {
   return {
     id: overrides.id ?? 'item-1',
     orderId: 'order-1',
@@ -129,7 +126,7 @@ function createOrderItem(overrides: Partial<{
   }
 }
 
-function createRecentOrder(items = [createOrderItem()]): SellerDashboardOrder {
+function createRecentOrder(items = [createOrderItem()]): any {
   return {
     id: 'order-1',
     orderNumber: 'ORD-1',
@@ -145,13 +142,13 @@ function createLowStockVariant(overrides: Partial<{
   quantityReserved: number
   reorderLevel: number
   shopId: string
-}> = {}): SellerLowStockVariant {
+}> = {}): any {
   return {
     id: 'variant-1',
     productId: 'product-1',
     sku: 'TEE-BLK-M',
     title: 'Black / M',
-    prices: 1200,
+    price: 1200,
     currency: 'USD',
     status: 'ACTIVE' as VariantStatus,
     createdAt: now,

@@ -183,7 +183,7 @@ export class SellerDashboardService {
   }
 
   private sumSales(items: SellerSalesOrderItem[]): number {
-    return items.reduce((total, item) => total + item.lineTotal, 0)
+    return items.reduce((total, item) => total + Number(item.lineTotal), 0)
   }
 
   private toRecentOrder(order: SellerDashboardOrder): SellerRecentOrderResponse {
@@ -193,7 +193,7 @@ export class SellerDashboardService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       createdAt: order.createdAt,
-      totalCents: order.items.reduce((total, item) => total + item.lineTotal, 0),
+      totalCents: order.items.reduce((total, item) => total + Number(item.lineTotal), 0),
       items: order.items.map((item) => ({
         orderItemId: item.id,
         productTitle: item.productTitle,
@@ -201,7 +201,7 @@ export class SellerDashboardService {
         variantTitle: item.variantTitle,
         variantSku: item.variantSku,
         quantity: item.quantity,
-        lineTotal: item.lineTotal,
+        lineTotal: Number(item.lineTotal),
         fulfillmentStatus: item.fulfillmentStatus,
       })),
     }

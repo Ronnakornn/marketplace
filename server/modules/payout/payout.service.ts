@@ -145,7 +145,7 @@ export class PayoutService {
         shopId: payout.shopId,
         payoutId: payout.id,
         type: 'payout_rejected',
-        amount: payout.amount,
+        amount: Number(payout.amount),
         currency: payout.currency,
         description: 'Payout reserve released after rejection',
       })
@@ -211,7 +211,7 @@ export class PayoutService {
         id: payout.shop.id,
         name: payout.shop.name,
       },
-      amount: payout.amount,
+      amount: Number(payout.amount),
       currency: payout.currency,
       status: payout.status,
       rejectionReason: payout.rejectionReason,

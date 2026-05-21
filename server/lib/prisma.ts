@@ -8,7 +8,7 @@ const adapter = new PrismaPg({
 });
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: ReturnType<typeof createPrismaClient>;
+  prisma: PrismaClient;
 };
 
 function serializeBigInt<T>(value: T): T {
@@ -30,7 +30,7 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+export const prisma: PrismaClient = globalForPrisma.prisma ?? (createPrismaClient() as unknown as PrismaClient);
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

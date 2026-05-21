@@ -249,6 +249,6 @@ export class CartService {
   }
 
   private getVariantPrice(variant: CartItemDetail['variant']): bigint | number {
-    return variant.price ?? (variant as unknown as { prices: bigint | number }).prices
+    return variant.price ?? (variant as unknown as { price: bigint | number }).price
   }
 }

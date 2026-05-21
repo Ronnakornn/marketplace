@@ -4,20 +4,124 @@ Project marketplace {
 
 Enum role {
   USER
-  SELLER
   ADMIN
+}
+
+Enum user_status {
+  ACTIVE
+  SUSPENDED
 }
 
 Enum shop_status {
   PENDING
   ACTIVE
   SUSPENDED
+  REJECTED
+  BANNED
+  VACATION
+}
+
+Enum seller_application_status {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+Enum seller_business_type {
+  INDIVIDUAL
+  COMPANY
+}
+
+Enum seller_verification_status {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+Enum seller_kyc_document_type {
+  ID_CARD
+  BUSINESS_CERTIFICATE
+  BANK_BOOK
+  TAX_DOCUMENT
+}
+
+Enum seller_kyc_document_side {
+  FRONT
+  BACK
+  EXTRA
+}
+
+Enum shop_staff_status {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+Enum shop_staff_role_type {
+  OWNER
+  ADMIN
+  MANAGER
+  SUPPORT
+  WAREHOUSE
+  ACCOUNTANT
+}
+
+Enum shop_address_type {
+  PICKUP
+  RETURN
+  WAREHOUSE
+  BILLING
+}
+
+Enum wallet_ledger_entry_type {
+  order_earning
+  commission_fee
+  payout_reserved
+  payout_paid
+  payout_rejected
+  refund_adjustment
+  manual_adjustment
+}
+
+Enum payout_status {
+  requested
+  approved
+  rejected
+  paid
+  cancelled
+}
+
+Enum seller_transaction_type {
+  ORDER_EARNING
+  COMMISSION_FEE
+  PAYOUT_RESERVED
+  PAYOUT_PAID
+  PAYOUT_REJECTED
+  REFUND_ADJUSTMENT
+  MANUAL_ADJUSTMENT
+}
+
+Enum seller_transaction_status {
+  PENDING
+  AVAILABLE
+  RESERVED
+  SETTLED
+  CANCELLED
 }
 
 Enum product_status {
   DRAFT
   ACTIVE
   ARCHIVED
+}
+
+Enum variant_status {
+  ACTIVE
+  INACTIVE
 }
 
 Enum cart_status {
@@ -45,6 +149,9 @@ Enum reservation_status {
 Enum order_status {
   PENDING_PAYMENT
   PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
   PARTIALLY_FULFILLED
   FULFILLED
   CANCELED
@@ -62,6 +169,7 @@ Enum payment_status {
 
 Enum fulfillment_status {
   PENDING
+  PACKED
   READY
   PARTIALLY_SHIPPED
   SHIPPED
@@ -70,6 +178,8 @@ Enum fulfillment_status {
 }
 
 Enum shipment_status {
+  PENDING_PACK
+  PACKED
   PENDING
   READY
   SHIPPED
@@ -87,13 +197,14 @@ Enum review_status {
   PENDING
   PUBLISHED
   REJECTED
+  HIDDEN
 }
 
 Enum refund_status {
   PENDING
-  SUCCEEDED
+  PROCESSING
+  SUCCESS
   FAILED
-  CANCELED
 }
 
 Enum return_status {
@@ -101,7 +212,8 @@ Enum return_status {
   APPROVED
   REJECTED
   RECEIVED
-  REFUNDED
+  COMPLETED
+  CANCELLED
 }
 
 Table users {
@@ -109,6 +221,7 @@ Table users {
   email varchar [not null, unique]
   name varchar [not null]
   role role [not null, default: "USER"]
+  status user_status [not null, default: "ACTIVE"]
   email_verified boolean [not null, default: false]
   image varchar
   created_at timestamp [not null]
@@ -120,6 +233,8 @@ Table sessions {
   user_id uuid [not null, ref: > users.id]
   token varchar [not null, unique]
   expires_at timestamp [not null]
+  device_id varchar
+  revoked_at timestamp
   ip_address varchar
   user_agent varchar
   created_at timestamp [not null]
@@ -127,6 +242,7 @@ Table sessions {
 
   indexes {
     user_id
+    (device_id, user_id, revoked_at)
   }
 }
 
@@ -160,40 +276,317 @@ Table verifications {
   updated_at timestamp
 }
 
-Table shops {
+Table seller_profiles {
   id uuid [pk]
-  owner_id uuid [not null, ref: > users.id]
-  name varchar [not null]
-  slug varchar [not null, unique]
-  status shop_status [not null, default: "PENDING"]
+  user_id uuid [not null, unique, ref: > users.id]
+  business_type seller_business_type [not null, default: "INDIVIDUAL"]
+  verification_status seller_verification_status [not null, default: "UNVERIFIED"]
+  legal_name varchar
+  display_name varchar
+  contact_email varchar
+  contact_phone varchar
+  national_id_hash varchar
+  national_id_encrypted varchar
+  national_id_last4 varchar
+  max_shop_count int [not null, default: 5]
+  company_name varchar
+  company_registration_encrypted varchar
+  company_registration_last4 varchar
+  tax_id_encrypted varchar
+  tax_id_last4 varchar
+  bank_name varchar
+  bank_account_name varchar
+  bank_account_number_encrypted varchar
+  bank_account_number_last4 varchar
+  verified_at timestamp
+  rejected_reason text
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
   indexes {
-    owner_id
-    status
+    verification_status
+    business_type
+    national_id_hash
   }
 }
 
-Table products {
+Table shops {
   id uuid [pk]
-  shop_id uuid [not null, ref: > shops.id]
-  category_id uuid [ref: > categories.id]
-  title varchar [not null]
-  title_th varchar
-  title_en varchar
-  slug varchar [not null]
+  owner_id uuid [not null, ref: > users.id]
+  seller_profile_id uuid [not null, ref: > seller_profiles.id]
+  seller_identity_hash varchar
+  name varchar [not null]
+  slug varchar [not null, unique]
+  contact_email varchar [not null]
+  contact_phone varchar [not null]
   description text
-  description_th text
-  description_en text
-  status product_status [not null, default: "DRAFT"]
+  logo_url varchar
+  cover_url varchar
+  status shop_status [not null, default: "PENDING"]
+  suspended_reason text
+  rejected_reason text
+  approved_by_id uuid [ref: > users.id]
+  approved_at timestamp
+  rating_average decimal [not null, default: 0]
+  rating_count int [not null, default: 0]
+  follower_count int [not null, default: 0]
+  product_count int [not null, default: 0]
+  meta_title varchar
+  meta_description varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    owner_id
+    seller_profile_id
+    (seller_identity_hash, status)
+    approved_by_id
+    status
+    slug
+    contact_email
+    contact_phone
+    deleted_at
+    (rating_average, rating_count)
+  }
+}
+
+Table seller_applications {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  shop_id uuid [unique, ref: > shops.id]
+  seller_profile_id uuid [ref: > seller_profiles.id]
+  status seller_application_status [not null, default: "DRAFT"]
+  business_type seller_business_type [not null, default: "INDIVIDUAL"]
+  shop_name varchar [not null]
+  shop_slug varchar [not null]
+  shop_contact_email varchar [not null]
+  shop_contact_phone varchar [not null]
+  legal_name varchar [not null]
+  contact_email varchar [not null]
+  contact_phone varchar [not null]
+  national_id_hash varchar
+  national_id_encrypted varchar
+  national_id_last4 varchar
+  company_registration_encrypted varchar
+  company_registration_last4 varchar
+  tax_id_encrypted varchar
+  tax_id_last4 varchar
+  bank_name varchar [not null]
+  bank_account_name varchar [not null]
+  bank_account_number_encrypted varchar [not null]
+  bank_account_number_last4 varchar [not null]
+  pickup_name varchar [not null]
+  pickup_phone varchar
+  pickup_line1 varchar [not null]
+  pickup_line2 varchar
+  pickup_city varchar [not null]
+  pickup_region varchar
+  pickup_postal_code varchar [not null]
+  pickup_country varchar [not null, default: "TH"]
+  submitted_at timestamp
+  reviewed_at timestamp
+  reviewed_by_id uuid [ref: > users.id]
+  rejection_reason text
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
   indexes {
-    (shop_id, slug) [unique]
-    (category_id, status)
+    (user_id, status)
+    (national_id_hash, status)
+    (status, submitted_at)
+    reviewed_by_id
+    shop_slug
+    shop_contact_email
+    shop_contact_phone
+    seller_profile_id
+  }
+}
+
+Table seller_kyc_documents {
+  id uuid [pk]
+  application_id uuid [not null, ref: > seller_applications.id]
+  upload_id uuid [not null, unique]
+  document_type seller_kyc_document_type [not null]
+  side seller_kyc_document_side [not null, default: "FRONT"]
+  sort_order int [not null, default: 0]
+  created_at timestamp [not null]
+
+  indexes {
+    (application_id, document_type, side) [unique]
+    (application_id, document_type)
+  }
+}
+
+Table shop_staff {
+  id uuid [pk]
+  shop_id uuid [not null, ref: > shops.id]
+  user_id uuid [not null, ref: > users.id]
+  role shop_staff_role_type [not null, default: "SUPPORT"]
+  status shop_staff_status [not null, default: "INVITED"]
+  invited_by_id uuid [ref: > users.id]
+  joined_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
+
+  indexes {
+    (shop_id, user_id) [unique]
+    (shop_id, role, status)
+    (user_id, status)
+    invited_by_id
+  }
+}
+
+Table shop_staff_permissions {
+  id uuid [pk]
+  staff_id uuid [not null, ref: > shop_staff.id]
+  permission varchar [not null]
+  created_at timestamp [not null]
+
+  indexes {
+    (staff_id, permission) [unique]
+    permission
+  }
+}
+
+Table shop_settings {
+  id uuid [pk]
+  shop_id uuid [not null, unique, ref: > shops.id]
+  auto_accept_order boolean [not null, default: false]
+  allow_cod boolean [not null, default: false]
+  chat_enabled boolean [not null, default: true]
+  vacation_mode boolean [not null, default: false]
+  default_shipping_provider varchar
+  return_policy text
+  shipping_policy text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  version int [not null, default: 1]
+}
+
+Table shop_addresses {
+  id uuid [pk]
+  shop_id uuid [not null, ref: > shops.id]
+  type shop_address_type [not null, default: "PICKUP"]
+  contact_name varchar [not null]
+  phone varchar
+  line1 varchar [not null]
+  line2 varchar
+  city varchar [not null]
+  region varchar
+  postal_code varchar [not null]
+  country varchar [not null, default: "TH"]
+  latitude decimal
+  longitude decimal
+  is_default boolean [not null, default: false]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (shop_id, type)
+    (shop_id, is_default)
+  }
+}
+
+Table shop_wallets {
+  id uuid [pk]
+  shop_id uuid [not null, unique, ref: > shops.id]
+  currency varchar [not null, default: "THB"]
+  balance bigint [not null, default: 0]
+  pending_balance bigint [not null, default: 0]
+  withdrawable_balance bigint [not null, default: 0]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  version int [not null, default: 1]
+
+  indexes {
+    (id, shop_id) [unique]
+    shop_id
+  }
+}
+
+Table wallet_ledger_entries {
+  id uuid [pk]
+  wallet_id uuid [not null]
+  shop_id uuid [not null, ref: > shops.id]
+  type wallet_ledger_entry_type [not null]
+  amount bigint [not null]
+  currency varchar [not null, default: "THB"]
+  order_id uuid [ref: > orders.id]
+  payout_id uuid [ref: > seller_payouts.id]
+  refund_id uuid [ref: > refunds.id]
+  description text
+  metadata jsonb
+  created_at timestamp [not null]
+  version int [not null, default: 1]
+
+  indexes {
+    (wallet_id, created_at)
+    (shop_id, created_at)
+    (order_id, type)
+    payout_id
+    refund_id
+  }
+}
+
+Table seller_payouts {
+  id uuid [pk]
+  wallet_id uuid [not null]
+  shop_id uuid [not null, ref: > shops.id]
+  amount bigint [not null]
+  currency varchar [not null, default: "THB"]
+  status payout_status [not null, default: "requested"]
+  requested_by_id uuid [not null, ref: > users.id]
+  approved_by_id uuid [ref: > users.id]
+  rejected_by_id uuid [ref: > users.id]
+  paid_by_id uuid [ref: > users.id]
+  rejection_reason text
+  requested_at timestamp [not null]
+  approved_at timestamp
+  rejected_at timestamp
+  paid_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (wallet_id, status)
     (shop_id, status)
+    (status, requested_at)
+    requested_by_id
+    approved_by_id
+    rejected_by_id
+    paid_by_id
+  }
+}
+
+Table seller_transactions {
+  id uuid [pk]
+  wallet_id uuid [not null]
+  seller_profile_id uuid [ref: > seller_profiles.id]
+  shop_id uuid [not null, ref: > shops.id]
+  type seller_transaction_type [not null]
+  status seller_transaction_status [not null, default: "PENDING"]
+  amount bigint [not null]
+  currency varchar [not null, default: "THB"]
+  order_id uuid [ref: > orders.id]
+  payout_id uuid [ref: > seller_payouts.id]
+  refund_id uuid [ref: > refunds.id]
+  reference varchar
+  description text
+  metadata jsonb
+  available_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (wallet_id, created_at)
+    (seller_profile_id, created_at)
+    (shop_id, created_at)
+    (type, status)
+    order_id
+    payout_id
+    refund_id
   }
 }
 
@@ -207,26 +600,51 @@ Table categories {
   is_active boolean [not null, default: true]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+}
+
+Table products {
+  id uuid [pk]
+  shop_id uuid [not null, ref: > shops.id]
+  seller_profile_id uuid [ref: > seller_profiles.id]
+  seller_identity_hash varchar
+  category_id uuid [ref: > categories.id]
+  title varchar [not null]
+  title_th varchar
+  title_en varchar
+  slug varchar [not null]
+  description text
+  description_th text
+  description_en text
+  status product_status [not null, default: "DRAFT"]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp
 
   indexes {
-    (is_active, sort_order)
+    (shop_id, slug)
+    (seller_profile_id, status)
+    (category_id, status)
+    (shop_id, status)
+    deleted_at
   }
 }
 
 Table product_variants {
   id uuid [pk]
   product_id uuid [not null, ref: > products.id]
-  sku varchar [not null, unique]
+  sku varchar [not null]
   title varchar [not null]
   title_th varchar
   title_en varchar
-  price_cents int [not null]
-  currency varchar [not null, default: "USD"]
+  price bigint [not null]
+  currency varchar [not null, default: "THB"]
+  status variant_status [not null, default: "ACTIVE"]
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
   indexes {
-    product_id
+    (product_id, sku) [unique]
+    (product_id, status)
   }
 }
 
@@ -236,6 +654,7 @@ Table inventory {
   quantity_on_hand int [not null, default: 0]
   quantity_reserved int [not null, default: 0]
   reorder_level int [not null, default: 0]
+  version int [not null, default: 1]
   updated_at timestamp [not null]
 }
 
@@ -245,10 +664,6 @@ Table carts {
   status cart_status [not null, default: "ACTIVE"]
   created_at timestamp [not null]
   updated_at timestamp [not null]
-
-  indexes {
-    (user_id, status)
-  }
 }
 
 Table cart_items {
@@ -256,13 +671,10 @@ Table cart_items {
   cart_id uuid [not null, ref: > carts.id]
   variant_id uuid [not null, ref: > product_variants.id]
   quantity int [not null]
+  unit_price bigint [not null]
+  currency varchar [not null, default: "THB"]
   created_at timestamp [not null]
   updated_at timestamp [not null]
-
-  indexes {
-    (cart_id, variant_id) [unique]
-    variant_id
-  }
 }
 
 Table checkouts {
@@ -270,37 +682,27 @@ Table checkouts {
   cart_id uuid [not null, ref: > carts.id]
   user_id uuid [not null, ref: > users.id]
   status checkout_status [not null, default: "OPEN"]
-  subtotal_cents int [not null, default: 0]
-  discount_total_cents int [not null, default: 0]
-  shipping_total_cents int [not null, default: 0]
-  tax_total_cents int [not null, default: 0]
-  grand_total_cents int [not null, default: 0]
-  currency varchar [not null, default: "USD"]
+  subtotal bigint [not null, default: 0]
+  discount_total bigint [not null, default: 0]
+  shipping_total bigint [not null, default: 0]
+  tax_total bigint [not null, default: 0]
+  grand_total bigint [not null, default: 0]
+  currency varchar [not null, default: "THB"]
   expires_at timestamp [not null]
   created_at timestamp [not null]
   updated_at timestamp [not null]
-
-  indexes {
-    cart_id
-    (user_id, status)
-    (status, expires_at)
-  }
 }
 
 Table inventory_reservations {
   id uuid [pk]
   checkout_id uuid [not null, ref: > checkouts.id]
-  variant_id uuid [not null, ref: > product_variants.id]
+  order_id uuid [ref: > orders.id]
+  inventory_id uuid [not null, ref: > inventory.id]
   quantity int [not null]
   status reservation_status [not null, default: "ACTIVE"]
   expires_at timestamp [not null]
   created_at timestamp [not null]
-
-  indexes {
-    (checkout_id, variant_id)
-    (variant_id, status)
-    (status, expires_at)
-  }
+  updated_at timestamp [not null]
 }
 
 Table orders {
@@ -310,12 +712,12 @@ Table orders {
   order_number varchar [not null, unique]
   status order_status [not null, default: "PENDING_PAYMENT"]
   payment_status payment_status [not null, default: "PENDING"]
-  subtotal_cents int [not null, default: 0]
-  discount_total_cents int [not null, default: 0]
-  shipping_total_cents int [not null, default: 0]
-  tax_total_cents int [not null, default: 0]
-  grand_total_cents int [not null]
-  currency varchar [not null, default: "USD"]
+  subtotal bigint [not null, default: 0]
+  discount_total bigint [not null, default: 0]
+  shipping_total bigint [not null, default: 0]
+  tax_total bigint [not null, default: 0]
+  grand_total bigint [not null]
+  currency varchar [not null, default: "THB"]
   shipping_name varchar [not null]
   shipping_phone varchar
   shipping_line1 varchar [not null]
@@ -326,12 +728,23 @@ Table orders {
   shipping_country varchar [not null]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+}
 
-  indexes {
-    (user_id, created_at)
-    (status, created_at)
-    payment_status
-  }
+Table shop_orders {
+  id uuid [pk]
+  order_id uuid [not null, ref: > orders.id]
+  shop_id uuid [not null, ref: > shops.id]
+  status order_status [not null, default: "PENDING_PAYMENT"]
+  fulfillment_status fulfillment_status [not null, default: "PENDING"]
+  subtotal bigint [not null, default: 0]
+  discount_total bigint [not null, default: 0]
+  shipping_total bigint [not null, default: 0]
+  tax_total bigint [not null, default: 0]
+  grand_total bigint [not null, default: 0]
+  currency varchar [not null, default: "THB"]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  version int [not null, default: 1]
 }
 
 Table order_items {
@@ -346,16 +759,10 @@ Table order_items {
   shop_name varchar [not null]
   shop_slug varchar [not null]
   quantity int [not null]
-  unit_price_cents int [not null]
-  line_total_cents int [not null]
-  currency varchar [not null, default: "USD"]
+  unit_price bigint [not null]
+  line_total bigint [not null]
+  currency varchar [not null, default: "THB"]
   fulfillment_status fulfillment_status [not null, default: "PENDING"]
-
-  indexes {
-    (order_id, shop_id)
-    (shop_id, fulfillment_status)
-    variant_id
-  }
 }
 
 Table payments {
@@ -364,14 +771,11 @@ Table payments {
   provider varchar [not null]
   provider_intent_id varchar [not null, unique]
   status payment_status [not null, default: "PENDING"]
-  amount_cents int [not null]
+  amount bigint [not null]
   currency varchar [not null]
+  paid_at timestamp
   created_at timestamp [not null]
   updated_at timestamp [not null]
-
-  indexes {
-    (order_id, status)
-  }
 }
 
 Table payment_events {
@@ -381,30 +785,20 @@ Table payment_events {
   event_type varchar [not null]
   payload jsonb [not null]
   received_at timestamp [not null]
-
-  indexes {
-    payment_id
-    (event_type, received_at)
-  }
 }
 
 Table shipments {
   id uuid [pk]
   order_id uuid [not null, ref: > orders.id]
   shop_id uuid [not null, ref: > shops.id]
-  status shipment_status [not null, default: "PENDING"]
+  status shipment_status [not null, default: "PENDING_PACK"]
   carrier varchar
+  provider_id uuid
   tracking_number varchar
   shipped_at timestamp
   delivered_at timestamp
   created_at timestamp [not null]
   updated_at timestamp [not null]
-
-  indexes {
-    (order_id, shop_id)
-    (shop_id, status)
-    tracking_number
-  }
 }
 
 Table shipment_items {
@@ -412,11 +806,6 @@ Table shipment_items {
   shipment_id uuid [not null, ref: > shipments.id]
   order_item_id uuid [not null, ref: > order_items.id]
   quantity int [not null]
-
-  indexes {
-    (shipment_id, order_item_id) [unique]
-    order_item_id
-  }
 }
 
 Table coupons {
@@ -428,17 +817,17 @@ Table coupons {
   description_th text
   description_en text
   discount_type discount_type [not null]
-  discount_value_cents int
+  discount_value bigint
   discount_percent_bps int
+  min_order bigint
+  max_discount bigint
   starts_at timestamp
   ends_at timestamp
   usage_limit int
+  per_user_limit int
+  is_active boolean [not null, default: true]
   created_at timestamp [not null]
-
-  indexes {
-    shop_id
-    code
-  }
+  updated_at timestamp [not null]
 }
 
 Table coupon_redemptions {
@@ -447,12 +836,6 @@ Table coupon_redemptions {
   user_id uuid [not null, ref: > users.id]
   order_id uuid [not null, ref: > orders.id]
   redeemed_at timestamp [not null]
-
-  indexes {
-    coupon_id
-    user_id
-    (coupon_id, order_id) [unique]
-  }
 }
 
 Table reviews {
@@ -463,42 +846,34 @@ Table reviews {
   rating int [not null]
   body text
   status review_status [not null, default: "PENDING"]
+  moderated_at timestamp
+  moderation_reason text
   created_at timestamp [not null]
-
-  indexes {
-    (product_id, status)
-    user_id
-  }
+  updated_at timestamp [not null]
 }
 
 Table refunds {
   id uuid [pk]
   order_id uuid [not null, ref: > orders.id]
   payment_id uuid [not null, ref: > payments.id]
+  return_request_id uuid [unique]
   status refund_status [not null, default: "PENDING"]
-  amount_cents int [not null]
+  amount bigint [not null]
   reason text
   created_at timestamp [not null]
-
-  indexes {
-    (order_id, status)
-    payment_id
-  }
+  updated_at timestamp [not null]
 }
 
 Table return_requests {
   id uuid [pk]
   order_id uuid [not null, ref: > orders.id]
+  shop_id uuid [not null, ref: > shops.id]
   user_id uuid [not null, ref: > users.id]
   status return_status [not null, default: "REQUESTED"]
   reason text
+  description text
   created_at timestamp [not null]
   updated_at timestamp [not null]
-
-  indexes {
-    (order_id, status)
-    (user_id, created_at)
-  }
 }
 
 Table return_items {
@@ -507,38 +882,26 @@ Table return_items {
   order_item_id uuid [not null, ref: > order_items.id]
   quantity int [not null]
   condition varchar
-
-  indexes {
-    (return_request_id, order_item_id) [unique]
-    order_item_id
-  }
 }
 
 Table chat_threads {
   id uuid [pk]
   buyer_id uuid [not null, ref: > users.id]
   shop_id uuid [not null, ref: > shops.id]
-  order_id uuid [ref: > orders.id]
+  last_message_at timestamp
+  buyer_read_at timestamp
+  seller_read_at timestamp
   created_at timestamp [not null]
-
-  indexes {
-    (buyer_id, created_at)
-    (shop_id, created_at)
-    order_id
-  }
+  updated_at timestamp [not null]
 }
 
 Table chat_messages {
   id uuid [pk]
   thread_id uuid [not null, ref: > chat_threads.id]
   sender_id uuid [not null, ref: > users.id]
+  order_id uuid [ref: > orders.id]
   body text [not null]
   created_at timestamp [not null]
-
-  indexes {
-    (thread_id, created_at)
-    sender_id
-  }
 }
 
 Table notifications {
@@ -549,9 +912,8 @@ Table notifications {
   body text
   read_at timestamp
   created_at timestamp [not null]
-
-  indexes {
-    (user_id, read_at, created_at)
-    type
-  }
 }
+
+Ref: shop_wallets.(id, shop_id) < wallet_ledger_entries.(wallet_id, shop_id)
+Ref: shop_wallets.(id, shop_id) < seller_payouts.(wallet_id, shop_id)
+Ref: shop_wallets.(id, shop_id) < seller_transactions.(wallet_id, shop_id)

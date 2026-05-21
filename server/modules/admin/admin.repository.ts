@@ -32,6 +32,8 @@ export interface AdminShopWriteInput {
   name: string
   slug: string
   status: ShopStatus
+  contactEmail?: string
+  contactPhone?: string
 }
 
 export interface AdminShopUpdateInput {
@@ -61,7 +63,7 @@ export type AdminShopRecord = Shop & {
 }
 export type AdminProductRecord = Product & {
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
-  variants: Array<Pick<ProductVariant, 'id' | 'sku' | 'title' | 'prices' | 'currency' | 'status'>>
+  variants: Array<Pick<ProductVariant, 'id' | 'sku' | 'title' | 'price' | 'currency' | 'status'>>
 }
 export type AdminOrderRecord = Order & {
   items: OrderItem[]
@@ -412,16 +414,16 @@ export class PrismaAdminRepository implements IAdminRepository {
       this.prisma.sellerPayout.aggregate({ where: { status: 'requested' }, _sum: { amount: true }, _count: true }),
       this.prisma.sellerPayout.aggregate({ where: { status: 'approved' }, _sum: { amount: true }, _count: true }),
       this.prisma.sellerPayout.aggregate({ where: { status: 'paid' }, _sum: { amount: true }, _count: true }),
-      this.prisma.affiliateCommission.aggregate({ where: { status: 'PENDING' }, _sum: { commissionCents: true } }),
-      this.prisma.affiliateCommission.aggregate({ where: { status: 'APPROVED' }, _sum: { commissionCents: true } }),
-      this.prisma.affiliateCommission.aggregate({ where: { status: 'VOID' }, _sum: { commissionCents: true } }),
+      this.prisma.affiliateCommission.aggregate({ where: { status: 'PENDING' }, _sum: { commission: true } }),
+      this.prisma.affiliateCommission.aggregate({ where: { status: 'APPROVED' }, _sum: { commission: true } }),
+      this.prisma.affiliateCommission.aggregate({ where: { status: 'VOID' }, _sum: { commission: true } }),
       this.prisma.user.count(),
       this.prisma.user.count({ where: { shops: { some: { status: 'ACTIVE' } } } }),
       this.prisma.shop.count(),
       this.prisma.product.count(),
       this.prisma.product.count({ where: { status: 'ACTIVE' } }),
     ])
-    const grossCents = paidSales._sum.grandTotal ?? 0
+    const grossCents = Number(paidSales._sum.grandTotal ?? 0)
     return {
       sales: {
         grossCents,
@@ -429,19 +431,19 @@ export class PrismaAdminRepository implements IAdminRepository {
         averageOrderValueCents: paidOrderCount === 0 ? 0 : Math.round(grossCents / paidOrderCount),
       },
       orders: { total: totalOrders, pendingPayment: pendingPaymentOrders, paid: paidOrders, shipped: shippedOrders, delivered: deliveredOrders, cancelled: cancelledOrders, refunded: refundedOrders },
-      refunds: { totalCents: refundTotal._sum.amount ?? 0, pending: pendingRefunds, processing: processingRefunds, success: successRefunds, failed: failedRefunds },
+      refunds: { totalCents: Number(refundTotal._sum.amount ?? 0), pending: pendingRefunds, processing: processingRefunds, success: successRefunds, failed: failedRefunds },
       payouts: {
-        requestedCents: requestedPayouts._sum.amount ?? 0,
-        approvedCents: approvedPayouts._sum.amount ?? 0,
-        paidCents: paidPayouts._sum.amount ?? 0,
+        requestedCents: Number(requestedPayouts._sum.amount ?? 0),
+        approvedCents: Number(approvedPayouts._sum.amount ?? 0),
+        paidCents: Number(paidPayouts._sum.amount ?? 0),
         requested: requestedPayouts._count,
         approved: approvedPayouts._count,
         paid: paidPayouts._count,
       },
       commissions: {
-        pendingCents: pendingCommissions._sum.commissionCents ?? 0,
-        approvedCents: approvedCommissions._sum.commissionCents ?? 0,
-        voidCents: voidCommissions._sum.commissionCents ?? 0,
+        pendingCents: Number(pendingCommissions._sum.commission ?? 0),
+        approvedCents: Number(approvedCommissions._sum.commission ?? 0),
+        voidCents: Number(voidCommissions._sum.commission ?? 0),
       },
       marketplace: { users: totalUsers, sellers, shops: totalShops, products: totalProducts, activeProducts },
     }
@@ -508,8 +510,36 @@ export class PrismaAdminRepository implements IAdminRepository {
     )
   }
 
-  createShop(input: AdminShopWriteInput): Promise<AdminShopRecord> {
-    return this.prisma.shop.create({ data: input, include: shopInclude })
+  async createShop(input: AdminShopWriteInput): Promise<AdminShopRecord> {
+    const owner = await this.prisma.user.findUnique({
+      where: { id: input.ownerId },
+      select: { id: true, name: true, email: true },
+    })
+    if (!owner) throw new Error('Shop owner not found')
+
+    const sellerProfile = await this.prisma.sellerProfile.upsert({
+      where: { userId: owner.id },
+      create: {
+        userId: owner.id,
+        displayName: owner.name,
+        contactEmail: owner.email,
+      },
+      update: {},
+      select: { id: true },
+    })
+
+    return this.prisma.shop.create({
+      data: {
+        ownerId: owner.id,
+        sellerProfileId: sellerProfile.id,
+        name: input.name,
+        slug: input.slug,
+        status: input.status,
+        contactEmail: input.contactEmail ?? owner.email,
+        contactPhone: input.contactPhone ?? 'N/A',
+      },
+      include: shopInclude,
+    })
   }
 
   findShopById(shopId: string): Promise<AdminShopRecord | null> {
@@ -517,7 +547,7 @@ export class PrismaAdminRepository implements IAdminRepository {
   }
 
   findShopBySlug(slug: string): Promise<AdminShopRecord | null> {
-    return this.prisma.shop.findUnique({ where: { slug }, include: shopInclude })
+    return this.prisma.shop.findFirst({ where: { slug }, include: shopInclude })
   }
 
   findUserForShopOwner(input: { ownerId?: string; ownerEmail?: string }): Promise<Pick<User, 'id' | 'role' | 'status'> | null> {
@@ -538,7 +568,7 @@ export class PrismaAdminRepository implements IAdminRepository {
       this.prisma.coupon.count({ where: { shopId } }),
       this.prisma.chatThread.count({ where: { shopId } }),
       this.prisma.shopFollow.count({ where: { shopId } }),
-      this.prisma.sellerWallet.count({ where: { shopId } }),
+      this.prisma.shopWallet.count({ where: { shopId } }),
       this.prisma.sellerPayout.count({ where: { shopId } }),
     ])
     return products + orderItems + shipments + coupons + chatThreads + followers + wallet + payouts

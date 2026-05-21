@@ -17,24 +17,28 @@ const allowedContentTypesByUsage: Record<UploadUsageInput, string[]> = {
   product_image: ['image/jpeg', 'image/png', 'image/webp'],
   shop_image: ['image/jpeg', 'image/png', 'image/webp'],
   review_image: ['image/jpeg', 'image/png', 'image/webp'],
+  review_video: ['video/mp4', 'video/webm'],
   kyc_document: ['application/pdf', 'image/jpeg', 'image/png'],
 }
 const maxFileSizeByUsage: Record<UploadUsageInput, number> = {
   product_image: 5 * 1024 * 1024,
   shop_image: 5 * 1024 * 1024,
   review_image: 3 * 1024 * 1024,
+  review_video: 25 * 1024 * 1024,
   kyc_document: 10 * 1024 * 1024,
 }
 const usageToRecord: Record<UploadUsageInput, UploadUsage> = {
   product_image: 'PRODUCT_IMAGE',
   shop_image: 'SHOP_IMAGE',
   review_image: 'REVIEW_IMAGE',
+  review_video: 'REVIEW_VIDEO',
   kyc_document: 'KYC_DOCUMENT',
 }
 const recordToUsage: Partial<Record<UploadUsage, UploadUsageInput>> = {
   PRODUCT_IMAGE: 'product_image',
   SHOP_IMAGE: 'shop_image',
   REVIEW_IMAGE: 'review_image',
+  REVIEW_VIDEO: 'review_video',
   KYC_DOCUMENT: 'kyc_document',
 }
 const presignedUrlExpiresIn = 900
@@ -127,7 +131,7 @@ export class UploadService {
     if (actor.role === 'ADMIN') return
     if (usage === 'kyc_document') return
     if ((usage === 'product_image' || usage === 'shop_image') && await this.repo.hasActiveShop(actor.id)) return
-    if (usage === 'review_image') return
+    if (usage === 'review_image' || usage === 'review_video') return
 
     throw new UploadServiceError('Upload usage is not allowed for this user', 403, 'UPLOAD_FORBIDDEN')
   }

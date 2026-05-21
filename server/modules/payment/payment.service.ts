@@ -48,9 +48,9 @@ export class PaymentService {
       if (payment.orderId !== order.id) {
         throw new PaymentServiceError('Payment does not belong to order', 409, 'PAYMENT_STATE_CONFLICT')
       }
-      if (payment.amount !== input.amount) {
+      if (Number(payment.amount) !== input.amount) {
         throw new PaymentServiceError('Webhook amount does not match payment amount', 400, 'AMOUNT_MISMATCH', {
-          expectedamount: payment.amount,
+          expectedamount: Number(payment.amount),
           receivedamount: input.amount,
         })
       }
@@ -145,7 +145,7 @@ export class PaymentService {
       .filter((reservation) => reservation.status === 'ACTIVE')
       .map((reservation) => ({
         reservationId: reservation.id,
-        variantId: reservation.variantId,
+        inventoryId: reservation.inventoryId,
         quantity: reservation.quantity,
       }))
   }

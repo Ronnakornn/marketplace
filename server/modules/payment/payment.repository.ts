@@ -39,7 +39,7 @@ export type PaymentWithOrder = Payment & {
 
 export interface ReleaseReservationInput {
   reservationId: string
-  variantId: string
+  inventoryId: string
   quantity: number
 }
 
@@ -268,7 +268,18 @@ export class PrismaPaymentRepository implements IPaymentRepository {
   }
 
   createCommission(input: CreateAffiliateCommissionInput) {
-    return this.prisma.affiliateCommission.create({ data: input })
+    return this.prisma.affiliateCommission.create({
+      data: {
+        affiliateId: input.affiliateId,
+        linkId: input.linkId,
+        clickId: input.clickId,
+        orderId: input.orderId,
+        eligiblesubtotal: input.eligiblesubtotal,
+        commissionBps: input.commissionBps,
+        commission: input.commissionCents,
+        currency: input.currency,
+      },
+    })
   }
 
   async getStats(userId: string) {
@@ -279,10 +290,10 @@ export class PrismaPaymentRepository implements IPaymentRepository {
       this.prisma.affiliateCommission.count({ where: { affiliateId: affiliate.id, status: { not: 'VOID' } } }),
       this.prisma.affiliateCommission.aggregate({
         where: { affiliateId: affiliate.id, status: { not: 'VOID' } },
-        _sum: { commissionCents: true },
+        _sum: { commission: true },
       }),
     ])
-    return { clicks, conversions, commissionCents: commission._sum.commissionCents ?? 0 }
+    return { clicks, conversions, commissionCents: Number(commission._sum.commission ?? 0) }
   }
 
   findOrderForShipmentCreation(orderId: string): Promise<ShipmentOrderForCreation | null> {
@@ -394,7 +405,7 @@ export class PrismaPaymentRepository implements IPaymentRepository {
       if (updateResult.count !== 1) continue
 
       await this.prisma.inventory.update({
-        where: { variantId: reservation.variantId },
+        where: { id: reservation.inventoryId },
         data: {
           quantityReserved: {
             decrement: reservation.quantity,

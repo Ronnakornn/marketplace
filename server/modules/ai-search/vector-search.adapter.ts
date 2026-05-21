@@ -89,7 +89,7 @@ const aiSearchProductSelect = {
       title: true,
       titleTh: true,
       titleEn: true,
-      prices: true,
+      price: true,
       currency: true,
       inventory: {
         select: {

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FulfillmentStatus, PaymentStatus, ReturnStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
-import type { IReturnRepository, ReturnOrderItem, ReturnRecord } from './return.repository.ts'
+import type { IReturnRepository, ReturnRecord } from './return.repository.ts'
 import { ReturnService } from './return.service.ts'
 
 function createLogger() {
@@ -57,7 +57,7 @@ function createOrderItem(overrides: Partial<{
   fulfillmentStatus: FulfillmentStatus
   lineTotal: number
   returnStatus: ReturnStatus
-}> = {}): ReturnOrderItem {
+}> = {}): any {
   return {
     id: '22222222-2222-4222-8222-222222222222',
     orderId: '11111111-1111-4111-8111-111111111111',
@@ -113,7 +113,7 @@ function createOrderItem(overrides: Partial<{
   }
 }
 
-function createPayment(status: PaymentStatus = 'SUCCEEDED') {
+function createPayment(status: PaymentStatus = 'SUCCEEDED'): any {
   return {
     id: '77777777-7777-4777-8777-777777777777',
     orderId: '11111111-1111-4111-8111-111111111111',
@@ -133,7 +133,7 @@ function createReturnRecord(overrides: Partial<{
   shopId: string
   lineTotal: number
   refunds: ReturnRecord['refunds']
-}> = {}): ReturnRecord {
+}> = {}): any {
   return {
     id: '66666666-6666-4666-8666-666666666666',
     orderId: '11111111-1111-4111-8111-111111111111',
@@ -157,7 +157,7 @@ function createReturnRecord(overrides: Partial<{
   }
 }
 
-function createRefund(amount = 2400) {
+function createRefund(amount = 2400): any {
   return {
     id: '88888888-8888-4888-8888-888888888888',
     orderId: '11111111-1111-4111-8111-111111111111',
@@ -184,7 +184,7 @@ function setup() {
   vi.mocked(repo.findSellerReturnById).mockResolvedValue(createReturnRecord())
   vi.mocked(repo.updateReturnStatus).mockImplementation(async (_id, status) => createReturnRecord({ status }))
   vi.mocked(repo.createPendingRefundForReturn).mockImplementation(async (returnRecord) =>
-    createRefund(returnRecord.items[0]!.orderItem.lineTotal))
+    createRefund(Number(returnRecord.items[0]!.orderItem.lineTotal)))
 }
 
 describe('ReturnService', () => {

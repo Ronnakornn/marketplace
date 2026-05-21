@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "#/lib/auth-client";
 
-export function LoginForm() {
+export function LoginForm({ nextPath }: { nextPath?: string | null }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +22,7 @@ export function LoginForm() {
       if (result.error) {
         setError(result.error.message ?? "Sign in failed");
       } else {
-        router.push("/");
+        router.push(resolveNextPath(nextPath ?? null));
         router.refresh();
       }
     } catch {
@@ -106,4 +106,10 @@ export function LoginForm() {
       </div>
     </div>
   );
+}
+
+function resolveNextPath(next: string | null) {
+  if (!next?.startsWith("/")) return "/";
+  if (next.startsWith("//")) return "/";
+  return next;
 }

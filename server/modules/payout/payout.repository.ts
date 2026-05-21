@@ -1,4 +1,4 @@
-import type { PrismaClient, SellerPayout, SellerWallet, Shop, WalletLedgerEntry } from '#generated/client/client.ts'
+import type { PrismaClient, SellerPayout, Shop, ShopWallet, WalletLedgerEntry } from '#generated/client/client.ts'
 import type { PayoutStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -6,15 +6,15 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 type PayoutTx = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>
 
 export type PayoutRecord = SellerPayout & {
-  wallet: SellerWallet
+  wallet: ShopWallet
   shop: Pick<Shop, 'id' | 'name' | 'ownerId'>
 }
 
 export interface IPayoutRepository {
   transaction<T>(callback: (repo: IPayoutRepository) => Promise<T>): Promise<T>
   findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'name' | 'ownerId'>>>
-  ensureWallet(shopId: string, currency: string): Promise<SellerWallet>
-  findWalletByShopId(shopId: string): Promise<(SellerWallet & { shop: Pick<Shop, 'id' | 'name' | 'ownerId'> }) | null>
+  ensureWallet(shopId: string, currency: string): Promise<ShopWallet>
+  findWalletByShopId(shopId: string): Promise<(ShopWallet & { shop: Pick<Shop, 'id' | 'name' | 'ownerId'> }) | null>
   sumLedger(walletId: string): Promise<number>
   createPayout(input: { walletId: string; shopId: string; amount: number; currency: string; requestedById: string }): Promise<PayoutRecord>
   createLedgerEntry(input: {
@@ -69,16 +69,16 @@ export class PrismaPayoutRepository implements IPayoutRepository {
     })
   }
 
-  ensureWallet(shopId: string, currency: string): Promise<SellerWallet> {
-    return this.prisma.sellerWallet.upsert({
+  ensureWallet(shopId: string, currency: string): Promise<ShopWallet> {
+    return this.prisma.shopWallet.upsert({
       where: { shopId },
       create: { shopId, currency },
       update: {},
     })
   }
 
-  findWalletByShopId(shopId: string): Promise<(SellerWallet & { shop: Pick<Shop, 'id' | 'name' | 'ownerId'> }) | null> {
-    return this.prisma.sellerWallet.findUnique({
+  findWalletByShopId(shopId: string): Promise<(ShopWallet & { shop: Pick<Shop, 'id' | 'name' | 'ownerId'> }) | null> {
+    return this.prisma.shopWallet.findUnique({
       where: { shopId },
       include: { shop: { select: { id: true, name: true, ownerId: true } } },
     })
@@ -89,7 +89,7 @@ export class PrismaPayoutRepository implements IPayoutRepository {
       where: { walletId },
       _sum: { amount: true },
     })
-    return result._sum.amount ?? 0
+    return Number(result._sum.amount ?? 0)
   }
 
   createPayout(input: { walletId: string; shopId: string; amount: number; currency: string; requestedById: string }): Promise<PayoutRecord> {

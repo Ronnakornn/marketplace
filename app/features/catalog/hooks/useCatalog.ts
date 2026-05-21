@@ -38,7 +38,7 @@ export interface CreateVariantInput {
   title: string;
   titleTh?: string | null;
   titleEn?: string | null;
-  prices: number;
+  price: number;
   currency?: string;
   inventory?: {
     quantityOnHand: number;
@@ -54,7 +54,7 @@ export interface UpdateVariantInput {
   title?: string;
   titleTh?: string | null;
   titleEn?: string | null;
-  prices?: number;
+  price?: number;
   currency?: string;
 }
 

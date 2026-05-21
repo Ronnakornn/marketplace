@@ -17,7 +17,7 @@ function createAppContext(): AppContext {
   }
 }
 
-function fraudCase(input: Partial<FraudCase> = {}): FraudCase {
+function fraudCase(input: Partial<FraudCase> = {}): any {
   return {
     id: input.id ?? '11111111-1111-4111-8111-111111111111',
     entityType: input.entityType ?? 'REFUND',
@@ -28,9 +28,9 @@ function fraudCase(input: Partial<FraudCase> = {}): FraudCase {
     reasons: input.reasons ?? ['high_refund_rate'],
     status: input.status ?? 'OPEN',
     metadata: input.metadata ?? null,
-    reviewedBy: input.reviewedBy ?? null,
+    reviewedById: input.reviewedById ?? null,
     reviewedAt: input.reviewedAt ?? null,
-    resolvedBy: input.resolvedBy ?? null,
+    resolvedById: input.resolvedById ?? null,
     resolvedAt: input.resolvedAt ?? null,
     createdAt: input.createdAt ?? new Date('2026-05-15T00:00:00.000Z'),
     updatedAt: input.updatedAt ?? new Date('2026-05-15T00:00:00.000Z'),
@@ -93,12 +93,12 @@ function createRepo(): IFraudRepository {
     listFraudCases: vi.fn().mockResolvedValue({ items: [fraudCase()], total: 1 }),
     updateFraudCaseReview: vi.fn().mockResolvedValue(fraudCase({
       status: 'REVIEWED',
-      reviewedBy: 'admin-1',
+      reviewedById: 'admin-1',
       reviewedAt: new Date('2026-05-15T01:00:00.000Z'),
     })),
     updateFraudCaseStatus: vi.fn().mockResolvedValue(fraudCase({
       status: 'RESOLVED',
-      resolvedBy: 'admin-1',
+      resolvedById: 'admin-1',
       resolvedAt: new Date('2026-05-15T01:00:00.000Z'),
     })),
   }

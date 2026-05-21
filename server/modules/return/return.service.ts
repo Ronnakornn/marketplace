@@ -84,6 +84,7 @@ export class ReturnService {
       const created = await txRepo.createReturn({
         orderId: orderItem.orderId,
         userId: actor.id,
+        shopId: orderItem.shopId,
         orderItemId: orderItem.id,
         quantity: orderItem.quantity,
         reason,
@@ -221,7 +222,7 @@ export class ReturnService {
       refund: refund ? {
         id: refund.id,
         status: refund.status.toLowerCase(),
-        amount: refund.amount,
+        amount: Number(refund.amount),
       } : null,
       items: returnRecord.items.map((item) => ({
         id: item.id,
@@ -230,7 +231,7 @@ export class ReturnService {
         productTitle: item.orderItem.productTitle,
         variantTitle: item.orderItem.variantTitle,
         quantity: item.quantity,
-        lineTotal: item.orderItem.lineTotal,
+        lineTotal: Number(item.orderItem.lineTotal),
         currency: item.orderItem.currency,
         fulfillmentStatus: item.orderItem.fulfillmentStatus,
       })),

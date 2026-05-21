@@ -213,9 +213,9 @@ export class SearchService {
   }
 
   private toSearchItem(product: SearchProductRecord, locale: ContentLocale): ProductSearchItem {
-    const prices = product.variants.map((variant) => Number(variant.price))
-    const minPrice = Math.min(...prices)
-    const maxPrice = Math.max(...prices)
+    const price = product.variants.map((variant) => Number(variant.price))
+    const minPrice = Math.min(...price)
+    const maxPrice = Math.max(...price)
     const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0)
     const totalReviewCount = product.reviews.length
     const averageRating = totalReviewCount === 0 ? 0 : Number((totalRating / totalReviewCount).toFixed(2))

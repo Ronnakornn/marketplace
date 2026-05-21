@@ -166,9 +166,9 @@ export class RecommendationService {
   }
 
   private toProductCard(product: RecommendationProductRecord, locale: ContentLocale): RecommendationProductCard {
-    const prices = product.variants.map((variant) => variant.prices)
-    const minPrice = Math.min(...prices)
-    const maxPrice = Math.max(...prices)
+    const price = product.variants.map((variant) => Number(variant.price))
+    const minPrice = Math.min(...price)
+    const maxPrice = Math.max(...price)
     const soldCount = product.variants.reduce(
       (sum, variant) => sum + variant.orderItems.reduce((variantSum, item) => variantSum + item.quantity, 0),
       0,

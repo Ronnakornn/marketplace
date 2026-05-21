@@ -72,7 +72,7 @@ const baseBody: PaymentWebhookBody = {
   amount: 2900,
 }
 
-function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<PaymentWithOrder> = {}): PaymentWithOrder {
+function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<PaymentWithOrder> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   const checkoutId = '12121212-1212-4121-8121-121212121212'
   const orderId = overrides.orderId ?? baseBody.orderId
@@ -147,7 +147,7 @@ function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<Pay
           {
             id: '16161616-1616-4161-8161-161616161616',
             checkoutId,
-            variantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            inventoryId: '17171717-1717-4171-8171-171717171717',
             quantity: 2,
             status: 'ACTIVE',
             expiresAt: new Date('2026-05-13T00:15:00.000Z'),
@@ -247,7 +247,7 @@ describe('PaymentService', () => {
     const expectedReservations: ReleaseReservationInput[] = [
       {
         reservationId: '16161616-1616-4161-8161-161616161616',
-        variantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        inventoryId: '17171717-1717-4171-8171-171717171717',
         quantity: 2,
       },
     ]

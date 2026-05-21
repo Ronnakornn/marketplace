@@ -389,9 +389,9 @@ function sortProducts(products: BuyerProduct[], sort: string): BuyerProduct[] {
   const items = [...products];
   switch (sort) {
     case "price_asc":
-      return items.sort((a, b) => a.prices - b.prices || a.title.localeCompare(b.title));
+      return items.sort((a, b) => a.price - b.price || a.title.localeCompare(b.title));
     case "price_desc":
-      return items.sort((a, b) => b.prices - a.prices || a.title.localeCompare(b.title));
+      return items.sort((a, b) => b.price - a.price || a.title.localeCompare(b.title));
     case "best_selling":
       return items.sort((a, b) => b.soldCount - a.soldCount || a.title.localeCompare(b.title));
     case "rating":

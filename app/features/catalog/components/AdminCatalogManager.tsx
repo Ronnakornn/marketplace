@@ -50,11 +50,11 @@ import {
 } from "#/components/ui/table";
 import { type CatalogProduct, useAdminCatalogProducts } from "../hooks/useCatalog";
 
-function formatMoney(cents: number, currency: string) {
+function formatMoney(cents: number | bigint, currency: string) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-  }).format(cents / 100);
+  }).format(Number(cents) / 100);
 }
 
 function statusTone(status: CatalogProduct["status"]) {
@@ -69,7 +69,7 @@ function statusTone(status: CatalogProduct["status"]) {
 }
 
 function lowestVariantPrice(product: CatalogProduct) {
-  const sorted = [...product.variants].sort((a, b) => a.prices - b.prices);
+  const sorted = [...product.variants].sort((a, b) => Number(a.price) - Number(b.price));
   return sorted[0] ?? null;
 }
 
@@ -161,7 +161,7 @@ export function AdminCatalogManager() {
       header: "Price",
       cell: ({ row }) => {
         const price = lowestVariantPrice(row.original);
-        return price ? formatMoney(price.prices, price.currency) : "No variants";
+        return price ? formatMoney(price.price, price.currency) : "No variants";
       },
     },
     {

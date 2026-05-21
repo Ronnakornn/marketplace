@@ -6,7 +6,6 @@ import type {
   CheckoutAddress,
   CheckoutCart,
   CheckoutCartItem,
-  CreatedCheckoutOrder,
   CreatePendingOrderInput,
   ICheckoutRepository,
 } from './checkout.repository.ts'
@@ -52,7 +51,7 @@ function createActor(role: Role = 'USER') {
   }
 }
 
-function createAddress(overrides: Partial<CheckoutAddress> = {}): CheckoutAddress {
+function createAddress(overrides: Partial<CheckoutAddress> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   return {
     id: overrides.id ?? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -75,14 +74,14 @@ function createItem(overrides: Partial<{
   id: string
   variantId: string
   quantity: number
-  prices: number
+  price: number
   currency: string
   productStatus: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
   variantStatus: 'ACTIVE' | 'INACTIVE'
   shopStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
   quantityOnHand: number
   quantityReserved: number
-}> = {}): CheckoutCartItem {
+}> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   const variantId = overrides.variantId ?? 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
   return {
@@ -99,7 +98,7 @@ function createItem(overrides: Partial<{
       productId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
       sku: 'TEE-BLK-M',
       title: 'Black / M',
-      prices: overrides.prices ?? 1200,
+      price: overrides.price ?? 1200,
       currency: overrides.currency ?? 'USD',
       status: overrides.variantStatus ?? 'ACTIVE',
       createdAt: now,
@@ -137,7 +136,7 @@ function createCart(overrides: Partial<{
   userId: string
   status: 'ACTIVE' | 'CHECKED_OUT' | 'ABANDONED'
   items: CheckoutCartItem[]
-}> = {}): CheckoutCart {
+}> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   return {
     id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -149,7 +148,7 @@ function createCart(overrides: Partial<{
   }
 }
 
-function createCreatedOrder(input?: Partial<CreatePendingOrderInput>): CreatedCheckoutOrder {
+function createCreatedOrder(input?: Partial<CreatePendingOrderInput>): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   return {
     checkoutId: '12121212-1212-4121-8121-121212121212',
@@ -213,6 +212,7 @@ async function setupSuccess(overrides: {
     vi.mocked(promotionService.validateCouponForsubtotal).mockResolvedValue({
       couponId: '99999999-9999-4999-8999-999999999999',
       couponCode: 'SAVE10',
+      discount: overrides.couponDiscountCents ?? 0,
       discountCents: overrides.couponDiscountCents ?? 0,
       subtotal: 2400,
     })
@@ -273,7 +273,7 @@ describe('CheckoutService', () => {
 
     const input = vi.mocked(repo.createPendingOrder).mock.calls[0]![0]
     expect(input.items[0]!.unitPrice).toBe(1000)
-    expect(input.items[0]!.variant.prices).toBe(1200)
+    expect(input.items[0]!.variant.price).toBe(1200)
     expect(input.items[0]!.variant.product.title).toBe('Oversized Cotton Tee')
     expect(input.items[0]!.variant.product.shop.name).toBe('Everyday Studio')
   })

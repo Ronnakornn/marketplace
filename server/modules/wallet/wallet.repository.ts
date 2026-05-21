@@ -2,7 +2,7 @@ import type {
   Order,
   OrderItem,
   PrismaClient,
-  SellerWallet,
+  ShopWallet,
   Shop,
   WalletLedgerEntry,
   WalletLedgerEntryType,
@@ -12,7 +12,7 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
 type WalletTx = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>
 
-export type WalletRecord = SellerWallet & { shop: Pick<Shop, 'id' | 'name' | 'ownerId'> }
+export type WalletRecord = ShopWallet & { shop: Pick<Shop, 'id' | 'name' | 'ownerId'> }
 export type WalletEntryRecord = WalletLedgerEntry
 export type CompletedOrderRecord = Order & { items: OrderItem[] }
 
@@ -33,7 +33,7 @@ export interface IWalletRepository {
   transaction<T>(callback: (repo: IWalletRepository) => Promise<T>): Promise<T>
   findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'name' | 'ownerId'>>>
   findWalletByShopId(shopId: string): Promise<WalletRecord | null>
-  ensureWallet(shopId: string, currency: string): Promise<SellerWallet>
+  ensureWallet(shopId: string, currency: string): Promise<ShopWallet>
   listEntries(walletId: string, limit: number, offset: number): Promise<WalletEntryRecord[]>
   sumLedger(walletId: string): Promise<number>
   createLedgerEntry(input: CreateLedgerEntryInput): Promise<WalletLedgerEntry>
@@ -70,15 +70,15 @@ export class PrismaWalletRepository implements IWalletRepository {
 
   findWalletByShopId(shopId: string): Promise<WalletRecord | null> {
     this.logger.debug('PrismaWalletRepository.findWalletByShopId', { shopId })
-    return this.prisma.sellerWallet.findUnique({
+    return this.prisma.shopWallet.findUnique({
       where: { shopId },
       include: { shop: { select: { id: true, name: true, ownerId: true } } },
     })
   }
 
-  ensureWallet(shopId: string, currency: string): Promise<SellerWallet> {
+  ensureWallet(shopId: string, currency: string): Promise<ShopWallet> {
     this.logger.info('PrismaWalletRepository.ensureWallet', { shopId })
-    return this.prisma.sellerWallet.upsert({
+    return this.prisma.shopWallet.upsert({
       where: { shopId },
       create: { shopId, currency },
       update: {},
@@ -100,7 +100,7 @@ export class PrismaWalletRepository implements IWalletRepository {
       where: { walletId },
       _sum: { amount: true },
     })
-    return result._sum.amount ?? 0
+    return Number(result._sum.amount ?? 0)
   }
 
   createLedgerEntry(input: CreateLedgerEntryInput): Promise<WalletLedgerEntry> {

@@ -49,7 +49,7 @@ export function DealsPage() {
             {(productsQuery.data ?? []).slice(0, 3).map((product, index) => (
               <Link key={product.id} href={localePath(`/products/${product.id}`)} className="rounded-2xl border border-orange-100 bg-orange-50 p-3 transition hover:bg-orange-100">
                 <p className="line-clamp-2 min-h-10 text-sm font-bold text-slate-950">{product.title}</p>
-                <p className="mt-2 text-lg font-extrabold text-orange-600">{formatMoney(product.prices, product.currency)}</p>
+                <p className="mt-2 text-lg font-extrabold text-orange-600">{formatMoney(product.price, product.currency)}</p>
                 <Progress value={Math.min(100, 35 + index * 20 + product.soldCount)} className="mt-3 h-2" />
                 <p className="mt-1 text-xs font-semibold text-slate-500">{t("buyer.sellingFast")}</p>
               </Link>

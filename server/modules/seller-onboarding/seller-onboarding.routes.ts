@@ -4,7 +4,7 @@ import { authPlugin } from '#server/modules/auth'
 import { SellerOnboardingServiceError } from './seller-onboarding.errors.ts'
 
 const DocumentSchema = t.Object({
-  uploadId: t.String({ format: 'uuid' }),
+  uploadId: t.String(),
   documentType: t.Union([
     t.Literal('ID_CARD'),
     t.Literal('BUSINESS_CERTIFICATE'),
@@ -21,28 +21,28 @@ const DocumentSchema = t.Object({
 
 const ApplicationBodySchema = t.Partial(t.Object({
   businessType: t.Union([t.Literal('INDIVIDUAL'), t.Literal('COMPANY')]),
-  sellerProfileId: t.Nullable(t.String({ format: 'uuid' })),
-  shopName: t.String({ minLength: 1 }),
-  shopSlug: t.String({ minLength: 2 }),
-  shopContactEmail: t.String({ format: 'email' }),
-  shopContactPhone: t.String({ minLength: 1 }),
-  legalName: t.String({ minLength: 1 }),
-  contactEmail: t.String({ format: 'email' }),
-  contactPhone: t.String({ minLength: 1 }),
+  sellerProfileId: t.Nullable(t.String()),
+  shopName: t.String(),
+  shopSlug: t.String(),
+  shopContactEmail: t.String(),
+  shopContactPhone: t.String(),
+  legalName: t.String(),
+  contactEmail: t.String(),
+  contactPhone: t.String(),
   nationalId: t.Nullable(t.String()),
   companyRegistration: t.Nullable(t.String()),
   taxId: t.Nullable(t.String()),
-  bankName: t.String({ minLength: 1 }),
-  bankAccountName: t.String({ minLength: 1 }),
-  bankAccountNumber: t.String({ minLength: 1 }),
-  pickupName: t.String({ minLength: 1 }),
+  bankName: t.String(),
+  bankAccountName: t.String(),
+  bankAccountNumber: t.String(),
+  pickupName: t.String(),
   pickupPhone: t.Nullable(t.String()),
-  pickupLine1: t.String({ minLength: 1 }),
+  pickupLine1: t.String(),
   pickupLine2: t.Nullable(t.String()),
-  pickupCity: t.String({ minLength: 1 }),
+  pickupCity: t.String(),
   pickupRegion: t.Nullable(t.String()),
-  pickupPostalCode: t.String({ minLength: 1 }),
-  pickupCountry: t.String({ minLength: 2 }),
+  pickupPostalCode: t.String(),
+  pickupCountry: t.String(),
   documents: t.Array(DocumentSchema),
 }))
 

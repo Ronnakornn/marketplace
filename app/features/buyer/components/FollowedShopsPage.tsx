@@ -38,7 +38,7 @@ export function FollowedShopsPage() {
                 {shop.products.map((product) => (
                   <Link key={product.id} href={localePath(`/products/${product.id}`)} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
                     <p className="line-clamp-1 text-sm font-semibold text-slate-950">{product.title}</p>
-                    <p className="mt-1 text-sm font-bold text-orange-600">{formatMoney(product.prices, product.currency)}</p>
+                    <p className="mt-1 text-sm font-bold text-orange-600">{formatMoney(product.price, product.currency)}</p>
                   </Link>
                 ))}
               </div>

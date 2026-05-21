@@ -71,22 +71,22 @@ interface AdminCatalogEditPageProps {
 interface VariantFormState {
   sku: string;
   title: string;
-  prices: string;
+  price: string;
   currency: string;
 }
 
 const EMPTY_VARIANT_FORM: VariantFormState = {
   sku: "",
   title: "",
-  prices: "",
+  price: "",
   currency: "USD",
 };
 
-function formatMoney(cents: number, currency: string) {
+function formatMoney(cents: number | bigint, currency: string) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-  }).format(cents / 100);
+  }).format(Number(cents) / 100);
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -122,7 +122,7 @@ function statusTone(status: ProductStatus) {
 
 function ProductSnapshot({ product, status }: { product: CatalogProduct; status: ProductStatus }) {
   const lowestPrice = useMemo(
-    () => [...product.variants].sort((a, b) => a.prices - b.prices)[0] ?? null,
+    () => [...product.variants].sort((a, b) => Number(a.price) - Number(b.price))[0] ?? null,
     [product.variants],
   );
   const totalStock = product.variants.reduce((total, variant) => total + (variant.inventory?.quantityOnHand ?? 0), 0);
@@ -158,7 +158,7 @@ function ProductSnapshot({ product, status }: { product: CatalogProduct; status:
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Variants" value={String(product.variants.length)} />
-          <Metric label="From price" value={lowestPrice ? formatMoney(lowestPrice.prices, lowestPrice.currency) : "None"} />
+          <Metric label="From price" value={lowestPrice ? formatMoney(lowestPrice.price, lowestPrice.currency) : "None"} />
           <Metric label="Total stock" value={String(totalStock)} />
           <Metric label="Currency" value={lowestPrice?.currency ?? "N/A"} />
         </div>
@@ -212,7 +212,7 @@ function VariantDataTable(props: {
       cell: ({ row }) => <span className="font-mono text-xs text-slate-300">{row.original.sku}</span>,
     },
     {
-      accessorKey: "prices",
+      accessorKey: "price",
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -222,7 +222,7 @@ function VariantDataTable(props: {
           Price
         </Button>
       ),
-      cell: ({ row }) => formatMoney(row.original.prices, row.original.currency),
+      cell: ({ row }) => formatMoney(row.original.price, row.original.currency),
     },
     {
       accessorKey: "currency",
@@ -286,7 +286,7 @@ function VariantDataTable(props: {
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <div>
           <CardTitle className="text-white">Variant Data Table</CardTitle>
-          <p className="mt-1 text-sm text-slate-400">Manage size, color, SKU, and variant-level prices.</p>
+          <p className="mt-1 text-sm text-slate-400">Manage size, color, SKU, and variant-level price.</p>
         </div>
         <Button size="sm" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200" onClick={props.onCreate}>
           Create variant
@@ -367,7 +367,7 @@ function VariantDialog(props: {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="SKU" value={form.sku} onChange={(value) => setForm((current) => ({ ...current, sku: value }))} required />
             <Field label="Title" value={form.title} onChange={(value) => setForm((current) => ({ ...current, title: value }))} required />
-            <Field label="Price cents" type="number" value={form.prices} onChange={(value) => setForm((current) => ({ ...current, prices: value }))} required />
+            <Field label="Price cents" type="number" value={form.price} onChange={(value) => setForm((current) => ({ ...current, price: value }))} required />
             <Field label="Currency" value={form.currency} onChange={(value) => setForm((current) => ({ ...current, currency: value }))} required />
           </div>
           <DialogFooter>
@@ -500,7 +500,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
     );
   }
 
-  const lowestPrice = [...product.variants].sort((a, b) => a.prices - b.prices)[0] ?? null;
+  const lowestPrice = [...product.variants].sort((a, b) => Number(a.price) - Number(b.price))[0] ?? null;
   const totalStock = product.variants.reduce((total, variant) => total + (variant.inventory?.quantityOnHand ?? 0), 0);
 
   return (
@@ -550,7 +550,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <WorkspaceStat label="Shop" value={product.shop.name} icon={StoreIcon} />
           <WorkspaceStat label="Variants" value={String(product.variants.length)} icon={TagIcon} />
-          <WorkspaceStat label="From price" value={lowestPrice ? formatMoney(lowestPrice.prices, lowestPrice.currency) : "None"} icon={CircleDollarSignIcon} />
+          <WorkspaceStat label="From price" value={lowestPrice ? formatMoney(lowestPrice.price, lowestPrice.currency) : "None"} icon={CircleDollarSignIcon} />
           <WorkspaceStat label="Total stock" value={String(totalStock)} icon={BoxesIcon} />
         </div>
       </section>
@@ -756,7 +756,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
         initialValues={editingVariant ? {
           sku: editingVariant.sku,
           title: editingVariant.title,
-          prices: String(editingVariant.prices),
+          price: String(editingVariant.price),
           currency: editingVariant.currency,
         } : EMPTY_VARIANT_FORM}
         pending={createVariant.isPending || updateVariant.isPending}
@@ -777,7 +777,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                 variantId: editingVariant.id,
                 sku: values.sku,
                 title: values.title,
-                prices: Number(values.prices),
+                price: Number(values.price),
                 currency: values.currency,
               });
               setMessage("Variant saved.");
@@ -786,7 +786,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                 productId: product.id,
                 sku: values.sku,
                 title: values.title,
-                prices: Number(values.prices),
+                price: Number(values.price),
                 currency: values.currency,
               });
               setMessage("Variant created.");

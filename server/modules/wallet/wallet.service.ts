@@ -25,7 +25,7 @@ export interface WalletSummary {
 export interface WalletTransactionResponse {
   id: string
   type: string
-  amount: bigint
+  amount: number
   currency: string
   orderId: string | null
   payoutId: string | null
@@ -159,7 +159,7 @@ export class WalletService {
     return {
       id: entry.id,
       type: entry.type,
-      amount: entry.amount,
+      amount: Number(entry.amount),
       currency: entry.currency,
       orderId: entry.orderId,
       payoutId: entry.payoutId,

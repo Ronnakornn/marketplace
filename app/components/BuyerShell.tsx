@@ -55,11 +55,12 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
   const notificationHref = isSellerRoute ? "/seller/notifications" : "/notifications";
   const canUseBuyerCart = Boolean(session && session.user.role !== "ADMIN");
   const canUseChat = Boolean(session && session.user.role !== "ADMIN");
-  const chatHref = isSellerRoute ? "/seller/chat" : "/chat";
+  const chatHref = "/chat";
+  const sellerChatHref = "/seller/chat";
   const cartQuery = useQuery({
     queryKey: ["buyer-cart", locale],
     queryFn: () => fetchCart(locale),
-    enabled: canUseBuyerCart && !isSellerRoute,
+    enabled: canUseBuyerCart,
   });
   const chatRoomsQuery = useQuery({
     queryKey: ["chat-rooms", session?.user.role],
@@ -126,7 +127,7 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
             <span className="sr-only">{t("chat.messages")}</span>
           </Link>
         ) : null}
-        {isSellerRoute ? null : (
+        {canUseBuyerCart ? (
           <Link href={localePath("/cart")} className="relative flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
             <ShoppingCartIcon className="size-5" />
             {cartItemCount > 0 ? (
@@ -136,13 +137,19 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
             ) : null}
             <span className="sr-only">{t("common.cart")}</span>
           </Link>
-        )}
+        ) : null}
         {session ? (
           <>
-            {session.user.role !== "ADMIN" && !isSellerRoute ? (
+            {session.user.role !== "ADMIN" ? (
               <Link href={localePath("/seller/register")} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 sm:flex">
                 <StoreIcon className="size-4" />
                 Start Selling
+              </Link>
+            ) : null}
+            {session.user.role !== "ADMIN" && !isSellerRoute ? (
+              <Link href={localePath(sellerChatHref)} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 lg:flex">
+                <StoreIcon className="size-4" />
+                Seller Chat
               </Link>
             ) : null}
             <Link href={localePath("/profile")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">

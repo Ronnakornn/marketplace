@@ -21,7 +21,9 @@ export async function requireUser() {
   if (!session) {
     const pathname = (await headers()).get("x-pathname") ?? "";
     const locale = pathname.split("/").find(isLocale) ?? defaultLocale;
-    redirect(withLocale("/login", locale));
+    const loginPath = withLocale("/login", locale);
+    const nextPath = pathname || withLocale("/", locale);
+    redirect(`${loginPath}?next=${encodeURIComponent(nextPath)}`);
   }
 
   return session;
@@ -50,10 +52,11 @@ export async function requireSeller() {
 export async function getSellerAccess() {
   const session = await requireUser();
 
-  const [activeShop, application] = await Promise.all([
-    prisma.shop.findFirst({
+  const [activeShops, application] = await Promise.all([
+    prisma.shop.findMany({
       where: { ownerId: session.user.id, status: "ACTIVE" },
       select: { id: true, name: true, slug: true, status: true },
+      orderBy: { createdAt: "asc" },
     }),
 
     prisma.sellerApplication.findFirst({
@@ -65,8 +68,9 @@ export async function getSellerAccess() {
 
   return {
     session,
-    hasActiveShop: Boolean(activeShop),
-    activeShop,
+    hasActiveShop: activeShops.length > 0,
+    activeShop: activeShops[0] ?? null,
+    activeShops,
     application,
   };
 }

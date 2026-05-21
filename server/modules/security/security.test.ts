@@ -2,6 +2,7 @@ import { Elysia } from 'elysia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSecurityPlugin, resetSecurityRateLimitBuckets } from '#server/plugins/security.plugin.ts'
 import type { AppContext } from '#server/context/app-context.ts'
+import { ActiveShopResolver } from './active-shop.ts'
 import { OwnershipGuards, type OwnershipGuardRepository } from './ownership-guards.ts'
 import { SecurityError } from './security.errors.ts'
 import { SecurityService } from './security.service.ts'
@@ -118,6 +119,27 @@ describe('security hardening', () => {
     await expect(guards.assertSellerOwnsShop('seller-1', 'shop-1'))
       .rejects.toMatchObject({ status: 403, code: 'FORBIDDEN' })
     expect(repo.activeShopBelongsToUser).toHaveBeenCalledWith('seller-1', 'shop-1')
+  })
+
+  it('active shop resolver authorizes only active shops owned by the user', async () => {
+    const repo = createOwnershipRepo()
+    const resolver = new ActiveShopResolver(repo)
+
+    await expect(resolver.requireAnyActiveShop('seller-1')).resolves.toMatchObject({
+      id: 'shop-1',
+      ownerId: 'seller-1',
+      status: 'ACTIVE',
+    })
+    expect(repo.findActiveShopsForUser).toHaveBeenCalledWith('seller-1')
+
+    vi.mocked(repo.findActiveShopsForUser).mockResolvedValueOnce([])
+    await expect(resolver.requireAnyActiveShop('pending-seller'))
+      .rejects.toMatchObject({ status: 403, code: 'SELLER_SHOP_NOT_ACTIVE' })
+
+    vi.mocked(repo.findActiveShopForUser).mockResolvedValueOnce(null)
+    await expect(resolver.requireActiveShop('seller-1', 'other-shop'))
+      .rejects.toMatchObject({ status: 403, code: 'SELLER_SHOP_NOT_ACTIVE' })
+    expect(repo.findActiveShopForUser).toHaveBeenCalledWith('seller-1', 'other-shop')
   })
 
   it('buyer ownership guard blocks wrong buyer', async () => {

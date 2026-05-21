@@ -213,10 +213,10 @@ export class AffiliateService {
     })
   }
 
-  private calculateEligiblesubtotal(order: { subtotal: number; discountTotal: number; items: Array<{ lineTotal: number }> }): number {
-    const itemsubtotal = order.items.reduce((sum, item) => sum + item.lineTotal, 0)
-    const subtotal = itemsubtotal || order.subtotal
-    return Math.max(0, subtotal - order.discountTotal)
+  private calculateEligiblesubtotal(order: { subtotal: number | bigint; discountTotal: number | bigint; items: Array<{ lineTotal: number | bigint }> }): number {
+    const itemsubtotal = order.items.reduce((sum, item) => sum + Number(item.lineTotal), 0)
+    const subtotal = itemsubtotal || Number(order.subtotal)
+    return Math.max(0, subtotal - Number(order.discountTotal))
   }
 
   private async assertValidTarget(targetType: AffiliateTargetType, targetId: string): Promise<void> {

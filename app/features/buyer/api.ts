@@ -129,6 +129,25 @@ export interface BuyerProfile {
   image?: string | null;
 }
 
+export interface SellerApplicationSummary {
+  application: {
+    id: string;
+    status: string;
+    rejectionReason?: string | null;
+    shopName?: string | null;
+    shopSlug?: string | null;
+    submittedAt?: string | null;
+    reviewedAt?: string | null;
+  } | null;
+  shop: {
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+    approvedAt?: string | null;
+  } | null;
+}
+
 export interface BuyerFavoriteProduct {
   id: string;
   productId: string;
@@ -446,6 +465,31 @@ export async function fetchProfile(): Promise<BuyerProfile> {
     role: readString(response.role, "USER"),
     status: readString(response.status, "ACTIVE"),
     image: optionalString(response.image),
+  };
+}
+
+export async function fetchSellerApplicationSummary(): Promise<SellerApplicationSummary> {
+  const response = toRecord(await apiFetch("/api/seller/application"));
+  const application = toRecord(response.application);
+  const shop = toRecord(response.shop);
+
+  return {
+    application: response.application ? {
+      id: readString(application.id),
+      status: readString(application.status),
+      rejectionReason: optionalString(application.rejectionReason),
+      shopName: optionalString(application.shopName),
+      shopSlug: optionalString(application.shopSlug),
+      submittedAt: optionalString(application.submittedAt),
+      reviewedAt: optionalString(application.reviewedAt),
+    } : null,
+    shop: response.shop ? {
+      id: readString(shop.id),
+      name: readString(shop.name),
+      slug: readString(shop.slug),
+      status: readString(shop.status),
+      approvedAt: optionalString(shop.approvedAt),
+    } : null,
   };
 }
 

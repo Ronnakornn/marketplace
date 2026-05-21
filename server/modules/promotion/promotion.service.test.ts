@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DiscountType } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
-import type { IPromotionRepository, PromotionCoupon } from './promotion.repository.ts'
+import type { IPromotionRepository } from './promotion.repository.ts'
 import { PromotionService } from './promotion.service.ts'
 
 function createLogger() {
@@ -52,7 +52,7 @@ function createCoupon(overrides: Partial<{
   perUserLimit: number | null
   isActive: boolean
   redemptions: number
-}> = {}): PromotionCoupon {
+}> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   return {
     id: '99999999-9999-4999-8999-999999999999',

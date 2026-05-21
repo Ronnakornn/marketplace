@@ -34,7 +34,7 @@ export interface SellerProductInput {
 export interface SellerVariantInput {
   sku: string;
   title: string;
-  prices: number;
+  price: number;
   currency?: string;
 }
 

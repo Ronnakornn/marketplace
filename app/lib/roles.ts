@@ -1,6 +1,5 @@
 export const ROLES = {
   USER: "USER",
-  SELLER: "SELLER",
   ADMIN: "ADMIN",
 } as const;
 
@@ -10,10 +9,6 @@ export function isAdminRole(role: string | null | undefined): role is "ADMIN" {
   return role === ROLES.ADMIN;
 }
 
-export function isSellerRole(role: string | null | undefined): role is "SELLER" {
-  return role === ROLES.SELLER;
-}
-
-export function isSystemRole(role: string | null | undefined): role is "SELLER" | "ADMIN" {
-  return role === ROLES.SELLER || role === ROLES.ADMIN;
+export function isSystemRole(role: string | null | undefined): role is "ADMIN" {
+  return isAdminRole(role);
 }

@@ -39,6 +39,7 @@ export type ReturnRecord = ReturnRequest & {
 export interface CreateReturnInput {
   orderId: string
   userId: string
+  shopId: string
   orderItemId: string
   quantity: number
   reason: string
@@ -133,6 +134,7 @@ export class PrismaReturnRepository implements IReturnRepository {
       data: {
         orderId: input.orderId,
         userId: input.userId,
+        shopId: input.shopId,
         status: 'REQUESTED',
         reason: input.reason,
         description: input.description,

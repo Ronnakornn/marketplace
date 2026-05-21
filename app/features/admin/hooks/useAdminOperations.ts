@@ -25,6 +25,8 @@ export type AdminPayoutsResponse = Treaty.Data<ReturnType<typeof api.api.admin.p
 export type AdminPayout = AdminPayoutsResponse extends Array<infer T> ? T : never;
 export type AdminFraudCasesResponse = Treaty.Data<ReturnType<typeof api.api.admin.fraud.cases.get>>;
 export type AdminFraudCase = AdminFraudCasesResponse extends { items: Array<infer T> } ? T : never;
+export type AdminSellerApplicationsResponse = Treaty.Data<ReturnType<(typeof api.api.admin)["seller-applications"]["get"]>>;
+export type AdminSellerApplication = AdminSellerApplicationsResponse extends Array<infer T> ? T : never;
 export type { AdminAffiliate };
 
 export interface AdminListFilters {
@@ -165,6 +167,19 @@ export function useAdminFraudCasesList(filters: AdminListFilters & { riskLevel?:
           ...cleanQuery(filters),
           riskLevel: filters.riskLevel || undefined,
         },
+      });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminSellerApplicationsList(status = "SUBMITTED") {
+  return useQuery({
+    queryKey: ["admin", "seller-applications", status],
+    queryFn: async () => {
+      const { data, error } = await api.api.admin["seller-applications"].get({
+        query: { status: status as "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "CANCELLED" },
       });
       if (error) throw error;
       return data;
@@ -332,6 +347,23 @@ export function useResolveFraudCase() {
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useReviewSellerApplication() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, decision, rejectionReason }: { id: string; decision: "APPROVED" | "REJECTED"; rejectionReason?: string }) => {
+      const { data, error } = await api.api.admin["seller-applications"]({ applicationId: id }).review.patch({ decision, rejectionReason });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin"] }),
+        queryClient.invalidateQueries({ queryKey: ["seller", "application"] }),
+      ]);
+    },
   });
 }
 

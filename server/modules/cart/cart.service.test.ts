@@ -49,8 +49,8 @@ function createVariant(overrides: Partial<{
   shopStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
   quantityOnHand: number
   quantityReserved: number
-  prices: number
-}> = {}) {
+  price: number | bigint
+}> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   const shopId = overrides.shopId ?? '11111111-1111-4111-8111-111111111111'
 
@@ -59,7 +59,7 @@ function createVariant(overrides: Partial<{
     productId: '22222222-2222-4222-8222-222222222222',
     sku: 'TSHIRT-BLK-M',
     title: 'Black / M',
-    prices: overrides.prices ?? 1590,
+    price: BigInt(overrides.price ?? 1590),
     currency: 'USD',
     status: 'ACTIVE' as const,
     createdAt: now,
@@ -70,6 +70,7 @@ function createVariant(overrides: Partial<{
       quantityOnHand: overrides.quantityOnHand ?? 10,
       quantityReserved: overrides.quantityReserved ?? 2,
       reorderLevel: 0,
+      version: 0,
       updatedAt: now,
     },
     product: {
@@ -96,7 +97,7 @@ function createCart(overrides: Partial<{
   id: string
   userId: string
   items: any[]
-}> = {}) {
+}> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   return {
     id: overrides.id ?? '55555555-5555-4555-8555-555555555555',
@@ -111,9 +112,9 @@ function createCart(overrides: Partial<{
 function createItem(overrides: Partial<{
   id: string
   quantity: number
-  unitPrice: number
+  unitPrice: number | bigint
   variant: ReturnType<typeof createVariant>
-}> = {}) {
+}> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   const variant = overrides.variant ?? createVariant()
   return {
@@ -121,7 +122,7 @@ function createItem(overrides: Partial<{
     cartId: '55555555-5555-4555-8555-555555555555',
     variantId: variant.id,
     quantity: overrides.quantity ?? 2,
-    unitPrice: overrides.unitPrice ?? 1490,
+    unitPrice: BigInt(overrides.unitPrice ?? 1490),
     currency: 'USD',
     createdAt: now,
     updatedAt: now,
@@ -134,9 +135,9 @@ describe('CartService', () => {
     vi.clearAllMocks()
   })
 
-  it('returns a cart grouped by shop with captured unit prices and subtotal', async () => {
+  it('returns a cart grouped by shop with captured unit price and subtotal', async () => {
     const repo = createRepoMock()
-    const item = createItem({ quantity: 2, unitPrice: BigInt(1490) as unknown as number })
+    const item = createItem({ quantity: 2, unitPrice: 1490 })
     vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart({ items: [item] }))
     const service = new CartService(createAppContext(), repo)
 
@@ -166,7 +167,7 @@ describe('CartService', () => {
   it('adds an active variant and captures current unit price', async () => {
     const repo = createRepoMock()
     const cart = createCart()
-    const variant = createVariant({ prices: 1590 })
+    const variant = createVariant({ price: 1590 })
     vi.mocked(repo.findOrCreateActiveCart)
       .mockResolvedValueOnce(cart)
       .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 1, unitPrice: 1590, variant })] }))

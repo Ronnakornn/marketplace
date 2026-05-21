@@ -4,11 +4,12 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircleIcon, FileTextIcon, Loader2Icon, StoreIcon, XCircleIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocalePath } from "#/i18n/navigation";
 import { SellerPageHeader } from "./SellerShell";
 
-type ApplicationStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
+type ApplicationStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "CANCELLED";
 type BusinessType = "INDIVIDUAL" | "COMPANY";
 type DocumentType = "ID_CARD" | "BUSINESS_CERTIFICATE" | "BANK_BOOK" | "TAX_DOCUMENT";
 
@@ -104,7 +105,11 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
-    const message = payload?.error?.message ?? payload?.message ?? "Request failed";
+    const details = payload?.error?.details;
+    const detailText = details?.missing && Array.isArray(details.missing)
+      ? ` Missing: ${details.missing.join(", ")}.`
+      : "";
+    const message = `${payload?.error?.message ?? payload?.message ?? "Request failed"}${detailText}`;
     throw new Error(message);
   }
   return payload as T;
@@ -153,6 +158,8 @@ function toPayload(form: OnboardingFormState) {
     businessType: form.businessType,
     shopName: form.shopName,
     shopSlug: form.shopSlug,
+    shopContactEmail: form.contactEmail,
+    shopContactPhone: form.contactPhone,
     legalName: form.legalName,
     contactEmail: form.contactEmail,
     contactPhone: form.contactPhone,
@@ -213,12 +220,19 @@ export function SellerRegisterPage() {
   }
 
   const error = draftMutation.error ?? submitMutation.error;
+  const isLocked = applicationQuery.data?.application?.status === "SUBMITTED";
+  const isSaving = draftMutation.isPending || submitMutation.isPending;
 
   return (
     <>
       <SellerPageHeader title="Start Selling" description="Register your shop, submit Thailand KYC, and wait for admin approval before seller tools unlock." />
       <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
         <form className="space-y-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm" onSubmit={(event) => event.preventDefault()}>
+          {isLocked ? (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+              This application is already submitted. You can edit it only if admin rejects it.
+            </p>
+          ) : null}
           <Section title="Shop profile">
             <label className={labelClass}>Business type</label>
             <select value={form.businessType} onChange={(event) => update("businessType", event.target.value as BusinessType)} className={inputClass}>
@@ -260,10 +274,12 @@ export function SellerRegisterPage() {
           {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error.message}</p> : null}
           {message ? <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">{message}</p> : null}
           <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={() => draftMutation.mutate()} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
+            <button type="button" disabled={isLocked || isSaving} onClick={() => draftMutation.mutate()} className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60">
+              {draftMutation.isPending ? <Loader2Icon className="size-4 animate-spin" /> : null}
               Save draft
             </button>
-            <button type="button" onClick={() => submitMutation.mutate()} className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
+            <button type="button" disabled={isLocked || isSaving} onClick={() => submitMutation.mutate()} className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
+              {submitMutation.isPending ? <Loader2Icon className="size-4 animate-spin" /> : null}
               Submit for review
             </button>
           </div>
@@ -303,7 +319,7 @@ export function SellerStatusPage() {
               <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                 <p className="font-semibold">Rejected</p>
                 <p className="mt-1">{application.rejectionReason ?? "Please update your application and submit again."}</p>
-                <a href={localePath("/seller/register")} className="mt-3 inline-flex rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white no-underline">Edit application</a>
+                <Link href={localePath("/seller/register")} className="mt-3 inline-flex rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white no-underline">Edit application</Link>
               </div>
             ) : null}
             {application.status === "SUBMITTED" ? (
@@ -312,11 +328,18 @@ export function SellerStatusPage() {
               </p>
             ) : null}
             {application.status === "DRAFT" ? (
-              <a href={localePath("/seller/register")} className="inline-flex rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white no-underline">Complete application</a>
+              <Link href={localePath("/seller/register")} className="inline-flex rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white no-underline">Complete application</Link>
+            ) : null}
+            {application.status === "CANCELLED" ? (
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                <p className="font-semibold">Cancelled</p>
+                <p className="mt-1">This application was cancelled. Start a new draft to continue seller onboarding.</p>
+                <Link href={localePath("/seller/register")} className="mt-3 inline-flex rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white no-underline">Start again</Link>
+              </div>
             ) : null}
           </div>
         ) : (
-          <a href={localePath("/seller/register")} className="inline-flex rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white no-underline">Start seller registration</a>
+          <Link href={localePath("/seller/register")} className="inline-flex rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white no-underline">Start seller registration</Link>
         )}
       </section>
     </>
@@ -391,8 +414,9 @@ function DocumentUpload({ label, value, onChange }: { label: string; value: stri
 function StatusBadge({ status }: { status: ApplicationStatus }) {
   const rejected = status === "REJECTED";
   const approved = status === "APPROVED";
+  const cancelled = status === "CANCELLED";
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${approved ? "bg-emerald-50 text-emerald-700" : rejected ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>
+    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${approved ? "bg-emerald-50 text-emerald-700" : rejected ? "bg-red-50 text-red-700" : cancelled ? "bg-slate-100 text-slate-700" : "bg-amber-50 text-amber-700"}`}>
       {rejected ? <XCircleIcon className="size-3.5" /> : <CheckCircleIcon className="size-3.5" />}
       {status}
     </span>

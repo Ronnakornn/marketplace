@@ -28,7 +28,7 @@ export function WishlistPage() {
               <div>
                 <p className="text-xs font-semibold uppercase text-orange-600">{favorite.shop.name}</p>
                 <h2 className="mt-1 font-bold text-slate-950">{favorite.title}</h2>
-                <p className="mt-2 font-bold text-orange-600">{formatMoney(favorite.prices, favorite.currency)}</p>
+                <p className="mt-2 font-bold text-orange-600">{formatMoney(favorite.price, favorite.currency)}</p>
               </div>
               <HeartIcon className="size-5 fill-orange-500 text-orange-500" />
             </div>

@@ -129,7 +129,7 @@ export class PrismaFraudRepository implements IFraudRepository {
       }),
     ])
 
-    return { order, userOrderCount, sameUserFailedPayments, sameUserCancelledOrders }
+    return { order: { ...order, grandTotal: Number(order.grandTotal) }, userOrderCount, sameUserFailedPayments, sameUserCancelledOrders }
   }
 
   async getRefundRiskContext(refundId: string): Promise<FraudRefundRiskContext> {
@@ -153,7 +153,7 @@ export class PrismaFraudRepository implements IFraudRepository {
       this.prisma.refund.count({ where: { order: { userId: refund.order.userId } } }),
     ])
 
-    return { refund, userOrderCount, userRefundCount }
+    return { refund: { ...refund, amount: Number(refund.amount) }, userOrderCount, userRefundCount }
   }
 
   async getAffiliateRiskContext(affiliateId: string): Promise<FraudAffiliateRiskContext> {
@@ -256,7 +256,7 @@ export class PrismaFraudRepository implements IFraudRepository {
       where: { id: caseId },
       data: {
         status,
-        reviewedBy: adminUserId,
+        reviewedBy: { connect: { id: adminUserId } },
         reviewedAt: new Date(),
       },
     })
@@ -268,7 +268,7 @@ export class PrismaFraudRepository implements IFraudRepository {
       where: { id: caseId },
       data: {
         status,
-        resolvedBy: adminUserId,
+        resolvedBy: { connect: { id: adminUserId } },
         resolvedAt: new Date(),
       },
     })

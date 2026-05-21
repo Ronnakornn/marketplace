@@ -359,7 +359,7 @@ export class FraudService {
       riskLevel: fraudCase.riskLevel,
       reasons: fraudCase.reasons,
       status: fraudCase.status,
-      reviewedBy: fraudCase.reviewedBy,
+      reviewedBy: fraudCase.reviewedById,
       reviewedAt: fraudCase.reviewedAt,
       createdAt: fraudCase.createdAt,
     }

@@ -26,7 +26,7 @@ export type ExpiredPaymentRecord = Payment & {
 
 export interface ReleaseReservationInput {
   reservationId: string
-  variantId: string
+  inventoryId: string
   quantity: number
 }
 
@@ -146,7 +146,7 @@ export class PrismaJobRepository implements IJobRepository {
       if (result.count !== 1) continue
 
       await this.prisma.inventory.update({
-        where: { variantId: reservation.variantId },
+        where: { id: reservation.inventoryId },
         data: {
           quantityReserved: {
             decrement: reservation.quantity,

@@ -159,9 +159,9 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
 
   findSimilarProducts(query: SimilarRecommendationQuery, source: RecommendationProductRecord): Promise<RecommendationProductRecord[]> {
     this.logger.debug('PrismaRecommendationRepository.findSimilarProducts', { query })
-    const prices = source.variants.map((variant) => variant.prices)
-    const minPrice = prices.length === 0 ? undefined : Math.min(...prices)
-    const maxPrice = prices.length === 0 ? undefined : Math.max(...prices)
+    const price = source.variants.map((variant) => Number(variant.price))
+    const minPrice = price.length === 0 ? undefined : Math.min(...price)
+    const maxPrice = price.length === 0 ? undefined : Math.max(...price)
     const pricePadding = minPrice === undefined || maxPrice === undefined
       ? undefined
       : Math.max(500, Math.round((maxPrice - minPrice || minPrice) * 0.25))

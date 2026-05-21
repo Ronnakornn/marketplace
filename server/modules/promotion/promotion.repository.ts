@@ -7,6 +7,9 @@ export type PromotionCoupon = Omit<Coupon, 'titleTh' | 'titleEn' | 'descriptionT
   titleEn?: string | null
   descriptionTh?: string | null
   descriptionEn?: string | null
+  discountValueCents?: number | null
+  minOrderCents?: number | null
+  maxDiscountCents?: number | null
   _count: {
     redemptions: number
   }

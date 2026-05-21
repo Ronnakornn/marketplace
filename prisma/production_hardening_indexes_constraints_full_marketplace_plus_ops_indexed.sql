@@ -1,7 +1,7 @@
 -- PostgreSQL safe/no-global-transaction version
 -- Fixes:
 -- 1) Removes global BEGIN/COMMIT so one failed statement will not abort the entire file.
--- 2) Replaces ProductVariant.price with ProductVariant.price to match the current Prisma schema.
+-- 2) Uses current money column names from prisma/schema.prisma.
 -- 3) Before running this file after a failed attempt, run: ROLLBACK;
 
 -- PostgreSQL fixed/idempotent version
@@ -288,40 +288,130 @@ ALTER TABLE "AffiliateCommission"
   ) NOT VALID;
 
 
--- Additional production essentials: policy strikes, restrictions, internal notes, return scoping.
--- Add shop scoping to ReturnRequest for multi-shop orders.
-ALTER TABLE "ReturnRequest"
-  ADD COLUMN IF NOT EXISTS "shopId" uuid;
-
--- Backfill shopId for existing return requests only when all returned items belong to one shop.
--- Review manually before setting NOT NULL if old data has mixed-shop return requests.
-UPDATE "ReturnRequest" rr
-SET "shopId" = src."shopId"
-FROM (
-  SELECT
-    ri."returnRequestId",
-    (ARRAY_AGG(DISTINCT oi."shopId"))[1] AS "shopId",
-    COUNT(DISTINCT oi."shopId") AS shop_count
-  FROM "ReturnItem" ri
-  JOIN "OrderItem" oi
-    ON oi."id" = ri."orderItemId"
-  GROUP BY ri."returnRequestId"
-) src
-WHERE rr."id" = src."returnRequestId"
-  AND src.shop_count = 1
-  AND rr."shopId" IS NULL;
-
+-- Additional production essentials: seller onboarding, policy strikes, restrictions, internal notes, return scoping.
+-- ReturnRequest.shopId is required by the current Prisma schema; keep only hot-path hardening here.
 CREATE INDEX IF NOT EXISTS return_requests_shop_status_created_at_idx
   ON "ReturnRequest" ("shopId", "status", "createdAt");
 
-ALTER TABLE "ReturnRequest" DROP CONSTRAINT IF EXISTS return_requests_shop_fk;
-ALTER TABLE "ReturnRequest"
-  ADD CONSTRAINT return_requests_shop_fk
-  FOREIGN KEY ("shopId") REFERENCES "Shop"("id") ON DELETE CASCADE NOT VALID;
+-- Seller onboarding hardening.
+-- Keep pending applications deduplicated before a Shop row exists.
+CREATE UNIQUE INDEX IF NOT EXISTS seller_applications_open_shop_slug_unique
+  ON "SellerApplication" (lower("shopSlug"))
+  WHERE "status" IN ('DRAFT', 'SUBMITTED');
 
--- Enable this after backfill is complete in production:
--- ALTER TABLE "ReturnRequest" ALTER COLUMN "shopId" SET NOT NULL;
--- ALTER TABLE "ReturnRequest" VALIDATE CONSTRAINT return_requests_shop_fk;
+CREATE INDEX IF NOT EXISTS seller_applications_review_queue_idx
+  ON "SellerApplication" ("submittedAt", "createdAt")
+  WHERE "status" = 'SUBMITTED';
+
+CREATE INDEX IF NOT EXISTS seller_applications_open_contact_email_idx
+  ON "SellerApplication" (lower("shopContactEmail"))
+  WHERE "status" IN ('DRAFT', 'SUBMITTED');
+
+CREATE INDEX IF NOT EXISTS seller_applications_open_contact_phone_idx
+  ON "SellerApplication" ("shopContactPhone")
+  WHERE "status" IN ('DRAFT', 'SUBMITTED');
+
+ALTER TABLE "SellerApplication" DROP CONSTRAINT IF EXISTS seller_applications_shop_slug_not_blank_check;
+ALTER TABLE "SellerApplication" DROP CONSTRAINT IF EXISTS seller_applications_shop_name_not_blank_check;
+ALTER TABLE "SellerApplication" DROP CONSTRAINT IF EXISTS seller_applications_contact_email_not_blank_check;
+ALTER TABLE "SellerApplication" DROP CONSTRAINT IF EXISTS seller_applications_contact_phone_not_blank_check;
+ALTER TABLE "SellerApplication" DROP CONSTRAINT IF EXISTS seller_applications_bank_fields_not_blank_check;
+ALTER TABLE "SellerApplication" DROP CONSTRAINT IF EXISTS seller_applications_pickup_fields_not_blank_check;
+ALTER TABLE "SellerApplication" DROP CONSTRAINT IF EXISTS seller_applications_review_state_check;
+ALTER TABLE "SellerApplication"
+  ADD CONSTRAINT seller_applications_shop_slug_not_blank_check
+  CHECK (length(trim("shopSlug")) > 0) NOT VALID,
+  ADD CONSTRAINT seller_applications_shop_name_not_blank_check
+  CHECK (length(trim("shopName")) > 0) NOT VALID,
+  ADD CONSTRAINT seller_applications_contact_email_not_blank_check
+  CHECK (length(trim("shopContactEmail")) > 0 AND length(trim("contactEmail")) > 0) NOT VALID,
+  ADD CONSTRAINT seller_applications_contact_phone_not_blank_check
+  CHECK (length(trim("shopContactPhone")) > 0 AND length(trim("contactPhone")) > 0) NOT VALID,
+  ADD CONSTRAINT seller_applications_bank_fields_not_blank_check
+  CHECK (
+    length(trim("bankName")) > 0
+    AND length(trim("bankAccountName")) > 0
+    AND length(trim("bankAccountNumberEncrypted")) > 0
+    AND length(trim("bankAccountNumberLast4")) > 0
+  ) NOT VALID,
+  ADD CONSTRAINT seller_applications_pickup_fields_not_blank_check
+  CHECK (
+    length(trim("pickupName")) > 0
+    AND length(trim("pickupLine1")) > 0
+    AND length(trim("pickupCity")) > 0
+    AND length(trim("pickupPostalCode")) > 0
+    AND length(trim("pickupCountry")) > 0
+  ) NOT VALID,
+  ADD CONSTRAINT seller_applications_review_state_check
+  CHECK (
+    ("status" = 'SUBMITTED' AND "submittedAt" IS NOT NULL)
+    OR ("status" IN ('APPROVED', 'REJECTED') AND "submittedAt" IS NOT NULL AND "reviewedAt" IS NOT NULL)
+    OR ("status" IN ('DRAFT', 'CANCELLED'))
+  ) NOT VALID;
+
+CREATE INDEX IF NOT EXISTS seller_kyc_documents_type_created_idx
+  ON "SellerKycDocument" ("documentType", "createdAt");
+
+ALTER TABLE "SellerKycDocument" DROP CONSTRAINT IF EXISTS seller_kyc_documents_sort_order_check;
+ALTER TABLE "SellerKycDocument"
+  ADD CONSTRAINT seller_kyc_documents_sort_order_check
+  CHECK ("sortOrder" >= 0) NOT VALID;
+
+-- KYC uploads are private pending/completed assets; this supports cleanup and review joins.
+CREATE INDEX IF NOT EXISTS uploads_kyc_status_created_idx
+  ON "Upload" ("status", "createdAt")
+  WHERE "usage" = 'KYC_DOCUMENT';
+
+CREATE INDEX IF NOT EXISTS uploads_kyc_user_status_created_idx
+  ON "Upload" ("userId", "status", "createdAt")
+  WHERE "usage" = 'KYC_DOCUMENT';
+
+ALTER TABLE "Upload" DROP CONSTRAINT IF EXISTS uploads_kyc_not_public_check;
+ALTER TABLE "Upload"
+  ADD CONSTRAINT uploads_kyc_not_public_check
+  CHECK ("usage" <> 'KYC_DOCUMENT' OR "publicUrl" IS NULL) NOT VALID;
+
+-- ShopStaff has deletedAt, so replace Prisma's unconditional unique index with an active-member unique index.
+DROP INDEX IF EXISTS "ShopStaff_shopId_userId_key";
+CREATE UNIQUE INDEX IF NOT EXISTS shop_staff_active_member_unique
+  ON "ShopStaff" ("shopId", "userId")
+  WHERE "deletedAt" IS NULL;
+
+CREATE INDEX IF NOT EXISTS shop_staff_active_role_idx
+  ON "ShopStaff" ("shopId", "role", "status")
+  WHERE "deletedAt" IS NULL;
+
+ALTER TABLE "ShopStaff" DROP CONSTRAINT IF EXISTS shop_staff_joined_at_status_check;
+ALTER TABLE "ShopStaff"
+  ADD CONSTRAINT shop_staff_joined_at_status_check
+  CHECK (
+    ("status" = 'ACTIVE' AND "joinedAt" IS NOT NULL)
+    OR ("status" <> 'ACTIVE')
+  ) NOT VALID;
+
+-- ShopAddress supports multiple address types, but only one default per shop/type.
+CREATE UNIQUE INDEX IF NOT EXISTS shop_addresses_one_default_per_type_unique
+  ON "ShopAddress" ("shopId", "type")
+  WHERE "isDefault" = true;
+
+ALTER TABLE "ShopAddress" DROP CONSTRAINT IF EXISTS shop_addresses_contact_name_not_blank_check;
+ALTER TABLE "ShopAddress" DROP CONSTRAINT IF EXISTS shop_addresses_required_fields_not_blank_check;
+ALTER TABLE "ShopAddress" DROP CONSTRAINT IF EXISTS shop_addresses_latitude_range_check;
+ALTER TABLE "ShopAddress" DROP CONSTRAINT IF EXISTS shop_addresses_longitude_range_check;
+ALTER TABLE "ShopAddress"
+  ADD CONSTRAINT shop_addresses_contact_name_not_blank_check
+  CHECK (length(trim("contactName")) > 0) NOT VALID,
+  ADD CONSTRAINT shop_addresses_required_fields_not_blank_check
+  CHECK (
+    length(trim("line1")) > 0
+    AND length(trim("city")) > 0
+    AND length(trim("postalCode")) > 0
+    AND length(trim("country")) > 0
+  ) NOT VALID,
+  ADD CONSTRAINT shop_addresses_latitude_range_check
+  CHECK ("latitude" IS NULL OR ("latitude" >= -90 AND "latitude" <= 90)) NOT VALID,
+  ADD CONSTRAINT shop_addresses_longitude_range_check
+  CHECK ("longitude" IS NULL OR ("longitude" >= -180 AND "longitude" <= 180)) NOT VALID;
 
 -- ShopRestriction active-window safety.
 ALTER TABLE "ShopRestriction" DROP CONSTRAINT IF EXISTS shop_restrictions_time_window_check;

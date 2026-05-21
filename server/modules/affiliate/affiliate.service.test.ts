@@ -87,11 +87,11 @@ const order = {
   orderNumber: 'ORD-1',
   status: 'PAID',
   paymentStatus: 'SUCCEEDED',
-  subtotal: 10_000,
-  discountTotal: 1_000,
-  shippingTotal: 500,
-  taxTotal: 0,
-  grandTotal: 9_500,
+  subtotal: BigInt(10_000),
+  discountTotal: BigInt(1_000),
+  shippingTotal: BigInt(500),
+  taxTotal: BigInt(0),
+  grandTotal: BigInt(9_500),
   currency: 'USD',
   shippingName: 'Buyer',
   shippingPhone: null,
@@ -116,8 +116,8 @@ const order = {
       shopName: 'Shop',
       shopSlug: 'shop',
       quantity: 1,
-      unitPrice: 10_000,
-      lineTotal: 10_000,
+      unitPrice: BigInt(10_000),
+      lineTotal: BigInt(10_000),
       currency: 'USD',
       fulfillmentStatus: 'PENDING',
     },
@@ -139,7 +139,20 @@ function setup() {
   vi.mocked(repo.findLatestAttributableClick).mockResolvedValue(click)
   vi.mocked(repo.findOrderForCommission).mockResolvedValue(order as never)
   vi.mocked(repo.findCommissionByOrderId).mockResolvedValue(null)
-  vi.mocked(repo.createCommission).mockImplementation(async (input) => ({ id: 'commission-1', status: 'PENDING', createdAt: now, updatedAt: now, ...input }) as AffiliateCommission)
+  vi.mocked(repo.createCommission).mockImplementation(async (input) => ({
+    id: 'commission-1',
+    status: 'PENDING',
+    createdAt: now,
+    updatedAt: now,
+    affiliateId: input.affiliateId,
+    linkId: input.linkId,
+    clickId: input.clickId ?? null,
+    orderId: input.orderId,
+    eligiblesubtotal: BigInt(input.eligiblesubtotal),
+    commissionBps: input.commissionBps,
+    commission: BigInt(input.commissionCents),
+    currency: input.currency,
+  }))
   vi.mocked(repo.getStats).mockResolvedValue({ clicks: 1, conversions: 1, commissionCents: 450 })
   return new AffiliateService(createAppContext(), repo, {
     enabled: true,
@@ -247,7 +260,7 @@ describe('AffiliateService', () => {
 
     const result = await service.createCommissionForPaidOrder({ orderId: order.id, buyerUserId: order.userId, now })
 
-    expect(result?.commissionCents).toBe(450)
+    expect(result?.commission).toBe(BigInt(450))
     expect(repo.createCommission).toHaveBeenCalledWith(expect.objectContaining({
       orderId: order.id,
       eligiblesubtotal: 9000,

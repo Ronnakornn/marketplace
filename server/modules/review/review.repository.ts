@@ -162,7 +162,6 @@ export class PrismaReviewRepository implements IReviewRepository {
         orderItemId: input.orderItemId,
         rating: input.rating,
         body: input.body,
-        images: input.images,
         status: 'PUBLISHED',
       },
       include: productReviewInclude,
@@ -171,9 +170,10 @@ export class PrismaReviewRepository implements IReviewRepository {
 
   updateReview(reviewId: string, input: UpdateReviewRecord): Promise<ProductReview> {
     this.logger.info('PrismaReviewRepository.updateReview', { reviewId })
+    const { images: _images, ...data } = input
     return this.prisma.review.update({
       where: { id: reviewId },
-      data: input,
+      data,
       include: productReviewInclude,
     })
   }

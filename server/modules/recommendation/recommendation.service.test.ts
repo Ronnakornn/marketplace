@@ -3,7 +3,6 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { CacheService } from '#server/modules/cache'
 import type {
   IRecommendationRepository,
-  RecommendationProductRecord,
   RecommendedCategory,
 } from './recommendation.repository.ts'
 import { RecommendationService } from './recommendation.service.ts'
@@ -70,7 +69,7 @@ function product(overrides: Partial<{
   secondPrice: number
   rating: number
   soldCount: number
-}> = {}): RecommendationProductRecord {
+}> = {}): any {
   const id = overrides.id ?? '11111111-1111-4111-8111-111111111111'
   return {
     id,
@@ -93,13 +92,13 @@ function product(overrides: Partial<{
     variants: [
       {
         id: `${id}-v1`,
-        price: overrides.price ?? 1000,
+        price: BigInt(overrides.price ?? 1000),
         status: 'ACTIVE',
         orderItems: [{ quantity: overrides.soldCount ?? 0 }],
       },
       ...(overrides.secondPrice ? [{
         id: `${id}-v2`,
-        price: overrides.secondPrice,
+        price: BigInt(overrides.secondPrice),
         status: 'ACTIVE' as const,
         orderItems: [],
       }] : []),

@@ -75,7 +75,7 @@ export class CheckoutService {
       const couponValidation = data.couponCode
         ? await this.validateCouponForCheckout(txRepo, actor.id, data.couponCode, baseTotals.subtotal)
         : null
-      const totals = this.calculateTotals(cart!.items, couponValidation?.discountCents ?? 0)
+      const totals = this.calculateTotals(cart!.items, couponValidation?.discount ?? 0)
       const orderNumber = this.createOrderNumber()
       const checkoutExpiresAt = new Date(Date.now() + CHECKOUT_RESERVATION_MINUTES * 60 * 1000)
 
@@ -162,7 +162,7 @@ export class CheckoutService {
       throw new CheckoutServiceError('Mixed currencies are not supported in checkout', 400, 'CHECKOUT_FAILED')
     }
 
-    const subtotal = items.reduce((total, item) => total + item.variant.prices * item.quantity, 0)
+    const subtotal = items.reduce((total, item) => total + Number(item.variant.price) * item.quantity, 0)
     const shippingTotal = items.length > 0 ? FLAT_SHIPPING_CENTS : 0
     const taxTotal = 0
     const discountTotal = Math.min(Math.max(0, discountCents), subtotal)

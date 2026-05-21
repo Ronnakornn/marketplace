@@ -276,6 +276,42 @@ describe('SellerOnboardingService', () => {
     expect(repo.findUploadForUser).toHaveBeenCalledWith('id-upload', 'buyer-1')
   })
 
+  it('rejects shop slug collisions owned by another user', async () => {
+    vi.mocked(repo.findShopBySlug).mockResolvedValue({
+      id: 'other-shop',
+      ownerId: 'seller-2',
+    } as never)
+
+    await expect(service.submitApplication({ id: 'buyer-1', role: 'USER' }, completeInput))
+      .rejects.toMatchObject({ code: 'SELLER_SHOP_SLUG_EXISTS', status: 409 })
+  })
+
+  it('allows saving a draft with an existing slug owned by the same applicant', async () => {
+    vi.mocked(repo.findShopBySlug).mockResolvedValue({
+      id: 'existing-shop',
+      ownerId: 'buyer-1',
+    } as never)
+
+    await expect(service.saveDraft({ id: 'buyer-1', role: 'USER' }, {
+      shopName: 'Somchai Store',
+      shopSlug: 'somchai-store',
+      shopContactEmail: 'draft-shop@example.com',
+      shopContactPhone: '0800000000',
+    })).resolves.toMatchObject({ status: 'DRAFT' })
+  })
+
+  it('rejects completed uploads that use a non-KYC usage for seller documents', async () => {
+    vi.mocked(repo.findUploadForUser).mockResolvedValue({
+      id: 'upload-1',
+      userId: 'buyer-1',
+      usage: 'REVIEW_IMAGE',
+      status: 'COMPLETED',
+    } as never)
+
+    await expect(service.submitApplication({ id: 'buyer-1', role: 'USER' }, completeInput))
+      .rejects.toMatchObject({ code: 'SELLER_DOCUMENT_INVALID' })
+  })
+
   it('approves a submitted application through admin review', async () => {
     const result = await service.reviewApplication(
       { id: 'admin-1', role: 'ADMIN' },

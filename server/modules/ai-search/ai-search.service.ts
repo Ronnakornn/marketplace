@@ -164,9 +164,9 @@ export class AiSearchService {
   }
 
   private toProductItem(product: AiSearchProductRecord, locale: ContentLocale): AiSearchProductItem {
-    const prices = product.variants.map((variant) => variant.price)
-    const minPrice = Math.min(...prices.map((price: string | bigint) => Number(price)));
-    const maxPrice = Math.max(...prices.map((price: string | bigint) => Number(price)));
+    const price = product.variants.map((variant) => variant.price)
+    const minPrice = Math.min(...price.map((price: string | bigint) => Number(price)));
+    const maxPrice = Math.max(...price.map((price: string | bigint) => Number(price)));
     const currency = product.variants[0]?.currency ?? 'USD'
     const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0)
     const totalReviewCount = product.reviews.length

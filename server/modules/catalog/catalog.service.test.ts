@@ -82,15 +82,17 @@ function createProduct(overrides: Partial<{
   status: ProductStatus;
   createdAt: Date;
   updatedAt: Date;
+  ownerId: string;
   category: { id: string; name: string; slug: string } | null;
   shop: { id: string; name: string; slug: string; ownerId: string; status: 'ACTIVE' };
   variants: never[];
   sellerProfileId: string | null;
   sellerIdentityHash: string | null;
   productFingerprintHash: string | null;
+  duplicateStatus: string | null;
   duplicateOfProductId: string | null; // Add duplicateOfProductId property here
   deletedAt: Date | null; // Add deletedAt property here
-}> = {}) {
+}> = {}): any {
   const now = new Date('2026-05-12T00:00:00.000Z')
   const shopId = overrides.shopId ?? '11111111-1111-4111-8111-111111111111'
 
@@ -123,6 +125,8 @@ function createProduct(overrides: Partial<{
     sellerIdentityHash: overrides.sellerIdentityHash ?? null,
     productFingerprintHash: overrides.productFingerprintHash ?? null,
     duplicateStatus: overrides.duplicateStatus ?? null,
+    duplicateOfProductId: overrides.duplicateOfProductId ?? null,
+    deletedAt: overrides.deletedAt ?? null,
   }
 }
 function createVariant(overrides: Partial<{
@@ -132,7 +136,7 @@ function createVariant(overrides: Partial<{
   title: string
   price: bigint
   currency: string
-}> = {}) {
+}> = {}): any {
   const now = new Date('2026-05-12T00:00:00.000Z')
 
   return {
@@ -140,7 +144,7 @@ function createVariant(overrides: Partial<{
     productId: overrides.productId ?? '22222222-2222-4222-8222-222222222222',
     sku: overrides.sku ?? 'SKU-1',
     title: overrides.title ?? 'Blue',
-    price: overrides.price ?? 1299,
+    price: BigInt(overrides.price ?? 1299),
     currency: 'USD',
     status: 'ACTIVE' as const,
     createdAt: now,

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RefundStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
-import type { IRefundRepository, RefundRecord } from './refund.repository.ts'
+import type { IRefundRepository } from './refund.repository.ts'
 import { RefundService } from './refund.service.ts'
 
 function createLogger() {
@@ -40,7 +40,7 @@ function createActor(role: Role = 'ADMIN') {
 
 const now = new Date('2026-05-13T00:00:00.000Z')
 
-function createRefund(status: RefundStatus = 'PENDING'): RefundRecord {
+function createRefund(status: RefundStatus = 'PENDING'): any {
   return {
     id: '88888888-8888-4888-8888-888888888888',
     orderId: '11111111-1111-4111-8111-111111111111',

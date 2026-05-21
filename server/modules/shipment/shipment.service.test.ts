@@ -4,7 +4,6 @@ import type {
   IShipmentRepository,
   SellerShipment,
   ShipmentOrderForCreation,
-  ShipmentWithItems,
 } from './shipment.repository.ts'
 import { ShipmentService } from './shipment.service.ts'
 
@@ -46,7 +45,7 @@ function createRepoMock(): IShipmentRepository {
 
 let repo: IShipmentRepository
 
-function createPaidOrder(overrides: Partial<ShipmentOrderForCreation> = {}): ShipmentOrderForCreation {
+function createPaidOrder(overrides: Partial<ShipmentOrderForCreation> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   return {
     id: 'order-1',
@@ -112,7 +111,7 @@ function createPaidOrder(overrides: Partial<ShipmentOrderForCreation> = {}): Shi
   } as ShipmentOrderForCreation
 }
 
-function createShipment(id: string, shopId: string, orderItemId: string, quantity: number): ShipmentWithItems {
+function createShipment(id: string, shopId: string, orderItemId: string, quantity: number): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   return {
     id,
@@ -136,7 +135,7 @@ function createShipment(id: string, shopId: string, orderItemId: string, quantit
   }
 }
 
-function createSellerShipment(overrides: Partial<SellerShipment> = {}): SellerShipment {
+function createSellerShipment(overrides: Partial<SellerShipment> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   const status = overrides.status ?? 'PENDING_PACK'
   return {
@@ -217,7 +216,7 @@ function createSellerShipment(overrides: Partial<SellerShipment> = {}): SellerSh
   } as SellerShipment
 }
 
-function createBuyerShipment(overrides: Partial<BuyerShipment> = {}): BuyerShipment {
+function createBuyerShipment(overrides: Partial<BuyerShipment> = {}): any {
   const sellerShipment = createSellerShipment(overrides as Partial<SellerShipment>)
   return {
     ...sellerShipment,

@@ -16,7 +16,6 @@ import {
   PlusIcon,
   RefreshCwIcon,
   ShieldIcon,
-  StoreIcon,
   Trash2Icon,
   UsersIcon,
 } from "lucide-react";
@@ -149,10 +148,6 @@ function getRoleBadgeClass(role: AppRole | string) {
     return "border border-cyan-300/20 bg-cyan-300/14 text-cyan-100";
   }
 
-  if (role === ROLES.SELLER) {
-    return "border border-violet-300/20 bg-violet-300/14 text-violet-100";
-  }
-
   return "border border-white/10 bg-white/6 text-slate-300";
 }
 
@@ -168,7 +163,7 @@ function getGroupCopy(group: UserGroup) {
 
   return {
     title: "System users",
-    description: "Seller and admin accounts that operate shops and manage the marketplace.",
+    description: "Admin accounts that manage the marketplace and protected operations.",
     empty: "No system users found.",
     icon: ShieldIcon,
   };
@@ -505,7 +500,6 @@ function UserDialogForm(props: {
               className="flex h-9 w-full rounded-md border border-white/10 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-300/20"
             >
               <option value={ROLES.USER} disabled={disableUserRoleOption}>USER</option>
-              <option value={ROLES.SELLER}>SELLER</option>
               <option value={ROLES.ADMIN}>ADMIN</option>
             </select>
             {roleHint ? (
@@ -601,7 +595,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
                   User Management
                 </CardTitle>
                 <p className="mt-2 text-sm text-slate-300">
-                  Separate customer accounts from seller and admin system users.
+                  Separate customer accounts from admin system users.
                 </p>
               </div>
               <Button
@@ -628,7 +622,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
                   key: "system",
                   title: "System users",
                   count: systemUsers.length,
-                  icon: StoreIcon,
+                  icon: ShieldIcon,
                 },
               ] as const).map((item) => {
                 const Icon = item.icon;

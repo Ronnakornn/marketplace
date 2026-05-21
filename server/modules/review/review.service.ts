@@ -165,7 +165,7 @@ export class ReviewService {
       userName: review.user.name,
       rating: review.rating,
       comment: review.body,
-      images: review.images,
+      images: [],
       status: review.status,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,

@@ -46,7 +46,7 @@ import {
   useUpdateUserStatus,
 } from "../hooks/useAdminOperations";
 
-const USER_ROLES = ["USER", "SELLER", "ADMIN"] as const;
+const USER_ROLES = ["USER", "ADMIN"] as const;
 const USER_STATUSES = ["ACTIVE", "SUSPENDED"] as const;
 const SHOP_STATUSES = ["PENDING", "ACTIVE", "SUSPENDED"] as const;
 const PRODUCT_STATUSES = ["DRAFT", "ACTIVE", "ARCHIVED"] as const;
@@ -59,8 +59,8 @@ function formatDate(value: string | Date) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function formatMoney(cents: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+function formatMoney(cents: number | bigint, currency = "USD") {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(cents) / 100);
 }
 
 function textMatch(values: Array<unknown>, query: string) {

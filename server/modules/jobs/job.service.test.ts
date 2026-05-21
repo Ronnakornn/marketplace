@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Checkout, InventoryReservation, Order, Payment } from '#generated/client/client.ts'
+import type { Checkout, InventoryReservation, Order } from '#generated/client/client.ts'
 import type { PaymentStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { QueueProducer } from '#server/modules/queue'
-import type { ExpiredPaymentRecord, IJobRepository } from './job.repository.ts'
+import type { IJobRepository } from './job.repository.ts'
 import { JobService } from './job.service.ts'
 
 function createLogger() {
@@ -48,11 +48,11 @@ function createRepoMock(): IJobRepository {
 
 const now = new Date('2026-05-14T00:00:00.000Z')
 
-function createReservation(overrides: Partial<InventoryReservation> = {}): InventoryReservation {
+function createReservation(overrides: Partial<InventoryReservation> = {}): any {
   return {
     id: overrides.id ?? 'reservation-1',
     checkoutId: overrides.checkoutId ?? 'checkout-1',
-    variantId: overrides.variantId ?? 'variant-1',
+    inventoryId: overrides.inventoryId ?? 'inventory-1',
     quantity: overrides.quantity ?? 2,
     status: overrides.status ?? 'ACTIVE',
     expiresAt: overrides.expiresAt ?? now,
@@ -60,17 +60,17 @@ function createReservation(overrides: Partial<InventoryReservation> = {}): Inven
   }
 }
 
-function createExpiredPayment(status: PaymentStatus = 'PENDING'): ExpiredPaymentRecord {
+function createExpiredPayment(status: PaymentStatus = 'PENDING'): any {
   const checkout: Checkout & { inventoryReservations: InventoryReservation[] } = {
     id: 'checkout-1',
     cartId: 'cart-1',
     userId: 'user-1',
     status: 'PAYMENT_PENDING',
-    subtotal: 2000,
-    discountTotal: 0,
-    shippingTotal: 0,
-    taxTotal: 0,
-    grandTotal: 2000,
+    subtotal: BigInt(2000),
+    discountTotal: BigInt(0),
+    shippingTotal: BigInt(0),
+    taxTotal: BigInt(0),
+    grandTotal: BigInt(2000),
     currency: 'USD',
     expiresAt: now,
     createdAt: now,
@@ -87,11 +87,11 @@ function createExpiredPayment(status: PaymentStatus = 'PENDING'): ExpiredPayment
     orderNumber: 'ORD-1',
     status: 'PENDING_PAYMENT',
     paymentStatus: status,
-    subtotal: 2000,
-    discountTotal: 0,
-    shippingTotal: 0,
-    taxTotal: 0,
-    grandTotal: 2000,
+    subtotal: BigInt(2000),
+    discountTotal: BigInt(0),
+    shippingTotal: BigInt(0),
+    taxTotal: BigInt(0),
+    grandTotal: BigInt(2000),
     currency: 'USD',
     shippingName: 'Buyer',
     shippingPhone: null,
@@ -111,13 +111,13 @@ function createExpiredPayment(status: PaymentStatus = 'PENDING'): ExpiredPayment
     provider: 'mock',
     providerIntentId: 'pending_ORD-1',
     status,
-    amount: 2000,
+    amount: BigInt(2000),
     currency: 'USD',
     paidAt: null,
     createdAt: new Date('2026-05-13T23:00:00.000Z'),
     updatedAt: now,
     order,
-  } as Payment & { order: typeof order }
+  }
 }
 
 let repo: IJobRepository
@@ -180,7 +180,7 @@ describe('JobService', () => {
     expect(repo.transaction).toHaveBeenCalled()
     expect(repo.releaseReservations).toHaveBeenCalledWith([{
       reservationId: 'reservation-1',
-      variantId: 'variant-1',
+      inventoryId: 'inventory-1',
       quantity: 2,
     }])
     expect(repo.markPaymentExpired).toHaveBeenCalledWith('payment-1')
