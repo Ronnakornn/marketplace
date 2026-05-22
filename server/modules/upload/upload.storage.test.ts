@@ -1,5 +1,9 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
-import { getStorageConfigFromEnv, S3UploadStorage } from './upload.storage.ts'
+import { getLocalStorageConfigFromEnv, getStorageConfigFromEnv, LocalUploadStorage, S3UploadStorage } from './upload.storage.ts'
 
 const baseEnv = {
   NODE_ENV: 'test' as const,
@@ -33,5 +37,61 @@ describe('upload storage config', () => {
 
     expect(storage.getPublicUrl('uploads/product_image/seller-1/image.webp'))
       .toBe('https://bucket.storage.example.com/uploads/product_image/seller-1/image.webp')
+  })
+})
+
+describe('local upload storage', () => {
+  it('is the default local storage config when S3 is absent', () => {
+    const config = getLocalStorageConfigFromEnv({
+      NODE_ENV: 'test',
+      LOCAL_UPLOAD_DIR: 'public',
+      LOCAL_UPLOAD_SECRET: 'test-secret',
+    })
+
+    expect(config.rootDir).toBe(path.resolve('public'))
+    expect(config.signingSecret).toBe('test-secret')
+  })
+
+  it('writes uploaded images as AVIF files', async () => {
+    const rootDir = await mkdtemp(path.join(tmpdir(), 'marketplace-upload-'))
+    try {
+      const storage = new LocalUploadStorage({
+        rootDir,
+        signingSecret: 'test-secret',
+      })
+      const body = await sharp({
+        create: {
+          width: 2,
+          height: 2,
+          channels: 3,
+          background: '#00ff00',
+        },
+      }).png().toBuffer()
+      const uploadUrl = await storage.createPresignedPutUrl({
+        key: 'uploads/product_image/seller-1/image.avif',
+        contentType: 'image/png',
+        fileSize: body.byteLength,
+        expiresIn: 900,
+      })
+      const uploadBody = new ArrayBuffer(body.byteLength)
+      new Uint8Array(uploadBody).set(body)
+      const parsedUrl = new URL(uploadUrl, 'http://localhost')
+      const result = await storage.writePresignedPutUrl!({
+        key: parsedUrl.searchParams.get('key')!,
+        contentType: parsedUrl.searchParams.get('contentType')!,
+        fileSize: Number(parsedUrl.searchParams.get('fileSize')),
+        expires: Number(parsedUrl.searchParams.get('expires')),
+        signature: parsedUrl.searchParams.get('signature')!,
+        body: uploadBody,
+      })
+      const saved = await readFile(path.join(rootDir, 'uploads/product_image/seller-1/image.avif'))
+      const metadata = await sharp(saved).metadata()
+
+      expect(result.contentType).toBe('image/avif')
+      expect(metadata.format).toBe('heif')
+      expect(metadata.compression).toBe('av1')
+    } finally {
+      await rm(rootDir, { recursive: true, force: true })
+    }
   })
 })

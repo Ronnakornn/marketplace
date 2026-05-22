@@ -49,7 +49,7 @@ import { PrismaUserRepository } from '#server/modules/user/user.repository.ts'
 import { UserService } from '#server/modules/user/user.service.ts'
 import { PrismaUploadRepository } from '#server/modules/upload/upload.repository.ts'
 import { UploadService } from '#server/modules/upload/upload.service.ts'
-import { getStorageConfigFromEnv, S3UploadStorage } from '#server/modules/upload/upload.storage.ts'
+import { getLocalStorageConfigFromEnv, getStorageConfigFromEnv, LocalUploadStorage, S3UploadStorage } from '#server/modules/upload/upload.storage.ts'
 import { PrismaWalletRepository, WalletService } from '#server/modules/wallet'
 import { JobService, PrismaJobRepository } from '#server/modules/jobs'
 import { EventBus, EventHandlerRegistry, EventPublisherService } from '#server/modules/event-bus'
@@ -200,7 +200,7 @@ export function createContainer(): ServiceContainer {
   const sellerOnboardingService = new SellerOnboardingService(appContext, sellerOnboardingRepo)
   const uploadRepo = new PrismaUploadRepository(appContext, prisma)
   const storageConfig = getStorageConfigFromEnv()
-  const uploadStorage = storageConfig ? new S3UploadStorage(storageConfig) : null
+  const uploadStorage = storageConfig ? new S3UploadStorage(storageConfig) : new LocalUploadStorage(getLocalStorageConfigFromEnv())
   const uploadService = new UploadService(appContext, uploadRepo, uploadStorage)
   const queueProducer: QueueProducer = new OptionalQueueProducer(
     queueConfig ? new BullMqQueueProducer(appContext, queueConfig) : null,

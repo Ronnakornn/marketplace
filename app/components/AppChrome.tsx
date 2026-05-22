@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import Footer from "#/components/Footer";
-import Header from "#/components/Header";
 import { isLocale, stripLocale } from "#/i18n/config";
 
 interface AppChromeProps {
   children: ReactNode;
 }
+
+const Header = dynamic(() => import("#/components/Header"), { ssr: false });
+const Footer = dynamic(() => import("#/components/Footer"), { ssr: false });
 
 export default function AppChrome({ children }: AppChromeProps) {
   const pathname = usePathname();
@@ -30,6 +32,9 @@ export default function AppChrome({ children }: AppChromeProps) {
   const pathWithoutLocale = stripLocale(pathname);
   const isAdminRoute = pathWithoutLocale.startsWith("/admin");
   const isSellerRoute = pathWithoutLocale.startsWith("/seller");
+  const isAuthRoute = ["/login", "/signup"].some(
+    (route) => pathWithoutLocale === route || pathWithoutLocale.startsWith(`${route}/`),
+  );
   const isMarketplaceHome = pathWithoutLocale === "/";
   const isBuyerRoute = [
     "/account",
@@ -49,7 +54,7 @@ export default function AppChrome({ children }: AppChromeProps) {
     "/wishlist",
   ].some((route) => pathWithoutLocale === route || pathWithoutLocale.startsWith(`${route}/`));
 
-  if (isAdminRoute || isSellerRoute || isMarketplaceHome || isBuyerRoute) {
+  if (isAdminRoute || isSellerRoute || isAuthRoute || isMarketplaceHome || isBuyerRoute) {
     return <>{children}</>;
   }
 

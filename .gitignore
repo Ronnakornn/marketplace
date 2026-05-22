@@ -21,3 +21,4 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 .devserver.log
 .codex-*.log
+/public/uploads

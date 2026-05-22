@@ -18,6 +18,14 @@ const UploadParamsSchema = t.Object({
   fileId: t.String({ format: 'uuid' }),
 })
 
+const LocalPutQuerySchema = t.Object({
+  key: t.String({ minLength: 1 }),
+  contentType: t.String({ minLength: 1 }),
+  fileSize: t.Numeric({ minimum: 1 }),
+  expires: t.Numeric({ minimum: 1 }),
+  signature: t.String({ minLength: 1 }),
+})
+
 export function createUploadRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
@@ -41,6 +49,19 @@ export function createUploadRoutes(container: ServiceContainer) {
       container.uploadService.completeUpload(authContext!.user, body.fileId), {
       withAuth: true,
       body: CompleteUploadBodySchema,
+    })
+    .put('/api/uploads/local-put', async ({ query, request }: any) => {
+      const body = await request.arrayBuffer()
+      return container.uploadService.writeLocalUpload({
+        key: query.key,
+        contentType: query.contentType,
+        fileSize: Number(query.fileSize),
+        expires: Number(query.expires),
+        signature: query.signature,
+        body,
+      })
+    }, {
+      query: LocalPutQuerySchema,
     })
     .get('/api/uploads/:fileId', ({ authContext, params }: any) =>
       container.uploadService.getUpload(authContext!.user, params.fileId), {

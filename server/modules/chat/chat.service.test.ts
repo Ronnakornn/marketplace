@@ -115,6 +115,42 @@ describe('ChatService', () => {
     expect(result.shop.id).toBe('shop-1')
   })
 
+  it('sorts rooms when Prisma returns serialized date strings', async () => {
+    const olderRoom = createRoom({
+      id: 'older-room',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    })
+    const newerRoom = createRoom({
+      id: 'newer-room',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    })
+    const repo = createRepo({
+      listBuyerRooms: vi.fn().mockResolvedValue([olderRoom]),
+      listSellerRooms: vi.fn().mockResolvedValue([newerRoom]),
+    })
+    const service = new ChatService(appContext, repo)
+
+    const result = await service.listRooms(user())
+
+    expect(result.map((room) => room.roomId)).toEqual(['newer-room', 'older-room'])
+  })
+
+  it('deduplicates buyer and seller rooms before sorting', async () => {
+    const sharedRoom = createRoom({
+      id: 'shared-room',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    })
+    const repo = createRepo({
+      listBuyerRooms: vi.fn().mockResolvedValue([sharedRoom]),
+      listSellerRooms: vi.fn().mockResolvedValue([sharedRoom]),
+    })
+    const service = new ChatService(appContext, repo)
+
+    const result = await service.listRooms(user())
+
+    expect(result.map((room) => room.roomId)).toEqual(['shared-room'])
+  })
+
   it('returns an existing room for duplicate buyer and shop', async () => {
     const existing = createRoom({ id: 'existing-room' })
     const repo = createRepo({ findRoomByBuyerAndShop: vi.fn().mockResolvedValue(existing) })

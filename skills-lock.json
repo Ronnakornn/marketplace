@@ -1,11 +1,71 @@
 {
   "version": 1,
   "skills": {
+    "chief-autopilot": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/chief/chief-autopilot/SKILL.md",
+      "computedHash": "164c2334bc733f52c8a60a479d616418e3189123edb849d00e23051896eff3f4"
+    },
+    "chief-grill": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/chief/chief-grill/SKILL.md",
+      "computedHash": "557fbe46a8f038cd38d2ffab65610f0c305aff02381d0f96c438029d442b5a59"
+    },
+    "chief-init": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/chief/chief-init/SKILL.md",
+      "computedHash": "b7e9873f1ae754aabd09edafb84452953fc5711eb84ab0ea1c7e1b6029096f69"
+    },
+    "chief-install": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/setup/chief-install/SKILL.md",
+      "computedHash": "048f764b9ef38160ab3ff8c84e4cfc697b127b84b765291904ad621ecac4d535"
+    },
+    "chief-plan": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/chief/chief-plan/SKILL.md",
+      "computedHash": "a83726d361e66c18916d4c2668545fb81c6f1c84fe23bfeb9f8a3ceddba5cad0"
+    },
+    "chief-retro": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/chief/chief-retro/SKILL.md",
+      "computedHash": "a6ca3ffd2d2f33083ba0574a1ec104c38313cb8e23402a38586208220ce13d3e"
+    },
+    "chief-rule": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/chief/chief-rule/SKILL.md",
+      "computedHash": "0fce88df3bb923a84d8685cdb31cd498d5695d2ea38974821449e33ea1ec3ca7"
+    },
+    "chief-upgrade": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/setup/chief-upgrade/SKILL.md",
+      "computedHash": "7ce70916eed354a3278b37d24d15f9f3c4b604d975b928dc4cad22e831235742"
+    },
+    "dump-commit": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/misc/dump-commit/SKILL.md",
+      "computedHash": "80c0203dd622054d69baa21a661fede248213a6b9bd6d18f78777450ca5ad488"
+    },
     "elysiajs": {
       "source": "elysiajs/skills",
       "sourceType": "github",
       "skillPath": "elysia/SKILL.md",
       "computedHash": "1f8cdb3c66e6127bd7e31fd5478bf912d976059896629cc58eec031f9bae0c74"
+    },
+    "grill-design": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/grill-design/SKILL.md",
+      "computedHash": "b15dae0328fd825809446e9191c43384234e96d11c0520a3683a29f3f7adc44c"
     },
     "prisma-cli": {
       "source": "prisma/skills",
@@ -31,6 +91,18 @@
       "source": "prisma/skills",
       "sourceType": "github",
       "computedHash": "a3944954fcaabe06285ad866ca7ba19de0a8ab73ff988cbccd795a7694ecdcd6"
+    },
+    "shape-up": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/shape-up/SKILL.md",
+      "computedHash": "d2ab18442c6c20120d87edd4b05e95d75f0d887102cbeabe7eab62269abe26ea"
+    },
+    "slim-down": {
+      "source": "thaitype/chief",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/slim-down/SKILL.md",
+      "computedHash": "f2393620c4d1b3b39b552b380ba4c3a82bb62e02baafa1cb820d93e5c4c4cf5b"
     }
   }
 }

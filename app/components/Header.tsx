@@ -27,7 +27,6 @@ export default function Header() {
   async function handleSignOut() {
     await signOut();
     router.push(localePath("/"));
-    router.refresh();
   }
 
   return (

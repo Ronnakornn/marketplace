@@ -84,7 +84,6 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
   async function handleSignOut() {
     await signOut();
     router.push(localePath("/"));
-    router.refresh();
   }
 
   return (

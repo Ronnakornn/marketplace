@@ -32,4 +32,12 @@ describe("Next CDN and cache config", () => {
       }),
     ]));
   });
+
+  it("lets Next own dev chunk cache headers", async () => {
+    const headers = await config.headers!();
+
+    expect(headers).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ source: "/_next/static/:path*" }),
+    ]));
+  });
 });

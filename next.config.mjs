@@ -1,6 +1,7 @@
 const staticAssetCacheControl = 'public, max-age=31536000, immutable'
 const publicImageCacheControl = 'public, max-age=604800, stale-while-revalidate=86400'
 const noStoreCacheControl = 'no-store'
+const isProduction = process.env.NODE_ENV === 'production'
 
 function toUrl(value) {
   if (!value) return null
@@ -49,11 +50,17 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   async headers() {
+    const productionStaticHeaders = isProduction
+      ? [
+          {
+            source: '/_next/static/:path*',
+            headers: [{ key: 'Cache-Control', value: staticAssetCacheControl }],
+          },
+        ]
+      : []
+
     return [
-      {
-        source: '/_next/static/:path*',
-        headers: [{ key: 'Cache-Control', value: staticAssetCacheControl }],
-      },
+      ...productionStaticHeaders,
       {
         source: '/:path*.:ext(js|css|woff|woff2|ttf|otf|ico|png|jpg|jpeg|gif|webp|avif|svg)',
         headers: [{ key: 'Cache-Control', value: staticAssetCacheControl }],

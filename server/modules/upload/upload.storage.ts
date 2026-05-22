@@ -1,6 +1,17 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import type { CreatePresignedPutUrlInput, StorageConfig, UploadStorage } from './upload.types.ts'
+import crypto from 'node:crypto'
+import { mkdir, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import sharp from 'sharp'
+import type {
+  CreatePresignedPutUrlInput,
+  LocalPresignedPutInput,
+  LocalPresignedPutResponse,
+  LocalStorageConfig,
+  StorageConfig,
+  UploadStorage,
+} from './upload.types.ts'
 
 const publicUploadCacheControl = 'public, max-age=604800, stale-while-revalidate=86400'
 
@@ -21,6 +32,14 @@ export function getStorageConfigFromEnv(env: NodeJS.ProcessEnv = process.env): S
     secretAccessKey,
     publicBaseUrl: env['S3_PUBLIC_BASE_URL'],
     cdnBaseUrl: env['NEXT_PUBLIC_CDN_URL'],
+  }
+}
+
+export function getLocalStorageConfigFromEnv(env: NodeJS.ProcessEnv = process.env): LocalStorageConfig {
+  return {
+    rootDir: path.resolve(env['LOCAL_UPLOAD_DIR'] ?? path.join(process.cwd(), 'public')),
+    publicBaseUrl: env['LOCAL_UPLOAD_PUBLIC_BASE_URL'],
+    signingSecret: env['LOCAL_UPLOAD_SECRET'] ?? env['BETTER_AUTH_SECRET'] ?? 'local-upload-development-secret',
   }
 }
 
@@ -56,4 +75,80 @@ export class S3UploadStorage implements UploadStorage {
     if (!baseUrl) return undefined
     return `${baseUrl.replace(/\/+$/, '')}/${key}`
   }
+}
+
+export class LocalUploadStorage implements UploadStorage {
+  private rootDir: string
+
+  constructor(private config: LocalStorageConfig) {
+    this.rootDir = path.resolve(config.rootDir)
+  }
+
+  async createPresignedPutUrl(input: CreatePresignedPutUrlInput): Promise<string> {
+    const expires = Math.floor(Date.now() / 1000) + input.expiresIn
+    const signature = this.sign(input.key, input.contentType, input.fileSize, expires)
+    const search = new URLSearchParams({
+      key: input.key,
+      contentType: input.contentType,
+      fileSize: String(input.fileSize),
+      expires: String(expires),
+      signature,
+    })
+
+    return `/api/uploads/local-put?${search.toString()}`
+  }
+
+  getPublicUrl(key: string): string | undefined {
+    const normalizedKey = key.replace(/^\/+/, '')
+    if (!this.config.publicBaseUrl) return `/${normalizedKey}`
+    return `${this.config.publicBaseUrl.replace(/\/+$/, '')}/${normalizedKey}`
+  }
+
+  async writePresignedPutUrl(input: LocalPresignedPutInput): Promise<LocalPresignedPutResponse> {
+    const now = Math.floor(Date.now() / 1000)
+    if (input.expires < now) throw new Error('Local upload URL has expired')
+
+    const expectedSignature = this.sign(input.key, input.contentType, input.fileSize, input.expires)
+    if (expectedSignature.length !== input.signature.length) throw new Error('Invalid local upload signature')
+    if (!crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(input.signature))) {
+      throw new Error('Invalid local upload signature')
+    }
+    if (input.body.byteLength > input.fileSize) throw new Error('Uploaded file is larger than declared size')
+
+    const source = Buffer.from(input.body)
+    const shouldConvert = isAvifConvertibleImage(input.contentType)
+    const output = shouldConvert
+      ? await sharp(source).rotate().avif({ quality: 78, effort: 4 }).toBuffer()
+      : source
+    const contentType = shouldConvert ? 'image/avif' : input.contentType
+    const absolutePath = this.toSafeAbsolutePath(input.key)
+
+    await mkdir(path.dirname(absolutePath), { recursive: true })
+    await writeFile(absolutePath, output)
+
+    return {
+      key: input.key,
+      contentType,
+      fileSize: output.byteLength,
+    }
+  }
+
+  private sign(key: string, contentType: string, fileSize: number, expires: number): string {
+    return crypto
+      .createHmac('sha256', this.config.signingSecret)
+      .update(`${key}\n${contentType}\n${fileSize}\n${expires}`)
+      .digest('hex')
+  }
+
+  private toSafeAbsolutePath(key: string): string {
+    const absolutePath = path.resolve(this.rootDir, key)
+    if (!absolutePath.startsWith(`${this.rootDir}${path.sep}`)) {
+      throw new Error('Invalid local upload path')
+    }
+    return absolutePath
+  }
+}
+
+function isAvifConvertibleImage(contentType: string) {
+  return contentType === 'image/jpeg' || contentType === 'image/png' || contentType === 'image/webp'
 }

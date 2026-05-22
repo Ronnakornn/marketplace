@@ -11,12 +11,14 @@ import type {
   UploadResponse,
   UploadStorage,
   UploadUsageInput,
+  LocalPresignedPutInput,
+  LocalPresignedPutResponse,
 } from './upload.types.ts'
 
 const allowedContentTypesByUsage: Record<UploadUsageInput, string[]> = {
-  product_image: ['image/jpeg', 'image/png', 'image/webp'],
-  shop_image: ['image/jpeg', 'image/png', 'image/webp'],
-  review_image: ['image/jpeg', 'image/png', 'image/webp'],
+  product_image: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+  shop_image: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+  review_image: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
   review_video: ['video/mp4', 'video/webm'],
   kyc_document: ['application/pdf', 'image/jpeg', 'image/png'],
 }
@@ -61,14 +63,15 @@ export class UploadService {
     this.assertContentType(input.usage, input.contentType)
     this.assertFileSize(input.usage, input.fileSize)
 
-    const safeFileName = this.toSafeFileName(input.fileName)
+    const safeFileName = this.toStoredFileName(input.fileName, input.contentType)
+    const storedContentType = this.toStoredContentType(input.contentType)
     const key = this.createStorageKey(input.usage, actor.id, safeFileName)
     const publicUrl = this.storage!.getPublicUrl(key)
     const upload = await this.repo.createUpload({
       userId: actor.id,
       usage: usageToRecord[input.usage],
       fileName: safeFileName,
-      contentType: input.contentType,
+      contentType: storedContentType,
       fileSize: input.fileSize,
       key,
       publicUrl,
@@ -115,9 +118,26 @@ export class UploadService {
     return this.toResponse(upload)
   }
 
+  async writeLocalUpload(input: LocalPresignedPutInput): Promise<LocalPresignedPutResponse> {
+    this.assertStorageConfigured()
+    if (!this.storage!.writePresignedPutUrl) {
+      throw new UploadServiceError('Local upload storage is not enabled', 400, 'LOCAL_STORAGE_NOT_ENABLED')
+    }
+
+    try {
+      return await this.storage!.writePresignedPutUrl(input)
+    } catch (error) {
+      throw new UploadServiceError(
+        error instanceof Error ? error.message : 'Local upload failed',
+        400,
+        'LOCAL_UPLOAD_FAILED',
+      )
+    }
+  }
+
   private assertStorageConfigured(): void {
     if (!this.storage) {
-      throw new UploadServiceError('S3 storage is not configured', 500, 'STORAGE_CONFIG_MISSING')
+      throw new UploadServiceError('Upload storage is not configured', 500, 'STORAGE_CONFIG_MISSING')
     }
   }
 
@@ -179,6 +199,21 @@ export class UploadService {
       .slice(0, 120)
 
     return safe || 'upload'
+  }
+
+  private toStoredFileName(fileName: string, contentType: string): string {
+    const safeFileName = this.toSafeFileName(fileName)
+    if (!this.shouldConvertToAvif(contentType)) return safeFileName
+    const withoutExtension = safeFileName.replace(/\.[a-zA-Z0-9]+$/, '')
+    return `${withoutExtension || 'upload'}.avif`
+  }
+
+  private toStoredContentType(contentType: string): string {
+    return this.shouldConvertToAvif(contentType) ? 'image/avif' : contentType
+  }
+
+  private shouldConvertToAvif(contentType: string): boolean {
+    return contentType === 'image/jpeg' || contentType === 'image/png' || contentType === 'image/webp'
   }
 
   private toResponse(upload: UploadRecord): UploadResponse {

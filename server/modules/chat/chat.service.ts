@@ -35,7 +35,7 @@ export class ChatService {
       this.repo.listSellerRooms(actor.id),
     ])
     const roomsById = new Map([...buyerRooms, ...sellerRooms].map((room) => [room.id, room]))
-    const rooms = [...roomsById.values()].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    const rooms = [...roomsById.values()].sort((a, b) => this.toTime(b.updatedAt) - this.toTime(a.updatedAt))
     return Promise.all(rooms.map((room) => this.toRoomResponse(room, actor)))
   }
 
@@ -212,6 +212,10 @@ export class ChatService {
 
   private toPublicMessageType(messageType: ChatMessageType): ChatMessageKind {
     return messageType === 'IMAGE' ? 'image' : 'text'
+  }
+
+  private toTime(value: Date | string): number {
+    return value instanceof Date ? value.getTime() : new Date(value).getTime()
   }
 
   private publishChatMessage(room: ChatRoomRecord, message: ChatMessageRecord): void {

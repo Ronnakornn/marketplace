@@ -96,8 +96,10 @@ describe('UploadService', () => {
     expect(repo.createUpload).toHaveBeenCalledWith(expect.objectContaining({
       userId: 'seller-1',
       usage: 'PRODUCT_IMAGE',
-      contentType: 'image/png',
-      publicUrl: expect.stringMatching(/^https:\/\/cdn\.example\.com\/uploads\/product_image\//),
+      fileName: 'shirt.avif',
+      contentType: 'image/avif',
+      key: expect.stringMatching(/\.avif$/),
+      publicUrl: expect.stringMatching(/^https:\/\/cdn\.example\.com\/uploads\/product_image\/.*\.avif$/),
     }))
     expect(storage.createPresignedPutUrl).toHaveBeenCalledWith(expect.objectContaining({
       cacheControl: 'public, max-age=604800, stale-while-revalidate=86400',
@@ -196,9 +198,37 @@ describe('UploadService', () => {
     })
 
     expect(repo.createUpload).toHaveBeenCalledWith(expect.objectContaining({
-      fileName: 'summer-shirt-final-.png',
-      key: expect.stringMatching(/^uploads\/shop_image\/seller-1\/\d{4}\/\d{2}\/[0-9a-f-]+-summer-shirt-final-\.png$/),
+      fileName: 'summer-shirt-final-.avif',
+      key: expect.stringMatching(/^uploads\/shop_image\/seller-1\/\d{4}\/\d{2}\/[0-9a-f-]+-summer-shirt-final-\.avif$/),
     }))
+  })
+
+  it('delegates signed local uploads to local storage', async () => {
+    const localStorage: UploadStorage = {
+      ...createStorageMock(),
+      writePresignedPutUrl: vi.fn(async (input) => ({
+        key: input.key,
+        contentType: 'image/avif',
+        fileSize: 512,
+      })),
+    }
+    service = new UploadService(createAppContext(), repo, localStorage)
+
+    const result = await service.writeLocalUpload({
+      key: 'uploads/product_image/seller-1/image.avif',
+      contentType: 'image/png',
+      fileSize: 1024,
+      expires: 9999999999,
+      signature: 'sig',
+      body: new ArrayBuffer(8),
+    })
+
+    expect(result).toEqual({
+      key: 'uploads/product_image/seller-1/image.avif',
+      contentType: 'image/avif',
+      fileSize: 512,
+    })
+    expect(localStorage.writePresignedPutUrl).toHaveBeenCalled()
   })
 
   it('prevents users from completing another user upload', async () => {

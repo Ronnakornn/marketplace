@@ -52,6 +52,12 @@ export interface StorageConfig {
   cdnBaseUrl?: string
 }
 
+export interface LocalStorageConfig {
+  rootDir: string
+  publicBaseUrl?: string
+  signingSecret: string
+}
+
 export interface CreatePresignedPutUrlInput {
   key: string
   contentType: string
@@ -60,7 +66,23 @@ export interface CreatePresignedPutUrlInput {
   cacheControl?: string
 }
 
+export interface LocalPresignedPutInput {
+  key: string
+  contentType: string
+  fileSize: number
+  expires: number
+  signature: string
+  body: ArrayBuffer
+}
+
+export interface LocalPresignedPutResponse {
+  key: string
+  contentType: string
+  fileSize: number
+}
+
 export interface UploadStorage {
   createPresignedPutUrl(input: CreatePresignedPutUrlInput): Promise<string>
   getPublicUrl(key: string): string | undefined
+  writePresignedPutUrl?(input: LocalPresignedPutInput): Promise<LocalPresignedPutResponse>
 }

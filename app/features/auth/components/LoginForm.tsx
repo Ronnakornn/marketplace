@@ -23,7 +23,6 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
         setError(result.error.message ?? "Sign in failed");
       } else {
         router.push(resolveNextPath(nextPath ?? null));
-        router.refresh();
       }
     } catch {
       setError("An unexpected error occurred");
