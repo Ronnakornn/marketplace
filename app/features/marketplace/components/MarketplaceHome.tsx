@@ -237,7 +237,6 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   const localePath = useLocalePath();
   const locale = useLocale();
   const formatters = useFormatters();
-  const [mounted, setMounted] = useState(false);
   const searchTerm = "";
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const canUseBuyerCart = user?.role === "USER";
@@ -295,10 +294,6 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   }
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     const element = loadMoreRef.current;
     if (!element) return;
 
@@ -314,10 +309,6 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
     observer.observe(element);
     return () => observer.disconnect();
   }, [products.length]);
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950" suppressHydrationWarning />;
-  }
 
   return (
     <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950">
