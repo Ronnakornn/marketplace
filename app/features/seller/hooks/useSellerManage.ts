@@ -26,16 +26,28 @@ export interface ProductFilters {
 
 export interface SellerProductInput {
   title: string;
+  titleTh?: string | null;
+  titleEn?: string | null;
   slug?: string;
   description?: string | null;
+  descriptionTh?: string | null;
+  descriptionEn?: string | null;
   status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  categoryId?: string | null;
+  brandId?: string | null;
 }
 
 export interface SellerVariantInput {
   sku: string;
   title: string;
+  titleTh?: string | null;
+  titleEn?: string | null;
   price: number;
   currency?: string;
+  weightGrams?: number | null;
+  lengthMm?: number | null;
+  widthMm?: number | null;
+  heightMm?: number | null;
 }
 
 export interface SellerCouponInput {
@@ -165,7 +177,7 @@ export function useCreateSellerProduct() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: SellerProductInput) => {
-      const { data, error } = await api.api.seller.products.post(input as { title: string; slug?: string; description?: string | null; status?: "DRAFT" | "ACTIVE" | "ARCHIVED" });
+      const { data, error } = await api.api.seller.products.post(input);
       if (error) throw error;
       return data;
     },
@@ -185,11 +197,47 @@ export function useUpdateSellerProduct() {
   });
 }
 
+export function useArchiveSellerProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (productId: string) => {
+      const { data, error } = await api.api.seller.products({ productId }).delete();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+  });
+}
+
 export function useCreateSellerVariant() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ productId, ...input }: SellerVariantInput & { productId: string }) => {
       const { data, error } = await api.api.seller.products({ productId }).variants.post(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+  });
+}
+
+export function useUpdateSellerVariant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, variantId, ...input }: Partial<SellerVariantInput> & { productId: string; variantId: string }) => {
+      const { data, error } = await api.api.seller.products({ productId }).variants({ variantId }).patch(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+  });
+}
+
+export function useDeleteSellerVariant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, variantId }: { productId: string; variantId: string }) => {
+      const { data, error } = await api.api.seller.products({ productId }).variants({ variantId }).delete();
       if (error) throw error;
       return data;
     },
