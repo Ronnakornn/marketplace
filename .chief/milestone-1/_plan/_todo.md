@@ -27,3 +27,8 @@
 - [x] task-25: Integrate brand management, seller product enrichment, and buyer brand/spec display/filter UI
 - [x] task-26: Add bootstrap master seed and demo catalog seed coverage for enriched products
 - [x] task-27: Verify brand/product enrichment, seed safety, buyer filters, and type safety
+- [x] task-28: Extend product media schema/API for upload-backed images, one product video, media limits, ownership validation, and publish readiness compatibility
+- [x] task-29: Extend seller product hooks and upload helpers for local/module media upload, product media attachment, and variant stock updates
+- [x] task-30: Split seller product management into list, create, and edit pages with mobile-first page-level forms
+- [x] task-31: Integrate variants, simple stock setup, image upload limit, video upload, and product enrichment into the create/edit page workflow
+- [x] task-32: Verify seller product media, mobile UX, stock invariants, accessibility states, type safety, and focused tests
