@@ -182,6 +182,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
           <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center gap-2">
+              {product.brand ? <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-slate-700">{product.brand.name}</Badge> : null}
               <Badge variant="outline" className="rounded-full border-orange-200 bg-orange-50 text-orange-700">{product.shop.name}</Badge>
               <Button variant="outline" size="sm" className="rounded-full" disabled={followMutation.isPending} onClick={() => {
                 if (!session) router.push(localePath("/login"));
@@ -210,7 +211,32 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               <span className="flex items-center gap-2"><ShieldCheckIcon className="size-4 text-emerald-600" />{t("product.buyerProtection")}</span>
             </div>
             <p className="text-sm leading-6 text-slate-600">{product.description ?? t("product.noDescription")}</p>
+            {product.highlights.length ? (
+              <ul className="grid gap-2 text-sm text-slate-700">
+                {product.highlights.map((highlight) => <li key={highlight} className="rounded-lg bg-slate-50 px-3 py-2">{highlight}</li>)}
+              </ul>
+            ) : null}
           </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-lg font-bold">Product facts</h2>
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+            {product.condition ? <FactRow label="Condition" value={product.condition} /> : null}
+            {product.countryOfOrigin ? <FactRow label="Country of origin" value={product.countryOfOrigin} /> : null}
+            {product.warrantyInfo ? <FactRow label="Warranty" value={product.warrantyInfo} /> : null}
+            {product.brand ? <FactRow label="Brand" value={product.brand.name} /> : null}
+          </dl>
+          {product.attributes.length ? (
+            <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
+              {product.attributes.map((attribute) => (
+                <div key={`${attribute.key}-${attribute.name}`} className="grid grid-cols-[140px_minmax(0,1fr)] border-b border-slate-100 text-sm last:border-b-0">
+                  <dt className="bg-slate-50 px-3 py-2 font-medium text-slate-600">{attribute.name}</dt>
+                  <dd className="px-3 py-2 text-slate-800">{attribute.value}</dd>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -262,5 +288,14 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         </div>
       </div>
     </>
+  );
+}
+
+function FactRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
+      <dt className="font-medium text-slate-500">{label}</dt>
+      <dd className="mt-1 text-slate-900">{value}</dd>
+    </div>
   );
 }

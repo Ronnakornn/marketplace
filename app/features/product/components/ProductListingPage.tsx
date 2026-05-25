@@ -14,8 +14,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "#/co
 import { ProductCard } from "#/features/product/components/ProductCard";
 import {
   normalizePublicCategories,
+  normalizePublicBrands,
   normalizePublicProducts,
   normalizePublicSearchSuggestions,
+  publicBrandsQueryOptions,
   publicCategoriesQueryOptions,
   publicProductListQueryOptions,
   publicProductSearchQueryOptions,
@@ -38,6 +40,8 @@ interface ProductListingPageProps {
   mode: "home" | "search" | "category";
   query?: string;
   categoryId?: string;
+  brandId?: string;
+  attributeFilters?: string;
   minPrice?: string;
   maxPrice?: string;
   sort?: string;
@@ -48,6 +52,8 @@ export function ProductListingPage({
   mode,
   query = "",
   categoryId,
+  brandId,
+  attributeFilters,
   minPrice,
   maxPrice,
   sort = "relevance",
@@ -58,7 +64,7 @@ export function ProductListingPage({
   const localePath = useLocalePath();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const minRating = toNumber(rating);
-  const productListInput = { q: query, categoryId, minPrice, maxPrice, sort, rating: minRating, limit: 40, locale };
+  const productListInput = { q: query, categoryId, brandId, attributeFilters, minPrice, maxPrice, sort, rating: minRating, limit: 40, locale };
   const listProductsQuery = useQuery({
     ...publicProductListQueryOptions(productListInput),
     enabled: mode !== "search",
@@ -78,6 +84,10 @@ export function ProductListingPage({
   const categoriesQuery = useQuery({
     ...publicCategoriesQueryOptions({ locale }),
     select: normalizePublicCategories,
+  });
+  const brandsQuery = useQuery({
+    ...publicBrandsQueryOptions(),
+    select: normalizePublicBrands,
   });
 
   useEffect(() => {
@@ -100,13 +110,16 @@ export function ProductListingPage({
   );
   const filterProps = useMemo(() => ({
     categories: categoriesQuery.data ?? [],
+    brands: brandsQuery.data ?? [],
     query,
     categoryId,
+    brandId,
+    attributeFilters,
     minPrice,
     maxPrice,
     sort,
     rating,
-  }), [categoriesQuery.data, query, categoryId, minPrice, maxPrice, sort, rating]);
+  }), [categoriesQuery.data, brandsQuery.data, query, categoryId, brandId, attributeFilters, minPrice, maxPrice, sort, rating]);
   const resultTitle = query
     ? t("product.searchResultsFor").replace("{query}", query)
     : mode === "category"
@@ -167,7 +180,7 @@ export function ProductListingPage({
                 </p>
               </div>
               {mode === "search" ? (
-                <SortTabs query={query} categoryId={categoryId} minPrice={minPrice} maxPrice={maxPrice} rating={rating} sort={sort} />
+                <SortTabs query={query} categoryId={categoryId} brandId={brandId} attributeFilters={attributeFilters} minPrice={minPrice} maxPrice={maxPrice} rating={rating} sort={sort} />
               ) : (
                 <Button variant="ghost" size="sm" asChild>
                   <Link href={localePath("/search")}>{t("product.viewAll")}</Link>
@@ -252,8 +265,11 @@ function HomeBlocks() {
 
 function SearchFilterSidebar(props: {
   categories: Array<{ slug: string; name: string }>;
+  brands: Array<{ id: string; name: string }>;
   query: string;
   categoryId?: string;
+  brandId?: string;
+  attributeFilters?: string;
   minPrice?: string;
   maxPrice?: string;
   rating?: string;
@@ -267,6 +283,8 @@ function SearchFilterSidebar(props: {
     maxPrice: props.maxPrice,
     rating: props.rating,
     sort: props.sort,
+    brandId: props.brandId,
+    attributeFilters: props.attributeFilters,
   };
 
   return (
@@ -295,6 +313,8 @@ function SearchFilterSidebar(props: {
         <form action="/search" className="space-y-2">
           <input type="hidden" name="q" value={props.query} />
           {props.categoryId ? <input type="hidden" name="categoryId" value={props.categoryId} /> : null}
+          {props.brandId ? <input type="hidden" name="brandId" value={props.brandId} /> : null}
+          {props.attributeFilters ? <input type="hidden" name="attributeFilters" value={props.attributeFilters} /> : null}
           {props.rating ? <input type="hidden" name="rating" value={props.rating} /> : null}
           <input type="hidden" name="sort" value={props.sort} />
           <div className="grid grid-cols-2 gap-2">
@@ -302,6 +322,28 @@ function SearchFilterSidebar(props: {
             <Input name="maxPrice" defaultValue={props.maxPrice} inputMode="numeric" placeholder={t("product.max")} className="h-9 rounded-xl" />
           </div>
           <Button type="submit" size="sm" className="w-full rounded-full bg-orange-600 hover:bg-orange-700">{t("product.applyFilters")}</Button>
+        </form>
+      </FilterBlock>
+
+      <FilterBlock title="Brand">
+        <div className="space-y-1">
+          <FilterLink active={!props.brandId} href={buildSearchHref({ ...base, brandId: undefined })}>All brands</FilterLink>
+          {props.brands.map((brand) => (
+            <FilterLink key={brand.id} active={props.brandId === brand.id} href={buildSearchHref({ ...base, brandId: brand.id })}>
+              {brand.name}
+            </FilterLink>
+          ))}
+        </div>
+      </FilterBlock>
+
+      <FilterBlock title="Specifications">
+        <form action="/search" className="space-y-2">
+          <input type="hidden" name="q" value={props.query} />
+          {props.categoryId ? <input type="hidden" name="categoryId" value={props.categoryId} /> : null}
+          {props.brandId ? <input type="hidden" name="brandId" value={props.brandId} /> : null}
+          <label htmlFor="attributeFilters" className="text-xs font-medium text-slate-600">Attribute filters</label>
+          <Input id="attributeFilters" name="attributeFilters" defaultValue={props.attributeFilters} placeholder="color:black" className="h-9 rounded-xl" />
+          <Button type="submit" size="sm" variant="outline" className="w-full rounded-full">Apply specifications</Button>
         </form>
       </FilterBlock>
 
@@ -343,6 +385,8 @@ function SearchFilterSidebar(props: {
 function SortTabs(props: {
   query: string;
   categoryId?: string;
+  brandId?: string;
+  attributeFilters?: string;
   minPrice?: string;
   maxPrice?: string;
   rating?: string;
@@ -367,7 +411,7 @@ function SortTabs(props: {
           className={props.sort === value ? "rounded-full bg-orange-600 hover:bg-orange-700" : "rounded-full"}
           asChild
         >
-          <Link href={buildSearchHref({ q: props.query, categoryId: props.categoryId, minPrice: props.minPrice, maxPrice: props.maxPrice, rating: props.rating, sort: value })}>{label}</Link>
+          <Link href={buildSearchHref({ q: props.query, categoryId: props.categoryId, brandId: props.brandId, attributeFilters: props.attributeFilters, minPrice: props.minPrice, maxPrice: props.maxPrice, rating: props.rating, sort: value })}>{label}</Link>
         </Button>
       ))}
     </div>

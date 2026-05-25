@@ -82,8 +82,13 @@ vi.mock("#/features/product/queries", () => ({
     queryKey: ["product", "public", "categories", { locale: "en" }],
     queryFn: async () => ({ items: [] }),
   }),
+  publicBrandsQueryOptions: () => ({
+    queryKey: ["product", "public", "brands"],
+    queryFn: async () => [],
+  }),
   normalizePublicProducts: (response: { items?: unknown[] }) => response.items ?? [],
   normalizePublicCategories: () => [],
+  normalizePublicBrands: () => [],
   normalizePublicSearchSuggestions: () => [],
 }));
 

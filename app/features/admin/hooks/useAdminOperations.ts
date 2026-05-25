@@ -28,6 +28,8 @@ export type AdminFraudCasesResponse = Treaty.Data<ReturnType<typeof api.api.admi
 export type AdminFraudCase = AdminFraudCasesResponse extends { items: Array<infer T> } ? T : never;
 export type AdminSellerApplicationsResponse = Treaty.Data<ReturnType<(typeof api.api.admin)["seller-applications"]["get"]>>;
 export type AdminSellerApplication = AdminSellerApplicationsResponse extends Array<infer T> ? T : never;
+export type AdminBrandsResponse = Treaty.Data<ReturnType<typeof api.api.admin.brands.get>>;
+export type AdminBrand = AdminBrandsResponse extends { items: Array<infer T> } ? T : never;
 export type { AdminAffiliate };
 
 export interface AdminListFilters {
@@ -43,6 +45,23 @@ export interface AdminShopMutationInput {
   name?: string;
   slug?: string;
   status?: string;
+}
+
+export interface AdminBrandMutationInput {
+  name: string;
+  nameTh?: string | null;
+  nameEn?: string | null;
+  slug?: string;
+  code?: string | null;
+  description?: string | null;
+  descriptionTh?: string | null;
+  descriptionEn?: string | null;
+  logoUrl?: string | null;
+  websiteUrl?: string | null;
+  countryCode?: string | null;
+  sortOrder?: number;
+  isFeatured?: boolean;
+  isActive?: boolean;
 }
 
 function cleanQuery(filters: AdminListFilters) {
@@ -175,6 +194,25 @@ export function useAdminSellerApplicationsList(status = "SUBMITTED") {
       const { data, error } = await api.api.admin["seller-applications"].get({
         query: { status: status as "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "CANCELLED" },
       });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminBrandsList(filters: { page: number; limit?: number; q?: string; isActive?: boolean | "" }) {
+  const query = Object.fromEntries(
+    Object.entries({
+      page: filters.page,
+      limit: filters.limit ?? PAGE_SIZE,
+      q: filters.q || undefined,
+      isActive: filters.isActive === "" ? undefined : filters.isActive,
+    }).filter(([, value]) => value !== undefined),
+  );
+  return useQuery({
+    queryKey: ["admin", "brands", query],
+    queryFn: async () => {
+      const { data, error } = await api.api.admin.brands.get({ query });
       if (error) throw error;
       return data;
     },
@@ -364,6 +402,45 @@ export function useReviewSellerApplication() {
         queryClient.invalidateQueries({ queryKey: ["seller", "application"] }),
       ]);
     },
+  });
+}
+
+export function useCreateAdminBrand() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminBrandMutationInput) => {
+      const { data, error } = await api.api.admin.brands.post(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "brands"] }),
+  });
+}
+
+export function useUpdateAdminBrand() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: Partial<AdminBrandMutationInput> & { id: string }) => {
+      const { data, error } = await api.api.admin.brands({ brandId: id }).patch(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "brands"] }),
+  });
+}
+
+export function useToggleAdminBrandActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const endpoint = api.api.admin.brands({ brandId: id });
+      const { data, error } = isActive
+        ? await endpoint.reactivate.patch()
+        : await endpoint.deactivate.patch();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "brands"] }),
   });
 }
 

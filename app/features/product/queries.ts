@@ -26,6 +26,7 @@ type AdminProductsResponse = Treaty.Data<ReturnType<typeof api.api.admin.product
 type AdminCatalogProductsResponse = Treaty.Data<ReturnType<typeof api.api.admin.catalog.products.get>>;
 type AdminCatalogProductDetailResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.admin.catalog.products>["get"]>>;
 type AffiliateTargetsResponse = Treaty.Data<ReturnType<typeof api.api.affiliate.targets.get>>;
+type PublicBrandsResponse = Treaty.Data<ReturnType<typeof api.api.brands.get>>;
 
 export interface PublicProductListInput {
   locale?: Locale;
@@ -33,6 +34,8 @@ export interface PublicProductListInput {
   keyword?: string;
   categoryId?: string;
   shopId?: string;
+  brandId?: string;
+  attributeFilters?: string;
   minPrice?: number | string;
   maxPrice?: number | string;
   rating?: number | string;
@@ -57,6 +60,8 @@ export interface SellerProductListInput {
   status?: ProductStatus | "";
   categoryId?: string;
   shopId?: string;
+  brandId?: string;
+  attributeFilters?: string;
   minPrice?: number | string;
   maxPrice?: number | string;
   cursor?: string;
@@ -89,6 +94,23 @@ export interface BuyerProduct {
     name: string;
     location: string;
   };
+  brand: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  warrantyInfo: string | null;
+  condition: string | null;
+  countryOfOrigin: string | null;
+  highlights: string[];
+  attributes: Array<{
+    key: string;
+    name: string;
+    value: string;
+    isFilterable: boolean;
+  }>;
   variants: Array<{
     id: string;
     title: string;
@@ -105,6 +127,12 @@ export interface BuyerCategory {
   slug: string;
   name: string;
   sortOrder: number;
+}
+
+export interface BuyerBrand {
+  id: string;
+  slug: string;
+  name: string;
 }
 
 export interface AffiliateProductTargetOption {
@@ -131,6 +159,7 @@ export const productQueryKeys = {
       [...productQueryKeys.public.details(), cleanPublicProductDetailInput(input)] as const,
     categories: (input: PublicCategoryListInput = {}) =>
       [...productQueryKeys.public.all(), "categories", cleanCategoryInput(input)] as const,
+    brands: () => [...productQueryKeys.public.all(), "brands"] as const,
     shopProducts: (input: PublicProductListInput & { shopId: string }) =>
       [...productQueryKeys.public.all(), "shop-products", cleanPublicProductListInput(input)] as const,
   },
@@ -206,6 +235,18 @@ export function publicCategoriesQueryOptions(input: PublicCategoryListInput = {}
     queryKey: productQueryKeys.public.categories(input),
     queryFn: async (): Promise<PublicCategoriesResponse> => {
       const { data, error } = await api.api.categories.get({ query });
+      if (error) throw error;
+      return data;
+    },
+    staleTime: PRODUCT_QUERY_STALE_TIME_MS,
+  });
+}
+
+export function publicBrandsQueryOptions() {
+  return queryOptions({
+    queryKey: productQueryKeys.public.brands(),
+    queryFn: async (): Promise<PublicBrandsResponse> => {
+      const { data, error } = await api.api.brands.get();
       if (error) throw error;
       return data;
     },
@@ -323,6 +364,10 @@ export function usePublicCategories(input: PublicCategoryListInput = {}) {
   return useQuery(publicCategoriesQueryOptions(input));
 }
 
+export function usePublicBrands() {
+  return useQuery(publicBrandsQueryOptions());
+}
+
 export function usePublicShopProducts(input: PublicProductListInput & { shopId: string }) {
   return useQuery(publicShopProductsQueryOptions(input));
 }
@@ -420,6 +465,8 @@ export function cleanPublicProductListInput(input: PublicProductListInput = {}):
     keyword: input.keyword,
     categoryId: input.categoryId,
     shopId: input.shopId,
+    brandId: input.brandId,
+    attributeFilters: input.attributeFilters,
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
     rating: input.rating,
@@ -437,6 +484,8 @@ export function cleanSellerProductListInput(input: SellerProductListInput = {}):
     status: input.status,
     categoryId: input.categoryId,
     shopId: input.shopId,
+    brandId: input.brandId,
+    attributeFilters: input.attributeFilters,
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
     cursor: input.cursor,
@@ -451,6 +500,8 @@ export function cleanAdminProductListInput(input: AdminProductListInput = {}): C
     status: input.status,
     categoryId: input.categoryId,
     shopId: input.shopId,
+    brandId: input.brandId,
+    attributeFilters: input.attributeFilters,
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
     cursor: input.cursor,
@@ -476,6 +527,8 @@ function cleanSearchProductInput(input: PublicProductListInput = {}): CleanQuery
     q: input.q,
     categoryId: input.categoryId,
     shopId: input.shopId,
+    brandId: input.brandId,
+    attributeFilters: input.attributeFilters,
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
     rating: input.rating,
@@ -519,6 +572,7 @@ export function normalizePublicProducts(response: PublicProductsResponse | Publi
 export function normalizePublicProduct(input: PublicProductDetailResponse | unknown, index = 0): BuyerProduct {
   const record = toRecord(input);
   const shop = toRecord(record.shop);
+  const brand = toRecord(record.brand);
   const variants = readArray(record.variants).map((variantInput, variantIndex) => {
     const variant = toRecord(variantInput);
     const inventory = toRecord(variant.inventory);
@@ -549,6 +603,26 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
       name: readString(shop.name, "Marketplace shop"),
       location: readString(shop.location, readString(shop.city, "Local")),
     },
+    brand: readString(brand.id) ? {
+      id: readString(brand.id),
+      name: readString(brand.name, "Brand"),
+      slug: readString(brand.slug),
+    } : null,
+    metaTitle: optionalString(record.metaTitle),
+    metaDescription: optionalString(record.metaDescription),
+    warrantyInfo: optionalString(record.warrantyInfo),
+    condition: optionalString(record.condition),
+    countryOfOrigin: optionalString(record.countryOfOrigin),
+    highlights: readArray(record.highlights).map((item) => readString(toRecord(item).text, readString(item))).filter(Boolean),
+    attributes: readArray(record.attributes).map((item) => {
+      const attribute = toRecord(item);
+      return {
+        key: readString(attribute.attributeKey, readString(attribute.key)),
+        name: readString(attribute.displayName, "Specification"),
+        value: readString(attribute.value),
+        isFilterable: attribute.isFilterable === true,
+      };
+    }).filter((attribute) => attribute.name && attribute.value),
     variants,
     images: readArray(record.images).length
       ? readArray(record.images).map((image) => String(image)).filter((image) => Boolean(image) && !isSecretStorageUrl(image))
@@ -556,6 +630,18 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
         ? [optionalString(record.coverImage)!]
         : [],
   };
+}
+
+export function normalizePublicBrands(response: PublicBrandsResponse): BuyerBrand[] {
+  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
+  return rawItems.map((item) => {
+    const record = toRecord(item);
+    return {
+      id: readString(record.id),
+      slug: readString(record.slug),
+      name: readString(record.name, "Brand"),
+    };
+  }).filter((brand) => brand.id);
 }
 
 export function normalizePublicCategories(response: PublicCategoriesResponse): BuyerCategory[] {

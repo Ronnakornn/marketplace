@@ -28,6 +28,8 @@ export default async function SearchPage({
     q?: string;
     keyword?: string;
     categoryId?: string;
+    brandId?: string;
+    attributeFilters?: string;
     minPrice?: string;
     maxPrice?: string;
     sort?: string;
@@ -40,6 +42,8 @@ export default async function SearchPage({
       mode="search"
       query={params.q ?? params.keyword ?? ""}
       categoryId={params.categoryId}
+      brandId={params.brandId}
+      attributeFilters={params.attributeFilters}
       minPrice={params.minPrice}
       maxPrice={params.maxPrice}
       sort={params.sort}

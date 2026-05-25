@@ -43,6 +43,19 @@ export interface SellerProductInput {
   status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
   categoryId?: string | null;
   brandId?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  warrantyInfo?: string | null;
+  condition?: string | null;
+  countryOfOrigin?: string | null;
+  highlights?: Array<{ text: string; sortOrder?: number }>;
+  attributes?: Array<{
+    attributeKey?: string;
+    displayName: string;
+    value: string;
+    sortOrder?: number;
+    isFilterable?: boolean;
+  }>;
 }
 
 export interface SellerVariantInput {

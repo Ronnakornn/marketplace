@@ -85,6 +85,13 @@ interface ProductFormState {
   descriptionEn: string;
   categoryId: string;
   brandId: string;
+  metaTitle: string;
+  metaDescription: string;
+  warrantyInfo: string;
+  condition: string;
+  countryOfOrigin: string;
+  highlightsText: string;
+  attributesText: string;
 }
 
 type SellerVariant = SellerProduct["variants"][number];
@@ -122,6 +129,13 @@ const emptyProductForm: ProductFormState = {
   descriptionEn: "",
   categoryId: "",
   brandId: "",
+  metaTitle: "",
+  metaDescription: "",
+  warrantyInfo: "",
+  condition: "",
+  countryOfOrigin: "",
+  highlightsText: "",
+  attributesText: "",
 };
 
 const emptyVariantForm: VariantFormState = {
@@ -158,6 +172,18 @@ function productToForm(product: SellerProduct): ProductFormState {
     descriptionEn: product.descriptionEn ?? "",
     categoryId: product.category?.id ?? product.categoryId ?? "",
     brandId: product.brand?.id ?? product.brandId ?? "",
+    metaTitle: product.metaTitle ?? "",
+    metaDescription: product.metaDescription ?? "",
+    warrantyInfo: product.warrantyInfo ?? "",
+    condition: product.condition ?? "",
+    countryOfOrigin: product.countryOfOrigin ?? "",
+    highlightsText: (product.highlights ?? []).map((highlight: { text?: string }) => highlight.text ?? "").filter(Boolean).join("\n"),
+    attributesText: (product.attributes ?? []).map((attribute: { attributeKey?: string; displayName?: string; value?: string; isFilterable?: boolean }) => [
+      attribute.attributeKey ?? attribute.displayName ?? "",
+      attribute.displayName ?? "",
+      attribute.value ?? "",
+      attribute.isFilterable ? "filterable" : "",
+    ].join("|")).join("\n"),
   };
 }
 
@@ -186,6 +212,29 @@ function optionalInteger(value: string) {
   if (!trimmed) return null;
   const parsed = Number(trimmed);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : Number.NaN;
+}
+
+function parseHighlights(value: string) {
+  return value
+    .split("\n")
+    .map((text, index) => ({ text: text.trim(), sortOrder: index }))
+    .filter((highlight) => highlight.text);
+}
+
+function parseAttributes(value: string) {
+  return value
+    .split("\n")
+    .map((line, index) => {
+      const [key, name, attributeValue, filterable] = line.split("|").map((part) => part.trim());
+      return {
+        attributeKey: key || undefined,
+        displayName: name || key || "",
+        value: attributeValue || "",
+        sortOrder: index,
+        isFilterable: filterable?.toLowerCase() === "filterable" || filterable === "true",
+      };
+    })
+    .filter((attribute) => attribute.displayName && attribute.value);
 }
 
 function isProductFormDirty(form: ProductFormState, initial: ProductFormState) {
@@ -420,6 +469,13 @@ export function SellerProductsPage() {
       descriptionEn: optionalText(form.descriptionEn),
       categoryId: optionalText(form.categoryId),
       brandId: optionalText(form.brandId),
+      metaTitle: optionalText(form.metaTitle),
+      metaDescription: optionalText(form.metaDescription),
+      warrantyInfo: optionalText(form.warrantyInfo),
+      condition: optionalText(form.condition),
+      countryOfOrigin: optionalText(form.countryOfOrigin),
+      highlights: parseHighlights(form.highlightsText),
+      attributes: parseAttributes(form.attributesText),
     };
 
     const options = {
@@ -880,6 +936,45 @@ export function SellerProductsPage() {
                 <Textarea id="product-description-en" value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} rows={3} />
               </div>
             </div>
+            <section className="space-y-3 rounded-lg border border-slate-200 p-3" aria-label="Product enrichment">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-950">Enrichment</h3>
+                <p className="text-xs text-slate-500">Buyer-facing SEO, facts, highlights, and exact-match specifications.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="product-meta-title">SEO title</Label>
+                  <Input id="product-meta-title" value={form.metaTitle} onChange={(event) => setForm((current) => ({ ...current, metaTitle: event.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-condition">Condition</Label>
+                  <Input id="product-condition" value={form.condition} onChange={(event) => setForm((current) => ({ ...current, condition: event.target.value }))} placeholder="New" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-meta-description">SEO description</Label>
+                <Textarea id="product-meta-description" value={form.metaDescription} onChange={(event) => setForm((current) => ({ ...current, metaDescription: event.target.value }))} rows={2} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="product-warranty">Warranty info</Label>
+                  <Input id="product-warranty" value={form.warrantyInfo} onChange={(event) => setForm((current) => ({ ...current, warrantyInfo: event.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="product-origin">Country of origin</Label>
+                  <Input id="product-origin" value={form.countryOfOrigin} onChange={(event) => setForm((current) => ({ ...current, countryOfOrigin: event.target.value }))} placeholder="TH" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-highlights">Highlights</Label>
+                <Textarea id="product-highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder="One highlight per line" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-attributes">Specifications</Label>
+                <Textarea id="product-attributes" value={form.attributesText} onChange={(event) => setForm((current) => ({ ...current, attributesText: event.target.value }))} rows={3} placeholder="color|Color|Black|filterable" />
+                <p className="text-xs text-slate-500">Use one row per specification: key|display name|value|filterable.</p>
+              </div>
+            </section>
             <section className="space-y-3 rounded-lg border border-slate-200 p-3" aria-label="Product image metadata">
               <div>
                 <h3 className="text-sm font-semibold text-slate-950">Images</h3>
