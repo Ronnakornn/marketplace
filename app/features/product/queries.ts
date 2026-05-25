@@ -624,12 +624,23 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
       };
     }).filter((attribute) => attribute.name && attribute.value),
     variants,
-    images: readArray(record.images).length
-      ? readArray(record.images).map((image) => String(image)).filter((image) => Boolean(image) && !isSecretStorageUrl(image))
-      : optionalString(record.coverImage)
-        ? [optionalString(record.coverImage)!]
-        : [],
+    images: normalizeProductImages(record.images, record.coverImage),
   };
+}
+
+function normalizeProductImages(imagesInput: unknown, coverImageInput: unknown): string[] {
+  const images = readArray(imagesInput)
+    .map((image) => {
+      if (typeof image === "string") return image;
+      const imageRecord = toRecord(image);
+      return readString(imageRecord.url);
+    })
+    .filter((image) => Boolean(image) && !isSecretStorageUrl(image));
+
+  if (images.length) return images;
+
+  const coverImage = optionalString(coverImageInput);
+  return coverImage && !isSecretStorageUrl(coverImage) ? [coverImage] : [];
 }
 
 export function normalizePublicBrands(response: PublicBrandsResponse): BuyerBrand[] {

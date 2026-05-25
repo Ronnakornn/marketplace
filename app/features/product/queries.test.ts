@@ -9,6 +9,7 @@ import {
   invalidateProductMutationQueries,
   invalidatePublicProductQueries,
   invalidateSellerProductQueries,
+  normalizePublicProducts,
   normalizeAffiliateProductTargets,
   productQueryKeys,
 } from "./queries";
@@ -177,6 +178,28 @@ describe("affiliate product target normalization", () => {
     })).toEqual([
       { id: "product-1", label: "Camera", description: "Mirrorless", type: "product" },
       { id: "product-2", label: "Untitled", description: null, type: "product" },
+    ]);
+  });
+});
+
+describe("public product normalization", () => {
+  it("extracts image URLs from API product image records", () => {
+    const products = normalizePublicProducts({
+      data: [{
+        id: "product-1",
+        title: "Image-backed product",
+        shop: { id: "shop-1", name: "Image Shop" },
+        variants: [],
+        images: [
+          { id: "image-1", url: "/uploads/product_image/product-1/main.avif", isPrimary: true },
+          { id: "image-2", url: "https://example.com/side.jpg", isPrimary: false },
+        ],
+      }],
+    } as unknown as Parameters<typeof normalizePublicProducts>[0]);
+
+    expect(products[0]?.images).toEqual([
+      "/uploads/product_image/product-1/main.avif",
+      "https://example.com/side.jpg",
     ]);
   });
 });

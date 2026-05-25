@@ -34,6 +34,7 @@ import {
 } from "#/features/product/queries";
 import { useFormatters, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { resolveUploadedImageUrl } from "#/lib/assets";
 
 interface MarketplaceHomeProps {
   user?: {
@@ -48,6 +49,7 @@ interface StorefrontProduct {
   variantId: string | null;
   title: string;
   description: string | null;
+  imageUrl: string | null;
   shopName: string;
   price: number;
   originalprice: number;
@@ -106,6 +108,7 @@ function mapBuyerProduct(product: BuyerProduct, index: number): StorefrontProduc
     variantId: firstVariant?.id ?? null,
     title: product.title,
     description: product.description,
+    imageUrl: resolveUploadedImageUrl(product.images[0]),
     shopName: product.shop.name,
     price,
     originalprice: discountPercent > 0 ? Math.round(price / (1 - discountPercent / 100)) : price,
@@ -537,7 +540,17 @@ function ProductCard({
 function ProductVisual({ product, compact = false }: { product: StorefrontProduct; compact?: boolean }) {
   const t = useTranslations();
   return (
-    <div className={`relative bg-gradient-to-br ${product.gradient} ${compact ? "h-28" : "aspect-square"}`}>
+    <div className={`relative overflow-hidden bg-gradient-to-br ${product.gradient} ${compact ? "h-28" : "aspect-square"}`}>
+      {product.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={product.imageUrl}
+          alt={product.title}
+          className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+          loading="lazy"
+        />
+      ) : null}
+      {product.imageUrl ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-transparent" /> : null}
       <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-600 shadow-sm">
         -{product.discountPercent}%
       </div>
@@ -545,7 +558,7 @@ function ProductVisual({ product, compact = false }: { product: StorefrontProduc
         <HeartIcon className="size-4" />
         <span className="sr-only">{t("product.saveProduct")}</span>
       </span>
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className={`absolute inset-0 flex items-center justify-center ${product.imageUrl ? "hidden" : ""}`}>
         <ShoppingBagIcon className={`${compact ? "size-12" : "size-20"} text-slate-400/45`} />
       </div>
     </div>

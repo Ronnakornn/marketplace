@@ -20,7 +20,7 @@ const queryMocks = vi.hoisted(() => ({
       stock: 12,
       shop: { id: "shop-1", name: "Live Shop", location: "Bangkok" },
       variants: [{ id: "variant-1", title: "Default", sku: "SKU-1", price: 4890, currency: "THB", stock: 12 }],
-      images: [],
+      images: ["/uploads/product_image/product-1/main.avif"],
     }],
   } as { items: unknown[] },
   productsError: null as Error | null,
@@ -160,7 +160,7 @@ describe("MarketplaceHome", () => {
         stock: 12,
         shop: { id: "shop-1", name: "Live Shop", location: "Bangkok" },
         variants: [{ id: "variant-1", title: "Default", sku: "SKU-1", price: 4890, currency: "THB", stock: 12 }],
-        images: [],
+        images: ["/uploads/product_image/product-1/main.avif"],
       }],
     };
     queryMocks.productsError = null;
@@ -176,6 +176,7 @@ describe("MarketplaceHome", () => {
     expect(screen.getByRole("heading", { name: "Shop fast. Checkout faster." })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Recommended for you" })).toBeTruthy();
     expect(await screen.findAllByText("Live marketplace tote")).toHaveLength(2);
+    expect(screen.getAllByAltText("Live marketplace tote").length).toBeGreaterThan(0);
     expect(screen.queryByText("Canvas Weekender Bag with laptop sleeve")).toBeNull();
   });
 
