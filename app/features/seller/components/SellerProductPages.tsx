@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArchiveIcon, EditIcon, PlusIcon } from "lucide-react";
+import { ArchiveIcon, EditIcon, PlusIcon, TrashIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -26,16 +26,33 @@ import { Textarea } from "#/components/ui/textarea";
 import { SellerPageHeader } from "./SellerShell";
 import {
   type SellerProduct,
+  type SellerProductImage,
   type SellerProductInput,
+  type SellerProductVideo,
+  type SellerVariantInput,
   useArchiveSellerProduct,
   useCreateSellerProduct,
+  useCreateSellerVariant,
+  useDeleteSellerProductImage,
+  useDeleteSellerProductVideo,
+  useDeleteSellerVariant,
   useSellerBrands,
   useSellerCategories,
   useSellerProducts,
+  useUpdateSellerProductImage,
   useUpdateSellerProduct,
+  useUpdateSellerVariant,
+  useUpdateSellerVariantStock,
+  useUploadAndCreateSellerProductImage,
+  useUploadAndUpsertSellerProductVideo,
 } from "../hooks/useSellerManage";
 
 type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+type VariantStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+
+const MAX_PRODUCT_IMAGES = 10;
+const MAX_PRODUCT_VIDEO_BYTES = 25 * 1024 * 1024;
+const PRODUCT_VIDEO_TYPES = ["video/mp4", "video/webm"];
 
 interface ProductFormState {
   title: string;
@@ -57,6 +74,48 @@ interface ProductFormState {
   attributesText: string;
 }
 
+interface VariantFormState {
+  id?: string;
+  sku: string;
+  title: string;
+  titleTh: string;
+  titleEn: string;
+  price: string;
+  currency: string;
+  status: VariantStatus;
+  quantityOnHand: string;
+  quantityReserved: number;
+  reorderLevel: string;
+  weightGrams: string;
+  lengthMm: string;
+  widthMm: string;
+  heightMm: string;
+}
+
+interface ImageDraftState {
+  id: string;
+  file?: File;
+  url: string;
+  altText: string;
+  sortOrder: number;
+  isPrimary: boolean;
+  width?: number | null;
+  height?: number | null;
+  status: "existing" | "pending" | "uploading" | "error";
+  error?: string;
+}
+
+interface VideoDraftState {
+  id?: string;
+  file?: File;
+  url?: string;
+  contentType?: string;
+  fileName?: string;
+  fileSize?: number;
+  status: "existing" | "pending" | "uploading" | "error";
+  error?: string;
+}
+
 const emptyProductForm: ProductFormState = {
   title: "",
   slug: "",
@@ -75,6 +134,23 @@ const emptyProductForm: ProductFormState = {
   countryOfOrigin: "",
   highlightsText: "",
   attributesText: "",
+};
+
+const emptyVariantForm: VariantFormState = {
+  sku: "",
+  title: "",
+  titleTh: "",
+  titleEn: "",
+  price: "",
+  currency: "USD",
+  status: "ACTIVE",
+  quantityOnHand: "0",
+  quantityReserved: 0,
+  reorderLevel: "0",
+  weightGrams: "",
+  lengthMm: "",
+  widthMm: "",
+  heightMm: "",
 };
 
 function productToForm(product: SellerProduct): ProductFormState {
@@ -131,6 +207,91 @@ function parseAttributes(value: string) {
 
 function isProductFormDirty(form: ProductFormState, initial: ProductFormState) {
   return JSON.stringify(form) !== JSON.stringify(initial);
+}
+
+function productImagesToDrafts(product?: SellerProduct | null): ImageDraftState[] {
+  return (product?.images ?? []).map((image, index) => ({
+    id: image.id,
+    url: image.url,
+    altText: image.altText ?? "",
+    sortOrder: image.sortOrder ?? index,
+    isPrimary: Boolean(image.isPrimary),
+    width: image.width ?? null,
+    height: image.height ?? null,
+    status: "existing",
+  }));
+}
+
+function productVideoToDraft(product?: SellerProduct | null): VideoDraftState | null {
+  const video = product?.video as SellerProductVideo | null | undefined;
+  if (!video) return null;
+  return {
+    id: video.id,
+    url: video.url,
+    contentType: video.contentType,
+    fileName: video.fileName,
+    fileSize: video.fileSize,
+    status: "existing",
+  };
+}
+
+function productVariantsToForms(product?: SellerProduct | null): VariantFormState[] {
+  return (product?.variants ?? []).map((variant) => ({
+    id: variant.id,
+    sku: variant.sku ?? "",
+    title: variant.title ?? "",
+    titleTh: variant.titleTh ?? "",
+    titleEn: variant.titleEn ?? "",
+    price: String(Number(variant.price ?? 0) / 100),
+    currency: variant.currency ?? "USD",
+    status: (variant.status ?? "ACTIVE") as VariantStatus,
+    quantityOnHand: String(variant.inventory?.quantityOnHand ?? 0),
+    quantityReserved: variant.inventory?.quantityReserved ?? 0,
+    reorderLevel: String(variant.inventory?.reorderLevel ?? 0),
+    weightGrams: variant.weightGrams == null ? "" : String(variant.weightGrams),
+    lengthMm: variant.lengthMm == null ? "" : String(variant.lengthMm),
+    widthMm: variant.widthMm == null ? "" : String(variant.widthMm),
+    heightMm: variant.heightMm == null ? "" : String(variant.heightMm),
+  }));
+}
+
+function toOptionalNumber(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? Number(trimmed) : null;
+}
+
+function toVariantInput(variant: VariantFormState): SellerVariantInput & { status?: VariantStatus } {
+  return {
+    sku: variant.sku.trim(),
+    title: variant.title.trim(),
+    titleTh: optionalText(variant.titleTh),
+    titleEn: optionalText(variant.titleEn),
+    price: Math.round(Number(variant.price || "0") * 100),
+    currency: variant.currency.trim() || "USD",
+    status: variant.status,
+    quantityOnHand: Number(variant.quantityOnHand || "0"),
+    reorderLevel: Number(variant.reorderLevel || "0"),
+    weightGrams: toOptionalNumber(variant.weightGrams),
+    lengthMm: toOptionalNumber(variant.lengthMm),
+    widthMm: toOptionalNumber(variant.widthMm),
+    heightMm: toOptionalNumber(variant.heightMm),
+  };
+}
+
+function getAvailableStock(variant: VariantFormState) {
+  return Math.max(0, Number(variant.quantityOnHand || "0") - variant.quantityReserved);
+}
+
+function createPreviewUrl(file: File) {
+  return typeof URL.createObjectURL === "function" ? URL.createObjectURL(file) : "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+}
+
+function getPublishReadiness(form: ProductFormState, images: ImageDraftState[], variants: VariantFormState[]) {
+  const missing: string[] = [];
+  if (!form.categoryId) missing.push("category");
+  if (!images.length) missing.push("at least one product image");
+  if (!variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price || "0") > 0)) missing.push("one active variant with price greater than zero");
+  return missing;
 }
 
 function toProductInput(form: ProductFormState): SellerProductInput {
@@ -333,21 +494,44 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const brandsQuery = useSellerBrands();
   const createProduct = useCreateSellerProduct();
   const updateProduct = useUpdateSellerProduct();
+  const createVariant = useCreateSellerVariant();
+  const updateVariant = useUpdateSellerVariant();
+  const deleteVariant = useDeleteSellerVariant();
+  const updateVariantStock = useUpdateSellerVariantStock();
+  const uploadImage = useUploadAndCreateSellerProductImage();
+  const updateImage = useUpdateSellerProductImage();
+  const deleteImage = useDeleteSellerProductImage();
+  const uploadVideo = useUploadAndUpsertSellerProductVideo();
+  const deleteVideo = useDeleteSellerProductVideo();
   const product = mode === "edit" ? (productsQuery.data?.data ?? []).find((item) => item.id === productId) : null;
   const initialForm = useMemo(() => product ? productToForm(product) : emptyProductForm, [product]);
   const [form, setForm] = useState<ProductFormState>(initialForm);
+  const [createdProduct, setCreatedProduct] = useState<SellerProduct | null>(null);
   const [seedProductId, setSeedProductId] = useState<string | undefined>();
   const [formError, setFormError] = useState("");
+  const [images, setImages] = useState<ImageDraftState[]>(() => productImagesToDrafts(product));
+  const [video, setVideo] = useState<VideoDraftState | null>(() => productVideoToDraft(product));
+  const [variants, setVariants] = useState<VariantFormState[]>(() => productVariantsToForms(product));
+  const [mediaError, setMediaError] = useState("");
+  const [variantError, setVariantError] = useState("");
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const workingProduct = createdProduct ?? product;
+  const workingProductId = workingProduct?.id ?? productId;
 
   useEffect(() => {
     if (mode === "edit" && product?.id && seedProductId !== product.id) {
       setSeedProductId(product.id);
       setForm(initialForm);
+      setImages(productImagesToDrafts(product));
+      setVideo(productVideoToDraft(product));
+      setVariants(productVariantsToForms(product));
     }
   }, [initialForm, mode, product?.id, seedProductId]);
 
-  const dirty = isProductFormDirty(form, initialForm);
-  const isSaving = createProduct.isPending || updateProduct.isPending;
+  const readinessMissing = getPublishReadiness(form, images, variants);
+  const dirty = isProductFormDirty(form, initialForm) || images.some((image) => image.status !== "existing") || variants.some((variant) => !variant.id) || Boolean(video?.status !== "existing" && video);
+  const isSaving = createProduct.isPending || updateProduct.isPending || createVariant.isPending || updateVariant.isPending || updateVariantStock.isPending || uploadImage.isPending || updateImage.isPending || deleteImage.isPending || uploadVideo.isPending || deleteVideo.isPending || deleteVariant.isPending;
 
   function cancel() {
     if (dirty && !window.confirm("Discard unsaved product changes?")) return;
@@ -356,14 +540,25 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
 
   function submitProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setFormError("");
     if (!form.title.trim()) {
       setFormError("Product title is required.");
       return;
     }
+    if (form.status === "ACTIVE" && readinessMissing.length) {
+      setFormError(`Active products need ${readinessMissing.join(", ")} before publishing.`);
+      return;
+    }
     const input = toProductInput(form);
     const options = {
-      onSuccess: () => {
+      onSuccess: (savedProduct: SellerProduct) => {
         toast.success(mode === "edit" ? "Product updated." : "Product created.");
+        if (mode === "create") {
+          setCreatedProduct(savedProduct);
+          setSeedProductId(savedProduct.id);
+          setForm(productToForm(savedProduct));
+          return;
+        }
         router.push("/seller/products");
       },
       onError: (error: unknown) => {
@@ -376,6 +571,209 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       return;
     }
     createProduct.mutate(input, options);
+  }
+
+  function addImageFiles(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    setMediaError("");
+    if (!files.length) return;
+    if (images.length + files.length > MAX_PRODUCT_IMAGES) {
+      setMediaError(`Product images are limited to ${MAX_PRODUCT_IMAGES}. Remove an image before adding more.`);
+      return;
+    }
+    setImages((current) => [
+      ...current,
+      ...files.map((file, index) => ({
+        id: `pending-${Date.now()}-${index}`,
+        file,
+        url: createPreviewUrl(file),
+        altText: file.name,
+        sortOrder: current.length + index,
+        isPrimary: current.length === 0 && index === 0,
+        status: "pending" as const,
+      })),
+    ]);
+  }
+
+  function addVideoFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    setMediaError("");
+    if (!file) return;
+    if (video) {
+      setMediaError("Only one product video can be attached. Remove the current video before uploading another.");
+      return;
+    }
+    if (!PRODUCT_VIDEO_TYPES.includes(file.type)) {
+      setMediaError("Product video must be MP4 or WebM.");
+      return;
+    }
+    if (file.size > MAX_PRODUCT_VIDEO_BYTES) {
+      setMediaError("Product video must be 25MB or smaller.");
+      return;
+    }
+    setVideo({
+      file,
+      fileName: file.name,
+      fileSize: file.size,
+      contentType: file.type,
+      url: createPreviewUrl(file),
+      status: "pending",
+    });
+  }
+
+  function updateImageDraft(imageId: string, patch: Partial<ImageDraftState>) {
+    setImages((current) => current.map((image) => image.id === imageId ? { ...image, ...patch } : image));
+  }
+
+  function setPrimaryImage(imageId: string) {
+    setImages((current) => current.map((image) => ({ ...image, isPrimary: image.id === imageId })));
+  }
+
+  function removeImage(image: ImageDraftState) {
+    if (image.status !== "existing" || !workingProductId) {
+      setImages((current) => current.filter((item) => item.id !== image.id));
+      return;
+    }
+    deleteImage.mutate({ productId: workingProductId, imageId: image.id }, {
+      onSuccess: () => {
+        setImages((current) => current.filter((item) => item.id !== image.id));
+        toast.success("Image removed.");
+      },
+      onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : "Image could not be removed."),
+    });
+  }
+
+  function saveImage(image: ImageDraftState) {
+    if (!workingProductId) {
+      setMediaError("Save the product as a draft before uploading media.");
+      return;
+    }
+    updateImageDraft(image.id, { status: "uploading", error: undefined });
+    if (image.status === "existing") {
+      updateImage.mutate({ productId: workingProductId, imageId: image.id, altText: optionalText(image.altText), sortOrder: image.sortOrder, isPrimary: image.isPrimary, width: image.width, height: image.height }, {
+        onSuccess: () => {
+          updateImageDraft(image.id, { status: "existing" });
+          toast.success("Image updated.");
+        },
+        onError: (error: unknown) => updateImageDraft(image.id, { status: "error", error: error instanceof Error ? error.message : "Image could not be saved." }),
+      });
+      return;
+    }
+    if (!image.file) return;
+    uploadImage.mutate({ productId: workingProductId, file: image.file, altText: optionalText(image.altText), sortOrder: image.sortOrder, isPrimary: image.isPrimary, width: image.width, height: image.height }, {
+      onSuccess: ({ image: savedImage }: { image: SellerProductImage }) => {
+        setImages((current) => current.map((item) => item.id === image.id ? { ...item, id: savedImage.id, url: savedImage.url, status: "existing", error: undefined } : item));
+        toast.success("Image uploaded.");
+      },
+      onError: (error: unknown) => updateImageDraft(image.id, { status: "error", error: error instanceof Error ? error.message : "Image upload failed." }),
+    });
+  }
+
+  function removeVideo() {
+    if (video?.status === "existing" && workingProductId) {
+      deleteVideo.mutate(workingProductId, {
+        onSuccess: () => {
+          setVideo(null);
+          toast.success("Video removed.");
+        },
+        onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : "Video could not be removed."),
+      });
+      return;
+    }
+    setVideo(null);
+  }
+
+  function saveVideo() {
+    if (!workingProductId) {
+      setMediaError("Save the product as a draft before uploading media.");
+      return;
+    }
+    if (!video?.file) return;
+    setVideo((current) => current ? { ...current, status: "uploading", error: undefined } : current);
+    uploadVideo.mutate({ productId: workingProductId, file: video.file, sortOrder: 0 }, {
+      onSuccess: ({ video: savedVideo }: { video: SellerProductVideo }) => {
+        setVideo({
+          id: savedVideo.id,
+          url: savedVideo.url,
+          contentType: savedVideo.contentType,
+          fileName: savedVideo.fileName,
+          fileSize: savedVideo.fileSize,
+          status: "existing",
+        });
+        toast.success("Video uploaded.");
+      },
+      onError: (error: unknown) => setVideo((current) => current ? { ...current, status: "error", error: error instanceof Error ? error.message : "Video upload failed." } : current),
+    });
+  }
+
+  function addVariant() {
+    setVariants((current) => [...current, { ...emptyVariantForm, sku: `SKU-${current.length + 1}` }]);
+  }
+
+  function updateVariantDraft(index: number, patch: Partial<VariantFormState>) {
+    setVariants((current) => current.map((variant, variantIndex) => variantIndex === index ? { ...variant, ...patch } : variant));
+  }
+
+  function deleteVariantDraft(variant: VariantFormState, index: number) {
+    if (!window.confirm(`Delete variant ${variant.title || variant.sku || index + 1}?`)) return;
+    if (!variant.id || !workingProductId) {
+      setVariants((current) => current.filter((_, variantIndex) => variantIndex !== index));
+      return;
+    }
+    deleteVariant.mutate({ productId: workingProductId, variantId: variant.id }, {
+      onSuccess: () => {
+        setVariants((current) => current.filter((item) => item.id !== variant.id));
+        toast.success("Variant deleted.");
+      },
+      onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : "Variant could not be deleted."),
+    });
+  }
+
+  function saveVariant(variant: VariantFormState, index: number) {
+    setVariantError("");
+    if (!workingProductId) {
+      setVariantError("Save the product as a draft before adding variants.");
+      return;
+    }
+    if (!variant.sku.trim() || !variant.title.trim()) {
+      setVariantError("Variant SKU and title are required.");
+      return;
+    }
+    if (Number(variant.price || "0") < 0 || Number(variant.quantityOnHand || "0") < 0 || Number(variant.reorderLevel || "0") < 0) {
+      setVariantError("Variant price and stock values cannot be negative.");
+      return;
+    }
+    const input = toVariantInput(variant);
+    const saveStock = (variantId: string) => {
+      updateVariantStock.mutate({
+        productId: workingProductId,
+        variantId,
+        quantityOnHand: input.quantityOnHand,
+        reorderLevel: input.reorderLevel,
+      }, {
+        onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : "Variant stock could not be saved."),
+      });
+    };
+    if (variant.id) {
+      updateVariant.mutate({ productId: workingProductId, variantId: variant.id, ...input }, {
+        onSuccess: () => {
+          saveStock(variant.id!);
+          toast.success("Variant updated.");
+        },
+        onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : "Variant could not be saved."),
+      });
+      return;
+    }
+    createVariant.mutate({ productId: workingProductId, ...input }, {
+      onSuccess: (savedVariant: { id: string }) => {
+        updateVariantDraft(index, { id: savedVariant.id });
+        saveStock(savedVariant.id);
+        toast.success("Variant created.");
+      },
+      onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : "Variant could not be saved."),
+    });
   }
 
   if (mode === "edit" && productsQuery.error) {
@@ -472,17 +870,112 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
           </ProductSection>
         </div>
         <aside className="space-y-4">
-          <ProductSection title="Media" description="Image and video upload management continues in the next task.">
-            <p className="text-sm text-slate-600">{product?.images?.length ?? 0} image records attached.</p>
+          <ProductSection title="Media" description="Upload up to 10 images and one MP4/WebM video after the product has a draft record.">
+            {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before uploading media.</p> : null}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input ref={imageInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={addImageFiles} aria-label="Upload product images" />
+              <Button type="button" variant="outline" onClick={() => imageInputRef.current?.click()}>
+                <UploadIcon className="size-4" />
+                Add images
+              </Button>
+              <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" className="sr-only" onChange={addVideoFile} aria-label="Upload product video" />
+              <Button type="button" variant="outline" onClick={() => videoInputRef.current?.click()}>
+                <UploadIcon className="size-4" />
+                Add video
+              </Button>
+            </div>
+            <p className="text-xs text-slate-500">{images.length}/{MAX_PRODUCT_IMAGES} images. Video limit: one MP4 or WebM up to 25MB.</p>
+            {mediaError ? <p className="text-sm text-red-600">{mediaError}</p> : null}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {images.map((image) => (
+                <div key={image.id} className="space-y-3 rounded-lg border border-slate-200 p-3">
+                  <img src={image.url} alt={image.altText || "Product image preview"} className="aspect-square w-full rounded-md object-cover" />
+                  <Field label="Alt text" htmlFor={`image-alt-${image.id}`}>
+                    <Input id={`image-alt-${image.id}`} value={image.altText} onChange={(event) => updateImageDraft(image.id, { altText: event.target.value })} />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Field label="Order" htmlFor={`image-order-${image.id}`}>
+                      <Input id={`image-order-${image.id}`} type="number" min="0" value={image.sortOrder} onChange={(event) => updateImageDraft(image.id, { sortOrder: Number(event.target.value) })} />
+                    </Field>
+                    <label className="flex items-end gap-2 pb-2 text-sm text-slate-700">
+                      <input type="radio" name="primary-image" checked={image.isPrimary} onChange={() => setPrimaryImage(image.id)} />
+                      Primary
+                    </label>
+                  </div>
+                  {image.error ? <p className="text-sm text-red-600">{image.error}</p> : null}
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => saveImage(image)} disabled={isSaving}>{image.status === "uploading" ? "Uploading..." : image.status === "error" ? "Retry" : "Save image"}</Button>
+                    <Button type="button" variant="outline" aria-label={`Remove image ${image.altText || image.id}`} onClick={() => removeImage(image)}><TrashIcon className="size-4" /></Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {video ? (
+              <div className="space-y-3 rounded-lg border border-slate-200 p-3">
+                <p className="text-sm font-medium text-slate-900">{video.fileName ?? "Product video"}</p>
+                <p className="text-xs text-slate-500">{video.contentType ?? "video"} {video.fileSize ? `- ${(video.fileSize / 1024 / 1024).toFixed(1)}MB` : ""}</p>
+                {video.error ? <p className="text-sm text-red-600">{video.error}</p> : null}
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={saveVideo} disabled={isSaving || video.status === "existing"}>{video.status === "uploading" ? "Uploading..." : video.status === "error" ? "Retry video" : "Save video"}</Button>
+                  <Button type="button" variant="outline" onClick={removeVideo}>Remove video</Button>
+                </div>
+              </div>
+            ) : null}
           </ProductSection>
-          <ProductSection title="Variants" description="Variant creation and editing will move into this page workflow next.">
-            <p className="text-sm text-slate-600">{product?.variants?.length ?? 0} variants configured.</p>
+          <ProductSection title="Variants" description="Create, edit, delete, price, dimensions, and simple stock setup per sellable option.">
+            {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before adding variants.</p> : null}
+            {variantError ? <p className="text-sm text-red-600">{variantError}</p> : null}
+            <Button type="button" variant="outline" onClick={addVariant}>
+              <PlusIcon className="size-4" />
+              Add variant
+            </Button>
+            <div className="space-y-3">
+              {variants.map((variant, index) => (
+                <div key={variant.id ?? index} className="space-y-3 rounded-lg border border-slate-200 p-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="SKU" htmlFor={`variant-sku-${index}`}><Input id={`variant-sku-${index}`} value={variant.sku} onChange={(event) => updateVariantDraft(index, { sku: event.target.value })} /></Field>
+                    <Field label="Variant title" htmlFor={`variant-title-${index}`}><Input id={`variant-title-${index}`} value={variant.title} onChange={(event) => updateVariantDraft(index, { title: event.target.value })} /></Field>
+                    <Field label="Thai variant title" htmlFor={`variant-title-th-${index}`}><Input id={`variant-title-th-${index}`} value={variant.titleTh} onChange={(event) => updateVariantDraft(index, { titleTh: event.target.value })} /></Field>
+                    <Field label="English variant title" htmlFor={`variant-title-en-${index}`}><Input id={`variant-title-en-${index}`} value={variant.titleEn} onChange={(event) => updateVariantDraft(index, { titleEn: event.target.value })} /></Field>
+                    <Field label="Price" htmlFor={`variant-price-${index}`}><Input id={`variant-price-${index}`} type="number" min="0" step="0.01" value={variant.price} onChange={(event) => updateVariantDraft(index, { price: event.target.value })} /></Field>
+                    <Field label="Currency" htmlFor={`variant-currency-${index}`}><Input id={`variant-currency-${index}`} value={variant.currency} onChange={(event) => updateVariantDraft(index, { currency: event.target.value.toUpperCase() })} /></Field>
+                    <Field label="Variant status" htmlFor={`variant-status-${index}`}>
+                      <Select value={variant.status} onValueChange={(value) => updateVariantDraft(index, { status: value as VariantStatus })}>
+                        <SelectTrigger id={`variant-status-${index}`}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DRAFT">Draft</SelectItem>
+                          <SelectItem value="ACTIVE">Active</SelectItem>
+                          <SelectItem value="ARCHIVED">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Quantity on hand" htmlFor={`variant-on-hand-${index}`}><Input id={`variant-on-hand-${index}`} type="number" min="0" value={variant.quantityOnHand} onChange={(event) => updateVariantDraft(index, { quantityOnHand: event.target.value })} /></Field>
+                    <Field label="Reorder level" htmlFor={`variant-reorder-${index}`}><Input id={`variant-reorder-${index}`} type="number" min="0" value={variant.reorderLevel} onChange={(event) => updateVariantDraft(index, { reorderLevel: event.target.value })} /></Field>
+                    <Field label="Quantity reserved" htmlFor={`variant-reserved-${index}`}><Input id={`variant-reserved-${index}`} value={variant.quantityReserved} readOnly /></Field>
+                    <Field label="Available stock" htmlFor={`variant-available-${index}`}><Input id={`variant-available-${index}`} value={getAvailableStock(variant)} readOnly /></Field>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Weight grams" htmlFor={`variant-weight-${index}`}><Input id={`variant-weight-${index}`} type="number" min="0" value={variant.weightGrams} onChange={(event) => updateVariantDraft(index, { weightGrams: event.target.value })} /></Field>
+                    <Field label="Length mm" htmlFor={`variant-length-${index}`}><Input id={`variant-length-${index}`} type="number" min="0" value={variant.lengthMm} onChange={(event) => updateVariantDraft(index, { lengthMm: event.target.value })} /></Field>
+                    <Field label="Width mm" htmlFor={`variant-width-${index}`}><Input id={`variant-width-${index}`} type="number" min="0" value={variant.widthMm} onChange={(event) => updateVariantDraft(index, { widthMm: event.target.value })} /></Field>
+                    <Field label="Height mm" htmlFor={`variant-height-${index}`}><Input id={`variant-height-${index}`} type="number" min="0" value={variant.heightMm} onChange={(event) => updateVariantDraft(index, { heightMm: event.target.value })} /></Field>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => saveVariant(variant, index)} disabled={isSaving}>Save variant</Button>
+                    <Button type="button" variant="outline" onClick={() => deleteVariantDraft(variant, index)}>Delete variant</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </ProductSection>
-          <ProductSection title="Stock" description="Simple stock setup will use editable on-hand and reorder values only.">
-            <p className="text-sm text-slate-600">Reserved stock remains read-only.</p>
-          </ProductSection>
-          <ProductSection title="Dimensions" description="Weight and package dimensions are captured per variant.">
-            <p className="text-sm text-slate-600">Normalized grams and millimeters.</p>
+          <ProductSection title="Publish readiness" description="Drafts can save early; active products need catalog, media, and sellable variant setup.">
+            {readinessMissing.length ? (
+              <p className="text-sm text-amber-700">Active publish readiness missing: {readinessMissing.join(", ")}.</p>
+            ) : (
+              <p className="text-sm text-green-700">This product has the visible setup needed for active publishing. Backend validation remains final.</p>
+            )}
           </ProductSection>
           {formError ? <p id="product-form-error" className="text-sm text-red-600">{formError}</p> : null}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end xl:flex-col-reverse">
