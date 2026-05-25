@@ -15,9 +15,15 @@ const archiveMutate = vi.fn();
 const createImageMutate = vi.fn();
 const updateImageMutate = vi.fn();
 const deleteImageMutate = vi.fn();
+const uploadMediaMutate = vi.fn();
+const uploadCreateImageMutate = vi.fn();
+const upsertVideoMutate = vi.fn();
+const uploadUpsertVideoMutate = vi.fn();
+const deleteVideoMutate = vi.fn();
 const createVariantMutate = vi.fn();
 const updateVariantMutate = vi.fn();
 const deleteVariantMutate = vi.fn();
+const updateVariantStockMutate = vi.fn();
 
 const products = [
   {
@@ -176,6 +182,11 @@ vi.mock("../hooks/useSellerManage", () => {
     useCreateSellerProductImage: vi.fn(() => ({ mutate: createImageMutate, isPending: false })),
     useUpdateSellerProductImage: vi.fn(() => ({ mutate: updateImageMutate, isPending: false })),
     useDeleteSellerProductImage: vi.fn(() => ({ mutate: deleteImageMutate, isPending: false })),
+    useUploadSellerMedia: vi.fn(() => ({ mutate: uploadMediaMutate, isPending: false })),
+    useUploadAndCreateSellerProductImage: vi.fn(() => ({ mutate: uploadCreateImageMutate, isPending: false })),
+    useUpsertSellerProductVideo: vi.fn(() => ({ mutate: upsertVideoMutate, isPending: false })),
+    useUploadAndUpsertSellerProductVideo: vi.fn(() => ({ mutate: uploadUpsertVideoMutate, isPending: false })),
+    useDeleteSellerProductVideo: vi.fn(() => ({ mutate: deleteVideoMutate, isPending: false })),
     useCreateSellerVariant: vi.fn(() => ({ mutate: createVariantMutate, isPending: false })),
     useUpdateSellerVariant: vi.fn(() => ({ mutate: updateVariantMutate, isPending: false })),
     useDeleteSellerVariant: vi.fn(() => ({ mutate: deleteVariantMutate, isPending: false })),
@@ -186,6 +197,7 @@ vi.mock("../hooks/useSellerManage", () => {
     useSellerWallet: vi.fn(inertQuery),
     useSellerTransactions: vi.fn(inertQuery),
     useSellerPayouts: vi.fn(inertQuery),
+    useUpdateSellerVariantStock: vi.fn(() => ({ mutate: updateVariantStockMutate, isPending: false })),
     useUpdateSellerInventory: vi.fn(inertMutation),
     usePackShipment: vi.fn(inertMutation),
     useShipShipment: vi.fn(inertMutation),

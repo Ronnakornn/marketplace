@@ -8,6 +8,7 @@ import {
   invalidateSellerProductQueries,
   sellerProductsQueryOptions,
 } from "#/features/product/queries";
+import { uploadSellerFile, type SellerCompletedUpload, type SellerUploadUsage } from "#/features/seller/upload-helper";
 
 export const SELLER_PAGE_SIZE = 20;
 
@@ -17,6 +18,8 @@ export type SellerProduct = SellerProductsResponse extends { data: Array<infer T
 export type SellerCategory = Treaty.Data<ReturnType<typeof api.api.categories.get>> extends Array<infer T> ? T : never;
 export type SellerBrand = Treaty.Data<ReturnType<typeof api.api.seller.brands.get>> extends Array<infer T> ? T : never;
 export type SellerProductImage = SellerProduct extends { images: Array<infer T> } ? T : never;
+export type SellerProductVideo = SellerProduct extends { video: infer T } ? NonNullable<T> : never;
+export type SellerUpload = SellerCompletedUpload;
 export type SellerShipment = Treaty.Data<ReturnType<typeof api.api.seller.shipments.get>> extends Array<infer T> ? T : never;
 export type SellerReturn = Treaty.Data<ReturnType<typeof api.api.seller.returns.get>> extends Array<infer T> ? T : never;
 export type SellerCoupon = Treaty.Data<ReturnType<typeof api.api.seller.coupons.get>> extends Array<infer T> ? T : never;
@@ -65,6 +68,8 @@ export interface SellerVariantInput {
   titleEn?: string | null;
   price: number;
   currency?: string;
+  quantityOnHand?: number;
+  reorderLevel?: number;
   weightGrams?: number | null;
   lengthMm?: number | null;
   widthMm?: number | null;
@@ -72,12 +77,25 @@ export interface SellerVariantInput {
 }
 
 export interface SellerProductImageInput {
-  url: string;
+  uploadId?: string | null;
+  url?: string;
   altText?: string | null;
   sortOrder?: number;
   isPrimary?: boolean;
   width?: number | null;
   height?: number | null;
+}
+
+export interface SellerProductVideoInput {
+  uploadId: string;
+  sortOrder?: number;
+}
+
+export interface SellerVariantStockInput {
+  variantId: string;
+  productId?: string;
+  quantityOnHand?: number;
+  reorderLevel?: number;
 }
 
 export interface SellerCouponInput {
@@ -273,7 +291,7 @@ export function useArchiveSellerProduct() {
 export function useCreateSellerVariant() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ productId, ...input }: SellerVariantInput & { productId: string }) => {
+    mutationFn: async ({ productId, quantityOnHand: _quantityOnHand, reorderLevel: _reorderLevel, ...input }: SellerVariantInput & { productId: string }) => {
       const { data, error } = await api.api.seller.products({ productId }).variants.post(input);
       if (error) throw error;
       return data;
@@ -290,7 +308,7 @@ export function useCreateSellerVariant() {
 export function useUpdateSellerVariant() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ productId, variantId, ...input }: Partial<SellerVariantInput> & { productId: string; variantId: string }) => {
+    mutationFn: async ({ productId, variantId, quantityOnHand: _quantityOnHand, reorderLevel: _reorderLevel, ...input }: Partial<SellerVariantInput> & { productId: string; variantId: string }) => {
       const { data, error } = await api.api.seller.products({ productId }).variants({ variantId }).patch(input);
       if (error) throw error;
       return data;
@@ -338,6 +356,33 @@ export function useCreateSellerProductImage() {
   });
 }
 
+export function useUploadSellerMedia() {
+  return useMutation({
+    mutationFn: (input: { file: File; usage: SellerUploadUsage }) => uploadSellerFile(input),
+  });
+}
+
+export function useUploadAndCreateSellerProductImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, file, ...input }: Omit<SellerProductImageInput, "uploadId" | "url"> & { productId: string; file: File }) => {
+      const upload = await uploadSellerFile({ file, usage: "product_image" });
+      const { data, error } = await api.api.seller.products({ productId }).images.post({
+        ...input,
+        uploadId: upload.id,
+      });
+      if (error) throw error;
+      return { image: data, upload };
+    },
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
+  });
+}
+
 export function useUpdateSellerProductImage() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -372,19 +417,76 @@ export function useDeleteSellerProductImage() {
   });
 }
 
-export function useUpdateSellerInventory() {
+export function useUpsertSellerProductVideo() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ variantId, quantityOnHand, reorderLevel }: { variantId: string; quantityOnHand?: number; reorderLevel?: number }) => {
+    mutationFn: async ({ productId, ...input }: SellerProductVideoInput & { productId: string }) => {
+      const { data, error } = await api.api.seller.products({ productId }).video.post(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
+  });
+}
+
+export function useUploadAndUpsertSellerProductVideo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, file, sortOrder }: { productId: string; file: File; sortOrder?: number }) => {
+      const upload = await uploadSellerFile({ file, usage: "product_video" });
+      const { data, error } = await api.api.seller.products({ productId }).video.post({
+        uploadId: upload.id,
+        sortOrder,
+      });
+      if (error) throw error;
+      return { video: data, upload };
+    },
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
+  });
+}
+
+export function useDeleteSellerProductVideo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (productId: string) => {
+      const { data, error } = await api.api.seller.products({ productId }).video.delete();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, productId) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId,
+        affectsPublic: true,
+      });
+    },
+  });
+}
+
+export function useUpdateSellerVariantStock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ variantId, quantityOnHand, reorderLevel }: SellerVariantStockInput) => {
       const { data, error } = await api.api.seller.variants({ variantId }).inventory.patch({ quantityOnHand, reorderLevel });
       if (error) throw error;
       return data;
     },
-    onSuccess: async () => {
-      await invalidateSellerProductQueries(queryClient);
+    onSuccess: async (_data, variables) => {
+      await invalidateSellerProductQueries(queryClient, { productId: variables.productId });
     },
   });
 }
+
+export const useUpdateSellerInventory = useUpdateSellerVariantStock;
 
 export function usePackShipment() {
   const queryClient = useQueryClient();
