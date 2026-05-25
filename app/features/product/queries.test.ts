@@ -92,6 +92,37 @@ describe("product query keys", () => {
     expect(productQueryKeys.public.categories({ locale: "en" }).slice(0, 3)).toEqual(["product", "public", "categories"]);
     expect(productQueryKeys.public.shopProducts({ locale: "en", shopId: "shop-1" }).slice(0, 3)).toEqual(["product", "public", "shop-products"]);
   });
+
+  it("keys public search by the normalized search endpoint input", () => {
+    expect(productQueryKeys.public.search({
+      locale: "th",
+      q: "camera",
+      categoryId: "electronics",
+      shopId: "shop-1",
+      minPrice: 100,
+      maxPrice: 900,
+      rating: 4,
+      sort: "relevance",
+      cursor: "ignored-by-search",
+      page: 3,
+    })).toEqual([
+      "product",
+      "public",
+      "searches",
+      {
+        locale: "th",
+        q: "camera",
+        categoryId: "electronics",
+        shopId: "shop-1",
+        minPrice: 100,
+        maxPrice: 900,
+        rating: 4,
+        sort: "newest",
+        page: 3,
+        limit: 40,
+      },
+    ]);
+  });
 });
 
 describe("product query invalidation helpers", () => {

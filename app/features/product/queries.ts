@@ -123,7 +123,7 @@ export const productQueryKeys = {
       [...productQueryKeys.public.lists(), cleanPublicProductListInput(input)] as const,
     searches: () => [...productQueryKeys.public.all(), "searches"] as const,
     search: (input: PublicProductListInput = {}) =>
-      [...productQueryKeys.public.searches(), cleanPublicProductListInput(input)] as const,
+      [...productQueryKeys.public.searches(), cleanSearchProductInput(input)] as const,
     suggestions: (input: Pick<PublicProductListInput, "locale" | "q" | "limit"> = {}) =>
       [...productQueryKeys.public.all(), "suggestions", cleanSearchSuggestionInput(input)] as const,
     details: () => [...productQueryKeys.public.all(), "details"] as const,

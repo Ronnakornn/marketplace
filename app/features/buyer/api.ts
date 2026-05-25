@@ -1,39 +1,6 @@
 "use client";
 
 import { defaultCurrency } from "#/i18n/config";
-import { isSecretStorageUrl } from "#/lib/assets";
-
-export interface BuyerProduct {
-  id: string;
-  title: string;
-  description: string | null;
-  price: number;
-  currency: string;
-  rating: number;
-  soldCount: number;
-  stock: number;
-  shop: {
-    id: string;
-    name: string;
-    location: string;
-  };
-  variants: Array<{
-    id: string;
-    title: string;
-    sku: string;
-    price: number;
-    currency: string;
-    stock: number;
-  }>;
-  images: string[];
-}
-
-export interface BuyerCategory {
-  id: string;
-  slug: string;
-  name: string;
-  sortOrder: number;
-}
 
 export interface BuyerCart {
   id: string | null;
@@ -213,29 +180,6 @@ export interface CheckoutResult {
   paymentUrl?: string;
 }
 
-export async function fetchProducts(params: Record<string, string | number | undefined> = {}): Promise<BuyerProduct[]> {
-  const query = toQuery(params);
-  const response = await apiFetch(`/api/products${query}`);
-  const record = toRecord(response);
-  const rawItems = Array.isArray(response) ? response : readArray(record.data).length ? readArray(record.data) : readArray(record.items);
-  return rawItems.map(normalizeProduct);
-}
-
-export async function fetchSearchProducts(params: Record<string, string | number | undefined> = {}): Promise<BuyerProduct[]> {
-  const query = toQuery(params);
-  const response = await apiFetch(`/api/search/products${query}`);
-  const record = toRecord(response);
-  const rawItems = readArray(record.items).length ? readArray(record.items) : readArray(record.data);
-  return rawItems.map(normalizeProduct);
-}
-
-export async function fetchSearchSuggestions(query: string, limit = 8, locale?: string): Promise<string[]> {
-  const response = await apiFetch(`/api/search/suggestions${toQuery({ q: query, limit, locale })}`);
-  const record = toRecord(response);
-  const rawItems = readArray(record.items).length ? readArray(record.items) : readArray(record.suggestions).length ? readArray(record.suggestions) : readArray(record.productTitles);
-  return rawItems.map((item) => readString(typeof item === "string" ? item : toRecord(item).value)).filter(Boolean);
-}
-
 export async function fetchCoupons(locale?: string): Promise<BuyerCoupon[]> {
   const response = await apiFetch(`/api/coupons${toQuery({ locale })}`);
   const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
@@ -328,24 +272,6 @@ export async function followShop(shopId: string): Promise<void> {
 
 export async function unfollowShop(shopId: string): Promise<void> {
   await apiFetch(`/api/shops/${shopId}/follow`, { method: "DELETE" });
-}
-
-export async function fetchCategories(locale?: string): Promise<BuyerCategory[]> {
-  const response = await apiFetch(`/api/categories${toQuery({ locale })}`);
-  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
-  return rawItems.map((item) => {
-    const record = toRecord(item);
-    return {
-      id: readString(record.id, readString(record.slug)),
-      slug: readString(record.slug),
-      name: readString(record.name, "Category"),
-      sortOrder: readNumber(record.sortOrder),
-    };
-  }).filter((category) => category.slug);
-}
-
-export async function fetchProduct(productId: string, locale?: string): Promise<BuyerProduct> {
-  return normalizeProduct(await apiFetch(`/api/products/${productId}${toQuery({ locale })}`));
 }
 
 export async function fetchCart(locale?: string): Promise<BuyerCart> {
@@ -509,45 +435,6 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<unknown> 
     throw new Error(message);
   }
   return body;
-}
-
-function normalizeProduct(input: unknown, index = 0): BuyerProduct {
-  const record = toRecord(input);
-  const shop = toRecord(record.shop);
-  const variants = readArray(record.variants).map((variantInput, variantIndex) => {
-    const variant = toRecord(variantInput);
-    const inventory = toRecord(variant.inventory);
-    return {
-      id: readString(variant.id, `${readString(record.id)}-variant-${variantIndex}`),
-      title: readString(variant.title, "Default"),
-      sku: readString(variant.sku),
-      price: readNumber(variant.price, readNumber(record.price, 0)),
-      currency: readString(variant.currency, readString(record.currency, defaultCurrency)),
-      stock: readNumber(inventory.quantityOnHand, readNumber(variant.stock, 0)),
-    };
-  });
-  const firstVariant = variants[0];
-  const ratingSummary = toRecord(record.ratingSummary);
-  const minPrice = readNumber(record.minPrice, readNumber(record.price));
-  return {
-    id: readString(record.id, readString(record.productId, `product-${index}`)),
-    title: readString(record.title, "Untitled product"),
-    description: optionalString(record.description),
-    price: firstVariant?.price ?? minPrice,
-    currency: firstVariant?.currency ?? readString(record.currency, defaultCurrency),
-    rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 4.7)),
-    soldCount: readNumber(record.soldCount, readNumber(record.sold, 0)),
-    stock: firstVariant?.stock ?? readNumber(record.stock),
-    shop: {
-      id: readString(shop.id),
-      name: readString(shop.name, "Marketplace shop"),
-      location: readString(shop.location, readString(shop.city, "Local")),
-    },
-    variants,
-    images: readArray(record.images).length ? readArray(record.images)
-      .map((image) => String(image))
-      .filter((image) => Boolean(image) && !isSecretStorageUrl(image)) : optionalString(record.coverImage) ? [optionalString(record.coverImage)!] : [],
-  };
 }
 
 function normalizeCart(input: unknown): BuyerCart {
