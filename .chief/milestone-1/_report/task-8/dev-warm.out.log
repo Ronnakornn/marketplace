@@ -1,0 +1,1314 @@
+[frontend] $ next dev --port 3000
+[backend] $ bun run --watch server/index.ts
+[frontend] ▲ Next.js 16.2.6 (Turbopack)
+[frontend] - Local:         http://localhost:3000
+[frontend] - Network:       http://192.168.0.19:3000
+[frontend] - Environments: .env.local
+[frontend] ✓ Ready in 473ms
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] [2026-05-25 07:14:25.027 +0700] [32mINFO[39m: [36mAPI server running[39m
+[backend]     [35mport[39m: 3001
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[frontend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[frontend]  GET /th 200 in 1590ms (next.js: 846ms, proxy.ts: 135ms, generate-params: 670ms, application-code: 609ms)
+[backend] [2026-05-25 07:14:41.526 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "71bd2b19-4fcb-4ff6-a762-85fdc48e487b"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/health"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 0.21
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[frontend]  GET /th 200 in 127ms (next.js: 57ms, proxy.ts: 4ms, generate-params: 5ms, application-code: 66ms)
+[backend] [2026-05-25 07:14:45.833 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "99bd2f4f-ced7-4e8d-ad32-1ec6ae0de463"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/health"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 0.04
+[frontend]  GET /th 200 in 80ms (next.js: 9ms, proxy.ts: 4ms, generate-params: 5ms, application-code: 67ms)
+[backend] [2026-05-25 07:14:47.042 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "069e809c-6f67-4536-b957-0d178b01e180"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/health"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 0.02
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[frontend]  GET /th 200 in 81ms (next.js: 4ms, proxy.ts: 3ms, generate-params: 22µs, application-code: 74ms)
+[frontend]  GET /th 200 in 79ms (next.js: 4ms, proxy.ts: 4ms, generate-params: 23µs, application-code: 71ms)
+[frontend]  GET /th/search?q=phone 200 in 598ms (next.js: 453ms, proxy.ts: 3ms, generate-params: 429ms, application-code: 142ms)
+[frontend]  GET /th/search?q=phone 200 in 81ms (next.js: 9ms, proxy.ts: 17ms, generate-params: 5ms, application-code: 56ms)
+[backend] [2026-05-25 07:14:48.048 +0700] [33mWARN[39m: [36mCache get failed[39m
+[backend]     [35mcode[39m: "CACHE_CONNECTION_FAILED"
+[backend]     [35mkey[39m: "ecommerce:product:list:0c1199deff546d14b8e2a9ce"
+[backend]     [35mmessage[39m: "Connection is closed."
+[backend] [2026-05-25 07:14:48.243 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "09e2c810-3a6c-424b-884e-03e3e8590e4c"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 197.07
+[backend] [2026-05-25 07:14:48.272 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "ca957263-3e3c-4508-a7f2-aeb1805e0dd1"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 16.4
+[backend] [2026-05-25 07:14:48.299 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "681c935a-54df-43b0-95a0-ff65c02fb746"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 3.96
+[backend] [2026-05-25 07:14:48.327 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "f4a3aca0-94b5-439a-98e5-9f87cc552c8b"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/coupons"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 5.67
+[backend] [2026-05-25 07:14:48.402 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "bc053700-22c3-450d-9422-be82a02b8e1c"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 54.46
+[backend] [2026-05-25 07:14:48.432 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "172c7dba-a710-491e-891d-4f8fee661947"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 17.8
+[backend] [2026-05-25 07:14:48.472 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "61d5e68d-480f-4642-82f6-9e574d62e576"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 8.2
+[backend] [2026-05-25 07:14:48.485 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "7f7fe6a8-a4d4-47a3-9d5f-de9437912c69"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.54
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[frontend]  GET /th 200 in 109ms (next.js: 10ms, proxy.ts: 4ms, generate-params: 5ms, application-code: 95ms)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[frontend]  GET /th/search?q=phone 200 in 101ms (next.js: 9ms, proxy.ts: 4ms, generate-params: 5ms, application-code: 87ms)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 

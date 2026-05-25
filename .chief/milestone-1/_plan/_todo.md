@@ -7,4 +7,4 @@
 - [x] task-5: Measure buyer entry performance baseline for home and search
 - [x] task-6: Optimize public home and search data fetching/cache behavior
 - [x] task-7: Optimize buyer entry render and hydration path where measured
-- [ ] task-8: Verify buyer entry improvements and clean diagnostics
+- [x] task-8: Verify buyer entry improvements and clean diagnostics
