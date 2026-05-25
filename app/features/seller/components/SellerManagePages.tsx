@@ -34,21 +34,27 @@ import { Textarea } from "#/components/ui/textarea";
 import { SellerPageHeader } from "./SellerShell";
 import {
   type SellerCoupon,
+  type SellerProductImage,
   type SellerPayout,
   type SellerProduct,
+  type SellerProductImageInput,
   type SellerVariantInput,
   type SellerReturn,
   type SellerShipment,
   useApproveReturn,
   useCreateSellerCoupon,
+  useCreateSellerProductImage,
   useCreateSellerPayout,
   useCreateSellerProduct,
   useCreateSellerVariant,
   useDeleteSellerCoupon,
+  useDeleteSellerProductImage,
   useDeleteSellerVariant,
   useDeliverShipment,
   usePackShipment,
   useRejectReturn,
+  useSellerBrands,
+  useSellerCategories,
   useSellerCoupons,
   useSellerDashboard,
   useSellerPayouts,
@@ -62,6 +68,7 @@ import {
   useUpdateSellerProduct,
   useUpdateSellerCoupon,
   useUpdateSellerInventory,
+  useUpdateSellerProductImage,
   useUpdateSellerVariant,
 } from "../hooks/useSellerManage";
 
@@ -76,6 +83,8 @@ interface ProductFormState {
   titleEn: string;
   descriptionTh: string;
   descriptionEn: string;
+  categoryId: string;
+  brandId: string;
 }
 
 type SellerVariant = SellerProduct["variants"][number];
@@ -87,6 +96,19 @@ interface VariantFormState {
   titleEn: string;
   price: string;
   currency: string;
+  weightGrams: string;
+  lengthMm: string;
+  widthMm: string;
+  heightMm: string;
+}
+
+interface ImageFormState {
+  url: string;
+  altText: string;
+  sortOrder: string;
+  isPrimary: boolean;
+  width: string;
+  height: string;
 }
 
 const emptyProductForm: ProductFormState = {
@@ -98,6 +120,8 @@ const emptyProductForm: ProductFormState = {
   titleEn: "",
   descriptionTh: "",
   descriptionEn: "",
+  categoryId: "",
+  brandId: "",
 };
 
 const emptyVariantForm: VariantFormState = {
@@ -107,6 +131,19 @@ const emptyVariantForm: VariantFormState = {
   titleEn: "",
   price: "",
   currency: "USD",
+  weightGrams: "",
+  lengthMm: "",
+  widthMm: "",
+  heightMm: "",
+};
+
+const emptyImageForm: ImageFormState = {
+  url: "",
+  altText: "",
+  sortOrder: "0",
+  isPrimary: false,
+  width: "",
+  height: "",
 };
 
 function productToForm(product: SellerProduct): ProductFormState {
@@ -119,6 +156,8 @@ function productToForm(product: SellerProduct): ProductFormState {
     titleEn: product.titleEn ?? "",
     descriptionTh: product.descriptionTh ?? "",
     descriptionEn: product.descriptionEn ?? "",
+    categoryId: product.category?.id ?? product.categoryId ?? "",
+    brandId: product.brand?.id ?? product.brandId ?? "",
   };
 }
 
@@ -130,12 +169,23 @@ function variantToForm(variant: SellerVariant): VariantFormState {
     titleEn: variant.titleEn ?? "",
     price: String(Number(variant.price ?? 0) / 100),
     currency: variant.currency ?? "USD",
+    weightGrams: variant.weightGrams == null ? "" : String(variant.weightGrams),
+    lengthMm: variant.lengthMm == null ? "" : String(variant.lengthMm),
+    widthMm: variant.widthMm == null ? "" : String(variant.widthMm),
+    heightMm: variant.heightMm == null ? "" : String(variant.heightMm),
   };
 }
 
 function optionalText(value: string) {
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
+}
+
+function optionalInteger(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : Number.NaN;
 }
 
 function isProductFormDirty(form: ProductFormState, initial: ProductFormState) {
@@ -260,6 +310,8 @@ export function SellerProductsPage() {
   const [form, setForm] = useState<ProductFormState>(emptyProductForm);
   const [initialForm, setInitialForm] = useState<ProductFormState>(emptyProductForm);
   const [formError, setFormError] = useState("");
+  const [imageForm, setImageForm] = useState<ImageFormState>(emptyImageForm);
+  const [imageFormError, setImageFormError] = useState("");
   const [archiveTarget, setArchiveTarget] = useState<SellerProduct | null>(null);
   const [variantDialogMode, setVariantDialogMode] = useState<"create" | "edit" | null>(null);
   const [variantProduct, setVariantProduct] = useState<SellerProduct | null>(null);
@@ -269,14 +321,20 @@ export function SellerProductsPage() {
   const [variantFormError, setVariantFormError] = useState("");
   const [deleteVariantTarget, setDeleteVariantTarget] = useState<{ product: SellerProduct; variant: SellerVariant } | null>(null);
   const query = useSellerProducts({ q, status, cursor });
+  const categoriesQuery = useSellerCategories();
+  const brandsQuery = useSellerBrands();
   const createProduct = useCreateSellerProduct();
   const updateProduct = useUpdateSellerProduct();
   const archiveProduct = useArchiveSellerProduct();
+  const createImage = useCreateSellerProductImage();
+  const updateImage = useUpdateSellerProductImage();
+  const deleteImage = useDeleteSellerProductImage();
   const createVariant = useCreateSellerVariant();
   const updateVariant = useUpdateSellerVariant();
   const deleteVariant = useDeleteSellerVariant();
   const products = query.data?.data ?? [];
   const isMutatingProduct = createProduct.isPending || updateProduct.isPending;
+  const isMutatingImage = createImage.isPending || updateImage.isPending || deleteImage.isPending;
   const isMutatingVariant = createVariant.isPending || updateVariant.isPending;
   const isDialogOpen = dialogMode !== null;
   const isVariantDialogOpen = variantDialogMode !== null;
@@ -289,6 +347,8 @@ export function SellerProductsPage() {
     setForm(emptyProductForm);
     setInitialForm(emptyProductForm);
     setFormError("");
+    setImageForm(emptyImageForm);
+    setImageFormError("");
   }
 
   function openEditDialog(product: SellerProduct) {
@@ -298,6 +358,8 @@ export function SellerProductsPage() {
     setForm(nextForm);
     setInitialForm(nextForm);
     setFormError("");
+    setImageForm(emptyImageForm);
+    setImageFormError("");
   }
 
   function requestDialogClose(open: boolean) {
@@ -306,6 +368,7 @@ export function SellerProductsPage() {
     setDialogMode(null);
     setEditingProduct(null);
     setFormError("");
+    setImageFormError("");
   }
 
   function openCreateVariantDialog(product: SellerProduct) {
@@ -355,6 +418,8 @@ export function SellerProductsPage() {
       titleEn: optionalText(form.titleEn),
       descriptionTh: optionalText(form.descriptionTh),
       descriptionEn: optionalText(form.descriptionEn),
+      categoryId: optionalText(form.categoryId),
+      brandId: optionalText(form.brandId),
     };
 
     const options = {
@@ -378,6 +443,72 @@ export function SellerProductsPage() {
     }
 
     createProduct.mutate(input, options);
+  }
+
+  function getPublishReadinessMessage(product: SellerProduct | null = editingProduct) {
+    if (form.status !== "ACTIVE") return "Drafts can be saved without category, images, or variants.";
+    const hasCategory = Boolean(form.categoryId);
+    const hasImage = Boolean(product?.images?.length);
+    const hasActivePaidVariant = Boolean(product?.variants?.some((variant) => variant.status === "ACTIVE" && Number(variant.price) > 0));
+    const missing = [
+      hasCategory ? null : "category",
+      hasImage ? null : "at least one image",
+      hasActivePaidVariant ? null : "an active priced variant",
+    ].filter(Boolean);
+    return missing.length ? `Active products still need ${missing.join(", ")}.` : "This product has the required category, image, and active priced variant for publishing.";
+  }
+
+  function submitImage() {
+    if (!editingProduct) {
+      setImageFormError("Save the product before adding images.");
+      return;
+    }
+    const sortOrder = optionalInteger(imageForm.sortOrder);
+    const width = optionalInteger(imageForm.width);
+    const height = optionalInteger(imageForm.height);
+    if (!imageForm.url.trim()) {
+      setImageFormError("Image URL is required.");
+      return;
+    }
+    if (Number.isNaN(sortOrder) || Number.isNaN(width) || Number.isNaN(height)) {
+      setImageFormError("Image sort order, width, and height must be whole numbers.");
+      return;
+    }
+    const input: SellerProductImageInput = {
+      url: imageForm.url.trim(),
+      altText: optionalText(imageForm.altText),
+      sortOrder: sortOrder ?? 0,
+      isPrimary: imageForm.isPrimary,
+      width,
+      height,
+    };
+    createImage.mutate({ productId: editingProduct.id, ...input }, {
+      onSuccess: () => {
+        toast.success("Product image saved.");
+        setImageForm(emptyImageForm);
+        setImageFormError("");
+      },
+      onError: (error: unknown) => {
+        setImageFormError(error instanceof Error ? error.message : "Product image could not be saved.");
+        toast.error("Product image could not be saved.");
+      },
+    });
+  }
+
+  function markImagePrimary(image: SellerProductImage) {
+    if (!editingProduct) return;
+    updateImage.mutate({ productId: editingProduct.id, imageId: image.id, isPrimary: true }, {
+      onSuccess: () => toast.success("Primary image updated."),
+      onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Image could not be updated."),
+    });
+  }
+
+  function removeImage(image: SellerProductImage) {
+    if (!editingProduct) return;
+    deleteImage.mutate({ productId: editingProduct.id, imageId: image.id }, {
+      onSuccess: () => toast.success("Product image deleted."),
+      onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Image could not be deleted."),
+    });
   }
 
   function confirmArchiveProduct() {
@@ -429,7 +560,16 @@ export function SellerProductsPage() {
       titleEn: optionalText(variantForm.titleEn),
       price: Math.round(priceValue * 100),
       currency,
+      weightGrams: optionalInteger(variantForm.weightGrams),
+      lengthMm: optionalInteger(variantForm.lengthMm),
+      widthMm: optionalInteger(variantForm.widthMm),
+      heightMm: optionalInteger(variantForm.heightMm),
     };
+
+    if (["weightGrams", "lengthMm", "widthMm", "heightMm"].some((field) => Number.isNaN(input[field as keyof SellerVariantInput]))) {
+      setVariantFormError("Weight and dimensions must be whole numbers.");
+      return;
+    }
 
     const options = {
       onSuccess: () => {
@@ -479,6 +619,9 @@ export function SellerProductsPage() {
           {(row.original.titleTh || row.original.titleEn) ? (
             <p className="mt-1 text-xs text-slate-500">{[row.original.titleTh, row.original.titleEn].filter(Boolean).join(" / ")}</p>
           ) : null}
+          <p className="mt-1 text-xs text-slate-500">
+            {row.original.category?.name ?? "No category"} · {row.original.brand?.name ?? "No brand"}
+          </p>
         </div>
       ),
     },
@@ -489,8 +632,13 @@ export function SellerProductsPage() {
     },
     {
       id: "variants",
-      header: "Variants",
-      cell: ({ row }) => <span>{row.original.variants.length}</span>,
+      header: "Assets",
+      cell: ({ row }) => (
+        <div className="text-sm">
+          <p>{row.original.images?.length ?? 0} images</p>
+          <p className="text-xs text-slate-500">{row.original.variants.length} variants</p>
+        </div>
+      ),
     },
     {
       id: "priceStock",
@@ -600,6 +748,7 @@ export function SellerProductsPage() {
                       <TableRow>
                         <TableHead>Variant</TableHead>
                         <TableHead>Price</TableHead>
+                        <TableHead>Shipping data</TableHead>
                         <TableHead>Inventory context</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -616,6 +765,9 @@ export function SellerProductsPage() {
                               </div>
                             </TableCell>
                             <TableCell>{formatMoney(variant.price, variant.currency)}</TableCell>
+                            <TableCell className="text-sm text-slate-700">
+                              {variant.weightGrams ?? "-"} g · {[variant.lengthMm, variant.widthMm, variant.heightMm].map((value) => value ?? "-").join("x")} mm
+                            </TableCell>
                             <TableCell>
                               <span className="text-sm text-slate-700">{available} available</span>
                               <span className="ml-2 text-xs text-slate-500">({variant.inventory?.quantityReserved ?? 0} reserved)</span>
@@ -636,7 +788,7 @@ export function SellerProductsPage() {
                         );
                       }) : (
                         <TableRow>
-                          <TableCell colSpan={4} className="h-20 text-center text-sm text-slate-500">No variants configured for this product.</TableCell>
+                          <TableCell colSpan={5} className="h-20 text-center text-sm text-slate-500">No variants configured for this product.</TableCell>
                         </TableRow>
                       )}
                     </TableBody>
@@ -651,7 +803,7 @@ export function SellerProductsPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" showCloseButton={!dirty}>
           <DialogHeader>
             <DialogTitle>{dialogMode === "edit" ? "Edit product" : "Create product"}</DialogTitle>
-            <DialogDescription>Manage the product fields sellers can safely update before category, brand, image, and variant workflows are added.</DialogDescription>
+            <DialogDescription>Manage listing details, category, brand, and URL-based image metadata. Inventory quantities stay in the seller inventory workspace.</DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={submitProduct}>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -681,6 +833,35 @@ export function SellerProductsPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
+                <Label htmlFor="product-category">Category</Label>
+                <Select value={form.categoryId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, categoryId: value === "NONE" ? "" : value }))}>
+                  <SelectTrigger id="product-category" aria-label="Category"><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No category</SelectItem>
+                    {(categoriesQuery.data ?? []).map((category) => (
+                      <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-brand">Brand</Label>
+                <Select value={form.brandId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, brandId: value === "NONE" ? "" : value }))}>
+                  <SelectTrigger id="product-brand" aria-label="Brand"><SelectValue placeholder="Select brand" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No brand</SelectItem>
+                    {(brandsQuery.data ?? []).map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className={`rounded-lg border px-3 py-2 text-sm ${form.status === "ACTIVE" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+              {getPublishReadinessMessage()}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
                 <Label htmlFor="product-title-th">Thai title</Label>
                 <Input id="product-title-th" value={form.titleTh} onChange={(event) => setForm((current) => ({ ...current, titleTh: event.target.value }))} />
               </div>
@@ -699,6 +880,64 @@ export function SellerProductsPage() {
                 <Textarea id="product-description-en" value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} rows={3} />
               </div>
             </div>
+            <section className="space-y-3 rounded-lg border border-slate-200 p-3" aria-label="Product image metadata">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-950">Images</h3>
+                <p className="text-xs text-slate-500">Add public image URLs and metadata only. Binary uploads are not part of this workflow.</p>
+              </div>
+              {editingProduct ? (
+                <>
+                  <div className="space-y-2">
+                    {(editingProduct.images ?? []).length ? editingProduct.images.map((image) => (
+                      <div key={image.id} className="flex flex-col gap-2 rounded-md border border-slate-200 p-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-800">{image.url}</p>
+                          <p className="text-xs text-slate-500">{image.isPrimary ? "Primary · " : ""}{image.altText ?? "No alt text"} · {image.width ?? "?"}x{image.height ?? "?"}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button type="button" variant="outline" size="sm" disabled={isMutatingImage || image.isPrimary} onClick={() => markImagePrimary(image)}>Set primary</Button>
+                          <Button type="button" variant="outline" size="sm" disabled={isMutatingImage} onClick={() => removeImage(image)}>Delete</Button>
+                        </div>
+                      </div>
+                    )) : <p className="text-sm text-slate-500">No product images yet.</p>}
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="product-image-url">Image URL</Label>
+                      <Input id="product-image-url" value={imageForm.url} onChange={(event) => setImageForm((current) => ({ ...current, url: event.target.value }))} placeholder="https://example.com/product.jpg" aria-describedby={imageFormError ? "product-image-form-error" : undefined} />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="product-image-alt">Alt text</Label>
+                        <Input id="product-image-alt" value={imageForm.altText} onChange={(event) => setImageForm((current) => ({ ...current, altText: event.target.value }))} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="product-image-sort">Sort order</Label>
+                        <Input id="product-image-sort" type="number" min="0" step="1" value={imageForm.sortOrder} onChange={(event) => setImageForm((current) => ({ ...current, sortOrder: event.target.value }))} />
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="product-image-width">Width pixels</Label>
+                        <Input id="product-image-width" type="number" min="1" step="1" value={imageForm.width} onChange={(event) => setImageForm((current) => ({ ...current, width: event.target.value }))} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="product-image-height">Height pixels</Label>
+                        <Input id="product-image-height" type="number" min="1" step="1" value={imageForm.height} onChange={(event) => setImageForm((current) => ({ ...current, height: event.target.value }))} />
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={imageForm.isPrimary} onChange={(event) => setImageForm((current) => ({ ...current, isPrimary: event.target.checked }))} />
+                      Primary image
+                    </label>
+                    {imageFormError ? <p id="product-image-form-error" className="text-sm text-red-600">{imageFormError}</p> : null}
+                    <Button type="button" variant="outline" disabled={isMutatingImage} onClick={submitImage}>{isMutatingImage ? "Saving image..." : "Add image metadata"}</Button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-slate-500">Save the product draft before adding image metadata.</p>
+              )}
+            </section>
             {formError ? <p id="product-form-error" className="text-sm text-red-600">{formError}</p> : null}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => requestDialogClose(false)}>Cancel</Button>
@@ -742,6 +981,24 @@ export function SellerProductsPage() {
               <div className="space-y-2">
                 <Label htmlFor="variant-currency">Currency</Label>
                 <Input id="variant-currency" value={variantForm.currency} onChange={(event) => setVariantForm((current) => ({ ...current, currency: event.target.value }))} required aria-describedby={variantFormError ? "variant-form-error" : undefined} />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="variant-weight-grams">Weight grams</Label>
+                <Input id="variant-weight-grams" type="number" min="0" step="1" value={variantForm.weightGrams} onChange={(event) => setVariantForm((current) => ({ ...current, weightGrams: event.target.value }))} aria-describedby={variantFormError ? "variant-form-error" : undefined} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="variant-length-mm">Length mm</Label>
+                <Input id="variant-length-mm" type="number" min="0" step="1" value={variantForm.lengthMm} onChange={(event) => setVariantForm((current) => ({ ...current, lengthMm: event.target.value }))} aria-describedby={variantFormError ? "variant-form-error" : undefined} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="variant-width-mm">Width mm</Label>
+                <Input id="variant-width-mm" type="number" min="0" step="1" value={variantForm.widthMm} onChange={(event) => setVariantForm((current) => ({ ...current, widthMm: event.target.value }))} aria-describedby={variantFormError ? "variant-form-error" : undefined} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="variant-height-mm">Height mm</Label>
+                <Input id="variant-height-mm" type="number" min="0" step="1" value={variantForm.heightMm} onChange={(event) => setVariantForm((current) => ({ ...current, heightMm: event.target.value }))} aria-describedby={variantFormError ? "variant-form-error" : undefined} />
               </div>
             </div>
             {variantFormError ? <p id="variant-form-error" className="text-sm text-red-600">{variantFormError}</p> : null}

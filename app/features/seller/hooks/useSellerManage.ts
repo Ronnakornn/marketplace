@@ -9,6 +9,9 @@ export const SELLER_PAGE_SIZE = 20;
 export type SellerDashboard = Treaty.Data<ReturnType<typeof api.api.seller.dashboard.get>>;
 export type SellerProductsResponse = Treaty.Data<ReturnType<typeof api.api.seller.products.get>>;
 export type SellerProduct = SellerProductsResponse extends { data: Array<infer T> } ? T : never;
+export type SellerCategory = Treaty.Data<ReturnType<typeof api.api.categories.get>> extends Array<infer T> ? T : never;
+export type SellerBrand = Treaty.Data<ReturnType<typeof api.api.seller.brands.get>> extends Array<infer T> ? T : never;
+export type SellerProductImage = SellerProduct extends { images: Array<infer T> } ? T : never;
 export type SellerShipment = Treaty.Data<ReturnType<typeof api.api.seller.shipments.get>> extends Array<infer T> ? T : never;
 export type SellerReturn = Treaty.Data<ReturnType<typeof api.api.seller.returns.get>> extends Array<infer T> ? T : never;
 export type SellerCoupon = Treaty.Data<ReturnType<typeof api.api.seller.coupons.get>> extends Array<infer T> ? T : never;
@@ -48,6 +51,15 @@ export interface SellerVariantInput {
   lengthMm?: number | null;
   widthMm?: number | null;
   heightMm?: number | null;
+}
+
+export interface SellerProductImageInput {
+  url: string;
+  altText?: string | null;
+  sortOrder?: number;
+  isPrimary?: boolean;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface SellerCouponInput {
@@ -101,6 +113,28 @@ export function useSellerProducts(filters: ProductFilters = {}) {
     queryKey: sellerKey("products", query),
     queryFn: async () => {
       const { data, error } = await api.api.seller.products.get({ query });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useSellerCategories() {
+  return useQuery({
+    queryKey: ["seller", "categories"],
+    queryFn: async () => {
+      const { data, error } = await api.api.categories.get();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useSellerBrands() {
+  return useQuery({
+    queryKey: sellerKey("brands"),
+    queryFn: async () => {
+      const { data, error } = await api.api.seller.brands.get();
       if (error) throw error;
       return data;
     },
@@ -238,6 +272,42 @@ export function useDeleteSellerVariant() {
   return useMutation({
     mutationFn: async ({ productId, variantId }: { productId: string; variantId: string }) => {
       const { data, error } = await api.api.seller.products({ productId }).variants({ variantId }).delete();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+  });
+}
+
+export function useCreateSellerProductImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, ...input }: SellerProductImageInput & { productId: string }) => {
+      const { data, error } = await api.api.seller.products({ productId }).images.post(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+  });
+}
+
+export function useUpdateSellerProductImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, imageId, ...input }: Partial<SellerProductImageInput> & { productId: string; imageId: string }) => {
+      const { data, error } = await api.api.seller.products({ productId }).images({ imageId }).patch(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+  });
+}
+
+export function useDeleteSellerProductImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, imageId }: { productId: string; imageId: string }) => {
+      const { data, error } = await api.api.seller.products({ productId }).images({ imageId }).delete();
       if (error) throw error;
       return data;
     },
