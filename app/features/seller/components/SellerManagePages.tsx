@@ -2,12 +2,35 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { AlertTriangleIcon, BanknoteIcon, PackageCheckIcon } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { AlertTriangleIcon, ArchiveIcon, BanknoteIcon, EditIcon, PackageCheckIcon, PlusIcon } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "#/components/ui/alert-dialog";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { DataTable } from "#/components/ui/data-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
+import { Textarea } from "#/components/ui/textarea";
 import { SellerPageHeader } from "./SellerShell";
 import {
   type SellerCoupon,
@@ -19,7 +42,6 @@ import {
   useCreateSellerCoupon,
   useCreateSellerPayout,
   useCreateSellerProduct,
-  useCreateSellerVariant,
   useDeleteSellerCoupon,
   useDeliverShipment,
   usePackShipment,
@@ -33,9 +55,77 @@ import {
   useSellerTransactions,
   useSellerWallet,
   useShipShipment,
+  useArchiveSellerProduct,
+  useUpdateSellerProduct,
   useUpdateSellerCoupon,
   useUpdateSellerInventory,
 } from "../hooks/useSellerManage";
+
+type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+
+interface ProductFormState {
+  title: string;
+  slug: string;
+  description: string;
+  status: ProductStatus;
+  titleTh: string;
+  titleEn: string;
+  descriptionTh: string;
+  descriptionEn: string;
+}
+
+const emptyProductForm: ProductFormState = {
+  title: "",
+  slug: "",
+  description: "",
+  status: "DRAFT",
+  titleTh: "",
+  titleEn: "",
+  descriptionTh: "",
+  descriptionEn: "",
+};
+
+function productToForm(product: SellerProduct): ProductFormState {
+  return {
+    title: product.title ?? "",
+    slug: product.slug ?? "",
+    description: product.description ?? "",
+    status: product.status as ProductStatus,
+    titleTh: product.titleTh ?? "",
+    titleEn: product.titleEn ?? "",
+    descriptionTh: product.descriptionTh ?? "",
+    descriptionEn: product.descriptionEn ?? "",
+  };
+}
+
+function optionalText(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+}
+
+function isProductFormDirty(form: ProductFormState, initial: ProductFormState) {
+  return JSON.stringify(form) !== JSON.stringify(initial);
+}
+
+function getVariantPriceContext(product: SellerProduct) {
+  const variants = product.variants ?? [];
+  if (!variants.length) return "No variants";
+  const prices = variants.map((variant) => Number(variant.price ?? 0));
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const currency = variants[0]?.currency ?? "USD";
+  return min === max ? formatMoney(min, currency) : `${formatMoney(min, currency)} - ${formatMoney(max, currency)}`;
+}
+
+function getVariantStockContext(product: SellerProduct) {
+  const variants = product.variants ?? [];
+  if (!variants.length) return "No stock";
+  const available = variants.reduce((total, variant) => {
+    const inventory = variant.inventory;
+    return total + ((inventory?.quantityOnHand ?? 0) - (inventory?.quantityReserved ?? 0));
+  }, 0);
+  return `${available} available`;
+}
 
 function formatMoney(cents: number | bigint | undefined, currency = "USD") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(cents ?? 0) / 100);
@@ -123,58 +213,291 @@ export function SellerDashboardPage() {
 }
 
 export function SellerProductsPage() {
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<"" | ProductStatus>("");
   const [q, setQ] = useState("");
-  const [form, setForm] = useState({ title: "", slug: "", status: "DRAFT" as "DRAFT" | "ACTIVE" | "ARCHIVED", sku: "", variantTitle: "", price: "" });
-  const query = useSellerProducts({ q, status: status as "" | "DRAFT" | "ACTIVE" | "ARCHIVED" });
+  const [cursor, setCursor] = useState<string | undefined>();
+  const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
+  const [editingProduct, setEditingProduct] = useState<SellerProduct | null>(null);
+  const [form, setForm] = useState<ProductFormState>(emptyProductForm);
+  const [initialForm, setInitialForm] = useState<ProductFormState>(emptyProductForm);
+  const [formError, setFormError] = useState("");
+  const [archiveTarget, setArchiveTarget] = useState<SellerProduct | null>(null);
+  const query = useSellerProducts({ q, status, cursor });
   const createProduct = useCreateSellerProduct();
-  const createVariant = useCreateSellerVariant();
+  const updateProduct = useUpdateSellerProduct();
+  const archiveProduct = useArchiveSellerProduct();
   const products = query.data?.data ?? [];
+  const isMutatingProduct = createProduct.isPending || updateProduct.isPending;
+  const isDialogOpen = dialogMode !== null;
+  const dirty = isDialogOpen && isProductFormDirty(form, initialForm);
+
+  function openCreateDialog() {
+    setDialogMode("create");
+    setEditingProduct(null);
+    setForm(emptyProductForm);
+    setInitialForm(emptyProductForm);
+    setFormError("");
+  }
+
+  function openEditDialog(product: SellerProduct) {
+    const nextForm = productToForm(product);
+    setDialogMode("edit");
+    setEditingProduct(product);
+    setForm(nextForm);
+    setInitialForm(nextForm);
+    setFormError("");
+  }
+
+  function requestDialogClose(open: boolean) {
+    if (open) return;
+    if (dirty && !window.confirm("Discard unsaved product changes?")) return;
+    setDialogMode(null);
+    setEditingProduct(null);
+    setFormError("");
+  }
 
   function submitProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    createProduct.mutate({ title: form.title, slug: form.slug || undefined, status: form.status }, { onSuccess: () => setForm((current) => ({ ...current, title: "", slug: "" })) });
+    const title = form.title.trim();
+    const slug = form.slug.trim();
+
+    if (!title) {
+      setFormError("Product title is required.");
+      return;
+    }
+
+    const input = {
+      title,
+      slug: slug || undefined,
+      description: optionalText(form.description),
+      status: form.status,
+      titleTh: optionalText(form.titleTh),
+      titleEn: optionalText(form.titleEn),
+      descriptionTh: optionalText(form.descriptionTh),
+      descriptionEn: optionalText(form.descriptionEn),
+    };
+
+    const options = {
+      onSuccess: () => {
+        toast.success(dialogMode === "edit" ? "Product updated." : "Product created.");
+        setDialogMode(null);
+        setEditingProduct(null);
+        setForm(emptyProductForm);
+        setInitialForm(emptyProductForm);
+        setFormError("");
+      },
+      onError: (error: unknown) => {
+        setFormError(error instanceof Error ? error.message : "Product could not be saved.");
+        toast.error("Product could not be saved.");
+      },
+    };
+
+    if (dialogMode === "edit" && editingProduct) {
+      updateProduct.mutate({ productId: editingProduct.id, ...input }, options);
+      return;
+    }
+
+    createProduct.mutate(input, options);
   }
+
+  function confirmArchiveProduct() {
+    if (!archiveTarget) return;
+    archiveProduct.mutate(archiveTarget.id, {
+      onSuccess: () => {
+        toast.success("Product archived.");
+        setArchiveTarget(null);
+      },
+      onError: (error: unknown) => {
+        toast.error(error instanceof Error ? error.message : "Product could not be archived.");
+      },
+    });
+  }
+
+  const columns = useMemo<ColumnDef<SellerProduct>[]>(() => [
+    {
+      accessorKey: "title",
+      header: "Product",
+      cell: ({ row }) => (
+        <div className="min-w-52">
+          <p className="font-medium text-slate-950">{row.original.title}</p>
+          <p className="text-xs text-slate-500">{row.original.slug}</p>
+          {(row.original.titleTh || row.original.titleEn) ? (
+            <p className="mt-1 text-xs text-slate-500">{[row.original.titleTh, row.original.titleEn].filter(Boolean).join(" / ")}</p>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusPill value={row.original.status} />,
+    },
+    {
+      id: "variants",
+      header: "Variants",
+      cell: ({ row }) => <span>{row.original.variants.length}</span>,
+    },
+    {
+      id: "priceStock",
+      header: "Price / stock",
+      cell: ({ row }) => (
+        <div className="min-w-36 text-sm">
+          <p>{getVariantPriceContext(row.original)}</p>
+          <p className="text-xs text-slate-500">{getVariantStockContext(row.original)}</p>
+        </div>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => <span className="sr-only">Actions</span>,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" aria-label={`Edit ${row.original.title}`} onClick={() => openEditDialog(row.original)}>
+            <EditIcon className="size-4" />
+            <span className="sr-only">Edit</span>
+          </Button>
+          <Button type="button" variant="outline" size="sm" aria-label={`Archive ${row.original.title}`} onClick={() => setArchiveTarget(row.original)} disabled={row.original.status === "ARCHIVED"}>
+            <ArchiveIcon className="size-4" />
+            <span className="sr-only">Archive</span>
+          </Button>
+        </div>
+      ),
+    },
+  ], []);
 
   return (
     <>
-      <SellerPageHeader title="Products" description="Create products, monitor moderation status, and add variants for your shop." />
-      <Card className="rounded-lg border-slate-200 bg-white">
-        <CardContent className="space-y-4 pt-6">
-          <form onSubmit={submitProduct} className="grid gap-3 md:grid-cols-[1fr_1fr_160px_auto]">
-            <Input value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} placeholder="Product title" required />
-            <Input value={form.slug} onChange={(e) => setForm((c) => ({ ...c, slug: e.target.value }))} placeholder="Slug optional" />
-            <Select value={form.status} onValueChange={(value) => setForm((c) => ({ ...c, status: value as typeof form.status }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="DRAFT">Draft</SelectItem><SelectItem value="ACTIVE">Active</SelectItem><SelectItem value="ARCHIVED">Archived</SelectItem></SelectContent></Select>
-            <Button type="submit" disabled={createProduct.isPending}>Create</Button>
-          </form>
-          <div className="flex flex-col gap-3 md:flex-row">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products" />
-            <Select value={status || "ALL"} onValueChange={(value) => setStatus(value === "ALL" ? "" : value)}><SelectTrigger className="md:w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All statuses</SelectItem><SelectItem value="DRAFT">Draft</SelectItem><SelectItem value="ACTIVE">Active</SelectItem><SelectItem value="ARCHIVED">Archived</SelectItem></SelectContent></Select>
-          </div>
-        </CardContent>
-      </Card>
+      <SellerPageHeader title="Products" description="Create products, monitor catalog status, and prepare variants for your shop." />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
       <Card className="rounded-lg border-slate-200 bg-white">
-        <CardContent className="p-0">
-          <Table><TableHeader><TableRow><TableHead className="px-4">Product</TableHead><TableHead>Status</TableHead><TableHead>Variants</TableHead><TableHead className="text-right">Add variant</TableHead></TableRow></TableHeader><TableBody>
-            {products.length ? products.map((product: SellerProduct) => (
-              <TableRow key={product.id}>
-                <TableCell className="px-4"><p className="font-medium">{product.title}</p><p className="text-xs text-slate-500">{product.slug}</p></TableCell>
-                <TableCell><StatusPill value={product.status} /></TableCell>
-                <TableCell>{product.variants.length}</TableCell>
-                <TableCell>
-                  <form className="flex justify-end gap-2" onSubmit={(event) => { event.preventDefault(); createVariant.mutate({ productId: product.id, sku: form.sku, title: form.variantTitle, price: Math.round(Number(form.price) * 100), currency: "USD" }); }}>
-                    <Input className="w-28" value={form.sku} onChange={(e) => setForm((c) => ({ ...c, sku: e.target.value }))} placeholder="SKU" />
-                    <Input className="w-32" value={form.variantTitle} onChange={(e) => setForm((c) => ({ ...c, variantTitle: e.target.value }))} placeholder="Variant" />
-                    <Input className="w-24" value={form.price} onChange={(e) => setForm((c) => ({ ...c, price: e.target.value }))} placeholder="Price" />
-                    <Button type="submit" size="sm" disabled={createVariant.isPending}>Add</Button>
-                  </form>
-                </TableCell>
-              </TableRow>
-            )) : <TableRow><TableCell colSpan={4} className="h-28 text-center text-slate-500">{query.isLoading ? "Loading products..." : "No products found."}</TableCell></TableRow>}
-          </TableBody></Table>
+        <CardContent className="pt-6">
+          <DataTable
+            columns={columns}
+            data={products}
+            isLoading={query.isLoading}
+            loadingMessage="Loading products..."
+            emptyMessage="No products found."
+            pageSize={10}
+            className="overflow-x-auto"
+            renderToolbar={() => (
+              <>
+                <div className="flex w-full flex-col gap-3 sm:flex-row">
+                  <Input
+                    value={q}
+                    onChange={(event) => {
+                      setQ(event.target.value);
+                      setCursor(undefined);
+                    }}
+                    placeholder="Search products"
+                    aria-label="Search products"
+                    className="sm:max-w-sm"
+                  />
+                  <Select
+                    value={status || "ALL"}
+                    onValueChange={(value) => {
+                      setStatus(value === "ALL" ? "" : value as ProductStatus);
+                      setCursor(undefined);
+                    }}
+                  >
+                    <SelectTrigger className="sm:w-48" aria-label="Filter by product status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All statuses</SelectItem>
+                      <SelectItem value="DRAFT">Draft</SelectItem>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="ARCHIVED">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="button" onClick={openCreateDialog} className="w-full sm:w-auto">
+                  <PlusIcon className="size-4" />
+                  Create product
+                </Button>
+              </>
+            )}
+          />
+          {query.data?.meta.nextCursor ? (
+            <div className="mt-4 flex justify-end">
+              <Button type="button" variant="outline" onClick={() => setCursor(query.data.meta.nextCursor ?? undefined)}>Load next page</Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
+      <Dialog open={isDialogOpen} onOpenChange={requestDialogClose}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" showCloseButton={!dirty}>
+          <DialogHeader>
+            <DialogTitle>{dialogMode === "edit" ? "Edit product" : "Create product"}</DialogTitle>
+            <DialogDescription>Manage the product fields sellers can safely update before category, brand, image, and variant workflows are added.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={submitProduct}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="product-title">Title</Label>
+                <Input id="product-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required aria-describedby={formError ? "product-form-error" : undefined} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-slug">Slug</Label>
+                <Input id="product-slug" value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="optional-slug" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-description">Description</Label>
+              <Textarea id="product-description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="product-status">Status</Label>
+              <Select value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as ProductStatus }))}>
+                <SelectTrigger id="product-status"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="ARCHIVED">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="product-title-th">Thai title</Label>
+                <Input id="product-title-th" value={form.titleTh} onChange={(event) => setForm((current) => ({ ...current, titleTh: event.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-title-en">English title</Label>
+                <Input id="product-title-en" value={form.titleEn} onChange={(event) => setForm((current) => ({ ...current, titleEn: event.target.value }))} />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="product-description-th">Thai description</Label>
+                <Textarea id="product-description-th" value={form.descriptionTh} onChange={(event) => setForm((current) => ({ ...current, descriptionTh: event.target.value }))} rows={3} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-description-en">English description</Label>
+                <Textarea id="product-description-en" value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} rows={3} />
+              </div>
+            </div>
+            {formError ? <p id="product-form-error" className="text-sm text-red-600">{formError}</p> : null}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => requestDialogClose(false)}>Cancel</Button>
+              <Button type="submit" disabled={isMutatingProduct}>{isMutatingProduct ? "Saving..." : "Save product"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={Boolean(archiveTarget)} onOpenChange={(open) => { if (!open) setArchiveTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Archive {archiveTarget?.title ?? "this product"}? Archived products stay in history but are removed from active seller management flows.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={archiveProduct.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={archiveProduct.isPending} onClick={confirmArchiveProduct}>
+              {archiveProduct.isPending ? "Archiving..." : "Archive product"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
