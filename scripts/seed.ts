@@ -57,6 +57,7 @@ type SeedContext = {
   addresses: Map<string, string>;
   shops: Map<string, { id: string; name: string; slug: string; ownerEmail: string }>;
   categories: Map<string, string>;
+  brands: Map<string, string>;
   products: Map<string, { id: string; title: string; slug: string; shopSlug: string }>;
   variants: Map<string, { id: string; sku: string; title: string; price: number; productSlug: string }>;
   wallets: Map<string, string>;
@@ -83,6 +84,13 @@ const categories = [
   ["Pets", "pets", 90],
   ["Deals", "deals", 100],
   ["Books", "books", 110],
+] as const;
+
+const brands = [
+  ["Sming Basics", "sming-basics", "SMING-BASICS"],
+  ["Urban Thread", "urban-thread", "URBAN-THREAD"],
+  ["Gadget Harbor", "gadget-harbor", "GADGET-HARBOR"],
+  ["Nest & Glow", "nest-glow", "NEST-GLOW"],
 ] as const;
 
 const shops: SeedShop[] = [
@@ -182,6 +190,7 @@ async function main() {
     addresses: new Map(),
     shops: new Map(),
     categories: new Map(),
+    brands: new Map(),
     products: new Map(),
     variants: new Map(),
     wallets: new Map(),
@@ -276,6 +285,15 @@ async function seedCatalog(prisma: Prisma, ctx: SeedContext) {
       create: { name, nameTh: name, nameEn: name, slug, sortOrder, isActive: true },
     });
     ctx.categories.set(slug, category.id);
+  }
+
+  for (const [name, slug, code] of brands) {
+    const brand = await prisma.brand.upsert({
+      where: { slug },
+      update: { name, code, isActive: true },
+      create: { name, slug, code, isActive: true },
+    });
+    ctx.brands.set(slug, brand.id);
   }
 
   for (const seed of shops) {
