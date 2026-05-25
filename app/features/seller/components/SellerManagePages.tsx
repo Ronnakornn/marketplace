@@ -350,7 +350,7 @@ export function SellerDashboardPage() {
   );
 }
 
-export function SellerProductsPage() {
+export function SellerProductsLegacyPage() {
   const [status, setStatus] = useState<"" | ProductStatus>("");
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState<string | undefined>();

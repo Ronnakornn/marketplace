@@ -6,8 +6,12 @@ export {
   SellerFinancePage,
   SellerInventoryPage,
   SellerOrdersPage,
-  SellerProductsPage,
   SellerPromotionsPage,
   SellerReturnsPage,
 } from "./components/SellerManagePages";
+export {
+  SellerProductCreatePage,
+  SellerProductEditPage,
+  SellerProductsPage,
+} from "./components/SellerProductPages";
 export { SellerRegisterPage, SellerStatusPage } from "./components/SellerOnboardingPages";

@@ -1,0 +1,280 @@
+/**
+ * @vitest-environment jsdom
+ */
+import type { ReactNode } from "react";
+import * as React from "react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { SellerProductCreatePage, SellerProductEditPage, SellerProductsPage } from "./SellerProductPages";
+
+const refetch = vi.fn();
+const push = vi.fn();
+const createMutate = vi.fn();
+const updateMutate = vi.fn();
+const archiveMutate = vi.fn();
+
+const products = [
+  {
+    id: "prod_1",
+    title: "Cotton Shirt",
+    titleTh: "เสื้อผ้าฝ้าย",
+    titleEn: "Cotton Shirt",
+    slug: "cotton-shirt",
+    description: "Soft shirt",
+    descriptionTh: "",
+    descriptionEn: "",
+    status: "DRAFT",
+    categoryId: "cat_1",
+    category: { id: "cat_1", name: "Fashion", slug: "fashion" },
+    brandId: "brand_1",
+    brand: { id: "brand_1", name: "Acme", slug: "acme", code: "ACME", isActive: true },
+    metaTitle: "",
+    metaDescription: "",
+    warrantyInfo: "",
+    condition: "",
+    countryOfOrigin: "",
+    highlights: [{ text: "Soft cotton", sortOrder: 0 }],
+    attributes: [{ attributeKey: "color", displayName: "Color", value: "Blue", isFilterable: true }],
+    images: [
+      { id: "img_1", productId: "prod_1", url: "https://example.com/shirt.jpg", altText: "Cotton shirt front", sortOrder: 0, isPrimary: true, width: 800, height: 600 },
+    ],
+    variants: [
+      {
+        id: "var_1",
+        sku: "SHIRT-1",
+        title: "Small",
+        titleTh: null,
+        titleEn: "Small",
+        price: 1299,
+        currency: "USD",
+        status: "ACTIVE",
+        weightGrams: 250,
+        lengthMm: 300,
+        widthMm: 200,
+        heightMm: 20,
+        inventory: { quantityOnHand: 10, quantityReserved: 2, reorderLevel: 1 },
+      },
+    ],
+  },
+  {
+    id: "prod_2",
+    title: "Archived Hat",
+    titleTh: null,
+    titleEn: null,
+    slug: "archived-hat",
+    description: null,
+    descriptionTh: null,
+    descriptionEn: null,
+    status: "ARCHIVED",
+    categoryId: null,
+    category: null,
+    brandId: null,
+    brand: null,
+    metaTitle: null,
+    metaDescription: null,
+    warrantyInfo: null,
+    condition: null,
+    countryOfOrigin: null,
+    highlights: [],
+    attributes: [],
+    images: [],
+    variants: [],
+  },
+];
+
+let sellerProductsState: {
+  data?: { data: typeof products; meta: { nextCursor: string | null; hasNextPage: boolean } };
+  error?: Error | null;
+  isLoading?: boolean;
+} = {
+  data: { data: products, meta: { nextCursor: null, hasNextPage: false } },
+  error: null,
+  isLoading: false,
+};
+
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock("#/components/ui/alert-dialog", () => ({
+  AlertDialog: ({ children, open }: { children: ReactNode; open?: boolean }) => (open ? <>{children}</> : null),
+  AlertDialogAction: ({ children, onClick, disabled }: { children: ReactNode; onClick?: () => void; disabled?: boolean }) => <button type="button" disabled={disabled} onClick={onClick}>{children}</button>,
+  AlertDialogCancel: ({ children, disabled }: { children: ReactNode; disabled?: boolean }) => <button type="button" disabled={disabled}>{children}</button>,
+  AlertDialogContent: ({ children }: { children: ReactNode }) => <div role="alertdialog">{children}</div>,
+  AlertDialogDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>,
+  AlertDialogFooter: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  AlertDialogHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
+}));
+
+vi.mock("#/components/ui/select", () => {
+  const SelectContext = React.createContext<((value: string) => void) | undefined>(undefined);
+  return {
+    Select: ({ children, value, onValueChange }: { children: ReactNode; value?: string; onValueChange?: (value: string) => void }) => (
+      <SelectContext.Provider value={onValueChange}>
+        <div data-value={value}>{children}</div>
+      </SelectContext.Provider>
+    ),
+    SelectContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    SelectItem: ({ children, value }: { children: ReactNode; value: string }) => {
+      const onValueChange = React.useContext(SelectContext);
+      return <button type="button" data-value={value} onClick={() => onValueChange?.(value)}>{children}</button>;
+    },
+    SelectTrigger: ({ children, "aria-label": ariaLabel, id }: { children: ReactNode; "aria-label"?: string; id?: string }) => <span id={id} aria-label={ariaLabel}>{children}</span>,
+    SelectValue: () => null,
+  };
+});
+
+vi.mock("#/components/ui/button", () => ({
+  Button: ({ children, asChild, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode; asChild?: boolean }) => (
+    asChild && React.isValidElement(children) ? React.cloneElement(children, props) : <button {...props}>{children}</button>
+  ),
+}));
+
+vi.mock("#/components/ui/card", () => ({
+  Card: ({ children }: { children: ReactNode }) => <section>{children}</section>,
+  CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  CardHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  CardTitle: ({ children }: { children: ReactNode }) => <h3>{children}</h3>,
+}));
+
+vi.mock("#/components/ui/data-table", () => ({
+  DataTable: ({ columns, data, renderToolbar, isLoading, loadingMessage, emptyMessage }: {
+    columns: Array<{ id?: string; accessorKey?: string; cell?: (context: { row: { original: (typeof products)[number] } }) => ReactNode }>;
+    data: typeof products;
+    renderToolbar?: () => ReactNode;
+    isLoading?: boolean;
+    loadingMessage?: string;
+    emptyMessage?: string;
+  }) => (
+    <div>
+      <div>{renderToolbar?.()}</div>
+      {isLoading ? <p>{loadingMessage}</p> : null}
+      {!isLoading && !data.length ? <p>{emptyMessage}</p> : null}
+      {data.map((row) => (
+        <article key={row.id}>
+          {columns.map((column) => (
+            <div key={String(column.id ?? column.accessorKey)}>
+              {column.cell ? column.cell({ row: { original: row } }) : String(row[column.accessorKey as keyof typeof row] ?? "")}
+            </div>
+          ))}
+        </article>
+      ))}
+    </div>
+  ),
+}));
+
+vi.mock("#/components/ui/input", () => ({
+  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+}));
+
+vi.mock("#/components/ui/label", () => ({
+  Label: ({ children, ...props }: React.LabelHTMLAttributes<HTMLLabelElement> & { children: ReactNode }) => <label {...props}>{children}</label>,
+}));
+
+vi.mock("#/components/ui/textarea", () => ({
+  Textarea: (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...props} />,
+}));
+
+vi.mock("../hooks/useSellerManage", () => ({
+  useSellerProducts: vi.fn(() => ({
+    ...sellerProductsState,
+    refetch,
+  })),
+  useSellerCategories: vi.fn(() => ({ data: [{ id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 0 }], isLoading: false })),
+  useSellerBrands: vi.fn(() => ({ data: [{ id: "brand_1", name: "Acme", slug: "acme", code: "ACME", isActive: true }], isLoading: false })),
+  useCreateSellerProduct: vi.fn(() => ({ mutate: createMutate, isPending: false })),
+  useUpdateSellerProduct: vi.fn(() => ({ mutate: updateMutate, isPending: false })),
+  useArchiveSellerProduct: vi.fn(() => ({ mutate: archiveMutate, isPending: false })),
+}));
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+  sellerProductsState = { data: { data: products, meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
+});
+
+describe("Seller product pages", () => {
+  it("renders product list controls and links to create and edit pages", () => {
+    render(<SellerProductsPage />);
+
+    expect(screen.getAllByText("Cotton Shirt").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Search products")).toBeTruthy();
+    expect(screen.getByLabelText("Filter by product status")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /create product/i }).getAttribute("href")).toBe("/seller/products/create");
+    expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/seller/products/prod_1/edit");
+  });
+
+  it("requires archive confirmation before calling archive mutation", () => {
+    render(<SellerProductsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive Cotton Shirt" }));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Archive product" }));
+
+    expect(archiveMutate).toHaveBeenCalledWith("prod_1", expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }));
+  });
+
+  it("renders create form shell with key mobile-friendly page sections", () => {
+    render(<SellerProductCreatePage />);
+
+    expect(screen.getByRole("heading", { name: "Create product" })).toBeTruthy();
+    for (const section of ["Basic info", "Category and brand", "Localized content", "Highlights and attributes", "Media", "Variants", "Stock", "Dimensions"]) {
+      expect(screen.getByRole("heading", { name: section })).toBeTruthy();
+    }
+    expect(screen.getByLabelText("Title")).toBeTruthy();
+    expect(screen.getByLabelText("Description")).toBeTruthy();
+    expect(screen.getByText("Reserved stock remains read-only.")).toBeTruthy();
+  });
+
+  it("creates a product from the page form and preserves values until mutation success", () => {
+    render(<SellerProductCreatePage />);
+
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "New Product" } });
+    fireEvent.change(screen.getByLabelText("Slug"), { target: { value: "new-product" } });
+    fireEvent.click(screen.getByRole("button", { name: /save product/i }));
+
+    expect(createMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "New Product", slug: "new-product", status: "DRAFT" }),
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
+    expect(screen.getByDisplayValue("New Product")).toBeTruthy();
+  });
+
+  it("asks before discarding dirty create form changes", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<SellerProductCreatePage />);
+
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Changed Product" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(confirm).toHaveBeenCalledWith("Discard unsaved product changes?");
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("renders edit form data and page-level retry state", async () => {
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    expect(screen.getByRole("heading", { name: "Edit product" })).toBeTruthy();
+    expect(screen.getAllByDisplayValue("Cotton Shirt").length).toBeGreaterThan(0);
+    expect(screen.getByText("1 image records attached.")).toBeTruthy();
+
+    cleanup();
+    sellerProductsState = { data: undefined, error: new Error("Load failed"), isLoading: false };
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    expect(screen.getByText("Load failed")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => expect(refetch).toHaveBeenCalled());
+  });
+});
