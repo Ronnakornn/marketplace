@@ -12,6 +12,7 @@ import type {
   CatalogVariantRecord,
   CatalogBrandListItem,
   CatalogProductImageRecord,
+  CatalogProductVideoRecord,
   CatalogCategoryListItem,
   CatalogProductListItem,
   ICatalogRepository,
@@ -20,6 +21,9 @@ import type {
 
 const DEFAULT_PAGE_LIMIT = 20
 const MAX_PAGE_LIMIT = 50
+const MAX_PRODUCT_IMAGES = 10
+const PRODUCT_VIDEO_CONTENT_TYPES = new Set(['video/mp4', 'video/webm'])
+const PRODUCT_VIDEO_MAX_FILE_SIZE = 25 * 1024 * 1024
 
 export interface CatalogActor {
   id: string
@@ -111,7 +115,8 @@ export interface UpdateVariantData {
 }
 
 export interface CreateProductImageData {
-  url: string
+  uploadId?: string | null
+  url?: string
   altText?: string | null
   sortOrder?: number
   isPrimary?: boolean
@@ -120,12 +125,18 @@ export interface CreateProductImageData {
 }
 
 export interface UpdateProductImageData {
+  uploadId?: string | null
   url?: string
   altText?: string | null
   sortOrder?: number
   isPrimary?: boolean
   width?: number | null
   height?: number | null
+}
+
+export interface UpsertProductVideoData {
+  uploadId: string
+  sortOrder?: number
 }
 
 export interface UpdateInventoryData {
@@ -431,8 +442,21 @@ export class CatalogService {
 
   async createProductImage(actor: CatalogActor, productId: string, data: CreateProductImageData): Promise<CatalogProductImageRecord> {
     this.logger.info('CatalogService.createProductImage', { actorId: actor.id, productId })
-    await this.getManageableProduct(actor, productId)
+    const product = await this.getManageableProduct(actor, productId)
+    if (product.images.length >= MAX_PRODUCT_IMAGES) {
+      throw new CatalogServiceError('Products can have at most 10 images', 400, 'PRODUCT_IMAGE_LIMIT_EXCEEDED')
+    }
     const normalized = this.normalizeCreateProductImageInput(data)
+    const upload = normalized.uploadId ? await this.getCompletedUploadForActor(actor, normalized.uploadId) : null
+    if (upload) {
+      if (upload.usage !== 'PRODUCT_IMAGE' || !upload.contentType.startsWith('image/')) {
+        throw new CatalogServiceError('Product image upload must be an image', 400, 'PRODUCT_IMAGE_UPLOAD_INVALID')
+      }
+      if (!upload.publicUrl) {
+        throw new CatalogServiceError('Product image upload does not have a public URL', 400, 'PRODUCT_IMAGE_UPLOAD_INVALID')
+      }
+      normalized.url = upload.publicUrl ?? normalized.url
+    }
     const image = await this.repo.createProductImage({
       productId,
       ...normalized,
@@ -451,6 +475,51 @@ export class CatalogService {
     if (!image) throw new CatalogServiceError('Product image not found', 404, 'PRODUCT_IMAGE_NOT_FOUND')
     await this.cacheInvalidation?.invalidateProduct(productId)
     return image
+  }
+
+  async upsertProductVideo(actor: CatalogActor, productId: string, data: UpsertProductVideoData): Promise<CatalogProductVideoRecord> {
+    this.logger.info('CatalogService.upsertProductVideo', { actorId: actor.id, productId })
+    const product = await this.getManageableProduct(actor, productId)
+    if (product.video) {
+      throw new CatalogServiceError('Products can have at most one video', 400, 'PRODUCT_VIDEO_LIMIT_EXCEEDED')
+    }
+    if (!data.uploadId?.trim()) {
+      throw new CatalogServiceError('Product video upload is required', 400, 'PRODUCT_VIDEO_VALIDATION_FAILED')
+    }
+    if (data.sortOrder !== undefined && (!Number.isInteger(data.sortOrder) || data.sortOrder < 0)) {
+      throw new CatalogServiceError('Product video sort order must be a non-negative integer', 400, 'PRODUCT_VIDEO_VALIDATION_FAILED')
+    }
+    const upload = await this.getCompletedUploadForActor(actor, data.uploadId.trim())
+    if (upload.usage !== 'PRODUCT_VIDEO' || !PRODUCT_VIDEO_CONTENT_TYPES.has(upload.contentType)) {
+      throw new CatalogServiceError('Product video upload must be mp4 or webm', 400, 'PRODUCT_VIDEO_UPLOAD_INVALID')
+    }
+    if (upload.fileSize > PRODUCT_VIDEO_MAX_FILE_SIZE) {
+      throw new CatalogServiceError('Product video file is too large', 400, 'PRODUCT_VIDEO_UPLOAD_INVALID')
+    }
+    if (!upload.publicUrl) {
+      throw new CatalogServiceError('Product video upload does not have a public URL', 400, 'PRODUCT_VIDEO_UPLOAD_INVALID')
+    }
+
+    const video = await this.repo.upsertProductVideo({
+      productId,
+      uploadId: upload.id,
+      url: upload.publicUrl,
+      contentType: upload.contentType,
+      fileName: upload.fileName,
+      fileSize: upload.fileSize,
+      sortOrder: data.sortOrder ?? 0,
+    })
+    await this.cacheInvalidation?.invalidateProduct(productId)
+    return video
+  }
+
+  async deleteProductVideo(actor: CatalogActor, productId: string): Promise<CatalogProductVideoRecord> {
+    this.logger.info('CatalogService.deleteProductVideo', { actorId: actor.id, productId })
+    await this.getManageableProduct(actor, productId)
+    const video = await this.repo.deleteProductVideo(productId)
+    if (!video) throw new CatalogServiceError('Product video not found', 404, 'PRODUCT_VIDEO_NOT_FOUND')
+    await this.cacheInvalidation?.invalidateProduct(productId)
+    return video
   }
 
   async deleteProductImage(actor: CatalogActor, productId: string, imageId: string): Promise<CatalogProductImageRecord> {
@@ -743,7 +812,7 @@ export class CatalogService {
   }
 
   private normalizeProductImageInput<T extends CreateProductImageData | UpdateProductImageData>(data: T, partial: boolean) {
-    if (!partial && (!('url' in data) || !data.url?.trim())) {
+    if (!partial && !data.uploadId?.trim() && (!('url' in data) || !data.url?.trim())) {
       throw new CatalogServiceError('Product image URL is required', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
     }
     if (data.url !== undefined && !this.isValidImageReference(data.url)) {
@@ -759,6 +828,7 @@ export class CatalogService {
       throw new CatalogServiceError('Product image height must be a positive integer', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
     }
     return {
+      ...(data.uploadId === undefined ? {} : { uploadId: this.normalizeNullableText(data.uploadId) }),
       ...(data.url === undefined ? {} : { url: data.url.trim() }),
       ...(data.altText === undefined ? {} : { altText: this.normalizeNullableText(data.altText) }),
       ...(data.sortOrder === undefined ? {} : { sortOrder: data.sortOrder }),
@@ -771,12 +841,25 @@ export class CatalogService {
   private normalizeCreateProductImageInput(data: CreateProductImageData) {
     const normalized = this.normalizeProductImageInput(data, false)
     if (!normalized.url) {
-      throw new CatalogServiceError('Product image URL is required', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+      if (!normalized.uploadId) throw new CatalogServiceError('Product image URL is required', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+      normalized.url = ''
     }
     return {
       ...normalized,
       url: normalized.url,
     }
+  }
+
+  private async getCompletedUploadForActor(actor: CatalogActor, uploadId: string) {
+    const upload = await this.repo.findUploadById(uploadId)
+    if (!upload) throw new CatalogServiceError('Upload not found', 404, 'UPLOAD_NOT_FOUND')
+    if (actor.role !== 'ADMIN' && upload.userId !== actor.id) {
+      throw new CatalogServiceError('Upload does not belong to this seller', 403, 'UPLOAD_FORBIDDEN')
+    }
+    if (upload.status !== 'COMPLETED') {
+      throw new CatalogServiceError('Upload must be completed before attachment', 400, 'UPLOAD_NOT_COMPLETED')
+    }
+    return upload
   }
 
   private isValidImageReference(value: string): boolean {

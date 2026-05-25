@@ -135,7 +135,8 @@ const UpdateProductBodySchema = t.Partial(t.Composite([
 ]))
 
 const ProductImageBodySchema = t.Object({
-  url: t.String({ minLength: 1 }),
+  uploadId: t.Optional(t.Nullable(t.String({ format: 'uuid' }))),
+  url: t.Optional(t.String({ minLength: 1 })),
   altText: t.Optional(t.Nullable(t.String())),
   sortOrder: t.Optional(t.Number({ minimum: 0 })),
   isPrimary: t.Optional(t.Boolean()),
@@ -144,6 +145,11 @@ const ProductImageBodySchema = t.Object({
 })
 
 const UpdateProductImageBodySchema = t.Partial(ProductImageBodySchema)
+
+const ProductVideoBodySchema = t.Object({
+  uploadId: t.String({ format: 'uuid' }),
+  sortOrder: t.Optional(t.Number({ minimum: 0 })),
+})
 
 const VariantShippingFieldsSchema = t.Object({
   weightGrams: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
@@ -334,6 +340,17 @@ export function createCatalogRoutes(container: ServiceContainer) {
       container.catalogService.deleteProductImage(authContext.user, params.productId, params.imageId), {
       withAuth: true,
       params: ProductImageParamsSchema,
+    })
+    .post('/api/seller/products/:productId/video', ({ authContext, params, body }: any) =>
+      container.catalogService.upsertProductVideo(authContext.user, params.productId, body), {
+      withAuth: true,
+      params: ProductParamsSchema,
+      body: ProductVideoBodySchema,
+    })
+    .delete('/api/seller/products/:productId/video', ({ authContext, params }: any) =>
+      container.catalogService.deleteProductVideo(authContext.user, params.productId), {
+      withAuth: true,
+      params: ProductParamsSchema,
     })
     .post('/api/seller/products/:productId/variants', ({ authContext, params, body }: any) =>
       container.catalogService.createVariant(authContext.user, params.productId, body), {

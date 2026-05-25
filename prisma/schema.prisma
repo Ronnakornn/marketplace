@@ -307,6 +307,7 @@ enum ReturnStatus {
 
 enum UploadUsage {
   PRODUCT_IMAGE
+  PRODUCT_VIDEO
   SHOP_IMAGE
   REVIEW_IMAGE
   REVIEW_VIDEO
@@ -835,6 +836,7 @@ model Product {
   favorites                   FavoriteProduct[]
   variants                    ProductVariant[]
   images                      ProductImage[]
+  video                       ProductVideo?
   highlights                  ProductHighlight[]
   attributes                  ProductAttribute[]
   chatMessages                ChatMessage[]
@@ -898,6 +900,7 @@ model ProductAttribute {
 model ProductImage {
   id        String   @id @default(uuid()) @db.Uuid
   productId String   @db.Uuid
+  uploadId  String?  @db.Uuid
   url       String
   altText   String?
   sortOrder Int      @default(0)
@@ -908,9 +911,31 @@ model ProductImage {
   updatedAt DateTime @updatedAt
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  upload  Upload? @relation("ProductImageUpload", fields: [uploadId], references: [id], onDelete: SetNull)
 
+  @@unique([uploadId])
   @@index([productId, sortOrder, createdAt])
   @@index([productId, isPrimary])
+  @@index([uploadId])
+}
+
+model ProductVideo {
+  id          String   @id @default(uuid()) @db.Uuid
+  productId   String   @unique @db.Uuid
+  uploadId    String?  @unique @db.Uuid
+  url         String
+  contentType String
+  fileName    String
+  fileSize    Int
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  upload  Upload? @relation("ProductVideoUpload", fields: [uploadId], references: [id], onDelete: SetNull)
+
+  @@index([productId, sortOrder, createdAt])
+  @@index([uploadId])
 }
 
 // model ProductEmbedding {
@@ -1880,6 +1905,8 @@ model Upload {
 
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   sellerKycDocument SellerKycDocument?
+  productImages     ProductImage[]     @relation("ProductImageUpload")
+  productVideos     ProductVideo[]     @relation("ProductVideoUpload")
 
   @@index([userId, status])
   @@index([usage, createdAt])

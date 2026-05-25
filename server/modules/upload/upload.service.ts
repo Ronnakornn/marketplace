@@ -17,6 +17,7 @@ import type {
 
 const allowedContentTypesByUsage: Record<UploadUsageInput, string[]> = {
   product_image: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+  product_video: ['video/mp4', 'video/webm'],
   shop_image: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
   review_image: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
   review_video: ['video/mp4', 'video/webm'],
@@ -24,6 +25,7 @@ const allowedContentTypesByUsage: Record<UploadUsageInput, string[]> = {
 }
 const maxFileSizeByUsage: Record<UploadUsageInput, number> = {
   product_image: 5 * 1024 * 1024,
+  product_video: 25 * 1024 * 1024,
   shop_image: 5 * 1024 * 1024,
   review_image: 3 * 1024 * 1024,
   review_video: 25 * 1024 * 1024,
@@ -31,6 +33,7 @@ const maxFileSizeByUsage: Record<UploadUsageInput, number> = {
 }
 const usageToRecord: Record<UploadUsageInput, UploadUsage> = {
   product_image: 'PRODUCT_IMAGE',
+  product_video: 'PRODUCT_VIDEO',
   shop_image: 'SHOP_IMAGE',
   review_image: 'REVIEW_IMAGE',
   review_video: 'REVIEW_VIDEO',
@@ -38,6 +41,7 @@ const usageToRecord: Record<UploadUsageInput, UploadUsage> = {
 }
 const recordToUsage: Partial<Record<UploadUsage, UploadUsageInput>> = {
   PRODUCT_IMAGE: 'product_image',
+  PRODUCT_VIDEO: 'product_video',
   SHOP_IMAGE: 'shop_image',
   REVIEW_IMAGE: 'review_image',
   REVIEW_VIDEO: 'review_video',
@@ -150,7 +154,7 @@ export class UploadService {
   private async assertRoleAllowed(actor: UploadActor, usage: UploadUsageInput): Promise<void> {
     if (actor.role === 'ADMIN') return
     if (usage === 'kyc_document') return
-    if ((usage === 'product_image' || usage === 'shop_image') && await this.repo.hasActiveShop(actor.id)) return
+    if ((usage === 'product_image' || usage === 'product_video' || usage === 'shop_image') && await this.repo.hasActiveShop(actor.id)) return
     if (usage === 'review_image' || usage === 'review_video') return
 
     throw new UploadServiceError('Upload usage is not allowed for this user', 403, 'UPLOAD_FORBIDDEN')

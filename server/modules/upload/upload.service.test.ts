@@ -147,6 +147,22 @@ describe('UploadService', () => {
     }))
   })
 
+  it('allows active sellers to create product video uploads', async () => {
+    const result = await service.createPresignedUrl({ id: 'seller-1', role: 'USER' }, {
+      fileName: 'product-demo.webm',
+      contentType: 'video/webm',
+      fileSize: 25 * 1024 * 1024,
+      usage: 'product_video',
+    })
+
+    expect(result.key).toContain('uploads/product_video/seller-1/')
+    expect(repo.createUpload).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'seller-1',
+      usage: 'PRODUCT_VIDEO',
+      contentType: 'video/webm',
+    }))
+  })
+
   it('maps completed review video records back to the public upload usage', async () => {
     ;(repo.findUploadById as ReturnType<typeof vi.fn>).mockResolvedValue(createUpload({
       usage: 'REVIEW_VIDEO' as UploadUsage,
@@ -157,6 +173,18 @@ describe('UploadService', () => {
     const result = await service.getUpload({ id: 'seller-1', role: 'USER' }, '11111111-1111-4111-8111-111111111111')
 
     expect(result.usage).toBe('review_video')
+  })
+
+  it('maps completed product video records back to the public upload usage', async () => {
+    ;(repo.findUploadById as ReturnType<typeof vi.fn>).mockResolvedValue(createUpload({
+      usage: 'PRODUCT_VIDEO' as UploadUsage,
+      contentType: 'video/mp4',
+      fileName: 'product.mp4',
+    }))
+
+    const result = await service.getUpload({ id: 'seller-1', role: 'USER' }, '11111111-1111-4111-8111-111111111111')
+
+    expect(result.usage).toBe('product_video')
   })
 
   it('rejects webp files for KYC document uploads', async () => {

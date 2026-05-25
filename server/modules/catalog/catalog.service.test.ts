@@ -32,11 +32,14 @@ function createRepoMock(): ICatalogRepository {
     findFirstShopByOwnerId: vi.fn(),
     findProductById: vi.fn(),
     findProducts: vi.fn(),
+    findUploadById: vi.fn(),
     createProduct: vi.fn(),
     updateProduct: vi.fn(),
     createProductImage: vi.fn(),
     updateProductImage: vi.fn(),
     deleteProductImage: vi.fn(),
+    upsertProductVideo: vi.fn(),
+    deleteProductVideo: vi.fn(),
     createVariant: vi.fn(),
     updateVariant: vi.fn(),
     deleteVariant: vi.fn(),
@@ -93,6 +96,7 @@ function createProduct(overrides: Partial<{
   shop: { id: string; name: string; slug: string; ownerId: string; status: 'ACTIVE' };
   variants: never[];
   images: any[];
+  video: any | null;
   brand: any | null;
   sellerProfileId: string | null;
   sellerIdentityHash: string | null;
@@ -124,6 +128,7 @@ function createProduct(overrides: Partial<{
       : null,
     brand: null,
     images: overrides.images ?? [],
+    video: overrides.video ?? null,
     shop: {
       id: shopId,
       name: 'Test Shop',
@@ -138,6 +143,33 @@ function createProduct(overrides: Partial<{
     duplicateStatus: overrides.duplicateStatus ?? null,
     duplicateOfProductId: overrides.duplicateOfProductId ?? null,
     deletedAt: overrides.deletedAt ?? null,
+  }
+}
+
+function createUpload(overrides: Partial<{
+  id: string
+  userId: string
+  usage: 'PRODUCT_IMAGE' | 'PRODUCT_VIDEO' | 'SHOP_IMAGE'
+  status: 'PENDING' | 'COMPLETED'
+  fileName: string
+  contentType: string
+  fileSize: number
+  publicUrl: string | null
+}> = {}): any {
+  const now = new Date('2026-05-12T00:00:00.000Z')
+  return {
+    id: overrides.id ?? '77777777-7777-4777-8777-777777777777',
+    userId: overrides.userId ?? 'seller-1',
+    usage: overrides.usage ?? 'PRODUCT_IMAGE',
+    status: overrides.status ?? 'COMPLETED',
+    fileName: overrides.fileName ?? 'image.avif',
+    contentType: overrides.contentType ?? 'image/avif',
+    fileSize: overrides.fileSize ?? 1024,
+    key: 'uploads/product_image/seller-1/2026/05/image.avif',
+    publicUrl: overrides.publicUrl ?? 'https://cdn.example.test/image.avif',
+    completedAt: now,
+    createdAt: now,
+    updatedAt: now,
   }
 }
 function createVariant(overrides: Partial<{
@@ -455,6 +487,7 @@ describe('CatalogService', () => {
     const image = {
       id: '66666666-6666-4666-8666-666666666666',
       productId: product.id,
+      uploadId: null,
       url: '/products/a.jpg',
       altText: 'Front',
       sortOrder: 0,
@@ -486,12 +519,132 @@ describe('CatalogService', () => {
     })
   })
 
+  it('attaches a completed seller-owned image upload', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    const upload = createUpload()
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.findUploadById).mockResolvedValue(upload)
+    vi.mocked(repo.createProductImage).mockResolvedValue({
+      id: '66666666-6666-4666-8666-666666666666',
+      productId: product.id,
+      uploadId: upload.id,
+      url: upload.publicUrl,
+      altText: null,
+      sortOrder: 0,
+      isPrimary: false,
+      width: null,
+      height: null,
+      createdAt: new Date('2026-05-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-12T00:00:00.000Z'),
+    } as any)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.createProductImage(createActor(), product.id, { uploadId: upload.id, url: '/fallback.jpg' })
+
+    expect(repo.createProductImage).toHaveBeenCalledWith(expect.objectContaining({
+      productId: product.id,
+      uploadId: upload.id,
+      url: upload.publicUrl,
+    }))
+  })
+
+  it('rejects incomplete, wrong-owner, and non-image product image uploads', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    const service = new CatalogService(createAppContext(), repo)
+
+    vi.mocked(repo.findUploadById).mockResolvedValueOnce(createUpload({ status: 'PENDING' }))
+    await expect(service.createProductImage(createActor(), product.id, { uploadId: '77777777-7777-4777-8777-777777777777' }))
+      .rejects.toMatchObject({ code: 'UPLOAD_NOT_COMPLETED' })
+
+    vi.mocked(repo.findUploadById).mockResolvedValueOnce(createUpload({ userId: 'seller-2' }))
+    await expect(service.createProductImage(createActor(), product.id, { uploadId: '77777777-7777-4777-8777-777777777777' }))
+      .rejects.toMatchObject({ code: 'UPLOAD_FORBIDDEN' })
+
+    vi.mocked(repo.findUploadById).mockResolvedValueOnce(createUpload({ usage: 'SHOP_IMAGE', contentType: 'image/avif' }))
+    await expect(service.createProductImage(createActor(), product.id, { uploadId: '77777777-7777-4777-8777-777777777777' }))
+      .rejects.toMatchObject({ code: 'PRODUCT_IMAGE_UPLOAD_INVALID' })
+  })
+
+  it('rejects the 11th product image', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({
+      ownerId: 'seller-1',
+      images: Array.from({ length: 10 }, (_, index) => ({ id: `image-${index}` })),
+    })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.createProductImage(createActor(), product.id, { url: '/products/extra.jpg' }))
+      .rejects.toMatchObject({ code: 'PRODUCT_IMAGE_LIMIT_EXCEEDED' })
+  })
+
+  it('attaches a valid product video upload', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    const upload = createUpload({
+      usage: 'PRODUCT_VIDEO',
+      fileName: 'demo.mp4',
+      contentType: 'video/mp4',
+      fileSize: 1024,
+      publicUrl: 'https://cdn.example.test/demo.mp4',
+    })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.findUploadById).mockResolvedValue(upload)
+    vi.mocked(repo.upsertProductVideo).mockResolvedValue({
+      id: '88888888-8888-4888-8888-888888888888',
+      productId: product.id,
+      uploadId: upload.id,
+      url: upload.publicUrl,
+      contentType: upload.contentType,
+      fileName: upload.fileName,
+      fileSize: upload.fileSize,
+      sortOrder: 0,
+      createdAt: new Date('2026-05-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-12T00:00:00.000Z'),
+    } as any)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.upsertProductVideo(createActor(), product.id, { uploadId: upload.id })
+
+    expect(repo.upsertProductVideo).toHaveBeenCalledWith(expect.objectContaining({
+      productId: product.id,
+      uploadId: upload.id,
+      url: upload.publicUrl,
+      contentType: 'video/mp4',
+      fileName: 'demo.mp4',
+      fileSize: 1024,
+    }))
+  })
+
+  it('rejects invalid product video MIME type, file size, and second video', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    const service = new CatalogService(createAppContext(), repo)
+
+    vi.mocked(repo.findUploadById).mockResolvedValueOnce(createUpload({ usage: 'PRODUCT_VIDEO', contentType: 'video/quicktime' }))
+    await expect(service.upsertProductVideo(createActor(), product.id, { uploadId: '77777777-7777-4777-8777-777777777777' }))
+      .rejects.toMatchObject({ code: 'PRODUCT_VIDEO_UPLOAD_INVALID' })
+
+    vi.mocked(repo.findUploadById).mockResolvedValueOnce(createUpload({ usage: 'PRODUCT_VIDEO', contentType: 'video/mp4', fileSize: 25 * 1024 * 1024 + 1 }))
+    await expect(service.upsertProductVideo(createActor(), product.id, { uploadId: '77777777-7777-4777-8777-777777777777' }))
+      .rejects.toMatchObject({ code: 'PRODUCT_VIDEO_UPLOAD_INVALID' })
+
+    vi.mocked(repo.findProductById).mockResolvedValueOnce(createProduct({ ownerId: 'seller-1', video: { id: 'video-1' } }))
+    await expect(service.upsertProductVideo(createActor(), product.id, { uploadId: '77777777-7777-4777-8777-777777777777' }))
+      .rejects.toMatchObject({ code: 'PRODUCT_VIDEO_LIMIT_EXCEEDED' })
+  })
+
   it('updates product image primary metadata through the parent product scope', async () => {
     const repo = createRepoMock()
     const product = createProduct({ ownerId: 'seller-1' })
     const image = {
       id: '66666666-6666-4666-8666-666666666666',
       productId: product.id,
+      uploadId: null,
       url: 'https://cdn.example.test/a.jpg',
       altText: null,
       sortOrder: 1,

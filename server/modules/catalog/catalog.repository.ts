@@ -1,4 +1,4 @@
-import type { Brand, Category, Prisma, PrismaClient, Product, ProductAttribute, ProductHighlight, ProductImage, ProductVariant, Shop } from '#generated/client/client.ts'
+import type { Brand, Category, Prisma, PrismaClient, Product, ProductAttribute, ProductHighlight, ProductImage, ProductVariant, ProductVideo, Shop, Upload } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -43,6 +43,8 @@ export type CatalogBrandListItem = Pick<Brand, 'id' | 'name' | 'nameTh' | 'nameE
 }
 
 export type CatalogProductImageRecord = ProductImage
+export type CatalogProductVideoRecord = ProductVideo
+export type CatalogUploadRecord = Upload
 
 export interface CreateProductRecord {
   shopId: string
@@ -131,6 +133,7 @@ export interface UpdateVariantRecord {
 
 export interface CreateProductImageRecord {
   productId: string
+  uploadId?: string | null
   url: string
   altText?: string | null
   sortOrder?: number
@@ -140,12 +143,23 @@ export interface CreateProductImageRecord {
 }
 
 export interface UpdateProductImageRecord {
+  uploadId?: string | null
   url?: string
   altText?: string | null
   sortOrder?: number
   isPrimary?: boolean
   width?: number | null
   height?: number | null
+}
+
+export interface UpsertProductVideoRecord {
+  productId: string
+  uploadId?: string | null
+  url: string
+  contentType: string
+  fileName: string
+  fileSize: number
+  sortOrder?: number
 }
 
 export interface UpdateInventoryRecord {
@@ -167,6 +181,7 @@ export type CatalogProductListItem = Omit<Product, 'titleTh' | 'titleEn' | 'desc
   } | null
   brand: CatalogBrandListItem | null
   images: CatalogProductImageRecord[]
+  video: CatalogProductVideoRecord | null
   highlights: ProductHighlight[]
   attributes: ProductAttribute[]
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'>
@@ -206,11 +221,14 @@ export interface ICatalogRepository {
   findFirstShopByOwnerId(ownerId: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findProductById(id: string): Promise<CatalogProductDetail | null>
   findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>>
+  findUploadById(id: string): Promise<CatalogUploadRecord | null>
   createProduct(data: CreateProductRecord): Promise<CatalogProductDetail>
   updateProduct(id: string, data: UpdateProductRecord): Promise<CatalogProductDetail>
   createProductImage(data: CreateProductImageRecord): Promise<CatalogProductImageRecord>
   updateProductImage(productId: string, imageId: string, data: UpdateProductImageRecord): Promise<CatalogProductImageRecord | null>
   deleteProductImage(productId: string, imageId: string): Promise<CatalogProductImageRecord | null>
+  upsertProductVideo(data: UpsertProductVideoRecord): Promise<CatalogProductVideoRecord>
+  deleteProductVideo(productId: string): Promise<CatalogProductVideoRecord | null>
   createVariant(data: CreateVariantRecord): Promise<CatalogVariantRecord>
   updateVariant(id: string, data: UpdateVariantRecord): Promise<CatalogVariantRecord>
   deleteVariant(id: string): Promise<CatalogVariantRecord>
@@ -258,6 +276,7 @@ const productInclude = {
   images: {
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
   },
+  video: true,
   shop: {
     select: {
       id: true,
@@ -426,6 +445,11 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     })
   }
 
+  findUploadById(id: string): Promise<CatalogUploadRecord | null> {
+    this.logger.debug('PrismaCatalogRepository.findUploadById', { id })
+    return this.prisma.upload.findUnique({ where: { id } })
+  }
+
   async updateProduct(id: string, data: UpdateProductRecord): Promise<CatalogProductDetail> {
     this.logger.info('PrismaCatalogRepository.updateProduct', { id })
     return this.prisma.$transaction(async (tx) => {
@@ -483,6 +507,29 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       if (!image) return null
       return tx.productImage.delete({ where: { id: imageId } })
     })
+  }
+
+  upsertProductVideo(data: UpsertProductVideoRecord): Promise<CatalogProductVideoRecord> {
+    this.logger.info('PrismaCatalogRepository.upsertProductVideo', { productId: data.productId })
+    return this.prisma.productVideo.upsert({
+      where: { productId: data.productId },
+      create: data,
+      update: {
+        uploadId: data.uploadId,
+        url: data.url,
+        contentType: data.contentType,
+        fileName: data.fileName,
+        fileSize: data.fileSize,
+        sortOrder: data.sortOrder ?? 0,
+      },
+    })
+  }
+
+  async deleteProductVideo(productId: string): Promise<CatalogProductVideoRecord | null> {
+    this.logger.info('PrismaCatalogRepository.deleteProductVideo', { productId })
+    const video = await this.prisma.productVideo.findUnique({ where: { productId } })
+    if (!video) return null
+    return this.prisma.productVideo.delete({ where: { productId } })
   }
 
   createVariant(data: CreateVariantRecord): Promise<CatalogVariantRecord> {
