@@ -3,7 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import { AlertTriangleIcon, ArchiveIcon, BanknoteIcon, EditIcon, PackageCheckIcon, PlusIcon } from "lucide-react";
+import { AlertTriangleIcon, ArchiveIcon, BanknoteIcon, EditIcon, PackageCheckIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -36,13 +36,16 @@ import {
   type SellerCoupon,
   type SellerPayout,
   type SellerProduct,
+  type SellerVariantInput,
   type SellerReturn,
   type SellerShipment,
   useApproveReturn,
   useCreateSellerCoupon,
   useCreateSellerPayout,
   useCreateSellerProduct,
+  useCreateSellerVariant,
   useDeleteSellerCoupon,
+  useDeleteSellerVariant,
   useDeliverShipment,
   usePackShipment,
   useRejectReturn,
@@ -59,6 +62,7 @@ import {
   useUpdateSellerProduct,
   useUpdateSellerCoupon,
   useUpdateSellerInventory,
+  useUpdateSellerVariant,
 } from "../hooks/useSellerManage";
 
 type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
@@ -74,6 +78,17 @@ interface ProductFormState {
   descriptionEn: string;
 }
 
+type SellerVariant = SellerProduct["variants"][number];
+
+interface VariantFormState {
+  sku: string;
+  title: string;
+  titleTh: string;
+  titleEn: string;
+  price: string;
+  currency: string;
+}
+
 const emptyProductForm: ProductFormState = {
   title: "",
   slug: "",
@@ -83,6 +98,15 @@ const emptyProductForm: ProductFormState = {
   titleEn: "",
   descriptionTh: "",
   descriptionEn: "",
+};
+
+const emptyVariantForm: VariantFormState = {
+  sku: "",
+  title: "",
+  titleTh: "",
+  titleEn: "",
+  price: "",
+  currency: "USD",
 };
 
 function productToForm(product: SellerProduct): ProductFormState {
@@ -98,12 +122,27 @@ function productToForm(product: SellerProduct): ProductFormState {
   };
 }
 
+function variantToForm(variant: SellerVariant): VariantFormState {
+  return {
+    sku: variant.sku ?? "",
+    title: variant.title ?? "",
+    titleTh: variant.titleTh ?? "",
+    titleEn: variant.titleEn ?? "",
+    price: String(Number(variant.price ?? 0) / 100),
+    currency: variant.currency ?? "USD",
+  };
+}
+
 function optionalText(value: string) {
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
 }
 
 function isProductFormDirty(form: ProductFormState, initial: ProductFormState) {
+  return JSON.stringify(form) !== JSON.stringify(initial);
+}
+
+function isVariantFormDirty(form: VariantFormState, initial: VariantFormState) {
   return JSON.stringify(form) !== JSON.stringify(initial);
 }
 
@@ -222,14 +261,27 @@ export function SellerProductsPage() {
   const [initialForm, setInitialForm] = useState<ProductFormState>(emptyProductForm);
   const [formError, setFormError] = useState("");
   const [archiveTarget, setArchiveTarget] = useState<SellerProduct | null>(null);
+  const [variantDialogMode, setVariantDialogMode] = useState<"create" | "edit" | null>(null);
+  const [variantProduct, setVariantProduct] = useState<SellerProduct | null>(null);
+  const [editingVariant, setEditingVariant] = useState<SellerVariant | null>(null);
+  const [variantForm, setVariantForm] = useState<VariantFormState>(emptyVariantForm);
+  const [initialVariantForm, setInitialVariantForm] = useState<VariantFormState>(emptyVariantForm);
+  const [variantFormError, setVariantFormError] = useState("");
+  const [deleteVariantTarget, setDeleteVariantTarget] = useState<{ product: SellerProduct; variant: SellerVariant } | null>(null);
   const query = useSellerProducts({ q, status, cursor });
   const createProduct = useCreateSellerProduct();
   const updateProduct = useUpdateSellerProduct();
   const archiveProduct = useArchiveSellerProduct();
+  const createVariant = useCreateSellerVariant();
+  const updateVariant = useUpdateSellerVariant();
+  const deleteVariant = useDeleteSellerVariant();
   const products = query.data?.data ?? [];
   const isMutatingProduct = createProduct.isPending || updateProduct.isPending;
+  const isMutatingVariant = createVariant.isPending || updateVariant.isPending;
   const isDialogOpen = dialogMode !== null;
+  const isVariantDialogOpen = variantDialogMode !== null;
   const dirty = isDialogOpen && isProductFormDirty(form, initialForm);
+  const variantDirty = isVariantDialogOpen && isVariantFormDirty(variantForm, initialVariantForm);
 
   function openCreateDialog() {
     setDialogMode("create");
@@ -254,6 +306,34 @@ export function SellerProductsPage() {
     setDialogMode(null);
     setEditingProduct(null);
     setFormError("");
+  }
+
+  function openCreateVariantDialog(product: SellerProduct) {
+    setVariantDialogMode("create");
+    setVariantProduct(product);
+    setEditingVariant(null);
+    setVariantForm(emptyVariantForm);
+    setInitialVariantForm(emptyVariantForm);
+    setVariantFormError("");
+  }
+
+  function openEditVariantDialog(product: SellerProduct, variant: SellerVariant) {
+    const nextForm = variantToForm(variant);
+    setVariantDialogMode("edit");
+    setVariantProduct(product);
+    setEditingVariant(variant);
+    setVariantForm(nextForm);
+    setInitialVariantForm(nextForm);
+    setVariantFormError("");
+  }
+
+  function requestVariantDialogClose(open: boolean) {
+    if (open) return;
+    if (variantDirty && !window.confirm("Discard unsaved variant changes?")) return;
+    setVariantDialogMode(null);
+    setVariantProduct(null);
+    setEditingVariant(null);
+    setVariantFormError("");
   }
 
   function submitProduct(event: FormEvent<HTMLFormElement>) {
@@ -309,6 +389,81 @@ export function SellerProductsPage() {
       },
       onError: (error: unknown) => {
         toast.error(error instanceof Error ? error.message : "Product could not be archived.");
+      },
+    });
+  }
+
+  function submitVariant(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!variantProduct) return;
+
+    const sku = variantForm.sku.trim();
+    const title = variantForm.title.trim();
+    const currency = variantForm.currency.trim().toUpperCase();
+    const priceValue = Number(variantForm.price);
+
+    if (!sku) {
+      setVariantFormError("Variant SKU is required.");
+      return;
+    }
+
+    if (!title) {
+      setVariantFormError("Variant title is required.");
+      return;
+    }
+
+    if (!Number.isFinite(priceValue) || priceValue <= 0) {
+      setVariantFormError("Variant price must be greater than zero.");
+      return;
+    }
+
+    if (!currency) {
+      setVariantFormError("Variant currency is required.");
+      return;
+    }
+
+    const input: SellerVariantInput = {
+      sku,
+      title,
+      titleTh: optionalText(variantForm.titleTh),
+      titleEn: optionalText(variantForm.titleEn),
+      price: Math.round(priceValue * 100),
+      currency,
+    };
+
+    const options = {
+      onSuccess: () => {
+        toast.success(variantDialogMode === "edit" ? "Variant updated." : "Variant created.");
+        setVariantDialogMode(null);
+        setVariantProduct(null);
+        setEditingVariant(null);
+        setVariantForm(emptyVariantForm);
+        setInitialVariantForm(emptyVariantForm);
+        setVariantFormError("");
+      },
+      onError: (error: unknown) => {
+        setVariantFormError(error instanceof Error ? error.message : "Variant could not be saved.");
+        toast.error("Variant could not be saved.");
+      },
+    };
+
+    if (variantDialogMode === "edit" && editingVariant) {
+      updateVariant.mutate({ productId: variantProduct.id, variantId: editingVariant.id, ...input }, options);
+      return;
+    }
+
+    createVariant.mutate({ productId: variantProduct.id, ...input }, options);
+  }
+
+  function confirmDeleteVariant() {
+    if (!deleteVariantTarget) return;
+    deleteVariant.mutate({ productId: deleteVariantTarget.product.id, variantId: deleteVariantTarget.variant.id }, {
+      onSuccess: () => {
+        toast.success("Variant deleted.");
+        setDeleteVariantTarget(null);
+      },
+      onError: (error: unknown) => {
+        toast.error(error instanceof Error ? error.message : "Variant could not be deleted.");
       },
     });
   }
@@ -420,6 +575,76 @@ export function SellerProductsPage() {
               <Button type="button" variant="outline" onClick={() => setCursor(query.data.meta.nextCursor ?? undefined)}>Load next page</Button>
             </div>
           ) : null}
+          <div className="mt-6 space-y-4" aria-label="Variant management">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-slate-950">Variants</h2>
+                <p className="text-sm text-slate-500">Manage SKU and pricing here. Stock remains editable from Inventory.</p>
+              </div>
+            </div>
+            {products.length ? products.map((product) => (
+              <section key={product.id} className="rounded-lg border border-slate-200 p-4" aria-label={`${product.title} variants`}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="font-medium text-slate-950">{product.title}</h3>
+                    <p className="text-xs text-slate-500">{product.variants.length} variants ยท {getVariantStockContext(product)}</p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" aria-label={`Create variant for ${product.title}`} onClick={() => openCreateVariantDialog(product)}>
+                    <PlusIcon className="size-4" />
+                    Create variant
+                  </Button>
+                </div>
+                <div className="mt-3 overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Variant</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Inventory context</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {product.variants.length ? product.variants.map((variant) => {
+                        const available = (variant.inventory?.quantityOnHand ?? 0) - (variant.inventory?.quantityReserved ?? 0);
+                        return (
+                          <TableRow key={variant.id}>
+                            <TableCell>
+                              <div className="min-w-44">
+                                <p className="font-medium text-slate-950">{variant.title}</p>
+                                <p className="text-xs text-slate-500">{variant.sku}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>{formatMoney(variant.price, variant.currency)}</TableCell>
+                            <TableCell>
+                              <span className="text-sm text-slate-700">{available} available</span>
+                              <span className="ml-2 text-xs text-slate-500">({variant.inventory?.quantityReserved ?? 0} reserved)</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex justify-end gap-2">
+                                <Button type="button" variant="outline" size="sm" aria-label={`Edit variant ${variant.sku}`} onClick={() => openEditVariantDialog(product, variant)}>
+                                  <EditIcon className="size-4" />
+                                  <span className="sr-only">Edit variant</span>
+                                </Button>
+                                <Button type="button" variant="outline" size="sm" aria-label={`Delete variant ${variant.sku}`} onClick={() => setDeleteVariantTarget({ product, variant })}>
+                                  <Trash2Icon className="size-4" />
+                                  <span className="sr-only">Delete variant</span>
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="h-20 text-center text-sm text-slate-500">No variants configured for this product.</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </section>
+            )) : null}
+          </div>
         </CardContent>
       </Card>
       <Dialog open={isDialogOpen} onOpenChange={requestDialogClose}>
@@ -482,6 +707,51 @@ export function SellerProductsPage() {
           </form>
         </DialogContent>
       </Dialog>
+      <Dialog open={isVariantDialogOpen} onOpenChange={requestVariantDialogClose}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl" showCloseButton={!variantDirty}>
+          <DialogHeader>
+            <DialogTitle>{variantDialogMode === "edit" ? "Edit variant" : "Create variant"}</DialogTitle>
+            <DialogDescription>Manage variant SKU, title, and price. Inventory quantities stay in the seller inventory workspace.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={submitVariant}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="variant-sku">SKU</Label>
+                <Input id="variant-sku" value={variantForm.sku} onChange={(event) => setVariantForm((current) => ({ ...current, sku: event.target.value }))} required aria-describedby={variantFormError ? "variant-form-error" : undefined} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="variant-title">Title</Label>
+                <Input id="variant-title" value={variantForm.title} onChange={(event) => setVariantForm((current) => ({ ...current, title: event.target.value }))} required aria-describedby={variantFormError ? "variant-form-error" : undefined} />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="variant-title-th">Thai title</Label>
+                <Input id="variant-title-th" value={variantForm.titleTh} onChange={(event) => setVariantForm((current) => ({ ...current, titleTh: event.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="variant-title-en">English title</Label>
+                <Input id="variant-title-en" value={variantForm.titleEn} onChange={(event) => setVariantForm((current) => ({ ...current, titleEn: event.target.value }))} />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="variant-price">Price</Label>
+                <Input id="variant-price" type="number" min="0.01" step="0.01" value={variantForm.price} onChange={(event) => setVariantForm((current) => ({ ...current, price: event.target.value }))} required aria-describedby={variantFormError ? "variant-form-error" : undefined} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="variant-currency">Currency</Label>
+                <Input id="variant-currency" value={variantForm.currency} onChange={(event) => setVariantForm((current) => ({ ...current, currency: event.target.value }))} required aria-describedby={variantFormError ? "variant-form-error" : undefined} />
+              </div>
+            </div>
+            {variantFormError ? <p id="variant-form-error" className="text-sm text-red-600">{variantFormError}</p> : null}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => requestVariantDialogClose(false)}>Cancel</Button>
+              <Button type="submit" disabled={isMutatingVariant}>{isMutatingVariant ? "Saving..." : "Save variant"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       <AlertDialog open={Boolean(archiveTarget)} onOpenChange={(open) => { if (!open) setArchiveTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -494,6 +764,22 @@ export function SellerProductsPage() {
             <AlertDialogCancel disabled={archiveProduct.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction variant="destructive" disabled={archiveProduct.isPending} onClick={confirmArchiveProduct}>
               {archiveProduct.isPending ? "Archiving..." : "Archive product"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={Boolean(deleteVariantTarget)} onOpenChange={(open) => { if (!open) setDeleteVariantTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete variant</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete variant {deleteVariantTarget?.variant.sku ?? "this variant"} from {deleteVariantTarget?.product.title ?? "this product"}? This action requires confirmation and does not edit inventory records here.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteVariant.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={deleteVariant.isPending} onClick={confirmDeleteVariant}>
+              {deleteVariant.isPending ? "Deleting..." : "Delete variant"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

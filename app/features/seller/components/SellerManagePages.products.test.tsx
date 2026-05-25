@@ -11,6 +11,9 @@ const refetch = vi.fn();
 const createMutate = vi.fn();
 const updateMutate = vi.fn();
 const archiveMutate = vi.fn();
+const createVariantMutate = vi.fn();
+const updateVariantMutate = vi.fn();
+const deleteVariantMutate = vi.fn();
 
 const products = [
   {
@@ -28,6 +31,8 @@ const products = [
         id: "var_1",
         sku: "SHIRT-1",
         title: "Small",
+        titleTh: null,
+        titleEn: "Small",
         price: 1299,
         currency: "USD",
         inventory: { quantityOnHand: 10, quantityReserved: 2, reorderLevel: 1 },
@@ -88,7 +93,7 @@ vi.mock("#/components/ui/alert-dialog", () => ({
 
 vi.mock("#/components/ui/select", () => ({
   Select: ({ children, value, onValueChange }: { children: ReactNode; value?: string; onValueChange?: (value: string) => void }) => (
-    <div data-value={value} onChange={(event) => onValueChange?.((event.target as HTMLSelectElement).value)}>{children}</div>
+    <div data-value={value} onChange={(event) => onValueChange?.((event.target as unknown as HTMLSelectElement).value)}>{children}</div>
   ),
   SelectContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SelectItem: ({ children, value }: { children: ReactNode; value: string }) => <div data-value={value}>{children}</div>,
@@ -139,6 +144,9 @@ vi.mock("../hooks/useSellerManage", async () => {
     useCreateSellerProduct: vi.fn(() => ({ mutate: createMutate, isPending: false })),
     useUpdateSellerProduct: vi.fn(() => ({ mutate: updateMutate, isPending: false })),
     useArchiveSellerProduct: vi.fn(() => ({ mutate: archiveMutate, isPending: false })),
+    useCreateSellerVariant: vi.fn(() => ({ mutate: createVariantMutate, isPending: false })),
+    useUpdateSellerVariant: vi.fn(() => ({ mutate: updateVariantMutate, isPending: false })),
+    useDeleteSellerVariant: vi.fn(() => ({ mutate: deleteVariantMutate, isPending: false })),
   };
 });
 
@@ -152,10 +160,13 @@ describe("SellerProductsPage", () => {
   it("renders products in the shared table with accessible row actions", () => {
     render(<SellerProductsPage />);
 
-    expect(screen.getByText("Cotton Shirt")).toBeTruthy();
+    expect(screen.getAllByText("Cotton Shirt").length).toBeGreaterThan(0);
     expect(screen.getByText("cotton-shirt")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Edit Cotton Shirt" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Archive Cotton Shirt" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Create variant for Cotton Shirt" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Edit variant SHIRT-1" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Delete variant SHIRT-1" })).toBeTruthy();
   });
 
   it("creates a product from the dialog and keeps data until mutation success", () => {
@@ -204,5 +215,53 @@ describe("SellerProductsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => expect(refetch).toHaveBeenCalled());
+  });
+
+  it("creates a variant and preserves form data when mutation fails", async () => {
+    render(<SellerProductsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create variant for Cotton Shirt" }));
+    fireEvent.change(screen.getByLabelText("SKU"), { target: { value: "SHIRT-2" } });
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Medium" } });
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "15.50" } });
+    fireEvent.change(screen.getByLabelText("Currency"), { target: { value: "thb" } });
+    fireEvent.click(screen.getByRole("button", { name: /save variant/i }));
+
+    expect(createVariantMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ productId: "prod_1", sku: "SHIRT-2", title: "Medium", price: 1550, currency: "THB" }),
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
+
+    const options = createVariantMutate.mock.calls[0][1];
+    options.onError(new Error("SKU already exists"));
+
+    await waitFor(() => expect(screen.getByText("SKU already exists")).toBeTruthy());
+    expect(screen.getByDisplayValue("SHIRT-2")).toBeTruthy();
+    expect(screen.getByDisplayValue("Medium")).toBeTruthy();
+  });
+
+  it("edits a variant and asks before discarding dirty changes", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<SellerProductsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit variant SHIRT-1" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Small updated" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(confirm).toHaveBeenCalledWith("Discard unsaved variant changes?");
+    expect(screen.getByDisplayValue("Small updated")).toBeTruthy();
+  });
+
+  it("requires explicit confirmation before deleting a variant", () => {
+    render(<SellerProductsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete variant SHIRT-1" }));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Delete variant" }));
+
+    expect(deleteVariantMutate).toHaveBeenCalledWith(
+      { productId: "prod_1", variantId: "var_1" },
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
   });
 });
