@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
+import { CacheService, type CacheClient } from '#server/modules/cache'
 import type { ISearchRepository, SearchProductRecord } from './search.repository.ts'
 import { SearchService } from './search.service.ts'
 
@@ -27,6 +28,31 @@ function createRepoMock(): ISearchRepository {
     findSearchableProducts: vi.fn(),
     findSuggestions: vi.fn(),
   }
+}
+
+function createCacheService() {
+  const store = new Map<string, string>()
+  const client: CacheClient = {
+    get: vi.fn(async (key) => store.get(key) ?? null),
+    set: vi.fn(async (key, value) => {
+      store.set(key, value)
+      return 'OK'
+    }),
+    del: vi.fn(async (...keys) => {
+      keys.forEach((key) => store.delete(key))
+      return keys.length
+    }),
+    keys: vi.fn(async () => []),
+  }
+  return new CacheService(createAppContext(), {
+    enabled: true,
+    redisUrl: 'redis://localhost:6379',
+    defaultTtlSeconds: 300,
+    productTtlSeconds: 120,
+    searchTtlSeconds: 60,
+    sellerDashboardTtlSeconds: 30,
+    keyPrefix: 'v1',
+  }, client)
 }
 
 const now = new Date('2026-05-13T00:00:00.000Z')
@@ -185,6 +211,17 @@ describe('SearchService', () => {
       recentKeywords: [],
       productTitles: ['Cotton Tee', 'Cotton Socks'],
     })
+  })
+
+  it('caches public search suggestions by query, limit, and locale', async () => {
+    service = new SearchService(createAppContext(), repo, createCacheService())
+
+    await service.getSuggestions({ q: 'cot', limit: 5, locale: 'th' })
+    await service.getSuggestions({ q: ' cot ', limit: 5, locale: 'th' })
+    await service.getSuggestions({ q: 'cot', limit: 8, locale: 'th' })
+    await service.getSuggestions({ q: 'cot', limit: 5, locale: 'en' })
+
+    expect(repo.findSuggestions).toHaveBeenCalledTimes(3)
   })
 
   it('uses one repository query for product search to avoid obvious N+1 patterns', async () => {

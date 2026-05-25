@@ -129,6 +129,19 @@ export class SearchService {
     if (!q) return { recentKeywords: [], productTitles: [] }
     const limit = this.normalizeLimit(input.limit ?? 10)
     const locale = resolveContentLocale(input.locale)
+    const cacheKeyInput = { q, limit, locale }
+    if (this.cache) {
+      return this.cache.remember(
+        this.cache.keys.searchSuggestions(cacheKeyInput),
+        () => this.getSuggestionsFromRepository(q, limit, locale),
+        { ttlSeconds: this.cache.ttl().search },
+      )
+    }
+
+    return this.getSuggestionsFromRepository(q, limit, locale)
+  }
+
+  private async getSuggestionsFromRepository(q: string, limit: number, locale: ContentLocale): Promise<SearchSuggestionsResponse> {
     const rows = await this.repo.findSuggestions(q, limit)
     return {
       recentKeywords: [],

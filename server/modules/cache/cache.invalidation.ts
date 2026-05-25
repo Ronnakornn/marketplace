@@ -8,6 +8,7 @@ export class CacheInvalidation {
     const deleted = await Promise.all([
       this.cache.deleteByPattern(`${prefix}:product:list:*`),
       this.cache.deleteByPattern(`${prefix}:search:products:*`),
+      this.cache.deleteByPattern(`${prefix}:search:suggestions:*`),
     ])
     return deleted.reduce((total, count) => total + count, 0)
   }

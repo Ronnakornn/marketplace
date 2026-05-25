@@ -105,6 +105,31 @@ describe('CacheService', () => {
     const keys = createCacheKeys('v1')
 
     expect(keys.productSearch({ q: 'shirt', page: 1 })).not.toBe(keys.productSearch({ q: 'shirt', page: 2 }))
+    expect(keys.productSearch({
+      locale: 'th',
+      q: 'phone',
+      categoryId: 'electronics',
+      minPrice: 100,
+      maxPrice: 1000,
+      rating: 4,
+      sort: 'newest',
+      page: 1,
+      limit: 40,
+    })).not.toBe(keys.productSearch({
+      locale: 'th',
+      q: 'phone',
+      categoryId: 'electronics',
+      minPrice: 100,
+      maxPrice: 1000,
+      rating: 4,
+      sort: 'newest',
+      page: 2,
+      limit: 40,
+    }))
+    expect(keys.searchSuggestions({ locale: 'th', q: 'phone', limit: 8 }))
+      .not.toBe(keys.searchSuggestions({ locale: 'en', q: 'phone', limit: 8 }))
+    expect(keys.searchSuggestions({ locale: 'th', q: 'phone', limit: 8 }))
+      .not.toBe(keys.searchSuggestions({ locale: 'th', q: 'phone', limit: 10 }))
     expect(keys.sellerDashboard('shop-1')).toBe('v1:seller:shop-1:dashboard')
     expect(keys.sellerDashboard('shop-1')).not.toBe(keys.sellerDashboard('shop-2'))
   })
@@ -115,12 +140,14 @@ describe('CacheService', () => {
     await service.set(service.keys.productDetail('product-1'), { id: 'product-1' })
     await service.set(service.keys.productList({ page: 1 }), { data: [] })
     await service.set(service.keys.productSearch({ q: 'tee' }), { items: [] })
+    await service.set(service.keys.searchSuggestions({ q: 'tee', locale: 'th', limit: 8 }), { productTitles: [] })
 
     await invalidation.invalidateProduct('product-1')
 
     await expect(service.get(service.keys.productDetail('product-1'))).resolves.toBeNull()
     await expect(service.get(service.keys.productList({ page: 1 }))).resolves.toBeNull()
     await expect(service.get(service.keys.productSearch({ q: 'tee' }))).resolves.toBeNull()
+    await expect(service.get(service.keys.searchSuggestions({ q: 'tee', locale: 'th', limit: 8 }))).resolves.toBeNull()
   })
 
   it('inventory update invalidates product/search cache', async () => {
