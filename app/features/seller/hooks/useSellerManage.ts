@@ -3,6 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
+import {
+  invalidateProductMutationQueries,
+  invalidateSellerProductQueries,
+  sellerProductsQueryOptions,
+} from "#/features/product/queries";
 
 export const SELLER_PAGE_SIZE = 20;
 
@@ -108,15 +113,7 @@ export function useSellerDashboard() {
 }
 
 export function useSellerProducts(filters: ProductFilters = {}) {
-  const query = cleanProductFilters(filters);
-  return useQuery({
-    queryKey: sellerKey("products", query),
-    queryFn: async () => {
-      const { data, error } = await api.api.seller.products.get({ query });
-      if (error) throw error;
-      return data;
-    },
-  });
+  return useQuery(sellerProductsQueryOptions(cleanProductFilters(filters)));
 }
 
 export function useSellerCategories() {
@@ -215,7 +212,12 @@ export function useCreateSellerProduct() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        affectsPublic: variables.status === "ACTIVE",
+        affectsAffiliateTargets: true,
+      });
+    },
   });
 }
 
@@ -227,7 +229,13 @@ export function useUpdateSellerProduct() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+        affectsAffiliateTargets: true,
+      });
+    },
   });
 }
 
@@ -239,7 +247,13 @@ export function useArchiveSellerProduct() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async (_data, productId) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId,
+        affectsPublic: true,
+        affectsAffiliateTargets: true,
+      });
+    },
   });
 }
 
@@ -251,7 +265,12 @@ export function useCreateSellerVariant() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
   });
 }
 
@@ -263,7 +282,12 @@ export function useUpdateSellerVariant() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
   });
 }
 
@@ -275,7 +299,12 @@ export function useDeleteSellerVariant() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
   });
 }
 
@@ -287,7 +316,12 @@ export function useCreateSellerProductImage() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
   });
 }
 
@@ -299,7 +333,12 @@ export function useUpdateSellerProductImage() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
   });
 }
 
@@ -311,7 +350,12 @@ export function useDeleteSellerProductImage() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
   });
 }
 
@@ -323,7 +367,9 @@ export function useUpdateSellerInventory() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+    onSuccess: async () => {
+      await invalidateSellerProductQueries(queryClient);
+    },
   });
 }
 

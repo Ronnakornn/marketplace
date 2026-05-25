@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
 import { fetchAdminAffiliates, updateAdminAffiliateStatus, type AdminAffiliate } from "#/features/affiliate/api";
+import { adminProductsQueryOptions, invalidateProductMutationQueries } from "#/features/product/queries";
 
 export const PAGE_SIZE = 10;
 
@@ -104,14 +105,7 @@ export function useAdminShopsList(filters: AdminListFilters) {
 }
 
 export function useAdminProductsList(filters: AdminListFilters) {
-  return useQuery({
-    queryKey: listKey("products", filters),
-    queryFn: async () => {
-      const { data, error } = await api.api.admin.products.get({ query: cleanQuery(filters) });
-      if (error) throw error;
-      return data;
-    },
-  });
+  return useQuery(adminProductsQueryOptions(cleanQuery(filters)));
 }
 
 export function useAdminOrdersList(filters: AdminListFilters) {
@@ -262,7 +256,13 @@ export function useUpdateProductStatus() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.id,
+        affectsPublic: true,
+        affectsAffiliateTargets: true,
+      });
+    },
   });
 }
 

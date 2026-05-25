@@ -107,6 +107,13 @@ export interface BuyerCategory {
   sortOrder: number;
 }
 
+export interface AffiliateProductTargetOption {
+  id: string;
+  label: string;
+  description: string | null;
+  type: "product";
+}
+
 export const productQueryKeys = {
   all: ["product"] as const,
   public: {
@@ -284,18 +291,20 @@ export function adminCatalogProductDetailQueryOptions(productId: string) {
 }
 
 export function affiliateProductTargetsQueryOptions(input: AffiliateProductTargetInput = {}) {
-  const query = cleanAffiliateTargetInput(input);
   return queryOptions({
     queryKey: productQueryKeys.affiliate.productTargets(input),
-    queryFn: async (): Promise<AffiliateTargetsResponse> => {
-      const { data, error } = await api.api.affiliate.targets.get({
-        query: { targetType: "product", ...query },
-      });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchAffiliateProductTargets(input),
     staleTime: PRODUCT_QUERY_STALE_TIME_MS,
   });
+}
+
+export async function fetchAffiliateProductTargets(input: AffiliateProductTargetInput = {}): Promise<AffiliateTargetsResponse> {
+  const query = cleanAffiliateTargetInput(input);
+  const { data, error } = await api.api.affiliate.targets.get({
+    query: { targetType: "product", ...query },
+  });
+  if (error) throw error;
+  return data;
 }
 
 export function usePublicProductList(input: PublicProductListInput = {}) {
@@ -390,6 +399,18 @@ export async function invalidateProductMutationQueries(
     input.affectsPublic ? invalidatePublicProductQueries(queryClient, input) : Promise.resolve(),
     input.affectsAffiliateTargets ? invalidateAffiliateProductTargetQueries(queryClient) : Promise.resolve(),
   ]);
+}
+
+export function normalizeAffiliateProductTargets(response: AffiliateTargetsResponse): AffiliateProductTargetOption[] {
+  return readArray(toRecord(response).items).map((item) => {
+    const record = toRecord(item);
+    return {
+      id: readString(record.id),
+      label: readString(record.label, "Untitled"),
+      description: optionalString(record.description),
+      type: "product",
+    };
+  });
 }
 
 export function cleanPublicProductListInput(input: PublicProductListInput = {}): CleanQuery {

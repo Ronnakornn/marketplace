@@ -11,6 +11,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { useFormatters, useTranslations } from "#/i18n/client";
+import { affiliateProductTargetsQueryOptions, fetchAffiliateProductTargets, normalizeAffiliateProductTargets } from "#/features/product/queries";
 import {
   affiliateTrackingUrl,
   createAffiliateLink,
@@ -36,9 +37,16 @@ export function CreatorDashboardPage() {
 
   const statsQuery = useQuery({ queryKey: ["affiliate", "stats"], queryFn: fetchAffiliateStats });
   const linksQuery = useQuery({ queryKey: ["affiliate", "links"], queryFn: fetchAffiliateLinks });
+  const productTargetsQuery = affiliateProductTargetsQueryOptions({ q: targetQuery, limit: 8 });
   const targetsQuery = useQuery({
-    queryKey: ["affiliate", "targets", targetType, targetQuery],
-    queryFn: () => fetchAffiliateTargets({ targetType, q: targetQuery, limit: 8 }),
+    queryKey: targetType === "product" ? productTargetsQuery.queryKey : ["affiliate", "targets", targetType, targetQuery],
+    queryFn: async () => {
+      if (targetType !== "product") {
+        return fetchAffiliateTargets({ targetType, q: targetQuery, limit: 8 });
+      }
+
+      return normalizeAffiliateProductTargets(await fetchAffiliateProductTargets({ q: targetQuery, limit: 8 }));
+    },
   });
 
   const createLinkMutation = useMutation({

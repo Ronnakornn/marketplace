@@ -3,6 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
+import {
+  adminCatalogProductDetailQueryOptions,
+  adminCatalogProductsQueryOptions,
+  invalidateProductMutationQueries,
+  invalidatePublicProductQueries,
+} from "#/features/product/queries";
 
 type CatalogProductsResponse = Treaty.Data<ReturnType<typeof api.api.catalog.products.get>>;
 export type CatalogProduct = CatalogProductsResponse extends { data: (infer T)[] } ? T : never;
@@ -78,27 +84,15 @@ export function useCatalogProducts() {
 
 export function useAdminCatalogProducts() {
   return useQuery({
-    queryKey: ["admin-catalog-products"],
-    queryFn: async () => {
-      const { data, error } = await api.api.admin.catalog.products.get({
-        query: { limit: 50 },
-      });
-      if (error) throw error;
-      return data?.data ?? [];
-    },
+    ...adminCatalogProductsQueryOptions({ limit: 50 }),
+    select: (data) => data?.data ?? [],
   });
 }
 
 export function useAdminCatalogProductDetail(id: string | null) {
   return useQuery({
-    queryKey: ["admin-catalog-product", id],
+    ...adminCatalogProductDetailQueryOptions(id ?? ""),
     enabled: Boolean(id),
-    queryFn: async () => {
-      if (!id) throw new Error("Product id is required");
-      const { data, error } = await api.api.admin.catalog.products({ productId: id }).get();
-      if (error) throw error;
-      return data;
-    },
   });
 }
 
@@ -112,10 +106,11 @@ export function useUpdateAdminCatalogProduct() {
       return data;
     },
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-catalog-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["admin-catalog-product", data.id] });
-      await queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["catalog-product", data.id] });
+      await invalidateProductMutationQueries(queryClient, {
+        productId: data.id,
+        affectsPublic: true,
+        affectsAffiliateTargets: true,
+      });
     },
   });
 }
@@ -130,8 +125,10 @@ export function useCreateAdminCatalogVariant() {
       return data;
     },
     onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-catalog-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["admin-catalog-product", variables.productId] });
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
     },
   });
 }
@@ -146,8 +143,10 @@ export function useUpdateAdminCatalogVariant() {
       return data;
     },
     onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-catalog-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["admin-catalog-product", variables.productId] });
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
     },
   });
 }
@@ -162,8 +161,10 @@ export function useDeleteAdminCatalogVariant() {
       return data;
     },
     onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-catalog-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["admin-catalog-product", variables.productId] });
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
     },
   });
 }
@@ -191,7 +192,7 @@ export function useCreateCatalogProduct() {
       return data;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
+      await invalidatePublicProductQueries(queryClient);
     },
   });
 }
@@ -206,8 +207,11 @@ export function useUpdateCatalogProduct() {
       return data;
     },
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["catalog-product", data.id] });
+      await invalidateProductMutationQueries(queryClient, {
+        productId: data.id,
+        affectsPublic: true,
+        affectsAffiliateTargets: true,
+      });
     },
   });
 }
@@ -223,8 +227,10 @@ export function useCreateCatalogVariant() {
       return data;
     },
     onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["catalog-product", variables.productId] });
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
     },
   });
 }
@@ -237,7 +243,7 @@ export function useUpdateCatalogInventory() {
       throw new Error("Inventory management is not implemented in Catalog task");
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
+      await invalidatePublicProductQueries(queryClient);
     },
   });
 }
