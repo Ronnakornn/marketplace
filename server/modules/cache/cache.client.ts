@@ -26,11 +26,48 @@ export function createRedisCacheClient(config: CacheConfig): CacheClient | null 
   if (!config.enabled) return null
   if (!config.redisUrl) return null
 
-  return new IORedis(config.redisUrl, {
+  const redis = new IORedis(config.redisUrl, {
     lazyConnect: true,
     maxRetriesPerRequest: 1,
     enableOfflineQueue: false,
   })
+  redis.on('error', () => {
+    // Cache failures are handled by CacheService; keep Redis connection errors from escaping as noisy stderr output.
+  })
+
+  return {
+    async get(key) {
+      await ensureConnected(redis)
+      return redis.get(key)
+    },
+    async set(key, value, mode, ttlSeconds) {
+      await ensureConnected(redis)
+      return redis.set(key, value, mode, ttlSeconds)
+    },
+    async del(...keys) {
+      await ensureConnected(redis)
+      return redis.del(...keys)
+    },
+    async keys(pattern) {
+      await ensureConnected(redis)
+      return redis.keys(pattern)
+    },
+    async quit() {
+      return redis.quit()
+    },
+  }
+}
+
+async function ensureConnected(redis: IORedis): Promise<void> {
+  if (redis.status === 'ready') return
+  if (redis.status === 'connect' || redis.status === 'connecting') {
+    await new Promise<void>((resolve, reject) => {
+      redis.once('ready', resolve)
+      redis.once('error', reject)
+    })
+    return
+  }
+  await redis.connect()
 }
 
 function parseBoolean(value: string | undefined, fallback: boolean): boolean {

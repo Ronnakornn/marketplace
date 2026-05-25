@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { getSiteName, getSiteUrl, resolveSeoImage, safeDescription } from "#/lib/seo";
 import { Providers } from "#/providers";
 import "./styles.css";
+
+const notoSansThai = localFont({
+  src: "../public/fonts/NotoSansThai-VariableFont_wdth,wght.ttf",
+  display: "swap",
+  weight: "100 900",
+  variable: "--font-noto-sans-thai",
+});
 
 const siteName = getSiteName();
 const siteUrl = getSiteUrl();
@@ -41,7 +49,7 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="th" suppressHydrationWarning>
+    <html lang="th" className={notoSansThai.className} suppressHydrationWarning>
       <body className="min-h-screen">
         <Providers>
           {children}

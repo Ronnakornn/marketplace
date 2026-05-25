@@ -101,6 +101,21 @@ describe('CacheService', () => {
     await expect(service.remember('v1:fails-open', async () => ({ ok: true }))).resolves.toEqual({ ok: true })
   })
 
+  it('temporarily bypasses cache after a connection failure', async () => {
+    const client = createClient()
+    vi.mocked(client.get).mockRejectedValueOnce(new Error('redis down'))
+    const service = new CacheService(createAppContext(), createConfig(), client)
+    const firstFetcher = vi.fn(async () => ({ ok: true }))
+    const secondFetcher = vi.fn(async () => ({ ok: 'again' }))
+
+    await service.remember('v1:fails-open', firstFetcher)
+    await expect(service.remember('v1:skipped', secondFetcher)).resolves.toEqual({ ok: 'again' })
+
+    expect(firstFetcher).toHaveBeenCalledTimes(1)
+    expect(secondFetcher).toHaveBeenCalledTimes(1)
+    expect(client.get).toHaveBeenCalledTimes(1)
+  })
+
   it('search cache key changes by query params and seller dashboard cache is shop-scoped', () => {
     const keys = createCacheKeys('v1')
 

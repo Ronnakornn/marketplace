@@ -1,0 +1,1 @@
+$ concurrently -n frontend,backend -c cyan,magenta "bun run dev:frontend" "bun run dev:server"

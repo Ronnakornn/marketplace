@@ -1,11 +1,12 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { auth } from "#server/lib/auth";
 import { prisma } from "#server/lib/prisma";
 import { defaultLocale, isLocale, withLocale } from "#/i18n/config";
 import { isAdminRole } from "#/lib/roles";
 
-export async function getServerSession() {
+export const getServerSession = cache(async function getServerSession() {
   try {
     return await auth.api.getSession({
       headers: await headers(),
@@ -13,7 +14,7 @@ export async function getServerSession() {
   } catch {
     return null;
   }
-}
+});
 
 export async function requireUser() {
   const session = await getServerSession();
@@ -49,7 +50,7 @@ export async function requireSeller() {
   return access.session;
 }
 
-export async function getSellerAccess() {
+export const getSellerAccess = cache(async function getSellerAccess() {
   const session = await requireUser();
 
   const [activeShops, application] = await Promise.all([
@@ -73,4 +74,4 @@ export async function getSellerAccess() {
     activeShops,
     application,
   };
-}
+});

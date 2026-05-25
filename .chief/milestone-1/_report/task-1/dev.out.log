@@ -1,0 +1,72 @@
+[frontend] $ next dev --port 3000
+[backend] $ bun run --watch server/index.ts
+[frontend] ▲ Next.js 16.2.6 (Turbopack)
+[frontend] - Local:         http://localhost:3000
+[frontend] - Network:       http://192.168.0.19:3000
+[frontend] - Environments: .env.local
+[frontend] ✓ Ready in 1481ms
+[backend] [2026-05-24 23:58:57.317 +0700] [32mINFO[39m: [36mAPI server running[39m
+[backend]     [35mport[39m: 3001
+[backend] It is highly recommended to use a minimum Redis version of 6.2.0
+[backend]              Current: 5.0.14.1
+[frontend] 
+[frontend]  GET /th 200 in 2.0s (proxy.ts: 58ms)
+[frontend]  GET /th 200 in 2.3s (next.js: 1850ms, proxy.ts: 35ms, generate-params: 1780ms, application-code: 437ms)
+[frontend]  GET /th 200 in 569ms (next.js: 67ms, proxy.ts: 26ms, generate-params: 33ms, application-code: 477ms)
+[frontend]  GET /th 200 in 555ms (next.js: 37ms, proxy.ts: 22ms, generate-params: 423µs, application-code: 496ms)
+[backend] [2026-05-24 23:59:20.052 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "8249b579-46b8-4b2b-b1e4-6b4781fb2e6d"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/health"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 0.59
+[backend] [2026-05-24 23:59:22.948 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "ea4b68cd-bdd7-4bf9-9c20-b227293bae9d"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/auth/sign-in/email"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1557.26
+[backend] [2026-05-24 23:59:22.948 +0700] [33mWARN[39m: [36mSlow HTTP request[39m
+[backend]     [35mrequestId[39m: "ea4b68cd-bdd7-4bf9-9c20-b227293bae9d"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/auth/sign-in/email"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1557.26
+[frontend]  GET /th/seller 200 in 10.5s (next.js: 4.0s, proxy.ts: 46ms, generate-params: 3.7s, application-code: 6.5s)
+[frontend]  GET /th/seller 200 in 952ms (next.js: 92ms, proxy.ts: 43ms, generate-params: 44ms, application-code: 816ms)
+[backend] [2026-05-24 23:59:41.158 +0700] [32mINFO[39m: [36mSellerDashboardService.getDashboard[39m
+[backend]     [35mactorId[39m: "75d1de74-07cb-4827-8149-10a6c00f2c17"
+[backend]     [35mshopIds[39m: [
+[backend]       "16471604-3004-453d-91e0-a2542dcbb6ad"
+[backend]     ]
+[backend]     [35mrecentLimit[39m: 10
+[backend] [2026-05-24 23:59:41.161 +0700] [33mWARN[39m: [36mCache get failed[39m
+[backend]     [35mcode[39m: "CACHE_CONNECTION_FAILED"
+[backend]     [35mkey[39m: "ecommerce:seller:16471604-3004-453d-91e0-a2542dcbb6ad:dashboard"
+[backend]     [35mmessage[39m: "Stream isn't writeable and enableOfflineQueue options is false"
+[backend] [2026-05-24 23:59:41.589 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "54ae852f-4003-4fc4-93df-5e45dc57f2fd"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/seller/dashboard"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 741.23
+[backend] [2026-05-24 23:59:41.589 +0700] [33mWARN[39m: [36mSlow HTTP request[39m
+[backend]     [35mrequestId[39m: "54ae852f-4003-4fc4-93df-5e45dc57f2fd"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/seller/dashboard"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 741.23
+[backend] [2026-05-24 23:59:42.094 +0700] [32mINFO[39m: [36mSellerDashboardService.getDashboard[39m
+[backend]     [35mactorId[39m: "75d1de74-07cb-4827-8149-10a6c00f2c17"
+[backend]     [35mshopIds[39m: [
+[backend]       "16471604-3004-453d-91e0-a2542dcbb6ad"
+[backend]     ]
+[backend]     [35mrecentLimit[39m: 10
+[backend] [2026-05-24 23:59:42.096 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "acfb49e6-53d5-4803-b100-206126d583a7"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/seller/dashboard"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 49.95
+[frontend]  GET /th/seller 307 in 855ms (next.js: 69ms, proxy.ts: 28ms, generate-params: 29ms, application-code: 758ms)
+[frontend]  GET /th/seller 307 in 655ms (next.js: 84ms, proxy.ts: 26ms, generate-params: 31ms, application-code: 545ms)

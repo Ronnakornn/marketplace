@@ -1,0 +1,81 @@
+﻿{
+    "measuredAt":  "2026-05-25T00:37:30.7578030+07:00",
+    "notes":  [
+                  "Uses already-running localhost:3000 and localhost:3001 servers.",
+                  "HTTP-level timings only; does not include visual paint or hydration timing."
+              ],
+    "signIn":  {
+                   "ok":  true,
+                   "status":  200,
+                   "elapsedMs":  559,
+                   "error":  null
+               },
+    "unauthenticatedRequests":  [
+                                    {
+                                        "url":  "http://localhost:3000/th/seller",
+                                        "ok":  true,
+                                        "status":  307,
+                                        "elapsedMs":  439,
+                                        "location":  "/th/login?next=%2Fth%2Fseller",
+                                        "contentLength":  57597
+                                    },
+                                    {
+                                        "url":  "http://localhost:3000/th/seller",
+                                        "ok":  true,
+                                        "status":  307,
+                                        "elapsedMs":  451,
+                                        "location":  "/th/login?next=%2Fth%2Fseller",
+                                        "contentLength":  57597
+                                    },
+                                    {
+                                        "url":  "http://localhost:3001/api/seller/dashboard",
+                                        "ok":  false,
+                                        "status":  401,
+                                        "elapsedMs":  19,
+                                        "location":  null,
+                                        "error":  "The remote server returned an error: (401) Unauthorized."
+                                    },
+                                    {
+                                        "url":  "http://localhost:3001/api/seller/dashboard",
+                                        "ok":  false,
+                                        "status":  401,
+                                        "elapsedMs":  3,
+                                        "location":  null,
+                                        "error":  "The remote server returned an error: (401) Unauthorized."
+                                    }
+                                ],
+    "authenticatedRequests":  [
+                                  {
+                                      "url":  "http://localhost:3000/th/seller",
+                                      "ok":  true,
+                                      "status":  200,
+                                      "elapsedMs":  847,
+                                      "location":  null,
+                                      "contentLength":  76955
+                                  },
+                                  {
+                                      "url":  "http://localhost:3000/th/seller",
+                                      "ok":  true,
+                                      "status":  200,
+                                      "elapsedMs":  598,
+                                      "location":  null,
+                                      "contentLength":  77102
+                                  },
+                                  {
+                                      "url":  "http://localhost:3001/api/seller/dashboard",
+                                      "ok":  true,
+                                      "status":  200,
+                                      "elapsedMs":  391,
+                                      "location":  null,
+                                      "contentLength":  2181
+                                  },
+                                  {
+                                      "url":  "http://localhost:3001/api/seller/dashboard",
+                                      "ok":  true,
+                                      "status":  200,
+                                      "elapsedMs":  69,
+                                      "location":  null,
+                                      "contentLength":  2181
+                                  }
+                              ]
+}

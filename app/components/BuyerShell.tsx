@@ -90,8 +90,8 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center gap-2">
         <Link href={localePath("/")} className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-orange-600 px-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-orange-700">
-          <ShoppingBagIcon className="size-4" />
-          <span className="hidden sm:inline">{t("common.marketplace")}</span>
+          <ShoppingBagIcon className="size-4 text-white" />
+          <span className="hidden sm:inline text-white">{t("common.marketplace")}</span>
         </Link>
         {/* <Link href={localePath("/categories/deals")} className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
           <MenuIcon className="size-5" />
@@ -140,7 +140,7 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
         {session ? (
           <>
             {session.user.role !== "ADMIN" ? (
-              <Link href={localePath("/seller/register")} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 sm:flex">
+              <Link href={localePath("/seller/register")} prefetch={false} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 sm:flex">
                 <StoreIcon className="size-4" />
                 Start Selling
               </Link>

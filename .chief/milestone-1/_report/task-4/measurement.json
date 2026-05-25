@@ -1,0 +1,83 @@
+﻿{
+    "measuredAt":  "2026-05-25T00:35:02.9334470+07:00",
+    "ready":  true,
+    "notes":  [
+                  "Browser/manual auth acceptance flow was intentionally not performed by builder-agent.",
+                  "Authenticated measurements use the local demo seller seed credential seller-fashion@example.com / DemoPass123! when present.",
+                  "Measurements are HTTP-level route/API timings; they do not include browser hydration, JS chunk loading, or visual paint timing."
+              ],
+    "signIn":  {
+                   "ok":  true,
+                   "status":  200,
+                   "elapsedMs":  1154,
+                   "error":  null
+               },
+    "unauthenticatedRequests":  [
+                                    {
+                                        "url":  "http://localhost:3000/th/seller",
+                                        "ok":  true,
+                                        "status":  307,
+                                        "elapsedMs":  644,
+                                        "location":  "/th/login?next=%2Fth%2Fseller",
+                                        "contentLength":  57597
+                                    },
+                                    {
+                                        "url":  "http://localhost:3000/th/seller",
+                                        "ok":  true,
+                                        "status":  307,
+                                        "elapsedMs":  438,
+                                        "location":  "/th/login?next=%2Fth%2Fseller",
+                                        "contentLength":  57597
+                                    },
+                                    {
+                                        "url":  "http://localhost:3001/api/seller/dashboard",
+                                        "ok":  false,
+                                        "status":  401,
+                                        "elapsedMs":  17,
+                                        "location":  null,
+                                        "error":  "The remote server returned an error: (401) Unauthorized."
+                                    },
+                                    {
+                                        "url":  "http://localhost:3001/api/seller/dashboard",
+                                        "ok":  false,
+                                        "status":  401,
+                                        "elapsedMs":  3,
+                                        "location":  null,
+                                        "error":  "The remote server returned an error: (401) Unauthorized."
+                                    }
+                                ],
+    "authenticatedRequests":  [
+                                  {
+                                      "url":  "http://localhost:3000/th/seller",
+                                      "ok":  true,
+                                      "status":  200,
+                                      "elapsedMs":  7580,
+                                      "location":  null,
+                                      "contentLength":  76955
+                                  },
+                                  {
+                                      "url":  "http://localhost:3000/th/seller",
+                                      "ok":  true,
+                                      "status":  200,
+                                      "elapsedMs":  658,
+                                      "location":  null,
+                                      "contentLength":  77102
+                                  },
+                                  {
+                                      "url":  "http://localhost:3001/api/seller/dashboard",
+                                      "ok":  true,
+                                      "status":  200,
+                                      "elapsedMs":  425,
+                                      "location":  null,
+                                      "contentLength":  2181
+                                  },
+                                  {
+                                      "url":  "http://localhost:3001/api/seller/dashboard",
+                                      "ok":  true,
+                                      "status":  200,
+                                      "elapsedMs":  146,
+                                      "location":  null,
+                                      "contentLength":  2181
+                                  }
+                              ]
+}

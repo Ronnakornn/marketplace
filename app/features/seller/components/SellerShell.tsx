@@ -18,7 +18,7 @@ import {
 import { stripLocale } from "#/i18n/config";
 import { useLocalePath } from "#/i18n/navigation";
 import { cn } from "#/lib/utils";
-import type { SellerRouteKind } from "#/lib/seller-access";
+import { getSellerRouteKind } from "#/lib/seller-access";
 
 const navItems = [
   { href: "/seller", label: "Dashboard", icon: LayoutDashboardIcon },
@@ -36,13 +36,13 @@ interface SellerShellProps {
   activeShop: { id: string; name: string; slug: string; status: string } | null;
   activeShops: Array<{ id: string; name: string; slug: string; status: string }>;
   children: ReactNode;
-  routeKind: SellerRouteKind;
   user: { name: string; email: string };
 }
 
-export function SellerShell({ activeShop, activeShops, children, routeKind, user }: SellerShellProps) {
+export function SellerShell({ activeShop, activeShops, children, user }: SellerShellProps) {
   const pathname = stripLocale(usePathname());
   const localePath = useLocalePath();
+  const routeKind = getSellerRouteKind(pathname);
   const showOperationalNavigation = routeKind === "operational";
 
   return (

@@ -7,6 +7,7 @@ const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/
 
 export class CacheService {
   private logger: ILogger
+  private unavailableUntilMs = 0
   readonly keys: CacheKeyBuilder
 
   constructor(
@@ -23,7 +24,7 @@ export class CacheService {
   }
 
   isEnabled(): boolean {
-    return this.config.enabled && Boolean(this.client)
+    return this.config.enabled && Boolean(this.client) && Date.now() >= this.unavailableUntilMs
   }
 
   ttl() {
@@ -43,6 +44,7 @@ export class CacheService {
       if (raw === null) return null
       return JSON.parse(raw, dateReviver) as T
     } catch (error) {
+      this.markTemporarilyUnavailable()
       this.logger.warn('Cache get failed', {
         code: 'CACHE_CONNECTION_FAILED',
         key,
@@ -59,6 +61,7 @@ export class CacheService {
       const ttlSeconds = options.ttlSeconds ?? this.config.defaultTtlSeconds
       await this.client!.set(key, JSON.stringify(value, cacheJsonReplacer), 'EX', ttlSeconds)
     } catch (error) {
+      this.markTemporarilyUnavailable()
       this.logger.warn('Cache set failed', {
         code: 'CACHE_CONNECTION_FAILED',
         key,
@@ -82,6 +85,7 @@ export class CacheService {
       await this.client!.del(key)
       return 1
     } catch (error) {
+      this.markTemporarilyUnavailable()
       this.logger.warn('Cache delete failed', {
         code: 'CACHE_INVALIDATION_FAILED',
         key,
@@ -100,6 +104,7 @@ export class CacheService {
       await this.client!.del(...keys)
       return keys.length
     } catch (error) {
+      this.markTemporarilyUnavailable()
       this.logger.warn('Cache invalidation failed', {
         code: 'CACHE_INVALIDATION_FAILED',
         pattern,
@@ -107,6 +112,10 @@ export class CacheService {
       })
       return 0
     }
+  }
+
+  private markTemporarilyUnavailable(): void {
+    this.unavailableUntilMs = Date.now() + 30_000
   }
 }
 

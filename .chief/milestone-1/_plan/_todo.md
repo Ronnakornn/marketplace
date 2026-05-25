@@ -8,3 +8,22 @@
 - [x] task-6: Optimize public home and search data fetching/cache behavior
 - [x] task-7: Optimize buyer entry render and hydration path where measured
 - [x] task-8: Verify buyer entry improvements and clean diagnostics
+- [x] task-14: Extend catalog schema for product images, brands, and variant shipping dimensions
+- [x] task-15: Extend catalog API and services for brand selection, product images, dimensions, and publish readiness
+- [x] task-9: Add reusable default data table component for project tables
+- [x] task-10: Extend seller product hooks for complete product and variant mutations
+- [x] task-11: Rebuild `/seller/products` with production-ready product table, dialogs, and archive flow
+- [x] task-12: Add production-ready variant create/edit/delete workflows inside seller product management
+- [x] task-16: Integrate category, brand, image metadata, and dimensions into seller product management UI
+- [x] task-17: Verify production catalog fields, publish readiness, and migration/type safety
+- [x] task-13: Verify seller product CRUD production readiness and type safety
+- [x] task-18: Add audience-specific product query keys, hooks, and invalidation helpers
+- [x] task-19: Migrate public buyer product discovery/detail UI to the shared product query layer
+- [x] task-20: Remove production demo product fallback states from buyer product UI and verify real empty/error/loading states
+- [x] task-21: Wire seller/admin/affiliate product reads and product mutation invalidation to the shared query helpers
+- [x] task-22: Verify product UI data fetching, audience separation, invalidation behavior, and type safety
+- [x] task-23: Extend catalog schema for brand profiles, product facts, highlights, and filterable attributes
+- [x] task-24: Add admin brand management APIs and extend catalog product APIs for enrichment and filters
+- [x] task-25: Integrate brand management, seller product enrichment, and buyer brand/spec display/filter UI
+- [x] task-26: Add bootstrap master seed and demo catalog seed coverage for enriched products
+- [ ] task-27: Verify brand/product enrichment, seed safety, buyer filters, and type safety
