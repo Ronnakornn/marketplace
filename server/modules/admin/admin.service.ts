@@ -7,6 +7,7 @@ import { auth } from '#server/lib/auth.ts'
 import { AdminServiceError } from './admin.errors.ts'
 import type {
   AdminDashboardCounts,
+  AdminBrandRecord,
   AdminPaginatedResult,
   AdminPaginationInput,
   AdminProductRecord,
@@ -59,6 +60,30 @@ export interface AdminListByStatusInput {
   page?: number | string
   limit?: number | string
   status?: string
+}
+
+export interface AdminListBrandsInput {
+  page?: number | string
+  limit?: number | string
+  q?: string
+  isActive?: boolean | string
+}
+
+export interface AdminBrandWriteInput {
+  name?: string
+  nameTh?: string | null
+  nameEn?: string | null
+  slug?: string
+  code?: string | null
+  description?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
+  logoUrl?: string | null
+  websiteUrl?: string | null
+  countryCode?: string | null
+  sortOrder?: number
+  isFeatured?: boolean
+  isActive?: boolean
 }
 
 export interface AdminShopCreateInput {
@@ -122,6 +147,64 @@ export class AdminService {
     const role = input.role === undefined ? undefined : this.parseEnum<Role>(input.role, ROLES)
     const status = input.status === undefined ? undefined : this.parseEnum<UserStatus>(input.status, USER_STATUSES)
     return this.toListResponse(await this.repository.listUsers({ role, status }, pagination), pagination)
+  }
+
+  async listBrands(actor: AdminActor, input: AdminListBrandsInput = {}): Promise<AdminListResponse<AdminBrandRecord>> {
+    this.assertAdmin(actor)
+    const pagination = this.normalizePagination(input)
+    const q = input.q?.trim() || undefined
+    const isActive = this.normalizeOptionalBoolean(input.isActive)
+    return this.toListResponse(await this.repository.listBrands({ q, isActive }, pagination), pagination)
+  }
+
+  async createBrand(actor: AdminActor, input: AdminBrandWriteInput): Promise<AdminBrandRecord> {
+    this.assertAdmin(actor)
+    const name = this.normalizeRequiredText(input.name, 'Brand name')
+    const slug = this.normalizeSlug(input.slug ?? name, 'Brand slug')
+    const code = this.normalizeOptionalCode(input.code)
+    await this.assertBrandSlugAvailable(slug)
+    if (code) await this.assertBrandCodeAvailable(code)
+    this.logger.info('AdminService.createBrand', { actorId: actor.id, slug, code })
+    return this.repository.createBrand({
+      ...this.normalizeBrandProfile(input),
+      name,
+      slug,
+      code,
+      sortOrder: this.normalizeSortOrder(input.sortOrder),
+      isFeatured: input.isFeatured ?? false,
+      isActive: input.isActive ?? true,
+    })
+  }
+
+  async updateBrand(actor: AdminActor, brandId: string, input: AdminBrandWriteInput): Promise<AdminBrandRecord> {
+    this.assertAdmin(actor)
+    const existing = await this.repository.findBrandById(brandId)
+    if (!existing) throw new AdminServiceError('Brand not found', 404, 'BRAND_NOT_FOUND')
+    const update: AdminBrandWriteInput = {}
+    if (input.name !== undefined) update.name = this.normalizeRequiredText(input.name, 'Brand name')
+    if (input.slug !== undefined) {
+      update.slug = this.normalizeSlug(input.slug, 'Brand slug')
+      await this.assertBrandSlugAvailable(update.slug, brandId)
+    }
+    if (input.code !== undefined) {
+      update.code = this.normalizeOptionalCode(input.code)
+      if (update.code) await this.assertBrandCodeAvailable(update.code, brandId)
+    }
+    Object.assign(update, this.normalizeBrandProfile(input))
+    if (input.sortOrder !== undefined) update.sortOrder = this.normalizeSortOrder(input.sortOrder)
+    if (input.isFeatured !== undefined) update.isFeatured = input.isFeatured
+    if (input.isActive !== undefined) update.isActive = input.isActive
+    if (Object.keys(update).length === 0) return existing
+    this.logger.info('AdminService.updateBrand', { actorId: actor.id, brandId, fields: Object.keys(update) })
+    return this.repository.updateBrand(brandId, update)
+  }
+
+  async deactivateBrand(actor: AdminActor, brandId: string): Promise<AdminBrandRecord> {
+    return this.setBrandActive(actor, brandId, false)
+  }
+
+  async reactivateBrand(actor: AdminActor, brandId: string): Promise<AdminBrandRecord> {
+    return this.setBrandActive(actor, brandId, true)
   }
 
   async createUser(actor: AdminActor, input: AdminCreateUserInput): Promise<AdminUserRecord> {
@@ -515,8 +598,8 @@ export class AdminService {
     return normalized
   }
 
-  private normalizeSlug(value: string | undefined): string {
-    const slug = this.normalizeRequiredText(value, 'Shop slug')
+  private normalizeSlug(value: string | undefined, label = 'Shop slug'): string {
+    const slug = this.normalizeRequiredText(value, label)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
@@ -524,6 +607,69 @@ export class AdminService {
       throw new AdminServiceError('Shop slug is too short', 400, 'INVALID_SHOP_INPUT')
     }
     return slug
+  }
+
+  private normalizeOptionalBoolean(value: boolean | string | undefined): boolean | undefined {
+    if (value === undefined) return undefined
+    if (typeof value === 'boolean') return value
+    if (value === 'true') return true
+    if (value === 'false') return false
+    throw new AdminServiceError('Invalid boolean filter', 400, 'INVALID_STATUS')
+  }
+
+  private normalizeOptionalCode(value: string | null | undefined): string | null {
+    const normalized = this.normalizeNullableText(value)
+    return normalized ? normalized.toUpperCase() : null
+  }
+
+  private normalizeSortOrder(value: number | undefined): number {
+    if (value === undefined) return 0
+    if (!Number.isInteger(value) || value < 0) {
+      throw new AdminServiceError('Brand sort order must be a non-negative integer', 400, 'INVALID_BRAND_INPUT')
+    }
+    return value
+  }
+
+  private normalizeBrandProfile(input: AdminBrandWriteInput) {
+    return {
+      ...(input.nameTh === undefined ? {} : { nameTh: this.normalizeNullableText(input.nameTh) }),
+      ...(input.nameEn === undefined ? {} : { nameEn: this.normalizeNullableText(input.nameEn) }),
+      ...(input.description === undefined ? {} : { description: this.normalizeNullableText(input.description) }),
+      ...(input.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(input.descriptionTh) }),
+      ...(input.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(input.descriptionEn) }),
+      ...(input.logoUrl === undefined ? {} : { logoUrl: this.normalizeNullableText(input.logoUrl) }),
+      ...(input.websiteUrl === undefined ? {} : { websiteUrl: this.normalizeNullableText(input.websiteUrl) }),
+      ...(input.countryCode === undefined ? {} : { countryCode: this.normalizeNullableText(input.countryCode)?.toUpperCase() ?? null }),
+    }
+  }
+
+  private normalizeNullableText(value: string | null | undefined): string | null {
+    if (value === undefined || value === null) return null
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+
+  private async assertBrandSlugAvailable(slug: string, currentBrandId?: string): Promise<void> {
+    const duplicate = await this.repository.findBrandBySlug(slug)
+    if (duplicate && duplicate.id !== currentBrandId) {
+      throw new AdminServiceError('Brand slug already exists', 409, 'BRAND_SLUG_EXISTS')
+    }
+  }
+
+  private async assertBrandCodeAvailable(code: string, currentBrandId?: string): Promise<void> {
+    const duplicate = await this.repository.findBrandByCode(code)
+    if (duplicate && duplicate.id !== currentBrandId) {
+      throw new AdminServiceError('Brand code already exists', 409, 'BRAND_CODE_EXISTS')
+    }
+  }
+
+  private async setBrandActive(actor: AdminActor, brandId: string, isActive: boolean): Promise<AdminBrandRecord> {
+    this.assertAdmin(actor)
+    const existing = await this.repository.findBrandById(brandId)
+    if (!existing) throw new AdminServiceError('Brand not found', 404, 'BRAND_NOT_FOUND')
+    if (existing.isActive === isActive) return existing
+    this.logger.info('AdminService.setBrandActive', { actorId: actor.id, brandId, isActive })
+    return this.repository.updateBrandActive(brandId, isActive)
   }
 
   private normalizeEmail(value: string | undefined): string {

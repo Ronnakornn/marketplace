@@ -12,6 +12,7 @@ import type {
   Shipment,
   Shop,
   User,
+  Brand,
 } from '#generated/client/client.ts'
 import type { OrderStatus, ProductStatus, RefundStatus, ReturnStatus, Role, ShopStatus, UserStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -43,6 +44,30 @@ export interface AdminShopUpdateInput {
   status?: ShopStatus
 }
 
+export interface AdminBrandListFilters {
+  q?: string
+  isActive?: boolean
+}
+
+export interface AdminBrandWriteInput {
+  name: string
+  nameTh?: string | null
+  nameEn?: string | null
+  slug: string
+  code?: string | null
+  description?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
+  logoUrl?: string | null
+  websiteUrl?: string | null
+  countryCode?: string | null
+  sortOrder?: number
+  isFeatured?: boolean
+  isActive?: boolean
+}
+
+export type AdminBrandUpdateInput = Partial<AdminBrandWriteInput>
+
 export interface AdminUserCreateInput {
   id: string
   name: string
@@ -58,6 +83,7 @@ export interface AdminUserUpdateInput {
 }
 
 export type AdminUserRecord = Pick<User, 'id' | 'name' | 'email' | 'role' | 'status' | 'createdAt' | 'updatedAt'>
+export type AdminBrandRecord = Brand
 export type AdminShopRecord = Shop & {
   owner: Pick<User, 'id' | 'name' | 'email' | 'status'>
 }
@@ -123,6 +149,13 @@ export interface IAdminRepository {
   updateUser(userId: string, input: AdminUserUpdateInput): Promise<AdminUserRecord>
   deleteUser(userId: string): Promise<AdminUserRecord>
   updateUserStatus(userId: string, status: UserStatus): Promise<AdminUserRecord>
+  listBrands(filters: AdminBrandListFilters, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminBrandRecord>>
+  findBrandById(brandId: string): Promise<AdminBrandRecord | null>
+  findBrandBySlug(slug: string): Promise<AdminBrandRecord | null>
+  findBrandByCode(code: string): Promise<AdminBrandRecord | null>
+  createBrand(input: AdminBrandWriteInput): Promise<AdminBrandRecord>
+  updateBrand(brandId: string, input: AdminBrandUpdateInput): Promise<AdminBrandRecord>
+  updateBrandActive(brandId: string, isActive: boolean): Promise<AdminBrandRecord>
   listShops(filters: { status?: ShopStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminShopRecord>>
   createShop(input: AdminShopWriteInput): Promise<AdminShopRecord>
   findShopById(shopId: string): Promise<AdminShopRecord | null>
@@ -500,6 +533,51 @@ export class PrismaAdminRepository implements IAdminRepository {
 
   updateUserStatus(userId: string, status: UserStatus): Promise<AdminUserRecord> {
     return this.prisma.user.update({ where: { id: userId }, data: { status }, select: userSelect })
+  }
+
+  listBrands(filters: AdminBrandListFilters, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminBrandRecord>> {
+    const where: Prisma.BrandWhereInput = {
+      ...(filters.isActive === undefined ? {} : { isActive: filters.isActive }),
+      ...(filters.q
+        ? {
+            OR: [
+              { name: { contains: filters.q, mode: 'insensitive' } },
+              { nameTh: { contains: filters.q, mode: 'insensitive' } },
+              { nameEn: { contains: filters.q, mode: 'insensitive' } },
+              { slug: { contains: filters.q, mode: 'insensitive' } },
+              { code: { contains: filters.q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    }
+    return this.paginate(
+      this.prisma.brand.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], ...this.toSkipTake(pagination) }),
+      this.prisma.brand.count({ where }),
+    )
+  }
+
+  findBrandById(brandId: string): Promise<AdminBrandRecord | null> {
+    return this.prisma.brand.findUnique({ where: { id: brandId } })
+  }
+
+  findBrandBySlug(slug: string): Promise<AdminBrandRecord | null> {
+    return this.prisma.brand.findUnique({ where: { slug } })
+  }
+
+  findBrandByCode(code: string): Promise<AdminBrandRecord | null> {
+    return this.prisma.brand.findUnique({ where: { code } })
+  }
+
+  createBrand(input: AdminBrandWriteInput): Promise<AdminBrandRecord> {
+    return this.prisma.brand.create({ data: input })
+  }
+
+  updateBrand(brandId: string, input: AdminBrandUpdateInput): Promise<AdminBrandRecord> {
+    return this.prisma.brand.update({ where: { id: brandId }, data: input })
+  }
+
+  updateBrandActive(brandId: string, isActive: boolean): Promise<AdminBrandRecord> {
+    return this.prisma.brand.update({ where: { id: brandId }, data: { isActive } })
   }
 
   listShops(filters: { status?: ShopStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminShopRecord>> {

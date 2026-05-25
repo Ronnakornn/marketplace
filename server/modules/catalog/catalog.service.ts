@@ -10,6 +10,8 @@ import type {
   CatalogProductDetail,
   CatalogProductRecord,
   CatalogVariantRecord,
+  CatalogBrandListItem,
+  CatalogProductImageRecord,
   CatalogCategoryListItem,
   CatalogProductListItem,
   ICatalogRepository,
@@ -27,6 +29,7 @@ export interface CatalogActor {
 export interface CreateProductData {
   shopId?: string
   categoryId?: string | null
+  brandId?: string | null
   title: string
   titleTh?: string | null
   titleEn?: string | null
@@ -34,11 +37,19 @@ export interface CreateProductData {
   description?: string | null
   descriptionTh?: string | null
   descriptionEn?: string | null
+  metaTitle?: string | null
+  metaDescription?: string | null
+  warrantyInfo?: string | null
+  condition?: string | null
+  countryOfOrigin?: string | null
+  highlights?: ProductHighlightData[]
+  attributes?: ProductAttributeData[]
   status?: ProductStatus
 }
 
 export interface UpdateProductData {
   categoryId?: string | null
+  brandId?: string | null
   title?: string
   titleTh?: string | null
   titleEn?: string | null
@@ -46,7 +57,31 @@ export interface UpdateProductData {
   description?: string | null
   descriptionTh?: string | null
   descriptionEn?: string | null
+  metaTitle?: string | null
+  metaDescription?: string | null
+  warrantyInfo?: string | null
+  condition?: string | null
+  countryOfOrigin?: string | null
+  highlights?: ProductHighlightData[]
+  attributes?: ProductAttributeData[]
   status?: ProductStatus
+}
+
+export interface ProductHighlightData {
+  text: string
+  sortOrder?: number
+}
+
+export interface ProductAttributeData {
+  attributeKey?: string
+  displayName: string
+  displayNameTh?: string | null
+  displayNameEn?: string | null
+  value: string
+  valueTh?: string | null
+  valueEn?: string | null
+  sortOrder?: number
+  isFilterable?: boolean
 }
 
 export interface CreateVariantData {
@@ -56,6 +91,10 @@ export interface CreateVariantData {
   titleEn?: string | null
   price: number
   currency?: string
+  weightGrams?: number | null
+  lengthMm?: number | null
+  widthMm?: number | null
+  heightMm?: number | null
 }
 
 export interface UpdateVariantData {
@@ -65,6 +104,28 @@ export interface UpdateVariantData {
   titleEn?: string | null
   price?: number
   currency?: string
+  weightGrams?: number | null
+  lengthMm?: number | null
+  widthMm?: number | null
+  heightMm?: number | null
+}
+
+export interface CreateProductImageData {
+  url: string
+  altText?: string | null
+  sortOrder?: number
+  isPrimary?: boolean
+  width?: number | null
+  height?: number | null
+}
+
+export interface UpdateProductImageData {
+  url?: string
+  altText?: string | null
+  sortOrder?: number
+  isPrimary?: boolean
+  width?: number | null
+  height?: number | null
 }
 
 export interface UpdateInventoryData {
@@ -78,6 +139,8 @@ export interface PublicListProductsData {
   shopId?: string
   minPrice?: number
   maxPrice?: number
+  brandId?: string
+  attributes?: Record<string, string> | Array<{ key: string; value: string }>
   cursor?: string
   limit?: number
   locale?: string
@@ -112,12 +175,18 @@ export class CatalogService {
     return categories.map((category) => this.localizeCategory(category, locale))
   }
 
+  listActiveBrands(): Promise<CatalogBrandListItem[]> {
+    this.logger.debug('CatalogService.listActiveBrands')
+    return this.repo.findActiveBrands()
+  }
+
   async listPublicProducts(filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
     this.logger.debug('CatalogService.listPublicProducts', { filters })
     const locale = resolveContentLocale(filters.locale)
     const normalizedFilters = {
       ...this.normalizeListFilters(filters),
       status: 'ACTIVE',
+      publicOnly: true,
     } as const
     const cacheFilters = { ...normalizedFilters, locale }
 
@@ -147,7 +216,7 @@ export class CatalogService {
           { ttlSeconds: this.cache.ttl().product },
         )
       : await this.repo.findProductById(id)
-    if (!product || product.status !== 'ACTIVE') {
+    if (!product || product.status !== 'ACTIVE' || product.deletedAt || product.shop.status !== 'ACTIVE') {
       throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     }
     return this.localizeProduct(product, locale)
@@ -178,10 +247,13 @@ export class CatalogService {
     if (data.title !== undefined && !data.title.trim()) {
       throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
     }
+    await this.validateBrand(data.brandId)
+    await this.assertPublishReady(product, data)
 
     const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateProduct(product.id, {
         ...(data.categoryId === undefined ? {} : { categoryId: this.normalizeNullableText(data.categoryId) }),
+        ...(data.brandId === undefined ? {} : { brandId: this.normalizeNullableText(data.brandId) }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
         ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
@@ -189,6 +261,7 @@ export class CatalogService {
         ...(data.description === undefined ? {} : { description: this.normalizeNullableText(data.description) }),
         ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
         ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
+        ...this.normalizeProductEnrichment(data, true),
         ...(data.status === undefined ? {} : { status: data.status }),
       }),
     )
@@ -206,6 +279,7 @@ export class CatalogService {
     this.validateVariantInput(data)
     const product = await this.repo.findProductById(productId)
     if (!product) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
+    await this.validateBrand(undefined)
 
    const variant = await this.handleUniqueConstraint(() =>
       this.repo.createVariant({
@@ -216,6 +290,7 @@ export class CatalogService {
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
         price: data.price,
         currency: data.currency?.trim().toUpperCase() || 'USD',
+        ...this.normalizeVariantShippingFields(data),
       }),
     )
     await this.cacheInvalidation?.invalidateVariant(productId)
@@ -241,6 +316,7 @@ export class CatalogService {
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
         ...(data.price === undefined ? {} : { price: data.price }),
         ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
+        ...this.normalizeVariantShippingFields(data),
       }),
     )
     await this.cacheInvalidation?.invalidateVariant(productId)
@@ -272,6 +348,7 @@ export class CatalogService {
   async createProduct(actor: CatalogActor, data: CreateProductData): Promise<CatalogProductDetail> {
     this.logger.info('CatalogService.createProduct', { actorId: actor.id, shopId: data.shopId })
     this.validateProductInput(data)
+    await this.validateBrand(data.brandId)
 
     const shop = await this.resolveSellerShop(actor, data.shopId)
     this.assertCanManageShop(actor, shop.ownerId)
@@ -280,6 +357,7 @@ export class CatalogService {
       this.repo.createProduct({
         shopId: shop.id,
         categoryId: this.normalizeNullableText(data.categoryId),
+        brandId: this.normalizeNullableText(data.brandId),
         title: data.title.trim(),
         ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
@@ -287,6 +365,7 @@ export class CatalogService {
         description: this.normalizeNullableText(data.description),
         ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
         ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
+        ...this.normalizeProductEnrichment(data, false),
         status: data.status ?? 'DRAFT',
       }),
     )
@@ -310,10 +389,13 @@ export class CatalogService {
     if (data.title !== undefined && !data.title.trim()) {
       throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
     }
+    await this.validateBrand(data.brandId)
+    await this.assertPublishReady(product, data)
 
     const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateProduct(product.id, {
         ...(data.categoryId === undefined ? {} : { categoryId: this.normalizeNullableText(data.categoryId) }),
+        ...(data.brandId === undefined ? {} : { brandId: this.normalizeNullableText(data.brandId) }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
         ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
@@ -321,6 +403,7 @@ export class CatalogService {
         ...(data.description === undefined ? {} : { description: this.normalizeNullableText(data.description) }),
         ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
         ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
+        ...this.normalizeProductEnrichment(data, true),
         ...(data.status === undefined ? {} : { status: data.status }),
       }),
     )
@@ -344,6 +427,39 @@ export class CatalogService {
       changedFields: ['status'],
     })
     return updated
+  }
+
+  async createProductImage(actor: CatalogActor, productId: string, data: CreateProductImageData): Promise<CatalogProductImageRecord> {
+    this.logger.info('CatalogService.createProductImage', { actorId: actor.id, productId })
+    await this.getManageableProduct(actor, productId)
+    const normalized = this.normalizeCreateProductImageInput(data)
+    const image = await this.repo.createProductImage({
+      productId,
+      ...normalized,
+    })
+    await this.cacheInvalidation?.invalidateProduct(productId)
+    return image
+  }
+
+  async updateProductImage(actor: CatalogActor, productId: string, imageId: string, data: UpdateProductImageData): Promise<CatalogProductImageRecord> {
+    this.logger.info('CatalogService.updateProductImage', { actorId: actor.id, productId, imageId })
+    if (Object.keys(data).length === 0) {
+      throw new CatalogServiceError('At least one image field is required', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+    }
+    await this.getManageableProduct(actor, productId)
+    const image = await this.repo.updateProductImage(productId, imageId, this.normalizeProductImageInput(data, true))
+    if (!image) throw new CatalogServiceError('Product image not found', 404, 'PRODUCT_IMAGE_NOT_FOUND')
+    await this.cacheInvalidation?.invalidateProduct(productId)
+    return image
+  }
+
+  async deleteProductImage(actor: CatalogActor, productId: string, imageId: string): Promise<CatalogProductImageRecord> {
+    this.logger.info('CatalogService.deleteProductImage', { actorId: actor.id, productId, imageId })
+    await this.getManageableProduct(actor, productId)
+    const image = await this.repo.deleteProductImage(productId, imageId)
+    if (!image) throw new CatalogServiceError('Product image not found', 404, 'PRODUCT_IMAGE_NOT_FOUND')
+    await this.cacheInvalidation?.invalidateProduct(productId)
+    return image
   }
 
   private async publishBestEffort(
@@ -381,6 +497,7 @@ export class CatalogService {
         title: data.title.trim(),
         price: data.price, // Update the property name to 'price'
         currency: data.currency?.trim().toUpperCase() || 'USD',
+        ...this.normalizeVariantShippingFields(data),
       }),
     )
     await this.cacheInvalidation?.invalidateVariant(productId)
@@ -401,6 +518,7 @@ export class CatalogService {
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
         ...(data.price === undefined ? {} : { price: data.price }),
         ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
+        ...this.normalizeVariantShippingFields(data),
       }),
     )
     await this.cacheInvalidation?.invalidateVariant(productId)
@@ -505,6 +623,8 @@ export class CatalogService {
       ...(filters.keyword?.trim() ? { keyword: filters.keyword.trim() } : {}),
       ...(filters.categoryId?.trim() ? { categoryId: filters.categoryId.trim() } : {}),
       ...(filters.shopId ? { shopId: filters.shopId } : {}),
+      ...(filters.brandId?.trim() ? { brandId: filters.brandId.trim() } : {}),
+      ...this.normalizeAttributeFilters(filters.attributes),
       ...(filters.minPrice !== undefined ? { minPrice: filters.minPrice } : {}),
       ...(filters.maxPrice !== undefined ? { maxPrice: filters.maxPrice } : {}),
       ...(filters.cursor ? { cursor: filters.cursor } : {}),
@@ -514,6 +634,9 @@ export class CatalogService {
 
   private validateProductInput(data: CreateProductData): void {
     if (!data.title.trim()) throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
+    if (data.status === 'ACTIVE') {
+      throw new CatalogServiceError('Create product as draft before publishing', 400, 'PRODUCT_PUBLISH_NOT_READY')
+    }
   }
 
   private localizeCategory(category: CatalogCategoryListItem, locale: ContentLocale): CatalogCategoryListItem {
@@ -542,6 +665,30 @@ export class CatalogService {
             }) ?? product.category.name,
           }
         : null,
+      brand: product.brand
+        ? {
+            ...product.brand,
+            name: localizedText(locale, { th: product.brand.nameTh, en: product.brand.nameEn, fallback: product.brand.name }) ?? product.brand.name,
+            description: localizedText(locale, {
+              th: product.brand.descriptionTh,
+              en: product.brand.descriptionEn,
+              fallback: product.brand.description,
+            }),
+          }
+        : null,
+      attributes: (product.attributes ?? []).map((attribute) => ({
+        ...attribute,
+        displayName: localizedText(locale, {
+          th: attribute.displayNameTh,
+          en: attribute.displayNameEn,
+          fallback: attribute.displayName,
+        }) ?? attribute.displayName,
+        value: localizedText(locale, {
+          th: attribute.valueTh,
+          en: attribute.valueEn,
+          fallback: attribute.value,
+        }) ?? attribute.value,
+      })),
       variants: product.variants.map((variant) => ({
         ...variant,
         title: localizedText(locale, { th: variant.titleTh, en: variant.titleEn, fallback: variant.title }) ?? variant.title,
@@ -555,6 +702,7 @@ export class CatalogService {
     if (!Number.isInteger(data.price) || data.price <= 0) {
       throw new CatalogServiceError('Variant price must be a positive integer in cents', 400, 'VARIANT_VALIDATION_FAILED')
     }
+    this.validateVariantShippingFields(data)
   }
 
   private validateVariantUpdateInput(data: UpdateVariantData): void {
@@ -567,6 +715,166 @@ export class CatalogService {
     if (data.price !== undefined && (!Number.isInteger(data.price) || data.price <= 0)) {
       throw new CatalogServiceError('Variant price must be a positive integer in cents', 400, 'VARIANT_VALIDATION_FAILED')
     }
+    this.validateVariantShippingFields(data)
+  }
+
+  private async validateBrand(brandId: string | null | undefined): Promise<void> {
+    if (brandId === undefined || brandId === null || !brandId.trim()) return
+    const brand = await this.repo.findBrandById(brandId.trim())
+    if (!brand || !brand.isActive) {
+      throw new CatalogServiceError('Brand is not available', 400, 'BRAND_NOT_AVAILABLE')
+    }
+  }
+
+  private async assertPublishReady(existing: CatalogProductDetail, data: UpdateProductData): Promise<void> {
+    if (data.status !== 'ACTIVE') return
+    const categoryId = data.categoryId === undefined ? existing.categoryId : this.normalizeNullableText(data.categoryId)
+    if (!categoryId) {
+      throw new CatalogServiceError('Active products require a category', 400, 'PRODUCT_PUBLISH_NOT_READY')
+    }
+    const hasImage = existing.images.length > 0
+    if (!hasImage) {
+      throw new CatalogServiceError('Active products require at least one image', 400, 'PRODUCT_PUBLISH_NOT_READY')
+    }
+    const hasActivePaidVariant = existing.variants.some((variant) => variant.status === 'ACTIVE' && Number(variant.price) > 0)
+    if (!hasActivePaidVariant) {
+      throw new CatalogServiceError('Active products require at least one active priced variant', 400, 'PRODUCT_PUBLISH_NOT_READY')
+    }
+  }
+
+  private normalizeProductImageInput<T extends CreateProductImageData | UpdateProductImageData>(data: T, partial: boolean) {
+    if (!partial && (!('url' in data) || !data.url?.trim())) {
+      throw new CatalogServiceError('Product image URL is required', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+    }
+    if (data.url !== undefined && !this.isValidImageReference(data.url)) {
+      throw new CatalogServiceError('Product image URL must be a valid URL or absolute path', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+    }
+    if (data.sortOrder !== undefined && (!Number.isInteger(data.sortOrder) || data.sortOrder < 0)) {
+      throw new CatalogServiceError('Product image sort order must be a non-negative integer', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+    }
+    if (data.width !== undefined && data.width !== null && (!Number.isInteger(data.width) || data.width <= 0)) {
+      throw new CatalogServiceError('Product image width must be a positive integer', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+    }
+    if (data.height !== undefined && data.height !== null && (!Number.isInteger(data.height) || data.height <= 0)) {
+      throw new CatalogServiceError('Product image height must be a positive integer', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+    }
+    return {
+      ...(data.url === undefined ? {} : { url: data.url.trim() }),
+      ...(data.altText === undefined ? {} : { altText: this.normalizeNullableText(data.altText) }),
+      ...(data.sortOrder === undefined ? {} : { sortOrder: data.sortOrder }),
+      ...(data.isPrimary === undefined ? {} : { isPrimary: data.isPrimary }),
+      ...(data.width === undefined ? {} : { width: data.width }),
+      ...(data.height === undefined ? {} : { height: data.height }),
+    }
+  }
+
+  private normalizeCreateProductImageInput(data: CreateProductImageData) {
+    const normalized = this.normalizeProductImageInput(data, false)
+    if (!normalized.url) {
+      throw new CatalogServiceError('Product image URL is required', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+    }
+    return {
+      ...normalized,
+      url: normalized.url,
+    }
+  }
+
+  private isValidImageReference(value: string): boolean {
+    const trimmed = value.trim()
+    if (trimmed.startsWith('/')) return trimmed.length > 1
+    try {
+      const url = new URL(trimmed)
+      return url.protocol === 'http:' || url.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
+
+  private validateVariantShippingFields(data: Partial<CreateVariantData & UpdateVariantData>): void {
+    for (const [field, value] of Object.entries({
+      weightGrams: data.weightGrams,
+      lengthMm: data.lengthMm,
+      widthMm: data.widthMm,
+      heightMm: data.heightMm,
+    })) {
+      if (value !== undefined && value !== null && (!Number.isInteger(value) || value < 0)) {
+        throw new CatalogServiceError(`${field} must be a non-negative integer`, 400, 'VARIANT_VALIDATION_FAILED')
+      }
+    }
+  }
+
+  private normalizeVariantShippingFields(data: Partial<CreateVariantData & UpdateVariantData>) {
+    return {
+      ...(data.weightGrams === undefined ? {} : { weightGrams: data.weightGrams }),
+      ...(data.lengthMm === undefined ? {} : { lengthMm: data.lengthMm }),
+      ...(data.widthMm === undefined ? {} : { widthMm: data.widthMm }),
+      ...(data.heightMm === undefined ? {} : { heightMm: data.heightMm }),
+    }
+  }
+
+  private normalizeProductEnrichment(data: CreateProductData | UpdateProductData, partial: boolean) {
+    return {
+      ...(partial && data.metaTitle === undefined ? {} : { metaTitle: this.normalizeNullableText(data.metaTitle) }),
+      ...(partial && data.metaDescription === undefined ? {} : { metaDescription: this.normalizeNullableText(data.metaDescription) }),
+      ...(partial && data.warrantyInfo === undefined ? {} : { warrantyInfo: this.normalizeNullableText(data.warrantyInfo) }),
+      ...(partial && data.condition === undefined ? {} : { condition: this.normalizeNullableText(data.condition) }),
+      ...(partial && data.countryOfOrigin === undefined ? {} : { countryOfOrigin: this.normalizeNullableText(data.countryOfOrigin) }),
+      ...(data.highlights === undefined ? {} : { highlights: this.normalizeHighlights(data.highlights) }),
+      ...(data.attributes === undefined ? {} : { attributes: this.normalizeProductAttributes(data.attributes) }),
+    }
+  }
+
+  private normalizeHighlights(highlights: ProductHighlightData[]) {
+    return highlights
+      .map((highlight, index) => ({
+        text: highlight.text.trim(),
+        sortOrder: highlight.sortOrder ?? index,
+      }))
+      .filter((highlight) => highlight.text.length > 0)
+  }
+
+  private normalizeProductAttributes(attributes: ProductAttributeData[]) {
+    const seen = new Set<string>()
+    return attributes.map((attribute, index) => {
+      const displayName = attribute.displayName.trim()
+      const value = attribute.value.trim()
+      const attributeKey = this.normalizeAttributeKey(attribute.attributeKey ?? displayName)
+      if (!displayName || !value) throw new CatalogServiceError('Product attribute name and value are required', 400, 'PRODUCT_VALIDATION_FAILED')
+      if (seen.has(attributeKey)) throw new CatalogServiceError('Duplicate product attribute key', 400, 'PRODUCT_VALIDATION_FAILED')
+      seen.add(attributeKey)
+      return {
+        attributeKey,
+        displayName,
+        displayNameTh: this.normalizeNullableText(attribute.displayNameTh),
+        displayNameEn: this.normalizeNullableText(attribute.displayNameEn),
+        value,
+        valueTh: this.normalizeNullableText(attribute.valueTh),
+        valueEn: this.normalizeNullableText(attribute.valueEn),
+        sortOrder: attribute.sortOrder ?? index,
+        isFilterable: attribute.isFilterable ?? false,
+      }
+    })
+  }
+
+  private normalizeAttributeFilters(attributes: PublicListProductsData['attributes']) {
+    if (!attributes) return {}
+    const pairs = Array.isArray(attributes)
+      ? attributes
+      : Object.entries(attributes).map(([key, value]) => ({ key, value }))
+    const attributeFilters = pairs
+      .map((pair) => ({ key: this.normalizeAttributeKey(pair.key), value: pair.value.trim() }))
+      .filter((pair) => pair.key && pair.value)
+    return attributeFilters.length > 0 ? { attributeFilters } : {}
+  }
+
+  private normalizeAttributeKey(value: string): string {
+    const key = value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+    if (!key) throw new CatalogServiceError('Product attribute key is required', 400, 'PRODUCT_VALIDATION_FAILED')
+    return key
   }
 
   private validatePriceRange(minPrice?: number, maxPrice?: number): void {

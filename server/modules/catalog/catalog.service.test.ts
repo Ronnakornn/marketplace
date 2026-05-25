@@ -26,12 +26,17 @@ function createAppContext() {
 function createRepoMock(): ICatalogRepository {
   return {
     findActiveCategories: vi.fn(),
+    findActiveBrands: vi.fn(),
+    findBrandById: vi.fn(),
     findShopById: vi.fn(),
     findFirstShopByOwnerId: vi.fn(),
     findProductById: vi.fn(),
     findProducts: vi.fn(),
     createProduct: vi.fn(),
     updateProduct: vi.fn(),
+    createProductImage: vi.fn(),
+    updateProductImage: vi.fn(),
+    deleteProductImage: vi.fn(),
     createVariant: vi.fn(),
     updateVariant: vi.fn(),
     deleteVariant: vi.fn(),
@@ -76,6 +81,7 @@ function createProduct(overrides: Partial<{
   id: string;
   shopId: string;
   categoryId: string | null;
+  brandId: string | null;
   title: string;
   slug: string;
   description: string | null;
@@ -86,6 +92,8 @@ function createProduct(overrides: Partial<{
   category: { id: string; name: string; slug: string } | null;
   shop: { id: string; name: string; slug: string; ownerId: string; status: 'ACTIVE' };
   variants: never[];
+  images: any[];
+  brand: any | null;
   sellerProfileId: string | null;
   sellerIdentityHash: string | null;
   productFingerprintHash: string | null;
@@ -100,6 +108,7 @@ function createProduct(overrides: Partial<{
     id: overrides.id ?? '22222222-2222-4222-8222-222222222222',
     shopId,
     categoryId: overrides.categoryId ?? null,
+    brandId: overrides.brandId ?? null,
     title: overrides.title ?? 'Test Product',
     slug: overrides.slug ?? 'test-product',
     description: overrides.description ?? null,
@@ -113,6 +122,8 @@ function createProduct(overrides: Partial<{
           slug: 'fashion',
         }
       : null,
+    brand: null,
+    images: overrides.images ?? [],
     shop: {
       id: shopId,
       name: 'Test Shop',
@@ -149,6 +160,10 @@ function createVariant(overrides: Partial<{
     status: 'ACTIVE' as const,
     createdAt: now,
     updatedAt: now,
+    weightGrams: null,
+    lengthMm: null,
+    widthMm: null,
+    heightMm: null,
   }
 }
 
@@ -187,7 +202,29 @@ describe('CatalogService', () => {
       cursor: '99999999-9999-4999-8999-999999999999',
       limit: 10,
       status: 'ACTIVE',
+      publicOnly: true,
     })
+  })
+
+  it('passes public brand and filterable attribute filters to the repository', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.listPublicProducts({
+      brandId: '44444444-4444-4444-8444-444444444444',
+      attributes: { Color: 'Red', 'Screen Size': '6.1 inch' },
+    })
+
+    expect(repo.findProducts).toHaveBeenCalledWith(expect.objectContaining({
+      brandId: '44444444-4444-4444-8444-444444444444',
+      attributeFilters: [
+        { key: 'color', value: 'Red' },
+        { key: 'screen_size', value: '6.1 inch' },
+      ],
+      status: 'ACTIVE',
+      publicOnly: true,
+    }))
   })
 
   it('product list uses cache after first database fallback', async () => {
@@ -263,11 +300,63 @@ describe('CatalogService', () => {
     expect(repo.createProduct).toHaveBeenCalledWith({
       shopId,
       categoryId: null,
+      brandId: null,
       title: 'Island Bag',
       slug: 'island-bag',
       description: 'Summer collection',
+      metaTitle: null,
+      metaDescription: null,
+      warrantyInfo: null,
+      condition: null,
+      countryOfOrigin: null,
       status: 'DRAFT',
     })
+  })
+
+  it('normalizes product enrichment on seller create and update after ownership checks', async () => {
+    const repo = createRepoMock()
+    const shopId = '11111111-1111-4111-8111-111111111111'
+    const product = createProduct({ shopId, ownerId: 'seller-1' })
+    vi.mocked(repo.findShopById).mockResolvedValue({ id: shopId, ownerId: 'seller-1', status: 'ACTIVE' })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.createProduct).mockResolvedValue(product)
+    vi.mocked(repo.updateProduct).mockResolvedValue(product)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.createProduct(createActor(), {
+      shopId,
+      title: 'Phone',
+      highlights: [{ text: ' Fast charging ', sortOrder: 2 }],
+      attributes: [{ displayName: ' Color ', value: ' Black ', isFilterable: true }],
+      warrantyInfo: ' 1 year ',
+    })
+    await service.updateProduct(createActor(), product.id, {
+      attributes: [{ attributeKey: 'Screen Size', displayName: 'Screen Size', value: '6.1 inch', isFilterable: true }],
+    })
+
+    expect(repo.createProduct).toHaveBeenCalledWith(expect.objectContaining({
+      warrantyInfo: '1 year',
+      highlights: [{ text: 'Fast charging', sortOrder: 2 }],
+      attributes: [expect.objectContaining({ attributeKey: 'color', displayName: 'Color', value: 'Black', isFilterable: true })],
+    }))
+    expect(repo.updateProduct).toHaveBeenCalledWith(product.id, expect.objectContaining({
+      attributes: [expect.objectContaining({ attributeKey: 'screen_size', value: '6.1 inch' })],
+    }))
+  })
+
+  it('rejects duplicate normalized product attribute keys', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findShopById).mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', ownerId: 'seller-1', status: 'ACTIVE' })
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.createProduct(createActor(), {
+      shopId: '11111111-1111-4111-8111-111111111111',
+      title: 'Phone',
+      attributes: [
+        { displayName: 'Color', value: 'Black' },
+        { displayName: 'color', value: 'White' },
+      ],
+    })).rejects.toMatchObject({ code: 'PRODUCT_VALIDATION_FAILED' })
   })
 
   it('prevents a seller from managing another shop catalog', async () => {
@@ -300,6 +389,128 @@ describe('CatalogService', () => {
     await service.archiveProduct(createActor(), product.id)
 
     expect(repo.updateProduct).toHaveBeenCalledWith(product.id, { status: 'ARCHIVED' })
+  })
+
+  it('lists active brands for product forms', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findActiveBrands).mockResolvedValue([
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        name: 'Acme',
+        nameTh: null,
+        nameEn: null,
+        slug: 'acme',
+        code: 'ACME',
+        description: null,
+        descriptionTh: null,
+        descriptionEn: null,
+        logoUrl: null,
+        websiteUrl: null,
+        countryCode: null,
+        sortOrder: 0,
+        isFeatured: false,
+        isActive: true,
+        createdAt: new Date('2026-05-12T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-12T00:00:00.000Z'),
+      },
+    ])
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.listActiveBrands()).resolves.toHaveLength(1)
+    expect(repo.findActiveBrands).toHaveBeenCalled()
+  })
+
+  it('rejects publishing products without category, image, and active priced variant', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.updateProduct(createActor(), product.id, { status: 'ACTIVE' })).rejects.toMatchObject({
+      status: 400,
+      code: 'PRODUCT_PUBLISH_NOT_READY',
+    })
+  })
+
+  it('allows publishing products with required category, image, and active priced variant', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({
+      ownerId: 'seller-1',
+      categoryId: '55555555-5555-4555-8555-555555555555',
+      images: [{ id: 'img-1', productId: '22222222-2222-4222-8222-222222222222', url: '/products/a.jpg', sortOrder: 0, isPrimary: true }],
+    })
+    product.variants = [createVariant({ productId: product.id, price: BigInt(1299) })]
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.updateProduct).mockResolvedValue({ ...product, status: 'ACTIVE' })
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.updateProduct(createActor(), product.id, { status: 'ACTIVE' })
+
+    expect(repo.updateProduct).toHaveBeenCalledWith(product.id, { status: 'ACTIVE' })
+  })
+
+  it('creates product images only after seller ownership validation', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    const image = {
+      id: '66666666-6666-4666-8666-666666666666',
+      productId: product.id,
+      url: '/products/a.jpg',
+      altText: 'Front',
+      sortOrder: 0,
+      isPrimary: true,
+      width: 800,
+      height: 600,
+      createdAt: new Date('2026-05-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-12T00:00:00.000Z'),
+    }
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.createProductImage).mockResolvedValue(image)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.createProductImage(createActor(), product.id, {
+      url: ' /products/a.jpg ',
+      altText: ' Front ',
+      isPrimary: true,
+      width: 800,
+      height: 600,
+    })
+
+    expect(repo.createProductImage).toHaveBeenCalledWith({
+      productId: product.id,
+      url: '/products/a.jpg',
+      altText: 'Front',
+      isPrimary: true,
+      width: 800,
+      height: 600,
+    })
+  })
+
+  it('updates product image primary metadata through the parent product scope', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    const image = {
+      id: '66666666-6666-4666-8666-666666666666',
+      productId: product.id,
+      url: 'https://cdn.example.test/a.jpg',
+      altText: null,
+      sortOrder: 1,
+      isPrimary: true,
+      width: null,
+      height: null,
+      createdAt: new Date('2026-05-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-12T00:00:00.000Z'),
+    }
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.updateProductImage).mockResolvedValue(image)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.updateProductImage(createActor(), product.id, image.id, { isPrimary: true, sortOrder: 1 })
+
+    expect(repo.updateProductImage).toHaveBeenCalledWith(product.id, image.id, {
+      isPrimary: true,
+      sortOrder: 1,
+    })
   })
 
   it('creates variants for seller-owned products', async () => {
@@ -358,6 +569,36 @@ describe('CatalogService', () => {
       title: 'Red',
       price: 1499,
     })
+  })
+
+  it('passes normalized variant shipping dimensions through create and update', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    const variant = createVariant({ productId: product.id })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.findVariantById).mockResolvedValue({ ...variant, product })
+    vi.mocked(repo.createVariant).mockResolvedValue(variant)
+    vi.mocked(repo.updateVariant).mockResolvedValue(variant)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.createVariant(createActor(), product.id, {
+      sku: 'SKU-2',
+      title: 'Box',
+      price: 1000,
+      weightGrams: 500,
+      lengthMm: 200,
+      widthMm: 100,
+      heightMm: 50,
+    })
+    await service.updateVariant(createActor(), product.id, variant.id, { weightGrams: null })
+
+    expect(repo.createVariant).toHaveBeenCalledWith(expect.objectContaining({
+      weightGrams: 500,
+      lengthMm: 200,
+      widthMm: 100,
+      heightMm: 50,
+    }))
+    expect(repo.updateVariant).toHaveBeenCalledWith(variant.id, { weightGrams: null })
   })
 
   it('deletes variants only after ownership validation', async () => {

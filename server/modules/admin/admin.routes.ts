@@ -35,6 +35,23 @@ const ShopUpdateBody = t.Object({
   slug: t.Optional(t.String()),
   status: t.Optional(t.String()),
 })
+const BrandWriteBody = t.Object({
+  name: t.String({ minLength: 1 }),
+  nameTh: t.Optional(t.Nullable(t.String())),
+  nameEn: t.Optional(t.Nullable(t.String())),
+  slug: t.Optional(t.String()),
+  code: t.Optional(t.Nullable(t.String())),
+  description: t.Optional(t.Nullable(t.String())),
+  descriptionTh: t.Optional(t.Nullable(t.String())),
+  descriptionEn: t.Optional(t.Nullable(t.String())),
+  logoUrl: t.Optional(t.Nullable(t.String())),
+  websiteUrl: t.Optional(t.Nullable(t.String())),
+  countryCode: t.Optional(t.Nullable(t.String())),
+  sortOrder: t.Optional(t.Number({ minimum: 0 })),
+  isFeatured: t.Optional(t.Boolean()),
+  isActive: t.Optional(t.Boolean()),
+})
+const BrandUpdateBody = t.Partial(BrandWriteBody)
 
 function adminActor(authContext: any) {
   return { id: authContext!.user.id, role: authContext!.user.role }
@@ -69,6 +86,33 @@ export function createAdminRoutes(container: ServiceContainer) {
           status: t.Optional(t.String()),
         }),
       ]),
+    })
+    .get('/api/admin/brands', ({ authContext, query }: any) => container.adminService.listBrands(adminActor(authContext), query), {
+      withRole: 'ADMIN',
+      query: t.Composite([
+        PaginationQuery,
+        t.Object({
+          q: t.Optional(t.String()),
+          isActive: t.Optional(t.Boolean()),
+        }),
+      ]),
+    })
+    .post('/api/admin/brands', ({ authContext, body }: any) => container.adminService.createBrand(adminActor(authContext), body), {
+      withRole: 'ADMIN',
+      body: BrandWriteBody,
+    })
+    .patch('/api/admin/brands/:brandId', ({ authContext, params: { brandId }, body }: any) => container.adminService.updateBrand(adminActor(authContext), brandId, body), {
+      withRole: 'ADMIN',
+      params: t.Object({ brandId: t.String({ format: 'uuid' }) }),
+      body: BrandUpdateBody,
+    })
+    .patch('/api/admin/brands/:brandId/deactivate', ({ authContext, params: { brandId } }: any) => container.adminService.deactivateBrand(adminActor(authContext), brandId), {
+      withRole: 'ADMIN',
+      params: t.Object({ brandId: t.String({ format: 'uuid' }) }),
+    })
+    .patch('/api/admin/brands/:brandId/reactivate', ({ authContext, params: { brandId } }: any) => container.adminService.reactivateBrand(adminActor(authContext), brandId), {
+      withRole: 'ADMIN',
+      params: t.Object({ brandId: t.String({ format: 'uuid' }) }),
     })
     .post('/api/admin/users', ({ authContext, body }: any) => container.adminService.createUser(adminActor(authContext), body), {
       withRole: 'ADMIN',

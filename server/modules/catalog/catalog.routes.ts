@@ -16,6 +16,16 @@ const CategoryResponseSchema = t.Object({
   sortOrder: t.Number(),
 })
 
+const BrandResponseSchema = t.Object({
+  id: t.String({ format: 'uuid' }),
+  name: t.String(),
+  slug: t.String(),
+  code: t.Nullable(t.String()),
+  isActive: t.Boolean(),
+  createdAt: t.Date(),
+  updatedAt: t.Date(),
+})
+
 const IdParamsSchema = t.Object({
   productId: t.String({ minLength: 1 }),
 })
@@ -33,6 +43,11 @@ const ProductVariantParamsSchema = t.Object({
   variantId: t.String({ format: 'uuid' }),
 })
 
+const ProductImageParamsSchema = t.Object({
+  productId: t.String({ format: 'uuid' }),
+  imageId: t.String({ format: 'uuid' }),
+})
+
 const VariantParamsSchema = t.Object({
   variantId: t.String({ format: 'uuid' }),
 })
@@ -41,6 +56,8 @@ const PublicListQuerySchema = t.Object({
   keyword: t.Optional(t.String({ minLength: 1 })),
   q: t.Optional(t.String({ minLength: 1 })),
   shopId: t.Optional(t.String({ format: 'uuid' })),
+  brandId: t.Optional(t.String({ format: 'uuid' })),
+  attributeFilters: t.Optional(t.String()),
   minPrice: t.Optional(t.Number({ minimum: 0 })),
   maxPrice: t.Optional(t.Number({ minimum: 0 })),
   cursor: t.Optional(t.String({ format: 'uuid' })),
@@ -63,6 +80,33 @@ const LocalizedProductFieldsSchema = t.Object({
   descriptionEn: t.Optional(t.Nullable(t.String())),
 })
 
+const ProductHighlightBodySchema = t.Object({
+  text: t.String({ minLength: 1 }),
+  sortOrder: t.Optional(t.Number({ minimum: 0 })),
+})
+
+const ProductAttributeBodySchema = t.Object({
+  attributeKey: t.Optional(t.String({ minLength: 1 })),
+  displayName: t.String({ minLength: 1 }),
+  displayNameTh: t.Optional(t.Nullable(t.String())),
+  displayNameEn: t.Optional(t.Nullable(t.String())),
+  value: t.String({ minLength: 1 }),
+  valueTh: t.Optional(t.Nullable(t.String())),
+  valueEn: t.Optional(t.Nullable(t.String())),
+  sortOrder: t.Optional(t.Number({ minimum: 0 })),
+  isFilterable: t.Optional(t.Boolean()),
+})
+
+const ProductEnrichmentFieldsSchema = t.Object({
+  metaTitle: t.Optional(t.Nullable(t.String())),
+  metaDescription: t.Optional(t.Nullable(t.String())),
+  warrantyInfo: t.Optional(t.Nullable(t.String())),
+  condition: t.Optional(t.Nullable(t.String())),
+  countryOfOrigin: t.Optional(t.Nullable(t.String())),
+  highlights: t.Optional(t.Array(ProductHighlightBodySchema)),
+  attributes: t.Optional(t.Array(ProductAttributeBodySchema)),
+})
+
 const LocalizedVariantFieldsSchema = t.Object({
   titleTh: t.Optional(t.Nullable(t.String())),
   titleEn: t.Optional(t.Nullable(t.String())),
@@ -71,8 +115,11 @@ const LocalizedVariantFieldsSchema = t.Object({
 const CreateProductBodySchema = t.Composite([
   t.Pick(ProductPlainInputCreate, ['title', 'description', 'status']),
   LocalizedProductFieldsSchema,
+  ProductEnrichmentFieldsSchema,
   t.Object({
     shopId: t.Optional(t.String({ format: 'uuid' })),
+    categoryId: t.Optional(t.Nullable(t.String({ format: 'uuid' }))),
+    brandId: t.Optional(t.Nullable(t.String({ format: 'uuid' }))),
     slug: t.Optional(t.String({ minLength: 1 })),
   }),
 ])
@@ -80,16 +127,41 @@ const CreateProductBodySchema = t.Composite([
 const UpdateProductBodySchema = t.Partial(t.Composite([
   t.Pick(ProductPlainInputUpdate, ['title', 'slug', 'description', 'status']),
   LocalizedProductFieldsSchema,
+  ProductEnrichmentFieldsSchema,
+  t.Object({
+    categoryId: t.Nullable(t.String({ format: 'uuid' })),
+    brandId: t.Nullable(t.String({ format: 'uuid' })),
+  }),
 ]))
+
+const ProductImageBodySchema = t.Object({
+  url: t.String({ minLength: 1 }),
+  altText: t.Optional(t.Nullable(t.String())),
+  sortOrder: t.Optional(t.Number({ minimum: 0 })),
+  isPrimary: t.Optional(t.Boolean()),
+  width: t.Optional(t.Nullable(t.Number({ minimum: 1 }))),
+  height: t.Optional(t.Nullable(t.Number({ minimum: 1 }))),
+})
+
+const UpdateProductImageBodySchema = t.Partial(ProductImageBodySchema)
+
+const VariantShippingFieldsSchema = t.Object({
+  weightGrams: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
+  lengthMm: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
+  widthMm: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
+  heightMm: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
+})
 
 const CreateVariantBodySchema = t.Composite([
   t.Pick(ProductVariantPlainInputCreate, ['sku', 'title', 'price', 'currency']),
   LocalizedVariantFieldsSchema,
+  VariantShippingFieldsSchema,
 ])
 
 const UpdateVariantBodySchema = t.Partial(t.Composite([
   t.Pick(ProductVariantPlainInputUpdate, ['sku', 'title', 'price', 'currency']),
   LocalizedVariantFieldsSchema,
+  VariantShippingFieldsSchema,
 ]))
 
 const UpdateInventoryBodySchema = t.Partial(t.Object({
@@ -116,6 +188,8 @@ export function createCatalogRoutes(container: ServiceContainer) {
     container.catalogService.listPublicProducts({
       keyword: query.keyword ?? query.q,
       categoryId: query.categoryId,
+      brandId: query.brandId,
+      attributes: parseAttributeFilters(query.attributeFilters),
       locale: query.locale,
       shopId: query.shopId,
       minPrice: query.minPrice ?? query.minPrice,
@@ -132,6 +206,13 @@ export function createCatalogRoutes(container: ServiceContainer) {
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
       response: t.Array(CategoryResponseSchema),
     })
+    .get('/api/brands', () => container.catalogService.listActiveBrands(), {
+      response: t.Array(BrandResponseSchema),
+    })
+    .get('/api/seller/brands', () => container.catalogService.listActiveBrands(), {
+      withAuth: true,
+      response: t.Array(BrandResponseSchema),
+    })
     .get('/api/products', listPublicProducts, {
       query: PublicListQuerySchema,
     })
@@ -143,6 +224,8 @@ export function createCatalogRoutes(container: ServiceContainer) {
       container.catalogService.listPublicShopProducts(params.shopId, {
         keyword: query.keyword ?? query.q,
         categoryId: query.categoryId,
+        brandId: query.brandId,
+        attributes: parseAttributeFilters(query.attributeFilters),
         locale: query.locale,
         minPrice: query.minPrice ?? query.minPrice,
         maxPrice: query.maxPrice ?? query.maxPrice,
@@ -163,6 +246,8 @@ export function createCatalogRoutes(container: ServiceContainer) {
       container.catalogService.listSellerProducts(authContext.user, {
         keyword: query.keyword ?? query.q,
         categoryId: query.categoryId,
+        brandId: query.brandId,
+        attributes: parseAttributeFilters(query.attributeFilters),
         shopId: query.shopId,
         status: query.status,
         minPrice: query.minPrice ?? query.minPrice,
@@ -177,6 +262,8 @@ export function createCatalogRoutes(container: ServiceContainer) {
       container.catalogService.listAdminProducts({
         keyword: query.keyword ?? query.q,
         categoryId: query.categoryId,
+        brandId: query.brandId,
+        attributes: parseAttributeFilters(query.attributeFilters),
         shopId: query.shopId,
         status: query.status,
         minPrice: query.minPrice ?? query.minPrice,
@@ -231,6 +318,23 @@ export function createCatalogRoutes(container: ServiceContainer) {
       withAuth: true,
       params: ProductParamsSchema,
     })
+    .post('/api/seller/products/:productId/images', ({ authContext, params, body }: any) =>
+      container.catalogService.createProductImage(authContext.user, params.productId, body), {
+      withAuth: true,
+      params: ProductParamsSchema,
+      body: ProductImageBodySchema,
+    })
+    .patch('/api/seller/products/:productId/images/:imageId', ({ authContext, params, body }: any) =>
+      container.catalogService.updateProductImage(authContext.user, params.productId, params.imageId, body), {
+      withAuth: true,
+      params: ProductImageParamsSchema,
+      body: UpdateProductImageBodySchema,
+    })
+    .delete('/api/seller/products/:productId/images/:imageId', ({ authContext, params }: any) =>
+      container.catalogService.deleteProductImage(authContext.user, params.productId, params.imageId), {
+      withAuth: true,
+      params: ProductImageParamsSchema,
+    })
     .post('/api/seller/products/:productId/variants', ({ authContext, params, body }: any) =>
       container.catalogService.createVariant(authContext.user, params.productId, body), {
       withAuth: true,
@@ -254,4 +358,15 @@ export function createCatalogRoutes(container: ServiceContainer) {
       params: VariantParamsSchema,
       body: UpdateInventoryBodySchema,
     })
+}
+
+function parseAttributeFilters(input: string | undefined) {
+  if (!input?.trim()) return undefined
+  return input
+    .split(',')
+    .map((part) => {
+      const [key, ...valueParts] = part.split(':')
+      return { key: key?.trim() ?? '', value: valueParts.join(':').trim() }
+    })
+    .filter((pair) => pair.key && pair.value)
 }

@@ -5,7 +5,9 @@ import { SearchServiceError } from './search.errors.ts'
 const SearchQuerySchema = t.Object({
   q: t.Optional(t.String()),
   categoryId: t.Optional(t.String()),
+  brandId: t.Optional(t.String({ format: 'uuid' })),
   shopId: t.Optional(t.String({ format: 'uuid' })),
+  attributeFilters: t.Optional(t.String()),
   minPrice: t.Optional(t.Number({ minimum: 0 })),
   maxPrice: t.Optional(t.Number({ minimum: 0 })),
   rating: t.Optional(t.Number({ minimum: 1, maximum: 5 })),

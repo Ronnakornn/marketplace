@@ -1,4 +1,4 @@
-import type { Category, Prisma, PrismaClient, Product, ProductVariant, Shop } from '#generated/client/client.ts'
+import type { Brand, Category, Prisma, PrismaClient, Product, ProductAttribute, ProductHighlight, ProductImage, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -8,12 +8,20 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 export interface ProductListFilters {
   keyword?: string
   categoryId?: string
+  brandId?: string
   shopId?: string
   status?: ProductStatus
   minPrice?: number
   maxPrice?: number
+  attributeFilters?: ProductAttributeFilter[]
+  publicOnly?: boolean
   cursor?: string
   limit: number
+}
+
+export interface ProductAttributeFilter {
+  key: string
+  value: string
 }
 
 export interface PaginatedResult<T> {
@@ -29,9 +37,17 @@ export type CatalogCategoryListItem = Pick<Category, 'id' | 'name' | 'slug' | 's
   nameEn?: string | null
 }
 
+export type CatalogBrandListItem = Pick<Brand, 'id' | 'name' | 'nameTh' | 'nameEn' | 'slug' | 'code' | 'description' | 'descriptionTh' | 'descriptionEn' | 'logoUrl' | 'websiteUrl' | 'countryCode' | 'sortOrder' | 'isFeatured' | 'isActive'> & {
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type CatalogProductImageRecord = ProductImage
+
 export interface CreateProductRecord {
   shopId: string
   categoryId?: string | null
+  brandId?: string | null
   title: string
   titleTh?: string | null
   titleEn?: string | null
@@ -39,11 +55,19 @@ export interface CreateProductRecord {
   description?: string | null
   descriptionTh?: string | null
   descriptionEn?: string | null
+  metaTitle?: string | null
+  metaDescription?: string | null
+  warrantyInfo?: string | null
+  condition?: string | null
+  countryOfOrigin?: string | null
   status: ProductStatus
+  highlights?: ProductHighlightWriteRecord[]
+  attributes?: ProductAttributeWriteRecord[]
 }
 
 export interface UpdateProductRecord {
   categoryId?: string | null
+  brandId?: string | null
   title?: string
   titleTh?: string | null
   titleEn?: string | null
@@ -51,7 +75,31 @@ export interface UpdateProductRecord {
   description?: string | null
   descriptionTh?: string | null
   descriptionEn?: string | null
+  metaTitle?: string | null
+  metaDescription?: string | null
+  warrantyInfo?: string | null
+  condition?: string | null
+  countryOfOrigin?: string | null
   status?: ProductStatus
+  highlights?: ProductHighlightWriteRecord[]
+  attributes?: ProductAttributeWriteRecord[]
+}
+
+export interface ProductHighlightWriteRecord {
+  text: string
+  sortOrder: number
+}
+
+export interface ProductAttributeWriteRecord {
+  attributeKey: string
+  displayName: string
+  displayNameTh?: string | null
+  displayNameEn?: string | null
+  value: string
+  valueTh?: string | null
+  valueEn?: string | null
+  sortOrder: number
+  isFilterable: boolean
 }
 
 export interface CreateVariantRecord {
@@ -62,6 +110,10 @@ export interface CreateVariantRecord {
   titleEn?: string | null
   price: number
   currency: string
+  weightGrams?: number | null
+  lengthMm?: number | null
+  widthMm?: number | null
+  heightMm?: number | null
 }
 
 export interface UpdateVariantRecord {
@@ -71,6 +123,29 @@ export interface UpdateVariantRecord {
   titleEn?: string | null
   price?: number
   currency?: string
+  weightGrams?: number | null
+  lengthMm?: number | null
+  widthMm?: number | null
+  heightMm?: number | null
+}
+
+export interface CreateProductImageRecord {
+  productId: string
+  url: string
+  altText?: string | null
+  sortOrder?: number
+  isPrimary?: boolean
+  width?: number | null
+  height?: number | null
+}
+
+export interface UpdateProductImageRecord {
+  url?: string
+  altText?: string | null
+  sortOrder?: number
+  isPrimary?: boolean
+  width?: number | null
+  height?: number | null
 }
 
 export interface UpdateInventoryRecord {
@@ -90,6 +165,10 @@ export type CatalogProductListItem = Omit<Product, 'titleTh' | 'titleEn' | 'desc
     nameEn?: string | null
     slug: string
   } | null
+  brand: CatalogBrandListItem | null
+  images: CatalogProductImageRecord[]
+  highlights: ProductHighlight[]
+  attributes: ProductAttribute[]
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'>
   variants: Array<(Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
     titleTh?: string | null
@@ -121,12 +200,17 @@ export type CatalogProductRecord = Omit<Product, 'titleTh' | 'titleEn' | 'descri
 
 export interface ICatalogRepository {
   findActiveCategories(): Promise<CatalogCategoryListItem[]>
+  findActiveBrands(): Promise<CatalogBrandListItem[]>
+  findBrandById(id: string): Promise<CatalogBrandListItem | null>
   findShopById(id: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findFirstShopByOwnerId(ownerId: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findProductById(id: string): Promise<CatalogProductDetail | null>
   findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>>
   createProduct(data: CreateProductRecord): Promise<CatalogProductDetail>
   updateProduct(id: string, data: UpdateProductRecord): Promise<CatalogProductDetail>
+  createProductImage(data: CreateProductImageRecord): Promise<CatalogProductImageRecord>
+  updateProductImage(productId: string, imageId: string, data: UpdateProductImageRecord): Promise<CatalogProductImageRecord | null>
+  deleteProductImage(productId: string, imageId: string): Promise<CatalogProductImageRecord | null>
   createVariant(data: CreateVariantRecord): Promise<CatalogVariantRecord>
   updateVariant(id: string, data: UpdateVariantRecord): Promise<CatalogVariantRecord>
   deleteVariant(id: string): Promise<CatalogVariantRecord>
@@ -143,6 +227,36 @@ const productInclude = {
       nameEn: true,
       slug: true,
     },
+  },
+  brand: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      code: true,
+      nameTh: true,
+      nameEn: true,
+      description: true,
+      descriptionTh: true,
+      descriptionEn: true,
+      logoUrl: true,
+      websiteUrl: true,
+      countryCode: true,
+      sortOrder: true,
+      isFeatured: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
+  highlights: {
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+  },
+  attributes: {
+    orderBy: [{ sortOrder: 'asc' }, { attributeKey: 'asc' }, { id: 'asc' }],
+  },
+  images: {
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
   },
   shop: {
     select: {
@@ -161,7 +275,7 @@ const productInclude = {
       createdAt: 'asc',
     },
   },
-} as const
+} satisfies Prisma.ProductInclude
 
 export class PrismaCatalogRepository implements ICatalogRepository {
   private logger: ILogger
@@ -186,6 +300,59 @@ export class PrismaCatalogRepository implements ICatalogRepository {
         sortOrder: true,
       },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    })
+  }
+
+  findActiveBrands(): Promise<CatalogBrandListItem[]> {
+    this.logger.debug('PrismaCatalogRepository.findActiveBrands')
+    return this.prisma.brand.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        code: true,
+        nameTh: true,
+        nameEn: true,
+        description: true,
+        descriptionTh: true,
+        descriptionEn: true,
+        logoUrl: true,
+        websiteUrl: true,
+        countryCode: true,
+        sortOrder: true,
+        isFeatured: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    })
+  }
+
+  findBrandById(id: string): Promise<CatalogBrandListItem | null> {
+    this.logger.debug('PrismaCatalogRepository.findBrandById', { id })
+    return this.prisma.brand.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        code: true,
+        nameTh: true,
+        nameEn: true,
+        description: true,
+        descriptionTh: true,
+        descriptionEn: true,
+        logoUrl: true,
+        websiteUrl: true,
+        countryCode: true,
+        sortOrder: true,
+        isFeatured: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     })
   }
 
@@ -242,20 +409,79 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     }
   }
 
-  createProduct(data: CreateProductRecord): Promise<CatalogProductDetail> {
+  async createProduct(data: CreateProductRecord): Promise<CatalogProductDetail> {
     this.logger.info('PrismaCatalogRepository.createProduct', { shopId: data.shopId, slug: data.slug })
-    return this.prisma.product.create({
-      data,
-      include: productInclude,
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.product.create({ data: this.createProductScalarData(data) })
+      if (data.highlights && data.highlights.length > 0) {
+        await tx.productHighlight.createMany({ data: data.highlights.map((item) => ({ ...item, productId: created.id })) })
+      }
+      if (data.attributes && data.attributes.length > 0) {
+        await tx.productAttribute.createMany({ data: data.attributes.map((item) => ({ ...item, productId: created.id })) })
+      }
+      return tx.product.findUniqueOrThrow({
+        where: { id: created.id },
+        include: productInclude,
+      })
     })
   }
 
-  updateProduct(id: string, data: UpdateProductRecord): Promise<CatalogProductDetail> {
+  async updateProduct(id: string, data: UpdateProductRecord): Promise<CatalogProductDetail> {
     this.logger.info('PrismaCatalogRepository.updateProduct', { id })
-    return this.prisma.product.update({
-      where: { id },
-      data,
-      include: productInclude,
+    return this.prisma.$transaction(async (tx) => {
+      if (data.highlights !== undefined) {
+        await tx.productHighlight.deleteMany({ where: { productId: id } })
+        if (data.highlights.length > 0) await tx.productHighlight.createMany({ data: data.highlights.map((item) => ({ ...item, productId: id })) })
+      }
+      if (data.attributes !== undefined) {
+        await tx.productAttribute.deleteMany({ where: { productId: id } })
+        if (data.attributes.length > 0) await tx.productAttribute.createMany({ data: data.attributes.map((item) => ({ ...item, productId: id })) })
+      }
+      return tx.product.update({
+        where: { id },
+        data: this.updateProductScalarData(data),
+        include: productInclude,
+      })
+    })
+  }
+
+  async createProductImage(data: CreateProductImageRecord): Promise<CatalogProductImageRecord> {
+    this.logger.info('PrismaCatalogRepository.createProductImage', { productId: data.productId })
+    return this.prisma.$transaction(async (tx) => {
+      if (data.isPrimary) {
+        await tx.productImage.updateMany({
+          where: { productId: data.productId, isPrimary: true },
+          data: { isPrimary: false },
+        })
+      }
+      return tx.productImage.create({ data })
+    })
+  }
+
+  async updateProductImage(productId: string, imageId: string, data: UpdateProductImageRecord): Promise<CatalogProductImageRecord | null> {
+    this.logger.info('PrismaCatalogRepository.updateProductImage', { productId, imageId })
+    return this.prisma.$transaction(async (tx) => {
+      const image = await tx.productImage.findFirst({ where: { id: imageId, productId } })
+      if (!image) return null
+      if (data.isPrimary) {
+        await tx.productImage.updateMany({
+          where: { productId, isPrimary: true, id: { not: imageId } },
+          data: { isPrimary: false },
+        })
+      }
+      return tx.productImage.update({
+        where: { id: imageId },
+        data,
+      })
+    })
+  }
+
+  async deleteProductImage(productId: string, imageId: string): Promise<CatalogProductImageRecord | null> {
+    this.logger.info('PrismaCatalogRepository.deleteProductImage', { productId, imageId })
+    return this.prisma.$transaction(async (tx) => {
+      const image = await tx.productImage.findFirst({ where: { id: imageId, productId } })
+      if (!image) return null
+      return tx.productImage.delete({ where: { id: imageId } })
     })
   }
 
@@ -302,9 +528,25 @@ export class PrismaCatalogRepository implements ICatalogRepository {
 
   private buildProductWhere(filters: ProductListFilters): Prisma.ProductWhereInput {
     return {
+      deletedAt: null,
       ...(filters.categoryId ? { category: { slug: filters.categoryId, isActive: true } } : {}),
+      ...(filters.brandId ? { brandId: filters.brandId } : {}),
       ...(filters.shopId ? { shopId: filters.shopId } : {}),
       ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.publicOnly ? { shop: { status: 'ACTIVE' } } : {}),
+      ...(filters.attributeFilters && filters.attributeFilters.length > 0
+        ? {
+            AND: filters.attributeFilters.map((filter) => ({
+              attributes: {
+                some: {
+                  isFilterable: true,
+                  attributeKey: filter.key,
+                  value: { equals: filter.value, mode: 'insensitive' },
+                },
+              },
+            })),
+          }
+        : {}),
       ...(filters.keyword
         ? {
             OR: [
@@ -334,5 +576,15 @@ export class PrismaCatalogRepository implements ICatalogRepository {
           }
         : {}),
     }
+  }
+
+  private createProductScalarData(data: CreateProductRecord): Omit<CreateProductRecord, 'highlights' | 'attributes'> {
+    const { highlights: _highlights, attributes: _attributes, ...scalars } = data
+    return scalars
+  }
+
+  private updateProductScalarData(data: UpdateProductRecord): Omit<UpdateProductRecord, 'highlights' | 'attributes'> {
+    const { highlights: _highlights, attributes: _attributes, ...scalars } = data
+    return scalars
   }
 }

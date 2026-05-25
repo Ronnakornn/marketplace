@@ -36,6 +36,13 @@ function createRepoMock(): IAdminRepository {
     updateUser: vi.fn(),
     deleteUser: vi.fn(),
     updateUserStatus: vi.fn(),
+    listBrands: vi.fn(),
+    findBrandById: vi.fn(),
+    findBrandBySlug: vi.fn(),
+    findBrandByCode: vi.fn(),
+    createBrand: vi.fn(),
+    updateBrand: vi.fn(),
+    updateBrandActive: vi.fn(),
     listShops: vi.fn(),
     createShop: vi.fn(),
     findShopById: vi.fn(),
@@ -122,6 +129,29 @@ function product(overrides: Record<string, unknown> = {}) {
     updatedAt: now,
     shop: { id: 'shop-1', name: 'Shop', slug: 'shop', status: 'ACTIVE' },
     variants: [],
+    ...overrides,
+  } as any
+}
+
+function brand(overrides: Record<string, unknown> = {}) {
+  return {
+    id: '44444444-4444-4444-8444-444444444444',
+    name: 'Acme',
+    nameTh: null,
+    nameEn: null,
+    slug: 'acme',
+    code: 'ACME',
+    description: null,
+    descriptionTh: null,
+    descriptionEn: null,
+    logoUrl: null,
+    websiteUrl: null,
+    countryCode: 'TH',
+    sortOrder: 0,
+    isFeatured: false,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
     ...overrides,
   } as any
 }
@@ -220,6 +250,49 @@ describe('AdminService', () => {
 
     expect(repo.listUsers).toHaveBeenCalledWith({ role: 'USER', status: 'ACTIVE' }, { page: 2, limit: 5 })
     expect(result.pagination).toEqual({ page: 2, limit: 5, total: 12, totalPages: 3 })
+  })
+
+  it('manages brands with normalized slug/code, duplicate checks, and active toggles', async () => {
+    vi.mocked(repo.findBrandBySlug).mockResolvedValue(null)
+    vi.mocked(repo.findBrandByCode).mockResolvedValue(null)
+    vi.mocked(repo.createBrand).mockResolvedValue(brand({ name: 'Acme Gear', slug: 'acme-gear', code: 'ACME' }))
+    vi.mocked(repo.listBrands).mockResolvedValue({ items: [brand()], total: 1 })
+    vi.mocked(repo.findBrandById).mockResolvedValue(brand())
+    vi.mocked(repo.updateBrand).mockResolvedValue(brand({ description: 'Updated' }))
+    vi.mocked(repo.updateBrandActive).mockResolvedValue(brand({ isActive: false }))
+
+    await expect(service.createBrand(actor(), {
+      name: ' Acme Gear ',
+      slug: 'Acme Gear',
+      code: ' acme ',
+      countryCode: ' th ',
+    })).resolves.toMatchObject({ slug: 'acme-gear', code: 'ACME' })
+    expect(repo.createBrand).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Acme Gear',
+      slug: 'acme-gear',
+      code: 'ACME',
+      countryCode: 'TH',
+      isActive: true,
+    }))
+
+    await expect(service.listBrands(actor(), { q: 'acme', isActive: 'true', page: 1, limit: 10 })).resolves.toMatchObject({
+      pagination: { total: 1 },
+    })
+    expect(repo.listBrands).toHaveBeenCalledWith({ q: 'acme', isActive: true }, { page: 1, limit: 10 })
+
+    await expect(service.updateBrand(actor(), '44444444-4444-4444-8444-444444444444', { description: ' Updated ' })).resolves.toMatchObject({ description: 'Updated' })
+    await expect(service.deactivateBrand(actor(), '44444444-4444-4444-8444-444444444444')).resolves.toMatchObject({ isActive: false })
+  })
+
+  it('rejects duplicate brand slug and code conflicts', async () => {
+    vi.mocked(repo.findBrandBySlug).mockResolvedValue(brand({ id: 'other-brand' }))
+
+    await expect(service.createBrand(actor(), { name: 'Acme', slug: 'acme' })).rejects.toMatchObject({ code: 'BRAND_SLUG_EXISTS' })
+
+    vi.mocked(repo.findBrandBySlug).mockResolvedValue(null)
+    vi.mocked(repo.findBrandByCode).mockResolvedValue(brand({ id: 'other-brand' }))
+
+    await expect(service.createBrand(actor(), { name: 'Acme', code: 'ACME' })).rejects.toMatchObject({ code: 'BRAND_CODE_EXISTS' })
   })
 
   it('updates user status and validates not found and invalid status', async () => {

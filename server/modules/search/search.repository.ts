@@ -5,9 +5,11 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 export interface SearchRepositoryFilters {
   q?: string
   categoryId?: string
+  brandId?: string
   shopId?: string
   minPrice?: number
   maxPrice?: number
+  attributeFilters?: Array<{ key: string; value: string }>
 }
 
 export type SearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' | 'price' | 'currency'> & {
@@ -144,6 +146,20 @@ export class PrismaSearchRepository implements ISearchRepository {
     return {
       status: 'ACTIVE',
       ...(filters.categoryId ? { category: { slug: filters.categoryId, isActive: true } } : {}),
+      ...(filters.brandId ? { brandId: filters.brandId } : {}),
+      ...(filters.attributeFilters && filters.attributeFilters.length > 0
+        ? {
+            AND: filters.attributeFilters.map((filter) => ({
+              attributes: {
+                some: {
+                  isFilterable: true,
+                  attributeKey: filter.key,
+                  value: { equals: filter.value, mode: 'insensitive' },
+                },
+              },
+            })),
+          }
+        : {}),
       shop: {
         status: 'ACTIVE',
         ...(filters.shopId ? { id: filters.shopId } : {}),

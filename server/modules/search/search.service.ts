@@ -15,9 +15,11 @@ export type SearchSort = typeof SUPPORTED_SORTS[number]
 export interface ProductSearchInput {
   q?: string
   categoryId?: string
+  brandId?: string
   shopId?: string
   minPrice?: number
   maxPrice?: number
+  attributeFilters?: string
   rating?: number
   sort?: string
   page?: number
@@ -55,6 +57,7 @@ export interface ProductSearchResponse {
   filters: {
     q?: string
     categoryId?: string
+    brandId?: string
     shopId?: string
     minPrice?: number
     maxPrice?: number
@@ -97,9 +100,11 @@ export class SearchService {
     const products = await this.repo.findSearchableProducts({
       q: filters.q,
       categoryId: filters.categoryId,
+      brandId: filters.brandId,
       shopId: filters.shopId,
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
+      attributeFilters: filters.attributeFilters,
     })
 
     const items = products
@@ -167,7 +172,9 @@ export class SearchService {
       q,
       locale: resolveContentLocale(input.locale),
       categoryId: input.categoryId?.trim() || undefined,
+      brandId: input.brandId?.trim() || undefined,
       shopId: input.shopId?.trim() || undefined,
+      attributeFilters: this.normalizeAttributeFilters(input.attributeFilters),
       minPrice,
       maxPrice,
       rating,
@@ -289,10 +296,34 @@ export class SearchService {
     return {
       ...(filters.q ? { q: filters.q } : {}),
       ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+      ...(filters.brandId ? { brandId: filters.brandId } : {}),
       ...(filters.shopId ? { shopId: filters.shopId } : {}),
       ...(filters.minPrice !== undefined ? { minPrice: filters.minPrice } : {}),
       ...(filters.maxPrice !== undefined ? { maxPrice: filters.maxPrice } : {}),
       ...(filters.rating !== undefined ? { rating: filters.rating } : {}),
     }
+  }
+
+  private normalizeAttributeFilters(input: string | undefined): Array<{ key: string; value: string }> | undefined {
+    if (!input?.trim()) return undefined
+    const filters = input
+      .split(',')
+      .map((part) => {
+        const [key, ...valueParts] = part.split(':')
+        return {
+          key: this.normalizeAttributeKey(key ?? ''),
+          value: valueParts.join(':').trim(),
+        }
+      })
+      .filter((pair) => pair.key && pair.value)
+    return filters.length > 0 ? filters : undefined
+  }
+
+  private normalizeAttributeKey(value: string): string {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
   }
 }
