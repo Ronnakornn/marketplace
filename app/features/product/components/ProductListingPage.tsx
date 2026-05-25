@@ -11,8 +11,17 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "#/components/ui/sheet";
-import { fetchCategories, fetchProducts, fetchSearchProducts, fetchSearchSuggestions, type BuyerProduct } from "#/features/buyer/api";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import {
+  normalizePublicCategories,
+  normalizePublicProducts,
+  normalizePublicSearchSuggestions,
+  publicCategoriesQueryOptions,
+  publicProductListQueryOptions,
+  publicProductSearchQueryOptions,
+  publicSearchSuggestionsQueryOptions,
+  type BuyerProduct,
+} from "#/features/product/queries";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -49,20 +58,26 @@ export function ProductListingPage({
   const localePath = useLocalePath();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const minRating = toNumber(rating);
-  const productsQuery = useQuery({
-    queryKey: ["buyer-products", locale, mode, query, categoryId, minPrice, maxPrice, sort, minRating],
-    queryFn: () => mode === "search"
-      ? fetchSearchProducts({ q: query, categoryId, minPrice, maxPrice, sort: sort === "relevance" ? "newest" : sort, rating: minRating, limit: 40, locale })
-      : fetchProducts({ q: query, categoryId, minPrice, maxPrice, locale }),
+  const productListInput = { q: query, categoryId, minPrice, maxPrice, sort, rating: minRating, limit: 40, locale };
+  const listProductsQuery = useQuery({
+    ...publicProductListQueryOptions(productListInput),
+    enabled: mode !== "search",
+    select: normalizePublicProducts,
   });
+  const searchProductsQuery = useQuery({
+    ...publicProductSearchQueryOptions(productListInput),
+    enabled: mode === "search",
+    select: normalizePublicProducts,
+  });
+  const productsQuery = mode === "search" ? searchProductsQuery : listProductsQuery;
   const suggestionsQuery = useQuery({
-    queryKey: ["buyer-search-suggestions", locale, query],
-    queryFn: () => fetchSearchSuggestions(query, 8, locale),
+    ...publicSearchSuggestionsQueryOptions({ q: query, limit: 8, locale }),
     enabled: mode === "search" && query.trim().length > 0,
+    select: normalizePublicSearchSuggestions,
   });
   const categoriesQuery = useQuery({
-    queryKey: ["buyer-categories", locale],
-    queryFn: () => fetchCategories(locale),
+    ...publicCategoriesQueryOptions({ locale }),
+    select: normalizePublicCategories,
   });
 
   useEffect(() => {

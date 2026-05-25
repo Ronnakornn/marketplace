@@ -14,8 +14,6 @@ import {
   addFavoriteProduct,
   fetchCart,
   fetchFavoriteStatus,
-  fetchProduct,
-  fetchProducts,
   fetchShopFollowStatus,
   followShop,
   formatMoney,
@@ -24,6 +22,12 @@ import {
 } from "#/features/buyer/api";
 import { createChatRoom } from "#/features/chat";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import {
+  normalizePublicProduct,
+  normalizePublicProducts,
+  publicProductDetailQueryOptions,
+  publicProductListQueryOptions,
+} from "#/features/product/queries";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
@@ -38,8 +42,14 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const queryClient = useQueryClient();
   const canUseBuyerCart = session?.user.role === "USER";
   const canUseBuyerActions = session?.user.role === "USER";
-  const productQuery = useQuery({ queryKey: ["buyer-product", locale, productId], queryFn: () => fetchProduct(productId, locale) });
-  const relatedQuery = useQuery({ queryKey: ["buyer-related-products", locale, productId], queryFn: () => fetchProducts({ limit: 4, locale }) });
+  const productQuery = useQuery({
+    ...publicProductDetailQueryOptions({ productId, locale }),
+    select: normalizePublicProduct,
+  });
+  const relatedQuery = useQuery({
+    ...publicProductListQueryOptions({ limit: 4, locale }),
+    select: normalizePublicProducts,
+  });
   const favoriteQuery = useQuery({
     queryKey: ["buyer-favorite-status", productId],
     queryFn: () => fetchFavoriteStatus(productId),

@@ -2,6 +2,8 @@
 
 import { queryOptions, useQuery, type QueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
+import { defaultCurrency } from "#/i18n/config";
+import { isSecretStorageUrl } from "#/lib/assets";
 import { api } from "#/lib/eden";
 
 export const PRODUCT_QUERY_STALE_TIME_MS = 60_000;
@@ -72,6 +74,38 @@ export interface AffiliateProductTargetInput {
 
 type QueryValue = string | number | undefined;
 type CleanQuery = Record<string, string | number>;
+
+export interface BuyerProduct {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  rating: number;
+  soldCount: number;
+  stock: number;
+  shop: {
+    id: string;
+    name: string;
+    location: string;
+  };
+  variants: Array<{
+    id: string;
+    title: string;
+    sku: string;
+    price: number;
+    currency: string;
+    stock: number;
+  }>;
+  images: string[];
+}
+
+export interface BuyerCategory {
+  id: string;
+  slug: string;
+  name: string;
+  sortOrder: number;
+}
 
 export const productQueryKeys = {
   all: ["product"] as const,
@@ -449,4 +483,99 @@ function cleanQuery(input: Record<string, QueryValue>): CleanQuery {
   return Object.fromEntries(
     Object.entries(input).filter(([, value]) => value !== undefined && value !== ""),
   ) as CleanQuery;
+}
+
+export function normalizePublicProducts(response: PublicProductsResponse | PublicSearchProductsResponse): BuyerProduct[] {
+  const record = toRecord(response);
+  const rawItems = Array.isArray(response)
+    ? response
+    : readArray(record.data).length
+      ? readArray(record.data)
+      : readArray(record.items);
+  return rawItems.map(normalizePublicProduct);
+}
+
+export function normalizePublicProduct(input: PublicProductDetailResponse | unknown, index = 0): BuyerProduct {
+  const record = toRecord(input);
+  const shop = toRecord(record.shop);
+  const variants = readArray(record.variants).map((variantInput, variantIndex) => {
+    const variant = toRecord(variantInput);
+    const inventory = toRecord(variant.inventory);
+    return {
+      id: readString(variant.id, `${readString(record.id)}-variant-${variantIndex}`),
+      title: readString(variant.title, "Default"),
+      sku: readString(variant.sku),
+      price: readNumber(variant.price, readNumber(record.price, 0)),
+      currency: readString(variant.currency, readString(record.currency, defaultCurrency)),
+      stock: readNumber(inventory.quantityOnHand, readNumber(variant.stock, 0)),
+    };
+  });
+  const firstVariant = variants[0];
+  const ratingSummary = toRecord(record.ratingSummary);
+  const minPrice = readNumber(record.minPrice, readNumber(record.price));
+
+  return {
+    id: readString(record.id, readString(record.productId, `product-${index}`)),
+    title: readString(record.title, "Untitled product"),
+    description: optionalString(record.description),
+    price: firstVariant?.price ?? minPrice,
+    currency: firstVariant?.currency ?? readString(record.currency, defaultCurrency),
+    rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 4.7)),
+    soldCount: readNumber(record.soldCount, readNumber(record.sold, 0)),
+    stock: firstVariant?.stock ?? readNumber(record.stock),
+    shop: {
+      id: readString(shop.id),
+      name: readString(shop.name, "Marketplace shop"),
+      location: readString(shop.location, readString(shop.city, "Local")),
+    },
+    variants,
+    images: readArray(record.images).length
+      ? readArray(record.images).map((image) => String(image)).filter((image) => Boolean(image) && !isSecretStorageUrl(image))
+      : optionalString(record.coverImage)
+        ? [optionalString(record.coverImage)!]
+        : [],
+  };
+}
+
+export function normalizePublicCategories(response: PublicCategoriesResponse): BuyerCategory[] {
+  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
+  return rawItems.map((item) => {
+    const record = toRecord(item);
+    return {
+      id: readString(record.id, readString(record.slug)),
+      slug: readString(record.slug),
+      name: readString(record.name, "Category"),
+      sortOrder: readNumber(record.sortOrder),
+    };
+  }).filter((category) => category.slug);
+}
+
+export function normalizePublicSearchSuggestions(response: PublicSearchSuggestionsResponse): string[] {
+  const record = toRecord(response);
+  const rawItems = readArray(record.items).length
+    ? readArray(record.items)
+    : readArray(record.suggestions).length
+      ? readArray(record.suggestions)
+      : readArray(record.productTitles);
+  return rawItems.map((item) => readString(typeof item === "string" ? item : toRecord(item).value)).filter(Boolean);
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function readArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function readString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function readNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }

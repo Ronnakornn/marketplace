@@ -42,9 +42,29 @@ vi.mock("#/components/ui/skeleton", () => ({
 
 vi.mock("#/features/buyer/api", () => ({
   addCartItem: vi.fn(),
-  fetchCategories: vi.fn(async () => []),
   fetchCoupons: vi.fn(async () => []),
-  fetchProducts: vi.fn(async () => []),
+}));
+
+vi.mock("#/features/product/queries", () => ({
+  publicProductListQueryOptions: () => ({
+    queryKey: ["product", "public", "lists", { locale: "en", limit: 50 }],
+    queryFn: async () => ({
+      items: [{
+        id: "product-1",
+        title: "Live marketplace tote",
+        description: "API product",
+        shop: { id: "shop-1", name: "Live Shop", location: "Bangkok" },
+        variants: [{ id: "variant-1", title: "Default", sku: "SKU-1", price: 4890, currency: "THB", stock: 12 }],
+        images: [],
+      }],
+    }),
+  }),
+  publicCategoriesQueryOptions: () => ({
+    queryKey: ["product", "public", "categories", { locale: "en" }],
+    queryFn: async () => ({ items: [] }),
+  }),
+  normalizePublicProducts: (response: { items?: unknown[] }) => response.items ?? [],
+  normalizePublicCategories: () => [],
 }));
 
 vi.mock("#/i18n/client", () => ({
@@ -59,9 +79,7 @@ vi.mock("#/i18n/client", () => ({
     "common.deals": "Deals",
     "common.home": "Home",
     "home.claimVoucher": "Claim voucher",
-    "home.demoFeed": "Demo Feed",
     "home.extraOff": "Extra 15% off today",
-    "home.fallbackReady": "Fallback ready",
     "home.flashSale": "Flash Sale",
     "home.freeShipping": "Free Shipping",
     "home.heroKicker": "5.5 Mega Deals",
@@ -82,6 +100,8 @@ vi.mock("#/i18n/client", () => ({
     "product.adding": "Adding",
     "product.buyNow": "Buy now",
     "product.freeShip": "Free ship",
+    "product.noProductsDescription": "No products match your filters.",
+    "product.noProductsFound": "No products found",
     "product.outOfStock": "Out of stock",
     "product.saveProduct": "Save product",
     "product.sold": "sold",
@@ -113,11 +133,12 @@ beforeAll(() => {
 });
 
 describe("MarketplaceHome", () => {
-  it("renders marketplace content on the initial render before query hydration completes", () => {
+  it("renders marketplace content from the shared public product query", async () => {
     renderWithClient(<MarketplaceHome />);
 
     expect(screen.getByRole("heading", { name: "Shop fast. Checkout faster." })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Recommended for you" })).toBeTruthy();
-    expect(screen.getAllByText("Canvas Weekender Bag with laptop sleeve").length).toBeGreaterThan(0);
+    expect(await screen.findAllByText("Live marketplace tote")).toHaveLength(2);
+    expect(screen.queryByText("Canvas Weekender Bag with laptop sleeve")).toBeNull();
   });
 });

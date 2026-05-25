@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPinIcon, StarIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
-import type { BuyerProduct } from "#/features/buyer/api";
 import { formatMoney } from "#/features/buyer/api";
+import type { BuyerProduct } from "#/features/product/queries";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 
 export function ProductCard({ product }: { product: BuyerProduct }) {

@@ -9,8 +9,9 @@ import { BuyerTopBar, MobileBottomNavigation } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
-import { fetchCoupons, fetchSearchProducts, formatMoney } from "#/features/buyer/api";
+import { fetchCoupons, formatMoney } from "#/features/buyer/api";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import { normalizePublicProducts, publicProductSearchQueryOptions } from "#/features/product/queries";
 import { formatDate, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -19,8 +20,8 @@ export function DealsPage() {
   const locale = useLocale();
   const t = useTranslations();
   const productsQuery = useQuery({
-    queryKey: ["buyer-deals-products", locale],
-    queryFn: () => fetchSearchProducts({ sort: "best_selling", limit: 24, locale }),
+    ...publicProductSearchQueryOptions({ sort: "best_selling", limit: 24, locale }),
+    select: normalizePublicProducts,
   });
   const couponsQuery = useQuery({ queryKey: ["buyer-coupons", locale], queryFn: () => fetchCoupons(locale) });
   const [endsAtLabel, setEndsAtLabel] = useState(t("buyer.endsSoon"));

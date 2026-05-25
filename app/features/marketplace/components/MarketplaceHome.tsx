@@ -24,7 +24,14 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
 import { Skeleton } from "#/components/ui/skeleton";
-import { addCartItem, fetchCategories, fetchCoupons, fetchProducts, type BuyerCoupon, type BuyerProduct } from "#/features/buyer/api";
+import { addCartItem, fetchCoupons, type BuyerCoupon } from "#/features/buyer/api";
+import {
+  normalizePublicCategories,
+  normalizePublicProducts,
+  publicCategoriesQueryOptions,
+  publicProductListQueryOptions,
+  type BuyerProduct,
+} from "#/features/product/queries";
 import { useFormatters, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -89,111 +96,6 @@ const productGradients = [
   "from-slate-100 via-zinc-100 to-white",
 ];
 
-const fallbackProducts: StorefrontProduct[] = [
-  {
-    id: "mock-1",
-    variantId: null,
-    title: "Canvas Weekender Bag with laptop sleeve",
-    description: "Durable canvas bag for everyday travel.",
-    shopName: "Demo Market Shop",
-    price: 4890,
-    originalprice: 6890,
-    currency: "USD",
-    rating: 4.8,
-    sold: 2380,
-    discountPercent: 29,
-    category: "Fashion",
-    freeShipping: true,
-    stock: 24,
-    gradient: productGradients[0],
-  },
-  {
-    id: "mock-2",
-    variantId: null,
-    title: "Ceramic Pour Over Coffee Set",
-    description: "A compact pour over set for home coffee.",
-    shopName: "Daily Brew",
-    price: 3590,
-    originalprice: 4590,
-    currency: "USD",
-    rating: 4.9,
-    sold: 1540,
-    discountPercent: 22,
-    category: "Home",
-    freeShipping: true,
-    stock: 18,
-    gradient: productGradients[1],
-  },
-  {
-    id: "mock-3",
-    variantId: null,
-    title: "Modular Desk Tray Organizer",
-    description: "Stackable organizer for a cleaner workspace.",
-    shopName: "Workmode",
-    price: 1890,
-    originalprice: 2490,
-    currency: "USD",
-    rating: 4.7,
-    sold: 890,
-    discountPercent: 24,
-    category: "Home",
-    freeShipping: false,
-    stock: 35,
-    gradient: productGradients[2],
-  },
-  {
-    id: "mock-4",
-    variantId: null,
-    title: "Wireless Mini Speaker",
-    description: "Portable speaker with clear everyday sound.",
-    shopName: "Sound Lab",
-    price: 2990,
-    originalprice: 3990,
-    currency: "USD",
-    rating: 4.6,
-    sold: 3210,
-    discountPercent: 25,
-    category: "Gadgets",
-    freeShipping: true,
-    stock: 42,
-    gradient: productGradients[3],
-  },
-  {
-    id: "mock-5",
-    variantId: null,
-    title: "Hydrating Lip Tint Duo",
-    description: "Two soft color tints with hydrating finish.",
-    shopName: "Glow Cart",
-    price: 1490,
-    originalprice: 2190,
-    currency: "USD",
-    rating: 4.8,
-    sold: 4120,
-    discountPercent: 32,
-    category: "Beauty",
-    freeShipping: true,
-    stock: 60,
-    gradient: productGradients[4],
-  },
-  {
-    id: "mock-6",
-    variantId: null,
-    title: "Daily Training Shorts",
-    description: "Lightweight shorts for daily movement.",
-    shopName: "Move Goods",
-    price: 2290,
-    originalprice: 3290,
-    currency: "USD",
-    rating: 4.5,
-    sold: 710,
-    discountPercent: 30,
-    category: "Sports",
-    freeShipping: false,
-    stock: 27,
-    gradient: productGradients[5],
-  },
-];
-
 function mapBuyerProduct(product: BuyerProduct, index: number): StorefrontProduct {
   const firstVariant = product.variants[0];
   const price = firstVariant?.price ?? 1990 + index * 320;
@@ -218,17 +120,23 @@ function mapBuyerProduct(product: BuyerProduct, index: number): StorefrontProduc
   };
 }
 
-function duplicateForFeed(products: StorefrontProduct[]) {
-  if (products.length >= 18) return products;
-  return Array.from({ length: 4 }).flatMap((_, round) =>
-    products.map((product, index) => ({
-      ...product,
-      id: `${product.id}-${round}`,
-      sold: product.sold + round * 137,
-      rating: Number(Math.min(4.9, product.rating + round * 0.03).toFixed(1)),
-      gradient: productGradients[(index + round) % productGradients.length],
-    })),
-  );
+function ClientReadyBuyerTopBar({ title }: { title: string }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  if (!ready) {
+    return (
+      <div
+        aria-hidden="true"
+        className="sticky top-0 z-40 h-[76px] border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-xl"
+      />
+    );
+  }
+
+  return <BuyerTopBar title={title} />;
 }
 
 export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
@@ -241,17 +149,17 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const canUseBuyerCart = user?.role === "USER";
   const productsQuery = useQuery({
-    queryKey: ["marketplace-home-products", locale, searchTerm, activeCategory],
-    queryFn: () => fetchProducts({
+    ...publicProductListQueryOptions({
       q: searchTerm || undefined,
       categoryId: activeCategory ?? undefined,
       limit: 50,
       locale,
     }),
+    select: normalizePublicProducts,
   });
   const categoriesQuery = useQuery({
-    queryKey: ["marketplace-categories", locale],
-    queryFn: () => fetchCategories(locale),
+    ...publicCategoriesQueryOptions({ locale }),
+    select: normalizePublicCategories,
   });
   const couponsQuery = useQuery({
     queryKey: ["marketplace-coupons", locale],
@@ -268,8 +176,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   const products = useMemo(() => {
     const liveProducts = productsQuery.data ?? [];
-    if (liveProducts.length) return liveProducts.map(mapBuyerProduct);
-    return duplicateForFeed(fallbackProducts);
+    return liveProducts.map(mapBuyerProduct);
   }, [productsQuery.data]);
 
   const visibleProducts = products.slice(0, visibleCount);
@@ -312,13 +219,13 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   return (
     <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950">
-      <BuyerTopBar title={user?.name ? `Welcome back, ${user.name}` : "Marketplace"} />
+      <ClientReadyBuyerTopBar title={user?.name ? `Welcome back, ${user.name}` : "Marketplace"} />
 
       <main className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
         <HeroPromo />
         <VoucherStrip
           coupons={couponsQuery.data ?? []}
-          hasFallback={Boolean(productsQuery.error) || (productsQuery.data?.length ?? 0) === 0}
+          hasProducts={products.length > 0}
         />
         <FlashSaleSection
           products={flashProducts}
@@ -336,6 +243,8 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           onAddToCart={handleAddToCart}
           pendingVariantId={addToCartMutation.variables}
           formatMoney={formatters.currency}
+          isError={productsQuery.isError}
+          onRetry={() => void productsQuery.refetch()}
         />
       </main>
 
@@ -380,7 +289,7 @@ function HeroPromo() {
   );
 }
 
-function VoucherStrip({ coupons, hasFallback }: { coupons: BuyerCoupon[]; hasFallback: boolean }) {
+function VoucherStrip({ coupons, hasProducts }: { coupons: BuyerCoupon[]; hasProducts: boolean }) {
   const t = useTranslations();
   const liveVouchers = coupons.slice(0, 3).map((coupon) => [
     coupon.title,
@@ -398,7 +307,7 @@ function VoucherStrip({ coupons, hasFallback }: { coupons: BuyerCoupon[]; hasFal
     <section className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {[
         ...vouchers,
-        [hasFallback ? t("home.demoFeed") : t("home.liveCatalog"), hasFallback ? t("home.fallbackReady") : t("home.syncedFromApi")],
+        [hasProducts ? t("home.liveCatalog") : t("product.noProductsFound"), hasProducts ? t("home.syncedFromApi") : t("product.noProductsDescription")],
       ].map(([title, subtitle]) => (
         <div key={title} className="flex min-w-[154px] items-center gap-2 rounded-2xl border border-orange-100 bg-white px-3 py-2 shadow-sm">
           <div className="flex size-9 items-center justify-center rounded-full bg-orange-50 text-orange-600">
@@ -516,11 +425,13 @@ function CategoryGrid({
 function ProductRecommendationGrid(props: {
   products: StorefrontProduct[];
   isLoading: boolean;
+  isError: boolean;
   hasMore: boolean;
   loadMoreRef: React.RefObject<HTMLDivElement | null>;
   onAddToCart: (product: StorefrontProduct) => void;
   pendingVariantId?: string;
   formatMoney: (cents: number, currency?: string) => string;
+  onRetry: () => void;
 }) {
   const t = useTranslations();
   return (
@@ -546,6 +457,18 @@ function ProductRecommendationGrid(props: {
           <Skeleton key={index} className="h-72 rounded-3xl" />
         )) : null}
       </div>
+      {props.isError ? (
+        <div className="mt-3 rounded-3xl border border-red-100 bg-white p-4 text-center shadow-sm">
+          <p className="text-sm font-semibold text-slate-950">Request failed</p>
+          <Button className="mt-3 rounded-full" variant="outline" onClick={props.onRetry}>{t("state.retry")}</Button>
+        </div>
+      ) : null}
+      {!props.isLoading && !props.isError && props.products.length === 0 ? (
+        <div className="mt-3 rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+          <p className="text-sm font-bold text-slate-950">{t("product.noProductsFound")}</p>
+          <p className="mt-1 text-xs text-slate-500">{t("product.noProductsDescription")}</p>
+        </div>
+      ) : null}
       <div ref={props.loadMoreRef} className="py-6 text-center text-xs text-slate-500">
         {props.hasMore ? t("home.loadingMore") : t("home.youAreCaughtUp")}
       </div>
