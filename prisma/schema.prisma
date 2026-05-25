@@ -764,18 +764,33 @@ model Category {
 }
 
 model Brand {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  slug      String   @unique
-  code      String?  @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  nameTh        String?
+  nameEn        String?
+  slug          String   @unique
+  code          String?  @unique
+  description   String?
+  descriptionTh String?
+  descriptionEn String?
+  logoUrl       String?
+  websiteUrl    String?
+  countryCode   String?
+  sortOrder     Int      @default(0)
+  isFeatured    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   products Product[]
 
+  @@index([isActive, sortOrder])
+  @@index([isActive, isFeatured, sortOrder])
   @@index([isActive, name])
+  @@index([isActive, nameTh])
+  @@index([isActive, nameEn])
   @@index([isActive, slug])
+  @@index([countryCode, isActive])
 }
 
 model Product {
@@ -792,6 +807,11 @@ model Product {
   description            String?
   descriptionTh          String?
   descriptionEn          String?
+  metaTitle              String?
+  metaDescription        String?
+  warrantyInfo           String?
+  condition              String?
+  countryOfOrigin        String?
   status                 ProductStatus          @default(DRAFT)
   productFingerprintHash String?
   duplicateStatus        ProductDuplicateStatus @default(UNKNOWN)
@@ -815,6 +835,8 @@ model Product {
   favorites                   FavoriteProduct[]
   variants                    ProductVariant[]
   images                      ProductImage[]
+  highlights                  ProductHighlight[]
+  attributes                  ProductAttribute[]
   chatMessages                ChatMessage[]
   // embeddings  ProductEmbedding[]
 
@@ -835,6 +857,42 @@ model Product {
   @@index([duplicateStatus])
   @@index([duplicateOfProductId])
   @@index([deletedAt])
+}
+
+model ProductHighlight {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  text      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+}
+
+model ProductAttribute {
+  id            String   @id @default(uuid()) @db.Uuid
+  productId     String   @db.Uuid
+  attributeKey  String
+  displayName   String
+  displayNameTh String?
+  displayNameEn String?
+  value         String
+  valueTh       String?
+  valueEn       String?
+  sortOrder     Int      @default(0)
+  isFilterable  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, attributeKey])
+  @@index([productId, sortOrder])
+  @@index([attributeKey, value])
+  @@index([isFilterable, attributeKey, value])
 }
 
 model ProductImage {
