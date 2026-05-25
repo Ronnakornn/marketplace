@@ -267,7 +267,8 @@ export class SearchService {
   private buildBadges(product: SearchProductRecord, soldCount: number): string[] {
     const badges: string[] = []
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-    if (product.createdAt.getTime() >= sevenDaysAgo) badges.push('new')
+    const createdAtTime = product.createdAt instanceof Date ? product.createdAt.getTime() : new Date(product.createdAt).getTime()
+    if (createdAtTime >= sevenDaysAgo) badges.push('new')
     if (soldCount >= 100) badges.push('best_seller')
     return badges
   }

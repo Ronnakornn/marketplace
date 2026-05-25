@@ -26,4 +26,4 @@
 - [x] task-24: Add admin brand management APIs and extend catalog product APIs for enrichment and filters
 - [x] task-25: Integrate brand management, seller product enrichment, and buyer brand/spec display/filter UI
 - [x] task-26: Add bootstrap master seed and demo catalog seed coverage for enriched products
-- [ ] task-27: Verify brand/product enrichment, seed safety, buyer filters, and type safety
+- [x] task-27: Verify brand/product enrichment, seed safety, buyer filters, and type safety
