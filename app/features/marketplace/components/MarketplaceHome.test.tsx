@@ -3,9 +3,29 @@
  */
 import { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { MarketplaceHome } from "./MarketplaceHome";
+
+const queryMocks = vi.hoisted(() => ({
+  productsResponse: {
+    items: [{
+      id: "product-1",
+      title: "Live marketplace tote",
+      description: "API product",
+      price: 4890,
+      currency: "THB",
+      rating: 4.8,
+      soldCount: 16,
+      stock: 12,
+      shop: { id: "shop-1", name: "Live Shop", location: "Bangkok" },
+      variants: [{ id: "variant-1", title: "Default", sku: "SKU-1", price: 4890, currency: "THB", stock: 12 }],
+      images: [],
+    }],
+  } as { items: unknown[] },
+  productsError: null as Error | null,
+  productQueryFn: vi.fn(),
+}));
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
@@ -48,16 +68,7 @@ vi.mock("#/features/buyer/api", () => ({
 vi.mock("#/features/product/queries", () => ({
   publicProductListQueryOptions: () => ({
     queryKey: ["product", "public", "lists", { locale: "en", limit: 50 }],
-    queryFn: async () => ({
-      items: [{
-        id: "product-1",
-        title: "Live marketplace tote",
-        description: "API product",
-        shop: { id: "shop-1", name: "Live Shop", location: "Bangkok" },
-        variants: [{ id: "variant-1", title: "Default", sku: "SKU-1", price: 4890, currency: "THB", stock: 12 }],
-        images: [],
-      }],
-    }),
+    queryFn: queryMocks.productQueryFn,
   }),
   publicCategoriesQueryOptions: () => ({
     queryKey: ["product", "public", "categories", { locale: "en" }],
@@ -105,6 +116,7 @@ vi.mock("#/i18n/client", () => ({
     "product.outOfStock": "Out of stock",
     "product.saveProduct": "Save product",
     "product.sold": "sold",
+    "state.retry": "Retry",
   })[key] ?? key,
 }));
 
@@ -132,7 +144,32 @@ beforeAll(() => {
   });
 });
 
+afterEach(() => cleanup());
+
 describe("MarketplaceHome", () => {
+  beforeEach(() => {
+    queryMocks.productsResponse = {
+      items: [{
+        id: "product-1",
+        title: "Live marketplace tote",
+        description: "API product",
+        price: 4890,
+        currency: "THB",
+        rating: 4.8,
+        soldCount: 16,
+        stock: 12,
+        shop: { id: "shop-1", name: "Live Shop", location: "Bangkok" },
+        variants: [{ id: "variant-1", title: "Default", sku: "SKU-1", price: 4890, currency: "THB", stock: 12 }],
+        images: [],
+      }],
+    };
+    queryMocks.productsError = null;
+    queryMocks.productQueryFn.mockImplementation(async () => {
+      if (queryMocks.productsError) throw queryMocks.productsError;
+      return queryMocks.productsResponse;
+    });
+  });
+
   it("renders marketplace content from the shared public product query", async () => {
     renderWithClient(<MarketplaceHome />);
 
@@ -140,5 +177,30 @@ describe("MarketplaceHome", () => {
     expect(screen.getByRole("heading", { name: "Recommended for you" })).toBeTruthy();
     expect(await screen.findAllByText("Live marketplace tote")).toHaveLength(2);
     expect(screen.queryByText("Canvas Weekender Bag with laptop sleeve")).toBeNull();
+  });
+
+  it("shows an empty product state instead of demo products when the API returns no products", async () => {
+    queryMocks.productsResponse = { items: [] };
+
+    renderWithClient(<MarketplaceHome />);
+
+    expect((await screen.findAllByText("No products found")).length).toBeGreaterThan(0);
+    expect(screen.getByText("No products match your filters.")).toBeTruthy();
+    expect(screen.queryByText("Live marketplace tote")).toBeNull();
+    expect(screen.queryByText("Canvas Weekender Bag with laptop sleeve")).toBeNull();
+  });
+
+  it("shows an error state with a retry path when product loading fails", async () => {
+    queryMocks.productsError = new Error("catalog unavailable");
+
+    renderWithClient(<MarketplaceHome />);
+
+    expect(await screen.findByText("Request failed")).toBeTruthy();
+    expect(screen.queryByText("Live marketplace tote")).toBeNull();
+
+    queryMocks.productsError = null;
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => expect(screen.getAllByText("Live marketplace tote").length).toBeGreaterThan(0));
   });
 });

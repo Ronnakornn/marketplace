@@ -147,7 +147,16 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   }
 
   const product = productQuery.data;
-  if (!product) return null;
+  if (!product) {
+    return (
+      <>
+        <BuyerTopBar title={t("product.products")} />
+        <div className="mx-auto max-w-6xl px-3 pb-28 pt-4">
+          <BuyerEmptyState title={t("product.noProductsFound")} description={t("product.noProductsDescription")} />
+        </div>
+      </>
+    );
+  }
   const mainImage = resolveUploadedImageUrl(product.images[0]);
   const galleryImages = product.images.length > 0 ? product.images.map((image) => resolveUploadedImageUrl(image)) : [mainImage];
 

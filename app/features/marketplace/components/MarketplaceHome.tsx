@@ -98,8 +98,8 @@ const productGradients = [
 
 function mapBuyerProduct(product: BuyerProduct, index: number): StorefrontProduct {
   const firstVariant = product.variants[0];
-  const price = firstVariant?.price ?? 1990 + index * 320;
-  const discountPercent = [18, 22, 25, 30, 35][index % 5];
+  const price = firstVariant?.price ?? product.price;
+  const discountPercent = price > 0 ? ([18, 22, 25, 30, 35][index % 5] ?? 0) : 0;
 
   return {
     id: product.id,
@@ -108,10 +108,10 @@ function mapBuyerProduct(product: BuyerProduct, index: number): StorefrontProduc
     description: product.description,
     shopName: product.shop.name,
     price,
-    originalprice: Math.round(price / (1 - discountPercent / 100)),
+    originalprice: discountPercent > 0 ? Math.round(price / (1 - discountPercent / 100)) : price,
     currency: firstVariant?.currency ?? "USD",
-    rating: Number((4.5 + (index % 5) * 0.08).toFixed(1)),
-    sold: 420 + index * 317,
+    rating: product.rating,
+    sold: product.soldCount,
     discountPercent,
     category: fallbackCategoryItems[index % fallbackCategoryItems.length]?.[1] ?? "Deals",
     freeShipping: index % 3 !== 0,
