@@ -7,6 +7,7 @@ export interface SessionUser {
   name: string;
   role: Role;
   status: UserStatus;
+  emailVerified: boolean;
 }
 
 export interface AuthContext {

@@ -19,6 +19,11 @@ vi.mock("better-auth/api", () => ({
   isAPIError: () => false,
 }))
 
+vi.mock("better-auth/crypto", () => ({
+  hashPassword: vi.fn(async (password: string) => `hashed:${password}`),
+  verifyPassword: vi.fn(async ({ hash, password }: { hash: string; password: string }) => hash === `hashed:${password}`),
+}))
+
 function createLogger() {
   return {
     debug: vi.fn(),
@@ -44,6 +49,7 @@ function createUser(overrides: Partial<{
   email: string
   role: Role
   status: UserStatus
+  emailVerified: boolean
 }> = {}) {
   const now = new Date("2026-04-12T00:00:00.000Z")
 
@@ -53,7 +59,7 @@ function createUser(overrides: Partial<{
     email: overrides.email ?? "user@example.com",
     role: overrides.role ?? "USER",
     status: overrides.status ?? "ACTIVE",
-    emailVerified: false,
+    emailVerified: overrides.emailVerified ?? false,
     phone: null,
     phoneVerified: false,
     image: null,
@@ -67,9 +73,17 @@ function createRepoMock(): IUserRepository {
     findManyForAdmin: vi.fn(),
     findById: vi.fn(),
     findByEmail: vi.fn(),
+    findByPhone: vi.fn(),
     countAdmins: vi.fn(),
     updateUser: vi.fn(),
     updateCurrentUser: vi.fn(),
+    markEmailVerified: vi.fn(),
+    createVerification: vi.fn(),
+    findVerification: vi.fn(),
+    deleteVerificationsByIdentifier: vi.fn(),
+    deleteVerification: vi.fn(),
+    findCredentialAccount: vi.fn(),
+    updateCredentialPassword: vi.fn(),
     delete: vi.fn(),
     promoteByEmails: vi.fn(),
     listAddresses: vi.fn(),
@@ -206,6 +220,166 @@ describe("UserService", () => {
 
     expect(repo.updateCurrentUser).toHaveBeenCalledWith("user-1", {
       name: "Updated User",
+    })
+  })
+
+  it("normalizes phone updates and resets phone verification", async () => {
+    const repo = createRepoMock()
+    const updatedUser = createUser({ id: "user-1" })
+    vi.mocked(repo.findByPhone).mockResolvedValue(null)
+    vi.mocked(repo.updateCurrentUser).mockResolvedValue({ ...updatedUser, phone: "+66812345678", phoneVerified: false })
+
+    const service = new UserService(createAppContext(), repo)
+
+    await expect(service.updateCurrentUser("user-1", { phone: " +66 81 234 5678 " })).resolves.toMatchObject({
+      phone: "+66812345678",
+      phoneVerified: false,
+    })
+
+    expect(repo.updateCurrentUser).toHaveBeenCalledWith("user-1", {
+      phone: "+66812345678",
+      phoneVerified: false,
+    })
+  })
+
+  it("rejects duplicate phone updates", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findByPhone).mockResolvedValue(createUser({ id: "user-2" }))
+
+    const service = new UserService(createAppContext(), repo)
+
+    await expect(service.updateCurrentUser("user-1", { phone: "0812345678" })).rejects.toMatchObject({
+      message: "Phone is already in use",
+      status: 409,
+    })
+  })
+
+  it("keeps OTP purposes separated", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findByEmail).mockResolvedValue(createUser({ email: "user@example.com" }))
+    vi.mocked(repo.findVerification).mockResolvedValue(null)
+
+    const service = new UserService(createAppContext(), repo)
+
+    await expect(service.verifyEmailOtp("USER@example.com", "123456")).rejects.toMatchObject({
+      status: 400,
+    })
+
+    expect(repo.findVerification).toHaveBeenCalledWith("EMAIL_VERIFICATION:user@example.com", "123456")
+  })
+
+  it("rejects expired OTPs", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findByEmail).mockResolvedValue(createUser({ email: "user@example.com" }))
+    vi.mocked(repo.findVerification).mockResolvedValue({
+      id: "verification-1",
+      identifier: "EMAIL_VERIFICATION:user@example.com",
+      value: "123456",
+      expiresAt: new Date("2020-01-01T00:00:00.000Z"),
+      createdAt: new Date("2020-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2020-01-01T00:00:00.000Z"),
+    })
+
+    const service = new UserService(createAppContext(), repo)
+
+    await expect(service.verifyEmailOtp("user@example.com", "123456")).rejects.toMatchObject({
+      message: "Invalid or expired verification code",
+      status: 400,
+    })
+  })
+
+  it("verifies email and consumes the OTP", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findByEmail).mockResolvedValue(createUser({ id: "user-1", email: "user@example.com" }))
+    vi.mocked(repo.findVerification).mockResolvedValue({
+      id: "verification-1",
+      identifier: "EMAIL_VERIFICATION:user@example.com",
+      value: "123456",
+      expiresAt: new Date(Date.now() + 60_000),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    vi.mocked(repo.markEmailVerified).mockResolvedValue(createUser({ emailVerified: true }))
+    vi.mocked(repo.deleteVerification).mockResolvedValue()
+
+    const service = new UserService(createAppContext(), repo)
+
+    await expect(service.verifyEmailOtp("user@example.com", "123456")).resolves.toEqual({ success: true })
+    expect(repo.markEmailVerified).toHaveBeenCalledWith("user-1")
+    expect(repo.deleteVerification).toHaveBeenCalledWith("verification-1")
+  })
+
+  it("does not reveal whether a password reset email exists", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findByEmail).mockResolvedValue(null)
+
+    const service = new UserService(createAppContext(), repo)
+
+    await expect(service.requestPasswordResetOtp("missing@example.com")).resolves.toEqual({ success: true })
+    expect(repo.createVerification).not.toHaveBeenCalled()
+  })
+
+  it("resets password with a valid purpose-scoped OTP and consumes it", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findByEmail).mockResolvedValue(createUser({ id: "user-1", email: "user@example.com" }))
+    vi.mocked(repo.findVerification).mockResolvedValue({
+      id: "verification-1",
+      identifier: "PASSWORD_RESET:user@example.com",
+      value: "123456",
+      expiresAt: new Date(Date.now() + 60_000),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    vi.mocked(repo.findCredentialAccount).mockResolvedValue({
+      id: "account-1",
+      userId: "user-1",
+      providerId: "credential",
+      accountId: "user-1",
+      password: "hashed:old-password",
+      accessToken: null,
+      refreshToken: null,
+      idToken: null,
+      accessTokenExpiresAt: null,
+      refreshTokenExpiresAt: null,
+      scope: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    vi.mocked(repo.updateCredentialPassword).mockResolvedValue({} as any)
+    vi.mocked(repo.deleteVerification).mockResolvedValue()
+
+    const service = new UserService(createAppContext(), repo)
+
+    await expect(service.completePasswordReset("user@example.com", "123456", "new-password")).resolves.toEqual({ success: true })
+    expect(repo.findVerification).toHaveBeenCalledWith("PASSWORD_RESET:user@example.com", "123456")
+    expect(repo.updateCredentialPassword).toHaveBeenCalledWith("account-1", "hashed:new-password")
+    expect(repo.deleteVerification).toHaveBeenCalledWith("verification-1")
+  })
+
+  it("requires the current password when changing password", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findById).mockResolvedValue(createUser({ id: "user-1", emailVerified: true }))
+    vi.mocked(repo.findCredentialAccount).mockResolvedValue({
+      id: "account-1",
+      userId: "user-1",
+      providerId: "credential",
+      accountId: "user-1",
+      password: "hashed:old-password",
+      accessToken: null,
+      refreshToken: null,
+      idToken: null,
+      accessTokenExpiresAt: null,
+      refreshTokenExpiresAt: null,
+      scope: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const service = new UserService(createAppContext(), repo)
+
+    await expect(service.changePassword("user-1", "wrong-password", "new-password")).rejects.toMatchObject({
+      message: "Current password is invalid",
+      status: 400,
     })
   })
 
