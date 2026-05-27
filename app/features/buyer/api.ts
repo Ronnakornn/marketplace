@@ -93,6 +93,9 @@ export interface BuyerProfile {
   email: string;
   role: string;
   status: string;
+  emailVerified: boolean;
+  phone: string | null;
+  phoneVerified: boolean;
   image?: string | null;
 }
 
@@ -390,6 +393,27 @@ export async function fetchProfile(): Promise<BuyerProfile> {
     email: readString(response.email),
     role: readString(response.role, "USER"),
     status: readString(response.status, "ACTIVE"),
+    emailVerified: Boolean(response.emailVerified),
+    phone: optionalString(response.phone),
+    phoneVerified: Boolean(response.phoneVerified),
+    image: optionalString(response.image),
+  };
+}
+
+export async function updateProfile(input: { name?: string; image?: string | null; phone?: string | null }): Promise<BuyerProfile> {
+  const response = toRecord(await apiFetch("/api/me", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  }));
+  return {
+    id: readString(response.id),
+    name: readString(response.name, "Buyer"),
+    email: readString(response.email),
+    role: readString(response.role, "USER"),
+    status: readString(response.status, "ACTIVE"),
+    emailVerified: Boolean(response.emailVerified),
+    phone: optionalString(response.phone),
+    phoneVerified: Boolean(response.phoneVerified),
     image: optionalString(response.image),
   };
 }

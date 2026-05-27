@@ -93,6 +93,21 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
           </button>
         </form>
 
+        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm">
+          <Link
+            href="/forgot-password"
+            className="font-medium text-[var(--lagoon-deep)] hover:underline"
+          >
+            Forgot password?
+          </Link>
+          <Link
+            href="/verify-email"
+            className="font-medium text-[var(--lagoon-deep)] hover:underline"
+          >
+            Verify email
+          </Link>
+        </div>
+
         <p className="mt-5 text-center text-sm text-[var(--sea-ink-soft)]">
           Don&apos;t have an account?{" "}
           <Link

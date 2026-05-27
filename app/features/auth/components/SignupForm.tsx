@@ -23,7 +23,7 @@ export function SignupForm() {
       if (result.error) {
         setError(result.error.message ?? "Sign up failed");
       } else {
-        router.push("/");
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
       }
     } catch {
       setError("An unexpected error occurred");
