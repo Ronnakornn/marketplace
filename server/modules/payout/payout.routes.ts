@@ -28,11 +28,13 @@ export function createPayoutRoutes(container: ServiceContainer) {
     .post('/api/seller/payouts', ({ authContext, body }: any) =>
       container.payoutService.createSellerPayout(actor(authContext), body), {
       withAuth: true,
+      withSellerOperational: true,
       body: PayoutRequestBody,
     })
     .get('/api/seller/payouts', ({ authContext }: any) =>
       container.payoutService.listSellerPayouts(actor(authContext)), {
       withAuth: true,
+      withSellerOperational: true,
     })
     .get('/api/admin/payouts', ({ authContext, query }: any) =>
       container.payoutService.listAdminPayouts(actor(authContext), query), {

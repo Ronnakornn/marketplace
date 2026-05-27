@@ -37,5 +37,6 @@ export interface CacheKeyBuilder {
   searchSuggestions(query: unknown): string
   aiSearch(query: unknown): string
   sellerDashboard(shopId: string): string
+  sellerDashboardInsights(shopId: string, query: unknown): string
   recommendations(kind: string, query: unknown): string
 }

@@ -1,4 +1,11 @@
-import type { Role, SellerApplicationStatus, SellerBusinessType, SellerKycDocumentSide, SellerKycDocumentType } from '#generated/client/enums.ts'
+import type {
+  Role,
+  SellerApplicationStatus,
+  SellerBusinessType,
+  SellerKycDocumentReviewStatus,
+  SellerKycDocumentSide,
+  SellerKycDocumentType,
+} from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { encryptKycValue, hashKycValue, maskLast4 } from '#server/lib/kyc-encryption.ts'
@@ -53,6 +60,11 @@ export interface SellerApplicationInput {
 }
 
 export interface SellerApplicationReviewInput {
+  decision: 'APPROVED' | 'REJECTED'
+  rejectionReason?: string
+}
+
+export interface SellerDocumentReviewInput {
   decision: 'APPROVED' | 'REJECTED'
   rejectionReason?: string
 }
@@ -119,6 +131,10 @@ export interface SellerApplicationResponse {
     documentType: SellerKycDocumentType
     side: SellerKycDocumentSide
     sortOrder: number
+    reviewStatus: SellerKycDocumentReviewStatus
+    reviewedAt: Date | null
+    reviewedById: string | null
+    rejectionReason: string | null
     fileName: string
     contentType: string
     fileSize: number
@@ -218,6 +234,7 @@ export class SellerOnboardingService {
       throw new SellerOnboardingServiceError('Only submitted applications can be reviewed', 409, 'SELLER_APPLICATION_NOT_REVIEWABLE')
     }
     if (input.decision === 'APPROVED') {
+      this.assertRequiredDocumentsApproved(existing)
       const approved = await this.repo.approveApplication(applicationId, actor.id)
       return this.toAdminResponse(approved)
     }
@@ -227,6 +244,49 @@ export class SellerOnboardingService {
     }
     const rejected = await this.repo.rejectApplication(applicationId, actor.id, reason)
     return this.toAdminResponse(rejected)
+  }
+
+  async reviewDocument(
+    actor: SellerOnboardingActor,
+    applicationId: string,
+    documentId: string,
+    input: SellerDocumentReviewInput,
+  ): Promise<AdminSellerApplicationResponse> {
+    this.assertAdmin(actor)
+    this.logger.info('SellerOnboardingService.reviewDocument', {
+      actorId: actor.id,
+      applicationId,
+      documentId,
+      decision: input.decision,
+    })
+
+    const application = await this.repo.findApplicationById(applicationId)
+    if (!application) throw new SellerOnboardingServiceError('Seller application not found', 404, 'SELLER_APPLICATION_NOT_FOUND')
+    if (application.status !== 'SUBMITTED') {
+      throw new SellerOnboardingServiceError('Only submitted applications can be reviewed', 409, 'SELLER_APPLICATION_NOT_REVIEWABLE')
+    }
+
+    const targetDocument = application.documents.find((document) => document.id === documentId)
+    if (!targetDocument) {
+      throw new SellerOnboardingServiceError('Seller document not found', 404, 'SELLER_DOCUMENT_NOT_FOUND')
+    }
+
+    const rejectionReason = input.rejectionReason?.trim() ?? ''
+    if (input.decision === 'REJECTED' && !rejectionReason) {
+      throw new SellerOnboardingServiceError('Rejection reason is required', 400, 'SELLER_DOCUMENT_REJECTION_REASON_REQUIRED')
+    }
+
+    const updated = await this.repo.reviewDocument(applicationId, documentId, {
+      reviewStatus: input.decision,
+      reviewedAt: new Date(),
+      reviewedById: actor.id,
+      rejectionReason: input.decision === 'REJECTED' ? rejectionReason : null,
+    })
+
+    if (!updated) {
+      throw new SellerOnboardingServiceError('Seller document not found', 404, 'SELLER_DOCUMENT_NOT_FOUND')
+    }
+    return this.toAdminResponse(updated)
   }
 
   private normalizeInput(
@@ -270,22 +330,22 @@ export class SellerOnboardingService {
       companyRegistrationLast4: companyRegistration === undefined ? existing?.companyRegistrationLast4 ?? null : maskLast4(companyRegistration),
       taxIdEncrypted: taxId === undefined ? existing?.taxIdEncrypted ?? null : encryptKycValue(taxId),
       taxIdLast4: taxId === undefined ? existing?.taxIdLast4 ?? null : maskLast4(taxId),
-      bankName: this.normalizeText(input.bankName, existing?.bankName, 'Bank name', requireComplete),
-      bankAccountName: this.normalizeText(input.bankAccountName, existing?.bankAccountName, 'Bank account name', requireComplete),
+      bankName: this.normalizeText(input.bankName, existing?.bankName, 'Bank name', false),
+      bankAccountName: this.normalizeText(input.bankAccountName, existing?.bankAccountName, 'Bank account name', false),
       bankAccountNumberEncrypted: bankAccountNumber === undefined
         ? existing?.bankAccountNumberEncrypted ?? ''
         : encryptKycValue(bankAccountNumber) ?? '',
       bankAccountNumberLast4: bankAccountNumber === undefined
         ? existing?.bankAccountNumberLast4 ?? ''
         : maskLast4(bankAccountNumber) ?? '',
-      pickupName: this.normalizeText(input.pickupName, existing?.pickupName, 'Pickup name', requireComplete),
+      pickupName: this.normalizeText(input.pickupName, existing?.pickupName, 'Pickup name', false),
       pickupPhone: input.pickupPhone === undefined ? existing?.pickupPhone ?? null : this.normalizeNullableText(input.pickupPhone),
-      pickupLine1: this.normalizeText(input.pickupLine1, existing?.pickupLine1, 'Pickup address line 1', requireComplete),
+      pickupLine1: this.normalizeText(input.pickupLine1, existing?.pickupLine1, 'Pickup address line 1', false),
       pickupLine2: input.pickupLine2 === undefined ? existing?.pickupLine2 ?? null : this.normalizeNullableText(input.pickupLine2),
-      pickupCity: this.normalizeText(input.pickupCity, existing?.pickupCity, 'Pickup city', requireComplete),
+      pickupCity: this.normalizeText(input.pickupCity, existing?.pickupCity, 'Pickup city', false),
       pickupRegion: input.pickupRegion === undefined ? existing?.pickupRegion ?? null : this.normalizeNullableText(input.pickupRegion),
-      pickupPostalCode: this.normalizeText(input.pickupPostalCode, existing?.pickupPostalCode, 'Pickup postal code', requireComplete),
-      pickupCountry: this.normalizeText(input.pickupCountry, existing?.pickupCountry ?? 'TH', 'Pickup country', requireComplete),
+      pickupPostalCode: this.normalizeText(input.pickupPostalCode, existing?.pickupPostalCode, 'Pickup postal code', false),
+      pickupCountry: this.normalizeText(input.pickupCountry, existing?.pickupCountry ?? 'TH', 'Pickup country', false),
     }
 
     if (requireComplete) this.assertComplete(normalized)
@@ -301,14 +361,6 @@ export class SellerOnboardingService {
       ['Legal name', input.legalName],
       ['Contact email', input.contactEmail],
       ['Contact phone', input.contactPhone],
-      ['Bank name', input.bankName],
-      ['Bank account name', input.bankAccountName],
-      ['Bank account number', input.bankAccountNumberEncrypted],
-      ['Pickup name', input.pickupName],
-      ['Pickup address line 1', input.pickupLine1],
-      ['Pickup city', input.pickupCity],
-      ['Pickup postal code', input.pickupPostalCode],
-      ['Pickup country', input.pickupCountry],
     ]
     if (input.businessType === 'INDIVIDUAL') required.push(['National ID', input.nationalIdEncrypted])
     if (input.businessType === 'COMPANY') required.push(['Company registration', input.companyRegistrationEncrypted])
@@ -353,8 +405,8 @@ export class SellerOnboardingService {
 
     if (requireComplete) {
       const required: SellerKycDocumentType[] = businessType === 'COMPANY'
-        ? ['BUSINESS_CERTIFICATE', 'BANK_BOOK', 'TAX_DOCUMENT']
-        : ['ID_CARD', 'BANK_BOOK', 'TAX_DOCUMENT']
+        ? ['BUSINESS_CERTIFICATE', 'ID_CARD', 'TAX_DOCUMENT']
+        : ['ID_CARD', 'TAX_DOCUMENT']
       const missing = required.filter((type) => !documentTypes.has(type))
       if (missing.length > 0) {
         throw new SellerOnboardingServiceError('Required KYC documents are missing', 400, 'SELLER_DOCUMENTS_REQUIRED', { missing })
@@ -436,6 +488,38 @@ export class SellerOnboardingService {
     return value
   }
 
+  private assertRequiredDocumentsApproved(application: SellerApplicationRecord): void {
+    const requiredDocumentTypes = this.requiredDocumentTypes(application.businessType)
+    const unresolved = requiredDocumentTypes
+      .map((documentType) => {
+        const sameTypeDocuments = application.documents.filter((document) => document.documentType === documentType)
+        const approved = sameTypeDocuments.some((document) => document.reviewStatus === 'APPROVED')
+        if (approved) return null
+
+        return {
+          documentType,
+          documentIds: sameTypeDocuments.map((document) => document.id),
+          reviewStatuses: Array.from(new Set(sameTypeDocuments.map((document) => document.reviewStatus))),
+        }
+      })
+      .filter((item): item is { documentType: SellerKycDocumentType; documentIds: string[]; reviewStatuses: SellerKycDocumentReviewStatus[] } => item !== null)
+
+    if (unresolved.length > 0) {
+      throw new SellerOnboardingServiceError(
+        'Required KYC documents are not approved',
+        409,
+        'SELLER_DOCUMENTS_NOT_APPROVED',
+        { unresolved },
+      )
+    }
+  }
+
+  private requiredDocumentTypes(businessType: SellerBusinessType): SellerKycDocumentType[] {
+    return businessType === 'COMPANY'
+      ? ['BUSINESS_CERTIFICATE', 'ID_CARD', 'TAX_DOCUMENT']
+      : ['ID_CARD', 'TAX_DOCUMENT']
+  }
+
   private toAdminResponse(application: SellerApplicationRecord): AdminSellerApplicationResponse {
     return {
       ...this.toResponse(application),
@@ -485,6 +569,10 @@ export class SellerOnboardingService {
         documentType: document.documentType,
         side: document.side,
         sortOrder: document.sortOrder,
+        reviewStatus: document.reviewStatus,
+        reviewedAt: document.reviewedAt,
+        reviewedById: document.reviewedById,
+        rejectionReason: document.rejectionReason,
         fileName: document.upload.fileName,
         contentType: document.upload.contentType,
         fileSize: document.upload.fileSize,

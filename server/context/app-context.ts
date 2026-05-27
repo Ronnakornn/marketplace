@@ -40,11 +40,13 @@ import { PrismaSearchRepository } from '#server/modules/search/search.repository
 import { SearchService } from '#server/modules/search/search.service.ts'
 import { PrismaSellerDashboardRepository } from '#server/modules/seller/seller-dashboard.repository.ts'
 import { SellerDashboardService } from '#server/modules/seller/seller-dashboard.service.ts'
+import { PrismaSellerShopRepository, SellerShopService } from '#server/modules/seller-shop'
 import { PrismaSellerOnboardingRepository, SellerOnboardingService } from '#server/modules/seller-onboarding'
 import { PrismaShipmentRepository } from '#server/modules/shipment/shipment.repository.ts'
 import { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
 import { PrismaReviewRepository } from '#server/modules/review/review.repository.ts'
 import { ReviewService } from '#server/modules/review/review.service.ts'
+import { PrismaShopReviewRepository, ShopReviewService } from '#server/modules/shop-review'
 import { PrismaUserRepository } from '#server/modules/user/user.repository.ts'
 import { UserService } from '#server/modules/user/user.service.ts'
 import { PrismaUploadRepository } from '#server/modules/upload/upload.repository.ts'
@@ -105,11 +107,13 @@ export interface ServiceContainer {
   recommendationService: RecommendationService
   returnService: ReturnService
   reviewService: ReviewService
+  shopReviewService: ShopReviewService
   searchService: SearchService
   securityService: SecurityService
   activeShopResolver: ActiveShopResolver
   ownershipGuards: OwnershipGuards
   sellerDashboardService: SellerDashboardService
+  sellerShopService: SellerShopService
   sellerOnboardingService: SellerOnboardingService
   shipmentService: ShipmentService
   shoppingAssistantService: ShoppingAssistantService
@@ -168,7 +172,14 @@ export function createContainer(): ServiceContainer {
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
   const orderService = new OrderService(appContext, orderRepo, activeShopResolver)
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)
-  const shipmentService = new ShipmentService(appContext, shipmentRepo, walletService, eventPublisherService, activeShopResolver)
+  const shipmentService = new ShipmentService(
+    appContext,
+    shipmentRepo,
+    walletService,
+    eventPublisherService,
+    cacheInvalidation,
+    activeShopResolver,
+  )
   const paymentRepo = new PrismaPaymentRepository(appContext, prisma)
   const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation, eventPublisherService, affiliateService)
   const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
@@ -181,6 +192,8 @@ export function createContainer(): ServiceContainer {
   const recommendationService = new RecommendationService(appContext, recommendationRepo, cacheService)
   const reviewRepo = new PrismaReviewRepository(appContext, prisma)
   const reviewService = new ReviewService(appContext, reviewRepo)
+  const shopReviewRepo = new PrismaShopReviewRepository(appContext, prisma)
+  const shopReviewService = new ShopReviewService(appContext, shopReviewRepo, cacheInvalidation)
   const searchRepo = new PrismaSearchRepository(appContext, prisma)
   const searchService = new SearchService(appContext, searchRepo, cacheService)
   const embeddingService = new EmbeddingService(appContext, aiSearchConfig)
@@ -196,6 +209,8 @@ export function createContainer(): ServiceContainer {
   const shoppingAssistantService = new ShoppingAssistantService(appContext, aiSearchConfig, aiSearchService)
   const sellerDashboardRepo = new PrismaSellerDashboardRepository(appContext, prisma)
   const sellerDashboardService = new SellerDashboardService(appContext, sellerDashboardRepo, cacheService, activeShopResolver)
+  const sellerShopRepo = new PrismaSellerShopRepository(appContext, prisma)
+  const sellerShopService = new SellerShopService(appContext, sellerShopRepo)
   const sellerOnboardingRepo = new PrismaSellerOnboardingRepository(appContext, prisma)
   const sellerOnboardingService = new SellerOnboardingService(appContext, sellerOnboardingRepo)
   const uploadRepo = new PrismaUploadRepository(appContext, prisma)
@@ -254,11 +269,13 @@ export function createContainer(): ServiceContainer {
     recommendationService,
     returnService,
     reviewService,
+    shopReviewService,
     searchService,
     securityService,
     activeShopResolver,
     ownershipGuards,
     sellerDashboardService,
+    sellerShopService,
     sellerOnboardingService,
     shipmentService,
     shoppingAssistantService,

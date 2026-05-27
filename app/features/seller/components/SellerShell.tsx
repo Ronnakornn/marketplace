@@ -2,34 +2,109 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  BanknoteIcon,
-  BellIcon,
-  BoxesIcon,
-  ClipboardListIcon,
-  LayoutDashboardIcon,
-  MegaphoneIcon,
-  MessageCircleIcon,
-  PackageCheckIcon,
-  RotateCcwIcon,
-  StoreIcon,
-} from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { stripLocale } from "#/i18n/config";
 import { useLocalePath } from "#/i18n/navigation";
 import { cn } from "#/lib/utils";
 import { getSellerRouteKind } from "#/lib/seller-access";
 
+function DashboardIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <rect x="3" y="3" width="8" height="8" rx="1" />
+      <rect x="13" y="3" width="8" height="5" rx="1" />
+      <rect x="13" y="10" width="8" height="11" rx="1" />
+      <rect x="3" y="13" width="8" height="8" rx="1" />
+    </svg>
+  );
+}
+
+function ProductsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <path d="M3 8l9-5 9 5-9 5-9-5z" />
+      <path d="M3 8v8l9 5 9-5V8" />
+      <path d="M12 13v8" />
+    </svg>
+  );
+}
+
+function InventoryIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M8 9h8M8 13h8M8 17h5" />
+    </svg>
+  );
+}
+
+function OrdersIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <path d="M3 7h18" />
+      <path d="M7 3v4M17 3v4" />
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M9 13l2 2 4-4" />
+    </svg>
+  );
+}
+
+function ReturnsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 4v5h5" />
+    </svg>
+  );
+}
+
+function PromotionsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <path d="M3 11l18-8v18l-18-8z" />
+      <path d="M11 13v7" />
+    </svg>
+  );
+}
+
+function FinanceIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M7 15h3" />
+    </svg>
+  );
+}
+
+function NotificationsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <path d="M6 8a6 6 0 1 1 12 0v4l2 3H4l2-3V8z" />
+      <path d="M10 18a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+function SellerManageIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <path d="M3 10l9-6 9 6" />
+      <path d="M5 10v9h14v-9" />
+      <path d="M9 19v-5h6v5" />
+    </svg>
+  );
+}
+
 const navItems = [
-  { href: "/seller", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/seller/products", label: "Products", icon: BoxesIcon },
-  { href: "/seller/inventory", label: "Inventory", icon: ClipboardListIcon },
-  { href: "/seller/orders", label: "Orders", icon: PackageCheckIcon },
-  { href: "/seller/returns", label: "Returns", icon: RotateCcwIcon },
-  { href: "/seller/promotions", label: "Promotions", icon: MegaphoneIcon },
-  { href: "/seller/finance", label: "Finance", icon: BanknoteIcon },
-  { href: "/seller/chat", label: "Chat", icon: MessageCircleIcon },
-  { href: "/seller/notifications", label: "Notifications", icon: BellIcon },
+  { href: "/seller", label: "Dashboard", icon: DashboardIcon },
+  { href: "/seller/products", label: "Products", icon: ProductsIcon },
+  { href: "/seller/inventory", label: "Inventory", icon: InventoryIcon },
+  { href: "/seller/orders", label: "Orders", icon: OrdersIcon },
+  { href: "/seller/returns", label: "Returns", icon: ReturnsIcon },
+  { href: "/seller/promotions", label: "Promotions", icon: PromotionsIcon },
+  { href: "/seller/finance", label: "Finance", icon: FinanceIcon },
+  { href: "/seller/notifications", label: "Notifications", icon: NotificationsIcon },
 ] as const;
 
 interface SellerShellProps {
@@ -40,18 +115,42 @@ interface SellerShellProps {
 }
 
 export function SellerShell({ activeShop, activeShops, children, user }: SellerShellProps) {
-  const pathname = stripLocale(usePathname());
+  const router = useRouter();
+  const rawPathname = usePathname();
+  const searchParams = useSearchParams();
+  const pathname = stripLocale(rawPathname);
   const localePath = useLocalePath();
   const routeKind = getSellerRouteKind(pathname);
   const showOperationalNavigation = routeKind === "operational";
+  const selectedShopParam = searchParams.get("shopId");
+  const selectedShopId = activeShops.some((shop) => shop.id === selectedShopParam)
+    ? (selectedShopParam ?? "")
+    : activeShop?.id ?? activeShops[0]?.id ?? "";
+  const selectedShopQuery = selectedShopId ? `shopId=${encodeURIComponent(selectedShopId)}` : "";
+
+  function createSellerHref(href: string) {
+    const base = localePath(href);
+    return selectedShopQuery ? `${base}?${selectedShopQuery}` : base;
+  }
+
+  function handleShopSelection(nextShopId: string) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (nextShopId === activeShop?.id) {
+      nextParams.delete("shopId");
+    } else {
+      nextParams.set("shopId", nextShopId);
+    }
+    const query = nextParams.toString();
+    router.push(query ? `${rawPathname}?${query}` : rawPathname);
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-950">
       {showOperationalNavigation ? (
         <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-slate-200 bg-white md:flex md:flex-col">
-          <Link href={localePath("/seller")} prefetch={false} className="flex items-center gap-3 border-b border-slate-200 px-5 py-5 no-underline">
+          <Link href={createSellerHref("/seller")} prefetch={false} className="flex items-center gap-3 border-b border-slate-200 px-5 py-5 no-underline">
             <span className="flex size-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
-              <StoreIcon className="size-5" />
+              <SellerManageIcon className="size-5" />
             </span>
             <span>
               <span className="block text-sm font-semibold text-slate-950">Seller Manage</span>
@@ -62,7 +161,11 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
             <div className="border-b border-slate-200 px-3 py-3">
               <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Active shop
-                <select className="mt-2 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm normal-case tracking-normal text-slate-700">
+                <select
+                  value={selectedShopId}
+                  onChange={(event) => handleShopSelection(event.target.value)}
+                  className="mt-2 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm normal-case tracking-normal text-slate-700"
+                >
                   {activeShops.map((shop) => (
                     <option key={shop.id} value={shop.id}>{shop.name}</option>
                   ))}
@@ -76,7 +179,7 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
               return (
                 <Link
                   key={item.href}
-                  href={localePath(item.href)}
+                  href={createSellerHref(item.href)}
                   prefetch={false}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium no-underline",
@@ -100,7 +203,7 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden">
             <div className="flex items-center gap-2 overflow-x-auto">
               {navItems.map((item) => (
-                <Link key={item.href} href={localePath(item.href)} prefetch={false} className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 no-underline">
+                <Link key={item.href} href={createSellerHref(item.href)} prefetch={false} className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 no-underline">
                   <item.icon className="size-3.5" />
                   {item.label}
                 </Link>

@@ -5,9 +5,12 @@ import type {
   PrismaClient,
   Product,
   ProductVariant,
+  ShopRating,
   Shipment,
   Shop,
+  User,
 } from '#generated/client/client.ts'
+import type { ReviewStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -28,6 +31,23 @@ export type SellerLowStockVariant = Omit<ProductVariant, 'titleTh' | 'titleEn'> 
   product: Pick<Product, 'id' | 'title' | 'slug' | 'shopId' | 'status'>
 }
 
+export interface SellerShopReviewAggregateRecord {
+  _avg: {
+    rating: number | null
+  }
+  _count: {
+    id: number
+  }
+}
+
+export type SellerDashboardShopReview = Pick<
+  ShopRating,
+  'id' | 'shopId' | 'rating' | 'body' | 'status' | 'moderatedAt' | 'moderationReason' | 'createdAt'
+> & {
+  user: Pick<User, 'id' | 'name'>
+  shop: Pick<Shop, 'id' | 'name' | 'slug'>
+}
+
 export interface ISellerDashboardRepository {
   findSellerShops(ownerId: string): Promise<SellerDashboardShop[]>
   findSalesOrderItems(shopIds: string[]): Promise<SellerSalesOrderItem[]>
@@ -35,6 +55,9 @@ export interface ISellerDashboardRepository {
   countProductsByStatus(shopIds: string[], active: boolean): Promise<number>
   findLowStockVariants(shopIds: string[]): Promise<SellerLowStockVariant[]>
   findRecentOrders(shopIds: string[], limit: number): Promise<SellerDashboardOrder[]>
+  countShopReviewsByStatus(shopIds: string[], status: ReviewStatus): Promise<number>
+  aggregatePublishedShopReviews(shopIds: string[]): Promise<SellerShopReviewAggregateRecord>
+  findRecentShopReviews(shopIds: string[], limit: number, statuses?: ReviewStatus[]): Promise<SellerDashboardShopReview[]>
 }
 
 export class PrismaSellerDashboardRepository implements ISellerDashboardRepository {
@@ -165,5 +188,73 @@ export class PrismaSellerDashboardRepository implements ISellerDashboardReposito
       orderBy: { createdAt: 'desc' },
       take: limit,
     })
+  }
+
+  countShopReviewsByStatus(shopIds: string[], status: ReviewStatus): Promise<number> {
+    this.logger.debug('PrismaSellerDashboardRepository.countShopReviewsByStatus', { shopIds, status })
+    if (shopIds.length === 0) return Promise.resolve(0)
+
+    return this.prisma.shopRating.count({
+      where: {
+        shopId: { in: shopIds },
+        status,
+      },
+    })
+  }
+
+  aggregatePublishedShopReviews(shopIds: string[]): Promise<SellerShopReviewAggregateRecord> {
+    this.logger.debug('PrismaSellerDashboardRepository.aggregatePublishedShopReviews', { shopIds })
+    if (shopIds.length === 0) {
+      return Promise.resolve({
+        _avg: { rating: null },
+        _count: { id: 0 },
+      })
+    }
+
+    return this.prisma.shopRating.aggregate({
+      where: {
+        shopId: { in: shopIds },
+        status: 'PUBLISHED',
+      },
+      _avg: { rating: true },
+      _count: { id: true },
+    }) as Promise<SellerShopReviewAggregateRecord>
+  }
+
+  findRecentShopReviews(shopIds: string[], limit: number, statuses?: ReviewStatus[]): Promise<SellerDashboardShopReview[]> {
+    this.logger.debug('PrismaSellerDashboardRepository.findRecentShopReviews', { shopIds, limit, statuses })
+    if (shopIds.length === 0) return Promise.resolve([])
+
+    return this.prisma.shopRating.findMany({
+      where: {
+        shopId: { in: shopIds },
+        ...(statuses && statuses.length > 0 ? { status: { in: statuses } } : {}),
+      },
+      select: {
+        id: true,
+        shopId: true,
+        rating: true,
+        body: true,
+        status: true,
+        moderatedAt: true,
+        moderationReason: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        shop: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }) as Promise<SellerDashboardShopReview[]>
   }
 }

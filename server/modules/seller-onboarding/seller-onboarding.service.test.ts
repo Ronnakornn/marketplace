@@ -105,6 +105,10 @@ function createDocument(documentType: 'ID_CARD' | 'BANK_BOOK' | 'TAX_DOCUMENT' |
     documentType,
     side: 'FRONT' as const,
     sortOrder: 0,
+    reviewStatus: 'PENDING' as const,
+    reviewedAt: null,
+    reviewedById: null,
+    rejectionReason: null,
     createdAt: now,
     upload: {
       id: `${documentType.toLowerCase()}-upload`,
@@ -141,6 +145,20 @@ function createRepo(): ISellerOnboardingRepository {
     upsertDraft: vi.fn(async () => createApplication({ status: 'DRAFT', submittedAt: null })),
     submitApplication: vi.fn(async () => createApplication()),
     listApplications: vi.fn(async () => [createApplication()]),
+    reviewDocument: vi.fn(async () => createApplication({
+      documents: [
+        {
+          ...createDocument('ID_CARD'),
+          id: 'id_card-doc',
+          reviewStatus: 'APPROVED',
+          reviewedAt: new Date('2026-05-18T01:00:00.000Z'),
+          reviewedById: 'admin-1',
+          rejectionReason: null,
+        },
+        createDocument('BANK_BOOK'),
+        createDocument('TAX_DOCUMENT'),
+      ],
+    })),
     approveApplication: vi.fn(async () => createApplication({
       status: 'APPROVED',
       reviewedAt: new Date('2026-05-18T01:00:00.000Z'),
@@ -313,6 +331,14 @@ describe('SellerOnboardingService', () => {
   })
 
   it('approves a submitted application through admin review', async () => {
+    vi.mocked(repo.findApplicationById).mockResolvedValue(createApplication({
+      documents: [
+        { ...createDocument('ID_CARD'), reviewStatus: 'APPROVED' },
+        { ...createDocument('BANK_BOOK'), reviewStatus: 'APPROVED' },
+        { ...createDocument('TAX_DOCUMENT'), reviewStatus: 'APPROVED' },
+      ],
+    }))
+
     const result = await service.reviewApplication(
       { id: 'admin-1', role: 'ADMIN' },
       '11111111-1111-4111-8111-111111111111',
@@ -322,6 +348,31 @@ describe('SellerOnboardingService', () => {
     expect(result.status).toBe('APPROVED')
     expect(result.shop?.status).toBe('ACTIVE')
     expect(repo.approveApplication).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', 'admin-1')
+  })
+
+  it('blocks application approval when required KYC documents are not approved', async () => {
+    vi.mocked(repo.findApplicationById).mockResolvedValue(createApplication({
+      businessType: 'INDIVIDUAL',
+      documents: [
+        { ...createDocument('ID_CARD'), reviewStatus: 'APPROVED' },
+        { ...createDocument('BANK_BOOK'), reviewStatus: 'PENDING' },
+        { ...createDocument('TAX_DOCUMENT'), reviewStatus: 'REJECTED', rejectionReason: 'Unreadable file' },
+      ],
+    }))
+
+    await expect(service.reviewApplication(
+      { id: 'admin-1', role: 'ADMIN' },
+      '11111111-1111-4111-8111-111111111111',
+      { decision: 'APPROVED' },
+    )).rejects.toMatchObject({
+      code: 'SELLER_DOCUMENTS_NOT_APPROVED',
+      details: {
+        unresolved: expect.arrayContaining([
+          expect.objectContaining({ documentType: 'TAX_DOCUMENT' }),
+        ]),
+      },
+    })
+    expect(repo.approveApplication).not.toHaveBeenCalled()
   })
 
   it('rejects a submitted application with a reason', async () => {
@@ -338,6 +389,50 @@ describe('SellerOnboardingService', () => {
       'admin-1',
       'Document mismatch',
     )
+  })
+
+  it('allows admin to review a seller document as approved', async () => {
+    const result = await service.reviewDocument(
+      { id: 'admin-1', role: 'ADMIN' },
+      '11111111-1111-4111-8111-111111111111',
+      'id_card-doc',
+      { decision: 'APPROVED' },
+    )
+
+    expect(repo.reviewDocument).toHaveBeenCalledWith(
+      '11111111-1111-4111-8111-111111111111',
+      'id_card-doc',
+      expect.objectContaining({
+        reviewStatus: 'APPROVED',
+        reviewedById: 'admin-1',
+        rejectionReason: null,
+      }),
+    )
+    expect(result.documents[0]).toMatchObject({
+      id: 'id_card-doc',
+      reviewStatus: 'APPROVED',
+      reviewedById: 'admin-1',
+    })
+  })
+
+  it('requires rejection reason when admin rejects a seller document', async () => {
+    await expect(service.reviewDocument(
+      { id: 'admin-1', role: 'ADMIN' },
+      '11111111-1111-4111-8111-111111111111',
+      'id_card-doc',
+      { decision: 'REJECTED' },
+    )).rejects.toMatchObject({ code: 'SELLER_DOCUMENT_REJECTION_REASON_REQUIRED' })
+  })
+
+  it('forbids non-admin users from reviewing seller documents', async () => {
+    await expect(service.reviewDocument(
+      { id: 'buyer-1', role: 'USER' },
+      '11111111-1111-4111-8111-111111111111',
+      'id_card-doc',
+      { decision: 'APPROVED' },
+    )).rejects.toMatchObject({ code: 'SELLER_APPLICATION_FORBIDDEN' })
+
+    expect(repo.reviewDocument).not.toHaveBeenCalled()
   })
 
   it('permits resubmission after rejection', async () => {

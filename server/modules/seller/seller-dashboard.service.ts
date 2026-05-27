@@ -7,12 +7,16 @@ import { SellerDashboardServiceError } from './seller-dashboard.errors.ts'
 import type {
   ISellerDashboardRepository,
   SellerDashboardOrder,
+  SellerDashboardShopReview,
   SellerLowStockVariant,
   SellerSalesOrderItem,
 } from './seller-dashboard.repository.ts'
 
 const DEFAULT_RECENT_ORDER_LIMIT = 10
 const MAX_RECENT_ORDER_LIMIT = 50
+const DEFAULT_REVIEW_LIMIT = 10
+const MAX_REVIEW_LIMIT = 25
+const REVIEW_STATUSES = ['PENDING', 'PUBLISHED', 'REJECTED', 'HIDDEN'] as const
 
 export interface SellerDashboardActor {
   id: string
@@ -23,8 +27,15 @@ export interface SellerDashboardResponse {
   sales: SellerSalesSummaryResponse
   orders: SellerOrderSummaryResponse
   products: SellerProductSummaryResponse
+  shopInsights: SellerShopInsightSummaryResponse
   recentOrders: SellerRecentOrderResponse[]
   lowStockItems: SellerLowStockItemResponse[]
+}
+
+export interface SellerShopInsightSummaryResponse {
+  averageRating: number
+  publishedReviewCount: number
+  pendingReviewCount: number
 }
 
 export interface SellerSalesSummaryResponse {
@@ -78,6 +89,21 @@ export interface SellerLowStockItemResponse {
   reorderLevel: number
 }
 
+export interface SellerShopReviewResponse {
+  reviewId: string
+  shopId: string
+  shopName: string
+  shopSlug: string
+  buyerId: string
+  buyerName: string
+  rating: number
+  comment: string | null
+  status: string
+  createdAt: Date
+  moderatedAt: Date | null
+  moderationReason: string | null
+}
+
 export class SellerDashboardService {
   private logger: ILogger
 
@@ -90,12 +116,12 @@ export class SellerDashboardService {
     this.logger = appContext.logger
   }
 
-  async getDashboard(actor: SellerDashboardActor, limit?: number): Promise<SellerDashboardResponse> {
-    const shopIds = await this.getSellerShopIds(actor)
+  async getDashboard(actor: SellerDashboardActor, limit?: number, shopId?: string): Promise<SellerDashboardResponse> {
+    const shopIds = await this.getScopedSellerShopIds(actor, shopId)
     const recentLimit = this.normalizeLimit(limit)
-    this.logger.info('SellerDashboardService.getDashboard', { actorId: actor.id, shopIds, recentLimit })
+    this.logger.info('SellerDashboardService.getDashboard', { actorId: actor.id, shopIds, recentLimit, shopId })
 
-    if (this.cache && shopIds.length === 1) {
+    if (this.cache && shopIds.length === 1 && recentLimit === DEFAULT_RECENT_ORDER_LIMIT) {
       return this.cache.remember(
         this.cache.keys.sellerDashboard(shopIds[0]!),
         () => this.getDashboardForShopIds(shopIds, recentLimit),
@@ -107,16 +133,31 @@ export class SellerDashboardService {
   }
 
   private async getDashboardForShopIds(shopIds: string[], recentLimit: number): Promise<SellerDashboardResponse> {
-    const [salesItems, shipments, activeProducts, inactiveProducts, lowStockVariants, recentOrders] = await Promise.all([
+    const [
+      salesItems,
+      shipments,
+      activeProducts,
+      inactiveProducts,
+      lowStockVariants,
+      recentOrders,
+      publishedReviewAggregate,
+      pendingReviewCount,
+    ] = await Promise.all([
       this.repo.findSalesOrderItems(shopIds),
       this.repo.findShipments(shopIds),
       this.repo.countProductsByStatus(shopIds, true),
       this.repo.countProductsByStatus(shopIds, false),
       this.repo.findLowStockVariants(shopIds),
       this.repo.findRecentOrders(shopIds, recentLimit),
+      this.repo.aggregatePublishedShopReviews(shopIds),
+      this.repo.countShopReviewsByStatus(shopIds, 'PENDING'),
     ])
 
     const lowStockItems = this.toLowStockItems(lowStockVariants)
+    const averageRating = publishedReviewAggregate._avg.rating === null
+      ? 0
+      : Number(publishedReviewAggregate._avg.rating.toFixed(2))
+
     return {
       sales: this.toSalesSummary(salesItems),
       orders: {
@@ -130,25 +171,57 @@ export class SellerDashboardService {
         inactive: inactiveProducts,
         lowStock: lowStockItems.length,
       },
+      shopInsights: {
+        averageRating,
+        publishedReviewCount: publishedReviewAggregate._count.id,
+        pendingReviewCount,
+      },
       recentOrders: recentOrders.map((order) => this.toRecentOrder(order)),
       lowStockItems,
     }
   }
 
-  async getSalesSummary(actor: SellerDashboardActor): Promise<SellerSalesSummaryResponse> {
-    const shopIds = await this.getSellerShopIds(actor)
+  async getSalesSummary(actor: SellerDashboardActor, shopId?: string): Promise<SellerSalesSummaryResponse> {
+    const shopIds = await this.getScopedSellerShopIds(actor, shopId)
     return this.toSalesSummary(await this.repo.findSalesOrderItems(shopIds))
   }
 
-  async getRecentOrders(actor: SellerDashboardActor, limit?: number): Promise<SellerRecentOrderResponse[]> {
-    const shopIds = await this.getSellerShopIds(actor)
+  async getRecentOrders(actor: SellerDashboardActor, limit?: number, shopId?: string): Promise<SellerRecentOrderResponse[]> {
+    const shopIds = await this.getScopedSellerShopIds(actor, shopId)
     const orders = await this.repo.findRecentOrders(shopIds, this.normalizeLimit(limit))
     return orders.map((order) => this.toRecentOrder(order))
   }
 
-  async getLowStock(actor: SellerDashboardActor): Promise<SellerLowStockItemResponse[]> {
-    const shopIds = await this.getSellerShopIds(actor)
+  async getLowStock(actor: SellerDashboardActor, shopId?: string): Promise<SellerLowStockItemResponse[]> {
+    const shopIds = await this.getScopedSellerShopIds(actor, shopId)
     return this.toLowStockItems(await this.repo.findLowStockVariants(shopIds))
+  }
+
+  async getShopReviews(
+    actor: SellerDashboardActor,
+    input: { limit?: number; shopId?: string; status?: string },
+  ): Promise<SellerShopReviewResponse[]> {
+    const reviewLimit = this.normalizeReviewLimit(input.limit)
+    const shopIds = await this.getScopedSellerShopIds(actor, input.shopId)
+    const statuses = this.normalizeReviewStatuses(input.status)
+
+    if (this.cache && shopIds.length === 1) {
+      return this.cache.remember(
+        this.cache.keys.sellerDashboardInsights(shopIds[0]!, {
+          kind: 'shop-reviews',
+          limit: reviewLimit,
+          statuses,
+        }),
+        async () => {
+          const reviews = await this.repo.findRecentShopReviews(shopIds, reviewLimit, statuses)
+          return reviews.map((review) => this.toShopReview(review))
+        },
+        { ttlSeconds: this.cache.ttl().sellerDashboard },
+      )
+    }
+
+    const reviews = await this.repo.findRecentShopReviews(shopIds, reviewLimit, statuses)
+    return reviews.map((review) => this.toShopReview(review))
   }
 
   private async getSellerShopIds(actor: SellerDashboardActor): Promise<string[]> {
@@ -161,12 +234,37 @@ export class SellerDashboardService {
     return shops.map((shop) => shop.id)
   }
 
+  private async getScopedSellerShopIds(actor: SellerDashboardActor, shopId?: string): Promise<string[]> {
+    const shopIds = await this.getSellerShopIds(actor)
+    if (!shopId) return shopIds
+    if (!shopIds.includes(shopId)) {
+      throw new SellerDashboardServiceError('Seller shop scope is forbidden', 403, 'DASHBOARD_FORBIDDEN')
+    }
+    return [shopId]
+  }
+
   private normalizeLimit(limit: number | undefined): number {
     const value = limit ?? DEFAULT_RECENT_ORDER_LIMIT
     if (!Number.isInteger(value) || value < 1 || value > MAX_RECENT_ORDER_LIMIT) {
       throw new SellerDashboardServiceError(`Limit must be between 1 and ${MAX_RECENT_ORDER_LIMIT}`, 400, 'DASHBOARD_FORBIDDEN')
     }
     return value
+  }
+
+  private normalizeReviewLimit(limit: number | undefined): number {
+    const value = limit ?? DEFAULT_REVIEW_LIMIT
+    if (!Number.isInteger(value) || value < 1 || value > MAX_REVIEW_LIMIT) {
+      throw new SellerDashboardServiceError(`Review limit must be between 1 and ${MAX_REVIEW_LIMIT}`, 400, 'DASHBOARD_FORBIDDEN')
+    }
+    return value
+  }
+
+  private normalizeReviewStatuses(status?: string): Array<(typeof REVIEW_STATUSES)[number]> | undefined {
+    if (!status) return undefined
+    if (!REVIEW_STATUSES.includes(status as (typeof REVIEW_STATUSES)[number])) {
+      throw new SellerDashboardServiceError('Review status is invalid', 400, 'DASHBOARD_FORBIDDEN')
+    }
+    return [status as (typeof REVIEW_STATUSES)[number]]
   }
 
   private toSalesSummary(items: SellerSalesOrderItem[]): SellerSalesSummaryResponse {
@@ -230,5 +328,22 @@ export class SellerDashboardService {
           reorderLevel: inventory.reorderLevel,
         }
       })
+  }
+
+  private toShopReview(review: SellerDashboardShopReview): SellerShopReviewResponse {
+    return {
+      reviewId: review.id,
+      shopId: review.shopId,
+      shopName: review.shop.name,
+      shopSlug: review.shop.slug,
+      buyerId: review.user.id,
+      buyerName: review.user.name,
+      rating: review.rating,
+      comment: review.body,
+      status: review.status,
+      createdAt: review.createdAt,
+      moderatedAt: review.moderatedAt,
+      moderationReason: review.moderationReason,
+    }
   }
 }

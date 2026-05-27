@@ -381,6 +381,7 @@ export class CatalogService {
       }),
     )
     await this.cacheInvalidation?.invalidateProductListsAndSearch()
+    await this.invalidateSellerDashboardForShop(created.shopId)
     await this.publishBestEffort('product.created', created.id, actor.id, {
       productId: created.id,
       shopId: created.shopId,
@@ -419,6 +420,7 @@ export class CatalogService {
       }),
     )
     await this.cacheInvalidation?.invalidateProduct(updated.id)
+    await this.invalidateSellerDashboardForShop(updated.shopId)
     await this.publishBestEffort('product.updated', updated.id, actor.id, {
       productId: updated.id,
       shopId: updated.shopId,
@@ -432,6 +434,7 @@ export class CatalogService {
     const product = await this.getManageableProduct(actor, productId)
     const updated = await this.repo.updateProduct(product.id, { status: 'ARCHIVED' })
     await this.cacheInvalidation?.invalidateProduct(updated.id)
+    await this.invalidateSellerDashboardForShop(updated.shopId)
     await this.publishBestEffort('product.updated', updated.id, actor.id, {
       productId: updated.id,
       shopId: updated.shopId,
@@ -557,7 +560,7 @@ export class CatalogService {
   async createVariant(actor: CatalogActor, productId: string, data: CreateVariantData): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.createVariant', { actorId: actor.id, productId, sku: data.sku })
     this.validateVariantInput(data)
-    await this.getManageableProduct(actor, productId)
+    const product = await this.getManageableProduct(actor, productId)
 
     const variant = await this.handleUniqueConstraint(() =>
       this.repo.createVariant({
@@ -570,6 +573,7 @@ export class CatalogService {
       }),
     )
     await this.cacheInvalidation?.invalidateVariant(productId)
+    await this.invalidateSellerDashboardForShop(product.shopId)
     return variant
   }
 
@@ -579,7 +583,7 @@ export class CatalogService {
       throw new CatalogServiceError('At least one variant field is required', 400, 'VARIANT_VALIDATION_FAILED')
     }
     this.validateVariantUpdateInput(data)
-    await this.getManageableVariant(actor, productId, variantId)
+    const variant = await this.getManageableVariant(actor, productId, variantId)
 
     const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateVariant(variantId, {
@@ -591,14 +595,16 @@ export class CatalogService {
       }),
     )
     await this.cacheInvalidation?.invalidateVariant(productId)
+    await this.invalidateSellerDashboardForShop(variant.product.shopId)
     return updated
   }
 
   async deleteVariant(actor: CatalogActor, productId: string, variantId: string): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.deleteVariant', { actorId: actor.id, productId, variantId })
-    await this.getManageableVariant(actor, productId, variantId)
+    const variant = await this.getManageableVariant(actor, productId, variantId)
     const deleted = await this.repo.deleteVariant(variantId)
     await this.cacheInvalidation?.invalidateVariant(productId)
+    await this.invalidateSellerDashboardForShop(variant.product.shopId)
     return deleted
   }
 
@@ -622,10 +628,15 @@ export class CatalogService {
     }
     const variant = await this.repo.findVariantById(variantId)
     if (!variant) throw new CatalogServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
-    await this.getManageableProduct(actor, variant.productId)
+    const product = await this.getManageableProduct(actor, variant.productId)
     const inventory = await this.repo.updateVariantInventory(variantId, update)
     await this.cacheInvalidation?.invalidateVariant(variant.productId)
+    await this.invalidateSellerDashboardForShop(product.shopId)
     return inventory
+  }
+
+  private async invalidateSellerDashboardForShop(shopId: string): Promise<void> {
+    await this.cacheInvalidation?.invalidateSellerDashboard(shopId)
   }
 
   private async resolveSellerShop(actor: CatalogActor, requestedShopId?: string) {

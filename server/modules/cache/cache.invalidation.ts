@@ -32,7 +32,12 @@ export class CacheInvalidation {
   }
 
   async invalidateSellerDashboard(shopId: string): Promise<number> {
-    return this.cache.delete(this.cache.keys.sellerDashboard(shopId))
+    const prefix = this.prefix()
+    const deleted = await Promise.all([
+      this.cache.delete(this.cache.keys.sellerDashboard(shopId)),
+      this.cache.deleteByPattern(`${prefix}:seller:${shopId}:dashboard:insights:*`),
+    ])
+    return deleted.reduce((total, count) => total + count, 0)
   }
 
   private prefix(): string {

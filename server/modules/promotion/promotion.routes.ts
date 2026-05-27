@@ -61,21 +61,25 @@ export function createPromotionRoutes(container: ServiceContainer) {
     .get('/api/seller/coupons', ({ authContext }: any) =>
       container.promotionService.listSellerCoupons(authContext!.user), {
       withAuth: true,
+      withSellerOperational: true,
     })
     .post('/api/seller/coupons', ({ authContext, body }: any) =>
       container.promotionService.createSellerCoupon(authContext!.user, body), {
       withAuth: true,
+      withSellerOperational: true,
       body: CouponBodySchema,
     })
     .patch('/api/seller/coupons/:couponId', ({ authContext, params, body }: any) =>
       container.promotionService.updateSellerCoupon(authContext!.user, params.couponId, body), {
       withAuth: true,
+      withSellerOperational: true,
       params: CouponParamsSchema,
       body: UpdateCouponBodySchema,
     })
     .delete('/api/seller/coupons/:couponId', ({ authContext, params }: any) =>
       container.promotionService.deleteSellerCoupon(authContext!.user, params.couponId), {
       withAuth: true,
+      withSellerOperational: true,
       params: CouponParamsSchema,
     })
     .post('/api/admin/coupons', ({ authContext, body }: any) =>

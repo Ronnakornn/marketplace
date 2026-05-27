@@ -282,7 +282,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
             </>
           ) : (
             <Button asChild className="h-12 flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700">
-              <Link href={localePath("/seller/chat")}>{t("chat.sellerInbox")}</Link>
+              <Link href={localePath("/chat")}>{t("chat.inbox")}</Link>
             </Button>
           )}
         </div>

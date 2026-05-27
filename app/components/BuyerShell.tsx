@@ -9,7 +9,6 @@ import {
   FlameIcon,
   HomeIcon,
   LogOutIcon,
-  MessageCircleIcon,
   PackageIcon,
   SearchIcon,
   ShoppingBagIcon,
@@ -20,7 +19,6 @@ import {
 import { LanguageSwitcher } from "#/components/LanguageSwitcher";
 import { Input } from "#/components/ui/input";
 import { fetchCart, fetchNotifications } from "#/features/buyer/api";
-import { fetchChatRooms } from "#/features/chat/api";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { signOut, useSession } from "#/lib/auth-client";
@@ -54,19 +52,10 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
   const isSellerRoute = pathname.includes("/seller/");
   const notificationHref = isSellerRoute ? "/seller/notifications" : "/notifications";
   const canUseBuyerCart = Boolean(session && session.user.role !== "ADMIN");
-  const canUseChat = Boolean(session && session.user.role !== "ADMIN");
-  const chatHref = "/chat";
-  const sellerChatHref = "/seller/chat";
   const cartQuery = useQuery({
     queryKey: ["buyer-cart", locale],
     queryFn: () => fetchCart(locale),
     enabled: canUseBuyerCart,
-  });
-  const chatRoomsQuery = useQuery({
-    queryKey: ["chat-rooms", session?.user.role],
-    queryFn: fetchChatRooms,
-    enabled: canUseChat,
-    refetchInterval: 30_000,
   });
   const notificationsQuery = useQuery({
     queryKey: ["buyer-notifications"],
@@ -78,8 +67,7 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
     (total, shop) => total + shop.items.reduce((shopTotal, item) => shopTotal + item.quantity, 0),
     0,
   ) ?? 0;
-  const chatUnreadCount = chatRoomsQuery.data?.reduce((total, room) => total + room.unreadCount, 0) ?? 0;
-  const notificationUnreadCount = notificationsQuery.data?.filter((notification) => !notification.readAt && !isChatNotification(notification.type)).length ?? 0;
+  const notificationUnreadCount = notificationsQuery.data?.filter((notification) => !notification.readAt).length ?? 0;
 
   async function handleSignOut() {
     await signOut();
@@ -115,17 +103,6 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
           ) : null}
           <span className="sr-only">{t("common.notifications")}</span>
         </Link>
-        {canUseChat ? (
-          <Link href={localePath(chatHref)} className="relative flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
-            <MessageCircleIcon className="size-5" />
-            {chatUnreadCount > 0 ? (
-              <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
-                {chatUnreadCount > 99 ? "99+" : chatUnreadCount}
-              </span>
-            ) : null}
-            <span className="sr-only">{t("chat.messages")}</span>
-          </Link>
-        ) : null}
         {canUseBuyerCart ? (
           <Link href={localePath("/cart")} className="relative flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
             <ShoppingCartIcon className="size-5" />
@@ -143,12 +120,6 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
               <Link href={localePath("/seller/register")} prefetch={false} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 sm:flex">
                 <StoreIcon className="size-4" />
                 Start Selling
-              </Link>
-            ) : null}
-            {session.user.role !== "ADMIN" && !isSellerRoute ? (
-              <Link href={localePath(sellerChatHref)} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 lg:flex">
-                <StoreIcon className="size-4" />
-                Seller Chat
               </Link>
             ) : null}
             <Link href={localePath("/profile")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
@@ -187,10 +158,6 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
       </div>
     </header>
   );
-}
-
-function isChatNotification(type: string): boolean {
-  return type.toLowerCase().includes("chat");
 }
 
 export function MobileBottomNavigation() {

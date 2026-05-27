@@ -11,7 +11,7 @@ export interface SellerAccessState {
 }
 
 export function getSellerRouteKind(pathname: string): SellerRouteKind {
-  if (pathname === "/seller/register") return "register";
+  if (pathname === "/seller/register" || pathname.startsWith("/seller/register/")) return "register";
   if (pathname === "/seller/status") return "status";
   return "operational";
 }
@@ -20,7 +20,7 @@ export function getRequiredSellerPath(access: SellerAccessState): "/seller" | "/
   if (access.hasActiveShop) return "/seller";
 
   const status = access.application?.status;
-  if (status === "SUBMITTED" || status === "REJECTED" || status === "CANCELLED" || status === "APPROVED") {
+  if (status === "SUBMITTED" || status === "APPROVED") {
     return "/seller/status";
   }
 

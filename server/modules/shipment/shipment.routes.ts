@@ -30,10 +30,12 @@ export function createShipmentRoutes(container: ServiceContainer) {
     .get('/api/seller/shipments', ({ authContext }: any) =>
       container.shipmentService.listSellerShipments(authContext!.user), {
       withAuth: true,
+      withSellerOperational: true,
     })
     .get('/api/seller/shipments/:shipmentId', ({ authContext, params }: any) =>
       container.shipmentService.getSellerShipment(authContext!.user, params.shipmentId), {
       withAuth: true,
+      withSellerOperational: true,
       params: ShipmentParamsSchema,
     })
     .get('/api/shipments/:shipmentId/tracking', ({ authContext, params }: any) =>
@@ -44,17 +46,20 @@ export function createShipmentRoutes(container: ServiceContainer) {
     .patch('/api/seller/shipments/:shipmentId/pack', ({ authContext, params }: any) =>
       container.shipmentService.packSellerShipment(authContext!.user, params.shipmentId), {
       withAuth: true,
+      withSellerOperational: true,
       params: ShipmentParamsSchema,
     })
     .patch('/api/seller/shipments/:shipmentId/ship', ({ authContext, params, body }: any) =>
       container.shipmentService.shipSellerShipment(authContext!.user, params.shipmentId, body), {
       withAuth: true,
+      withSellerOperational: true,
       params: ShipmentParamsSchema,
       body: ShipShipmentBodySchema,
     })
     .patch('/api/seller/shipments/:shipmentId/deliver', ({ authContext, params }: any) =>
       container.shipmentService.deliverSellerShipment(authContext!.user, params.shipmentId), {
       withAuth: true,
+      withSellerOperational: true,
       params: ShipmentParamsSchema,
     })
 }

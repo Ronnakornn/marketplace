@@ -385,6 +385,17 @@
                   "shop":  "ร้านค้า",
                   "shopOwner":  "เจ้าของร้าน",
                   "status":  "สถานะ",
+                  "sellerApplications":  {
+                                             "approveDocument":  "อนุมัติเอกสาร",
+                                             "rejectDocument":  "ปฏิเสธเอกสาร",
+                                             "documentReviewSaved":  "บันทึกการตรวจเอกสารเรียบร้อยแล้ว",
+                                             "operationFailed":  "การดำเนินการล้มเหลว",
+                                             "unresolvedRequiredDocuments":  "ยังมีเอกสารที่จำเป็นต้องอนุมัติ:",
+                                             "rejectDocumentTitle":  "ปฏิเสธเอกสารผู้ขาย",
+                                             "rejectDocumentDescription":  "โปรดระบุเหตุผลสำหรับเอกสารนี้",
+                                             "rejectDocumentPlaceholder":  "อธิบายสิ่งที่ต้องแก้ไขในเอกสารนี้",
+                                             "rejectionReasonRequired":  "ต้องระบุเหตุผลการปฏิเสธ"
+                                         },
                   "toggleSidebar":  "เปิด/ปิดแถบด้านข้าง",
                   "user":  "ผู้ใช้",
                   "variantDataTable":  "ตารางข้อมูลตัวเลือกสินค้า",
@@ -394,7 +405,82 @@
                   "you":  "คุณ"
               },
     "seller":  {
-                   "dashboard":  "แดชบอร์ดผู้ขาย"
+                   "dashboard":  "แดชบอร์ดผู้ขาย",
+                   "manage":  {
+                                  "dashboardTitle":  "แดชบอร์ด",
+                                  "dashboardDescription":  "ติดตามงานแพ็กและจัดส่ง สต็อกต่ำ รีวิวร้าน และการตั้งค่าการขาย",
+                                  "cards":  {
+                                                "todaySales":  "ยอดขายวันนี้",
+                                                "monthSales":  "ยอดขายเดือนนี้",
+                                                "pendingPack":  "รอแพ็ก",
+                                                "lowStock":  "สต็อกต่ำ"
+                                            },
+                                  "lowStockTitle":  "แจ้งเตือนสต็อกต่ำ",
+                                  "recentOrdersTitle":  "คำสั่งซื้อล่าสุด",
+                                  "availableLabel":  "คงเหลือ",
+                                  "restock":  "เติมสต็อก",
+                                  "itemsLabel":  "รายการ",
+                                  "loadingAlerts":  "กำลังโหลดการแจ้งเตือน...",
+                                  "noLowStock":  "ไม่มีสินค้าที่สต็อกต่ำ",
+                                  "loadingOrders":  "กำลังโหลดคำสั่งซื้อ...",
+                                  "noRecentOrders":  "ยังไม่มีคำสั่งซื้อล่าสุด",
+                                  "shopInsightsTitle":  "ข้อมูลเชิงลึกร้านค้า",
+                                  "avgRating":  "คะแนนเฉลี่ย",
+                                  "publishedReviews":  "รีวิวที่เผยแพร่",
+                                  "pendingModeration":  "รอตรวจสอบ",
+                                  "recentShopReviewsTitle":  "รีวิวร้านล่าสุด",
+                                  "loadingReviews":  "กำลังโหลดรีวิว...",
+                                  "reviewsLoadError":  "ไม่สามารถโหลดรีวิวได้",
+                                  "noReviewsYet":  "ยังไม่มีรีวิวร้าน",
+                                  "noReviewComment":  "ไม่มีความคิดเห็น",
+                                  "reviewModerationReason":  "เหตุผลการตรวจสอบ",
+                                  "noModerationReason":  "ไม่มีเหตุผลประกอบ",
+                                  "reviewStatus":  {
+                                                       "pending":  "รอตรวจสอบ",
+                                                       "published":  "เผยแพร่แล้ว",
+                                                       "rejected":  "ไม่อนุมัติ",
+                                                       "hidden":  "ซ่อน"
+                                                   },
+                                  "profileAndStaffTitle":  "โปรไฟล์ร้านและทีมงาน",
+                                  "noShopContext":  "ยังไม่ได้เลือกร้านที่ใช้งาน",
+                                  "loadingShopProfile":  "กำลังโหลดข้อมูลร้าน...",
+                                  "shopProfileLoadError":  "ไม่สามารถโหลดโปรไฟล์หรือการตั้งค่าร้านได้",
+                                  "shopProfileLabel":  "โปรไฟล์ร้าน",
+                                  "shopSettingsLabel":  "การตั้งค่าร้าน",
+                                  "enableVacation":  "เปิดโหมดพักร้าน",
+                                  "disableVacation":  "ปิดโหมดพักร้าน",
+                                  "enableChat":  "เปิดแชท",
+                                  "disableChat":  "ปิดแชท",
+                                  "shopSettingsSaved":  "บันทึกการตั้งค่าร้านแล้ว",
+                                  "shopSettingsFailed":  "ไม่สามารถบันทึกการตั้งค่าร้านได้",
+                                  "staffTitle":  "การจัดการทีมงาน",
+                                  "staffDescription":  "ฟีเจอร์เชิญพนักงานและกำหนดสิทธิ์อยู่ในช่วงวางรากฐาน สามารถติดตามความพร้อมได้จากส่วนนี้",
+                                  "staffStatus":  {
+                                                       "owner":  "สิทธิ์เจ้าของร้านพร้อมใช้งาน",
+                                                       "comingSoon":  "ระบบทีมงานจะพร้อมใช้งานเร็วๆ นี้"
+                                                   },
+                                  "retry":  "ลองใหม่"
+                              },
+                   "kyc":  {
+                               "required":  "จำเป็น",
+                               "optional":  "ไม่บังคับ",
+                               "uploading":  "กำลังอัปโหลด...",
+                               "uploadId":  "รหัสอัปโหลด:",
+                               "reviewLabel":  "ผลตรวจ:",
+                               "rejectionReason":  "เหตุผล:",
+                               "requiredBeforeSubmit":  "เอกสารนี้จำเป็นก่อนส่งคำขอตรวจ",
+                               "reviewStatus":  {
+                                                    "pending":  "รอตรวจ",
+                                                    "approved":  "อนุมัติ",
+                                                    "rejected":  "ปฏิเสธ"
+                                                },
+                               "documentType":  {
+                                                    "idCard":  "บัตรประชาชน",
+                                                    "businessCertificate":  "หนังสือรับรองบริษัท",
+                                                    "bankBook":  "สมุดบัญชีธนาคาร",
+                                                    "taxDocument":  "เอกสารภาษี"
+                                                }
+                           }
                },
     "ui":  {
                "close":  "ปิด",

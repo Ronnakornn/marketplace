@@ -13,6 +13,8 @@ import { uploadSellerFile, type SellerCompletedUpload, type SellerUploadUsage } 
 export const SELLER_PAGE_SIZE = 20;
 
 export type SellerDashboard = Treaty.Data<ReturnType<typeof api.api.seller.dashboard.get>>;
+export type SellerShopList = Treaty.Data<ReturnType<typeof api.api.seller.shops.get>>;
+export type SellerShopSummary = SellerShopList extends { shops: Array<infer T> } ? T : never;
 export type SellerProductsResponse = Treaty.Data<ReturnType<typeof api.api.seller.products.get>>;
 export type SellerProduct = SellerProductsResponse extends { data: Array<infer T> } ? T : never;
 export type SellerCategory = Treaty.Data<ReturnType<typeof api.api.categories.get>> extends Array<infer T> ? T : never;
@@ -33,6 +35,34 @@ export interface ProductFilters {
   categoryId?: string;
   cursor?: string;
   limit?: number;
+}
+
+export interface SellerDashboardReviewFilters {
+  shopId?: string;
+  status?: "PENDING" | "PUBLISHED" | "REJECTED" | "HIDDEN";
+  limit?: number;
+}
+
+export interface SellerShopProfileUpdateInput {
+  name?: string;
+  slug?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  description?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
+}
+
+export interface SellerShopSettingsUpdateInput {
+  autoAcceptOrder?: boolean;
+  allowCod?: boolean;
+  chatEnabled?: boolean;
+  vacationMode?: boolean;
+  defaultShippingProvider?: string | null;
+  returnPolicy?: string | null;
+  shippingPolicy?: string | null;
 }
 
 export interface SellerProductInput {
@@ -132,13 +162,103 @@ function cleanProductFilters(filters: ProductFilters = {}) {
   );
 }
 
-export function useSellerDashboard() {
+export function useSellerDashboard(shopId?: string) {
   return useQuery({
-    queryKey: sellerKey("dashboard"),
+    queryKey: sellerKey("dashboard", { shopId: shopId ?? null }),
     queryFn: async () => {
-      const { data, error } = await api.api.seller.dashboard.get();
+      const { data, error } = shopId
+        ? await api.api.seller.dashboard.get({ query: { shopId } })
+        : await api.api.seller.dashboard.get();
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+export function useSellerDashboardReviews(filters: SellerDashboardReviewFilters = {}) {
+  const normalized = {
+    shopId: filters.shopId || undefined,
+    status: filters.status || undefined,
+    limit: filters.limit,
+  };
+
+  return useQuery({
+    queryKey: sellerKey("dashboard-reviews", normalized),
+    queryFn: async () => {
+      const { data, error } = await api.api.seller.dashboard["shop-reviews"].get({
+        query: Object.fromEntries(Object.entries(normalized).filter(([, value]) => value !== undefined)),
+      });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useSellerShopList() {
+  return useQuery({
+    queryKey: sellerKey("shops"),
+    queryFn: async () => {
+      const { data, error } = await api.api.seller.shops.get();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useSellerShopProfile(shopId?: string) {
+  return useQuery({
+    queryKey: sellerKey("shop-profile", { shopId: shopId ?? null }),
+    enabled: Boolean(shopId),
+    queryFn: async () => {
+      if (!shopId) throw new Error("Shop is required.");
+      const { data, error } = await api.api.seller.shops({ shopId }).profile.get();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useSellerShopSettings(shopId?: string) {
+  return useQuery({
+    queryKey: sellerKey("shop-settings", { shopId: shopId ?? null }),
+    enabled: Boolean(shopId),
+    queryFn: async () => {
+      if (!shopId) throw new Error("Shop is required.");
+      const { data, error } = await api.api.seller.shops({ shopId }).settings.get();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useUpdateSellerShopProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ shopId, ...input }: { shopId: string } & SellerShopProfileUpdateInput) => {
+      const { data, error } = await api.api.seller.shops({ shopId }).profile.patch(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: sellerKey("shop-profile", { shopId: variables.shopId }) });
+      await queryClient.invalidateQueries({ queryKey: sellerKey("shops") });
+    },
+  });
+}
+
+export function useUpdateSellerShopSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ shopId, ...input }: { shopId: string } & SellerShopSettingsUpdateInput) => {
+      const { data, error } = await api.api.seller.shops({ shopId }).settings.patch(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: sellerKey("shop-settings", { shopId: variables.shopId }) });
+      await queryClient.invalidateQueries({ queryKey: sellerKey("dashboard") });
     },
   });
 }

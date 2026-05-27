@@ -1,4 +1,4 @@
-import { SellerPromotionsPage } from "#/features/seller";
+import { SellerPromotionsPage } from "#/features/seller/components/SellerManagePages";
 import { enforceSellerRoute } from "#/lib/seller-route-guard";
 
 export default async function SellerPromotionsRoute({ params }: { params: Promise<{ locale: string }> }) {

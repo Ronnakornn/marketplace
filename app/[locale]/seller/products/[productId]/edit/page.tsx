@@ -1,4 +1,4 @@
-import { SellerProductEditPage } from "#/features/seller";
+import { SellerProductEditPage } from "#/features/seller/components/SellerProductPages";
 import { enforceSellerRoute } from "#/lib/seller-route-guard";
 
 export default async function SellerProductEditRoute({ params }: { params: Promise<{ locale: string; productId: string }> }) {

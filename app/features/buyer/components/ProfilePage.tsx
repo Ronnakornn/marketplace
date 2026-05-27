@@ -165,7 +165,7 @@ function SellerAccountStatusCard({
             <Link href={localePath(primaryHref)}><StoreIcon className="size-4" />{primaryLabel}</Link>
           </Button>
           <Button asChild variant="outline" className="rounded-full bg-white/70">
-            <Link href={localePath("/seller/chat")}><MessageCircleIcon className="size-4" />Seller chat</Link>
+            <Link href={localePath("/chat")}><MessageCircleIcon className="size-4" />Buyer chat</Link>
           </Button>
         </div>
       </div>
