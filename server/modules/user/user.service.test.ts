@@ -54,6 +54,8 @@ function createUser(overrides: Partial<{
     role: overrides.role ?? "USER",
     status: overrides.status ?? "ACTIVE",
     emailVerified: false,
+    phone: null,
+    phoneVerified: false,
     image: null,
     createdAt: now,
     updatedAt: now,

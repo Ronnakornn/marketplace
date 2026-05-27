@@ -24,6 +24,17 @@ export const auth = betterAuth({
         defaultValue: "ACTIVE",
         input: false,
       },
+      phone: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+      phoneVerified: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+        input: false,
+      },
     },
   },
   session: {
