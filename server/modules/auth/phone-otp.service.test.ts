@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { PhoneOtpChallenge, User } from '#generated/client/client.ts'
+import type { PhoneOtpChallenge, Session, User } from '#generated/client/client.ts'
 import type { PhoneOtpPurpose, Role, UserStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import {
@@ -71,6 +71,13 @@ class InMemoryPhoneOtpRepository implements IPhoneOtpRepository {
     return challenge
   }
 
+  async revokeChallenge(id: string): Promise<PhoneOtpChallenge> {
+    const challenge = this.findChallenge(id)
+    challenge.revokedAt = new Date()
+    challenge.updatedAt = new Date()
+    return challenge
+  }
+
   async revokeActiveChallenges(phone: string, purpose: PhoneOtpPurpose): Promise<void> {
     const now = new Date()
     for (const challenge of this.challenges) {
@@ -80,8 +87,34 @@ class InMemoryPhoneOtpRepository implements IPhoneOtpRepository {
     }
   }
 
+  async findPendingSignupChallenge(id: string, phone: string): Promise<PhoneOtpChallenge | null> {
+    return this.challenges.find((challenge) =>
+      challenge.id === id
+      && challenge.phone === phone
+      && challenge.purpose === 'PHONE_LOGIN'
+      && challenge.consumedAt !== null
+      && challenge.revokedAt === null) ?? null
+  }
+
   async findUserByPhone(phone: string): Promise<User | null> {
     return this.users.find((user) => user.phone === phone) ?? null
+  }
+
+  async findUserByEmail(email: string): Promise<User | null> {
+    return this.users.find((user) => user.email === email) ?? null
+  }
+
+  async createEmailPasswordUser(input: { email: string; name: string; password: string }): Promise<User> {
+    void input.password
+    return this.addUser({
+      email: input.email,
+      name: input.name,
+      emailVerified: false,
+      phone: null,
+      phoneVerified: false,
+      role: 'USER' as Role,
+      status: 'ACTIVE' as UserStatus,
+    })
   }
 
   async linkPhoneToUser(userId: string, phone: string): Promise<User> {
@@ -91,6 +124,33 @@ class InMemoryPhoneOtpRepository implements IPhoneOtpRepository {
     user.phoneVerified = true
     user.updatedAt = new Date()
     return user
+  }
+
+  async setVerifiedPhone(userId: string, phone: string): Promise<User> {
+    const user = this.users.find((candidate) => candidate.id === userId)
+    if (!user) throw new Error('User not found')
+    user.phone = phone
+    user.phoneVerified = true
+    user.role = 'USER' as Role
+    user.status = 'ACTIVE' as UserStatus
+    user.updatedAt = new Date()
+    return user
+  }
+
+  async createSession(userId: string): Promise<Session> {
+    const now = new Date()
+    return {
+      id: `session-${userId}`,
+      userId,
+      token: `token-${userId}`,
+      expiresAt: new Date(now.getTime() + 86_400_000),
+      createdAt: now,
+      updatedAt: now,
+      ipAddress: '',
+      userAgent: '',
+      deviceId: null,
+      revokedAt: null,
+    }
   }
 
   addUser(overrides: Partial<User>): User {
@@ -216,11 +276,127 @@ describe('PhoneOtpService', () => {
     await service.requestLoginOrSignupOtp('+66812345678')
 
     await expect(service.verifyLoginOrSignupOtp('+66812345678', createDeterministicPhoneOtp('+66812345678', 'PHONE_LOGIN')))
-      .resolves.toEqual({
+      .resolves.toMatchObject({
         success: true,
         state: 'LOGIN_READY',
         phone: '+66812345678',
+        token: 'token-user-1',
+        user: {
+          id: 'user-1',
+          phone: '+66812345678',
+          phoneVerified: true,
+        },
       })
+  })
+
+  it('rejects phone login for unverified phone users', async () => {
+    repo.addUser({ phone: '+66812345678', phoneVerified: false })
+    await service.requestLoginOrSignupOtp('+66812345678')
+
+    await expect(service.verifyLoginOrSignupOtp('+66812345678', createDeterministicPhoneOtp('+66812345678', 'PHONE_LOGIN')))
+      .rejects.toMatchObject({
+        status: 403,
+        message: 'Phone is not verified for login',
+      })
+  })
+
+  it('rejects phone login for suspended users', async () => {
+    repo.addUser({ phone: '+66812345678', phoneVerified: true, status: 'SUSPENDED' as UserStatus })
+    await service.requestLoginOrSignupOtp('+66812345678')
+
+    await expect(service.verifyLoginOrSignupOtp('+66812345678', createDeterministicPhoneOtp('+66812345678', 'PHONE_LOGIN')))
+      .rejects.toMatchObject({
+        status: 403,
+        message: 'Account is suspended',
+      })
+  })
+
+  it('returns pending signup state for new verified phones', async () => {
+    const request = await service.requestLoginOrSignupOtp('+66812345678')
+
+    await expect(service.verifyLoginOrSignupOtp('+66812345678', createDeterministicPhoneOtp('+66812345678', 'PHONE_LOGIN')))
+      .resolves.toMatchObject({
+        success: true,
+        state: 'SIGNUP_REQUIRED',
+        phone: '+66812345678',
+        pendingSignupToken: request.challengeId,
+      })
+  })
+
+  it('completes signup from pending phone state', async () => {
+    const request = await service.requestLoginOrSignupOtp('+66812345678')
+    await service.verifyLoginOrSignupOtp('+66812345678', createDeterministicPhoneOtp('+66812345678', 'PHONE_LOGIN'))
+
+    await expect(service.completePhoneSignup({
+      phone: '+66812345678',
+      pendingSignupToken: request.challengeId,
+      email: 'new@example.com',
+      name: 'New User',
+      password: 'password123',
+    })).resolves.toMatchObject({
+      success: true,
+      token: 'token-user-1',
+      user: {
+        email: 'new@example.com',
+        phone: '+66812345678',
+        phoneVerified: true,
+        emailVerified: false,
+        role: 'USER',
+        status: 'ACTIVE',
+      },
+    })
+    expect(repo.findChallengeForTest(request.challengeId).revokedAt).toBeInstanceOf(Date)
+  })
+
+  it('rejects duplicate phone during complete signup', async () => {
+    const request = await service.requestLoginOrSignupOtp('+66812345678')
+    await service.verifyLoginOrSignupOtp('+66812345678', createDeterministicPhoneOtp('+66812345678', 'PHONE_LOGIN'))
+    repo.addUser({ phone: '+66812345678', phoneVerified: true })
+
+    await expect(service.completePhoneSignup({
+      phone: '+66812345678',
+      pendingSignupToken: request.challengeId,
+      email: 'new@example.com',
+      name: 'New User',
+      password: 'password123',
+    })).rejects.toMatchObject({
+      status: 409,
+      message: 'Phone is already in use',
+    })
+  })
+
+  it('rejects duplicate email during complete signup', async () => {
+    repo.addUser({ email: 'taken@example.com' })
+    const request = await service.requestLoginOrSignupOtp('+66812345678')
+    await service.verifyLoginOrSignupOtp('+66812345678', createDeterministicPhoneOtp('+66812345678', 'PHONE_LOGIN'))
+
+    await expect(service.completePhoneSignup({
+      phone: '+66812345678',
+      pendingSignupToken: request.challengeId,
+      email: 'taken@example.com',
+      name: 'New User',
+      password: 'password123',
+    })).rejects.toMatchObject({
+      status: 409,
+      message: 'Email is already in use',
+    })
+  })
+
+  it('rejects expired or reused pending signup state', async () => {
+    const request = await service.requestLoginOrSignupOtp('+66812345678')
+    await service.verifyLoginOrSignupOtp('+66812345678', createDeterministicPhoneOtp('+66812345678', 'PHONE_LOGIN'))
+    repo.findChallengeForTest(request.challengeId).expiresAt = new Date(Date.now() - 1_000)
+
+    await expect(service.completePhoneSignup({
+      phone: '+66812345678',
+      pendingSignupToken: request.challengeId,
+      email: 'new@example.com',
+      name: 'New User',
+      password: 'password123',
+    })).rejects.toMatchObject({
+      status: 400,
+      message: 'Pending phone signup has expired',
+    })
   })
 
   it('links a verified phone to the authenticated user', async () => {

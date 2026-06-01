@@ -1,4 +1,4 @@
-import type { PhoneOtpChallenge } from '#generated/client/client.ts'
+import type { PhoneOtpChallenge, User } from '#generated/client/client.ts'
 import type { PhoneOtpPurpose } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -26,10 +26,47 @@ export interface RequestPhoneOtpResult {
 
 export type VerifyPhoneOtpState = 'LOGIN_READY' | 'SIGNUP_REQUIRED' | 'PHONE_LINKED'
 
-export interface VerifyPhoneOtpResult {
+export interface PublicAuthUser {
+  id: string
+  email: string
+  name: string
+  role: string
+  status: string
+  emailVerified: boolean
+  phone: string | null
+  phoneVerified: boolean
+}
+
+export type VerifyPhoneOtpResult = {
   success: true
-  state: VerifyPhoneOtpState
+  state: 'SIGNUP_REQUIRED'
   phone: string
+  pendingSignupToken: string
+  expiresAt: Date
+} | {
+  success: true
+  state: 'LOGIN_READY'
+  phone: string
+  token: string
+  user: PublicAuthUser
+} | {
+  success: true
+  state: 'PHONE_LINKED'
+  phone: string
+}
+
+export interface CompletePhoneSignupInput {
+  phone: string
+  pendingSignupToken: string
+  email: string
+  name: string
+  password: string
+}
+
+export interface CompletePhoneSignupResult {
+  success: true
+  token: string
+  user: PublicAuthUser
 }
 
 export class PhoneOtpService {
@@ -58,10 +95,56 @@ export class PhoneOtpService {
       if (user.status === 'SUSPENDED') {
         throw new PhoneOtpServiceError('Account is suspended', 403)
       }
-      return { success: true, state: 'LOGIN_READY', phone: normalizedPhone }
+      const session = await this.repo.createSession(user.id)
+      return {
+        success: true,
+        state: 'LOGIN_READY',
+        phone: normalizedPhone,
+        token: session.token,
+        user: this.toPublicAuthUser(user),
+      }
     }
 
-    return { success: true, state: 'SIGNUP_REQUIRED', phone: normalizedPhone }
+    if (user && !user.phoneVerified) {
+      throw new PhoneOtpServiceError('Phone is not verified for login', 403)
+    }
+
+    return {
+      success: true,
+      state: 'SIGNUP_REQUIRED',
+      phone: normalizedPhone,
+      pendingSignupToken: challenge.id,
+      expiresAt: challenge.expiresAt,
+    }
+  }
+
+  async completePhoneSignup(input: CompletePhoneSignupInput): Promise<CompletePhoneSignupResult> {
+    const phone = this.normalizePhone(input.phone)
+    const email = this.normalizeEmail(input.email)
+    const name = this.normalizeRequiredText(input.name, 'Name')
+    const password = this.normalizePassword(input.password)
+    const token = this.normalizeRequiredText(input.pendingSignupToken, 'Pending signup token')
+
+    const challenge = await this.repo.findPendingSignupChallenge(token, phone)
+    if (!challenge || challenge.expiresAt <= new Date()) {
+      throw new PhoneOtpServiceError('Pending phone signup has expired', 400)
+    }
+    if (await this.repo.findUserByPhone(phone)) {
+      throw new PhoneOtpServiceError('Phone is already in use', 409)
+    }
+    if (await this.repo.findUserByEmail(email)) {
+      throw new PhoneOtpServiceError('Email is already in use', 409)
+    }
+
+    const created = await this.repo.createEmailPasswordUser({ name, email, password })
+    const user = await this.repo.setVerifiedPhone(created.id, phone)
+    await this.repo.revokeChallenge(challenge.id)
+    const session = await this.repo.createSession(user.id)
+    return {
+      success: true,
+      token: session.token,
+      user: this.toPublicAuthUser(user),
+    }
   }
 
   async requestPhoneLinkOtp(userId: string, phone: string): Promise<RequestPhoneOtpResult> {
@@ -166,4 +249,41 @@ export class PhoneOtpService {
     }
     return normalized
   }
+
+  private normalizeEmail(value: string): string {
+    const email = this.normalizeRequiredText(value, 'Email').toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new PhoneOtpServiceError('Email is invalid', 400)
+    }
+    return email
+  }
+
+  private normalizePassword(value: string): string {
+    if (value.length < 8) {
+      throw new PhoneOtpServiceError('Password must be at least 8 characters', 400)
+    }
+    return value
+  }
+
+  private normalizeRequiredText(value: string, label: string): string {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      throw new PhoneOtpServiceError(`${label} is required`, 400)
+    }
+    return trimmed
+  }
+
+  private toPublicAuthUser(user: User): PublicAuthUser {
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+      emailVerified: user.emailVerified,
+      phone: user.phone,
+      phoneVerified: user.phoneVerified,
+    }
+  }
+
 }
