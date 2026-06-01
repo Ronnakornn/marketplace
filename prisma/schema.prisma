@@ -25,6 +25,12 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum PhoneOtpPurpose {
+  PHONE_LOGIN
+  PHONE_SIGNUP
+  PHONE_LINK
+}
+
 enum ShopStatus {
   PENDING
   ACTIVE
@@ -566,6 +572,26 @@ model Verification {
   expiresAt  DateTime
   createdAt  DateTime? @default(now())
   updatedAt  DateTime? @updatedAt
+}
+
+model PhoneOtpChallenge {
+  id                String          @id @default(uuid()) @db.Uuid
+  phone             String          @db.VarChar(32)
+  purpose           PhoneOtpPurpose
+  otpHash           String
+  attempts          Int             @default(0)
+  maxAttempts       Int             @default(5)
+  resendAvailableAt DateTime
+  expiresAt         DateTime
+  consumedAt        DateTime?
+  revokedAt         DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([phone])
+  @@index([purpose])
+  @@index([expiresAt])
+  @@index([phone, purpose, consumedAt, revokedAt, expiresAt])
 }
 
 model Shop {
