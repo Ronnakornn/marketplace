@@ -14,6 +14,29 @@ export function getSocialProviderAvailability(env: NodeJS.ProcessEnv = process.e
   };
 }
 
+type SocialEmailProfile = {
+  email?: string | null;
+  email_verified?: boolean;
+  emailVerified?: boolean;
+};
+
+export function requireVerifiedSocialEmail(profile: SocialEmailProfile) {
+  const email = profile.email?.trim();
+  const emailVerified = profile.emailVerified === true || profile.email_verified === true;
+
+  if (!email || !emailVerified) {
+    return {
+      email: null,
+      emailVerified: false,
+    };
+  }
+
+  return {
+    email,
+    emailVerified: true,
+  };
+}
+
 function createSocialProviders(env: NodeJS.ProcessEnv = process.env) {
   const availability = getSocialProviderAvailability(env);
 
@@ -23,6 +46,7 @@ function createSocialProviders(env: NodeJS.ProcessEnv = process.env) {
           google: {
             clientId: env.GOOGLE_CLIENT_ID!.trim(),
             clientSecret: env.GOOGLE_CLIENT_SECRET!.trim(),
+            mapProfileToUser: requireVerifiedSocialEmail,
           },
         }
       : {}),
@@ -31,6 +55,8 @@ function createSocialProviders(env: NodeJS.ProcessEnv = process.env) {
           facebook: {
             clientId: env.FACEBOOK_CLIENT_ID!.trim(),
             clientSecret: env.FACEBOOK_CLIENT_SECRET!.trim(),
+            fields: ["email_verified"],
+            mapProfileToUser: requireVerifiedSocialEmail,
           },
         }
       : {}),
@@ -75,6 +101,14 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
+  },
+  account: {
+    accountLinking: {
+      allowDifferentEmails: false,
+      disableImplicitLinking: false,
+      requireLocalEmailVerified: true,
+      trustedProviders: [],
+    },
   },
   advanced: {
     database: {

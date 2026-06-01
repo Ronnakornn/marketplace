@@ -44,7 +44,7 @@ describe("auth social provider configuration", () => {
   });
 
   it("configures only providers with complete credentials", async () => {
-    const { getSocialProviderAvailability, auth } = await importAuthWithEnv({
+    const { getSocialProviderAvailability, auth, requireVerifiedSocialEmail } = await importAuthWithEnv({
       GOOGLE_CLIENT_ID: " google-id ",
       GOOGLE_CLIENT_SECRET: " google-secret ",
       FACEBOOK_CLIENT_ID: "facebook-id",
@@ -59,11 +59,41 @@ describe("auth social provider configuration", () => {
       google: {
         clientId: "google-id",
         clientSecret: "google-secret",
+        mapProfileToUser: requireVerifiedSocialEmail,
       },
       facebook: {
         clientId: "facebook-id",
         clientSecret: "facebook-secret",
+        fields: ["email_verified"],
+        mapProfileToUser: requireVerifiedSocialEmail,
       },
+    });
+    expect(auth.options.account.accountLinking).toEqual({
+      allowDifferentEmails: false,
+      disableImplicitLinking: false,
+      requireLocalEmailVerified: true,
+      trustedProviders: [],
+    });
+  });
+
+  it("accepts social profiles only when the provider email is verified", async () => {
+    const { requireVerifiedSocialEmail } = await importAuthWithEnv({});
+
+    expect(requireVerifiedSocialEmail({ email: " user@example.com ", email_verified: true })).toEqual({
+      email: "user@example.com",
+      emailVerified: true,
+    });
+    expect(requireVerifiedSocialEmail({ email: "user@example.com", emailVerified: true })).toEqual({
+      email: "user@example.com",
+      emailVerified: true,
+    });
+    expect(requireVerifiedSocialEmail({ email: "user@example.com", email_verified: false })).toEqual({
+      email: null,
+      emailVerified: false,
+    });
+    expect(requireVerifiedSocialEmail({ email_verified: true })).toEqual({
+      email: null,
+      emailVerified: false,
     });
   });
 });

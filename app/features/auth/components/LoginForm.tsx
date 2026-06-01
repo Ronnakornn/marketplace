@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "#/lib/auth-client";
+import { resolveNextPath } from "../redirect";
 
 export function LoginForm({ nextPath }: { nextPath?: string | null }) {
   const router = useRouter();
@@ -120,10 +121,4 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
       </div>
     </div>
   );
-}
-
-function resolveNextPath(next: string | null) {
-  if (!next?.startsWith("/")) return "/";
-  if (next.startsWith("//")) return "/";
-  return next;
 }
