@@ -18,10 +18,13 @@ Seller authorization must not depend on a user role. A seller is a user who owns
 
 - Guest can browse public buyer routes.
 - Buyer auth is required for cart persistence, checkout, orders, reviews, returns/refunds, chat, and account.
+- Verified email is required for trusted protected marketplace flows and admin access.
+- Suspended users are blocked at the auth boundary.
 - Seller onboarding/status requires authentication.
 - Seller operations require authentication plus an `ACTIVE` shop where `Shop.ownerId` equals the authenticated user id.
 - Admin role is required for admin routes.
 - Provider webhooks use signature verification, not user sessions.
+- Phone is profile identity data only in Auth v1; phone login and phone verification are not enabled.
 
 ## Route Protection
 
@@ -29,12 +32,12 @@ Seller authorization must not depend on a user role. A seller is a user who owns
 | --- | --- |
 | Home/search/category/product detail | Public |
 | Cart | Authenticated user |
-| Checkout | Authenticated user |
+| Checkout | Verified authenticated user |
 | Payment return | Buyer |
 | Orders/reviews/returns/account/chat | Authenticated user |
 | Seller onboarding/status | Authenticated user |
 | Seller dashboard/products/inventory/orders | Active shop owner |
-| Admin users/shops/products/orders/refunds/reports | Admin |
+| Admin users/shops/products/orders/refunds/reports | Verified admin |
 | Payment webhook | Provider signature |
 | Shipping webhook | Provider signature |
 

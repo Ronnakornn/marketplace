@@ -8,6 +8,9 @@ erDiagram
     string name
     string role
     string status
+    boolean emailVerified
+    string phone UK
+    boolean phoneVerified
     datetime createdAt
     datetime updatedAt
   }
@@ -465,6 +468,7 @@ erDiagram
 
 Notes:
 - `USER.role` contains only `USER` and `ADMIN`; seller capability is modeled through `SELLER_PROFILE`, `SELLER_APPLICATION`, shop ownership, and active `SHOP_STAFF` membership.
+- `USER.emailVerified` gates verified-only marketplace and admin flows. `USER.phone` is normalized profile identity data, unique when present; `USER.phoneVerified` defaults to false and does not enable phone login in Auth v1.
 - Seller onboarding starts with `SELLER_APPLICATION`, may create or link a `SELLER_PROFILE`, stores KYC evidence through `SELLER_KYC_DOCUMENT`, and creates a `SHOP` once approved.
 - Active shop ownership is `SHOP.ownerId` plus `SHOP.sellerProfileId`; staff access is represented separately by `SHOP_STAFF` and `SHOP_STAFF_PERMISSION`.
 - Money values are stored as `BigInt` minor units in fields such as `price`, `subtotal`, `grandTotal`, `amount`, `unitPrice`, and `lineTotal`.
