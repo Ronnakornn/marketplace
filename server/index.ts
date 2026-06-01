@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { authPlugin } from "#server/modules/auth";
+import { createPhoneOtpRoutes } from "#server/modules/auth";
 import { createContainer } from "#server/context/app-context";
 import { createAuditLogRoutes } from "#server/modules/audit-log";
 import { getSecurityConfigFromEnv } from "#server/modules/security";
@@ -102,6 +103,9 @@ const baseApp = new Elysia()
 
   // --- Better Auth handler + auth macro ---
   .use(authPlugin)
+
+  // --- Phone OTP auth routes ---
+  .use(createPhoneOtpRoutes(container))
 
   // --- Audit log admin routes ---
   .use(createAuditLogRoutes(container))

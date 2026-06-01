@@ -5,6 +5,12 @@ export type { SocialProviderAvailability } from "./auth.ts";
 export { authPlugin } from "./auth-plugin.ts";
 export { getAuthContext } from "./auth.context.ts";
 export type { AuthContext, SessionUser } from "./auth.context.ts";
+export { PhoneOtpServiceError } from "./phone-otp.errors.ts";
+export { PrismaPhoneOtpRepository } from "./phone-otp.repository.ts";
+export type { CreatePhoneOtpChallengeData, IPhoneOtpRepository } from "./phone-otp.repository.ts";
+export { PhoneOtpService } from "./phone-otp.service.ts";
+export type { RequestPhoneOtpResult, VerifyPhoneOtpResult, VerifyPhoneOtpState } from "./phone-otp.service.ts";
+export { createPhoneOtpRoutes } from "./phone-otp.routes.ts";
 export {
   createDeterministicPhoneOtp,
   createOtpHash,
