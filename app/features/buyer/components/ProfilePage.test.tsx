@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProfilePage } from "./ProfilePage";
-import { updateProfile } from "#/features/buyer/api";
+import { requestProfilePhoneOtp, updateProfile, verifyProfilePhoneOtp } from "#/features/buyer/api";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
@@ -73,7 +73,9 @@ vi.mock("#/features/buyer/api", () => ({
     image: null,
   })),
   fetchSellerApplicationSummary: vi.fn(async () => ({ application: null, shop: null })),
+  requestProfilePhoneOtp: vi.fn(),
   updateProfile: vi.fn(),
+  verifyProfilePhoneOtp: vi.fn(),
 }));
 
 function renderWithClient(ui: ReactNode) {
@@ -100,5 +102,40 @@ describe("ProfilePage", () => {
 
     expect(await screen.findByText("Phone is already in use")).toBeTruthy();
     expect(screen.getByLabelText("Phone")).toHaveProperty("value", "+66812345678");
+  });
+
+  it("requests and verifies a profile phone link", async () => {
+    vi.mocked(requestProfilePhoneOtp).mockResolvedValue();
+    vi.mocked(verifyProfilePhoneOtp).mockResolvedValue();
+    renderWithClient(<ProfilePage />);
+
+    const phoneInput = await screen.findByLabelText("Phone");
+    fireEvent.change(phoneInput, { target: { value: "+66812345678" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send phone code" }));
+
+    expect(await screen.findByText("Phone verification code sent.")).toBeTruthy();
+    expect(vi.mocked(requestProfilePhoneOtp).mock.calls[0]?.[0]).toBe("+66812345678");
+
+    fireEvent.change(screen.getByLabelText("Phone code"), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verify and link" }));
+
+    expect(await screen.findByText("Phone linked and verified.")).toBeTruthy();
+    expect(vi.mocked(verifyProfilePhoneOtp).mock.calls[0]?.[0]).toEqual({ phone: "+66812345678", otp: "123456" });
+  });
+
+  it("preserves phone link values when verification fails", async () => {
+    vi.mocked(requestProfilePhoneOtp).mockResolvedValue();
+    vi.mocked(verifyProfilePhoneOtp).mockRejectedValue(new Error("Invalid or expired phone verification code"));
+    renderWithClient(<ProfilePage />);
+
+    fireEvent.change(await screen.findByLabelText("Phone"), { target: { value: "+66812345678" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send phone code" }));
+    await screen.findByLabelText("Phone code");
+    fireEvent.change(screen.getByLabelText("Phone code"), { target: { value: "111111" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verify and link" }));
+
+    expect(await screen.findByText("Invalid or expired phone verification code")).toBeTruthy();
+    expect(screen.getByLabelText("Phone")).toHaveProperty("value", "+66812345678");
+    expect(screen.getByLabelText("Phone code")).toHaveProperty("value", "111111");
   });
 });

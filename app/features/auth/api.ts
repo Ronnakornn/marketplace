@@ -49,7 +49,53 @@ export async function changePassword(input: { currentPassword: string; newPasswo
   });
 }
 
+export type PhoneOtpRequestResult = {
+  success: boolean;
+  challengeId: string;
+  resendAvailableAt: string;
+  expiresAt: string;
+};
+
+export type PhoneOtpVerifyResult = {
+  success: boolean;
+  state: "LOGIN_READY" | "SIGNUP_REQUIRED" | "PHONE_LINKED";
+  phone: string;
+  pendingSignupToken?: string;
+  expiresAt?: string;
+};
+
+export async function requestPhoneAuthOtp(phone: string): Promise<PhoneOtpRequestResult> {
+  return authFetchJson<PhoneOtpRequestResult>("/api/auth/phone/request-otp", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export async function verifyPhoneAuthOtp(input: { phone: string; otp: string }): Promise<PhoneOtpVerifyResult> {
+  return authFetchJson<PhoneOtpVerifyResult>("/api/auth/phone/verify-otp", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function completePhoneSignup(input: {
+  phone: string;
+  pendingSignupToken: string;
+  email: string;
+  name: string;
+  password: string;
+}): Promise<void> {
+  await authFetch("/api/auth/phone/complete-signup", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 async function authFetch(path: string, init: RequestInit): Promise<void> {
+  await authFetchJson<unknown>(path, init);
+}
+
+async function authFetchJson<T>(path: string, init: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
     headers: {
@@ -63,6 +109,7 @@ async function authFetch(path: string, init: RequestInit): Promise<void> {
   if (!response.ok) {
     throw new Error(readErrorMessage(body));
   }
+  return body as T;
 }
 
 function readErrorMessage(body: unknown): string {

@@ -418,6 +418,20 @@ export async function updateProfile(input: { name?: string; image?: string | nul
   };
 }
 
+export async function requestProfilePhoneOtp(phone: string): Promise<void> {
+  await apiFetch("/api/me/phone/request-otp", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export async function verifyProfilePhoneOtp(input: { phone: string; otp: string }): Promise<void> {
+  await apiFetch("/api/me/phone/verify-otp", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export async function fetchSellerApplicationSummary(): Promise<SellerApplicationSummary> {
   const response = toRecord(await apiFetch("/api/seller/application"));
   const application = toRecord(response.application);

@@ -9,7 +9,7 @@ import { BuyerTopBar } from "#/components/BuyerShell";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { fetchAddresses, fetchProfile, fetchSellerApplicationSummary, updateProfile } from "#/features/buyer/api";
+import { fetchAddresses, fetchProfile, fetchSellerApplicationSummary, requestProfilePhoneOtp, updateProfile, verifyProfilePhoneOtp } from "#/features/buyer/api";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -114,11 +114,30 @@ function ProfileIdentityForm({
   const queryClient = useQueryClient();
   const [name, setName] = useState(profile.name);
   const [phone, setPhone] = useState(profile.phone ?? "");
+  const [otp, setOtp] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const mutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: async () => {
       setMessage("Profile updated.");
+      await queryClient.invalidateQueries({ queryKey: ["buyer-profile"] });
+    },
+  });
+  const requestPhoneMutation = useMutation({
+    mutationFn: requestProfilePhoneOtp,
+    onSuccess: () => {
+      setOtpRequested(true);
+      setOtp("");
+      setMessage("Phone verification code sent.");
+    },
+  });
+  const verifyPhoneMutation = useMutation({
+    mutationFn: verifyProfilePhoneOtp,
+    onSuccess: async () => {
+      setMessage("Phone linked and verified.");
+      setOtpRequested(false);
+      setOtp("");
       await queryClient.invalidateQueries({ queryKey: ["buyer-profile"] });
     },
   });
@@ -133,19 +152,33 @@ function ProfileIdentityForm({
     setMessage(null);
     mutation.mutate({
       name,
-      phone: phone.trim() ? phone : null,
     });
   }
+
+  function handleRequestPhoneOtp(event: React.FormEvent) {
+    event.preventDefault();
+    setMessage(null);
+    requestPhoneMutation.mutate(phone);
+  }
+
+  function handleVerifyPhoneOtp(event: React.FormEvent) {
+    event.preventDefault();
+    setMessage(null);
+    verifyPhoneMutation.mutate({ phone, otp });
+  }
+
+  const phoneMutationError = requestPhoneMutation.error ?? verifyPhoneMutation.error;
+  const phoneChanged = phone.trim() !== (profile.phone ?? "");
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="mb-4 flex flex-col gap-1">
         <h2 className="font-bold text-slate-950">Profile details</h2>
-        <p className="text-sm text-slate-500">Phone is stored for profile identity only.</p>
+        <p className="text-sm text-slate-500">Phone changes require verification before linking.</p>
       </div>
       {message ? <p className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
       {mutation.error ? <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{mutation.error.message}</p> : null}
-      <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <label htmlFor="profile-name" className="mb-1.5 block text-sm font-medium text-slate-700">Name</label>
           <input
@@ -156,22 +189,51 @@ function ProfileIdentityForm({
             required
           />
         </div>
+        <Button type="submit" disabled={mutation.isPending} className="rounded-full bg-orange-600 hover:bg-orange-700">
+          {mutation.isPending ? "Saving..." : "Save"}
+        </Button>
+      </form>
+      <form onSubmit={handleRequestPhoneOtp} className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <label htmlFor="profile-phone" className="mb-1.5 block text-sm font-medium text-slate-700">Phone</label>
           <input
             id="profile-phone"
             value={phone}
-            onChange={(event) => setPhone(event.target.value)}
+            onChange={(event) => {
+              setPhone(event.target.value);
+              setOtpRequested(false);
+              setOtp("");
+            }}
             className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
             placeholder="+66812345678"
             inputMode="tel"
           />
           <p className="mt-1 text-xs text-slate-500">{profile.phoneVerified ? "Phone verified" : "Phone not verified"}</p>
         </div>
-        <Button type="submit" disabled={mutation.isPending} className="rounded-full bg-orange-600 hover:bg-orange-700">
-          {mutation.isPending ? "Saving..." : "Save"}
+        <Button type="submit" disabled={requestPhoneMutation.isPending || !phone.trim() || (!phoneChanged && profile.phoneVerified)} variant="outline" className="rounded-full">
+          {requestPhoneMutation.isPending ? "Sending..." : "Send phone code"}
         </Button>
       </form>
+      {phoneMutationError ? <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{phoneMutationError.message}</p> : null}
+      {otpRequested ? (
+        <form onSubmit={handleVerifyPhoneOtp} className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <label htmlFor="profile-phone-code" className="mb-1.5 block text-sm font-medium text-slate-700">Phone code</label>
+            <input
+              id="profile-phone-code"
+              value={otp}
+              onChange={(event) => setOtp(event.target.value)}
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+              placeholder="123456"
+              inputMode="numeric"
+              required
+            />
+          </div>
+          <Button type="submit" disabled={verifyPhoneMutation.isPending || !otp.trim()} className="rounded-full bg-orange-600 hover:bg-orange-700">
+            {verifyPhoneMutation.isPending ? "Verifying..." : "Verify and link"}
+          </Button>
+        </form>
+      ) : null}
       <div className="mt-3">
         <Button asChild variant="outline" className="rounded-full">
           <Link href="/change-password">Change password</Link>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signUp } from "#/lib/auth-client";
+import { PhoneAuthPanel } from "./PhoneAuthPanel";
 import { SocialSignInButtons } from "./SocialSignInButtons";
 
 export function SignupForm({ nextPath }: { nextPath?: string | null }) {
@@ -44,6 +45,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
         </p>
 
         <SocialSignInButtons nextPath={nextPath} />
+        <PhoneAuthPanel nextPath={nextPath} mode="signup" />
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "#/lib/auth-client";
 import { resolveNextPath } from "../redirect";
+import { PhoneAuthPanel } from "./PhoneAuthPanel";
 import { SocialSignInButtons } from "./SocialSignInButtons";
 
 export function LoginForm({ nextPath }: { nextPath?: string | null }) {
@@ -44,6 +45,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
         </p>
 
         <SocialSignInButtons nextPath={nextPath} />
+        <PhoneAuthPanel nextPath={nextPath} mode="login" />
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
