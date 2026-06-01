@@ -138,6 +138,8 @@ export class PrismaUserRepository implements IUserRepository {
     return this.prisma.user.count({
       where: {
         role: 'ADMIN',
+        status: 'ACTIVE',
+        emailVerified: true,
         ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
       },
     })
