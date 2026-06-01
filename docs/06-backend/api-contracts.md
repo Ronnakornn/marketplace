@@ -45,6 +45,89 @@ This document defines practical API contracts for the marketplace frontend and b
 }
 ```
 
+## Auth
+
+Phone OTP auth is first-party and uses same-origin `/api/*` endpoints. OTP codes are stored as non-plaintext hashes, challenges expire, successful verification consumes the challenge, wrong attempts are capped, and request/resend frequency is limited per normalized phone. Local development and automated tests use a deterministic mock OTP provider; no real SMS credentials are required. Production SMS vendor integration remains future manual work.
+
+The platform role model is unchanged: `User.role` is limited to `USER` and `ADMIN`.
+
+### `POST /api/auth/phone/request-otp`
+
+Body:
+- `phone`
+
+Behavior:
+- Normalizes the phone number.
+- Creates a phone login/signup OTP challenge.
+- Does not expose OTP values, hashes, or provider internals.
+
+Errors:
+- `400` invalid phone
+- `429` resend cooldown or request rate limit
+- `502` OTP provider failure
+
+### `POST /api/auth/phone/verify-otp`
+
+Body:
+- `phone`
+- `otp`
+
+Behavior:
+- Verifies and consumes the active login/signup OTP challenge.
+- Existing users can log in only when `phoneVerified = true`.
+- New verified phones return a pending signup state instead of creating a user.
+- Users with unverified phones or suspended accounts fail closed.
+
+Response states:
+- `LOGIN_READY`
+- `SIGNUP_REQUIRED`
+
+### `POST /api/auth/phone/complete-signup`
+
+Body:
+- `phone`
+- `pendingSignupToken`
+- `email`
+- `name`
+- `password`
+
+Behavior:
+- Requires a valid pending signup challenge for the normalized phone.
+- Creates a `USER` with `status = ACTIVE`, a unique email, `phone`, and `phoneVerified = true`.
+- Does not create phone-only users or placeholder emails.
+
+Errors:
+- `400` invalid or expired pending signup
+- `409` duplicate phone or email
+
+### `POST /api/me/phone/request-otp`
+
+Caller:
+- Authenticated user.
+
+Body:
+- `phone`
+
+Behavior:
+- Creates a phone link OTP challenge for the authenticated user's profile.
+- Rejects phones already linked to another user.
+
+### `POST /api/me/phone/verify-otp`
+
+Caller:
+- Authenticated user.
+
+Body:
+- `phone`
+- `otp`
+
+Behavior:
+- Verifies and consumes the profile phone link challenge.
+- Stores the normalized phone on the authenticated user and sets `phoneVerified = true`.
+
+Response state:
+- `PHONE_LINKED`
+
 ## Catalog
 
 ### `GET /api/catalog/products`

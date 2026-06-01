@@ -24,7 +24,9 @@ Seller authorization must not depend on a user role. A seller is a user who owns
 - Seller operations require authentication plus an `ACTIVE` shop where `Shop.ownerId` equals the authenticated user id.
 - Admin role is required for admin routes.
 - Provider webhooks use signature verification, not user sessions.
-- Phone is profile identity data only in Auth v1; phone login and phone verification are not enabled.
+- Phone OTP auth supports login for users with `phoneVerified = true`, pending signup for verified new phones, and authenticated profile phone linking.
+- Phone signup still requires email, name, and password before user creation; phone-only users are not supported.
+- Local phone OTP delivery uses a deterministic dev/mock provider. A production SMS adapter is out of scope and must be configured before production phone OTP delivery.
 
 ## Route Protection
 
