@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "#/lib/auth-client";
 import { resolveNextPath } from "../redirect";
+import { SocialSignInButtons } from "./SocialSignInButtons";
 
 export function LoginForm({ nextPath }: { nextPath?: string | null }) {
   const router = useRouter();
@@ -41,6 +42,8 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
         <p className="mb-6 text-sm text-[var(--sea-ink-soft)]">
           Welcome back. Enter your credentials to continue.
         </p>
+
+        <SocialSignInButtons nextPath={nextPath} />
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

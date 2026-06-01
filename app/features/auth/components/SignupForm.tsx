@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signUp } from "#/lib/auth-client";
+import { SocialSignInButtons } from "./SocialSignInButtons";
 
-export function SignupForm() {
+export function SignupForm({ nextPath }: { nextPath?: string | null }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -41,6 +42,8 @@ export function SignupForm() {
         <p className="mb-6 text-sm text-[var(--sea-ink-soft)]">
           Get started by creating your account below.
         </p>
+
+        <SocialSignInButtons nextPath={nextPath} />
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

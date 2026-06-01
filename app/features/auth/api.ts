@@ -1,5 +1,22 @@
 "use client";
 
+export type SocialProviderAvailability = {
+  google: boolean;
+  facebook: boolean;
+};
+
+export async function getSocialProviderAvailability(): Promise<SocialProviderAvailability> {
+  const response = await fetch("/api/auth/provider-availability", {
+    credentials: "include",
+  });
+  const text = await response.text();
+  const body = text ? JSON.parse(text) as unknown : null;
+  if (!response.ok) {
+    throw new Error(readErrorMessage(body));
+  }
+  return readProviderAvailability(body);
+}
+
 export async function resendEmailVerification(): Promise<void> {
   await authFetch("/api/auth/resend-email-verification", { method: "POST" });
 }
@@ -57,4 +74,15 @@ function readErrorMessage(body: unknown): string {
     if (typeof message === "string" && message.trim()) return message;
   }
   return typeof record.message === "string" && record.message.trim() ? record.message : "Request failed";
+}
+
+function readProviderAvailability(body: unknown): SocialProviderAvailability {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { google: false, facebook: false };
+  }
+  const record = body as Record<string, unknown>;
+  return {
+    google: record.google === true,
+    facebook: record.facebook === true,
+  };
 }
