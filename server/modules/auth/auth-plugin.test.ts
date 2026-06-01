@@ -7,6 +7,10 @@ vi.mock("./auth.ts", () => ({
   auth: {
     handler: () => new Response(null, { status: 404 }),
   },
+  getSocialProviderAvailability: vi.fn(() => ({
+    google: true,
+    facebook: false,
+  })),
 }));
 
 vi.mock("./auth.context.ts", () => ({
@@ -107,5 +111,14 @@ describe("authPlugin", () => {
     vi.mocked(getAuthContext).mockResolvedValue(mockUser("USER"));
     const response = await createApp().handle(new Request("http://localhost/user-role"));
     expect(response.status).toBe(200);
+  });
+
+  it("exposes only social provider availability booleans", async () => {
+    const response = await createApp().handle(new Request("http://localhost/api/auth/provider-availability"));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      google: true,
+      facebook: false,
+    });
   });
 });

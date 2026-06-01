@@ -1,10 +1,11 @@
 import { Elysia } from "elysia";
 import type { Role } from "#generated/client/enums.ts";
-import { auth } from "./auth.ts";
+import { auth, getSocialProviderAvailability } from "./auth.ts";
 import { getAuthContext } from "./auth.context.ts";
 
 export const authPlugin = new Elysia({ name: "auth" })
   .mount(auth.handler)
+  .get("/api/auth/provider-availability", () => getSocialProviderAvailability())
   .macro({
     withAuth: {
       async resolve({ status, request: { headers } }: any) {

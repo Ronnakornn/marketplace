@@ -2,6 +2,41 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "#server/lib/prisma.ts";
 
+export interface SocialProviderAvailability {
+  google: boolean;
+  facebook: boolean;
+}
+
+export function getSocialProviderAvailability(env: NodeJS.ProcessEnv = process.env): SocialProviderAvailability {
+  return {
+    google: Boolean(env.GOOGLE_CLIENT_ID?.trim() && env.GOOGLE_CLIENT_SECRET?.trim()),
+    facebook: Boolean(env.FACEBOOK_CLIENT_ID?.trim() && env.FACEBOOK_CLIENT_SECRET?.trim()),
+  };
+}
+
+function createSocialProviders(env: NodeJS.ProcessEnv = process.env) {
+  const availability = getSocialProviderAvailability(env);
+
+  return {
+    ...(availability.google
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID!.trim(),
+            clientSecret: env.GOOGLE_CLIENT_SECRET!.trim(),
+          },
+        }
+      : {}),
+    ...(availability.facebook
+      ? {
+          facebook: {
+            clientId: env.FACEBOOK_CLIENT_ID!.trim(),
+            clientSecret: env.FACEBOOK_CLIENT_SECRET!.trim(),
+          },
+        }
+      : {}),
+  };
+}
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -51,6 +86,7 @@ export const auth = betterAuth({
   },
   secret: process.env.BETTER_AUTH_SECRET ?? "dev-secret-change-in-production",
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+  socialProviders: createSocialProviders(),
 });
 
 export type Auth = typeof auth;
