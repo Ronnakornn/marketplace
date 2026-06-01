@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createDeterministicPhoneOtp,
   createOtpHash,
   createPhoneOtpProvider,
   DeterministicPhoneOtpProvider,
+  HttpPhoneOtpProvider,
   normalizePhoneNumber,
+  readHttpPhoneOtpProviderConfig,
   verifyOtpHash,
 } from "./phone-otp.provider.ts";
 
@@ -55,5 +57,76 @@ describe("phone OTP provider foundation", () => {
 
   it("fails closed in production when no production provider is configured", () => {
     expect(() => createPhoneOtpProvider({ NODE_ENV: "production" })).toThrow("Phone OTP provider is not configured");
+  });
+
+  it("uses the deterministic provider only outside production", () => {
+    expect(createPhoneOtpProvider({ NODE_ENV: "development" })).toBeInstanceOf(DeterministicPhoneOtpProvider);
+    expect(createPhoneOtpProvider({ NODE_ENV: "test", PHONE_OTP_PROVIDER: "deterministic-dev" })).toBeInstanceOf(DeterministicPhoneOtpProvider);
+  });
+
+  it("reads HTTP provider configuration from environment", () => {
+    expect(readHttpPhoneOtpProviderConfig({
+      NODE_ENV: "production",
+      PHONE_OTP_HTTP_URL: "https://sms.example/send",
+      PHONE_OTP_HTTP_BEARER_TOKEN: "secret-token",
+      PHONE_OTP_HTTP_TIMEOUT_MS: "2500",
+    })).toEqual({
+      url: "https://sms.example/send",
+      bearerToken: "secret-token",
+      timeoutMs: 2500,
+    });
+  });
+
+  it("requires HTTPS HTTP provider URL in production", () => {
+    expect(() => readHttpPhoneOtpProviderConfig({
+      NODE_ENV: "production",
+      PHONE_OTP_HTTP_URL: "http://sms.example/send",
+    })).toThrow("Phone OTP HTTP provider URL must use https in production");
+  });
+
+  it("creates the HTTP provider when configured", () => {
+    expect(createPhoneOtpProvider({
+      NODE_ENV: "production",
+      PHONE_OTP_PROVIDER: "http",
+      PHONE_OTP_HTTP_URL: "https://sms.example/send",
+    })).toBeInstanceOf(HttpPhoneOtpProvider);
+  });
+
+  it("sends normalized OTP payloads through the HTTP provider without exposing internals", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ messageId: "sms-123" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const provider = new HttpPhoneOtpProvider({
+      url: "https://sms.example/send",
+      bearerToken: "secret-token",
+      timeoutMs: 5000,
+    });
+
+    await expect(provider.send({
+      phone: "+66 81 234 5678",
+      purpose: "PHONE_LOGIN",
+      otp: "123456",
+    })).resolves.toEqual({
+      provider: "http",
+      messageId: "sms-123",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("https://sms.example/send", expect.objectContaining({
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer secret-token",
+      },
+      body: JSON.stringify({
+        phone: "+66812345678",
+        purpose: "PHONE_LOGIN",
+        otp: "123456",
+      }),
+    }));
+
+    vi.unstubAllGlobals();
   });
 });

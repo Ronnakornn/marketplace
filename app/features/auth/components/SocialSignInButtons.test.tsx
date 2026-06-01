@@ -80,7 +80,7 @@ describe("social sign-in buttons", () => {
     }));
   });
 
-  it("hides unavailable providers and keeps email forms usable", async () => {
+  it("shows unavailable providers as disabled and keeps email forms usable", async () => {
     fetchMock.mockResolvedValue(providerAvailabilityResponse({ google: false, facebook: false }));
 
     render(<LoginForm nextPath="/checkout" />);
@@ -88,10 +88,23 @@ describe("social sign-in buttons", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/auth/provider-availability", {
       credentials: "include",
     }));
-    expect(screen.queryByRole("button", { name: "Continue with Google" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Continue with Facebook" })).toBeNull();
+    const googleButton = screen.getByRole("button", { name: "Google sign-in is not configured" });
+    const facebookButton = screen.getByRole("button", { name: "Facebook sign-in is not configured" });
+    expect(googleButton.hasAttribute("disabled")).toBe(true);
+    expect(facebookButton.hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText("Disabled providers need OAuth credentials in the server environment.")).toBeTruthy();
     expect(screen.getByLabelText("Email")).toBeTruthy();
     expect(screen.getByLabelText("Password")).toBeTruthy();
+  });
+
+  it("does not start social sign-in for an unavailable provider", async () => {
+    fetchMock.mockResolvedValue(providerAvailabilityResponse({ google: false, facebook: true }));
+
+    render(<LoginForm nextPath="/checkout" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Google sign-in is not configured" }));
+
+    expect(signIn.social).not.toHaveBeenCalled();
   });
 });
 

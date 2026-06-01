@@ -31,9 +31,7 @@ export function SocialSignInButtons({ nextPath }: { nextPath?: string | null }) 
     };
   }, []);
 
-  const visibleProviders = PROVIDERS.filter((provider) => availability?.[provider.id]);
-
-  if (!availability || visibleProviders.length === 0) return null;
+  if (!availability) return null;
 
   async function handleSocialSignIn(provider: SocialProvider) {
     setError(null);
@@ -63,22 +61,30 @@ export function SocialSignInButtons({ nextPath }: { nextPath?: string | null }) 
         <div className="h-px flex-1 bg-[var(--line)]" />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        {visibleProviders.map((provider) => {
+        {PROVIDERS.map((provider) => {
           const isLoading = loadingProvider === provider.id;
+          const isAvailable = availability[provider.id];
           return (
             <button
               key={provider.id}
               type="button"
-              disabled={loadingProvider !== null}
-              onClick={() => void handleSocialSignIn(provider.id)}
+              disabled={!isAvailable || loadingProvider !== null}
+              onClick={() => {
+                if (isAvailable) void handleSocialSignIn(provider.id);
+              }}
               className="rounded-full border border-[var(--line)] bg-[var(--bg)] px-4 py-2.5 text-sm font-semibold text-[var(--sea-ink)] transition hover:-translate-y-0.5 hover:border-[var(--lagoon-deep)] disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label={`Continue with ${provider.label}`}
+              aria-label={isAvailable ? `Continue with ${provider.label}` : `${provider.label} sign-in is not configured`}
             >
               {isLoading ? `Starting ${provider.label}...` : provider.label}
             </button>
           );
         })}
       </div>
+      {PROVIDERS.some((provider) => !availability[provider.id]) ? (
+        <p className="mt-3 text-center text-xs text-[var(--sea-ink-soft)]">
+          Disabled providers need OAuth credentials in the server environment.
+        </p>
+      ) : null}
       {error ? (
         <p role="alert" className="mt-3 text-sm text-red-700">
           {error}

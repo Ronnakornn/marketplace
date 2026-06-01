@@ -47,7 +47,16 @@ This document defines practical API contracts for the marketplace frontend and b
 
 ## Auth
 
-Phone OTP auth is first-party and uses same-origin `/api/*` endpoints. OTP codes are stored as non-plaintext hashes, challenges expire, successful verification consumes the challenge, wrong attempts are capped, and request/resend frequency is limited per normalized phone. Local development and automated tests use a deterministic mock OTP provider; no real SMS credentials are required. Production SMS vendor integration remains future manual work.
+Phone OTP auth is first-party and uses same-origin `/api/*` endpoints. OTP codes are stored as non-plaintext hashes, challenges expire, successful verification consumes the challenge, wrong attempts are capped, and request/resend frequency is limited per normalized phone. Local development and automated tests use a deterministic mock OTP provider; no real SMS credentials are required.
+
+Production phone OTP delivery can use the generic HTTP SMS adapter by setting:
+
+- `PHONE_OTP_PROVIDER=http`
+- `PHONE_OTP_HTTP_URL=https://...`
+- `PHONE_OTP_HTTP_BEARER_TOKEN=...` when the gateway requires bearer auth
+- `PHONE_OTP_HTTP_TIMEOUT_MS=5000`
+
+The HTTP adapter sends a JSON payload containing `phone`, `purpose`, and `otp`. Production URLs must use HTTPS. Vendor-specific adapters may still be added later if a gateway requires a non-HTTP-JSON contract.
 
 The platform role model is unchanged: `User.role` is limited to `USER` and `ADMIN`.
 
