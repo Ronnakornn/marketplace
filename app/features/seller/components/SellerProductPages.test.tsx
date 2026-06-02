@@ -348,6 +348,32 @@ describe("Seller product pages", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 
+  it("keeps exactly one primary image while reordering and removing media", () => {
+    const multiImageProduct = {
+      ...products[0],
+      images: [
+        products[0].images[0],
+        { ...products[0].images[0], id: "img_2", url: "https://example.com/back.jpg", altText: "Cotton shirt back", sortOrder: 1, isPrimary: false },
+      ],
+    };
+    sellerProductsState = { data: { data: [multiImageProduct], meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    const primaryInputs = screen.getAllByRole("radio", { name: /primary/i });
+    expect(primaryInputs.filter((input) => (input as HTMLInputElement).checked)).toHaveLength(1);
+
+    fireEvent.click(primaryInputs[1]);
+    expect(primaryInputs.filter((input) => (input as HTMLInputElement).checked)).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Move image 2 up" }));
+    expect(updateImageOrderMutate).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Save image order" }));
+    expect(updateImageOrderMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ productId: "prod_1", primaryImageId: "img_2" }),
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
+  });
+
   it("creates, edits, and deletes variants with stock fields limited to allowed values", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     updateVariantMutate.mockImplementation((_input, options) => options.onSuccess());
@@ -379,6 +405,41 @@ describe("Seller product pages", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Delete variant" })[0]);
     expect(confirm).toHaveBeenCalled();
     expect(deleteVariantMutate).toHaveBeenCalledWith({ productId: "prod_1", variantId: "var_1" }, expect.any(Object));
+  });
+
+  it("generates variant rows, applies bulk values, and shows duplicate SKU errors inline", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate rows" }));
+    expect(screen.getAllByText("Color: Blue").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add variant" }));
+    fireEvent.change(screen.getByLabelText("SKU", { selector: "#variant-sku-1" }), { target: { value: "SHIRT-1" } });
+    expect(screen.getAllByText("Duplicate SKU.").length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByLabelText("Bulk price"), { target: { value: "22.25" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply price" }));
+    expect(screen.getAllByDisplayValue("22.25").length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByLabelText("Bulk stock"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply stock" }));
+    expect(screen.getAllByText("Out of stock").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Inactive" }).at(-1)!);
+    fireEvent.click(screen.getByRole("button", { name: "Apply status" }));
+    expect(screen.getAllByText("Inactive").length).toBeGreaterThan(0);
+  });
+
+  it("limits options to two axes and confirms removal when variants are affected", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add option" }));
+    expect(screen.getByRole("button", { name: "Add option" }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("variant row(s) using it will be affected"));
+    expect(screen.getByDisplayValue("Blue")).toBeTruthy();
   });
 
   it("shows retry when draft preparation fails", () => {

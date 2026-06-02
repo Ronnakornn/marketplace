@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, EditIcon, PlusIcon, SaveIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
@@ -59,6 +59,7 @@ type ProductStudioSectionId = "basics" | "category-specs" | "media" | "variants"
 const MAX_PRODUCT_IMAGES = 10;
 const MAX_PRODUCT_VIDEO_BYTES = 25 * 1024 * 1024;
 const PRODUCT_VIDEO_TYPES = ["video/mp4", "video/webm"];
+const DEFAULT_BULK_STATUS: VariantStatus = "ACTIVE";
 const PRODUCT_STUDIO_SECTIONS: Array<{ id: ProductStudioSectionId; label: string }> = [
   { id: "basics", label: "Basics" },
   { id: "category-specs", label: "Category & Specs" },
@@ -146,6 +147,12 @@ interface VideoDraftState {
   fileSize?: number;
   status: "existing" | "pending" | "uploading" | "error";
   error?: string;
+}
+
+interface VariantBulkState {
+  price: string;
+  stock: string;
+  status: VariantStatus;
 }
 
 const emptyProductForm: ProductFormState = {
@@ -343,20 +350,80 @@ function createPreviewUrl(file: File) {
 function getPublishReadiness(form: ProductFormState, images: ImageDraftState[], variants: VariantFormState[]) {
   const missing: string[] = [];
   if (!form.categoryId) missing.push("category");
-  if (!images.length) missing.push("at least one product image");
+  if (!images.some((image) => image.isPrimary)) missing.push("primary product image");
   if (!variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price || "0") > 0)) missing.push("one active variant with price greater than zero");
   return missing;
+}
+
+function getOptionCombinationKey(variant: VariantFormState) {
+  return variant.optionValueIds.filter(Boolean).sort().join("|");
+}
+
+function getVariantCombinationLabel(variant: VariantFormState, options: ProductOptionDraftState[]) {
+  const labels = options.flatMap((option) => option.values.filter((value) => variant.optionValueIds.includes(value.id)).map((value) => `${option.name || "Option"}: ${value.value || "Value"}`));
+  return labels.length ? labels.join(" / ") : "Base variant";
 }
 
 function getDuplicateOptionCombinationError(variants: VariantFormState[]) {
   const seen = new Set<string>();
   for (const variant of variants) {
-    const key = variant.optionValueIds.filter(Boolean).sort().join("|");
+    const key = getOptionCombinationKey(variant);
     if (!key) continue;
     if (seen.has(key)) return "Duplicate variant option combination. Choose a unique option value set for each variant.";
     seen.add(key);
   }
   return "";
+}
+
+function getDuplicateSkuIndexes(variants: VariantFormState[]) {
+  const counts = new Map<string, number>();
+  variants.forEach((variant) => {
+    const sku = variant.sku.trim().toLowerCase();
+    if (sku) counts.set(sku, (counts.get(sku) ?? 0) + 1);
+  });
+  return new Set(variants.flatMap((variant, index) => {
+    const sku = variant.sku.trim().toLowerCase();
+    return sku && (counts.get(sku) ?? 0) > 1 ? [index] : [];
+  }));
+}
+
+function getDuplicateCombinationIndexes(variants: VariantFormState[]) {
+  const counts = new Map<string, number>();
+  variants.forEach((variant) => {
+    const key = getOptionCombinationKey(variant);
+    if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+  return new Set(variants.flatMap((variant, index) => {
+    const key = getOptionCombinationKey(variant);
+    return key && (counts.get(key) ?? 0) > 1 ? [index] : [];
+  }));
+}
+
+function getVariantRowErrors(variant: VariantFormState, index: number, duplicateSkuIndexes: Set<number>, duplicateCombinationIndexes: Set<number>) {
+  const errors: string[] = [];
+  if (!variant.sku.trim()) errors.push("SKU is required.");
+  if (duplicateSkuIndexes.has(index)) errors.push("Duplicate SKU.");
+  if (duplicateCombinationIndexes.has(index)) errors.push("Duplicate option combination.");
+  if (Number(variant.price || "0") < 0) errors.push("Price cannot be negative.");
+  if (Number(variant.quantityOnHand || "0") < 0) errors.push("Stock cannot be negative.");
+  return errors;
+}
+
+function buildOptionCombinations(options: ProductOptionDraftState[]) {
+  const activeOptions = options.slice(0, 2).map((option) => option.values.filter((value) => value.value.trim()).map((value) => value.id)).filter((values) => values.length);
+  if (!activeOptions.length) return [];
+  if (activeOptions.length === 1) return activeOptions[0].map((id) => [id]);
+  return activeOptions[0].flatMap((firstId) => activeOptions[1].map((secondId) => [firstId, secondId]));
+}
+
+function buildGeneratedVariant(combination: string[], index: number, options: ProductOptionDraftState[]): VariantFormState {
+  const labels = options.flatMap((option) => option.values.filter((value) => combination.includes(value.id)).map((value) => value.value.trim())).filter(Boolean);
+  return {
+    ...emptyVariantForm,
+    sku: `SKU-${index + 1}`,
+    title: labels.join(" / ") || `Variant ${index + 1}`,
+    optionValueIds: combination,
+  };
 }
 
 function getLatestModerationReason(product?: SellerProduct | null) {
@@ -668,6 +735,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const [mediaError, setMediaError] = useState("");
   const [variantError, setVariantError] = useState("");
   const [optionError, setOptionError] = useState("");
+  const [bulk, setBulk] = useState<VariantBulkState>({ price: "", stock: "", status: DEFAULT_BULK_STATUS });
+  const [isDraggingImages, setIsDraggingImages] = useState(false);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const workingProduct = createdProduct ?? product;
@@ -686,6 +755,10 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
 
   const readinessMissing = getPublishReadiness(form, images, variants);
   const duplicateCombinationError = getDuplicateOptionCombinationError(variants);
+  const duplicateSkuIndexes = useMemo(() => getDuplicateSkuIndexes(variants), [variants]);
+  const duplicateCombinationIndexes = useMemo(() => getDuplicateCombinationIndexes(variants), [variants]);
+  const hasPrimaryImage = images.some((image) => image.isPrimary);
+  const generatedCombinationCount = buildOptionCombinations(options).length;
   const moderationReason = getLatestModerationReason(workingProduct);
   const dirty = isProductFormDirty(form, initialForm) || images.some((image) => image.status !== "existing") || variants.some((variant) => !variant.id) || Boolean(video?.status !== "existing" && video);
   const isSaving = createProduct.isPending || updateProduct.isPending || createVariant.isPending || updateVariant.isPending || updateVariantStock.isPending || uploadImage.isPending || updateImage.isPending || updateImageOrder.isPending || deleteImage.isPending || uploadVideo.isPending || deleteVideo.isPending || deleteVariant.isPending || updateOptions.isPending || submitReview.isPending;
@@ -697,6 +770,11 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   }
 
   function addOption() {
+    setOptionError("");
+    if (options.length >= 2) {
+      setOptionError("Variant options are limited to two axes.");
+      return;
+    }
     setOptions((current) => [...current, {
       id: `option-${Date.now()}`,
       name: "",
@@ -726,14 +804,24 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   }
 
   function removeOption(index: number) {
+    const option = options[index];
+    const impacted = variants.filter((variant) => option.values.some((value) => variant.optionValueIds.includes(value.id)));
+    if (impacted.length && !window.confirm(`Remove ${option.name || "this option"}? ${impacted.length} variant row(s) will lose this option selection.`)) return;
     setOptions((current) => current.filter((_, optionIndex) => optionIndex !== index));
+    setVariants((current) => current.map((variant) => ({ ...variant, optionValueIds: variant.optionValueIds.filter((id) => !option.values.some((value) => value.id === id)) })));
   }
 
   function removeOptionValue(optionIndex: number, valueIndex: number) {
+    const value = options[optionIndex]?.values[valueIndex];
+    const impacted = variants.filter((variant) => variant.optionValueIds.includes(value?.id ?? ""));
+    if (impacted.length && !window.confirm(`Remove ${value?.value || "this value"}? ${impacted.length} variant row(s) using it will be affected.`)) return;
     setOptions((current) => current.map((option, index) => index === optionIndex ? {
       ...option,
       values: option.values.filter((_, currentValueIndex) => currentValueIndex !== valueIndex),
     } : option));
+    if (value) {
+      setVariants((current) => current.map((variant) => ({ ...variant, optionValueIds: variant.optionValueIds.filter((id) => id !== value.id) })));
+    }
   }
 
   function saveOptions() {
@@ -848,8 +936,11 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   }
 
   function addImageFiles(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
+    addImageFileList(Array.from(event.target.files ?? []));
     event.target.value = "";
+  }
+
+  function addImageFileList(files: File[]) {
     setMediaError("");
     if (!files.length) return;
     if (images.length + files.length > MAX_PRODUCT_IMAGES) {
@@ -868,6 +959,17 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
         status: "pending" as const,
       })),
     ]);
+  }
+
+  function handleImageDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingImages(false);
+    addImageFileList(Array.from(event.dataTransfer.files ?? []).filter((file) => file.type.startsWith("image/")));
+  }
+
+  function handleImageDrag(event: DragEvent<HTMLDivElement>, active: boolean) {
+    event.preventDefault();
+    setIsDraggingImages(active);
   }
 
   function addVideoFile(event: ChangeEvent<HTMLInputElement>) {
@@ -907,12 +1009,20 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
 
   function removeImage(image: ImageDraftState) {
     if (image.status !== "existing" || !workingProductId) {
-      setImages((current) => current.filter((item) => item.id !== image.id));
+      setImages((current) => {
+        const next = current.filter((item) => item.id !== image.id);
+        if (image.isPrimary && next.length) return next.map((item, index) => ({ ...item, isPrimary: index === 0 }));
+        return next;
+      });
       return;
     }
     deleteImage.mutate({ productId: workingProductId, imageId: image.id }, {
       onSuccess: () => {
-        setImages((current) => current.filter((item) => item.id !== image.id));
+        setImages((current) => {
+          const next = current.filter((item) => item.id !== image.id);
+          if (image.isPrimary && next.length) return next.map((item, index) => ({ ...item, isPrimary: index === 0 }));
+          return next;
+        });
         toast.success("Image removed.");
       },
       onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : "Image could not be removed."),
@@ -986,6 +1096,44 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     setVariants((current) => [...current, { ...emptyVariantForm, sku: `SKU-${current.length + 1}` }]);
   }
 
+  function generateVariantsFromOptions() {
+    const combinations = buildOptionCombinations(options);
+    if (!combinations.length) {
+      setVariantError("Add at least one option value before generating variant rows.");
+      return;
+    }
+    setVariantError("");
+    setVariants((current) => {
+      const existingKeys = new Set(current.map(getOptionCombinationKey).filter(Boolean));
+      const nextRows = combinations
+        .filter((combination) => !existingKeys.has(combination.slice().sort().join("|")))
+        .map((combination, index) => buildGeneratedVariant(combination, current.length + index, options));
+      return [...current, ...nextRows];
+    });
+  }
+
+  function moveOptionValue(optionIndex: number, valueIndex: number, direction: -1 | 1) {
+    setOptions((current) => current.map((option, index) => {
+      if (index !== optionIndex) return option;
+      const nextIndex = valueIndex + direction;
+      if (nextIndex < 0 || nextIndex >= option.values.length) return option;
+      const nextValues = [...option.values];
+      const [value] = nextValues.splice(valueIndex, 1);
+      nextValues.splice(nextIndex, 0, value);
+      return { ...option, values: nextValues.map((item, sortOrder) => ({ ...item, sortOrder })) };
+    }));
+  }
+
+  function applyBulk(field: keyof VariantBulkState) {
+    setVariantError("");
+    setVariants((current) => current.map((variant) => {
+      if (field === "price" && bulk.price.trim()) return { ...variant, price: bulk.price };
+      if (field === "stock" && bulk.stock.trim()) return { ...variant, quantityOnHand: bulk.stock };
+      if (field === "status") return { ...variant, status: bulk.status };
+      return variant;
+    }));
+  }
+
   function updateVariantDraft(index: number, patch: Partial<VariantFormState>) {
     setVariants((current) => current.map((variant, variantIndex) => variantIndex === index ? { ...variant, ...patch } : variant));
   }
@@ -1013,6 +1161,11 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     }
     if (!variant.sku.trim() || !variant.title.trim()) {
       setVariantError("Variant SKU and title are required.");
+      return;
+    }
+    const rowErrors = getVariantRowErrors(variant, index, duplicateSkuIndexes, duplicateCombinationIndexes);
+    if (rowErrors.length) {
+      setVariantError(rowErrors.join(" "));
       return;
     }
     if (Number(variant.price || "0") < 0 || Number(variant.quantityOnHand || "0") < 0 || Number(variant.reorderLevel || "0") < 0) {
@@ -1155,6 +1308,15 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
         <aside className="space-y-4">
           <ProductSection id="media" title="Media" description="Upload up to 10 images and one MP4/WebM video after the product has a draft record.">
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before uploading media.</p> : null}
+            {!hasPrimaryImage ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Readiness warning: choose one primary product image before submitting for review.</p> : null}
+            <div
+              className={`rounded-lg border border-dashed p-4 text-sm ${isDraggingImages ? "border-slate-900 bg-slate-50 text-slate-900" : "border-slate-300 bg-white text-slate-600"}`}
+              onDragOver={(event) => handleImageDrag(event, true)}
+              onDragLeave={(event) => handleImageDrag(event, false)}
+              onDrop={handleImageDrop}
+            >
+              Drag product images here, or use the upload button.
+            </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input ref={imageInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={addImageFiles} aria-label="Upload product images" />
               <Button type="button" variant="outline" onClick={() => imageInputRef.current?.click()}>
@@ -1176,6 +1338,12 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               {images.map((image, imageIndex) => (
                 <div key={image.id} className="space-y-3 rounded-lg border border-slate-200 p-3">
                   <img src={image.url} alt={image.altText || "Product image preview"} className="aspect-square w-full rounded-md object-cover" />
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className={`rounded-full px-2 py-1 font-semibold ${image.status === "error" ? "bg-red-100 text-red-700" : image.status === "uploading" ? "bg-blue-100 text-blue-700" : image.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                      {image.status === "existing" ? "Completed" : image.status}
+                    </span>
+                    {image.isPrimary ? <span className="rounded-full bg-slate-900 px-2 py-1 font-semibold text-white">Primary</span> : null}
+                  </div>
                   <Field label="Alt text" htmlFor={`image-alt-${image.id}`}>
                     <Input id={`image-alt-${image.id}`} value={image.altText} onChange={(event) => updateImageDraft(image.id, { altText: event.target.value })} />
                   </Field>
@@ -1202,6 +1370,10 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               <div className="space-y-3 rounded-lg border border-slate-200 p-3">
                 <p className="text-sm font-medium text-slate-900">{video.fileName ?? "Product video"}</p>
                 <p className="text-xs text-slate-500">{video.contentType ?? "video"} {video.fileSize ? `- ${(video.fileSize / 1024 / 1024).toFixed(1)}MB` : ""}</p>
+                {video.url && video.contentType && PRODUCT_VIDEO_TYPES.includes(video.contentType) ? <video src={video.url} controls className="aspect-video w-full rounded-md bg-slate-100" /> : <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Video preview is unavailable for this file type.</p>}
+                <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${video.status === "error" ? "bg-red-100 text-red-700" : video.status === "uploading" ? "bg-blue-100 text-blue-700" : video.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                  {video.status === "existing" ? "Completed" : video.status}
+                </span>
                 {video.error ? <p className="text-sm text-red-600">{video.error}</p> : null}
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={saveVideo} disabled={isSaving || video.status === "existing"}>{video.status === "uploading" ? "Uploading..." : video.status === "error" ? "Retry video" : "Save video"}</Button>
@@ -1209,15 +1381,18 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                 </div>
               </div>
             ) : null}
+            {!video ? <p className="rounded-lg border border-slate-200 p-3 text-sm text-slate-500">No product video attached.</p> : null}
           </ProductSection>
           <ProductSection id="variants" title="Variants" description="Define option axes, option values, and sellable variant rows.">
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before editing variant options.</p> : null}
             {optionError ? <p className="text-sm text-red-600">{optionError}</p> : null}
             {duplicateCombinationError ? <p className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={addOption}><PlusIcon className="size-4" />Add option</Button>
+              <Button type="button" variant="outline" onClick={addOption} disabled={options.length >= 2}><PlusIcon className="size-4" />Add option</Button>
               <Button type="button" variant="outline" onClick={saveOptions} disabled={isSaving}>Save options</Button>
+              <Button type="button" variant="outline" onClick={generateVariantsFromOptions} disabled={!generatedCombinationCount}>Generate rows</Button>
             </div>
+            <p className="text-xs text-slate-500">Up to two axes. Current option values can generate {generatedCombinationCount} combination row(s).</p>
             <div className="space-y-3">
               {options.length ? options.map((option, optionIndex) => (
                 <div key={option.id} className="space-y-3 rounded-lg border border-slate-200 p-3">
@@ -1228,10 +1403,14 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   </div>
                   <div className="space-y-2">
                     {option.values.map((value, valueIndex) => (
-                      <div key={value.id} className="grid gap-2 sm:grid-cols-[1fr_1fr_100px_auto]">
+                      <div key={value.id} className="grid gap-2 sm:grid-cols-[1fr_1fr_100px_auto_auto]">
                         <Input aria-label={`Option ${optionIndex + 1} value ${valueIndex + 1}`} value={value.value} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { value: event.target.value })} placeholder="Black" />
                         <Input aria-label={`Option ${optionIndex + 1} value ${valueIndex + 1} Thai`} value={value.valueTh} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { valueTh: event.target.value })} />
                         <Input aria-label={`Option ${optionIndex + 1} value ${valueIndex + 1} color`} value={value.colorHex} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { colorHex: event.target.value })} placeholder="#000000" />
+                        <div className="flex gap-1">
+                          <Button type="button" variant="outline" aria-label={`Move option ${optionIndex + 1} value ${valueIndex + 1} up`} onClick={() => moveOptionValue(optionIndex, valueIndex, -1)} disabled={valueIndex === 0}><ArrowUpIcon className="size-4" /></Button>
+                          <Button type="button" variant="outline" aria-label={`Move option ${optionIndex + 1} value ${valueIndex + 1} down`} onClick={() => moveOptionValue(optionIndex, valueIndex, 1)} disabled={valueIndex === option.values.length - 1}><ArrowDownIcon className="size-4" /></Button>
+                        </div>
                         <Button type="button" variant="outline" onClick={() => removeOptionValue(optionIndex, valueIndex)}>Remove</Button>
                       </div>
                     ))}
@@ -1244,13 +1423,37 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
           <ProductSection title="Variant rows" description="Create, edit, delete, price, dimensions, and stock setup per sellable option combination.">
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before adding variants.</p> : null}
             {variantError ? <p className="text-sm text-red-600">{variantError}</p> : null}
-            <Button type="button" variant="outline" onClick={addVariant}>
-              <PlusIcon className="size-4" />
-              Add variant
-            </Button>
+            <div className="grid gap-2 rounded-lg border border-slate-200 p-3 sm:grid-cols-[1fr_1fr_1fr_auto_auto_auto]">
+              <Field label="Bulk price" htmlFor="bulk-price"><Input id="bulk-price" type="number" min="0" step="0.01" value={bulk.price} onChange={(event) => setBulk((current) => ({ ...current, price: event.target.value }))} /></Field>
+              <Field label="Bulk stock" htmlFor="bulk-stock"><Input id="bulk-stock" type="number" min="0" value={bulk.stock} onChange={(event) => setBulk((current) => ({ ...current, stock: event.target.value }))} /></Field>
+              <Field label="Bulk status" htmlFor="bulk-status">
+                <Select value={bulk.status} onValueChange={(value) => setBulk((current) => ({ ...current, status: value as VariantStatus }))}>
+                  <SelectTrigger id="bulk-status"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("price")}>Apply price</Button></div>
+              <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("stock")}>Apply stock</Button></div>
+              <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("status")}>Apply status</Button></div>
+            </div>
+            <Button type="button" variant="outline" onClick={addVariant}><PlusIcon className="size-4" />Add variant</Button>
             <div className="space-y-3">
-              {variants.map((variant, index) => (
-                <div key={variant.id ?? index} className="space-y-3 rounded-lg border border-slate-200 p-3">
+              {variants.map((variant, index) => {
+                const rowErrors = getVariantRowErrors(variant, index, duplicateSkuIndexes, duplicateCombinationIndexes);
+                const available = getAvailableStock(variant);
+                return (
+                <div key={variant.id ?? index} className={`space-y-3 rounded-lg border p-3 ${rowErrors.length ? "border-red-200 bg-red-50" : variant.status === "INACTIVE" ? "border-slate-200 bg-slate-100 opacity-80" : available <= 0 ? "border-amber-200 bg-amber-50" : "border-slate-200"}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="min-w-0 text-sm font-semibold text-slate-900">{getVariantCombinationLabel(variant, options)}</p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {variant.status === "INACTIVE" ? <span className="rounded-full bg-slate-200 px-2 py-1 font-semibold text-slate-700">Inactive</span> : null}
+                      {available <= 0 ? <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-800">Out of stock</span> : null}
+                    </div>
+                  </div>
+                  {rowErrors.length ? <p className="text-sm text-red-700">{rowErrors.join(" ")}</p> : null}
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="SKU" htmlFor={`variant-sku-${index}`}><Input id={`variant-sku-${index}`} value={variant.sku} onChange={(event) => updateVariantDraft(index, { sku: event.target.value })} /></Field>
                     <Field label="Variant title" htmlFor={`variant-title-${index}`}><Input id={`variant-title-${index}`} value={variant.title} onChange={(event) => updateVariantDraft(index, { title: event.target.value })} /></Field>
@@ -1315,7 +1518,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                     <Button type="button" variant="outline" onClick={() => deleteVariantDraft(variant, index)}>Delete variant</Button>
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           </ProductSection>
           <ProductSection id="inventory" title="Inventory" description="Review on-hand, reserved, available, reorder, and low-stock state across variants.">
