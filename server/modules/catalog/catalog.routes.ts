@@ -48,10 +48,6 @@ const ProductImageParamsSchema = t.Object({
   imageId: t.String({ format: 'uuid' }),
 })
 
-const VariantParamsSchema = t.Object({
-  variantId: t.String({ format: 'uuid' }),
-})
-
 const PublicListQuerySchema = t.Object({
   keyword: t.Optional(t.String({ minLength: 1 })),
   q: t.Optional(t.String({ minLength: 1 })),
@@ -169,11 +165,6 @@ const UpdateVariantBodySchema = t.Partial(t.Composite([
   LocalizedVariantFieldsSchema,
   VariantShippingFieldsSchema,
 ]))
-
-const UpdateInventoryBodySchema = t.Partial(t.Object({
-  quantityOnHand: t.Number({ minimum: 0 }),
-  reorderLevel: t.Number({ minimum: 0 }),
-}))
 
 export function createCatalogRoutes(container: ServiceContainer) {
   const app = new Elysia()
@@ -368,12 +359,6 @@ export function createCatalogRoutes(container: ServiceContainer) {
       container.catalogService.deleteVariant(authContext.user, params.productId, params.variantId), {
       withAuth: true,
       params: ProductVariantParamsSchema,
-    })
-    .patch('/api/seller/variants/:variantId/inventory', ({ authContext, params, body }: any) =>
-      container.catalogService.updateSellerInventory(authContext.user, params.variantId, body), {
-      withAuth: true,
-      params: VariantParamsSchema,
-      body: UpdateInventoryBodySchema,
     })
 }
 

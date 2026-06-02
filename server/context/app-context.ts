@@ -20,6 +20,7 @@ import { PrismaCheckoutRepository } from '#server/modules/checkout/checkout.repo
 import { CheckoutService } from '#server/modules/checkout/checkout.service.ts'
 import { PrismaCatalogRepository } from '#server/modules/catalog/catalog.repository.ts'
 import { CatalogService } from '#server/modules/catalog/catalog.service.ts'
+import { InventoryService, PrismaInventoryRepository } from '#server/modules/inventory'
 import { PrismaPaymentRepository } from '#server/modules/payment/payment.repository.ts'
 import { PaymentService } from '#server/modules/payment/payment.service.ts'
 import { CommissionService } from '#server/modules/commission'
@@ -93,6 +94,7 @@ export interface ServiceContainer {
   eventHandlerRegistry: EventHandlerRegistry
   eventPublisherService: EventPublisherService
   fraudService: FraudService
+  inventoryService: InventoryService
   jobService: JobService
   notificationService: NotificationService
   realtimeService: RealtimeService
@@ -167,6 +169,8 @@ export function createContainer(): ServiceContainer {
   const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
   const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver)
+  const inventoryRepo = new PrismaInventoryRepository(appContext, prisma)
+  const inventoryService = new InventoryService(appContext, inventoryRepo, activeShopResolver)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
   const orderService = new OrderService(appContext, orderRepo, activeShopResolver)
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)
@@ -245,6 +249,7 @@ export function createContainer(): ServiceContainer {
     eventHandlerRegistry,
     eventPublisherService,
     fraudService,
+    inventoryService,
     jobService,
     notificationService,
     realtimeService,

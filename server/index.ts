@@ -17,6 +17,7 @@ import { createChatRoutes } from "#server/modules/chat";
 import { createCheckoutRoutes } from "#server/modules/checkout";
 import { createCatalogRoutes } from "#server/modules/catalog";
 import { createFraudRoutes } from "#server/modules/fraud";
+import { createInventoryRoutes } from "#server/modules/inventory";
 import { createNotificationRoutes } from "#server/modules/notification";
 import { createOrderRoutes } from "#server/modules/order";
 import { createPaymentRoutes } from "#server/modules/payment";
@@ -76,6 +77,7 @@ const baseApp = new Elysia()
         { name: "Checkout", description: "Checkout creation, totals, and reservations" },
         { name: "Chat", description: "Buyer and shop messaging" },
         { name: "Fraud", description: "Fraud detection and review workflows" },
+        { name: "Inventory", description: "Seller stock and inventory movement workflows" },
         { name: "Notification", description: "User notifications" },
         { name: "Observability", description: "Health, readiness, and metrics" },
         { name: "Order", description: "Orders and order lifecycle" },
@@ -136,6 +138,9 @@ const baseApp = new Elysia()
 
   // --- Checkout routes ---
   .use(createCheckoutRoutes(container))
+
+  // --- Inventory routes ---
+  .use(createInventoryRoutes(container))
 
   // --- Promotion routes ---
   .use(createPromotionRoutes(container))

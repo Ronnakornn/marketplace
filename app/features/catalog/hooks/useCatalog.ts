@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
+import type { ProductStatus } from "#generated/client/enums";
 import { api } from "#/lib/eden";
 import {
   adminCatalogProductDetailQueryOptions,
@@ -23,7 +24,7 @@ export interface CreateProductInput {
   description?: string | null;
   descriptionTh?: string | null;
   descriptionEn?: string | null;
-  status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  status?: ProductStatus;
 }
 
 export interface UpdateProductInput {
@@ -35,7 +36,7 @@ export interface UpdateProductInput {
   description?: string | null;
   descriptionTh?: string | null;
   descriptionEn?: string | null;
-  status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  status?: ProductStatus;
 }
 
 export interface CreateVariantInput {

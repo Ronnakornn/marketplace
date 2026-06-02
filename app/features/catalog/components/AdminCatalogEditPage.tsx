@@ -52,6 +52,7 @@ import {
   TableRow,
 } from "#/components/ui/table";
 import { Textarea } from "#/components/ui/textarea";
+import type { ProductStatus } from "#generated/client/enums";
 import {
   type CatalogProduct,
   type CatalogVariant,
@@ -61,8 +62,6 @@ import {
   useUpdateAdminCatalogVariant,
   useUpdateAdminCatalogProduct,
 } from "../hooks/useCatalog";
-
-type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 
 interface AdminCatalogEditPageProps {
   productId: string;
