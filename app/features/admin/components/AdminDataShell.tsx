@@ -7,6 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Skeleton } from "#/components/ui/skeleton";
 
+function readErrorStatus(error: unknown) {
+  if (!error || typeof error !== "object") return null;
+  const record = error as { status?: number; value?: { status?: number; code?: number }; response?: { status?: number } };
+  return record.status ?? record.value?.status ?? record.value?.code ?? record.response?.status ?? null;
+}
+
 export function AdminDataShell(props: {
   title: string;
   description: string;
@@ -30,10 +36,13 @@ export function AdminDataShell(props: {
   }
 
   if (props.error) {
+    const isForbidden = readErrorStatus(props.error) === 403;
     return (
       <Card className="border-red-500/30 bg-red-500/10">
         <CardContent className="flex flex-col gap-3 p-6">
-          <p className="text-sm text-red-200">Unable to load {props.title.toLowerCase()}.</p>
+          <p className="text-sm text-red-200">
+            {isForbidden ? `You do not have admin permission to view ${props.title.toLowerCase()}.` : `Unable to load ${props.title.toLowerCase()}.`}
+          </p>
           <Button variant="outline" size="sm" className="w-fit border-white/12 bg-white/5 text-slate-100" onClick={props.onRetry}>
             <RefreshCwIcon className="size-4" />
             Retry
