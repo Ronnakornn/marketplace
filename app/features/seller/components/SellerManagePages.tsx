@@ -57,6 +57,7 @@ import {
   useSellerCategories,
   useSellerCoupons,
   useSellerDashboard,
+  useSellerInventory,
   useSellerPayouts,
   useSellerProducts,
   useSellerReturns,
@@ -1141,25 +1142,49 @@ export function SellerProductsLegacyPage() {
 }
 
 export function SellerInventoryPage() {
-  const query = useSellerProducts({ limit: 50 });
+  const [lowStockOnly, setLowStockOnly] = useState(false);
+  const query = useSellerInventory();
   const updateInventory = useUpdateSellerInventory();
-  const variants = useMemo(() => (query.data?.data ?? []).flatMap((product: SellerProduct) => product.variants.map((variant) => ({ product, variant }))), [query.data]);
+  const variants = useMemo(() => {
+    const data = query.data as any;
+    const rows = Array.isArray(data) ? data : (data?.items ?? data?.data ?? []);
+    return rows.filter((row: any) => {
+      const inventory = row.inventory ?? row;
+      const available = (inventory.quantityOnHand ?? 0) - (inventory.quantityReserved ?? 0);
+      return !lowStockOnly || available <= (inventory.reorderLevel ?? 0);
+    });
+  }, [lowStockOnly, query.data]);
 
   return (
     <>
       <SellerPageHeader title="Inventory" description="Manage stock without touching reserved inventory." />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
+      <Card className="rounded-lg border-slate-200 bg-white">
+        <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input type="checkbox" checked={lowStockOnly} onChange={(event) => setLowStockOnly(event.target.checked)} />
+            Low-stock only
+          </label>
+          {updateInventory.isPending ? <p className="text-sm text-slate-500">Saving inventory...</p> : null}
+        </CardContent>
+      </Card>
       <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">Variant</TableHead><TableHead>On hand</TableHead><TableHead>Reserved</TableHead><TableHead>Available</TableHead><TableHead>Reorder</TableHead><TableHead className="text-right">Update</TableHead></TableRow></TableHeader><TableBody>
-        {variants.length ? variants.map(({ product, variant }) => {
-          const available = (variant.inventory?.quantityOnHand ?? 0) - (variant.inventory?.quantityReserved ?? 0);
+        {variants.length ? variants.map((row: any) => {
+          const variant = row.variant ?? row;
+          const product = row.product ?? variant.product ?? { title: row.productTitle ?? "Product" };
+          const inventory = row.inventory ?? row;
+          const quantityOnHand = inventory.quantityOnHand ?? 0;
+          const quantityReserved = inventory.quantityReserved ?? 0;
+          const reorderLevel = inventory.reorderLevel ?? 0;
+          const available = quantityOnHand - quantityReserved;
           return (
             <TableRow key={variant.id}>
               <TableCell className="px-4"><p className="font-medium">{product.title}</p><p className="text-xs text-slate-500">{variant.sku} · {variant.title}</p></TableCell>
-              <TableCell>{variant.inventory?.quantityOnHand ?? 0}</TableCell>
-              <TableCell>{variant.inventory?.quantityReserved ?? 0}</TableCell>
-              <TableCell className={available <= (variant.inventory?.reorderLevel ?? 0) ? "font-semibold text-red-600" : ""}>{available}</TableCell>
-              <TableCell>{variant.inventory?.reorderLevel ?? 0}</TableCell>
-              <TableCell><form className="flex justify-end gap-2" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); updateInventory.mutate({ variantId: variant.id, quantityOnHand: Number(formData.get("quantityOnHand")), reorderLevel: Number(formData.get("reorderLevel")) }); }}><Input name="quantityOnHand" type="number" min={0} defaultValue={variant.inventory?.quantityOnHand ?? 0} className="w-24" /><Input name="reorderLevel" type="number" min={0} defaultValue={variant.inventory?.reorderLevel ?? 0} className="w-24" /><Button type="submit" size="sm" disabled={updateInventory.isPending}>Save</Button></form></TableCell>
+              <TableCell>{quantityOnHand}</TableCell>
+              <TableCell><Input aria-label={`Reserved stock ${variant.sku}`} value={quantityReserved} readOnly className="w-20" /></TableCell>
+              <TableCell className={available <= reorderLevel ? "font-semibold text-red-600" : ""}>{available}</TableCell>
+              <TableCell>{reorderLevel}</TableCell>
+              <TableCell><form className="flex justify-end gap-2" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); updateInventory.mutate({ variantId: variant.id, quantityOnHand: Number(formData.get("quantityOnHand")), reorderLevel: Number(formData.get("reorderLevel")) }); }}><Input name="quantityOnHand" type="number" min={0} defaultValue={quantityOnHand} className="w-24" /><Input name="reorderLevel" type="number" min={0} defaultValue={reorderLevel} className="w-24" /><Button type="submit" size="sm" disabled={updateInventory.isPending}>Save</Button></form></TableCell>
             </TableRow>
           );
         }) : <TableRow><TableCell colSpan={6} className="h-28 text-center text-slate-500">{query.isLoading ? "Loading inventory..." : "No variants found."}</TableCell></TableRow>}

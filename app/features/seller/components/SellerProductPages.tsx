@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArchiveIcon, EditIcon, PlusIcon, TrashIcon, UploadIcon } from "lucide-react";
+import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, EditIcon, PlusIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -28,6 +28,7 @@ import {
   type SellerProduct,
   type SellerProductImage,
   type SellerProductInput,
+  type SellerProductOptionInput,
   type SellerProductVideo,
   type SellerVariantInput,
   useArchiveSellerProduct,
@@ -38,8 +39,12 @@ import {
   useDeleteSellerVariant,
   useSellerBrands,
   useSellerCategories,
+  useSellerProduct,
   useSellerProducts,
+  useSubmitSellerProductReview,
+  useUpdateSellerProductImagesOrder,
   useUpdateSellerProductImage,
+  useUpdateSellerProductOptions,
   useUpdateSellerProduct,
   useUpdateSellerVariant,
   useUpdateSellerVariantStock,
@@ -47,8 +52,8 @@ import {
   useUploadAndUpsertSellerProductVideo,
 } from "../hooks/useSellerManage";
 
-type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
-type VariantStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+type ProductStatus = "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
+type VariantStatus = "ACTIVE" | "INACTIVE";
 
 const MAX_PRODUCT_IMAGES = 10;
 const MAX_PRODUCT_VIDEO_BYTES = 25 * 1024 * 1024;
@@ -90,6 +95,24 @@ interface VariantFormState {
   lengthMm: string;
   widthMm: string;
   heightMm: string;
+  optionValueIds: string[];
+}
+
+interface ProductOptionDraftState {
+  id: string;
+  name: string;
+  nameTh: string;
+  nameEn: string;
+  sortOrder: number;
+  values: Array<{
+    id: string;
+    value: string;
+    valueTh: string;
+    valueEn: string;
+    displayType: string;
+    colorHex: string;
+    sortOrder: number;
+  }>;
 }
 
 interface ImageDraftState {
@@ -151,6 +174,7 @@ const emptyVariantForm: VariantFormState = {
   lengthMm: "",
   widthMm: "",
   heightMm: "",
+  optionValueIds: [],
 };
 
 function productToForm(product: SellerProduct): ProductFormState {
@@ -252,6 +276,26 @@ function productVariantsToForms(product?: SellerProduct | null): VariantFormStat
     lengthMm: variant.lengthMm == null ? "" : String(variant.lengthMm),
     widthMm: variant.widthMm == null ? "" : String(variant.widthMm),
     heightMm: variant.heightMm == null ? "" : String(variant.heightMm),
+    optionValueIds: (variant.optionValues ?? []).map((item: { optionValueId?: string; optionValue?: { id?: string } }) => item.optionValueId ?? item.optionValue?.id ?? "").filter(Boolean),
+  }));
+}
+
+function productOptionsToDrafts(product?: SellerProduct | null): ProductOptionDraftState[] {
+  return (product?.options ?? []).map((option, optionIndex) => ({
+    id: option.id ?? `option-${optionIndex}`,
+    name: option.name ?? "",
+    nameTh: option.nameTh ?? "",
+    nameEn: option.nameEn ?? "",
+    sortOrder: option.sortOrder ?? optionIndex,
+    values: (option.values ?? []).map((value, valueIndex) => ({
+      id: value.id ?? `value-${optionIndex}-${valueIndex}`,
+      value: value.value ?? "",
+      valueTh: value.valueTh ?? "",
+      valueEn: value.valueEn ?? "",
+      displayType: value.displayType ?? "TEXT",
+      colorHex: value.colorHex ?? "",
+      sortOrder: value.sortOrder ?? valueIndex,
+    })),
   }));
 }
 
@@ -275,6 +319,7 @@ function toVariantInput(variant: VariantFormState): SellerVariantInput & { statu
     lengthMm: toOptionalNumber(variant.lengthMm),
     widthMm: toOptionalNumber(variant.widthMm),
     heightMm: toOptionalNumber(variant.heightMm),
+    optionValueIds: variant.optionValueIds,
   };
 }
 
@@ -292,6 +337,43 @@ function getPublishReadiness(form: ProductFormState, images: ImageDraftState[], 
   if (!images.length) missing.push("at least one product image");
   if (!variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price || "0") > 0)) missing.push("one active variant with price greater than zero");
   return missing;
+}
+
+function getDuplicateOptionCombinationError(variants: VariantFormState[]) {
+  const seen = new Set<string>();
+  for (const variant of variants) {
+    const key = variant.optionValueIds.filter(Boolean).sort().join("|");
+    if (!key) continue;
+    if (seen.has(key)) return "Duplicate variant option combination. Choose a unique option value set for each variant.";
+    seen.add(key);
+  }
+  return "";
+}
+
+function getLatestModerationReason(product?: SellerProduct | null) {
+  const actions = ((product as { moderationCase?: { actions?: Array<{ action?: string; note?: string | null }> } } | null)?.moderationCase?.actions ?? []);
+  return actions.find((action) => action.action === "REJECT" || action.action === "SUSPEND")?.note ?? null;
+}
+
+function toProductOptionsInput(options: ProductOptionDraftState[]): SellerProductOptionInput[] {
+  return options
+    .map((option, optionIndex) => ({
+      name: option.name.trim(),
+      nameTh: optionalText(option.nameTh),
+      nameEn: optionalText(option.nameEn),
+      sortOrder: optionIndex,
+      values: option.values
+        .map((value, valueIndex) => ({
+          value: value.value.trim(),
+          valueTh: optionalText(value.valueTh),
+          valueEn: optionalText(value.valueEn),
+          displayType: value.displayType.trim() || "TEXT",
+          colorHex: optionalText(value.colorHex),
+          sortOrder: valueIndex,
+        }))
+        .filter((value) => value.value),
+    }))
+    .filter((option) => option.name && option.values.length);
 }
 
 function toProductInput(form: ProductFormState): SellerProductInput {
@@ -401,7 +483,7 @@ export function SellerProductsPage() {
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
           <Button asChild variant="outline" size="sm" aria-label={`Edit ${row.original.title}`}>
-            <Link href={`/seller/products/${row.original.id}/edit`}>
+            <Link href={`/seller/products/${row.original.id}`}>
               <EditIcon className="size-4" />
               <span className="sr-only">Edit</span>
             </Link>
@@ -438,13 +520,16 @@ export function SellerProductsPage() {
                     <SelectContent>
                       <SelectItem value="ALL">All statuses</SelectItem>
                       <SelectItem value="DRAFT">Draft</SelectItem>
+                      <SelectItem value="PENDING_REVIEW">Pending review</SelectItem>
                       <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="REJECTED">Rejected</SelectItem>
+                      <SelectItem value="SUSPENDED">Suspended</SelectItem>
                       <SelectItem value="ARCHIVED">Archived</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <Button asChild className="w-full sm:w-auto">
-                  <Link href="/seller/products/create">
+                  <Link href="/seller/products/new">
                     <PlusIcon className="size-4" />
                     Create product
                   </Link>
@@ -490,6 +575,7 @@ export function SellerProductEditPage({ productId }: { productId: string }) {
 function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; productId?: string }) {
   const router = useRouter();
   const productsQuery = useSellerProducts({ limit: 50 });
+  const productQuery = useSellerProduct(mode === "edit" ? productId : undefined);
   const categoriesQuery = useSellerCategories();
   const brandsQuery = useSellerBrands();
   const createProduct = useCreateSellerProduct();
@@ -499,11 +585,14 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const deleteVariant = useDeleteSellerVariant();
   const updateVariantStock = useUpdateSellerVariantStock();
   const uploadImage = useUploadAndCreateSellerProductImage();
+  const updateImageOrder = useUpdateSellerProductImagesOrder();
   const updateImage = useUpdateSellerProductImage();
   const deleteImage = useDeleteSellerProductImage();
   const uploadVideo = useUploadAndUpsertSellerProductVideo();
   const deleteVideo = useDeleteSellerProductVideo();
-  const product = mode === "edit" ? (productsQuery.data?.data ?? []).find((item) => item.id === productId) : null;
+  const updateOptions = useUpdateSellerProductOptions();
+  const submitReview = useSubmitSellerProductReview();
+  const product = mode === "edit" ? (productQuery.data ?? (productsQuery.data?.data ?? []).find((item) => item.id === productId)) : null;
   const initialForm = useMemo(() => product ? productToForm(product) : emptyProductForm, [product]);
   const [form, setForm] = useState<ProductFormState>(initialForm);
   const [createdProduct, setCreatedProduct] = useState<SellerProduct | null>(null);
@@ -512,8 +601,10 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const [images, setImages] = useState<ImageDraftState[]>(() => productImagesToDrafts(product));
   const [video, setVideo] = useState<VideoDraftState | null>(() => productVideoToDraft(product));
   const [variants, setVariants] = useState<VariantFormState[]>(() => productVariantsToForms(product));
+  const [options, setOptions] = useState<ProductOptionDraftState[]>(() => productOptionsToDrafts(product));
   const [mediaError, setMediaError] = useState("");
   const [variantError, setVariantError] = useState("");
+  const [optionError, setOptionError] = useState("");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const workingProduct = createdProduct ?? product;
@@ -526,16 +617,131 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       setImages(productImagesToDrafts(product));
       setVideo(productVideoToDraft(product));
       setVariants(productVariantsToForms(product));
+      setOptions(productOptionsToDrafts(product));
     }
   }, [initialForm, mode, product?.id, seedProductId]);
 
   const readinessMissing = getPublishReadiness(form, images, variants);
+  const duplicateCombinationError = getDuplicateOptionCombinationError(variants);
+  const moderationReason = getLatestModerationReason(workingProduct);
   const dirty = isProductFormDirty(form, initialForm) || images.some((image) => image.status !== "existing") || variants.some((variant) => !variant.id) || Boolean(video?.status !== "existing" && video);
-  const isSaving = createProduct.isPending || updateProduct.isPending || createVariant.isPending || updateVariant.isPending || updateVariantStock.isPending || uploadImage.isPending || updateImage.isPending || deleteImage.isPending || uploadVideo.isPending || deleteVideo.isPending || deleteVariant.isPending;
+  const isSaving = createProduct.isPending || updateProduct.isPending || createVariant.isPending || updateVariant.isPending || updateVariantStock.isPending || uploadImage.isPending || updateImage.isPending || updateImageOrder.isPending || deleteImage.isPending || uploadVideo.isPending || deleteVideo.isPending || deleteVariant.isPending || updateOptions.isPending || submitReview.isPending;
 
   function cancel() {
     if (dirty && !window.confirm("Discard unsaved product changes?")) return;
     router.push("/seller/products");
+  }
+
+  function addOption() {
+    setOptions((current) => [...current, {
+      id: `option-${Date.now()}`,
+      name: "",
+      nameTh: "",
+      nameEn: "",
+      sortOrder: current.length,
+      values: [{ id: `value-${Date.now()}`, value: "", valueTh: "", valueEn: "", displayType: "TEXT", colorHex: "", sortOrder: 0 }],
+    }]);
+  }
+
+  function updateOptionDraft(index: number, patch: Partial<ProductOptionDraftState>) {
+    setOptions((current) => current.map((option, optionIndex) => optionIndex === index ? { ...option, ...patch } : option));
+  }
+
+  function addOptionValue(optionIndex: number) {
+    setOptions((current) => current.map((option, index) => index === optionIndex ? {
+      ...option,
+      values: [...option.values, { id: `value-${Date.now()}`, value: "", valueTh: "", valueEn: "", displayType: "TEXT", colorHex: "", sortOrder: option.values.length }],
+    } : option));
+  }
+
+  function updateOptionValueDraft(optionIndex: number, valueIndex: number, patch: Partial<ProductOptionDraftState["values"][number]>) {
+    setOptions((current) => current.map((option, index) => index === optionIndex ? {
+      ...option,
+      values: option.values.map((value, currentValueIndex) => currentValueIndex === valueIndex ? { ...value, ...patch } : value),
+    } : option));
+  }
+
+  function removeOption(index: number) {
+    setOptions((current) => current.filter((_, optionIndex) => optionIndex !== index));
+  }
+
+  function removeOptionValue(optionIndex: number, valueIndex: number) {
+    setOptions((current) => current.map((option, index) => index === optionIndex ? {
+      ...option,
+      values: option.values.filter((_, currentValueIndex) => currentValueIndex !== valueIndex),
+    } : option));
+  }
+
+  function saveOptions() {
+    setOptionError("");
+    if (!workingProductId) {
+      setOptionError("Save the product as a draft before editing variant options.");
+      return;
+    }
+    const input = toProductOptionsInput(options);
+    if (options.length && !input.length) {
+      setOptionError("Each option needs a name and at least one value.");
+      return;
+    }
+    updateOptions.mutate({ productId: workingProductId, options: input }, {
+      onSuccess: (updatedProduct: SellerProduct) => {
+        setOptions(productOptionsToDrafts(updatedProduct));
+        toast.success("Variant options saved.");
+      },
+      onError: (error: unknown) => setOptionError(error instanceof Error ? error.message : "Variant options could not be saved."),
+    });
+  }
+
+  function saveImageOrder() {
+    setMediaError("");
+    if (!workingProductId) {
+      setMediaError("Save the product as a draft before reordering media.");
+      return;
+    }
+    const existingImages = images.filter((image) => image.status === "existing");
+    updateImageOrder.mutate({
+      productId: workingProductId,
+      images: existingImages.map((image, index) => ({ id: image.id, sortOrder: index })),
+      primaryImageId: existingImages.find((image) => image.isPrimary)?.id ?? null,
+    }, {
+      onSuccess: () => {
+        setImages((current) => current.map((image, index) => ({ ...image, sortOrder: index })));
+        toast.success("Image order saved.");
+      },
+      onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : "Image order could not be saved."),
+    });
+  }
+
+  function moveImage(imageId: string, direction: -1 | 1) {
+    setImages((current) => {
+      const index = current.findIndex((image) => image.id === imageId);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
+      const next = [...current];
+      const [image] = next.splice(index, 1);
+      next.splice(nextIndex, 0, image);
+      return next.map((item, sortOrder) => ({ ...item, sortOrder }));
+    });
+  }
+
+  function submitForReview() {
+    setFormError("");
+    if (!workingProductId) {
+      setFormError("Save this product as a draft before submitting for review.");
+      return;
+    }
+    if (readinessMissing.length) {
+      setFormError(`Submit review needs ${readinessMissing.join(", ")}.`);
+      return;
+    }
+    if (duplicateCombinationError) {
+      setVariantError(duplicateCombinationError);
+      return;
+    }
+    submitReview.mutate(workingProductId, {
+      onSuccess: () => toast.success("Product submitted for review."),
+      onError: (error: unknown) => setFormError(error instanceof Error ? error.message : "Product could not be submitted for review."),
+    });
   }
 
   function submitProduct(event: FormEvent<HTMLFormElement>) {
@@ -547,6 +753,10 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     }
     if (form.status === "ACTIVE" && readinessMissing.length) {
       setFormError(`Active products need ${readinessMissing.join(", ")} before publishing.`);
+      return;
+    }
+    if (duplicateCombinationError) {
+      setVariantError(duplicateCombinationError);
       return;
     }
     const input = toProductInput(form);
@@ -776,16 +986,16 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     });
   }
 
-  if (mode === "edit" && productsQuery.error) {
+  if (mode === "edit" && (productQuery.error || productsQuery.error)) {
     return (
       <>
         <SellerPageHeader title="Edit product" description="Update listing details and prepare product setup sections." />
-        <ErrorState error={productsQuery.error} retry={() => void productsQuery.refetch()} />
+        <ErrorState error={productQuery.error ?? productsQuery.error} retry={() => { void productQuery.refetch(); void productsQuery.refetch(); }} />
       </>
     );
   }
 
-  if (mode === "edit" && productsQuery.isLoading) {
+  if (mode === "edit" && (productQuery.isLoading || productsQuery.isLoading)) {
     return (
       <>
         <SellerPageHeader title="Edit product" description="Update listing details and prepare product setup sections." />
@@ -798,7 +1008,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     return (
       <>
         <SellerPageHeader title="Edit product" description="Update listing details and prepare product setup sections." />
-        <Card><CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-600">Product could not be found.</p><Button type="button" variant="outline" onClick={() => void productsQuery.refetch()}>Retry</Button></CardContent></Card>
+        <Card><CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-600">Product could not be found or you do not have access to it.</p><Button type="button" variant="outline" onClick={() => { void productQuery.refetch(); void productsQuery.refetch(); }}>Retry</Button></CardContent></Card>
       </>
     );
   }
@@ -819,13 +1029,20 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                 <SelectTrigger id="product-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="DRAFT">Draft</SelectItem>
+                  <SelectItem value="PENDING_REVIEW">Pending review</SelectItem>
                   <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
                   <SelectItem value="ARCHIVED">Archived</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-medium text-slate-900">Moderation status: {workingProduct?.status?.replaceAll("_", " ") ?? "Draft not saved"}</p>
+              {moderationReason ? <p className="mt-1 text-sm text-red-700">Reason: {moderationReason}</p> : null}
+            </div>
           </ProductSection>
-          <ProductSection title="Category and brand" description="Drafts can be saved without category or brand.">
+          <ProductSection title="Category and specs" description="Choose the primary category and enter category-specific specifications as attributes.">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Category" htmlFor="product-category">
                 <Select value={form.categoryId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, categoryId: value === "NONE" ? "" : value }))}>
@@ -846,6 +1063,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                 </Select>
               </Field>
             </div>
+            <Field label="Specifications" htmlFor="product-attributes"><Textarea id="product-attributes" value={form.attributesText} onChange={(event) => setForm((current) => ({ ...current, attributesText: event.target.value }))} rows={3} placeholder="color|Color|Black|filterable" /></Field>
           </ProductSection>
           <ProductSection title="Localized content" description="Optional Thai and English listing copy.">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -866,7 +1084,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               <Field label="Country of origin" htmlFor="product-origin"><Input id="product-origin" value={form.countryOfOrigin} onChange={(event) => setForm((current) => ({ ...current, countryOfOrigin: event.target.value }))} placeholder="TH" /></Field>
             </div>
             <Field label="Highlights" htmlFor="product-highlights"><Textarea id="product-highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder="One highlight per line" /></Field>
-            <Field label="Attributes" htmlFor="product-attributes"><Textarea id="product-attributes" value={form.attributesText} onChange={(event) => setForm((current) => ({ ...current, attributesText: event.target.value }))} rows={3} placeholder="color|Color|Black|filterable" /></Field>
+            <p className="text-xs text-slate-500">Category specifications are managed in the category and specs section.</p>
           </ProductSection>
         </div>
         <aside className="space-y-4">
@@ -886,8 +1104,11 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
             </div>
             <p className="text-xs text-slate-500">{images.length}/{MAX_PRODUCT_IMAGES} images. Video limit: one MP4 or WebM up to 25MB.</p>
             {mediaError ? <p className="text-sm text-red-600">{mediaError}</p> : null}
+            {images.some((image) => image.status === "existing") ? (
+              <Button type="button" variant="outline" onClick={saveImageOrder} disabled={isSaving}>Save image order</Button>
+            ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
-              {images.map((image) => (
+              {images.map((image, imageIndex) => (
                 <div key={image.id} className="space-y-3 rounded-lg border border-slate-200 p-3">
                   <img src={image.url} alt={image.altText || "Product image preview"} className="aspect-square w-full rounded-md object-cover" />
                   <Field label="Alt text" htmlFor={`image-alt-${image.id}`}>
@@ -903,7 +1124,9 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                     </label>
                   </div>
                   {image.error ? <p className="text-sm text-red-600">{image.error}</p> : null}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" aria-label={`Move image ${imageIndex + 1} up`} onClick={() => moveImage(image.id, -1)} disabled={imageIndex === 0}><ArrowUpIcon className="size-4" /></Button>
+                    <Button type="button" variant="outline" aria-label={`Move image ${imageIndex + 1} down`} onClick={() => moveImage(image.id, 1)} disabled={imageIndex === images.length - 1}><ArrowDownIcon className="size-4" /></Button>
                     <Button type="button" variant="outline" onClick={() => saveImage(image)} disabled={isSaving}>{image.status === "uploading" ? "Uploading..." : image.status === "error" ? "Retry" : "Save image"}</Button>
                     <Button type="button" variant="outline" aria-label={`Remove image ${image.altText || image.id}`} onClick={() => removeImage(image)}><TrashIcon className="size-4" /></Button>
                   </div>
@@ -922,7 +1145,38 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               </div>
             ) : null}
           </ProductSection>
-          <ProductSection title="Variants" description="Create, edit, delete, price, dimensions, and simple stock setup per sellable option.">
+          <ProductSection title="Variant matrix" description="Define structured options and values, then assign unique combinations to variants.">
+            {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before editing variant options.</p> : null}
+            {optionError ? <p className="text-sm text-red-600">{optionError}</p> : null}
+            {duplicateCombinationError ? <p className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={addOption}><PlusIcon className="size-4" />Add option</Button>
+              <Button type="button" variant="outline" onClick={saveOptions} disabled={isSaving}>Save options</Button>
+            </div>
+            <div className="space-y-3">
+              {options.length ? options.map((option, optionIndex) => (
+                <div key={option.id} className="space-y-3 rounded-lg border border-slate-200 p-3">
+                  <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                    <Field label="Option name" htmlFor={`option-name-${optionIndex}`}><Input id={`option-name-${optionIndex}`} value={option.name} onChange={(event) => updateOptionDraft(optionIndex, { name: event.target.value })} placeholder="Color" /></Field>
+                    <Field label="Thai name" htmlFor={`option-name-th-${optionIndex}`}><Input id={`option-name-th-${optionIndex}`} value={option.nameTh} onChange={(event) => updateOptionDraft(optionIndex, { nameTh: event.target.value })} /></Field>
+                    <div className="flex items-end"><Button type="button" variant="outline" onClick={() => removeOption(optionIndex)}>Remove</Button></div>
+                  </div>
+                  <div className="space-y-2">
+                    {option.values.map((value, valueIndex) => (
+                      <div key={value.id} className="grid gap-2 sm:grid-cols-[1fr_1fr_100px_auto]">
+                        <Input aria-label={`Option ${optionIndex + 1} value ${valueIndex + 1}`} value={value.value} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { value: event.target.value })} placeholder="Black" />
+                        <Input aria-label={`Option ${optionIndex + 1} value ${valueIndex + 1} Thai`} value={value.valueTh} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { valueTh: event.target.value })} />
+                        <Input aria-label={`Option ${optionIndex + 1} value ${valueIndex + 1} color`} value={value.colorHex} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { colorHex: event.target.value })} placeholder="#000000" />
+                        <Button type="button" variant="outline" onClick={() => removeOptionValue(optionIndex, valueIndex)}>Remove</Button>
+                      </div>
+                    ))}
+                  </div>
+                  <Button type="button" variant="outline" onClick={() => addOptionValue(optionIndex)}>Add value</Button>
+                </div>
+              )) : <p className="text-sm text-slate-500">No structured options yet. Add options such as color or size when this product has variants.</p>}
+            </div>
+          </ProductSection>
+          <ProductSection title="Variants" description="Create, edit, delete, price, dimensions, and stock setup per sellable option combination.">
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before adding variants.</p> : null}
             {variantError ? <p className="text-sm text-red-600">{variantError}</p> : null}
             <Button type="button" variant="outline" onClick={addVariant}>
@@ -943,13 +1197,42 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                       <Select value={variant.status} onValueChange={(value) => updateVariantDraft(index, { status: value as VariantStatus })}>
                         <SelectTrigger id={`variant-status-${index}`}><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="DRAFT">Draft</SelectItem>
                           <SelectItem value="ACTIVE">Active</SelectItem>
-                          <SelectItem value="ARCHIVED">Archived</SelectItem>
+                          <SelectItem value="INACTIVE">Inactive</SelectItem>
                         </SelectContent>
                       </Select>
                     </Field>
                   </div>
+                  {options.length ? (
+                    <div className="space-y-2 rounded-md bg-slate-50 p-3">
+                      <p className="text-sm font-medium text-slate-900">Option values</p>
+                      {options.map((option) => (
+                        <div key={option.id} className="space-y-1">
+                          <p className="text-xs font-semibold text-slate-600">{option.name || "Option"}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {option.values.map((value) => {
+                              const checked = variant.optionValueIds.includes(value.id);
+                              return (
+                                <label key={value.id} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(event) => {
+                                      const nextIds = event.target.checked
+                                        ? [...variant.optionValueIds.filter((id) => !option.values.some((item) => item.id === id)), value.id]
+                                        : variant.optionValueIds.filter((id) => id !== value.id);
+                                      updateVariantDraft(index, { optionValueIds: nextIds });
+                                    }}
+                                  />
+                                  {value.value || "Value"}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Quantity on hand" htmlFor={`variant-on-hand-${index}`}><Input id={`variant-on-hand-${index}`} type="number" min="0" value={variant.quantityOnHand} onChange={(event) => updateVariantDraft(index, { quantityOnHand: event.target.value })} /></Field>
                     <Field label="Reorder level" htmlFor={`variant-reorder-${index}`}><Input id={`variant-reorder-${index}`} type="number" min="0" value={variant.reorderLevel} onChange={(event) => updateVariantDraft(index, { reorderLevel: event.target.value })} /></Field>
@@ -976,6 +1259,11 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
             ) : (
               <p className="text-sm text-green-700">This product has the visible setup needed for active publishing. Backend validation remains final.</p>
             )}
+            {duplicateCombinationError ? <p className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
+            <Button type="button" variant="outline" onClick={submitForReview} disabled={isSaving || readinessMissing.length > 0 || Boolean(duplicateCombinationError) || form.status === "PENDING_REVIEW"}>
+              <SendIcon className="size-4" />
+              {submitReview.isPending ? "Submitting..." : "Submit for review"}
+            </Button>
           </ProductSection>
           {formError ? <p id="product-form-error" className="text-sm text-red-600">{formError}</p> : null}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end xl:flex-col-reverse">

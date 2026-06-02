@@ -18,10 +18,13 @@ const updateVariantMutate = vi.fn();
 const deleteVariantMutate = vi.fn();
 const updateVariantStockMutate = vi.fn();
 const uploadImageMutate = vi.fn();
+const updateImageOrderMutate = vi.fn();
 const updateImageMutate = vi.fn();
 const deleteImageMutate = vi.fn();
 const uploadVideoMutate = vi.fn();
 const deleteVideoMutate = vi.fn();
+const updateOptionsMutate = vi.fn();
+const submitReviewMutate = vi.fn();
 
 const products: Array<any> = [
   {
@@ -45,6 +48,19 @@ const products: Array<any> = [
     countryOfOrigin: "",
     highlights: [{ text: "Soft cotton", sortOrder: 0 }],
     attributes: [{ attributeKey: "color", displayName: "Color", value: "Blue", isFilterable: true }],
+    moderationCase: null,
+    options: [
+      {
+        id: "opt_color",
+        name: "Color",
+        nameTh: null,
+        nameEn: "Color",
+        sortOrder: 0,
+        values: [
+          { id: "opt_value_blue", optionId: "opt_color", value: "Blue", valueTh: null, valueEn: "Blue", displayType: "TEXT", colorHex: "#0000ff", sortOrder: 0 },
+        ],
+      },
+    ],
     images: [
       { id: "img_1", productId: "prod_1", url: "https://example.com/shirt.jpg", altText: "Cotton shirt front", sortOrder: 0, isPrimary: true, width: 800, height: 600 },
     ],
@@ -63,6 +79,7 @@ const products: Array<any> = [
         widthMm: 200,
         heightMm: 20,
         inventory: { quantityOnHand: 10, quantityReserved: 2, reorderLevel: 1 },
+        optionValues: [{ optionValueId: "opt_value_blue", optionValue: { id: "opt_value_blue", value: "Blue", option: { id: "opt_color", name: "Color" } } }],
       },
     ],
   },
@@ -87,6 +104,8 @@ const products: Array<any> = [
     countryOfOrigin: null,
     highlights: [],
     attributes: [],
+    options: [],
+    moderationCase: { actions: [{ action: "REJECT", note: "Missing image proof" }] },
     images: [],
     variants: [],
   },
@@ -199,6 +218,12 @@ vi.mock("../hooks/useSellerManage", () => ({
     ...sellerProductsState,
     refetch,
   })),
+  useSellerProduct: vi.fn((productId?: string) => ({
+    data: productId ? (sellerProductsState.data?.data ?? products).find((product) => product.id === productId) : undefined,
+    error: sellerProductsState.error,
+    isLoading: sellerProductsState.isLoading,
+    refetch,
+  })),
   useSellerCategories: vi.fn(() => ({ data: [{ id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 0 }], isLoading: false })),
   useSellerBrands: vi.fn(() => ({ data: [{ id: "brand_1", name: "Acme", slug: "acme", code: "ACME", isActive: true }], isLoading: false })),
   useCreateSellerProduct: vi.fn(() => ({ mutate: createMutate, isPending: false })),
@@ -209,10 +234,13 @@ vi.mock("../hooks/useSellerManage", () => ({
   useDeleteSellerVariant: vi.fn(() => ({ mutate: deleteVariantMutate, isPending: false })),
   useUpdateSellerVariantStock: vi.fn(() => ({ mutate: updateVariantStockMutate, isPending: false })),
   useUploadAndCreateSellerProductImage: vi.fn(() => ({ mutate: uploadImageMutate, isPending: false })),
+  useUpdateSellerProductImagesOrder: vi.fn(() => ({ mutate: updateImageOrderMutate, isPending: false })),
   useUpdateSellerProductImage: vi.fn(() => ({ mutate: updateImageMutate, isPending: false })),
   useDeleteSellerProductImage: vi.fn(() => ({ mutate: deleteImageMutate, isPending: false })),
   useUploadAndUpsertSellerProductVideo: vi.fn(() => ({ mutate: uploadVideoMutate, isPending: false })),
   useDeleteSellerProductVideo: vi.fn(() => ({ mutate: deleteVideoMutate, isPending: false })),
+  useUpdateSellerProductOptions: vi.fn(() => ({ mutate: updateOptionsMutate, isPending: false })),
+  useSubmitSellerProductReview: vi.fn(() => ({ mutate: submitReviewMutate, isPending: false })),
 }));
 
 afterEach(() => {
@@ -228,8 +256,8 @@ describe("Seller product pages", () => {
     expect(screen.getAllByText("Cotton Shirt").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Search products")).toBeTruthy();
     expect(screen.getByLabelText("Filter by product status")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /create product/i }).getAttribute("href")).toBe("/seller/products/create");
-    expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/seller/products/prod_1/edit");
+    expect(screen.getByRole("link", { name: /create product/i }).getAttribute("href")).toBe("/seller/products/new");
+    expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/seller/products/prod_1");
   });
 
   it("requires archive confirmation before calling archive mutation", () => {
@@ -246,7 +274,7 @@ describe("Seller product pages", () => {
     render(<SellerProductCreatePage />);
 
     expect(screen.getByRole("heading", { name: "Create product" })).toBeTruthy();
-    for (const section of ["Basic info", "Category and brand", "Localized content", "Highlights and attributes", "Media", "Variants", "Stock", "Dimensions"]) {
+    for (const section of ["Basic info", "Category and specs", "Localized content", "Highlights and attributes", "Media", "Variant matrix", "Variants"]) {
       if (["Stock", "Dimensions"].includes(section)) continue;
       expect(screen.getByRole("heading", { name: section })).toBeTruthy();
     }
@@ -391,5 +419,31 @@ describe("Seller product pages", () => {
 
     expect(screen.getByText("Save failed")).toBeTruthy();
     expect(screen.getByDisplayValue("Retry Product")).toBeTruthy();
+  });
+
+  it("submits a ready draft for review and shows moderation rejection reasons", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /submit for review/i }));
+    expect(submitReviewMutate).toHaveBeenCalledWith("prod_1", expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }));
+
+    cleanup();
+    render(<SellerProductEditPage productId="prod_2" />);
+    expect(screen.getByText("Reason: Missing image proof")).toBeTruthy();
+  });
+
+  it("blocks submit review when variant option combinations are duplicated", () => {
+    const duplicateProduct = {
+      ...products[0],
+      variants: [
+        products[0].variants[0],
+        { ...products[0].variants[0], id: "var_2", sku: "SHIRT-2" },
+      ],
+    };
+    sellerProductsState = { data: { data: [duplicateProduct], meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    expect(screen.getAllByText("Duplicate variant option combination. Choose a unique option value set for each variant.").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(true);
   });
 });
