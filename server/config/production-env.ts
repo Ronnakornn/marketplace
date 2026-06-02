@@ -75,4 +75,9 @@ export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.en
     forbiddenValues: ['change-me', 'your-kyc-encryption-key'],
     forbiddenSubstrings: ['your-kyc-encryption-key', 'development-kyc-encryption-key'],
   }, env)
+  if (env['PHONE_OTP_PROVIDER'] === 'http') {
+    requireProductionEnv('PHONE_OTP_HTTP_URL', env['PHONE_OTP_HTTP_URL'], {
+      requireHttpsUrl: true,
+    }, env)
+  }
 }

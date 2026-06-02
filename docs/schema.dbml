@@ -223,6 +223,8 @@ Table users {
   role role [not null, default: "USER"]
   status user_status [not null, default: "ACTIVE"]
   email_verified boolean [not null, default: false]
+  phone varchar [unique]
+  phone_verified boolean [not null, default: false]
   image varchar
   created_at timestamp [not null]
   updated_at timestamp [not null]

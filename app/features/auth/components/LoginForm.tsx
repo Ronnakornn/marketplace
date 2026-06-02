@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "#/lib/auth-client";
+import { resolveNextPath } from "../redirect";
+import { PhoneAuthPanel } from "./PhoneAuthPanel";
+import { SocialSignInButtons } from "./SocialSignInButtons";
 
 export function LoginForm({ nextPath }: { nextPath?: string | null }) {
   const router = useRouter();
@@ -40,6 +43,9 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
         <p className="mb-6 text-sm text-[var(--sea-ink-soft)]">
           Welcome back. Enter your credentials to continue.
         </p>
+
+        <SocialSignInButtons nextPath={nextPath} />
+        <PhoneAuthPanel nextPath={nextPath} mode="login" />
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -93,6 +99,21 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
           </button>
         </form>
 
+        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm">
+          <Link
+            href="/forgot-password"
+            className="font-medium text-[var(--lagoon-deep)] hover:underline"
+          >
+            Forgot password?
+          </Link>
+          <Link
+            href="/verify-email"
+            className="font-medium text-[var(--lagoon-deep)] hover:underline"
+          >
+            Verify email
+          </Link>
+        </div>
+
         <p className="mt-5 text-center text-sm text-[var(--sea-ink-soft)]">
           Don&apos;t have an account?{" "}
           <Link
@@ -105,10 +126,4 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
       </div>
     </div>
   );
-}
-
-function resolveNextPath(next: string | null) {
-  if (!next?.startsWith("/")) return "/";
-  if (next.startsWith("//")) return "/";
-  return next;
 }

@@ -57,6 +57,7 @@ import { createCoreCommerceEventHandlers } from '#server/modules/events'
 import { createFraudEventHandlers, FraudService, getFraudRuleConfigFromEnv, PrismaFraudRepository } from '#server/modules/fraud'
 import { BullMqQueueProducer, getQueueConfigFromEnv, OptionalQueueProducer, type QueueProducer } from '#server/modules/queue'
 import { AuditLogService, PrismaAuditLogRepository } from '#server/modules/audit-log'
+import { createPhoneOtpProvider, PhoneOtpService, PrismaPhoneOtpRepository } from '#server/modules/auth'
 import { ActiveShopResolver, OwnershipGuards, PrismaOwnershipGuardRepository, SecurityService } from '#server/modules/security'
 import { CacheInvalidation, CacheService, createRedisCacheClient, getCacheConfigFromEnv } from '#server/modules/cache'
 import {
@@ -100,6 +101,7 @@ export interface ServiceContainer {
   orderService: OrderService
   paymentService: PaymentService
   payoutService: PayoutService
+  phoneOtpService: PhoneOtpService
   promotionService: PromotionService
   refundService: RefundService
   recommendationService: RecommendationService
@@ -173,6 +175,8 @@ export function createContainer(): ServiceContainer {
   const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation, eventPublisherService, affiliateService)
   const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
   const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService, activeShopResolver)
+  const phoneOtpRepo = new PrismaPhoneOtpRepository(appContext, prisma)
+  const phoneOtpService = new PhoneOtpService(appContext, phoneOtpRepo, createPhoneOtpProvider())
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
   const returnService = new ReturnService(appContext, returnRepo, activeShopResolver)
   const refundRepo = new PrismaRefundRepository(appContext, prisma)
@@ -249,6 +253,7 @@ export function createContainer(): ServiceContainer {
     orderService,
     paymentService,
     payoutService,
+    phoneOtpService,
     promotionService,
     refundService,
     recommendationService,

@@ -97,6 +97,10 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 API_BASE_URL="http://localhost:3001"
 ADMIN_EMAILS="admin@example.com"
 PAYMENT_WEBHOOK_SECRET="your-payment-webhook-secret-at-least-32-chars"
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+FACEBOOK_CLIENT_ID=""
+FACEBOOK_CLIENT_SECRET=""
 ```
 
 ### 3. Set Up Database
@@ -156,7 +160,13 @@ bun run test             # Run Vitest
 | `NEXT_PUBLIC_APP_URL` | Browser-facing frontend URL | `http://localhost:3000` |
 | `API_BASE_URL` | Internal API target used by Next.js rewrites | `http://localhost:3001` |
 | `ADMIN_EMAILS` | Comma-separated emails to promote via seed script | `admin@example.com` |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID; Google login is enabled only when paired with `GOOGLE_CLIENT_SECRET` | - |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret; never expose to browser code | - |
+| `FACEBOOK_CLIENT_ID` | Facebook App ID; Facebook login is enabled only when paired with `FACEBOOK_CLIENT_SECRET` | - |
+| `FACEBOOK_CLIENT_SECRET` | Facebook App Secret; never expose to browser code | - |
 | `NODE_ENV` | Environment (`development` / `production`) | `development` |
+
+Google and Facebook callback URLs must also be configured in the provider consoles for the active `BETTER_AUTH_URL` host, for example `/api/auth/callback/google` and `/api/auth/callback/facebook`. Real OAuth callback validation requires provider console setup and is outside local deterministic tests.
 
 ## Key Patterns
 

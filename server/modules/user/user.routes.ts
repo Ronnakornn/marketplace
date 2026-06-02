@@ -11,6 +11,8 @@ const CurrentUserResponse = t.Pick(UserPlain, [
   'role',
   'status',
   'emailVerified',
+  'phone',
+  'phoneVerified',
   'image',
   'createdAt',
   'updatedAt',
@@ -28,7 +30,22 @@ const UpdateUserBody = t.Object({
   role: t.Union([t.Literal('USER'), t.Literal('ADMIN')]),
 })
 const UpdateUserRoleBody = t.Required(t.Pick(UserPlainInputUpdate, ['role']))
-const UpdateCurrentUserBody = t.Partial(t.Pick(UserPlainInputUpdate, ['name', 'image']))
+const UpdateCurrentUserProfileBody = t.Partial(t.Pick(UserPlainInputUpdate, ['name', 'image', 'phone']))
+const EmailBody = t.Object({ email: t.String({ format: 'email' }) })
+const OtpEmailBody = t.Object({
+  email: t.String({ format: 'email' }),
+  otp: t.String({ minLength: 4 }),
+})
+const ResetPasswordBody = t.Object({
+  email: t.String({ format: 'email' }),
+  otp: t.String({ minLength: 4 }),
+  newPassword: t.String({ minLength: 8 }),
+})
+const ChangePasswordBody = t.Object({
+  currentPassword: t.String({ minLength: 1 }),
+  newPassword: t.String({ minLength: 8 }),
+})
+const SuccessResponse = t.Object({ success: t.Boolean() })
 const AddressParams = t.Object({
   addressId: t.String({ format: 'uuid' }),
 })
@@ -65,8 +82,32 @@ export function createUserRoutes(container: ServiceContainer) {
     })
     .patch('/api/me', ({ authContext, body }: any) => container.userService.updateCurrentUser(authContext!.user.id, body), {
       withAuth: true,
-      body: UpdateCurrentUserBody,
+      body: UpdateCurrentUserProfileBody,
       response: CurrentUserResponse,
+    })
+    .post('/api/auth/resend-email-verification', ({ authContext }: any) =>
+      container.userService.resendEmailVerification(authContext!.user.id), {
+      withAuth: true,
+      response: SuccessResponse,
+    })
+    .post('/api/auth/verify-email-otp', ({ body }) => container.userService.verifyEmailOtp(body.email, body.otp), {
+      body: OtpEmailBody,
+      response: SuccessResponse,
+    })
+    .post('/api/auth/request-password-reset-otp', ({ body }) => container.userService.requestPasswordResetOtp(body.email), {
+      body: EmailBody,
+      response: SuccessResponse,
+    })
+    .post('/api/auth/complete-password-reset', ({ body }) =>
+      container.userService.completePasswordReset(body.email, body.otp, body.newPassword), {
+      body: ResetPasswordBody,
+      response: SuccessResponse,
+    })
+    .post('/api/auth/change-password', ({ authContext, body }: any) =>
+      container.userService.changePassword(authContext!.user.id, body.currentPassword, body.newPassword), {
+      withVerifiedAuth: true,
+      body: ChangePasswordBody,
+      response: SuccessResponse,
     })
     .get('/api/addresses', ({ authContext }: any) => container.userService.listAddresses(authContext!.user.id), {
       withAuth: true,
