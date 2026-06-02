@@ -10,6 +10,7 @@ import {
   invalidatePublicProductQueries,
   invalidateSellerProductQueries,
   normalizePublicProducts,
+  normalizePublicProduct,
   normalizeAffiliateProductTargets,
   productQueryKeys,
 } from "./queries";
@@ -201,5 +202,49 @@ describe("public product normalization", () => {
       "/uploads/product_image/product-1/main.avif",
       "https://example.com/side.jpg",
     ]);
+  });
+
+  it("normalizes video, option axes, variant option values, price range, and available stock", () => {
+    const product = normalizePublicProduct({
+      id: "product-1",
+      title: "Variant-ready product",
+      minPrice: "1200",
+      maxPrice: "1500",
+      shop: { id: "shop-1", name: "Shop" },
+      video: { url: "/uploads/product_video/product-1/demo.mp4", contentType: "video/mp4", fileName: "demo.mp4" },
+      options: [{
+        id: "option-color",
+        name: "Color",
+        values: [{ id: "value-red", value: "Red", colorHex: "#ff0000" }],
+      }],
+      variants: [{
+        id: "variant-1",
+        title: "Red",
+        sku: "RED-1",
+        price: "1200",
+        currency: "THB",
+        inventory: { quantityOnHand: 4, quantityReserved: 1 },
+        optionValues: [{
+          optionValueId: "value-red",
+          optionValue: {
+            id: "value-red",
+            value: "Red",
+            colorHex: "#ff0000",
+            option: { id: "option-color", name: "Color" },
+          },
+        }],
+      }],
+    } as unknown as Parameters<typeof normalizePublicProduct>[0]);
+
+    expect(product.minPrice).toBe(1200);
+    expect(product.maxPrice).toBe(1500);
+    expect(product.stock).toBe(3);
+    expect(product.video?.url).toBe("/uploads/product_video/product-1/demo.mp4");
+    expect(product.options[0]?.values[0]?.value).toBe("Red");
+    expect(product.variants[0]?.optionValues[0]).toMatchObject({
+      optionId: "option-color",
+      valueId: "value-red",
+      value: "Red",
+    });
   });
 });

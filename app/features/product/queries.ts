@@ -85,6 +85,8 @@ export interface BuyerProduct {
   title: string;
   description: string | null;
   price: number;
+  minPrice: number;
+  maxPrice: number;
   currency: string;
   rating: number;
   soldCount: number;
@@ -118,8 +120,29 @@ export interface BuyerProduct {
     price: number;
     currency: string;
     stock: number;
+    optionValues: Array<{
+      optionId: string;
+      optionName: string;
+      valueId: string;
+      value: string;
+      colorHex: string | null;
+    }>;
   }>;
   images: string[];
+  video: {
+    url: string;
+    contentType: string;
+    fileName: string;
+  } | null;
+  options: Array<{
+    id: string;
+    name: string;
+    values: Array<{
+      id: string;
+      value: string;
+      colorHex: string | null;
+    }>;
+  }>;
 }
 
 export interface BuyerCategory {
@@ -576,28 +599,35 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
   const variants = readArray(record.variants).map((variantInput, variantIndex) => {
     const variant = toRecord(variantInput);
     const inventory = toRecord(variant.inventory);
+    const stock = Math.max(0, readNumber(inventory.quantityOnHand, readNumber(variant.stock, 0)) - readNumber(inventory.quantityReserved, 0));
     return {
       id: readString(variant.id, `${readString(record.id)}-variant-${variantIndex}`),
       title: readString(variant.title, "Default"),
       sku: readString(variant.sku),
       price: readNumber(variant.price, readNumber(record.price, 0)),
       currency: readString(variant.currency, readString(record.currency, defaultCurrency)),
-      stock: readNumber(inventory.quantityOnHand, readNumber(variant.stock, 0)),
+      stock,
+      optionValues: normalizeVariantOptionValues(variant.optionValues),
     };
   });
   const firstVariant = variants[0];
   const ratingSummary = toRecord(record.ratingSummary);
-  const minPrice = readNumber(record.minPrice, readNumber(record.price));
+  const variantPrices = variants.map((variant) => variant.price).filter((price) => price > 0);
+  const minPrice = readNumber(record.minPrice, variantPrices.length ? Math.min(...variantPrices) : readNumber(record.price));
+  const maxPrice = readNumber(record.maxPrice, variantPrices.length ? Math.max(...variantPrices) : minPrice);
+  const stock = variants.length ? variants.reduce((total, variant) => total + variant.stock, 0) : readNumber(record.stock);
 
   return {
     id: readString(record.id, readString(record.productId, `product-${index}`)),
     title: readString(record.title, "Untitled product"),
     description: optionalString(record.description),
     price: firstVariant?.price ?? minPrice,
+    minPrice,
+    maxPrice,
     currency: firstVariant?.currency ?? readString(record.currency, defaultCurrency),
     rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 4.7)),
     soldCount: readNumber(record.soldCount, readNumber(record.sold, 0)),
-    stock: firstVariant?.stock ?? readNumber(record.stock),
+    stock,
     shop: {
       id: readString(shop.id),
       name: readString(shop.name, "Marketplace shop"),
@@ -625,6 +655,52 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
     }).filter((attribute) => attribute.name && attribute.value),
     variants,
     images: normalizeProductImages(record.images, record.coverImage),
+    video: normalizeProductVideo(record.video),
+    options: normalizeProductOptions(record.options),
+  };
+}
+
+function normalizeProductOptions(optionsInput: unknown): BuyerProduct["options"] {
+  return readArray(optionsInput).map((item) => {
+    const option = toRecord(item);
+    return {
+      id: readString(option.id),
+      name: readString(option.name, "Option"),
+      values: readArray(option.values).map((valueInput) => {
+        const value = toRecord(valueInput);
+        return {
+          id: readString(value.id),
+          value: readString(value.value, "Option"),
+          colorHex: optionalString(value.colorHex),
+        };
+      }).filter((value) => value.id && value.value),
+    };
+  }).filter((option) => option.id && option.values.length).slice(0, 2);
+}
+
+function normalizeVariantOptionValues(optionValuesInput: unknown): BuyerProduct["variants"][number]["optionValues"] {
+  return readArray(optionValuesInput).map((item) => {
+    const link = toRecord(item);
+    const optionValue = toRecord(link.optionValue);
+    const option = toRecord(optionValue.option);
+    return {
+      optionId: readString(option.id),
+      optionName: readString(option.name, "Option"),
+      valueId: readString(optionValue.id, readString(link.optionValueId)),
+      value: readString(optionValue.value, "Option"),
+      colorHex: optionalString(optionValue.colorHex),
+    };
+  }).filter((item) => item.optionId && item.valueId);
+}
+
+function normalizeProductVideo(videoInput: unknown): BuyerProduct["video"] {
+  const video = toRecord(videoInput);
+  const url = readString(video.url);
+  if (!url || isSecretStorageUrl(url)) return null;
+  return {
+    url,
+    contentType: readString(video.contentType, "video/mp4"),
+    fileName: readString(video.fileName, "Product video"),
   };
 }
 
@@ -695,5 +771,11 @@ function optionalString(value: unknown): string | null {
 }
 
 function readNumber(value: unknown, fallback = 0): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
 }

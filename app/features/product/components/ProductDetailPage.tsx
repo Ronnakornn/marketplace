@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { HeartIcon, MessageCircleIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, TruckIcon } from "lucide-react";
+import { HeartIcon, MessageCircleIcon, MinusIcon, PlayIcon, PlusIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, StoreIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerProductDetailSkeleton } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
@@ -42,6 +43,11 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const queryClient = useQueryClient();
   const canUseBuyerCart = session?.user.role === "USER";
   const canUseBuyerActions = session?.user.role === "USER";
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
+  const [selectedOptionValues, setSelectedOptionValues] = useState<Record<string, string>>({});
+  const [quantity, setQuantity] = useState(1);
+
   const productQuery = useQuery({
     ...publicProductDetailQueryOptions({ productId, locale }),
     select: normalizePublicProduct,
@@ -67,11 +73,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     enabled: canUseBuyerCart,
   });
   const addCartMutation = useMutation({
-    mutationFn: () => {
-      const variantId = productQuery.data?.variants[0]?.id;
-      if (!variantId) throw new Error(t("product.noPurchasableVariant"));
-      return addCartItem(variantId, 1);
-    },
+    mutationFn: ({ variantId, itemQuantity }: { variantId: string; itemQuantity: number }) => addCartItem(variantId, itemQuantity),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-cart"] }),
   });
   const favoriteMutation = useMutation({
@@ -90,9 +92,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       if (!product?.shop.id) throw new Error(t("product.shopNotFound"));
       return createChatRoom({ shopId: product.shop.id, productId: product.id });
     },
-    onSuccess: (room) => {
-      router.push(localePath(`/chat/${room.roomId}`));
-    },
+    onSuccess: (room) => router.push(localePath(`/chat/${room.roomId}`)),
   });
   const followMutation = useMutation({
     mutationFn: async () => {
@@ -110,14 +110,24 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     0,
   ) ?? 0;
 
-  function handleCartAction() {
-    if (!session) {
-      router.push(localePath("/login"));
-      return;
-    }
-    if (!canUseBuyerCart) return;
-    addCartMutation.mutate();
-  }
+  const product = productQuery.data;
+  const requiredOptions = product?.options.slice(0, 2) ?? [];
+  const selectedVariant = useMemo(() => {
+    if (!product?.variants.length) return null;
+    if (!requiredOptions.length) return product.variants.length === 1 ? product.variants[0] : null;
+    const selectedEntries = Object.entries(selectedOptionValues).filter(([, valueId]) => valueId);
+    if (selectedEntries.length < requiredOptions.length) return null;
+    return product.variants.find((variant) =>
+      selectedEntries.every(([optionId, valueId]) =>
+        variant.optionValues.some((optionValue) => optionValue.optionId === optionId && optionValue.valueId === valueId),
+      ),
+    ) ?? null;
+  }, [product, requiredOptions, selectedOptionValues]);
+  const displayedStock = selectedVariant?.stock ?? product?.stock ?? 0;
+
+  useEffect(() => {
+    setQuantity((current) => Math.max(1, Math.min(current, Math.max(1, displayedStock))));
+  }, [displayedStock]);
 
   function handleChatSeller() {
     if (!session) {
@@ -126,6 +136,19 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     }
     if (!canUseBuyerActions) return;
     createChatMutation.mutate();
+  }
+
+  function handlePurchaseAction(action: "cart" | "buy-now") {
+    if (!session) {
+      router.push(localePath("/login"));
+      return;
+    }
+    if (!canUseBuyerCart || !selectedVariant || displayedStock < 1) return;
+    addCartMutation.mutate({ variantId: selectedVariant.id, itemQuantity: quantity }, {
+      onSuccess: () => {
+        if (action === "buy-now") router.push(localePath("/cart"));
+      },
+    });
   }
 
   if (productQuery.isLoading) {
@@ -146,7 +169,6 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     );
   }
 
-  const product = productQuery.data;
   if (!product) {
     return (
       <>
@@ -157,30 +179,79 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       </>
     );
   }
-  const mainImage = resolveUploadedImageUrl(product.images[0]);
-  const galleryImages = product.images.length > 0 ? product.images.map((image) => resolveUploadedImageUrl(image)) : [mainImage];
+
+  const galleryImages = product.images.map((image) => resolveUploadedImageUrl(image));
+  const selectedImage = galleryImages[selectedImageIndex] ?? galleryImages[0] ?? resolveUploadedImageUrl(undefined);
+  const displayPrice = selectedVariant?.price ?? product.minPrice;
+  const displayCurrency = selectedVariant?.currency ?? product.currency;
+  const hasPriceRange = !selectedVariant && product.maxPrice > product.minPrice;
+  const isOutOfStock = displayedStock < 1 || product.stock < 1;
+  const requiresVariantSelection = product.variants.length > 0 && !selectedVariant;
+  const canPurchase = canUseBuyerCart && Boolean(selectedVariant) && !isOutOfStock;
+  const selectedSummary = selectedVariant
+    ? [selectedVariant.title, selectedVariant.sku ? `SKU ${selectedVariant.sku}` : null].filter(Boolean).join(" · ")
+    : requiredOptions.length
+      ? `Select ${requiredOptions.map((option) => option.name).join(" / ")}`
+      : product.variants.length > 1
+        ? "Select a variant"
+        : t("product.noPurchasableVariant");
+  const priceLabel = hasPriceRange
+    ? `${formatMoney(product.minPrice, product.currency)} - ${formatMoney(product.maxPrice, product.currency)}`
+    : formatMoney(displayPrice, displayCurrency);
+
+  function isOptionValueDisabled(optionId: string, valueId: string) {
+    if (!product) return true;
+    return !product.variants.some((variant) => {
+      if (variant.stock < 1) return false;
+      if (!variant.optionValues.some((optionValue) => optionValue.optionId === optionId && optionValue.valueId === valueId)) return false;
+      return Object.entries(selectedOptionValues).every(([selectedOptionId, selectedValueId]) => {
+        if (!selectedValueId || selectedOptionId === optionId) return true;
+        return variant.optionValues.some((optionValue) => optionValue.optionId === selectedOptionId && optionValue.valueId === selectedValueId);
+      });
+    });
+  }
 
   return (
     <>
       <BuyerTopBar title={product.title} />
-      <article className="mx-auto max-w-6xl space-y-4 px-3 pb-28 pt-4">
+      <article className="mx-auto max-w-6xl space-y-4 px-3 pb-32 pt-4">
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
-              <Image src={mainImage} alt={product.title} fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
+              {showVideo && product.video ? (
+                <video controls className="size-full object-contain" aria-label={`${product.title} video`}>
+                  <source src={product.video.url} type={product.video.contentType} />
+                </video>
+              ) : (
+                <Image src={selectedImage} alt={product.title} fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
+              )}
             </div>
-            {galleryImages.length > 1 ? (
-              <div className="flex gap-2 overflow-x-auto p-3">
-                {galleryImages.slice(0, 6).map((image) => (
-                  <div key={image} className="relative size-16 shrink-0 overflow-hidden rounded-md bg-slate-100">
-                    <Image src={image} alt="" fill sizes="64px" className="object-cover" />
-                  </div>
+            {(galleryImages.length > 1 || product.video) ? (
+              <div className="flex gap-2 overflow-x-auto p-3" aria-label="Product media gallery">
+                {galleryImages.slice(0, 8).map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    className={`relative size-16 shrink-0 overflow-hidden rounded-md border bg-slate-100 ${!showVideo && selectedImageIndex === index ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`}
+                    onClick={() => {
+                      setShowVideo(false);
+                      setSelectedImageIndex(index);
+                    }}
+                  >
+                    <Image src={image} alt={`${product.title} image ${index + 1}`} fill sizes="64px" className="object-cover" />
+                  </button>
                 ))}
+                {product.video ? (
+                  <button type="button" className={`flex size-16 shrink-0 items-center justify-center rounded-md border bg-slate-950 text-white ${showVideo ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`} onClick={() => setShowVideo(true)}>
+                    <PlayIcon className="size-5" />
+                    <span className="sr-only">Product video</span>
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>
 
-          <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center gap-2">
               {product.brand ? <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-slate-700">{product.brand.name}</Badge> : null}
               <Badge variant="outline" className="rounded-full border-orange-200 bg-orange-50 text-orange-700">{product.shop.name}</Badge>
@@ -192,34 +263,107 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               </Button>
             </div>
             <h1 className="text-2xl font-bold text-slate-950">{product.title}</h1>
-            <div className="flex items-center gap-3 text-sm text-slate-500">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
               <span className="flex items-center gap-1"><StarIcon className="size-4 fill-amber-400 text-amber-400" />{product.rating.toFixed(1)}</span>
               <span>{product.soldCount} {t("product.sold")}</span>
-              <span>{product.stock} {t("product.inStock")}</span>
+              <span>{displayedStock} {t("product.inStock")}</span>
             </div>
-            <p className="text-3xl font-bold text-orange-600">{formatMoney(product.price, product.currency)}</p>
-            <div className="space-y-2">
-              <h2 className="font-semibold">{t("product.variants")}</h2>
-              <div className="flex flex-wrap gap-2">
-                {(product.variants.length ? product.variants : [{ id: product.id, title: t("common.default"), stock: product.stock }]).map((variant) => (
-                  <Badge key={variant.id} variant="outline" className="rounded-md px-3 py-1">{variant.title}</Badge>
-                ))}
+            <p className="text-3xl font-bold text-orange-600">{priceLabel}</p>
+
+            <div className="space-y-3">
+              {requiredOptions.length ? requiredOptions.map((option) => (
+                <div key={option.id} className="space-y-2">
+                  <h2 className="text-sm font-semibold text-slate-900">{option.name}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {option.values.map((value) => {
+                      const selected = selectedOptionValues[option.id] === value.id;
+                      const disabled = isOptionValueDisabled(option.id, value.id);
+                      return (
+                        <button
+                          key={value.id}
+                          type="button"
+                          disabled={disabled}
+                          className={`min-h-10 rounded-lg border px-3 text-sm font-medium transition ${selected ? "border-orange-500 bg-orange-50 text-orange-700" : "border-slate-200 bg-white text-slate-700 hover:border-orange-300"} ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
+                          onClick={() => setSelectedOptionValues((current) => ({ ...current, [option.id]: selected ? "" : value.id }))}
+                        >
+                          {value.colorHex ? <span className="mr-2 inline-block size-3 rounded-full align-middle" style={{ backgroundColor: value.colorHex }} /> : null}
+                          {value.value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )) : (
+                <div className="space-y-2">
+                  <h2 className="font-semibold">{t("product.variants")}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {product.variants.length ? product.variants.map((variant) => (
+                      <Badge key={variant.id} variant="outline" className={`rounded-md px-3 py-1 ${variant.stock < 1 ? "opacity-40" : ""}`}>{variant.title}</Badge>
+                    )) : <Badge variant="outline" className="rounded-md px-3 py-1">{t("product.noPurchasableVariant")}</Badge>}
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+                <p className="font-medium text-slate-900">Selected variant</p>
+                <p className="mt-1">{selectedSummary}</p>
+                {requiresVariantSelection ? <p className="mt-2 text-orange-700">Choose all options before purchasing.</p> : null}
               </div>
             </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+              <span className="text-sm font-medium text-slate-700">Quantity</span>
+              <div className="flex items-center rounded-lg border border-slate-200">
+                <Button type="button" variant="ghost" size="icon" className="size-9 rounded-none" aria-label="Decrease quantity" disabled={quantity <= 1 || !selectedVariant} onClick={() => setQuantity((current) => Math.max(1, current - 1))}>
+                  <MinusIcon className="size-4" />
+                </Button>
+                <span className="w-12 text-center text-sm font-semibold">{quantity}</span>
+                <Button type="button" variant="ghost" size="icon" className="size-9 rounded-none" aria-label="Increase quantity" disabled={!selectedVariant || quantity >= displayedStock} onClick={() => setQuantity((current) => Math.min(displayedStock, current + 1))}>
+                  <PlusIcon className="size-4" />
+                </Button>
+              </div>
+            </div>
+
             <div className="grid gap-2 rounded-2xl bg-orange-50 p-3 text-sm text-slate-700">
               <span className="flex items-center gap-2"><TruckIcon className="size-4 text-orange-600" />{t("product.shippingCalculated")}</span>
               <span className="flex items-center gap-2"><ShieldCheckIcon className="size-4 text-emerald-600" />{t("product.buyerProtection")}</span>
             </div>
-            <p className="text-sm leading-6 text-slate-600">{product.description ?? t("product.noDescription")}</p>
-            {product.highlights.length ? (
-              <ul className="grid gap-2 text-sm text-slate-700">
-                {product.highlights.map((highlight) => <li key={highlight} className="rounded-lg bg-slate-50 px-3 py-2">{highlight}</li>)}
-              </ul>
-            ) : null}
+            {isOutOfStock ? <Badge variant="outline" className="w-fit rounded-full border-red-200 bg-red-50 text-red-700">Out of stock</Badge> : null}
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-lg font-bold">Highlights</h2>
+          {product.highlights.length ? (
+            <ul className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+              {product.highlights.map((highlight) => <li key={highlight} className="rounded-lg bg-slate-50 px-3 py-2">{highlight}</li>)}
+            </ul>
+          ) : <p className="mt-2 text-sm text-slate-500">No highlights provided.</p>}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">{product.shop.name}</h2>
+              <p className="text-sm text-slate-500">{product.shop.location}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" className="rounded-full" disabled={createChatMutation.isPending} onClick={handleChatSeller}>
+                <MessageCircleIcon className="size-4" />
+                {t("chat.chatSeller")}
+              </Button>
+              <Button type="button" variant="outline" className="rounded-full" disabled={followMutation.isPending} onClick={() => {
+                if (!session) router.push(localePath("/login"));
+                else followMutation.mutate();
+              }}>
+                <StoreIcon className="size-4" />
+                {followQuery.data ? t("product.following") : t("product.followShop")}
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-bold">Product facts</h2>
           <dl className="mt-3 grid gap-3 sm:grid-cols-2">
             {product.condition ? <FactRow label="Condition" value={product.condition} /> : null}
@@ -239,8 +383,14 @@ export function ProductDetailPage({ productId }: { productId: string }) {
           ) : null}
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-lg font-bold">Description</h2>
+          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">{product.description ?? t("product.noDescription")}</p>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-bold">{t("product.reviews")}</h2>
+          <p className="mb-3 text-sm text-slate-500">{product.rating.toFixed(1)} rating · {product.soldCount} sold</p>
           <BuyerEmptyState title={t("product.noReviewsTitle")} description={t("product.noReviewsDescription")} />
         </section>
 
@@ -252,8 +402,8 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         </section>
       </article>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)] md:bottom-0">
-        <div className="mx-auto flex max-w-6xl gap-2">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
+        <div className="mx-auto grid max-w-6xl grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl" disabled={favoriteMutation.isPending} onClick={() => {
             if (!session) router.push(localePath("/login"));
             else if (canUseBuyerActions) favoriteMutation.mutate();
@@ -263,11 +413,11 @@ export function ProductDetailPage({ productId }: { productId: string }) {
           </Button>
           {canUseBuyerActions ? (
             <>
-              <Button variant="outline" className="h-12 flex-1 rounded-2xl" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
+              <Button variant="outline" className="hidden h-12 rounded-2xl sm:inline-flex" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
                 <MessageCircleIcon className="size-4" />
                 {t("chat.chatSeller")}
               </Button>
-              <Button variant="outline" className="h-12 flex-1 rounded-2xl" onClick={handleCartAction} disabled={addCartMutation.isPending}>
+              <Button variant="outline" className="h-12 rounded-2xl" onClick={() => handlePurchaseAction("cart")} disabled={!canPurchase || addCartMutation.isPending}>
                 <span className="relative inline-flex">
                   <ShoppingCartIcon className="size-4" />
                   {cartItemCount > 0 ? (
@@ -278,10 +428,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                 </span>
                 {t("product.addToCart")}
               </Button>
-              <Button className="h-12 flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={handleCartAction} disabled={addCartMutation.isPending}>{t("product.buyNow")}</Button>
+              <Button className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={() => handlePurchaseAction("buy-now")} disabled={!canPurchase || addCartMutation.isPending}>{t("product.buyNow")}</Button>
             </>
           ) : (
-            <Button asChild className="h-12 flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700">
+            <Button asChild className="col-span-2 h-12 rounded-2xl bg-orange-600 hover:bg-orange-700">
               <Link href={localePath("/seller/chat")}>{t("chat.sellerInbox")}</Link>
             </Button>
           )}

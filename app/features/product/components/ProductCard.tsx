@@ -10,6 +10,10 @@ import { resolveUploadedImageUrl } from "#/lib/assets";
 
 export function ProductCard({ product }: { product: BuyerProduct }) {
   const image = resolveUploadedImageUrl(product.images[0]);
+  const hasPriceRange = product.maxPrice > product.minPrice;
+  const priceLabel = hasPriceRange
+    ? `${formatMoney(product.minPrice, product.currency)} - ${formatMoney(product.maxPrice, product.currency)}`
+    : formatMoney(product.price, product.currency);
 
   return (
     <Link href={`/products/${product.id}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
@@ -20,8 +24,8 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
         <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-slate-900">{product.title}</h3>
         {product.brand ? <p className="truncate text-xs font-medium text-slate-500">{product.brand.name}</p> : null}
         <div className="flex items-end justify-between gap-2">
-          <p className="text-base font-bold text-orange-600">{formatMoney(product.price, product.currency)}</p>
-          <span className="text-xs text-slate-500">{product.soldCount} sold</span>
+          <p className="text-base font-bold text-orange-600">{priceLabel}</p>
+          <span className="text-xs text-slate-500">{product.stock > 0 ? `${product.soldCount} sold` : "Out of stock"}</span>
         </div>
         <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
           <span className="flex items-center gap-1">
