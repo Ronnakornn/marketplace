@@ -4,6 +4,7 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation, CacheService } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ActiveShopResolver } from '#server/modules/security'
+import type { AuditLogService } from '#server/modules/audit-log'
 import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { CatalogServiceError } from './catalog.errors.ts'
 import type {
@@ -17,6 +18,7 @@ import type {
   CatalogProductListItem,
   ICatalogRepository,
   PaginatedResult,
+  ProductOptionWriteRecord,
 } from './catalog.repository.ts'
 
 const DEFAULT_PAGE_LIMIT = 20
@@ -99,6 +101,7 @@ export interface CreateVariantData {
   lengthMm?: number | null
   widthMm?: number | null
   heightMm?: number | null
+  optionValueIds?: string[]
 }
 
 export interface UpdateVariantData {
@@ -112,6 +115,24 @@ export interface UpdateVariantData {
   lengthMm?: number | null
   widthMm?: number | null
   heightMm?: number | null
+  optionValueIds?: string[]
+}
+
+export interface ProductOptionValueData {
+  value: string
+  valueTh?: string | null
+  valueEn?: string | null
+  displayType?: string
+  colorHex?: string | null
+  sortOrder?: number
+}
+
+export interface ProductOptionData {
+  name: string
+  nameTh?: string | null
+  nameEn?: string | null
+  sortOrder?: number
+  values: ProductOptionValueData[]
 }
 
 export interface CreateProductImageData {
@@ -144,6 +165,22 @@ export interface UpdateInventoryData {
   reorderLevel?: number
 }
 
+export interface UpdateImageOrderData {
+  images: Array<{
+    id: string
+    sortOrder?: number
+  }>
+  primaryImageId?: string | null
+}
+
+export interface ModerationListData extends SellerListProductsData {
+  status?: ProductStatus
+}
+
+export interface ModerationReasonData {
+  reason?: string | null
+}
+
 export interface PublicListProductsData {
   keyword?: string
   categoryId?: string
@@ -171,6 +208,7 @@ export class CatalogService {
     private cacheInvalidation?: CacheInvalidation,
     private eventPublisher?: EventPublisherService,
     private activeShopResolver?: ActiveShopResolver,
+    private auditLogService?: AuditLogService,
   ) {
     this.logger = appContext.logger
   }
@@ -285,6 +323,36 @@ export class CatalogService {
     return updated
   }
 
+  listModerationProducts(filters: ModerationListData): Promise<PaginatedResult<CatalogProductListItem>> {
+    this.logger.debug('CatalogService.listModerationProducts', { filters })
+    return this.repo.findProducts({
+      ...this.normalizeListFilters(filters),
+      status: filters.status ?? 'PENDING_REVIEW',
+    })
+  }
+
+  async approveProduct(actor: CatalogActor, productId: string): Promise<CatalogProductDetail> {
+    this.assertAdmin(actor)
+    return this.transitionProductStatus(actor, productId, 'ACTIVE', 'APPROVE')
+  }
+
+  async rejectProduct(actor: CatalogActor, productId: string, data: ModerationReasonData): Promise<CatalogProductDetail> {
+    this.assertAdmin(actor)
+    const reason = this.requireModerationReason(data.reason, 'Reject reason is required')
+    return this.transitionProductStatus(actor, productId, 'REJECTED', 'REJECT', reason)
+  }
+
+  async suspendProduct(actor: CatalogActor, productId: string, data: ModerationReasonData): Promise<CatalogProductDetail> {
+    this.assertAdmin(actor)
+    const reason = this.requireModerationReason(data.reason, 'Suspend reason is required')
+    return this.transitionProductStatus(actor, productId, 'SUSPENDED', 'SUSPEND', reason)
+  }
+
+  async restoreProduct(actor: CatalogActor, productId: string): Promise<CatalogProductDetail> {
+    this.assertAdmin(actor)
+    return this.transitionProductStatus(actor, productId, 'ACTIVE', 'RESTORE')
+  }
+
   async createAdminVariant(productId: string, data: CreateVariantData): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.createAdminVariant', { productId, sku: data.sku })
     this.validateVariantInput(data)
@@ -354,6 +422,16 @@ export class CatalogService {
       shopId: shop.id,
       status: filters.status,
     })
+  }
+
+  async getSellerProductDetail(actor: CatalogActor, productId: string): Promise<CatalogProductDetail> {
+    this.logger.debug('CatalogService.getSellerProductDetail', { actorId: actor.id, productId })
+    const product = await this.getManageableProduct(actor, productId)
+    const moderationCase = await this.repo.findLatestModerationCase(product.id)
+    return {
+      ...product,
+      moderationCase,
+    }
   }
 
   async createProduct(actor: CatalogActor, data: CreateProductData): Promise<CatalogProductDetail> {
@@ -438,6 +516,64 @@ export class CatalogService {
       changedFields: ['status'],
     })
     return updated
+  }
+
+  async submitProductReview(actor: CatalogActor, productId: string): Promise<CatalogProductDetail> {
+    this.logger.info('CatalogService.submitProductReview', { actorId: actor.id, productId })
+    const product = await this.getManageableProduct(actor, productId)
+    if (product.status !== 'DRAFT' && product.status !== 'REJECTED') {
+      throw new CatalogServiceError('Only draft or rejected products can be submitted for review', 400, 'PRODUCT_REVIEW_STATUS_INVALID')
+    }
+    await this.assertPublishReady(product, { status: 'ACTIVE' })
+    const updated = await this.repo.updateProduct(product.id, { status: 'PENDING_REVIEW' })
+    await this.repo.createModerationAction(product.id, actor.id, 'ESCALATE', 'Submitted for review')
+    await this.cacheInvalidation?.invalidateProduct(updated.id)
+    await this.publishBestEffort('product.updated', updated.id, actor.id, {
+      productId: updated.id,
+      shopId: updated.shopId,
+      changedFields: ['status'],
+    })
+    return updated
+  }
+
+  async updateProductOptions(actor: CatalogActor, productId: string, data: { options: ProductOptionData[] }): Promise<CatalogProductDetail> {
+    this.logger.info('CatalogService.updateProductOptions', { actorId: actor.id, productId })
+    const product = await this.getManageableProduct(actor, productId)
+    const options = this.normalizeProductOptions(data.options)
+    if (product.variants.some((variant) => (variant.optionValues ?? []).length > 0)) {
+      throw new CatalogServiceError('Product options cannot be replaced while variants reference existing option values', 400, 'PRODUCT_OPTION_REFERENCES_EXIST')
+    }
+    const updated = await this.handleUniqueConstraint(() => this.repo.replaceProductOptions(product.id, options))
+    await this.cacheInvalidation?.invalidateProduct(product.id)
+    return updated
+  }
+
+  async updateProductImagesOrder(actor: CatalogActor, productId: string, data: UpdateImageOrderData): Promise<CatalogProductImageRecord[]> {
+    this.logger.info('CatalogService.updateProductImagesOrder', { actorId: actor.id, productId })
+    const product = await this.getManageableProduct(actor, productId)
+    if (!Array.isArray(data.images) || data.images.length === 0) {
+      throw new CatalogServiceError('Image order is required', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+    }
+    const productImageIds = new Set(product.images.map((image) => image.id))
+    const seen = new Set<string>()
+    const primaryImageId = data.primaryImageId?.trim() || product.images.find((image) => image.isPrimary)?.id || data.images[0]?.id
+    const images = data.images.map((image, index) => {
+      if (!productImageIds.has(image.id) || seen.has(image.id)) {
+        throw new CatalogServiceError('Image order must include each product image exactly once', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+      }
+      seen.add(image.id)
+      return {
+        id: image.id,
+        sortOrder: image.sortOrder ?? index,
+        isPrimary: image.id === primaryImageId,
+      }
+    })
+    if (seen.size !== product.images.length || !primaryImageId || !seen.has(primaryImageId)) {
+      throw new CatalogServiceError('Image order must include each product image exactly once and select one primary image', 400, 'PRODUCT_IMAGE_VALIDATION_FAILED')
+    }
+    const ordered = await this.repo.updateProductImagesOrder(product.id, images)
+    await this.cacheInvalidation?.invalidateProduct(product.id)
+    return ordered
   }
 
   async createProductImage(actor: CatalogActor, productId: string, data: CreateProductImageData): Promise<CatalogProductImageRecord> {
@@ -557,7 +693,10 @@ export class CatalogService {
   async createVariant(actor: CatalogActor, productId: string, data: CreateVariantData): Promise<CatalogVariantRecord> {
     this.logger.info('CatalogService.createVariant', { actorId: actor.id, productId, sku: data.sku })
     this.validateVariantInput(data)
-    await this.getManageableProduct(actor, productId)
+    const product = await this.getManageableProduct(actor, productId)
+    const optionSelection = this.validateVariantOptionSelection(product, data.optionValueIds)
+    this.assertSkuAvailable(product, data.sku)
+    this.assertOptionCombinationAvailable(product, optionSelection.combinationKey)
 
     const variant = await this.handleUniqueConstraint(() =>
       this.repo.createVariant({
@@ -567,6 +706,8 @@ export class CatalogService {
         price: data.price, // Update the property name to 'price'
         currency: data.currency?.trim().toUpperCase() || 'USD',
         ...this.normalizeVariantShippingFields(data),
+        optionValueIds: optionSelection.optionValueIds,
+        optionCombinationKey: optionSelection.combinationKey,
       }),
     )
     await this.cacheInvalidation?.invalidateVariant(productId)
@@ -580,6 +721,12 @@ export class CatalogService {
     }
     this.validateVariantUpdateInput(data)
     await this.getManageableVariant(actor, productId, variantId)
+    const product = await this.getManageableProduct(actor, productId)
+    if (data.sku !== undefined) this.assertSkuAvailable(product, data.sku, variantId)
+    const optionSelection = data.optionValueIds === undefined
+      ? undefined
+      : this.validateVariantOptionSelection(product, data.optionValueIds)
+    if (optionSelection) this.assertOptionCombinationAvailable(product, optionSelection.combinationKey, variantId)
 
     const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateVariant(variantId, {
@@ -588,6 +735,10 @@ export class CatalogService {
         ...(data.price === undefined ? {} : { price: data.price }),
         ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
         ...this.normalizeVariantShippingFields(data),
+        ...(optionSelection === undefined ? {} : {
+          optionValueIds: optionSelection.optionValueIds,
+          optionCombinationKey: optionSelection.combinationKey,
+        }),
       }),
     )
     await this.cacheInvalidation?.invalidateVariant(productId)
@@ -801,13 +952,50 @@ export class CatalogService {
     if (!categoryId) {
       throw new CatalogServiceError('Active products require a category', 400, 'PRODUCT_PUBLISH_NOT_READY')
     }
-    const hasImage = existing.images.length > 0
-    if (!hasImage) {
-      throw new CatalogServiceError('Active products require at least one image', 400, 'PRODUCT_PUBLISH_NOT_READY')
+    const category = await this.repo.findCategoryWithSpecs(categoryId)
+    if (!category?.isActive) {
+      throw new CatalogServiceError('Active products require an active category', 400, 'PRODUCT_PUBLISH_NOT_READY')
+    }
+    const requiredSpecs = category.attributeDefinitions.filter((attribute) => attribute.isRequired)
+    const attributeKeys = new Set(existing.attributes.map((attribute) => attribute.attributeKey))
+    const missingSpecs = requiredSpecs.filter((spec) => !attributeKeys.has(spec.attributeKey))
+    if (missingSpecs.length > 0) {
+      throw new CatalogServiceError('Active products require all required category specs', 400, 'PRODUCT_PUBLISH_NOT_READY', {
+        missingSpecs: missingSpecs.map((spec) => spec.attributeKey),
+      })
+    }
+    const hasPrimaryImage = existing.images.some((image) => image.isPrimary)
+    if (!hasPrimaryImage) {
+      throw new CatalogServiceError('Active products require a primary image', 400, 'PRODUCT_PUBLISH_NOT_READY')
     }
     const hasActivePaidVariant = existing.variants.some((variant) => variant.status === 'ACTIVE' && Number(variant.price) > 0)
     if (!hasActivePaidVariant) {
       throw new CatalogServiceError('Active products require at least one active priced variant', 400, 'PRODUCT_PUBLISH_NOT_READY')
+    }
+    this.assertValidOptionMatrix(existing)
+  }
+
+  private assertValidOptionMatrix(product: CatalogProductDetail): void {
+    if (product.options.length === 0) return
+    for (const option of product.options) {
+      if (option.values.length === 0) {
+        throw new CatalogServiceError('Product options require at least one value', 400, 'PRODUCT_PUBLISH_NOT_READY')
+      }
+    }
+    const seen = new Set<string>()
+    for (const variant of product.variants) {
+      if (variant.status !== 'ACTIVE') continue
+      const selected = variant.optionValues ?? []
+      if (selected.length !== product.options.length) {
+        throw new CatalogServiceError('Active variants must select one value for every product option', 400, 'PRODUCT_PUBLISH_NOT_READY')
+      }
+      const selectedOptionIds = new Set(selected.map((link) => link.optionValue.optionId))
+      if (selectedOptionIds.size !== product.options.length) {
+        throw new CatalogServiceError('Active variants must not select duplicate values for the same option', 400, 'PRODUCT_PUBLISH_NOT_READY')
+      }
+      const key = this.optionCombinationKey(selected.map((link) => link.optionValueId))
+      if (seen.has(key)) throw new CatalogServiceError('Duplicate variant option combination', 409, 'VARIANT_OPTION_COMBINATION_DUPLICATE')
+      seen.add(key)
     }
   }
 
@@ -907,6 +1095,128 @@ export class CatalogService {
     }
   }
 
+  private normalizeProductOptions(options: ProductOptionData[]): ProductOptionWriteRecord[] {
+    const seenOptions = new Set<string>()
+    return options.map((option, optionIndex) => {
+      const name = option.name.trim()
+      if (!name) throw new CatalogServiceError('Product option name is required', 400, 'PRODUCT_OPTION_VALIDATION_FAILED')
+      const optionKey = name.toLowerCase()
+      if (seenOptions.has(optionKey)) throw new CatalogServiceError('Duplicate product option name', 400, 'PRODUCT_OPTION_VALIDATION_FAILED')
+      seenOptions.add(optionKey)
+      if (!Array.isArray(option.values) || option.values.length === 0) {
+        throw new CatalogServiceError('Product option requires at least one value', 400, 'PRODUCT_OPTION_VALIDATION_FAILED')
+      }
+      const seenValues = new Set<string>()
+      return {
+        name,
+        nameTh: this.normalizeNullableText(option.nameTh),
+        nameEn: this.normalizeNullableText(option.nameEn),
+        sortOrder: option.sortOrder ?? optionIndex,
+        values: option.values.map((value, valueIndex) => {
+          const normalizedValue = value.value.trim()
+          if (!normalizedValue) throw new CatalogServiceError('Product option value is required', 400, 'PRODUCT_OPTION_VALIDATION_FAILED')
+          const valueKey = normalizedValue.toLowerCase()
+          if (seenValues.has(valueKey)) throw new CatalogServiceError('Duplicate product option value', 400, 'PRODUCT_OPTION_VALIDATION_FAILED')
+          seenValues.add(valueKey)
+          return {
+            value: normalizedValue,
+            valueTh: this.normalizeNullableText(value.valueTh),
+            valueEn: this.normalizeNullableText(value.valueEn),
+            displayType: value.displayType?.trim() || 'TEXT',
+            colorHex: this.normalizeNullableText(value.colorHex),
+            sortOrder: value.sortOrder ?? valueIndex,
+          }
+        }),
+      }
+    })
+  }
+
+  private validateVariantOptionSelection(product: CatalogProductDetail, optionValueIds?: string[]) {
+    if (product.options.length === 0) {
+      if (optionValueIds && optionValueIds.length > 0) {
+        throw new CatalogServiceError('Variant option values require product options', 400, 'VARIANT_OPTION_VALUES_INVALID')
+      }
+      return { optionValueIds: [], combinationKey: null }
+    }
+    if (!optionValueIds || optionValueIds.length !== product.options.length) {
+      throw new CatalogServiceError('Variant must select one value for every product option', 400, 'VARIANT_OPTION_VALUES_INVALID')
+    }
+    const valueToOption = new Map<string, string>()
+    for (const option of product.options) {
+      for (const value of option.values) valueToOption.set(value.id, option.id)
+    }
+    const seenValueIds = new Set<string>()
+    const seenOptionIds = new Set<string>()
+    for (const valueId of optionValueIds) {
+      const optionId = valueToOption.get(valueId)
+      if (!optionId || seenValueIds.has(valueId) || seenOptionIds.has(optionId)) {
+        throw new CatalogServiceError('Variant option values must belong to this product and be unique per option', 400, 'VARIANT_OPTION_VALUES_INVALID')
+      }
+      seenValueIds.add(valueId)
+      seenOptionIds.add(optionId)
+    }
+    return {
+      optionValueIds: [...seenValueIds],
+      combinationKey: this.optionCombinationKey([...seenValueIds]),
+    }
+  }
+
+  private assertSkuAvailable(product: CatalogProductDetail, sku: string, ignoredVariantId?: string): void {
+    const normalized = sku.trim().toLowerCase()
+    if (product.variants.some((variant) => variant.id !== ignoredVariantId && variant.sku.toLowerCase() === normalized)) {
+      throw new CatalogServiceError('Duplicate variant SKU', 409, 'VARIANT_SKU_DUPLICATE')
+    }
+  }
+
+  private assertOptionCombinationAvailable(product: CatalogProductDetail, combinationKey: string | null, ignoredVariantId?: string): void {
+    if (!combinationKey) return
+    if (product.variants.some((variant) => variant.id !== ignoredVariantId && variant.optionCombinationKey === combinationKey)) {
+      throw new CatalogServiceError('Duplicate variant option combination', 409, 'VARIANT_OPTION_COMBINATION_DUPLICATE')
+    }
+  }
+
+  private optionCombinationKey(optionValueIds: string[]): string {
+    return [...optionValueIds].sort().join('|')
+  }
+
+  private async transitionProductStatus(
+    actor: CatalogActor,
+    productId: string,
+    status: ProductStatus,
+    moderationAction: string,
+    reason?: string,
+  ): Promise<CatalogProductDetail> {
+    const existing = await this.repo.findProductById(productId)
+    if (!existing) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
+    if (moderationAction === 'APPROVE' && existing.status !== 'PENDING_REVIEW') {
+      throw new CatalogServiceError('Only pending review products can be approved', 400, 'PRODUCT_MODERATION_STATUS_INVALID')
+    }
+    if (moderationAction === 'RESTORE' && existing.status !== 'SUSPENDED') {
+      throw new CatalogServiceError('Only suspended products can be restored', 400, 'PRODUCT_MODERATION_STATUS_INVALID')
+    }
+    const updated = await this.repo.updateProduct(productId, { status })
+    await this.repo.createModerationAction(productId, actor.id, moderationAction, reason)
+    await this.auditLogService?.createAuditLogBestEffort({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'PRODUCT_STATUS_CHANGED',
+      entityType: 'Product',
+      entityId: productId,
+      before: { status: existing.status },
+      after: { status: updated.status },
+      metadata: { reason, moderationAction },
+      nonCritical: true,
+    })
+    await this.cacheInvalidation?.invalidateProduct(productId)
+    return updated
+  }
+
+  private requireModerationReason(reason: string | null | undefined, message: string): string {
+    const normalized = this.normalizeNullableText(reason)
+    if (!normalized) throw new CatalogServiceError(message, 400, 'PRODUCT_MODERATION_REASON_REQUIRED')
+    return normalized
+  }
+
   private normalizeHighlights(highlights: ProductHighlightData[]) {
     return highlights
       .map((highlight, index) => ({
@@ -975,6 +1285,11 @@ export class CatalogService {
   private assertCanManageShop(actor: CatalogActor, ownerId: string): void {
     if (actor.id === ownerId) return
     throw new CatalogServiceError('You do not have access to this shop catalog', 403, 'PRODUCT_FORBIDDEN')
+  }
+
+  private assertAdmin(actor: CatalogActor): void {
+    if (actor.role === 'ADMIN') return
+    throw new CatalogServiceError('Admin catalog access requires admin role', 403, 'ADMIN_CATALOG_FORBIDDEN')
   }
 
   private assertShopActive(status: string): void {

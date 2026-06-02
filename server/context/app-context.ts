@@ -168,7 +168,7 @@ export function createContainer(): ServiceContainer {
   const chatRepo = new PrismaChatRepository(appContext, prisma)
   const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
-  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver)
+  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver, auditLogService)
   const inventoryRepo = new PrismaInventoryRepository(appContext, prisma)
   const inventoryService = new InventoryService(appContext, inventoryRepo, activeShopResolver)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)

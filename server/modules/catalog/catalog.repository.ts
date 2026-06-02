@@ -1,4 +1,4 @@
-import type { Brand, Category, Prisma, PrismaClient, Product, ProductAttribute, ProductHighlight, ProductImage, ProductVariant, ProductVideo, Shop, Upload } from '#generated/client/client.ts'
+import type { Brand, Category, CategoryAttributeDefinition, ModerationAction, ModerationCase, Prisma, PrismaClient, Product, ProductAttribute, ProductHighlight, ProductImage, ProductOption, ProductOptionValue, ProductVariant, ProductVariantOptionValue, ProductVideo, Shop, Upload } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -32,9 +32,14 @@ export interface PaginatedResult<T> {
   }
 }
 
-export type CatalogCategoryListItem = Pick<Category, 'id' | 'name' | 'slug' | 'sortOrder'> & {
+export type CatalogCategoryListItem = Pick<Category, 'id' | 'name' | 'slug' | 'sortOrder' | 'isActive'> & {
   nameTh?: string | null
   nameEn?: string | null
+}
+
+export type CatalogCategorySpecRecord = CategoryAttributeDefinition
+export type CatalogCategoryWithSpecs = Pick<Category, 'id' | 'isActive'> & {
+  attributeDefinitions: CatalogCategorySpecRecord[]
 }
 
 export type CatalogBrandListItem = Pick<Brand, 'id' | 'name' | 'nameTh' | 'nameEn' | 'slug' | 'code' | 'description' | 'descriptionTh' | 'descriptionEn' | 'logoUrl' | 'websiteUrl' | 'countryCode' | 'sortOrder' | 'isFeatured' | 'isActive'> & {
@@ -116,6 +121,8 @@ export interface CreateVariantRecord {
   lengthMm?: number | null
   widthMm?: number | null
   heightMm?: number | null
+  optionValueIds?: string[]
+  optionCombinationKey?: string | null
 }
 
 export interface UpdateVariantRecord {
@@ -129,6 +136,31 @@ export interface UpdateVariantRecord {
   lengthMm?: number | null
   widthMm?: number | null
   heightMm?: number | null
+  optionValueIds?: string[]
+  optionCombinationKey?: string | null
+}
+
+export interface ProductOptionValueWriteRecord {
+  value: string
+  valueTh?: string | null
+  valueEn?: string | null
+  displayType?: string
+  colorHex?: string | null
+  sortOrder: number
+}
+
+export interface ProductOptionWriteRecord {
+  name: string
+  nameTh?: string | null
+  nameEn?: string | null
+  sortOrder: number
+  values: ProductOptionValueWriteRecord[]
+}
+
+export interface UpdateImageOrderRecord {
+  id: string
+  sortOrder: number
+  isPrimary: boolean
 }
 
 export interface CreateProductImageRecord {
@@ -178,17 +210,20 @@ export type CatalogProductListItem = Omit<Product, 'titleTh' | 'titleEn' | 'desc
     nameTh?: string | null
     nameEn?: string | null
     slug: string
+    isActive: boolean
   } | null
   brand: CatalogBrandListItem | null
   images: CatalogProductImageRecord[]
   video: CatalogProductVideoRecord | null
   highlights: ProductHighlight[]
   attributes: ProductAttribute[]
+  options: CatalogProductOptionRecord[]
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'>
   variants: Array<(Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
     titleTh?: string | null
     titleEn?: string | null
   }) & {
+    optionValues: CatalogVariantOptionValueRecord[]
     inventory: {
       id: string
       quantityOnHand: number
@@ -199,11 +234,28 @@ export type CatalogProductListItem = Omit<Product, 'titleTh' | 'titleEn' | 'desc
   }>
 }
 
-export type CatalogProductDetail = CatalogProductListItem
-
 export type CatalogVariantRecord = Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
   titleTh?: string | null
   titleEn?: string | null
+  optionValues?: CatalogVariantOptionValueRecord[]
+}
+
+export type CatalogProductOptionRecord = ProductOption & {
+  values: ProductOptionValue[]
+}
+
+export type CatalogVariantOptionValueRecord = ProductVariantOptionValue & {
+  optionValue: ProductOptionValue & {
+    option: Pick<ProductOption, 'id' | 'productId' | 'name' | 'nameTh' | 'nameEn' | 'sortOrder'>
+  }
+}
+
+export type CatalogModerationCaseRecord = ModerationCase & {
+  actions: ModerationAction[]
+}
+
+export type CatalogProductDetail = CatalogProductListItem & {
+  moderationCase?: CatalogModerationCaseRecord | null
 }
 
 export type CatalogProductRecord = Omit<Product, 'titleTh' | 'titleEn' | 'descriptionTh' | 'descriptionEn'> & {
@@ -215,6 +267,7 @@ export type CatalogProductRecord = Omit<Product, 'titleTh' | 'titleEn' | 'descri
 
 export interface ICatalogRepository {
   findActiveCategories(): Promise<CatalogCategoryListItem[]>
+  findCategoryWithSpecs(id: string): Promise<CatalogCategoryWithSpecs | null>
   findActiveBrands(): Promise<CatalogBrandListItem[]>
   findBrandById(id: string): Promise<CatalogBrandListItem | null>
   findShopById(id: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
@@ -229,11 +282,15 @@ export interface ICatalogRepository {
   deleteProductImage(productId: string, imageId: string): Promise<CatalogProductImageRecord | null>
   upsertProductVideo(data: UpsertProductVideoRecord): Promise<CatalogProductVideoRecord>
   deleteProductVideo(productId: string): Promise<CatalogProductVideoRecord | null>
+  replaceProductOptions(productId: string, options: ProductOptionWriteRecord[]): Promise<CatalogProductDetail>
+  updateProductImagesOrder(productId: string, images: UpdateImageOrderRecord[]): Promise<CatalogProductImageRecord[]>
   createVariant(data: CreateVariantRecord): Promise<CatalogVariantRecord>
   updateVariant(id: string, data: UpdateVariantRecord): Promise<CatalogVariantRecord>
   deleteVariant(id: string): Promise<CatalogVariantRecord>
   findVariantById(id: string): Promise<(CatalogVariantRecord & { product: CatalogProductRecord }) | null>
   updateVariantInventory(variantId: string, data: UpdateInventoryRecord): Promise<NonNullable<CatalogProductListItem['variants'][number]['inventory']>>
+  findLatestModerationCase(productId: string): Promise<CatalogModerationCaseRecord | null>
+  createModerationAction(productId: string, actorId: string, action: string, note?: string | null): Promise<CatalogModerationCaseRecord>
 }
 
 const productInclude = {
@@ -244,6 +301,7 @@ const productInclude = {
       nameTh: true,
       nameEn: true,
       slug: true,
+      isActive: true,
     },
   },
   brand: {
@@ -273,6 +331,14 @@ const productInclude = {
   attributes: {
     orderBy: [{ sortOrder: 'asc' }, { attributeKey: 'asc' }, { id: 'asc' }],
   },
+  options: {
+    include: {
+      values: {
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      },
+    },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+  },
   images: {
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
   },
@@ -289,6 +355,25 @@ const productInclude = {
   variants: {
     include: {
       inventory: true,
+      optionValues: {
+        include: {
+          optionValue: {
+            include: {
+              option: {
+                select: {
+                  id: true,
+                  productId: true,
+                  name: true,
+                  nameTh: true,
+                  nameEn: true,
+                  sortOrder: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
     },
     orderBy: {
       createdAt: 'asc',
@@ -317,8 +402,23 @@ export class PrismaCatalogRepository implements ICatalogRepository {
         nameEn: true,
         slug: true,
         sortOrder: true,
+        isActive: true,
       },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    })
+  }
+
+  findCategoryWithSpecs(id: string): Promise<CatalogCategoryWithSpecs | null> {
+    this.logger.debug('PrismaCatalogRepository.findCategoryWithSpecs', { id })
+    return this.prisma.category.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        isActive: true,
+        attributeDefinitions: {
+          orderBy: [{ sortOrder: 'asc' }, { attributeKey: 'asc' }],
+        },
+      },
     })
   }
 
@@ -532,16 +632,90 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     return this.prisma.productVideo.delete({ where: { productId } })
   }
 
-  createVariant(data: CreateVariantRecord): Promise<CatalogVariantRecord> {
-    this.logger.info('PrismaCatalogRepository.createVariant', { productId: data.productId, sku: data.sku })
-    return this.prisma.productVariant.create({ data })
+  async replaceProductOptions(productId: string, options: ProductOptionWriteRecord[]): Promise<CatalogProductDetail> {
+    this.logger.info('PrismaCatalogRepository.replaceProductOptions', { productId, optionCount: options.length })
+    return this.prisma.$transaction(async (tx) => {
+      await tx.productOption.deleteMany({ where: { productId } })
+      for (const option of options) {
+        await tx.productOption.create({
+          data: {
+            productId,
+            name: option.name,
+            nameTh: option.nameTh,
+            nameEn: option.nameEn,
+            sortOrder: option.sortOrder,
+            values: {
+              create: option.values.map((value) => ({
+                value: value.value,
+                valueTh: value.valueTh,
+                valueEn: value.valueEn,
+                displayType: value.displayType ?? 'TEXT',
+                colorHex: value.colorHex,
+                sortOrder: value.sortOrder,
+              })),
+            },
+          },
+        })
+      }
+      return tx.product.findUniqueOrThrow({ where: { id: productId }, include: productInclude })
+    })
   }
 
-  updateVariant(id: string, data: UpdateVariantRecord): Promise<CatalogVariantRecord> {
+  async updateProductImagesOrder(productId: string, images: UpdateImageOrderRecord[]): Promise<CatalogProductImageRecord[]> {
+    this.logger.info('PrismaCatalogRepository.updateProductImagesOrder', { productId, imageCount: images.length })
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.productImage.findMany({ where: { productId }, select: { id: true } })
+      const existingIds = new Set(existing.map((image) => image.id))
+      if (existing.length !== images.length || images.some((image) => !existingIds.has(image.id))) {
+        throw new Error('PRODUCT_IMAGE_ORDER_MISMATCH')
+      }
+      for (const image of images) {
+        await tx.productImage.update({
+          where: { id: image.id },
+          data: { sortOrder: image.sortOrder, isPrimary: image.isPrimary },
+        })
+      }
+      return tx.productImage.findMany({
+        where: { productId },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      })
+    })
+  }
+
+  async createVariant(data: CreateVariantRecord): Promise<CatalogVariantRecord> {
+    this.logger.info('PrismaCatalogRepository.createVariant', { productId: data.productId, sku: data.sku })
+    const { optionValueIds, ...variantData } = data
+    return this.prisma.$transaction(async (tx) => {
+      const variant = await tx.productVariant.create({
+        data: {
+          ...variantData,
+          optionValues: optionValueIds && optionValueIds.length > 0
+            ? { create: optionValueIds.map((optionValueId) => ({ optionValueId })) }
+            : undefined,
+        },
+        include: productVariantInclude,
+      })
+      return variant
+    })
+  }
+
+  async updateVariant(id: string, data: UpdateVariantRecord): Promise<CatalogVariantRecord> {
     this.logger.info('PrismaCatalogRepository.updateVariant', { id })
-    return this.prisma.productVariant.update({
-      where: { id },
-      data,
+    const { optionValueIds, ...variantData } = data
+    return this.prisma.$transaction(async (tx) => {
+      if (optionValueIds !== undefined) {
+        await tx.productVariantOptionValue.deleteMany({ where: { variantId: id } })
+      }
+      return tx.productVariant.update({
+        where: { id },
+        data: {
+          ...variantData,
+          optionValues: optionValueIds && optionValueIds.length > 0
+            ? { create: optionValueIds.map((optionValueId) => ({ optionValueId })) }
+            : undefined,
+        },
+        include: productVariantInclude,
+      })
     })
   }
 
@@ -556,7 +730,60 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     this.logger.debug('PrismaCatalogRepository.findVariantById', { id })
     return this.prisma.productVariant.findUnique({
       where: { id },
-      include: { product: true },
+      include: { ...productVariantInclude, product: true },
+    })
+  }
+
+  async findLatestModerationCase(productId: string): Promise<CatalogModerationCaseRecord | null> {
+    this.logger.debug('PrismaCatalogRepository.findLatestModerationCase', { productId })
+    return this.prisma.moderationCase.findFirst({
+      where: {
+        entityType: 'PRODUCT',
+        entityId: productId,
+      },
+      include: { actions: { orderBy: { createdAt: 'desc' } } },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  async createModerationAction(productId: string, actorId: string, action: string, note?: string | null): Promise<CatalogModerationCaseRecord> {
+    this.logger.info('PrismaCatalogRepository.createModerationAction', { productId, actorId, action })
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.moderationCase.findFirst({
+        where: {
+          entityType: 'PRODUCT',
+          entityId: productId,
+          status: { in: ['OPEN', 'UNDER_REVIEW', 'ACTION_REQUIRED'] },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      const moderationCase = existing ?? await tx.moderationCase.create({
+        data: {
+          entityType: 'PRODUCT',
+          entityId: productId,
+          reason: action === 'REJECT' || action === 'SUSPEND' ? 'POLICY_VIOLATION' : 'OTHER',
+          status: 'UNDER_REVIEW',
+          title: `Product ${action.toLowerCase()} review`,
+          createdById: actorId,
+        },
+      })
+      await tx.moderationAction.create({
+        data: {
+          caseId: moderationCase.id,
+          actorId,
+          action: action as never,
+          note,
+        },
+      })
+      const resolvedStatus = action === 'ESCALATE' || action === 'NOTE' ? moderationCase.status : 'RESOLVED'
+      return tx.moderationCase.update({
+        where: { id: moderationCase.id },
+        data: {
+          status: resolvedStatus,
+          resolvedAt: resolvedStatus === 'RESOLVED' ? new Date() : moderationCase.resolvedAt,
+        },
+        include: { actions: { orderBy: { createdAt: 'desc' } } },
+      })
     })
   }
 
@@ -635,3 +862,25 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     return scalars
   }
 }
+
+const productVariantInclude = {
+  optionValues: {
+    include: {
+      optionValue: {
+        include: {
+          option: {
+            select: {
+              id: true,
+              productId: true,
+              name: true,
+              nameTh: true,
+              nameEn: true,
+              sortOrder: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  },
+} satisfies Prisma.ProductVariantInclude

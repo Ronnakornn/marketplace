@@ -5,7 +5,14 @@ import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/lib/auth-plugin.ts'
 import { CatalogServiceError } from './catalog.errors.ts'
 
-const ProductStatusSchema = t.Union([t.Literal('DRAFT'), t.Literal('ACTIVE'), t.Literal('ARCHIVED')])
+const ProductStatusSchema = t.Union([
+  t.Literal('DRAFT'),
+  t.Literal('PENDING_REVIEW'),
+  t.Literal('ACTIVE'),
+  t.Literal('REJECTED'),
+  t.Literal('SUSPENDED'),
+  t.Literal('ARCHIVED'),
+])
 
 const CategoryResponseSchema = t.Object({
   id: t.String({ format: 'uuid' }),
@@ -147,6 +154,39 @@ const ProductVideoBodySchema = t.Object({
   sortOrder: t.Optional(t.Number({ minimum: 0 })),
 })
 
+const ProductOptionValueBodySchema = t.Object({
+  value: t.String({ minLength: 1 }),
+  valueTh: t.Optional(t.Nullable(t.String())),
+  valueEn: t.Optional(t.Nullable(t.String())),
+  displayType: t.Optional(t.String({ minLength: 1 })),
+  colorHex: t.Optional(t.Nullable(t.String())),
+  sortOrder: t.Optional(t.Number({ minimum: 0 })),
+})
+
+const ProductOptionBodySchema = t.Object({
+  name: t.String({ minLength: 1 }),
+  nameTh: t.Optional(t.Nullable(t.String())),
+  nameEn: t.Optional(t.Nullable(t.String())),
+  sortOrder: t.Optional(t.Number({ minimum: 0 })),
+  values: t.Array(ProductOptionValueBodySchema, { minItems: 1 }),
+})
+
+const ProductOptionsBodySchema = t.Object({
+  options: t.Array(ProductOptionBodySchema),
+})
+
+const ProductImageOrderBodySchema = t.Object({
+  images: t.Array(t.Object({
+    id: t.String({ format: 'uuid' }),
+    sortOrder: t.Optional(t.Number({ minimum: 0 })),
+  }), { minItems: 1 }),
+  primaryImageId: t.Optional(t.Nullable(t.String({ format: 'uuid' }))),
+})
+
+const ModerationReasonBodySchema = t.Object({
+  reason: t.String({ minLength: 1 }),
+})
+
 const VariantShippingFieldsSchema = t.Object({
   weightGrams: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
   lengthMm: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
@@ -158,12 +198,18 @@ const CreateVariantBodySchema = t.Composite([
   t.Pick(ProductVariantPlainInputCreate, ['sku', 'title', 'price', 'currency']),
   LocalizedVariantFieldsSchema,
   VariantShippingFieldsSchema,
+  t.Object({
+    optionValueIds: t.Optional(t.Array(t.String({ format: 'uuid' }))),
+  }),
 ])
 
 const UpdateVariantBodySchema = t.Partial(t.Composite([
   t.Pick(ProductVariantPlainInputUpdate, ['sku', 'title', 'price', 'currency']),
   LocalizedVariantFieldsSchema,
   VariantShippingFieldsSchema,
+  t.Object({
+    optionValueIds: t.Optional(t.Array(t.String({ format: 'uuid' }))),
+  }),
 ]))
 
 export function createCatalogRoutes(container: ServiceContainer) {
@@ -255,8 +301,34 @@ export function createCatalogRoutes(container: ServiceContainer) {
       withAuth: true,
       query: SellerListQuerySchema,
     })
+    .get('/api/seller/products/:productId', ({ authContext, params }: any) =>
+      container.catalogService.getSellerProductDetail(authContext.user, params.productId), {
+      withAuth: true,
+      params: ProductParamsSchema,
+    })
+    .post('/api/seller/products/:productId/submit-review', ({ authContext, params }: any) =>
+      container.catalogService.submitProductReview(authContext.user, params.productId), {
+      withAuth: true,
+      params: ProductParamsSchema,
+    })
     .get('/api/admin/catalog/products', ({ query }: any) =>
       container.catalogService.listAdminProducts({
+        keyword: query.keyword ?? query.q,
+        categoryId: query.categoryId,
+        brandId: query.brandId,
+        attributes: parseAttributeFilters(query.attributeFilters),
+        shopId: query.shopId,
+        status: query.status,
+        minPrice: query.minPrice ?? query.minPrice,
+        maxPrice: query.maxPrice ?? query.maxPrice,
+        cursor: query.cursor,
+        limit: query.limit,
+      }), {
+      withRole: 'ADMIN',
+      query: SellerListQuerySchema,
+    })
+    .get('/api/admin/catalog/products/moderation', ({ query }: any) =>
+      container.catalogService.listModerationProducts({
         keyword: query.keyword ?? query.q,
         categoryId: query.categoryId,
         brandId: query.brandId,
@@ -299,6 +371,28 @@ export function createCatalogRoutes(container: ServiceContainer) {
       withRole: 'ADMIN',
       params: ProductVariantParamsSchema,
     })
+    .patch('/api/admin/catalog/products/:productId/approve', ({ authContext, params }: any) =>
+      container.catalogService.approveProduct(authContext.user, params.productId), {
+      withRole: 'ADMIN',
+      params: ProductParamsSchema,
+    })
+    .patch('/api/admin/catalog/products/:productId/reject', ({ authContext, params, body }: any) =>
+      container.catalogService.rejectProduct(authContext.user, params.productId, body), {
+      withRole: 'ADMIN',
+      params: ProductParamsSchema,
+      body: ModerationReasonBodySchema,
+    })
+    .patch('/api/admin/catalog/products/:productId/suspend', ({ authContext, params, body }: any) =>
+      container.catalogService.suspendProduct(authContext.user, params.productId, body), {
+      withRole: 'ADMIN',
+      params: ProductParamsSchema,
+      body: ModerationReasonBodySchema,
+    })
+    .patch('/api/admin/catalog/products/:productId/restore', ({ authContext, params }: any) =>
+      container.catalogService.restoreProduct(authContext.user, params.productId), {
+      withRole: 'ADMIN',
+      params: ProductParamsSchema,
+    })
     .post('/api/seller/products', ({ authContext, body }: any) =>
       container.catalogService.createProduct(authContext.user, body), {
       withAuth: true,
@@ -332,6 +426,12 @@ export function createCatalogRoutes(container: ServiceContainer) {
       withAuth: true,
       params: ProductImageParamsSchema,
     })
+    .put('/api/seller/products/:productId/images/order', ({ authContext, params, body }: any) =>
+      container.catalogService.updateProductImagesOrder(authContext.user, params.productId, body), {
+      withAuth: true,
+      params: ProductParamsSchema,
+      body: ProductImageOrderBodySchema,
+    })
     .post('/api/seller/products/:productId/video', ({ authContext, params, body }: any) =>
       container.catalogService.upsertProductVideo(authContext.user, params.productId, body), {
       withAuth: true,
@@ -342,6 +442,12 @@ export function createCatalogRoutes(container: ServiceContainer) {
       container.catalogService.deleteProductVideo(authContext.user, params.productId), {
       withAuth: true,
       params: ProductParamsSchema,
+    })
+    .put('/api/seller/products/:productId/options', ({ authContext, params, body }: any) =>
+      container.catalogService.updateProductOptions(authContext.user, params.productId, body), {
+      withAuth: true,
+      params: ProductParamsSchema,
+      body: ProductOptionsBodySchema,
     })
     .post('/api/seller/products/:productId/variants', ({ authContext, params, body }: any) =>
       container.catalogService.createVariant(authContext.user, params.productId, body), {
