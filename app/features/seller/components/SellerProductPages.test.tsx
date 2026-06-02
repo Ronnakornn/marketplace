@@ -270,51 +270,34 @@ describe("Seller product pages", () => {
     expect(archiveMutate).toHaveBeenCalledWith("prod_1", expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }));
   });
 
-  it("renders create form shell with key mobile-friendly page sections", () => {
+  it("prepares a draft from the new product route before opening Product Studio", () => {
     render(<SellerProductCreatePage />);
 
     expect(screen.getByRole("heading", { name: "Create product" })).toBeTruthy();
-    for (const section of ["Basic info", "Category and specs", "Localized content", "Highlights and attributes", "Media", "Variant matrix", "Variants"]) {
-      if (["Stock", "Dimensions"].includes(section)) continue;
-      expect(screen.getByRole("heading", { name: section })).toBeTruthy();
-    }
-    expect(screen.getByLabelText("Title")).toBeTruthy();
-    expect(screen.getByLabelText("Description")).toBeTruthy();
-    expect(screen.getByText("Save this product as a draft before uploading media.")).toBeTruthy();
-    expect(screen.getByText("Save this product as a draft before adding variants.")).toBeTruthy();
-  });
-
-  it("creates a product from the page form and preserves values until mutation success", () => {
-    render(<SellerProductCreatePage />);
-
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "New Product" } });
-    fireEvent.change(screen.getByLabelText("Slug"), { target: { value: "new-product" } });
-    fireEvent.click(screen.getByRole("button", { name: /save product/i }));
-
+    expect(screen.getByText("Draft preparation")).toBeTruthy();
     expect(createMutate).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "New Product", slug: "new-product", status: "DRAFT" }),
+      expect.objectContaining({ title: "Untitled product draft", status: "DRAFT" }),
       expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
     );
-    expect(screen.getByDisplayValue("New Product")).toBeTruthy();
   });
 
-  it("asks before discarding dirty create form changes", () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("redirects to Product Studio after draft creation succeeds", () => {
+    createMutate.mockImplementation((_input, options) => options.onSuccess({ id: "prod_new" }));
     render(<SellerProductCreatePage />);
 
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Changed Product" } });
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(confirm).toHaveBeenCalledWith("Discard unsaved product changes?");
-    expect(push).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith("/seller/products/prod_new");
   });
 
   it("renders edit form data and page-level retry state", async () => {
     render(<SellerProductEditPage productId="prod_1" />);
 
-    expect(screen.getByRole("heading", { name: "Edit product" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Product Studio" })).toBeTruthy();
     expect(screen.getAllByDisplayValue("Cotton Shirt").length).toBeGreaterThan(0);
     expect(screen.getByText("1/10 images. Video limit: one MP4 or WebM up to 25MB.")).toBeTruthy();
+    for (const section of ["Basics", "Category & Specs", "Media", "Variants", "Inventory", "Review"]) {
+      expect(screen.getByRole("link", { name: section })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: section })).toBeTruthy();
+    }
 
     cleanup();
     sellerProductsState = { data: undefined, error: new Error("Load failed"), isLoading: false };
@@ -398,27 +381,12 @@ describe("Seller product pages", () => {
     expect(deleteVariantMutate).toHaveBeenCalledWith({ productId: "prod_1", variantId: "var_1" }, expect.any(Object));
   });
 
-  it("blocks active save with publish readiness messaging while preserving form state", () => {
-    render(<SellerProductCreatePage />);
-
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Almost Active" } });
-    fireEvent.click(screen.getByText("Active"));
-    fireEvent.click(screen.getByRole("button", { name: /save product/i }));
-
-    expect(screen.getByText("Active products need category, at least one product image, one active variant with price greater than zero before publishing.")).toBeTruthy();
-    expect(screen.getByDisplayValue("Almost Active")).toBeTruthy();
-    expect(createMutate).not.toHaveBeenCalled();
-  });
-
-  it("preserves product form values after mutation failure", () => {
+  it("shows retry when draft preparation fails", () => {
     createMutate.mockImplementation((_input, options) => options.onError(new Error("Save failed")));
     render(<SellerProductCreatePage />);
 
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Retry Product" } });
-    fireEvent.click(screen.getByRole("button", { name: /save product/i }));
-
     expect(screen.getByText("Save failed")).toBeTruthy();
-    expect(screen.getByDisplayValue("Retry Product")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 
   it("submits a ready draft for review and shows moderation rejection reasons", () => {

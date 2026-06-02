@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, EditIcon, PlusIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
+import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, EditIcon, PlusIcon, SaveIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -54,10 +54,19 @@ import {
 
 type ProductStatus = "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
 type VariantStatus = "ACTIVE" | "INACTIVE";
+type ProductStudioSectionId = "basics" | "category-specs" | "media" | "variants" | "inventory" | "review";
 
 const MAX_PRODUCT_IMAGES = 10;
 const MAX_PRODUCT_VIDEO_BYTES = 25 * 1024 * 1024;
 const PRODUCT_VIDEO_TYPES = ["video/mp4", "video/webm"];
+const PRODUCT_STUDIO_SECTIONS: Array<{ id: ProductStudioSectionId; label: string }> = [
+  { id: "basics", label: "Basics" },
+  { id: "category-specs", label: "Category & Specs" },
+  { id: "media", label: "Media" },
+  { id: "variants", label: "Variants" },
+  { id: "inventory", label: "Inventory" },
+  { id: "review", label: "Review" },
+];
 
 interface ProductFormState {
   title: string;
@@ -565,7 +574,61 @@ export function SellerProductsPage() {
 }
 
 export function SellerProductCreatePage() {
-  return <SellerProductFormPage mode="create" />;
+  const router = useRouter();
+  const createProduct = useCreateSellerProduct();
+  const [error, setError] = useState("");
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    createProduct.mutate(
+      {
+        title: "Untitled product draft",
+        status: "DRAFT",
+      },
+      {
+        onSuccess: (product) => {
+          toast.success("Draft created.");
+          router.push(`/seller/products/${product.id}`);
+        },
+        onError: (mutationError: unknown) => {
+          setError(mutationError instanceof Error ? mutationError.message : "Product draft could not be created.");
+        },
+      },
+    );
+  }, [createProduct, router]);
+
+  return (
+    <>
+      <SellerPageHeader title="Create product" description="Preparing a draft product before opening Product Studio." />
+      <Card className="rounded-lg border-slate-200 bg-white">
+        <CardContent className="space-y-4 pt-6">
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-medium text-slate-950">{createProduct.isPending ? "Creating draft..." : "Draft preparation"}</p>
+            <p className="mt-1 text-sm text-slate-600">Product Studio opens after the draft record is ready.</p>
+          </div>
+          {error ? (
+            <div className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-red-700">{error}</p>
+              <Button type="button" variant="outline" onClick={() => {
+                setError("");
+                createProduct.mutate(
+                  { title: "Untitled product draft", status: "DRAFT" },
+                  {
+                    onSuccess: (product) => router.push(`/seller/products/${product.id}`),
+                    onError: (mutationError: unknown) => setError(mutationError instanceof Error ? mutationError.message : "Product draft could not be created."),
+                  },
+                );
+              }} disabled={createProduct.isPending}>
+                Retry
+              </Button>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    </>
+  );
 }
 
 export function SellerProductEditPage({ productId }: { productId: string }) {
@@ -626,6 +689,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const moderationReason = getLatestModerationReason(workingProduct);
   const dirty = isProductFormDirty(form, initialForm) || images.some((image) => image.status !== "existing") || variants.some((variant) => !variant.id) || Boolean(video?.status !== "existing" && video);
   const isSaving = createProduct.isPending || updateProduct.isPending || createVariant.isPending || updateVariant.isPending || updateVariantStock.isPending || uploadImage.isPending || updateImage.isPending || updateImageOrder.isPending || deleteImage.isPending || uploadVideo.isPending || deleteVideo.isPending || deleteVariant.isPending || updateOptions.isPending || submitReview.isPending;
+  const saveState = isSaving ? "Saving..." : dirty ? "Unsaved changes" : "Saved";
 
   function cancel() {
     if (dirty && !window.confirm("Discard unsaved product changes?")) return;
@@ -1015,34 +1079,51 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
 
   return (
     <>
-      <SellerPageHeader title={mode === "edit" ? "Edit product" : "Create product"} description="Use a page-level workflow for listing fields, media, variants, stock, dimensions, highlights, and attributes." />
-      <form className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]" onSubmit={submitProduct}>
+      <SellerPageHeader title="Product Studio" description="Edit draft content, catalog setup, media, variants, inventory, and review readiness from one workspace." />
+      <ProductStudioHeader
+        productTitle={form.title || workingProduct?.title || "Untitled product draft"}
+        productStatus={form.status}
+        saveState={saveState}
+        isSaving={isSaving}
+        canSubmitReview={Boolean(workingProductId) && readinessMissing.length === 0 && !duplicateCombinationError && form.status !== "PENDING_REVIEW"}
+        onSubmitReview={submitForReview}
+        onCancel={cancel}
+      />
+      <ProductStudioNav />
+      <form id="seller-product-studio-form" className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]" onSubmit={submitProduct}>
         <div className="space-y-4">
-          <ProductSection title="Basic info" description="Core listing identity and buyer-facing description.">
+          <ProductSection id="basics" title="Basics" description="Core listing identity, buyer-facing copy, SEO, brand, condition, warranty, and origin.">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Title" htmlFor="product-title"><Input id="product-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required aria-describedby={formError ? "product-form-error" : undefined} /></Field>
               <Field label="Slug" htmlFor="product-slug"><Input id="product-slug" value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="optional-slug" /></Field>
             </div>
             <Field label="Description" htmlFor="product-description"><Textarea id="product-description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={4} /></Field>
-            <Field label="Status" htmlFor="product-status">
-              <Select value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as ProductStatus }))}>
-                <SelectTrigger id="product-status"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                  <SelectItem value="PENDING_REVIEW">Pending review</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
-                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                  <SelectItem value="ARCHIVED">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm font-medium text-slate-900">Moderation status: {workingProduct?.status?.replaceAll("_", " ") ?? "Draft not saved"}</p>
-              {moderationReason ? <p className="mt-1 text-sm text-red-700">Reason: {moderationReason}</p> : null}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Thai title" htmlFor="product-title-th"><Input id="product-title-th" value={form.titleTh} onChange={(event) => setForm((current) => ({ ...current, titleTh: event.target.value }))} /></Field>
+              <Field label="English title" htmlFor="product-title-en"><Input id="product-title-en" value={form.titleEn} onChange={(event) => setForm((current) => ({ ...current, titleEn: event.target.value }))} /></Field>
+              <Field label="Thai description" htmlFor="product-description-th"><Textarea id="product-description-th" value={form.descriptionTh} onChange={(event) => setForm((current) => ({ ...current, descriptionTh: event.target.value }))} rows={3} /></Field>
+              <Field label="English description" htmlFor="product-description-en"><Textarea id="product-description-en" value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} rows={3} /></Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Brand" htmlFor="product-brand">
+                <Select value={form.brandId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, brandId: value === "NONE" ? "" : value }))}>
+                  <SelectTrigger id="product-brand" aria-label="Brand"><SelectValue placeholder="Select brand" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No brand</SelectItem>
+                    {(brandsQuery.data ?? []).map((brand) => <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="SEO title" htmlFor="product-meta-title"><Input id="product-meta-title" value={form.metaTitle} onChange={(event) => setForm((current) => ({ ...current, metaTitle: event.target.value }))} /></Field>
+            </div>
+            <Field label="SEO description" htmlFor="product-meta-description"><Textarea id="product-meta-description" value={form.metaDescription} onChange={(event) => setForm((current) => ({ ...current, metaDescription: event.target.value }))} rows={2} /></Field>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Condition" htmlFor="product-condition"><Input id="product-condition" value={form.condition} onChange={(event) => setForm((current) => ({ ...current, condition: event.target.value }))} placeholder="New" /></Field>
+              <Field label="Warranty info" htmlFor="product-warranty"><Input id="product-warranty" value={form.warrantyInfo} onChange={(event) => setForm((current) => ({ ...current, warrantyInfo: event.target.value }))} /></Field>
+              <Field label="Country of origin" htmlFor="product-origin"><Input id="product-origin" value={form.countryOfOrigin} onChange={(event) => setForm((current) => ({ ...current, countryOfOrigin: event.target.value }))} placeholder="TH" /></Field>
             </div>
           </ProductSection>
-          <ProductSection title="Category and specs" description="Choose the primary category and enter category-specific specifications as attributes.">
+          <ProductSection id="category-specs" title="Category & Specs" description="Choose the primary category and enter category-specific specifications as attributes.">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Category" htmlFor="product-category">
                 <Select value={form.categoryId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, categoryId: value === "NONE" ? "" : value }))}>
@@ -1053,42 +1134,26 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Brand" htmlFor="product-brand">
-                <Select value={form.brandId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, brandId: value === "NONE" ? "" : value }))}>
-                  <SelectTrigger id="product-brand" aria-label="Brand"><SelectValue placeholder="Select brand" /></SelectTrigger>
+              <Field label="Status" htmlFor="product-status">
+                <Select value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as ProductStatus }))}>
+                  <SelectTrigger id="product-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NONE">No brand</SelectItem>
-                    {(brandsQuery.data ?? []).map((brand) => <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>)}
+                    <SelectItem value="DRAFT">Draft</SelectItem>
+                    <SelectItem value="PENDING_REVIEW">Pending review</SelectItem>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                    <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                    <SelectItem value="ARCHIVED">Archived</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
             </div>
             <Field label="Specifications" htmlFor="product-attributes"><Textarea id="product-attributes" value={form.attributesText} onChange={(event) => setForm((current) => ({ ...current, attributesText: event.target.value }))} rows={3} placeholder="color|Color|Black|filterable" /></Field>
-          </ProductSection>
-          <ProductSection title="Localized content" description="Optional Thai and English listing copy.">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Thai title" htmlFor="product-title-th"><Input id="product-title-th" value={form.titleTh} onChange={(event) => setForm((current) => ({ ...current, titleTh: event.target.value }))} /></Field>
-              <Field label="English title" htmlFor="product-title-en"><Input id="product-title-en" value={form.titleEn} onChange={(event) => setForm((current) => ({ ...current, titleEn: event.target.value }))} /></Field>
-              <Field label="Thai description" htmlFor="product-description-th"><Textarea id="product-description-th" value={form.descriptionTh} onChange={(event) => setForm((current) => ({ ...current, descriptionTh: event.target.value }))} rows={3} /></Field>
-              <Field label="English description" htmlFor="product-description-en"><Textarea id="product-description-en" value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} rows={3} /></Field>
-            </div>
-          </ProductSection>
-          <ProductSection title="Highlights and attributes" description="Structured buyer-facing listing details.">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="SEO title" htmlFor="product-meta-title"><Input id="product-meta-title" value={form.metaTitle} onChange={(event) => setForm((current) => ({ ...current, metaTitle: event.target.value }))} /></Field>
-              <Field label="Condition" htmlFor="product-condition"><Input id="product-condition" value={form.condition} onChange={(event) => setForm((current) => ({ ...current, condition: event.target.value }))} placeholder="New" /></Field>
-            </div>
-            <Field label="SEO description" htmlFor="product-meta-description"><Textarea id="product-meta-description" value={form.metaDescription} onChange={(event) => setForm((current) => ({ ...current, metaDescription: event.target.value }))} rows={2} /></Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Warranty info" htmlFor="product-warranty"><Input id="product-warranty" value={form.warrantyInfo} onChange={(event) => setForm((current) => ({ ...current, warrantyInfo: event.target.value }))} /></Field>
-              <Field label="Country of origin" htmlFor="product-origin"><Input id="product-origin" value={form.countryOfOrigin} onChange={(event) => setForm((current) => ({ ...current, countryOfOrigin: event.target.value }))} placeholder="TH" /></Field>
-            </div>
             <Field label="Highlights" htmlFor="product-highlights"><Textarea id="product-highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder="One highlight per line" /></Field>
-            <p className="text-xs text-slate-500">Category specifications are managed in the category and specs section.</p>
           </ProductSection>
         </div>
         <aside className="space-y-4">
-          <ProductSection title="Media" description="Upload up to 10 images and one MP4/WebM video after the product has a draft record.">
+          <ProductSection id="media" title="Media" description="Upload up to 10 images and one MP4/WebM video after the product has a draft record.">
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before uploading media.</p> : null}
             <div className="flex flex-col gap-2 sm:flex-row">
               <input ref={imageInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={addImageFiles} aria-label="Upload product images" />
@@ -1145,7 +1210,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               </div>
             ) : null}
           </ProductSection>
-          <ProductSection title="Variant matrix" description="Define structured options and values, then assign unique combinations to variants.">
+          <ProductSection id="variants" title="Variants" description="Define option axes, option values, and sellable variant rows.">
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before editing variant options.</p> : null}
             {optionError ? <p className="text-sm text-red-600">{optionError}</p> : null}
             {duplicateCombinationError ? <p className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
@@ -1176,7 +1241,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               )) : <p className="text-sm text-slate-500">No structured options yet. Add options such as color or size when this product has variants.</p>}
             </div>
           </ProductSection>
-          <ProductSection title="Variants" description="Create, edit, delete, price, dimensions, and stock setup per sellable option combination.">
+          <ProductSection title="Variant rows" description="Create, edit, delete, price, dimensions, and stock setup per sellable option combination.">
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before adding variants.</p> : null}
             {variantError ? <p className="text-sm text-red-600">{variantError}</p> : null}
             <Button type="button" variant="outline" onClick={addVariant}>
@@ -1253,7 +1318,40 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               ))}
             </div>
           </ProductSection>
-          <ProductSection title="Publish readiness" description="Drafts can save early; active products need catalog, media, and sellable variant setup.">
+          <ProductSection id="inventory" title="Inventory" description="Review on-hand, reserved, available, reorder, and low-stock state across variants.">
+            {variants.length ? (
+              <div className="space-y-2">
+                {variants.map((variant, index) => {
+                  const available = getAvailableStock(variant);
+                  const reorderLevel = Number(variant.reorderLevel || "0");
+                  return (
+                    <div key={variant.id ?? `inventory-${index}`} className="rounded-md border border-slate-200 p-3 text-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-slate-950">{variant.title || variant.sku || `Variant ${index + 1}`}</p>
+                          <p className="text-xs text-slate-500">{variant.sku || "No SKU"}</p>
+                        </div>
+                        {available <= reorderLevel ? <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Low stock</span> : null}
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 sm:grid-cols-4">
+                        <span>On hand: {variant.quantityOnHand || 0}</span>
+                        <span>Reserved: {variant.quantityReserved}</span>
+                        <span>Available: {available}</span>
+                        <span>Reorder: {variant.reorderLevel || 0}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">Inventory appears after at least one variant is added.</p>
+            )}
+          </ProductSection>
+          <ProductSection id="review" title="Review" description="Drafts can save early; review submission needs catalog, media, and sellable variant setup.">
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-medium text-slate-900">Moderation status: {workingProduct?.status?.replaceAll("_", " ") ?? "Draft not saved"}</p>
+              {moderationReason ? <p className="mt-1 text-sm text-red-700">Reason: {moderationReason}</p> : null}
+            </div>
             {readinessMissing.length ? (
               <p className="text-sm text-amber-700">Active publish readiness missing: {readinessMissing.join(", ")}.</p>
             ) : (
@@ -1276,9 +1374,66 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   );
 }
 
-function ProductSection({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+function ProductStudioHeader({
+  productTitle,
+  productStatus,
+  saveState,
+  isSaving,
+  canSubmitReview,
+  onSubmitReview,
+  onCancel,
+}: {
+  productTitle: string;
+  productStatus: ProductStatus;
+  saveState: string;
+  isSaving: boolean;
+  canSubmitReview: boolean;
+  onSubmitReview: () => void;
+  onCancel: () => void;
+}) {
   return (
-    <Card className="rounded-lg border-slate-200 bg-white">
+    <div className="sticky top-0 z-20 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="truncate text-lg font-semibold text-slate-950">{productTitle}</h2>
+            <StatusPill value={productStatus} />
+          </div>
+          <p className="mt-1 text-sm text-slate-500">Save state: {saveState}</p>
+        </div>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>Cancel</Button>
+          <Button form="seller-product-studio-form" type="submit" disabled={isSaving}>
+            <SaveIcon className="size-4" />
+            {isSaving ? "Saving..." : "Save draft"}
+          </Button>
+          <Button type="button" variant="outline" onClick={onSubmitReview} disabled={isSaving || !canSubmitReview}>
+            <SendIcon className="size-4" />
+            Submit review
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductStudioNav() {
+  return (
+    <nav aria-label="Product Studio sections" className="overflow-x-auto border-b border-slate-200 pb-2">
+      <div className="flex min-w-max gap-2">
+        {PRODUCT_STUDIO_SECTIONS.map((section) => (
+          <a key={section.id} href={`#${section.id}`} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            {section.label}
+          </a>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+function ProductSection({ id, title, description, children }: { id?: ProductStudioSectionId; title: string; description: string; children: ReactNode }) {
+  return (
+    <Card id={id} className="scroll-mt-32 rounded-lg border-slate-200 bg-white">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <p className="text-sm text-slate-500">{description}</p>
