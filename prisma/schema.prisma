@@ -171,8 +171,19 @@ enum SellerKycDocumentSide {
 
 enum ProductStatus {
   DRAFT
+  PENDING_REVIEW
   ACTIVE
+  REJECTED
+  SUSPENDED
   ARCHIVED
+}
+
+enum CategoryAttributeValueType {
+  TEXT
+  NUMBER
+  BOOLEAN
+  SELECT
+  MULTI_SELECT
 }
 
 enum ProductDuplicateStatus {
@@ -216,6 +227,15 @@ enum ReservationStatus {
   COMMITTED
   RELEASED
   EXPIRED
+}
+
+enum InventoryMovementType {
+  ADJUSTMENT
+  RESERVATION_CREATED
+  RESERVATION_RELEASED
+  RESERVATION_COMMITTED
+  SALE_COMMITTED
+  RETURN_RESTOCK
 }
 
 enum OrderStatus {
@@ -488,6 +508,7 @@ model User {
   moderationCasesAssigned         ModerationCase[]         @relation("ModerationCaseAssignedTo")
   moderationActions               ModerationAction[]
   webhookEvents                   WebhookEvent[]           @relation("WebhookEventProcessedBy")
+  inventoryMovements              InventoryMovement[]      @relation("InventoryMovementActor")
 }
 
 model Address {
@@ -778,6 +799,7 @@ model SellerKycDocument {
 
 model Category {
   id        String   @id @default(uuid()) @db.Uuid
+  parentId  String?  @db.Uuid
   name      String
   nameTh    String?
   nameEn    String?
@@ -787,9 +809,36 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  products Product[]
+  parent               Category?                     @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children             Category[]                    @relation("CategoryTree")
+  products             Product[]
+  attributeDefinitions CategoryAttributeDefinition[]
 
+  @@index([parentId, isActive, sortOrder])
   @@index([isActive, sortOrder])
+}
+
+model CategoryAttributeDefinition {
+  id            String                     @id @default(uuid()) @db.Uuid
+  categoryId    String                     @db.Uuid
+  attributeKey  String
+  displayName   String
+  displayNameTh String?
+  displayNameEn String?
+  valueType     CategoryAttributeValueType
+  isRequired    Boolean                    @default(false)
+  isFilterable  Boolean                    @default(false)
+  allowedValues Json?
+  sortOrder     Int                        @default(0)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, attributeKey])
+  @@index([categoryId, sortOrder])
+  @@index([categoryId, isRequired])
+  @@index([categoryId, isFilterable])
 }
 
 model Brand {
@@ -863,6 +912,7 @@ model Product {
   viewLogs                    ProductViewLog[]
   favorites                   FavoriteProduct[]
   variants                    ProductVariant[]
+  options                     ProductOption[]
   images                      ProductImage[]
   video                       ProductVideo?
   highlights                  ProductHighlight[]
@@ -887,6 +937,56 @@ model Product {
   @@index([duplicateStatus])
   @@index([duplicateOfProductId])
   @@index([deletedAt])
+}
+
+model ProductOption {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  name      String
+  nameTh    String?
+  nameEn    String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values  ProductOptionValue[]
+
+  @@unique([productId, name])
+  @@index([productId, sortOrder])
+}
+
+model ProductOptionValue {
+  id          String   @id @default(uuid()) @db.Uuid
+  optionId    String   @db.Uuid
+  value       String
+  valueTh     String?
+  valueEn     String?
+  displayType String   @default("TEXT")
+  colorHex    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  option       ProductOption               @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  variantLinks ProductVariantOptionValue[]
+
+  @@unique([optionId, value])
+  @@index([optionId, sortOrder])
+}
+
+model ProductVariantOptionValue {
+  id            String   @id @default(uuid()) @db.Uuid
+  variantId     String   @db.Uuid
+  optionValueId String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  variant     ProductVariant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValue ProductOptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, optionValueId])
+  @@index([variantId])
+  @@index([optionValueId])
 }
 
 model ProductHighlight {
@@ -1182,29 +1282,33 @@ model ProductDuplicateReview {
 }
 
 model ProductVariant {
-  id          String        @id @default(uuid()) @db.Uuid
-  productId   String        @db.Uuid
-  sku         String
-  title       String
-  titleTh     String?
-  titleEn     String?
-  price       BigInt
-  currency    String        @default("THB")
-  status      VariantStatus @default(ACTIVE)
-  weightGrams Int?
-  lengthMm    Int?
-  widthMm     Int?
-  heightMm    Int?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                   String        @id @default(uuid()) @db.Uuid
+  productId            String        @db.Uuid
+  sku                  String
+  title                String
+  titleTh              String?
+  titleEn              String?
+  price                BigInt
+  currency             String        @default("THB")
+  status               VariantStatus @default(ACTIVE)
+  optionCombinationKey String?
+  weightGrams          Int?
+  lengthMm             Int?
+  widthMm              Int?
+  heightMm             Int?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
-  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product        Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems      CartItem[]
   inventory      Inventory?
+  movements      InventoryMovement[]
+  optionValues   ProductVariantOptionValue[]
   orderItems     OrderItem[]
   flashSaleItems FlashSaleItem[]
 
   @@unique([productId, sku])
+  @@unique([productId, optionCombinationKey])
   @@index([productId, status])
 }
 
@@ -1219,6 +1323,7 @@ model Inventory {
 
   variant      ProductVariant         @relation(fields: [variantId], references: [id], onDelete: Cascade)
   reservations InventoryReservation[]
+  movements    InventoryMovement[]
 }
 
 model Cart {
@@ -1296,6 +1401,34 @@ model InventoryReservation {
   @@index([orderId])
   @@index([inventoryId, status])
   @@index([status, expiresAt])
+}
+
+model InventoryMovement {
+  id                     String                @id @default(uuid()) @db.Uuid
+  inventoryId            String                @db.Uuid
+  variantId              String                @db.Uuid
+  type                   InventoryMovementType
+  quantityDelta          Int
+  quantityOnHandBefore   Int
+  quantityOnHandAfter    Int
+  quantityReservedBefore Int
+  quantityReservedAfter  Int
+  actorUserId            String?               @db.Uuid
+  reason                 String?
+  referenceType          String?
+  referenceId            String?               @db.Uuid
+  metadata               Json?
+  createdAt              DateTime              @default(now())
+
+  inventory Inventory      @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  actor     User?          @relation("InventoryMovementActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([inventoryId, createdAt])
+  @@index([variantId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([type, createdAt])
+  @@index([referenceType, referenceId])
 }
 
 model Order {
