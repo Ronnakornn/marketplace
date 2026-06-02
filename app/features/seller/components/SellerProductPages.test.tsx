@@ -224,7 +224,21 @@ vi.mock("../hooks/useSellerManage", () => ({
     isLoading: sellerProductsState.isLoading,
     refetch,
   })),
-  useSellerCategories: vi.fn(() => ({ data: [{ id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 0 }], isLoading: false })),
+  useSellerCategories: vi.fn(() => ({
+    data: [
+      {
+        id: "cat_1",
+        name: "Fashion",
+        slug: "fashion",
+        sortOrder: 0,
+        attributeDefinitions: [
+          { id: "spec_color", attributeKey: "color", displayName: "Color", valueType: "TEXT", isRequired: true, isFilterable: true, allowedValues: ["Blue", "Black"], sortOrder: 0 },
+          { id: "spec_material", attributeKey: "material", displayName: "Material", valueType: "TEXT", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 1 },
+        ],
+      },
+    ],
+    isLoading: false,
+  })),
   useSellerBrands: vi.fn(() => ({ data: [{ id: "brand_1", name: "Acme", slug: "acme", code: "ACME", isActive: true }], isLoading: false })),
   useCreateSellerProduct: vi.fn(() => ({ mutate: createMutate, isPending: false })),
   useUpdateSellerProduct: vi.fn(() => ({ mutate: updateMutate, isPending: false })),
@@ -307,6 +321,25 @@ describe("Seller product pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => expect(refetch).toHaveBeenCalled());
+  });
+
+  it("shows required and optional category specs with inline readiness validation", () => {
+    const missingSpecProduct = {
+      ...products[0],
+      attributes: [],
+    };
+    sellerProductsState = { data: { data: [missingSpecProduct], meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    expect(screen.getByText("Required specs")).toBeTruthy();
+    expect(screen.getByText("Optional specs")).toBeTruthy();
+    expect(screen.getByText("Color is required.")).toBeTruthy();
+    expect(screen.getByText(/Missing: required specs: Color/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Blue" }));
+    expect(screen.queryByText("Color is required.")).toBeNull();
+    expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(false);
   });
 
   it("prevents adding more than ten images before upload", () => {
@@ -405,6 +438,17 @@ describe("Seller product pages", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Delete variant" })[0]);
     expect(confirm).toHaveBeenCalled();
     expect(deleteVariantMutate).toHaveBeenCalledWith({ productId: "prod_1", variantId: "var_1" }, expect.any(Object));
+  });
+
+  it("shows inventory as derived stock state with reserved quantity read-only and movement access", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    expect(screen.getAllByText("On hand").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Reserved").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Available").length).toBeGreaterThan(0);
+    expect(screen.getByText("On hand minus reserved")).toBeTruthy();
+    expect((screen.getByLabelText("Quantity reserved") as HTMLInputElement).readOnly).toBe(true);
+    expect(screen.getByRole("link", { name: "Movement history" }).getAttribute("href")).toBe("/seller/inventory?variantId=var_1");
   });
 
   it("generates variant rows, applies bulk values, and shows duplicate SKU errors inline", () => {

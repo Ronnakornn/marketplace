@@ -55,6 +55,30 @@ import {
 type ProductStatus = "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
 type VariantStatus = "ACTIVE" | "INACTIVE";
 type ProductStudioSectionId = "basics" | "category-specs" | "media" | "variants" | "inventory" | "review";
+type CategorySpecDefinition = {
+  id?: string;
+  attributeKey: string;
+  displayName?: string | null;
+  displayNameTh?: string | null;
+  displayNameEn?: string | null;
+  valueType?: string | null;
+  isRequired?: boolean | null;
+  isFilterable?: boolean | null;
+  allowedValues?: unknown;
+  sortOrder?: number | null;
+};
+type ProductAttributeDraft = {
+  attributeKey: string;
+  displayName: string;
+  value: string;
+  isFilterable: boolean;
+};
+type ReadinessCheck = {
+  id: string;
+  label: string;
+  passed: boolean;
+  missingLabel: string;
+};
 
 const MAX_PRODUCT_IMAGES = 10;
 const MAX_PRODUCT_VIDEO_BYTES = 25 * 1024 * 1024;
@@ -245,6 +269,27 @@ function parseAttributes(value: string) {
     .filter((attribute) => attribute.displayName && attribute.value);
 }
 
+function parseAttributeDrafts(value: string): ProductAttributeDraft[] {
+  return parseAttributes(value).map((attribute) => ({
+    attributeKey: attribute.attributeKey ?? attribute.displayName,
+    displayName: attribute.displayName,
+    value: attribute.value,
+    isFilterable: Boolean(attribute.isFilterable),
+  }));
+}
+
+function serializeAttributeDrafts(attributes: ProductAttributeDraft[]) {
+  return attributes
+    .filter((attribute) => attribute.attributeKey.trim() || attribute.displayName.trim() || attribute.value.trim())
+    .map((attribute) => [
+      attribute.attributeKey.trim() || attribute.displayName.trim(),
+      attribute.displayName.trim() || attribute.attributeKey.trim(),
+      attribute.value.trim(),
+      attribute.isFilterable ? "filterable" : "",
+    ].join("|"))
+    .join("\n");
+}
+
 function isProductFormDirty(form: ProductFormState, initial: ProductFormState) {
   return JSON.stringify(form) !== JSON.stringify(initial);
 }
@@ -347,12 +392,79 @@ function createPreviewUrl(file: File) {
   return typeof URL.createObjectURL === "function" ? URL.createObjectURL(file) : "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
 }
 
-function getPublishReadiness(form: ProductFormState, images: ImageDraftState[], variants: VariantFormState[]) {
-  const missing: string[] = [];
-  if (!form.categoryId) missing.push("category");
-  if (!images.some((image) => image.isPrimary)) missing.push("primary product image");
-  if (!variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price || "0") > 0)) missing.push("one active variant with price greater than zero");
-  return missing;
+function normalizeSpecDefinitions(category?: unknown, product?: SellerProduct | null): CategorySpecDefinition[] {
+  const categorySpecs = ((category as { attributeDefinitions?: CategorySpecDefinition[]; specs?: CategorySpecDefinition[] } | undefined)?.attributeDefinitions
+    ?? (category as { specs?: CategorySpecDefinition[] } | undefined)?.specs
+    ?? []);
+  if (categorySpecs.length) {
+    return categorySpecs.filter((spec) => spec.attributeKey).sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
+  }
+  return ((product?.attributes ?? []) as Array<{ attributeKey?: string; displayName?: string; isFilterable?: boolean; sortOrder?: number }>)
+    .filter((attribute) => attribute.attributeKey || attribute.displayName)
+    .map((attribute, index) => ({
+      attributeKey: attribute.attributeKey ?? attribute.displayName ?? `attribute-${index + 1}`,
+      displayName: attribute.displayName ?? attribute.attributeKey ?? `Attribute ${index + 1}`,
+      isRequired: false,
+      isFilterable: Boolean(attribute.isFilterable),
+      sortOrder: attribute.sortOrder ?? index,
+    }));
+}
+
+function getSpecDisplayName(spec: CategorySpecDefinition) {
+  return spec.displayName ?? spec.displayNameEn ?? spec.displayNameTh ?? spec.attributeKey;
+}
+
+function getAllowedSpecValues(spec: CategorySpecDefinition) {
+  if (Array.isArray(spec.allowedValues)) return spec.allowedValues.map(String).filter(Boolean);
+  if (typeof spec.allowedValues === "string") {
+    try {
+      const parsed = JSON.parse(spec.allowedValues);
+      if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+    } catch {
+      return spec.allowedValues.split(",").map((value) => value.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+function getAttributeValue(form: ProductFormState, key: string) {
+  return parseAttributeDrafts(form.attributesText).find((attribute) => attribute.attributeKey === key)?.value ?? "";
+}
+
+function updateAttributeValue(form: ProductFormState, spec: CategorySpecDefinition, value: string): ProductFormState {
+  const attributes = parseAttributeDrafts(form.attributesText);
+  const key = spec.attributeKey;
+  const existingIndex = attributes.findIndex((attribute) => attribute.attributeKey === key);
+  const nextAttribute = {
+    attributeKey: key,
+    displayName: getSpecDisplayName(spec),
+    value,
+    isFilterable: Boolean(spec.isFilterable),
+  };
+  const nextAttributes = existingIndex >= 0
+    ? attributes.map((attribute, index) => index === existingIndex ? nextAttribute : attribute)
+    : [...attributes, nextAttribute];
+  return { ...form, attributesText: serializeAttributeDrafts(nextAttributes) };
+}
+
+function getRequiredSpecMissing(form: ProductFormState, specs: CategorySpecDefinition[]) {
+  return specs
+    .filter((spec) => spec.isRequired)
+    .filter((spec) => !getAttributeValue(form, spec.attributeKey).trim())
+    .map(getSpecDisplayName);
+}
+
+function getReadinessChecks(form: ProductFormState, images: ImageDraftState[], variants: VariantFormState[], requiredSpecMissing: string[]): ReadinessCheck[] {
+  return [
+    { id: "category", label: "Primary category selected", passed: Boolean(form.categoryId), missingLabel: "category" },
+    { id: "required-specs", label: "Required category specs completed", passed: requiredSpecMissing.length === 0, missingLabel: requiredSpecMissing.length ? `required specs: ${requiredSpecMissing.join(", ")}` : "required category specs" },
+    { id: "primary-image", label: "Primary product image selected", passed: images.some((image) => image.isPrimary), missingLabel: "primary product image" },
+    { id: "active-priced-variant", label: "At least one active priced variant", passed: variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price || "0") > 0), missingLabel: "one active variant with price greater than zero" },
+  ];
+}
+
+function getPublishReadiness(checks: ReadinessCheck[]) {
+  return checks.filter((check) => !check.passed).map((check) => check.missingLabel);
 }
 
 function getOptionCombinationKey(variant: VariantFormState) {
@@ -753,7 +865,13 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     }
   }, [initialForm, mode, product?.id, seedProductId]);
 
-  const readinessMissing = getPublishReadiness(form, images, variants);
+  const selectedCategory = useMemo(() => (categoriesQuery.data ?? []).find((category) => category.id === form.categoryId) ?? workingProduct?.category ?? null, [categoriesQuery.data, form.categoryId, workingProduct?.category]);
+  const categorySpecs = useMemo(() => normalizeSpecDefinitions(selectedCategory, workingProduct), [selectedCategory, workingProduct]);
+  const requiredSpecs = useMemo(() => categorySpecs.filter((spec) => spec.isRequired), [categorySpecs]);
+  const optionalSpecs = useMemo(() => categorySpecs.filter((spec) => !spec.isRequired), [categorySpecs]);
+  const requiredSpecMissing = useMemo(() => getRequiredSpecMissing(form, categorySpecs), [form, categorySpecs]);
+  const readinessChecks = useMemo(() => getReadinessChecks(form, images, variants, requiredSpecMissing), [form, images, variants, requiredSpecMissing]);
+  const readinessMissing = useMemo(() => getPublishReadiness(readinessChecks), [readinessChecks]);
   const duplicateCombinationError = getDuplicateOptionCombinationError(variants);
   const duplicateSkuIndexes = useMemo(() => getDuplicateSkuIndexes(variants), [variants]);
   const duplicateCombinationIndexes = useMemo(() => getDuplicateCombinationIndexes(variants), [variants]);
@@ -1301,7 +1419,71 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                 </Select>
               </Field>
             </div>
-            <Field label="Specifications" htmlFor="product-attributes"><Textarea id="product-attributes" value={form.attributesText} onChange={(event) => setForm((current) => ({ ...current, attributesText: event.target.value }))} rows={3} placeholder="color|Color|Black|filterable" /></Field>
+            {!form.categoryId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Choose a category before submitting for review.</p> : null}
+            {form.categoryId && categoriesQuery.isLoading ? <p className="text-sm text-slate-500">Loading category specs...</p> : null}
+            {requiredSpecs.length ? (
+              <div className="space-y-3 rounded-lg border border-slate-200 p-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">Required specs</p>
+                  <p className="text-xs text-slate-500">These values are required by the selected category before review submission.</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {requiredSpecs.map((spec) => {
+                    const fieldId = `required-spec-${spec.attributeKey}`;
+                    const value = getAttributeValue(form, spec.attributeKey);
+                    const allowedValues = getAllowedSpecValues(spec);
+                    const isMissing = !value.trim();
+                    return (
+                      <Field key={spec.attributeKey} label={`${getSpecDisplayName(spec)} *`} htmlFor={fieldId}>
+                        {allowedValues.length ? (
+                          <Select value={value || "NONE"} onValueChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue === "NONE" ? "" : nextValue))}>
+                            <SelectTrigger id={fieldId} aria-label={getSpecDisplayName(spec)}><SelectValue placeholder="Select value" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NONE">Select value</SelectItem>
+                              {allowedValues.map((allowedValue) => <SelectItem key={allowedValue} value={allowedValue}>{allowedValue}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input id={fieldId} value={value} onChange={(event) => setForm((current) => updateAttributeValue(current, spec, event.target.value))} aria-invalid={isMissing} />
+                        )}
+                        {isMissing ? <p className="text-xs text-red-600">{getSpecDisplayName(spec)} is required.</p> : null}
+                      </Field>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+            <div className="space-y-3 rounded-lg border border-slate-200 p-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">Optional specs</p>
+                <p className="text-xs text-slate-500">Optional and filterable attributes improve search and buyer comparison.</p>
+              </div>
+              {optionalSpecs.length ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {optionalSpecs.map((spec) => {
+                    const fieldId = `optional-spec-${spec.attributeKey}`;
+                    const value = getAttributeValue(form, spec.attributeKey);
+                    const allowedValues = getAllowedSpecValues(spec);
+                    return (
+                      <Field key={spec.attributeKey} label={getSpecDisplayName(spec)} htmlFor={fieldId}>
+                        {allowedValues.length ? (
+                          <Select value={value || "NONE"} onValueChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue === "NONE" ? "" : nextValue))}>
+                            <SelectTrigger id={fieldId} aria-label={getSpecDisplayName(spec)}><SelectValue placeholder="Select value" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NONE">No value</SelectItem>
+                              {allowedValues.map((allowedValue) => <SelectItem key={allowedValue} value={allowedValue}>{allowedValue}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input id={fieldId} value={value} onChange={(event) => setForm((current) => updateAttributeValue(current, spec, event.target.value))} />
+                        )}
+                      </Field>
+                    );
+                  })}
+                </div>
+              ) : <p className="text-sm text-slate-500">No category-specific optional specs are available for this category.</p>}
+            </div>
+            <Field label="Additional specifications" htmlFor="product-attributes"><Textarea id="product-attributes" value={form.attributesText} onChange={(event) => setForm((current) => ({ ...current, attributesText: event.target.value }))} rows={3} placeholder="color|Color|Black|filterable" /></Field>
             <Field label="Highlights" htmlFor="product-highlights"><Textarea id="product-highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder="One highlight per line" /></Field>
           </ProductSection>
         </div>
@@ -1523,24 +1705,46 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
           </ProductSection>
           <ProductSection id="inventory" title="Inventory" description="Review on-hand, reserved, available, reorder, and low-stock state across variants.">
             {variants.length ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {variants.map((variant, index) => {
                   const available = getAvailableStock(variant);
+                  const quantityOnHand = Number(variant.quantityOnHand || "0");
                   const reorderLevel = Number(variant.reorderLevel || "0");
+                  const lowStock = available <= reorderLevel;
                   return (
-                    <div key={variant.id ?? `inventory-${index}`} className="rounded-md border border-slate-200 p-3 text-sm">
-                      <div className="flex items-start justify-between gap-3">
+                    <div key={variant.id ?? `inventory-${index}`} className={`rounded-md border p-3 text-sm ${lowStock ? "border-amber-200 bg-amber-50" : "border-slate-200"}`}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-medium text-slate-950">{variant.title || variant.sku || `Variant ${index + 1}`}</p>
                           <p className="text-xs text-slate-500">{variant.sku || "No SKU"}</p>
                         </div>
-                        {available <= reorderLevel ? <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Low stock</span> : null}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {lowStock ? <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Low stock</span> : <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">Stock ok</span>}
+                          {variant.id ? <Link href={`/seller/inventory?variantId=${variant.id}`} className="text-xs font-semibold text-slate-700 underline">Movement history</Link> : <span className="text-xs text-slate-500">Save variant for movements</span>}
+                        </div>
                       </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 sm:grid-cols-4">
-                        <span>On hand: {variant.quantityOnHand || 0}</span>
-                        <span>Reserved: {variant.quantityReserved}</span>
-                        <span>Available: {available}</span>
-                        <span>Reorder: {variant.reorderLevel || 0}</span>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                        <div className="rounded-md bg-white p-2">
+                          <p className="text-xs font-semibold text-slate-500">On hand</p>
+                          <p className="text-base font-semibold text-slate-950">{quantityOnHand}</p>
+                        </div>
+                        <div className="rounded-md bg-white p-2">
+                          <p className="text-xs font-semibold text-slate-500">Reserved</p>
+                          <p className="text-base font-semibold text-slate-950">{variant.quantityReserved}</p>
+                          <p className="text-xs text-slate-500">Read-only checkout holds</p>
+                        </div>
+                        <div className="rounded-md bg-white p-2">
+                          <p className="text-xs font-semibold text-slate-500">Available</p>
+                          <p className="text-base font-semibold text-slate-950">{available}</p>
+                          <p className="text-xs text-slate-500">On hand minus reserved</p>
+                        </div>
+                        <div className="rounded-md bg-white p-2">
+                          <p className="text-xs font-semibold text-slate-500">Reorder level</p>
+                          <p className="text-base font-semibold text-slate-950">{reorderLevel}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 rounded-md bg-white p-3 text-xs text-slate-600">
+                        Latest movement preview: seller stock updates are written to inventory history after each saved on-hand or reorder change.
                       </div>
                     </div>
                   );
@@ -1555,8 +1759,24 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               <p className="text-sm font-medium text-slate-900">Moderation status: {workingProduct?.status?.replaceAll("_", " ") ?? "Draft not saved"}</p>
               {moderationReason ? <p className="mt-1 text-sm text-red-700">Reason: {moderationReason}</p> : null}
             </div>
+            <div className="space-y-2 rounded-md border border-slate-200 p-3">
+              <p className="text-sm font-semibold text-slate-950">Readiness checklist</p>
+              <ul className="space-y-2">
+                {readinessChecks.map((check) => (
+                  <li key={check.id} className="flex items-start gap-2 text-sm">
+                    <span className={`mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${check.passed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-800"}`}>
+                      {check.passed ? "OK" : "!"}
+                    </span>
+                    <span className={check.passed ? "text-slate-700" : "text-amber-800"}>{check.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
             {readinessMissing.length ? (
-              <p className="text-sm text-amber-700">Active publish readiness missing: {readinessMissing.join(", ")}.</p>
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+                <p className="text-sm font-medium text-amber-900">Submit review is blocked.</p>
+                <p className="mt-1 text-sm text-amber-800">Missing: {readinessMissing.join(", ")}.</p>
+              </div>
             ) : (
               <p className="text-sm text-green-700">This product has the visible setup needed for active publishing. Backend validation remains final.</p>
             )}
