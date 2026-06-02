@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import { BoxesIcon, Building2Icon, Edit3Icon, LinkIcon, PlusIcon, RotateCcwIcon, ShoppingBagIcon, Trash2Icon, UsersIcon } from "lucide-react";
 import {
@@ -25,22 +26,25 @@ import { AdminTablePagination } from "./AdminTablePagination";
 import {
   PAGE_SIZE,
   type AdminAffiliate,
+  type AdminCatalogModerationProduct,
   type AdminOrder,
-  type AdminProduct,
   type AdminRefund,
   type AdminShop,
   type AdminUser,
   useAdminAffiliatesList,
+  useAdminCatalogModerationList,
   useAdminOrdersList,
-  useAdminProductsList,
   useAdminRefundsList,
   useAdminShopsList,
   useAdminUsersList,
+  useApproveCatalogProduct,
   useCreateAdminShop,
   useDeleteAdminShop,
+  useRejectCatalogProduct,
+  useRestoreCatalogProduct,
+  useSuspendCatalogProduct,
   useUpdateAdminShop,
   useUpdateAffiliateStatus,
-  useUpdateProductStatus,
   useUpdateRefundStatus,
   useUpdateShopStatus,
   useUpdateUserStatus,
@@ -49,7 +53,7 @@ import {
 const USER_ROLES = ["USER", "ADMIN"] as const;
 const USER_STATUSES = ["ACTIVE", "SUSPENDED"] as const;
 const SHOP_STATUSES = ["PENDING", "ACTIVE", "SUSPENDED"] as const;
-const PRODUCT_STATUSES = ["DRAFT", "ACTIVE", "ARCHIVED"] as const;
+const PRODUCT_STATUSES = ["PENDING_REVIEW", "ACTIVE", "REJECTED", "SUSPENDED", "ARCHIVED", "DRAFT"] as const;
 const ORDER_STATUSES = ["PENDING_PAYMENT", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "PARTIALLY_FULFILLED", "FULFILLED", "CANCELED", "REFUNDED"] as const;
 const REFUND_STATUSES = ["PENDING", "PROCESSING", "SUCCESS", "FAILED"] as const;
 const AFFILIATE_STATUSES = ["ACTIVE", "DISABLED"] as const;
@@ -273,17 +277,117 @@ export function AdminShopsTable() {
 
 export function AdminProductsModerationTable() {
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("PENDING_REVIEW");
   const [search, setSearch] = useState("");
-  const query = useAdminProductsList({ page, limit: PAGE_SIZE, status });
-  const updateStatus = useUpdateProductStatus();
-  const rows = useMemo(() => (query.data?.items ?? []).filter((product: AdminProduct) => textMatch([product.title, product.slug, product.shop.name, product.status], search)), [query.data, search]);
+  const [reasonAction, setReasonAction] = useState<{ type: "reject" | "suspend"; product: AdminCatalogModerationProduct } | null>(null);
+  const [reason, setReason] = useState("");
+  const query = useAdminCatalogModerationList({ page, limit: PAGE_SIZE, status, q: search });
+  const approve = useApproveCatalogProduct();
+  const reject = useRejectCatalogProduct();
+  const suspend = useSuspendCatalogProduct();
+  const restore = useRestoreCatalogProduct();
+  const rows = useMemo(() => (query.data?.data ?? []).filter((product: AdminCatalogModerationProduct) => textMatch([product.title, product.slug, product.shop.name, product.status, product.category?.name], search)), [query.data, search]);
+  const isReasonMissing = Boolean(reasonAction) && reason.trim().length === 0;
+
+  function closeReasonDialog() {
+    setReasonAction(null);
+    setReason("");
+  }
+
+  function submitReasonAction() {
+    if (!reasonAction || !reason.trim()) return;
+    const payload = { id: reasonAction.product.id, reason: reason.trim() };
+    if (reasonAction.type === "reject") {
+      reject.mutate(payload, { onSuccess: closeReasonDialog });
+      return;
+    }
+    suspend.mutate(payload, { onSuccess: closeReasonDialog });
+  }
 
   return (
-    <AdminDataShell title="Product Moderation" description="Moderate marketplace listings without entering the catalog editor." icon={BoxesIcon} search={search} searchPlaceholder="Search products" onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder="Statuses" options={PRODUCT_STATUSES} />}>
-      <CardContent className="p-0"><Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Product</TableHead><TableHead className="text-slate-300">Shop</TableHead><TableHead className="text-slate-300">Variants</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-right text-slate-300">Action</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((product: AdminProduct) => <TableRow key={product.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{product.title}</p><p className="text-xs text-slate-500">{product.slug}</p></TableCell><TableCell className="text-sm text-slate-200">{product.shop.name}</TableCell><TableCell className="text-sm text-slate-300">{product.variants.length}</TableCell><TableCell><AdminStatusBadge status={product.status} /></TableCell><TableCell className="flex justify-end"><AdminStatusAction label={product.title} currentStatus={product.status} options={PRODUCT_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: product.id, status: next })} /></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
-      </TableBody></Table><AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} /></CardContent>
+    <AdminDataShell title="Product Moderation" description="Review submitted listings, inspect readiness signals, and apply traceable moderation decisions." icon={BoxesIcon} search={search} searchPlaceholder="Search products, shops, or categories" onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={(value) => { setStatus(value || ""); setPage(1); }} placeholder="Statuses" options={PRODUCT_STATUSES} />}>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
+              <TableHead className="px-5 text-slate-300">Product</TableHead>
+              <TableHead className="text-slate-300">Shop</TableHead>
+              <TableHead className="text-slate-300">Readiness</TableHead>
+              <TableHead className="text-slate-300">Status</TableHead>
+              <TableHead className="text-right text-slate-300">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length ? rows.map((product) => {
+              const hasPrimaryImage = product.images.some((image) => image.isPrimary) || product.images.length > 0;
+              const hasVariant = product.variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price) > 0);
+              const hasCategory = Boolean(product.category);
+              return (
+                <TableRow key={product.id} className="border-white/8 hover:bg-white/4">
+                  <TableCell className="px-5 py-4">
+                    <p className="font-medium text-white">{product.title}</p>
+                    <p className="text-xs text-slate-500">{product.slug}</p>
+                    <p className="mt-1 text-xs text-slate-500">{product.category?.name ?? "No category"}</p>
+                  </TableCell>
+                  <TableCell className="text-sm text-slate-200">
+                    <p>{product.shop.name}</p>
+                    <p className="text-xs text-slate-500">{product.shop.slug}</p>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      <AdminStatusBadge status={hasCategory ? "Category" : "Missing category"} />
+                      <AdminStatusBadge status={hasPrimaryImage ? "Media" : "Missing media"} />
+                      <AdminStatusBadge status={hasVariant ? "Variant" : "Missing variant"} />
+                    </div>
+                  </TableCell>
+                  <TableCell><AdminStatusBadge status={product.status} /></TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100">
+                        <Link href={`/admin/catalog/${product.id}`}>Detail</Link>
+                      </Button>
+                      <Button size="sm" variant="outline" className="border-emerald-400/30 bg-emerald-500/10 text-emerald-100" disabled={approve.isPending || product.status !== "PENDING_REVIEW"} onClick={() => approve.mutate(product.id)}>Approve</Button>
+                      <Button size="sm" variant="outline" className="border-amber-400/30 bg-amber-500/10 text-amber-100" disabled={reject.isPending || product.status !== "PENDING_REVIEW"} onClick={() => setReasonAction({ type: "reject", product })}>Reject</Button>
+                      <Button size="sm" variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={suspend.isPending || product.status === "SUSPENDED"} onClick={() => setReasonAction({ type: "suspend", product })}>Suspend</Button>
+                      <Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={restore.isPending || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id)}>Restore</Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            }) : <EmptyRow colSpan={5} />}
+          </TableBody>
+        </Table>
+        <AdminTablePagination page={page} totalPages={query.data?.meta.hasNextPage ? page + 1 : page} total={rows.length} visible={rows.length} onPageChange={setPage} />
+        <AlertDialog open={Boolean(reasonAction)} onOpenChange={(open) => { if (!open) closeReasonDialog(); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{reasonAction?.type === "reject" ? "Reject product" : "Suspend product"}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Provide a reason for {reasonAction?.product.title}. The seller will see this moderation note.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="product-moderation-reason">Reason</Label>
+              <textarea
+                id="product-moderation-reason"
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                className="min-h-28 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950"
+                placeholder="Explain what the seller must fix."
+              />
+              {isReasonMissing ? <p className="text-sm font-medium text-red-600">Reason is required.</p> : null}
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button variant={reasonAction?.type === "reject" ? "default" : "destructive"} disabled={!reasonAction || reason.trim().length === 0 || reject.isPending || suspend.isPending} onClick={submitReasonAction}>
+                  {reasonAction?.type === "reject" ? "Reject" : "Suspend"}
+                </Button>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
     </AdminDataShell>
   );
 }

@@ -16,6 +16,8 @@ export type AdminShopsResponse = Treaty.Data<ReturnType<typeof api.api.admin.sho
 export type AdminShop = AdminShopsResponse extends { items: Array<infer T> } ? T : never;
 export type AdminProductsResponse = Treaty.Data<ReturnType<typeof api.api.admin.products.get>>;
 export type AdminProduct = AdminProductsResponse extends { items: Array<infer T> } ? T : never;
+export type AdminCatalogModerationResponse = Treaty.Data<ReturnType<typeof api.api.admin.catalog.products.moderation.get>>;
+export type AdminCatalogModerationProduct = AdminCatalogModerationResponse extends { data: Array<infer T> } ? T : never;
 export type AdminOrdersResponse = Treaty.Data<ReturnType<typeof api.api.admin.orders.get>>;
 export type AdminOrder = AdminOrdersResponse extends { items: Array<infer T> } ? T : never;
 export type AdminRefundsResponse = Treaty.Data<ReturnType<typeof api.api.admin.refunds.get>>;
@@ -125,6 +127,24 @@ export function useAdminShopsList(filters: AdminListFilters) {
 
 export function useAdminProductsList(filters: AdminListFilters) {
   return useQuery(adminProductsQueryOptions(cleanQuery(filters)));
+}
+
+export function useAdminCatalogModerationList(filters: AdminListFilters & { q?: string }) {
+  const query = Object.fromEntries(
+    Object.entries({
+      q: filters.q || undefined,
+      status: filters.status || undefined,
+      limit: filters.limit ?? PAGE_SIZE,
+    }).filter(([, value]) => value !== undefined),
+  );
+  return useQuery({
+    queryKey: ["admin", "catalog", "moderation", query],
+    queryFn: async () => {
+      const { data, error } = await api.api.admin.catalog.products.moderation.get({ query });
+      if (error) throw error;
+      return data;
+    },
+  });
 }
 
 export function useAdminOrdersList(filters: AdminListFilters) {
@@ -300,6 +320,78 @@ export function useUpdateProductStatus() {
         affectsPublic: true,
         affectsAffiliateTargets: true,
       });
+    },
+  });
+}
+
+export function useApproveCatalogProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await api.api.admin.catalog.products({ productId: id }).approve.patch();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: data.id,
+        affectsPublic: true,
+        affectsAffiliateTargets: true,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "catalog", "moderation"] });
+    },
+  });
+}
+
+export function useRejectCatalogProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { data, error } = await api.api.admin.catalog.products({ productId: id }).reject.patch({ reason });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await invalidateProductMutationQueries(queryClient, { productId: data.id });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "catalog", "moderation"] });
+    },
+  });
+}
+
+export function useSuspendCatalogProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { data, error } = await api.api.admin.catalog.products({ productId: id }).suspend.patch({ reason });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: data.id,
+        affectsPublic: true,
+        affectsAffiliateTargets: true,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "catalog", "moderation"] });
+    },
+  });
+}
+
+export function useRestoreCatalogProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await api.api.admin.catalog.products({ productId: id }).restore.patch();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: data.id,
+        affectsPublic: true,
+        affectsAffiliateTargets: true,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "catalog", "moderation"] });
     },
   });
 }

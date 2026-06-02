@@ -2,6 +2,7 @@
 
 export { AdminCatalogManager } from "./components/AdminCatalogManager";
 export { AdminCatalogEditPage } from "./components/AdminCatalogEditPage";
+export { AdminCategorySpecsManager } from "./components/AdminCategorySpecsManager";
 export {
   useAdminCatalogProductDetail,
   useAdminCatalogProducts,
