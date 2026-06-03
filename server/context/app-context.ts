@@ -20,6 +20,7 @@ import { PrismaCheckoutRepository } from '#server/modules/checkout/checkout.repo
 import { CheckoutService } from '#server/modules/checkout/checkout.service.ts'
 import { PrismaCatalogRepository } from '#server/modules/catalog/catalog.repository.ts'
 import { CatalogService } from '#server/modules/catalog/catalog.service.ts'
+import { DiscoveryService, PrismaDiscoveryRepository } from '#server/modules/discovery'
 import { InventoryService, PrismaInventoryRepository } from '#server/modules/inventory'
 import { PrismaPaymentRepository } from '#server/modules/payment/payment.repository.ts'
 import { PaymentService } from '#server/modules/payment/payment.service.ts'
@@ -90,6 +91,7 @@ export interface ServiceContainer {
   checkoutService: CheckoutService
   commissionService: CommissionService
   catalogService: CatalogService
+  discoveryService: DiscoveryService
   eventBus: EventBus
   eventHandlerRegistry: EventHandlerRegistry
   eventPublisherService: EventPublisherService
@@ -169,6 +171,7 @@ export function createContainer(): ServiceContainer {
   const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
   const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver, auditLogService)
+  const discoveryRepo = new PrismaDiscoveryRepository(appContext, prisma)
   const inventoryRepo = new PrismaInventoryRepository(appContext, prisma)
   const inventoryService = new InventoryService(appContext, inventoryRepo, activeShopResolver)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
@@ -187,6 +190,7 @@ export function createContainer(): ServiceContainer {
   const refundService = new RefundService(appContext, refundRepo, eventPublisherService)
   const recommendationRepo = new PrismaRecommendationRepository(appContext, prisma)
   const recommendationService = new RecommendationService(appContext, recommendationRepo, cacheService)
+  const discoveryService = new DiscoveryService(appContext, discoveryRepo, catalogService, recommendationService, promotionService)
   const reviewRepo = new PrismaReviewRepository(appContext, prisma)
   const reviewService = new ReviewService(appContext, reviewRepo)
   const searchRepo = new PrismaSearchRepository(appContext, prisma)
@@ -245,6 +249,7 @@ export function createContainer(): ServiceContainer {
     checkoutService,
     commissionService,
     catalogService,
+    discoveryService,
     eventBus,
     eventHandlerRegistry,
     eventPublisherService,

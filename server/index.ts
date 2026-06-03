@@ -16,6 +16,7 @@ import { createCartRoutes } from "#server/modules/cart";
 import { createChatRoutes } from "#server/modules/chat";
 import { createCheckoutRoutes } from "#server/modules/checkout";
 import { createCatalogRoutes } from "#server/modules/catalog";
+import { createDiscoveryRoutes } from "#server/modules/discovery";
 import { createFraudRoutes } from "#server/modules/fraud";
 import { createInventoryRoutes } from "#server/modules/inventory";
 import { createNotificationRoutes } from "#server/modules/notification";
@@ -88,6 +89,7 @@ const baseApp = new Elysia()
         { name: "Return", description: "Return request workflows" },
         { name: "Review", description: "Product review workflows" },
         { name: "Search", description: "Marketplace search" },
+        { name: "Discovery", description: "Homepage discovery and merchandising composition" },
         { name: "Seller", description: "Seller dashboard and shop operations" },
         { name: "Shipment", description: "Shop-based fulfillment and shipments" },
         { name: "Upload", description: "Upload and storage workflows" },
@@ -123,6 +125,9 @@ const baseApp = new Elysia()
 
   // --- Search routes ---
   .use(createSearchRoutes(container))
+
+  // --- Discovery homepage composition routes ---
+  .use(createDiscoveryRoutes(container))
 
   // --- AI-assisted product discovery routes ---
   .use(createAiSearchRoutes(container))

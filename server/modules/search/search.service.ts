@@ -8,7 +8,7 @@ import type { ISearchRepository, SearchProductRecord } from './search.repository
 const DEFAULT_PAGE = 1
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
-const SUPPORTED_SORTS = ['newest', 'price_asc', 'price_desc', 'best_selling', 'rating'] as const
+const SUPPORTED_SORTS = ['relevance', 'newest', 'price_asc', 'price_desc', 'top_sales', 'rating'] as const
 
 export type SearchSort = typeof SUPPORTED_SORTS[number]
 
@@ -20,8 +20,11 @@ export interface ProductSearchInput {
   minPrice?: number
   maxPrice?: number
   attributeFilters?: string
+  inStock?: boolean
+  badges?: string
   rating?: number
   sort?: string
+  cursor?: string
   page?: number
   limit?: number
   locale?: string
@@ -53,6 +56,8 @@ export interface ProductSearchResponse {
     limit: number
     total: number
     totalPages: number
+    nextCursor: string | null
+    hasNextPage: boolean
   }
   filters: {
     q?: string
@@ -62,6 +67,9 @@ export interface ProductSearchResponse {
     minPrice?: number
     maxPrice?: number
     rating?: number
+    inStock?: boolean
+    badges?: string[]
+    cursor?: string
   }
   sort: SearchSort
 }
@@ -105,24 +113,30 @@ export class SearchService {
       minPrice: filters.minPrice,
       maxPrice: filters.maxPrice,
       attributeFilters: filters.attributeFilters,
+      inStock: filters.inStock,
     })
 
     const items = products
       .map((product) => this.toSearchItem(product, filters.locale))
       .filter((item) => filters.rating === undefined || item.ratingSummary.averageRating >= filters.rating)
+      .filter((item) => filters.badges.length === 0 || filters.badges.every((badge) => item.badges.includes(badge)))
 
     const sorted = this.sortItems(items, filters.sort)
     const total = sorted.length
     const totalPages = total === 0 ? 0 : Math.ceil(total / filters.limit)
-    const start = (filters.page - 1) * filters.limit
+    const start = this.resolveStartOffset(sorted, filters)
+    const pageItems = sorted.slice(start, start + filters.limit)
+    const nextCursor = start + filters.limit < sorted.length ? pageItems.at(-1)?.productId ?? null : null
 
     return {
-      items: sorted.slice(start, start + filters.limit),
+      items: pageItems,
       pagination: {
         page: filters.page,
         limit: filters.limit,
         total,
         totalPages,
+        nextCursor,
+        hasNextPage: nextCursor !== null,
       },
       filters: this.responseFilters(filters),
       sort: filters.sort,
@@ -163,6 +177,9 @@ export class SearchService {
     const minPrice = this.normalizeOptionalNonNegativeInteger(input.minPrice, 'minPrice')
     const maxPrice = this.normalizeOptionalNonNegativeInteger(input.maxPrice, 'maxPrice')
     const rating = this.normalizeRating(input.rating)
+    const inStock = input.inStock === true
+    const badges = this.normalizeBadges(input.badges)
+    const cursor = input.cursor?.trim() || undefined
 
     if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
       throw new SearchServiceError('Minimum price cannot exceed maximum price', 400, 'INVALID_FILTER')
@@ -178,6 +195,9 @@ export class SearchService {
       minPrice,
       maxPrice,
       rating,
+      inStock,
+      badges,
+      cursor,
       sort,
       page,
       limit,
@@ -193,7 +213,8 @@ export class SearchService {
   }
 
   private normalizeSort(sort: string | undefined): SearchSort {
-    const normalized = sort?.trim() || 'newest'
+    const raw = sort?.trim() || 'relevance'
+    const normalized = raw === 'best_selling' ? 'top_sales' : raw
     if (!SUPPORTED_SORTS.includes(normalized as SearchSort)) {
       throw new SearchServiceError('Unsupported search sort', 400, 'INVALID_SORT')
     }
@@ -232,6 +253,11 @@ export class SearchService {
     return value
   }
 
+  private normalizeBadges(input: string | undefined): string[] {
+    if (!input?.trim()) return []
+    return [...new Set(input.split(',').map((badge) => badge.trim()).filter(Boolean))]
+  }
+
   private toSearchItem(product: SearchProductRecord, locale: ContentLocale): ProductSearchItem {
     const price = product.variants.map((variant) => Number(variant.price))
     const minPrice = Math.min(...price)
@@ -243,6 +269,8 @@ export class SearchService {
       (sum, variant) => sum + variant.orderItems.reduce((variantSum, item) => variantSum + item.quantity, 0),
       0,
     )
+    const hasStock = product.variants.some((variant) =>
+      variant.inventory ? variant.inventory.quantityOnHand - variant.inventory.quantityReserved > 0 : false)
 
     return {
       productId: product.id,
@@ -260,16 +288,17 @@ export class SearchService {
         name: product.shop.name,
         slug: product.shop.slug,
       },
-      badges: this.buildBadges(product, soldCount),
+      badges: this.buildBadges(product, soldCount, hasStock),
     }
   }
 
-  private buildBadges(product: SearchProductRecord, soldCount: number): string[] {
+  private buildBadges(product: SearchProductRecord, soldCount: number, hasStock: boolean): string[] {
     const badges: string[] = []
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
     const createdAtTime = product.createdAt instanceof Date ? product.createdAt.getTime() : new Date(product.createdAt).getTime()
     if (createdAtTime >= sevenDaysAgo) badges.push('new')
     if (soldCount >= 100) badges.push('best_seller')
+    if (hasStock) badges.push('in_stock')
     return badges
   }
 
@@ -280,17 +309,24 @@ export class SearchService {
         return sorted.sort((a, b) => a.minPrice - b.minPrice || a.title.localeCompare(b.title))
       case 'price_desc':
         return sorted.sort((a, b) => b.minPrice - a.minPrice || a.title.localeCompare(b.title))
-      case 'best_selling':
+      case 'top_sales':
         return sorted.sort((a, b) => b.soldCount - a.soldCount || a.title.localeCompare(b.title))
       case 'rating':
         return sorted.sort((a, b) =>
           b.ratingSummary.averageRating - a.ratingSummary.averageRating ||
           b.ratingSummary.totalReviewCount - a.ratingSummary.totalReviewCount ||
           a.title.localeCompare(b.title))
+      case 'relevance':
       case 'newest':
       default:
         return sorted
     }
+  }
+
+  private resolveStartOffset(items: ProductSearchItem[], filters: ReturnType<SearchService['normalizeInput']>): number {
+    if (!filters.cursor) return (filters.page - 1) * filters.limit
+    const cursorIndex = items.findIndex((item) => item.productId === filters.cursor)
+    return cursorIndex >= 0 ? cursorIndex + 1 : 0
   }
 
   private responseFilters(filters: ReturnType<SearchService['normalizeInput']>): ProductSearchResponse['filters'] {
@@ -302,6 +338,9 @@ export class SearchService {
       ...(filters.minPrice !== undefined ? { minPrice: filters.minPrice } : {}),
       ...(filters.maxPrice !== undefined ? { maxPrice: filters.maxPrice } : {}),
       ...(filters.rating !== undefined ? { rating: filters.rating } : {}),
+      ...(filters.inStock ? { inStock: true } : {}),
+      ...(filters.badges.length > 0 ? { badges: filters.badges } : {}),
+      ...(filters.cursor ? { cursor: filters.cursor } : {}),
     }
   }
 

@@ -10,6 +10,7 @@ export interface SearchRepositoryFilters {
   minPrice?: number
   maxPrice?: number
   attributeFilters?: Array<{ key: string; value: string }>
+  inStock?: boolean
 }
 
 export type SearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' | 'price' | 'currency'> & {
@@ -18,6 +19,10 @@ export type SearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' |
   orderItems: Array<{
     quantity: number
   }>
+  inventory: {
+    quantityOnHand: number
+    quantityReserved: number
+  } | null
 }
 
 export type SearchProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'description' | 'createdAt' | 'status'> & {
@@ -85,6 +90,12 @@ const searchProductSelect = {
       orderItems: {
         select: {
           quantity: true,
+        },
+      },
+      inventory: {
+        select: {
+          quantityOnHand: true,
+          quantityReserved: true,
         },
       },
     },
@@ -167,6 +178,11 @@ export class PrismaSearchRepository implements ISearchRepository {
       variants: {
         some: (() => {
           const v: Prisma.ProductVariantWhereInput = { status: 'ACTIVE' }
+          if (filters.inStock) {
+            v.inventory = {
+              quantityOnHand: { gt: 0 },
+            }
+          }
           if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
             v.price = {
               ...(filters.minPrice !== undefined ? { gte: BigInt(filters.minPrice) } : {}),

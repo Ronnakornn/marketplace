@@ -93,6 +93,7 @@ function createProduct(overrides: Partial<{
         price: overrides.price ? BigInt(overrides.price) : BigInt(1000),
         currency: 'USD',
         orderItems: [{ quantity: overrides.soldCount ?? 0 }],
+        inventory: { quantityOnHand: 10, quantityReserved: 2 },
       },
       ...(overrides.secondPrice ? [{
         id: 'variant-2',
@@ -101,7 +102,8 @@ function createProduct(overrides: Partial<{
         price: BigInt(overrides.secondPrice), // Convert price to bigint
         currency: 'USD',
         orderItems: [],
-      }] : [])
+        inventory: { quantityOnHand: 0, quantityReserved: 0 },
+      }] : []),
     ],
     reviews: Array.from({ length: reviewCount }, () => ({
       rating,
@@ -137,6 +139,9 @@ describe('SearchService', () => {
       shopId: undefined,
       minPrice: undefined,
       maxPrice: undefined,
+      attributeFilters: undefined,
+      brandId: undefined,
+      inStock: false,
     })
     expect(result.items[0]).toMatchObject({ productId: 'p1', title: 'Cotton Tee' })
   })
@@ -150,7 +155,7 @@ describe('SearchService', () => {
   it('supports pagination', async () => {
     const result = await service.searchProducts({ page: 2, limit: 1 })
 
-    expect(result.pagination).toEqual({
+    expect(result.pagination).toMatchObject({
       page: 2,
       limit: 1,
       total: 2,
@@ -166,9 +171,13 @@ describe('SearchService', () => {
       sort: 'price_desc',
     })
 
-    await expect(service.searchProducts({ sort: 'best_selling' })).resolves.toMatchObject({
+    await expect(service.searchProducts({ sort: 'top_sales' })).resolves.toMatchObject({
       items: [{ productId: 'p1' }, { productId: 'p2' }],
-      sort: 'best_selling',
+      sort: 'top_sales',
+    })
+
+    await expect(service.searchProducts({ sort: 'best_selling' })).resolves.toMatchObject({
+      sort: 'top_sales',
     })
   })
 
@@ -192,6 +201,32 @@ describe('SearchService', () => {
       maxPrice: 4000,
     }))
     expect(result.items[0]).toMatchObject({ minPrice: 2500, maxPrice: 3500 })
+  })
+
+  it('supports contract filters for brand, attributes, in-stock, badges, and cursor', async () => {
+    const result = await service.searchProducts({
+      brandId: 'brand-1',
+      attributeFilters: 'Color:Red',
+      inStock: true,
+      badges: 'in_stock',
+      cursor: 'p1',
+      limit: 1,
+    })
+
+    expect(repo.findSearchableProducts).toHaveBeenCalledWith(expect.objectContaining({
+      brandId: 'brand-1',
+      attributeFilters: [{ key: 'color', value: 'Red' }],
+      inStock: true,
+    }))
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]!.productId).toBe('p2')
+    expect(result.pagination).toMatchObject({ nextCursor: null, hasNextPage: false })
+    expect(result.filters).toMatchObject({
+      brandId: 'brand-1',
+      inStock: true,
+      badges: ['in_stock'],
+      cursor: 'p1',
+    })
   })
 
   it('rejects invalid sort and invalid filters', async () => {
