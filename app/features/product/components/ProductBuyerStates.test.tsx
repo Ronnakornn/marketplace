@@ -18,6 +18,7 @@ const queryMocks = vi.hoisted(() => ({
   productDetailQueryFn: vi.fn(),
   couponsQueryFn: vi.fn(async () => []),
   addCartItem: vi.fn(async () => ({})),
+  session: { user: { role: "USER" } } as { user: { role: string } } | null,
 }));
 
 vi.mock("next/link", () => ({
@@ -123,7 +124,7 @@ vi.mock("#/features/product/queries", () => ({
 }));
 
 vi.mock("#/lib/auth-client", () => ({
-  useSession: () => ({ data: { user: { role: "USER" } } }),
+  useSession: () => ({ data: queryMocks.session }),
 }));
 
 vi.mock("#/lib/assets", () => ({
@@ -200,6 +201,7 @@ beforeEach(() => {
   queryMocks.productDetailResponse = createProductDetailFixture();
   queryMocks.productsError = null;
   queryMocks.productDetailError = null;
+  queryMocks.session = { user: { role: "USER" } };
   queryMocks.addCartItem.mockClear();
   queryMocks.productsQueryFn.mockImplementation(async () => {
     if (queryMocks.productsError) throw queryMocks.productsError;
@@ -300,6 +302,16 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     expect(screen.getByText("2")).toBeTruthy();
     expect(incrementButton).toHaveProperty("disabled", true);
+  });
+
+  it("shows buyer purchase CTAs to anonymous visitors", async () => {
+    queryMocks.session = null;
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByRole("button", { name: /Add to cart/ })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /Buy now/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Seller inbox")).toBeNull();
   });
 });
 

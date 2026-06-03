@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,8 +40,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const localePath = useLocalePath();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
-  const canUseBuyerCart = session?.user.role === "USER";
-  const canUseBuyerActions = session?.user.role === "USER";
+  const canFetchBuyerState = session?.user.role === "USER";
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [selectedOptionValues, setSelectedOptionValues] = useState<Record<string, string>>({});
@@ -59,18 +57,18 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const favoriteQuery = useQuery({
     queryKey: ["buyer-favorite-status", productId],
     queryFn: () => fetchFavoriteStatus(productId),
-    enabled: canUseBuyerActions,
+    enabled: canFetchBuyerState,
   });
   const shopId = productQuery.data?.shop.id ?? "";
   const followQuery = useQuery({
     queryKey: ["buyer-shop-follow-status", shopId],
     queryFn: () => fetchShopFollowStatus(shopId),
-    enabled: canUseBuyerActions && Boolean(shopId),
+    enabled: canFetchBuyerState && Boolean(shopId),
   });
   const cartQuery = useQuery({
     queryKey: ["buyer-cart", locale],
     queryFn: () => fetchCart(locale),
-    enabled: canUseBuyerCart,
+    enabled: canFetchBuyerState,
   });
   const addCartMutation = useMutation({
     mutationFn: ({ variantId, itemQuantity }: { variantId: string; itemQuantity: number }) => addCartItem(variantId, itemQuantity),
@@ -134,7 +132,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       router.push(localePath("/login"));
       return;
     }
-    if (!canUseBuyerActions) return;
+    if (!canFetchBuyerState) return;
     createChatMutation.mutate();
   }
 
@@ -143,7 +141,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       router.push(localePath("/login"));
       return;
     }
-    if (!canUseBuyerCart || !selectedVariant || displayedStock < 1) return;
+    if (!canFetchBuyerState || !selectedVariant || displayedStock < 1) return;
     addCartMutation.mutate({ variantId: selectedVariant.id, itemQuantity: quantity }, {
       onSuccess: () => {
         if (action === "buy-now") router.push(localePath("/cart"));
@@ -187,7 +185,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const hasPriceRange = !selectedVariant && product.maxPrice > product.minPrice;
   const isOutOfStock = displayedStock < 1 || product.stock < 1;
   const requiresVariantSelection = product.variants.length > 0 && !selectedVariant;
-  const canPurchase = canUseBuyerCart && Boolean(selectedVariant) && !isOutOfStock;
+  const canPurchase = Boolean(selectedVariant) && !isOutOfStock;
   const selectedSummary = selectedVariant
     ? [selectedVariant.title, selectedVariant.sku ? `SKU ${selectedVariant.sku}` : null].filter(Boolean).join(" · ")
     : requiredOptions.length
@@ -406,35 +404,27 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         <div className="mx-auto grid max-w-6xl grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl" disabled={favoriteMutation.isPending} onClick={() => {
             if (!session) router.push(localePath("/login"));
-            else if (canUseBuyerActions) favoriteMutation.mutate();
+            else if (canFetchBuyerState) favoriteMutation.mutate();
           }}>
             <HeartIcon className={`size-5 ${favoriteQuery.data ? "fill-orange-500 text-orange-500" : ""}`} />
             <span className="sr-only">{t("product.wishlist")}</span>
           </Button>
-          {canUseBuyerActions ? (
-            <>
-              <Button variant="outline" className="hidden h-12 rounded-2xl sm:inline-flex" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
-                <MessageCircleIcon className="size-4" />
-                {t("chat.chatSeller")}
-              </Button>
-              <Button variant="outline" className="h-12 rounded-2xl" onClick={() => handlePurchaseAction("cart")} disabled={!canPurchase || addCartMutation.isPending}>
-                <span className="relative inline-flex">
-                  <ShoppingCartIcon className="size-4" />
-                  {cartItemCount > 0 ? (
-                    <span className="absolute -right-2.5 -top-2.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white">
-                      {cartItemCount > 99 ? "99+" : cartItemCount}
-                    </span>
-                  ) : null}
+          <Button variant="outline" className="hidden h-12 rounded-2xl sm:inline-flex" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
+            <MessageCircleIcon className="size-4" />
+            {t("chat.chatSeller")}
+          </Button>
+          <Button variant="outline" className="h-12 rounded-2xl" onClick={() => handlePurchaseAction("cart")} disabled={!canPurchase || addCartMutation.isPending}>
+            <span className="relative inline-flex">
+              <ShoppingCartIcon className="size-4" />
+              {cartItemCount > 0 ? (
+                <span className="absolute -right-2.5 -top-2.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white">
+                  {cartItemCount > 99 ? "99+" : cartItemCount}
                 </span>
-                {t("product.addToCart")}
-              </Button>
-              <Button className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={() => handlePurchaseAction("buy-now")} disabled={!canPurchase || addCartMutation.isPending}>{t("product.buyNow")}</Button>
-            </>
-          ) : (
-            <Button asChild className="col-span-2 h-12 rounded-2xl bg-orange-600 hover:bg-orange-700">
-              <Link href={localePath("/seller/chat")}>{t("chat.sellerInbox")}</Link>
-            </Button>
-          )}
+              ) : null}
+            </span>
+            {t("product.addToCart")}
+          </Button>
+          <Button className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={() => handlePurchaseAction("buy-now")} disabled={!canPurchase || addCartMutation.isPending}>{t("product.buyNow")}</Button>
         </div>
       </div>
     </>
