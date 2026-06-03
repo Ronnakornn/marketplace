@@ -40,6 +40,7 @@ import { ReturnService } from '#server/modules/return/return.service.ts'
 import { PrismaRecommendationRepository, RecommendationService } from '#server/modules/recommendation'
 import { PrismaSearchRepository } from '#server/modules/search/search.repository.ts'
 import { SearchService } from '#server/modules/search/search.service.ts'
+import { PrismaTrackingRepository, TrackingService } from '#server/modules/tracking'
 import { PrismaSellerDashboardRepository } from '#server/modules/seller/seller-dashboard.repository.ts'
 import { SellerDashboardService } from '#server/modules/seller/seller-dashboard.service.ts'
 import { PrismaSellerOnboardingRepository, SellerOnboardingService } from '#server/modules/seller-onboarding'
@@ -119,6 +120,7 @@ export interface ServiceContainer {
   sellerOnboardingService: SellerOnboardingService
   shipmentService: ShipmentService
   shoppingAssistantService: ShoppingAssistantService
+  trackingService: TrackingService
   uploadService: UploadService
   userService: UserService
   walletService: WalletService
@@ -172,6 +174,8 @@ export function createContainer(): ServiceContainer {
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
   const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver, auditLogService)
   const discoveryRepo = new PrismaDiscoveryRepository(appContext, prisma)
+  const trackingRepo = new PrismaTrackingRepository(appContext, prisma)
+  const trackingService = new TrackingService(appContext, trackingRepo)
   const inventoryRepo = new PrismaInventoryRepository(appContext, prisma)
   const inventoryService = new InventoryService(appContext, inventoryRepo, activeShopResolver)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
@@ -190,7 +194,7 @@ export function createContainer(): ServiceContainer {
   const refundService = new RefundService(appContext, refundRepo, eventPublisherService)
   const recommendationRepo = new PrismaRecommendationRepository(appContext, prisma)
   const recommendationService = new RecommendationService(appContext, recommendationRepo, cacheService)
-  const discoveryService = new DiscoveryService(appContext, discoveryRepo, catalogService, recommendationService, promotionService)
+  const discoveryService = new DiscoveryService(appContext, discoveryRepo, catalogService, recommendationService, promotionService, trackingService)
   const reviewRepo = new PrismaReviewRepository(appContext, prisma)
   const reviewService = new ReviewService(appContext, reviewRepo)
   const searchRepo = new PrismaSearchRepository(appContext, prisma)
@@ -277,6 +281,7 @@ export function createContainer(): ServiceContainer {
     sellerOnboardingService,
     shipmentService,
     shoppingAssistantService,
+    trackingService,
     uploadService,
     userService,
     walletService,

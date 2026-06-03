@@ -24,6 +24,7 @@ import {
   publicSearchSuggestionsQueryOptions,
   type BuyerProduct,
 } from "#/features/product/queries";
+import { trackDiscoveryEvent, useTrackVisibleProducts } from "#/features/tracking";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -108,6 +109,35 @@ export function ProductListingPage({
     (productsQuery.data ?? []).filter((product) => minRating === undefined || product.rating >= minRating),
     sort,
   );
+  useTrackVisibleProducts(products, mode === "search" ? "search_results" : mode === "category" ? "category_listing" : "product_listing");
+
+  useEffect(() => {
+    if (mode !== "search" || !query.trim() || !productsQuery.isSuccess) return;
+    trackDiscoveryEvent({
+      eventType: "search_submitted",
+      query,
+      source: "search_page",
+      resultCount: products.length,
+    });
+  }, [mode, query, productsQuery.isSuccess, products.length]);
+
+  useEffect(() => {
+    if (mode === "category" && categoryId) {
+      trackDiscoveryEvent({ eventType: "category_viewed", categoryId, source: "category_page" });
+    }
+  }, [mode, categoryId]);
+
+  useEffect(() => {
+    const hasFilters = Boolean(brandId || attributeFilters || minPrice || maxPrice || rating || (sort && sort !== "relevance"));
+    if (!hasFilters || mode !== "search") return;
+    trackDiscoveryEvent({
+      eventType: "filter_applied",
+      query,
+      source: "search_filters",
+      filters: { categoryId, brandId, attributeFilters, minPrice, maxPrice, rating, sort },
+      resultCount: products.length,
+    });
+  }, [mode, query, categoryId, brandId, attributeFilters, minPrice, maxPrice, rating, sort, products.length]);
   const filterProps = useMemo(() => ({
     categories: categoriesQuery.data ?? [],
     brands: brandsQuery.data ?? [],

@@ -28,6 +28,7 @@ import {
   publicProductDetailQueryOptions,
   publicProductListQueryOptions,
 } from "#/features/product/queries";
+import { saveLocalRecentlyViewedProduct, useDiscoveryTracking } from "#/features/tracking";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
@@ -39,6 +40,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const locale = useLocale();
   const localePath = useLocalePath();
   const { data: session } = useSession();
+  const tracking = useDiscoveryTracking("product_detail");
   const queryClient = useQueryClient();
   const canFetchBuyerState = session?.user.role === "USER";
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -126,6 +128,17 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   useEffect(() => {
     setQuantity((current) => Math.max(1, Math.min(current, Math.max(1, displayedStock))));
   }, [displayedStock]);
+
+  useEffect(() => {
+    if (!product) return;
+    tracking.trackRecentlyViewed({ productId: product.id, shopId: product.shop.id });
+    saveLocalRecentlyViewedProduct({
+      productId: product.id,
+      title: product.title,
+      imageUrl: resolveUploadedImageUrl(product.images[0]),
+      href: localePath(`/products/${product.id}`),
+    });
+  }, [product?.id]);
 
   function handleChatSeller() {
     if (!session) {

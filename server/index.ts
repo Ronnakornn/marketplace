@@ -33,6 +33,7 @@ import { createSearchRoutes } from "#server/modules/search";
 import { createSellerDashboardRoutes } from "#server/modules/seller";
 import { createSellerOnboardingRoutes } from "#server/modules/seller-onboarding";
 import { createShipmentRoutes } from "#server/modules/shipment";
+import { createTrackingRoutes } from "#server/modules/tracking";
 import { createUploadRoutes } from "#server/modules/upload";
 import { createUserRoutes } from "#server/modules/user";
 import { createWalletRoutes } from "#server/modules/wallet";
@@ -90,6 +91,7 @@ const baseApp = new Elysia()
         { name: "Review", description: "Product review workflows" },
         { name: "Search", description: "Marketplace search" },
         { name: "Discovery", description: "Homepage discovery and merchandising composition" },
+        { name: "Tracking", description: "Lightweight discovery event tracking" },
         { name: "Seller", description: "Seller dashboard and shop operations" },
         { name: "Shipment", description: "Shop-based fulfillment and shipments" },
         { name: "Upload", description: "Upload and storage workflows" },
@@ -128,6 +130,9 @@ const baseApp = new Elysia()
 
   // --- Discovery homepage composition routes ---
   .use(createDiscoveryRoutes(container))
+
+  // --- Lightweight discovery tracking routes ---
+  .use(createTrackingRoutes(container))
 
   // --- AI-assisted product discovery routes ---
   .use(createAiSearchRoutes(container))

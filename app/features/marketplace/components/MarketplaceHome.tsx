@@ -32,6 +32,7 @@ import {
   publicProductListQueryOptions,
   type BuyerProduct,
 } from "#/features/product/queries";
+import { trackDiscoveryEvent, useTrackVisibleProducts } from "#/features/tracking";
 import { useFormatters, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
@@ -193,6 +194,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
     }));
     return fallbackCategoryItems.map(([slug, label, className]) => ({ slug, label, className }));
   }, [categoriesQuery.data]);
+  useTrackVisibleProducts(visibleProducts.map((product) => ({ id: product.id })), "marketplace_home");
 
   function handleAddToCart(product: StorefrontProduct) {
     if (!user) {
@@ -237,7 +239,10 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           pendingVariantId={addToCartMutation.variables}
           formatMoney={formatters.currency}
         />
-        <CategoryGrid categories={categories} activeCategory={activeCategory} onSelectCategory={setActiveCategory} />
+        <CategoryGrid categories={categories} activeCategory={activeCategory} onSelectCategory={(category) => {
+          if (category) trackDiscoveryEvent({ eventType: "category_viewed", categoryId: category, source: "marketplace_home" });
+          setActiveCategory(category);
+        }} />
         <ProductRecommendationGrid
           products={visibleProducts}
           isLoading={productsQuery.isLoading}
@@ -362,7 +367,10 @@ function FlashSaleSection({
           <Skeleton key={index} className="h-52 min-w-[132px] rounded-2xl" />
         )) : products.map((product) => (
           <article key={product.id} className="min-w-[132px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-            <Link href={localePath(`/products/${product.id}`)}>
+            <Link
+              href={localePath(`/products/${product.id}`)}
+              onClick={() => trackDiscoveryEvent({ eventType: "recommendation_clicked", productId: product.id, source: "flash_sale" })}
+            >
               <ProductVisual product={product} compact />
             </Link>
             <div className="p-2">
@@ -494,7 +502,10 @@ function ProductCard({
   const localePath = useLocalePath();
   return (
     <Card className="group overflow-hidden rounded-3xl border-slate-200 bg-white py-0 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-      <Link href={localePath(`/products/${product.id}`)}>
+      <Link
+        href={localePath(`/products/${product.id}`)}
+        onClick={() => trackDiscoveryEvent({ eventType: "recommendation_clicked", productId: product.id, source: "marketplace_home" })}
+      >
         <ProductVisual product={product} />
       </Link>
       <CardContent className="p-3">
@@ -508,7 +519,10 @@ function ProductCard({
             -{product.discountPercent}%
           </Badge>
         </div>
-        <Link href={localePath(`/products/${product.id}`)}>
+        <Link
+          href={localePath(`/products/${product.id}`)}
+          onClick={() => trackDiscoveryEvent({ eventType: "product_click", productId: product.id, source: "marketplace_home_card" })}
+        >
           <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-slate-900">
             {product.title}
           </h3>

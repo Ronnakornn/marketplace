@@ -6,9 +6,11 @@ import { MapPinIcon, StarIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { formatMoney } from "#/features/buyer/api";
 import type { BuyerProduct } from "#/features/product/queries";
+import { useDiscoveryTracking } from "#/features/tracking";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 
 export function ProductCard({ product }: { product: BuyerProduct }) {
+  const tracking = useDiscoveryTracking("product_card");
   const image = resolveUploadedImageUrl(product.images[0]);
   const hasPriceRange = product.maxPrice > product.minPrice;
   const priceLabel = hasPriceRange
@@ -16,7 +18,11 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
     : formatMoney(product.price, product.currency);
 
   return (
-    <Link href={`/products/${product.id}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+    <Link
+      href={`/products/${product.id}`}
+      onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
+      className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+    >
       <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
         <Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition group-hover:scale-105" />
       </div>

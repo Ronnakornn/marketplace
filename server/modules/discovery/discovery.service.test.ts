@@ -3,6 +3,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { CatalogService } from '#server/modules/catalog/catalog.service.ts'
 import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import type { RecommendationService } from '#server/modules/recommendation/recommendation.service.ts'
+import type { TrackingService } from '#server/modules/tracking'
 import type { IDiscoveryRepository } from './discovery.repository.ts'
 import { DiscoveryService } from './discovery.service.ts'
 
@@ -45,6 +46,9 @@ function createServiceMocks() {
     promotionService: {
       listPublicCoupons: vi.fn(),
     } as unknown as PromotionService,
+    trackingService: {
+      getRecentlyViewedProducts: vi.fn(),
+    } as unknown as TrackingService,
   }
 }
 
@@ -55,7 +59,7 @@ describe('DiscoveryService', () => {
 
   it('composes homepage sections while omitting unavailable optional data', async () => {
     const repo = createRepoMock()
-    const { catalogService, recommendationService, promotionService } = createServiceMocks()
+    const { catalogService, recommendationService, promotionService, trackingService } = createServiceMocks()
     vi.mocked(repo.findHomeBanners).mockResolvedValue([])
     vi.mocked(repo.findActiveFlashSale).mockResolvedValue({
       id: 'flash-1',
@@ -82,8 +86,9 @@ describe('DiscoveryService', () => {
       pagination: { page: 1, limit: 4 },
     })
     vi.mocked(promotionService.listPublicCoupons).mockResolvedValue([])
+    vi.mocked(trackingService.getRecentlyViewedProducts).mockResolvedValue([])
 
-    const service = new DiscoveryService(createAppContext(), repo, catalogService, recommendationService, promotionService)
+    const service = new DiscoveryService(createAppContext(), repo, catalogService, recommendationService, promotionService, trackingService)
     const result = await service.getHome({ limit: 4, locale: 'en' })
 
     expect(repo.findHomeBanners).toHaveBeenCalledWith(8, expect.any(Date))
@@ -99,7 +104,7 @@ describe('DiscoveryService', () => {
 
   it('includes real optional merchandising sections when records exist', async () => {
     const repo = createRepoMock()
-    const { catalogService, recommendationService, promotionService } = createServiceMocks()
+    const { catalogService, recommendationService, promotionService, trackingService } = createServiceMocks()
     vi.mocked(repo.findHomeBanners).mockResolvedValue([
       {
         id: 'banner-1',
@@ -150,8 +155,9 @@ describe('DiscoveryService', () => {
     vi.mocked(recommendationService.getTrending).mockResolvedValue({ items: [], pagination: { page: 1, limit: 12, hasNextPage: false } })
     vi.mocked(recommendationService.getHomeFeed).mockResolvedValue({ sections: { trending: [], newest: [], recommendedCategories: [] }, pagination: { page: 1, limit: 12 } })
     vi.mocked(promotionService.listPublicCoupons).mockResolvedValue([{ id: 'coupon-1', code: 'SAVE', title: 'SAVE', description: null } as any])
+    vi.mocked(trackingService.getRecentlyViewedProducts).mockResolvedValue([])
 
-    const service = new DiscoveryService(createAppContext(), repo, catalogService, recommendationService, promotionService)
+    const service = new DiscoveryService(createAppContext(), repo, catalogService, recommendationService, promotionService, trackingService)
     const result = await service.getHome({})
 
     expect(result.sections.banners).toHaveLength(1)

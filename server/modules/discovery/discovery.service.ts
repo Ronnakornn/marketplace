@@ -3,6 +3,7 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CatalogService } from '#server/modules/catalog/catalog.service.ts'
 import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import type { RecommendationService } from '#server/modules/recommendation/recommendation.service.ts'
+import type { TrackingService } from '#server/modules/tracking'
 import { DiscoveryServiceError } from './discovery.errors.ts'
 import type { DiscoveryBannerRecord, DiscoveryFeaturedShopRecord, DiscoveryFlashSaleRecord, IDiscoveryRepository } from './discovery.repository.ts'
 
@@ -14,6 +15,8 @@ const SHOP_LIMIT = 8
 export interface DiscoveryHomeInput {
   limit?: number
   locale?: string
+  sessionId?: string
+  userId?: string
 }
 
 export interface DiscoveryHomeResponse {
@@ -24,7 +27,7 @@ export interface DiscoveryHomeResponse {
     recommendedProducts?: Awaited<ReturnType<RecommendationService['getTrending']>>['items']
     newArrivals?: Awaited<ReturnType<RecommendationService['getHomeFeed']>>['sections']['newest']
     featuredShops?: ReturnType<DiscoveryService['toFeaturedShop']>[]
-    recentlyViewed?: []
+    recentlyViewed?: Awaited<ReturnType<TrackingService['getRecentlyViewedProducts']>>
     promotions?: Awaited<ReturnType<PromotionService['listPublicCoupons']>>
   }
   meta: {
@@ -42,6 +45,7 @@ export class DiscoveryService {
     private catalogService: CatalogService,
     private recommendationService: RecommendationService,
     private promotionService: PromotionService,
+    private trackingService: TrackingService,
   ) {
     this.logger = appContext.logger
   }
@@ -60,6 +64,7 @@ export class DiscoveryService {
       homeFeed,
       featuredShops,
       promotions,
+      recentlyViewed,
     ] = await Promise.all([
       this.repo.findHomeBanners(BANNER_LIMIT, now),
       this.catalogService.listCategories(locale),
@@ -68,6 +73,11 @@ export class DiscoveryService {
       this.recommendationService.getHomeFeed({ limit, locale }),
       this.repo.findFeaturedShops(SHOP_LIMIT),
       this.promotionService.listPublicCoupons(locale),
+      this.trackingService.getRecentlyViewedProducts({
+        userId: input.userId,
+        sessionId: input.sessionId,
+        limit,
+      }),
     ])
 
     return {
@@ -78,7 +88,7 @@ export class DiscoveryService {
         recommendedProducts: recommended.items,
         newArrivals: homeFeed.sections.newest,
         ...(featuredShops.length > 0 ? { featuredShops: featuredShops.map((shop) => this.toFeaturedShop(shop)) } : {}),
-        recentlyViewed: [],
+        recentlyViewed,
         ...(promotions.length > 0 ? { promotions } : {}),
       },
       meta: {
