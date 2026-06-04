@@ -39,6 +39,9 @@ export interface PublicProductListInput {
   minPrice?: number | string;
   maxPrice?: number | string;
   rating?: number | string;
+  inStock?: boolean | string;
+  freeShipping?: boolean | string;
+  onSale?: boolean | string;
   sort?: ProductSort;
   cursor?: string;
   page?: number;
@@ -77,8 +80,8 @@ export interface AffiliateProductTargetInput {
   limit?: number;
 }
 
-type QueryValue = string | number | undefined;
-type CleanQuery = Record<string, string | number>;
+type QueryValue = string | number | boolean | undefined;
+type CleanQuery = Record<string, string | number | boolean>;
 
 export interface BuyerProduct {
   id: string;
@@ -91,6 +94,9 @@ export interface BuyerProduct {
   rating: number;
   soldCount: number;
   stock: number;
+  originalPrice: number | null;
+  discountPercent: number | null;
+  badges: string[];
   shop: {
     id: string;
     name: string;
@@ -493,6 +499,9 @@ export function cleanPublicProductListInput(input: PublicProductListInput = {}):
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
     rating: input.rating,
+    inStock: input.inStock,
+    freeShipping: input.freeShipping,
+    onSale: input.onSale,
     sort: input.sort,
     cursor: input.cursor,
     page: input.page,
@@ -555,6 +564,9 @@ function cleanSearchProductInput(input: PublicProductListInput = {}): CleanQuery
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
     rating: input.rating,
+    inStock: input.inStock,
+    freeShipping: input.freeShipping,
+    onSale: input.onSale,
     sort: input.sort === "relevance" ? "newest" : input.sort,
     page: input.page,
     limit: input.limit ?? PUBLIC_PRODUCT_PAGE_SIZE,
@@ -578,7 +590,7 @@ function cleanAffiliateTargetInput(input: AffiliateProductTargetInput = {}): Cle
 
 function cleanQuery(input: Record<string, QueryValue>): CleanQuery {
   return Object.fromEntries(
-    Object.entries(input).filter(([, value]) => value !== undefined && value !== ""),
+    Object.entries(input).filter(([, value]) => value !== undefined && value !== "" && value !== false),
   ) as CleanQuery;
 }
 
@@ -616,6 +628,8 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
   const minPrice = readNumber(record.minPrice, variantPrices.length ? Math.min(...variantPrices) : readNumber(record.price));
   const maxPrice = readNumber(record.maxPrice, variantPrices.length ? Math.max(...variantPrices) : minPrice);
   const stock = variants.length ? variants.reduce((total, variant) => total + variant.stock, 0) : readNumber(record.stock);
+  const originalPrice = optionalNumber(record.originalPrice) ?? optionalNumber(record.compareAtPrice) ?? optionalNumber(record.listPrice);
+  const discountPercent = optionalNumber(record.discountPercent) ?? calculateDiscountPercent(originalPrice, minPrice);
 
   return {
     id: readString(record.id, readString(record.productId, `product-${index}`)),
@@ -628,6 +642,9 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
     rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 4.7)),
     soldCount: readNumber(record.soldCount, readNumber(record.sold, 0)),
     stock,
+    originalPrice,
+    discountPercent,
+    badges: normalizeProductBadges(record, stock, discountPercent),
     shop: {
       id: readString(shop.id),
       name: readString(shop.name, "Marketplace shop"),
@@ -778,4 +795,32 @@ function readNumber(value: unknown, fallback = 0): number {
     return Number.isFinite(parsed) ? parsed : fallback;
   }
   return fallback;
+}
+
+function optionalNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function calculateDiscountPercent(originalPrice: number | null, currentPrice: number): number | null {
+  if (!originalPrice || originalPrice <= currentPrice || currentPrice < 1) return null;
+  return Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
+}
+
+function normalizeProductBadges(record: Record<string, unknown>, stock: number, discountPercent: number | null): string[] {
+  const rawBadges = readArray(record.badges).map((badge) => readString(badge)).filter(Boolean);
+  const badges = new Set(rawBadges);
+  if (Boolean(record.isFlashSale) || Boolean(record.flashSale)) badges.add("Flash Sale");
+  if (Boolean(record.freeShipping) || Boolean(record.hasFreeShipping)) badges.add("Free Shipping");
+  if (Boolean(record.verifiedShop) || Boolean(toRecord(record.shop).verified)) badges.add("Verified Shop");
+  if (Boolean(record.preferredShop) || Boolean(toRecord(record.shop).preferred)) badges.add("Preferred Shop");
+  if (stock > 0 && stock <= 5) badges.add("Low Stock");
+  if (Boolean(record.isNew) || Boolean(record.newArrival)) badges.add("New");
+  if (discountPercent) badges.add(`${discountPercent}% off`);
+  return [...badges].slice(0, 4);
 }

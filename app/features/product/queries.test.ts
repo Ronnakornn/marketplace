@@ -25,6 +25,9 @@ describe("product query keys", () => {
       minPrice: "100",
       maxPrice: "900",
       rating: 4,
+      inStock: true,
+      freeShipping: true,
+      onSale: true,
       sort: "price_asc",
       cursor: "cursor-1",
       page: 2,
@@ -41,6 +44,9 @@ describe("product query keys", () => {
         minPrice: "100",
         maxPrice: "900",
         rating: 4,
+        inStock: true,
+        freeShipping: true,
+        onSale: true,
         sort: "price_asc",
         cursor: "cursor-1",
         page: 2,
@@ -104,6 +110,9 @@ describe("product query keys", () => {
       minPrice: 100,
       maxPrice: 900,
       rating: 4,
+      inStock: true,
+      freeShipping: true,
+      onSale: true,
       sort: "relevance",
       cursor: "ignored-by-search",
       page: 3,
@@ -119,6 +128,9 @@ describe("product query keys", () => {
         minPrice: 100,
         maxPrice: 900,
         rating: 4,
+        inStock: true,
+        freeShipping: true,
+        onSale: true,
         sort: "newest",
         page: 3,
         limit: 40,
@@ -211,6 +223,8 @@ describe("public product normalization", () => {
       minPrice: "1200",
       maxPrice: "1500",
       shop: { id: "shop-1", name: "Shop" },
+      originalPrice: "2000",
+      freeShipping: true,
       video: { url: "/uploads/product_video/product-1/demo.mp4", contentType: "video/mp4", fileName: "demo.mp4" },
       options: [{
         id: "option-color",
@@ -239,6 +253,9 @@ describe("public product normalization", () => {
     expect(product.minPrice).toBe(1200);
     expect(product.maxPrice).toBe(1500);
     expect(product.stock).toBe(3);
+    expect(product.originalPrice).toBe(2000);
+    expect(product.discountPercent).toBe(40);
+    expect(product.badges).toContain("Free Shipping");
     expect(product.video?.url).toBe("/uploads/product_video/product-1/demo.mp4");
     expect(product.options[0]?.values[0]?.value).toBe("Red");
     expect(product.variants[0]?.optionValues[0]).toMatchObject({

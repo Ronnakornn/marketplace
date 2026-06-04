@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { SlidersHorizontalIcon, StarIcon } from "lucide-react";
+import { SlidersHorizontalIcon, StarIcon, XIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingGrid } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
@@ -47,6 +47,9 @@ interface ProductListingPageProps {
   maxPrice?: string;
   sort?: string;
   rating?: string;
+  inStock?: string;
+  freeShipping?: string;
+  onSale?: string;
 }
 
 export function ProductListingPage({
@@ -59,13 +62,32 @@ export function ProductListingPage({
   maxPrice,
   sort = "relevance",
   rating,
+  inStock,
+  freeShipping,
+  onSale,
 }: ProductListingPageProps) {
   const locale = useLocale();
   const t = useTranslations();
   const localePath = useLocalePath();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const minRating = toNumber(rating);
-  const productListInput = { q: query, categoryId, brandId, attributeFilters, minPrice, maxPrice, sort, rating: minRating, limit: 40, locale };
+  const currentCategory = mode === "category" ? categoryId : undefined;
+  const basePath = mode === "category" && categoryId ? `/categories/${categoryId}` : "/search";
+  const productListInput = {
+    q: query,
+    categoryId: currentCategory ?? categoryId,
+    brandId,
+    attributeFilters,
+    minPrice,
+    maxPrice,
+    sort,
+    rating: minRating,
+    inStock: inStock === "true" ? true : undefined,
+    freeShipping: freeShipping === "true" ? true : undefined,
+    onSale: onSale === "true" ? true : undefined,
+    limit: 40,
+    locale,
+  };
   const listProductsQuery = useQuery({
     ...publicProductListQueryOptions(productListInput),
     enabled: mode !== "search",
@@ -106,7 +128,11 @@ export function ProductListingPage({
 
   const title = mode === "home" ? t("product.discover") : mode === "category" ? categoryId ?? t("product.category") : t("common.search");
   const products = sortProducts(
-    (productsQuery.data ?? []).filter((product) => minRating === undefined || product.rating >= minRating),
+    (productsQuery.data ?? [])
+      .filter((product) => minRating === undefined || product.rating >= minRating)
+      .filter((product) => inStock !== "true" || product.stock > 0)
+      .filter((product) => freeShipping !== "true" || product.badges?.some((badge) => badge.toLowerCase() === "free shipping"))
+      .filter((product) => onSale !== "true" || product.discountPercent !== null || product.badges?.some((badge) => badge.toLowerCase().includes("sale") || badge.toLowerCase().includes("off"))),
     sort,
   );
   useTrackVisibleProducts(products, mode === "search" ? "search_results" : mode === "category" ? "category_listing" : "product_listing");
@@ -128,16 +154,16 @@ export function ProductListingPage({
   }, [mode, categoryId]);
 
   useEffect(() => {
-    const hasFilters = Boolean(brandId || attributeFilters || minPrice || maxPrice || rating || (sort && sort !== "relevance"));
-    if (!hasFilters || mode !== "search") return;
+    const hasFilters = Boolean(brandId || attributeFilters || minPrice || maxPrice || rating || inStock || freeShipping || onSale || (sort && sort !== "relevance"));
+    if (!hasFilters || (mode !== "search" && mode !== "category")) return;
     trackDiscoveryEvent({
       eventType: "filter_applied",
       query,
       source: "search_filters",
-      filters: { categoryId, brandId, attributeFilters, minPrice, maxPrice, rating, sort },
+      filters: { categoryId, brandId, attributeFilters, minPrice, maxPrice, rating, inStock, freeShipping, onSale, sort },
       resultCount: products.length,
     });
-  }, [mode, query, categoryId, brandId, attributeFilters, minPrice, maxPrice, rating, sort, products.length]);
+  }, [mode, query, categoryId, brandId, attributeFilters, minPrice, maxPrice, rating, inStock, freeShipping, onSale, sort, products.length]);
   const filterProps = useMemo(() => ({
     categories: categoriesQuery.data ?? [],
     brands: brandsQuery.data ?? [],
@@ -149,7 +175,25 @@ export function ProductListingPage({
     maxPrice,
     sort,
     rating,
-  }), [categoriesQuery.data, brandsQuery.data, query, categoryId, brandId, attributeFilters, minPrice, maxPrice, sort, rating]);
+    inStock,
+    freeShipping,
+    onSale,
+    basePath,
+    showCategoryFilter: mode === "search",
+  }), [categoriesQuery.data, brandsQuery.data, query, categoryId, brandId, attributeFilters, minPrice, maxPrice, sort, rating, inStock, freeShipping, onSale, basePath, mode]);
+  const activeFilters = buildActiveFilters({
+    q: query,
+    categoryId: mode === "search" ? categoryId : undefined,
+    brandId,
+    attributeFilters,
+    minPrice,
+    maxPrice,
+    rating,
+    inStock,
+    freeShipping,
+    onSale,
+    sort,
+  }, filterProps.categories, filterProps.brands, basePath);
   const resultTitle = query
     ? t("product.searchResultsFor").replace("{query}", query)
     : mode === "category"
@@ -183,8 +227,8 @@ export function ProductListingPage({
           </div>
         ) : null}
 
-        <div className={mode === "search" ? "grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]" : ""}>
-          {mode === "search" ? (
+        <div className={mode !== "home" ? "grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]" : ""}>
+          {mode !== "home" ? (
             <>
               <div className="lg:hidden">
                 <Sheet>
@@ -209,19 +253,43 @@ export function ProductListingPage({
                   {productsQuery.isSuccess ? t("product.itemsFound").replace("{count}", String(products.length)) : t("product.loadingResults")}
                 </p>
               </div>
-              {mode === "search" ? (
-                <SortTabs query={query} categoryId={categoryId} brandId={brandId} attributeFilters={attributeFilters} minPrice={minPrice} maxPrice={maxPrice} rating={rating} sort={sort} />
+              {mode !== "home" ? (
+                <SortTabs basePath={basePath} query={query} categoryId={mode === "search" ? categoryId : undefined} brandId={brandId} attributeFilters={attributeFilters} minPrice={minPrice} maxPrice={maxPrice} rating={rating} inStock={inStock} freeShipping={freeShipping} onSale={onSale} sort={sort} />
               ) : (
                 <Button variant="ghost" size="sm" asChild>
                   <Link href={localePath("/search")}>{t("product.viewAll")}</Link>
                 </Button>
               )}
             </div>
+            {activeFilters.length ? (
+              <div className="flex flex-wrap gap-2">
+                {activeFilters.map((filter) => (
+                  <Button key={filter.key} asChild variant="outline" size="sm" className="h-8 rounded-full">
+                    <Link href={filter.href}>
+                      {filter.label}
+                      <XIcon className="size-3" />
+                    </Link>
+                  </Button>
+                ))}
+              </div>
+            ) : null}
 
             {productsQuery.isLoading ? <BuyerLoadingGrid /> : null}
             {productsQuery.isError ? <BuyerErrorState message={productsQuery.error.message} onRetry={() => void productsQuery.refetch()} /> : null}
             {productsQuery.isSuccess && products.length === 0 ? (
-              <BuyerEmptyState title={t("product.noProductsFound")} description={t("product.noProductsDescription")} />
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <BuyerEmptyState title={t("product.noProductsFound")} description={t("product.noProductsDescription")} />
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <Button asChild variant="outline" size="sm" className="rounded-full">
+                    <Link href={buildSearchHref({ q: query }, basePath)}>{t("product.clearFilters")}</Link>
+                  </Button>
+                  {trendingKeywords.slice(0, 3).map((keyword) => (
+                    <Button key={keyword} asChild variant="ghost" size="sm" className="rounded-full">
+                      <Link href={buildSearchHref({ q: keyword })}>{keyword}</Link>
+                    </Button>
+                  ))}
+                </div>
+              </div>
             ) : null}
             {productsQuery.isSuccess && products.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
@@ -304,6 +372,11 @@ function SearchFilterSidebar(props: {
   maxPrice?: string;
   rating?: string;
   sort: string;
+  inStock?: string;
+  freeShipping?: string;
+  onSale?: string;
+  basePath: string;
+  showCategoryFilter: boolean;
   compact?: boolean;
 }) {
   const t = useTranslations();
@@ -312,6 +385,9 @@ function SearchFilterSidebar(props: {
     minPrice: props.minPrice,
     maxPrice: props.maxPrice,
     rating: props.rating,
+    inStock: props.inStock,
+    freeShipping: props.freeShipping,
+    onSale: props.onSale,
     sort: props.sort,
     brandId: props.brandId,
     attributeFilters: props.attributeFilters,
@@ -324,28 +400,31 @@ function SearchFilterSidebar(props: {
         {t("product.searchFilter")}
       </div>
 
-      <FilterBlock title={t("product.category")}>
+      {props.showCategoryFilter ? <FilterBlock title={t("product.category")}>
         <div className="space-y-1">
-          <FilterLink active={!props.categoryId} href={buildSearchHref(base)}>{t("product.allCategories")}</FilterLink>
+          <FilterLink active={!props.categoryId} href={buildSearchHref(base, props.basePath)}>{t("product.allCategories")}</FilterLink>
           {props.categories.map((category) => (
             <FilterLink
               key={category.slug}
               active={props.categoryId === category.slug}
-              href={buildSearchHref({ ...base, categoryId: category.slug })}
+              href={buildSearchHref({ ...base, categoryId: category.slug }, props.basePath)}
             >
               {category.name}
             </FilterLink>
           ))}
         </div>
-      </FilterBlock>
+      </FilterBlock> : null}
 
       <FilterBlock title={t("product.priceRange")}>
-        <form action="/search" className="space-y-2">
+        <form action={props.basePath} className="space-y-2">
           <input type="hidden" name="q" value={props.query} />
           {props.categoryId ? <input type="hidden" name="categoryId" value={props.categoryId} /> : null}
           {props.brandId ? <input type="hidden" name="brandId" value={props.brandId} /> : null}
           {props.attributeFilters ? <input type="hidden" name="attributeFilters" value={props.attributeFilters} /> : null}
           {props.rating ? <input type="hidden" name="rating" value={props.rating} /> : null}
+          {props.inStock ? <input type="hidden" name="inStock" value={props.inStock} /> : null}
+          {props.freeShipping ? <input type="hidden" name="freeShipping" value={props.freeShipping} /> : null}
+          {props.onSale ? <input type="hidden" name="onSale" value={props.onSale} /> : null}
           <input type="hidden" name="sort" value={props.sort} />
           <div className="grid grid-cols-2 gap-2">
             <Input name="minPrice" defaultValue={props.minPrice} inputMode="numeric" placeholder={t("product.min")} className="h-9 rounded-xl" />
@@ -357,9 +436,9 @@ function SearchFilterSidebar(props: {
 
       <FilterBlock title="Brand">
         <div className="space-y-1">
-          <FilterLink active={!props.brandId} href={buildSearchHref({ ...base, brandId: undefined })}>All brands</FilterLink>
+          <FilterLink active={!props.brandId} href={buildSearchHref({ ...base, brandId: undefined }, props.basePath)}>All brands</FilterLink>
           {props.brands.map((brand) => (
-            <FilterLink key={brand.id} active={props.brandId === brand.id} href={buildSearchHref({ ...base, brandId: brand.id })}>
+            <FilterLink key={brand.id} active={props.brandId === brand.id} href={buildSearchHref({ ...base, brandId: brand.id }, props.basePath)}>
               {brand.name}
             </FilterLink>
           ))}
@@ -367,10 +446,17 @@ function SearchFilterSidebar(props: {
       </FilterBlock>
 
       <FilterBlock title="Specifications">
-        <form action="/search" className="space-y-2">
+        <form action={props.basePath} className="space-y-2">
           <input type="hidden" name="q" value={props.query} />
           {props.categoryId ? <input type="hidden" name="categoryId" value={props.categoryId} /> : null}
           {props.brandId ? <input type="hidden" name="brandId" value={props.brandId} /> : null}
+          {props.minPrice ? <input type="hidden" name="minPrice" value={props.minPrice} /> : null}
+          {props.maxPrice ? <input type="hidden" name="maxPrice" value={props.maxPrice} /> : null}
+          {props.rating ? <input type="hidden" name="rating" value={props.rating} /> : null}
+          {props.inStock ? <input type="hidden" name="inStock" value={props.inStock} /> : null}
+          {props.freeShipping ? <input type="hidden" name="freeShipping" value={props.freeShipping} /> : null}
+          {props.onSale ? <input type="hidden" name="onSale" value={props.onSale} /> : null}
+          <input type="hidden" name="sort" value={props.sort} />
           <label htmlFor="attributeFilters" className="text-xs font-medium text-slate-600">Attribute filters</label>
           <Input id="attributeFilters" name="attributeFilters" defaultValue={props.attributeFilters} placeholder="color:black" className="h-9 rounded-xl" />
           <Button type="submit" size="sm" variant="outline" className="w-full rounded-full">Apply specifications</Button>
@@ -380,7 +466,7 @@ function SearchFilterSidebar(props: {
       <FilterBlock title={t("product.rating")}>
         <div className="space-y-1">
           {[5, 4, 3].map((value) => (
-            <FilterLink key={value} active={props.rating === String(value)} href={buildSearchHref({ ...base, categoryId: props.categoryId, rating: String(value) })}>
+            <FilterLink key={value} active={props.rating === String(value)} href={buildSearchHref({ ...base, categoryId: props.showCategoryFilter ? props.categoryId : undefined, rating: String(value) }, props.basePath)}>
               <span className="inline-flex items-center gap-1">
                 {Array.from({ length: value }).map((_, index) => <StarIcon key={index} className="size-3 fill-amber-400 text-amber-400" />)}
                 & {t("product.up")}
@@ -391,22 +477,19 @@ function SearchFilterSidebar(props: {
       </FilterBlock>
 
       <FilterBlock title={t("product.servicePromotion")}>
-        <label className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-slate-600">
-          <input type="checkbox" className="size-4 rounded border-slate-300 accent-orange-600" />
-          {t("product.shopeeMall")}
-        </label>
-        <label className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-slate-600">
-          <input type="checkbox" className="size-4 rounded border-slate-300 accent-orange-600" />
+        <FilterLink active={props.inStock === "true"} href={buildSearchHref({ ...base, inStock: props.inStock === "true" ? undefined : "true" }, props.basePath)}>
+          {t("product.inStock")}
+        </FilterLink>
+        <FilterLink active={props.freeShipping === "true"} href={buildSearchHref({ ...base, freeShipping: props.freeShipping === "true" ? undefined : "true" }, props.basePath)}>
           {t("product.freeShipping")}
-        </label>
-        <label className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm text-slate-600">
-          <input type="checkbox" className="size-4 rounded border-slate-300 accent-orange-600" />
+        </FilterLink>
+        <FilterLink active={props.onSale === "true"} href={buildSearchHref({ ...base, onSale: props.onSale === "true" ? undefined : "true" }, props.basePath)}>
           {t("product.onSale")}
-        </label>
+        </FilterLink>
       </FilterBlock>
 
       <Button variant="outline" className="w-full rounded-full" asChild>
-        <Link href={buildSearchHref({ q: props.query })}>{t("product.clearFilters")}</Link>
+        <Link href={buildSearchHref({ q: props.query }, props.basePath)}>{t("product.clearFilters")}</Link>
       </Button>
     </aside>
   );
@@ -420,7 +503,11 @@ function SortTabs(props: {
   minPrice?: string;
   maxPrice?: string;
   rating?: string;
+  inStock?: string;
+  freeShipping?: string;
+  onSale?: string;
   sort: string;
+  basePath: string;
 }) {
   const t = useTranslations();
   const sorts = [
@@ -429,6 +516,7 @@ function SortTabs(props: {
     ["best_selling", t("product.topSales")],
     ["price_asc", t("product.priceLow")],
     ["price_desc", t("product.priceHigh")],
+    ["rating", t("product.rating")],
   ] as const;
 
   return (
@@ -441,7 +529,7 @@ function SortTabs(props: {
           className={props.sort === value ? "rounded-full bg-orange-600 hover:bg-orange-700" : "rounded-full"}
           asChild
         >
-          <Link href={buildSearchHref({ q: props.query, categoryId: props.categoryId, brandId: props.brandId, attributeFilters: props.attributeFilters, minPrice: props.minPrice, maxPrice: props.maxPrice, rating: props.rating, sort: value })}>{label}</Link>
+          <Link href={buildSearchHref({ q: props.query, categoryId: props.categoryId, brandId: props.brandId, attributeFilters: props.attributeFilters, minPrice: props.minPrice, maxPrice: props.maxPrice, rating: props.rating, inStock: props.inStock, freeShipping: props.freeShipping, onSale: props.onSale, sort: value }, props.basePath)}>{label}</Link>
         </Button>
       ))}
     </div>
@@ -492,11 +580,39 @@ function sortProducts(products: BuyerProduct[], sort: string): BuyerProduct[] {
   }
 }
 
-function buildSearchHref(params: Record<string, string | undefined>) {
+function buildActiveFilters(
+  params: Record<string, string | undefined>,
+  categories: Array<{ slug: string; name: string }>,
+  brands: Array<{ id: string; name: string }>,
+  basePath: string,
+) {
+  const labels: Array<{ key: string; label: string; href: string }> = [];
+  const add = (key: string, label: string) => labels.push({
+    key,
+    label,
+    href: buildSearchHref({ ...params, [key]: undefined }, basePath),
+  });
+  if (params.categoryId) add("categoryId", categories.find((category) => category.slug === params.categoryId)?.name ?? params.categoryId);
+  if (params.brandId) add("brandId", brands.find((brand) => brand.id === params.brandId)?.name ?? params.brandId);
+  if (params.attributeFilters) add("attributeFilters", params.attributeFilters);
+  if (params.minPrice || params.maxPrice) labels.push({
+    key: "price",
+    label: `${params.minPrice ?? "0"} - ${params.maxPrice ?? "*"}`,
+    href: buildSearchHref({ ...params, minPrice: undefined, maxPrice: undefined }, basePath),
+  });
+  if (params.rating) add("rating", `${params.rating}+ stars`);
+  if (params.inStock === "true") add("inStock", "In stock");
+  if (params.freeShipping === "true") add("freeShipping", "Free shipping");
+  if (params.onSale === "true") add("onSale", "On sale");
+  if (params.sort && params.sort !== "relevance") add("sort", `Sort: ${params.sort.replaceAll("_", " ")}`);
+  return labels;
+}
+
+function buildSearchHref(params: Record<string, string | undefined>, basePath = "/search") {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value) query.set(key, value);
   }
   const serialized = query.toString();
-  return serialized ? `/search?${serialized}` : "/search";
+  return serialized ? `${basePath}?${serialized}` : basePath;
 }
