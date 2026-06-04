@@ -13,6 +13,7 @@ const setCategoryActive = vi.fn();
 const createSpec = vi.fn();
 const updateSpec = vi.fn();
 const setSpecActive = vi.fn();
+let adminCategorySpecsError: unknown = null;
 
 const categories = [
   { id: "cat_1", parentId: null, name: "Fashion", nameTh: null, nameEn: "Fashion", slug: "fashion", sortOrder: 1, isActive: true, createdAt: new Date(), updatedAt: new Date() },
@@ -30,7 +31,7 @@ function mutation(fn = mutateAsync) {
 
 vi.mock("../hooks/useCatalog", () => ({
   useAdminCategories: () => ({ data: categories, isLoading: false, error: null }),
-  useAdminCategorySpecs: () => ({ data: specs, isLoading: false, error: null }),
+  useAdminCategorySpecs: () => ({ data: specs, isLoading: false, error: adminCategorySpecsError }),
   useCreateAdminCategory: () => mutation(mutateAsync),
   useUpdateAdminCategory: () => mutation(updateCategory),
   useSetAdminCategoryActive: () => mutation(setCategoryActive),
@@ -74,6 +75,7 @@ vi.mock("#/components/ui/table", () => ({
 }));
 
 beforeEach(() => {
+  adminCategorySpecsError = null;
   mutateAsync.mockResolvedValue({});
   updateCategory.mockResolvedValue(categories[0]);
   setCategoryActive.mockResolvedValue({ ...categories[1], isActive: true });
@@ -98,6 +100,23 @@ describe("AdminCategorySpecsManager", () => {
     expect(screen.getByLabelText("Category name")).toHaveProperty("disabled", false);
     expect(screen.getByRole("button", { name: /save category/i })).toHaveProperty("disabled", false);
     expect(screen.queryByText(/mutation APIs are not mounted/i)).toBeNull();
+    expect(screen.queryByText("[object Object]")).toBeNull();
+  });
+
+  it("normalizes object-shaped spec query errors instead of rendering object strings", () => {
+    adminCategorySpecsError = {
+      value: {
+        error: {
+          code: "NOT_FOUND",
+          message: { detail: "Category specs endpoint failed" },
+        },
+      },
+    };
+
+    render(<AdminCategorySpecsManager />);
+
+    expect(screen.queryByText("[object Object]")).toBeNull();
+    expect(screen.getByText(/Category specs endpoint failed/i)).toBeTruthy();
   });
 
   it("submits category updates and active state changes", async () => {

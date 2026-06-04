@@ -55,10 +55,36 @@ const emptySpecForm: SpecForm = {
   sortOrder: "0",
 };
 
-function errorText(error: unknown) {
+function errorText(error: unknown): string {
   if (!error) return "";
-  if (error instanceof Error) return error.message;
-  if (typeof error === "object" && "message" in error) return String((error as { message?: unknown }).message);
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message || "Request failed.";
+  if (typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const candidates = [
+      record.message,
+      (record.error as { message?: unknown } | undefined)?.message,
+      (record.value as { message?: unknown } | undefined)?.message,
+      (record.value as { error?: { message?: unknown } } | undefined)?.error?.message,
+      (record.data as { error?: { message?: unknown }; message?: unknown } | undefined)?.error?.message,
+      (record.data as { error?: { message?: unknown }; message?: unknown } | undefined)?.message,
+    ];
+
+    for (const candidate of candidates) {
+      const text: string = errorText(candidate);
+      if (text) return text;
+    }
+
+    const code = typeof record.code === "string" ? record.code : typeof record.status === "number" ? String(record.status) : "";
+    if (code) return `Request failed (${code}).`;
+
+    try {
+      const serialized = JSON.stringify(error);
+      if (serialized && serialized !== "{}") return serialized;
+    } catch {
+      return "Request failed.";
+    }
+  }
   return "Request failed.";
 }
 
