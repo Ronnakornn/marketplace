@@ -23,6 +23,19 @@ const CategoryResponseSchema = t.Object({
   sortOrder: t.Number(),
 })
 
+const AdminCategoryResponseSchema = t.Object({
+  id: t.String({ format: 'uuid' }),
+  parentId: t.Nullable(t.String({ format: 'uuid' })),
+  name: t.String(),
+  nameTh: t.Nullable(t.String()),
+  nameEn: t.Nullable(t.String()),
+  slug: t.String(),
+  sortOrder: t.Number(),
+  isActive: t.Boolean(),
+  createdAt: t.Date(),
+  updatedAt: t.Date(),
+})
+
 const BrandResponseSchema = t.Object({
   id: t.String({ format: 'uuid' }),
   name: t.String(),
@@ -43,6 +56,10 @@ const ShopProductsParamsSchema = t.Object({
 
 const ProductParamsSchema = t.Object({
   productId: t.String({ format: 'uuid' }),
+})
+
+const CategoryParamsSchema = t.Object({
+  categoryId: t.String({ format: 'uuid' }),
 })
 
 const ProductVariantParamsSchema = t.Object({
@@ -136,6 +153,26 @@ const UpdateProductBodySchema = t.Partial(t.Composite([
     brandId: t.Nullable(t.String({ format: 'uuid' })),
   }),
 ]))
+
+const CategoryBodySchema = t.Object({
+  parentId: t.Optional(t.Nullable(t.String({ format: 'uuid' }))),
+  name: t.String({ minLength: 1 }),
+  nameTh: t.Optional(t.Nullable(t.String())),
+  nameEn: t.Optional(t.Nullable(t.String())),
+  slug: t.Optional(t.String({ minLength: 1 })),
+  sortOrder: t.Optional(t.Number({ minimum: 0 })),
+  isActive: t.Optional(t.Boolean()),
+})
+
+const UpdateCategoryBodySchema = t.Partial(CategoryBodySchema)
+
+const ReorderCategoriesBodySchema = t.Object({
+  parentId: t.Optional(t.Nullable(t.String({ format: 'uuid' }))),
+  categories: t.Array(t.Object({
+    id: t.String({ format: 'uuid' }),
+    sortOrder: t.Optional(t.Number({ minimum: 0 })),
+  }), { minItems: 1 }),
+})
 
 const ProductImageBodySchema = t.Object({
   uploadId: t.Optional(t.Nullable(t.String({ format: 'uuid' }))),
@@ -248,6 +285,41 @@ export function createCatalogRoutes(container: ServiceContainer) {
     .get('/api/categories', ({ query }: any) => container.catalogService.listCategories(query.locale), {
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
       response: t.Array(CategoryResponseSchema),
+    })
+    .get('/api/admin/categories', () => container.catalogService.listAdminCategories(), {
+      withRole: 'ADMIN',
+      response: t.Array(AdminCategoryResponseSchema),
+    })
+    .post('/api/admin/categories', ({ body }: any) =>
+      container.catalogService.createAdminCategory(body), {
+      withRole: 'ADMIN',
+      body: CategoryBodySchema,
+      response: AdminCategoryResponseSchema,
+    })
+    .patch('/api/admin/categories/:categoryId', ({ params, body }: any) =>
+      container.catalogService.updateAdminCategory(params.categoryId, body), {
+      withRole: 'ADMIN',
+      params: CategoryParamsSchema,
+      body: UpdateCategoryBodySchema,
+      response: AdminCategoryResponseSchema,
+    })
+    .patch('/api/admin/categories/:categoryId/deactivate', ({ params }: any) =>
+      container.catalogService.deactivateAdminCategory(params.categoryId), {
+      withRole: 'ADMIN',
+      params: CategoryParamsSchema,
+      response: AdminCategoryResponseSchema,
+    })
+    .patch('/api/admin/categories/:categoryId/reactivate', ({ params }: any) =>
+      container.catalogService.reactivateAdminCategory(params.categoryId), {
+      withRole: 'ADMIN',
+      params: CategoryParamsSchema,
+      response: AdminCategoryResponseSchema,
+    })
+    .put('/api/admin/categories/reorder', ({ body }: any) =>
+      container.catalogService.reorderAdminCategories(body), {
+      withRole: 'ADMIN',
+      body: ReorderCategoriesBodySchema,
+      response: t.Array(AdminCategoryResponseSchema),
     })
     .get('/api/brands', () => container.catalogService.listActiveBrands(), {
       response: t.Array(BrandResponseSchema),

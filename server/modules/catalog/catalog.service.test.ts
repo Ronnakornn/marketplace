@@ -220,6 +220,29 @@ function createVariant(overrides: Partial<{
   }
 }
 
+function createCategory(overrides: Partial<{
+  id: string
+  parentId: string | null
+  name: string
+  slug: string
+  sortOrder: number
+  isActive: boolean
+}> = {}): any {
+  const now = new Date('2026-05-12T00:00:00.000Z')
+  return {
+    id: overrides.id ?? '55555555-5555-4555-8555-555555555555',
+    parentId: overrides.parentId ?? null,
+    name: overrides.name ?? 'Fashion',
+    nameTh: null,
+    nameEn: null,
+    slug: overrides.slug ?? 'fashion',
+    sortOrder: overrides.sortOrder ?? 0,
+    isActive: overrides.isActive ?? true,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
 describe('CatalogService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -300,6 +323,108 @@ describe('CatalogService', () => {
     await service.getPublicProductDetail('22222222-2222-4222-8222-222222222222')
 
     expect(repo.findProductById).toHaveBeenCalledTimes(1)
+  })
+
+  it('lists only active public categories through the repository', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findActiveCategories).mockResolvedValue([createCategory({ isActive: true })])
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.listCategories()).resolves.toHaveLength(1)
+
+    expect(repo.findActiveCategories).toHaveBeenCalled()
+    expect(repo.findAdminCategories).not.toHaveBeenCalled()
+  })
+
+  it('creates admin categories with normalized unique slugs and parent validation', async () => {
+    const repo = createRepoMock()
+    const parent = createCategory({ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Root', slug: 'root' })
+    vi.mocked(repo.findAdminCategories).mockResolvedValue([parent])
+    vi.mocked(repo.createCategory).mockResolvedValue(createCategory({
+      id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      parentId: parent.id,
+      name: 'Mobile Phones',
+      slug: 'mobile-phones',
+    }))
+    const cacheInvalidation = { invalidateCatalogDiscoveryAndSearch: vi.fn(async () => 0) }
+    const service = new CatalogService(createAppContext(), repo, undefined, cacheInvalidation as any)
+
+    await service.createAdminCategory({
+      parentId: parent.id,
+      name: ' Mobile Phones ',
+      slug: ' Mobile Phones! ',
+    })
+
+    expect(repo.createCategory).toHaveBeenCalledWith(expect.objectContaining({
+      parentId: parent.id,
+      name: 'Mobile Phones',
+      slug: 'mobile-phones',
+    }))
+    expect(cacheInvalidation.invalidateCatalogDiscoveryAndSearch).toHaveBeenCalled()
+
+    await expect(service.createAdminCategory({ parentId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', name: 'Missing Parent' }))
+      .rejects.toMatchObject({ code: 'CATEGORY_PARENT_NOT_FOUND' })
+    await expect(service.createAdminCategory({ name: 'Duplicate', slug: 'ROOT' }))
+      .rejects.toMatchObject({ code: 'CATEGORY_SLUG_DUPLICATE' })
+  })
+
+  it('updates admin categories while rejecting parent cycles', async () => {
+    const repo = createRepoMock()
+    const root = createCategory({ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Root', slug: 'root' })
+    const child = createCategory({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', parentId: root.id, name: 'Child', slug: 'child' })
+    vi.mocked(repo.findAdminCategories).mockResolvedValue([root, child])
+    vi.mocked(repo.updateCategory).mockResolvedValue({ ...child, name: 'Updated Child' })
+    const cacheInvalidation = { invalidateCatalogDiscoveryAndSearch: vi.fn(async () => 0) }
+    const service = new CatalogService(createAppContext(), repo, undefined, cacheInvalidation as any)
+
+    await service.updateAdminCategory(child.id, { name: ' Updated Child ', slug: 'Updated Child' })
+
+    expect(repo.updateCategory).toHaveBeenCalledWith(child.id, expect.objectContaining({
+      name: 'Updated Child',
+      slug: 'updated-child',
+    }))
+    await expect(service.updateAdminCategory(root.id, { parentId: child.id }))
+      .rejects.toMatchObject({ code: 'CATEGORY_PARENT_CYCLE' })
+  })
+
+  it('deactivates and reactivates admin categories without deleting product references', async () => {
+    const repo = createRepoMock()
+    const category = createCategory()
+    vi.mocked(repo.findAdminCategories).mockResolvedValue([category])
+    vi.mocked(repo.updateCategoryActiveState).mockResolvedValue({ ...category, isActive: false })
+    const cacheInvalidation = { invalidateCatalogDiscoveryAndSearch: vi.fn(async () => 0) }
+    const service = new CatalogService(createAppContext(), repo, undefined, cacheInvalidation as any)
+
+    await service.deactivateAdminCategory(category.id)
+    vi.mocked(repo.updateCategoryActiveState).mockResolvedValue({ ...category, isActive: true })
+    await service.reactivateAdminCategory(category.id)
+
+    expect(repo.updateCategoryActiveState).toHaveBeenCalledWith(category.id, false)
+    expect(repo.updateCategoryActiveState).toHaveBeenCalledWith(category.id, true)
+    expect(repo.updateCategory).not.toHaveBeenCalledWith(category.id, expect.objectContaining({ product: expect.anything() }))
+  })
+
+  it('reorders only sibling admin categories', async () => {
+    const repo = createRepoMock()
+    const parentId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const siblingA = createCategory({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', parentId, name: 'A', slug: 'a' })
+    const siblingB = createCategory({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', parentId, name: 'B', slug: 'b' })
+    const other = createCategory({ id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', parentId: null, name: 'Other', slug: 'other' })
+    vi.mocked(repo.findAdminCategories).mockResolvedValue([createCategory({ id: parentId }), siblingA, siblingB, other])
+    vi.mocked(repo.reorderSiblingCategories).mockResolvedValue([siblingB, siblingA])
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.reorderAdminCategories({
+      parentId,
+      categories: [{ id: siblingB.id }, { id: siblingA.id, sortOrder: 2 }],
+    })
+
+    expect(repo.reorderSiblingCategories).toHaveBeenCalledWith(parentId, [
+      { id: siblingB.id, sortOrder: 0 },
+      { id: siblingA.id, sortOrder: 2 },
+    ])
+    await expect(service.reorderAdminCategories({ parentId, categories: [{ id: other.id }] }))
+      .rejects.toMatchObject({ code: 'CATEGORY_REORDER_SIBLING_MISMATCH' })
   })
 
   it('rejects inactive products from public detail', async () => {

@@ -14,6 +14,7 @@ import type {
   CatalogBrandListItem,
   CatalogProductImageRecord,
   CatalogProductVideoRecord,
+  CatalogAdminCategoryRecord,
   CatalogCategoryListItem,
   CatalogProductListItem,
   ICatalogRepository,
@@ -198,6 +199,34 @@ export interface SellerListProductsData extends PublicListProductsData {
   status?: ProductStatus
 }
 
+export interface CreateCategoryData {
+  parentId?: string | null
+  name: string
+  nameTh?: string | null
+  nameEn?: string | null
+  slug?: string
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface UpdateCategoryData {
+  parentId?: string | null
+  name?: string
+  nameTh?: string | null
+  nameEn?: string | null
+  slug?: string
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface ReorderCategoriesData {
+  parentId?: string | null
+  categories: Array<{
+    id: string
+    sortOrder?: number
+  }>
+}
+
 export class CatalogService {
   private logger: ILogger
 
@@ -222,6 +251,106 @@ export class CatalogService {
       { ttlSeconds: this.cache.ttl().product },
     )
     return categories.map((category) => this.localizeCategory(category, locale))
+  }
+
+  listAdminCategories(): Promise<CatalogAdminCategoryRecord[]> {
+    this.logger.debug('CatalogService.listAdminCategories')
+    return this.repo.findAdminCategories()
+  }
+
+  async createAdminCategory(data: CreateCategoryData): Promise<CatalogAdminCategoryRecord> {
+    this.logger.info('CatalogService.createAdminCategory', { parentId: data.parentId })
+    this.validateCategoryName(data.name)
+    this.validateOptionalSortOrder(data.sortOrder, 'Category sort order must be a non-negative integer')
+    const categories = await this.repo.findAdminCategories()
+    const parentId = this.normalizeNullableText(data.parentId)
+    this.assertCategoryParentExists(categories, parentId)
+    const slug = this.normalizeCategorySlug(data.slug ?? data.name)
+    this.assertCategorySlugAvailable(categories, slug)
+
+    const created = await this.handleUniqueConstraint(() =>
+      this.repo.createCategory({
+        parentId,
+        name: data.name.trim(),
+        ...(data.nameTh === undefined ? {} : { nameTh: this.normalizeNullableText(data.nameTh) }),
+        ...(data.nameEn === undefined ? {} : { nameEn: this.normalizeNullableText(data.nameEn) }),
+        slug,
+        ...(data.sortOrder === undefined ? {} : { sortOrder: data.sortOrder }),
+        ...(data.isActive === undefined ? {} : { isActive: data.isActive }),
+      }),
+    )
+    await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
+    return created
+  }
+
+  async updateAdminCategory(categoryId: string, data: UpdateCategoryData): Promise<CatalogAdminCategoryRecord> {
+    this.logger.info('CatalogService.updateAdminCategory', { categoryId })
+    if (Object.keys(data).length === 0) {
+      throw new CatalogServiceError('At least one category field is required', 400, 'CATEGORY_VALIDATION_FAILED')
+    }
+    if (data.name !== undefined) this.validateCategoryName(data.name)
+    this.validateOptionalSortOrder(data.sortOrder, 'Category sort order must be a non-negative integer')
+    const categories = await this.repo.findAdminCategories()
+    const existing = this.requireAdminCategory(categories, categoryId)
+    const parentId = data.parentId === undefined ? undefined : this.normalizeNullableText(data.parentId)
+    if (parentId !== undefined) {
+      if (parentId === existing.id) {
+        throw new CatalogServiceError('Category cannot be its own parent', 400, 'CATEGORY_PARENT_CYCLE')
+      }
+      this.assertCategoryParentExists(categories, parentId)
+      this.assertCategoryParentDoesNotCreateCycle(categories, existing.id, parentId)
+    }
+    const slug = data.slug === undefined ? undefined : this.normalizeCategorySlug(data.slug)
+    if (slug !== undefined) this.assertCategorySlugAvailable(categories, slug, existing.id)
+
+    const updated = await this.handleUniqueConstraint(() =>
+      this.repo.updateCategory(existing.id, {
+        ...(parentId === undefined ? {} : { parentId }),
+        ...(data.name === undefined ? {} : { name: data.name.trim() }),
+        ...(data.nameTh === undefined ? {} : { nameTh: this.normalizeNullableText(data.nameTh) }),
+        ...(data.nameEn === undefined ? {} : { nameEn: this.normalizeNullableText(data.nameEn) }),
+        ...(slug === undefined ? {} : { slug }),
+        ...(data.sortOrder === undefined ? {} : { sortOrder: data.sortOrder }),
+        ...(data.isActive === undefined ? {} : { isActive: data.isActive }),
+      }),
+    )
+    await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
+    return updated
+  }
+
+  async deactivateAdminCategory(categoryId: string): Promise<CatalogAdminCategoryRecord> {
+    return this.setAdminCategoryActiveState(categoryId, false)
+  }
+
+  async reactivateAdminCategory(categoryId: string): Promise<CatalogAdminCategoryRecord> {
+    return this.setAdminCategoryActiveState(categoryId, true)
+  }
+
+  async reorderAdminCategories(data: ReorderCategoriesData): Promise<CatalogAdminCategoryRecord[]> {
+    this.logger.info('CatalogService.reorderAdminCategories', { parentId: data.parentId, categoryCount: data.categories?.length })
+    if (!Array.isArray(data.categories) || data.categories.length === 0) {
+      throw new CatalogServiceError('Category reorder list is required', 400, 'CATEGORY_REORDER_INVALID')
+    }
+    const parentId = this.normalizeNullableText(data.parentId)
+    const categories = await this.repo.findAdminCategories()
+    this.assertCategoryParentExists(categories, parentId)
+    const seen = new Set<string>()
+    const reordered = data.categories.map((category, index) => {
+      if (seen.has(category.id)) throw new CatalogServiceError('Category reorder list contains duplicates', 400, 'CATEGORY_REORDER_INVALID')
+      seen.add(category.id)
+      const existing = this.requireAdminCategory(categories, category.id)
+      if (existing.parentId !== parentId) {
+        throw new CatalogServiceError('Only sibling categories can be reordered together', 400, 'CATEGORY_REORDER_SIBLING_MISMATCH')
+      }
+      const sortOrder = category.sortOrder ?? index
+      if (!Number.isInteger(sortOrder) || sortOrder < 0) {
+        throw new CatalogServiceError('Category sort order must be a non-negative integer', 400, 'CATEGORY_REORDER_INVALID')
+      }
+      return { id: category.id, sortOrder }
+    })
+    const result = await this.repo.reorderSiblingCategories(parentId, reordered)
+    await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
+    return result
   }
 
   listActiveBrands(): Promise<CatalogBrandListItem[]> {
@@ -859,6 +988,50 @@ export class CatalogService {
     }
   }
 
+  private validateCategoryName(name: string): void {
+    if (!name.trim()) throw new CatalogServiceError('Category name is required', 400, 'CATEGORY_VALIDATION_FAILED')
+  }
+
+  private validateOptionalSortOrder(sortOrder: number | undefined, message: string): void {
+    if (sortOrder !== undefined && (!Number.isInteger(sortOrder) || sortOrder < 0)) {
+      throw new CatalogServiceError(message, 400, 'CATEGORY_VALIDATION_FAILED')
+    }
+  }
+
+  private requireAdminCategory(categories: CatalogAdminCategoryRecord[], categoryId: string): CatalogAdminCategoryRecord {
+    const category = categories.find((item) => item.id === categoryId)
+    if (!category) throw new CatalogServiceError('Category not found', 404, 'CATEGORY_NOT_FOUND')
+    return category
+  }
+
+  private assertCategoryParentExists(categories: CatalogAdminCategoryRecord[], parentId: string | null): void {
+    if (!parentId) return
+    if (!categories.some((category) => category.id === parentId)) {
+      throw new CatalogServiceError('Parent category not found', 400, 'CATEGORY_PARENT_NOT_FOUND')
+    }
+  }
+
+  private assertCategorySlugAvailable(categories: CatalogAdminCategoryRecord[], slug: string, ignoredCategoryId?: string): void {
+    if (categories.some((category) => category.id !== ignoredCategoryId && category.slug.toLowerCase() === slug)) {
+      throw new CatalogServiceError('Category slug already exists', 409, 'CATEGORY_SLUG_DUPLICATE')
+    }
+  }
+
+  private assertCategoryParentDoesNotCreateCycle(categories: CatalogAdminCategoryRecord[], categoryId: string, parentId: string | null): void {
+    let currentParentId = parentId
+    const visited = new Set<string>()
+    while (currentParentId) {
+      if (currentParentId === categoryId) {
+        throw new CatalogServiceError('Category parent cannot create a cycle', 400, 'CATEGORY_PARENT_CYCLE')
+      }
+      if (visited.has(currentParentId)) {
+        throw new CatalogServiceError('Category tree already contains a cycle', 400, 'CATEGORY_PARENT_CYCLE')
+      }
+      visited.add(currentParentId)
+      currentParentId = categories.find((category) => category.id === currentParentId)?.parentId ?? null
+    }
+  }
+
   private localizeCategory(category: CatalogCategoryListItem, locale: ContentLocale): CatalogCategoryListItem {
     return {
       ...category,
@@ -973,6 +1146,15 @@ export class CatalogService {
       throw new CatalogServiceError('Active products require at least one active priced variant', 400, 'PRODUCT_PUBLISH_NOT_READY')
     }
     this.assertValidOptionMatrix(existing)
+  }
+
+  private async setAdminCategoryActiveState(categoryId: string, isActive: boolean): Promise<CatalogAdminCategoryRecord> {
+    this.logger.info('CatalogService.setAdminCategoryActiveState', { categoryId, isActive })
+    const categories = await this.repo.findAdminCategories()
+    const existing = this.requireAdminCategory(categories, categoryId)
+    const updated = await this.repo.updateCategoryActiveState(existing.id, isActive)
+    await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
+    return updated
   }
 
   private assertValidOptionMatrix(product: CatalogProductDetail): void {
@@ -1305,6 +1487,17 @@ export class CatalogService {
       .replace(/^-+|-+$/g, '')
 
     if (!slug) throw new CatalogServiceError('Product slug is required', 400, 'PRODUCT_VALIDATION_FAILED')
+    return slug
+  }
+
+  private normalizeCategorySlug(value: string): string {
+    const slug = value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+
+    if (!slug) throw new CatalogServiceError('Category slug is required', 400, 'CATEGORY_VALIDATION_FAILED')
     return slug
   }
 
