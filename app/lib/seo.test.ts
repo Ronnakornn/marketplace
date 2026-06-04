@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   absoluteUrl,
+  breadcrumbJsonLd,
   collectionPageJsonLd,
   formatSeoPriceCents,
   productJsonLd,
@@ -42,7 +43,7 @@ describe("SEO helpers", () => {
       noindex: true,
     });
 
-    expect(metadata.robots).toEqual({ index: false, follow: false });
+    expect(metadata.robots).toEqual({ index: false, follow: true });
   });
 
   it("builds Product JSON-LD with offers and aggregate rating", () => {
@@ -58,6 +59,7 @@ describe("SEO helpers", () => {
       currency: "USD",
       availability: "https://schema.org/InStock",
       shop: { id: "shop-1", name: "Demo Shop", slug: "demo-shop" },
+      brand: { name: "Demo Brand" },
       category: null,
       aggregateRating: { ratingValue: 4.8, reviewCount: 12 },
     });
@@ -72,12 +74,50 @@ describe("SEO helpers", () => {
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
       },
+      brand: {
+        "@type": "Brand",
+        name: "Demo Brand",
+      },
       aggregateRating: {
         "@type": "AggregateRating",
         ratingValue: 4.8,
         reviewCount: 12,
       },
     });
+  });
+
+  it("builds BreadcrumbList JSON-LD with absolute localized URLs", () => {
+    expect(breadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Fashion", path: "/categories/fashion" },
+    ])).toMatchObject({
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/th") },
+        { "@type": "ListItem", position: 2, name: "Fashion", item: absoluteUrl("/th/categories/fashion") },
+      ],
+    });
+  });
+
+  it("omits Product offers when no backed price exists", () => {
+    const data = productJsonLd({
+      id: "product-1",
+      title: "Canvas Bag",
+      description: "Durable canvas bag.",
+      slug: "canvas-bag",
+      updatedAt: new Date("2026-05-14T00:00:00.000Z"),
+      urlPath: "/products/product-1",
+      image: absoluteUrl("/logo512.png"),
+      price: null,
+      currency: "USD",
+      availability: "https://schema.org/OutOfStock",
+      shop: { id: "shop-1", name: "Demo Shop", slug: "demo-shop" },
+      brand: null,
+      category: null,
+      aggregateRating: null,
+    });
+
+    expect(data).not.toHaveProperty("offers");
   });
 
   it("builds public page JSON-LD shapes", () => {

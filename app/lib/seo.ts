@@ -62,7 +62,7 @@ export function publicPageMetadata(input: {
         locales.map((targetLocale) => [targetLocale, absoluteUrl(withLocale(input.path, targetLocale))]),
       ) as Record<Locale, string>,
     },
-    robots: input.noindex ? { index: false, follow: false } : { index: true, follow: true },
+    robots: input.noindex ? { index: false, follow: true } : { index: true, follow: true },
     openGraph: {
       title: input.title,
       description: input.description,
@@ -112,11 +112,23 @@ export async function getPublicProductSeo(productId: string) {
           isActive: true,
         },
       },
+      brand: {
+        select: {
+          name: true,
+        },
+      },
       shop: {
         select: {
           id: true,
           name: true,
           slug: true,
+        },
+      },
+      images: {
+        orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+        take: 1,
+        select: {
+          url: true,
         },
       },
       variants: {
@@ -161,11 +173,12 @@ export async function getPublicProductSeo(productId: string) {
     slug: product.slug,
     updatedAt: product.updatedAt,
     urlPath: `/products/${product.id}`,
-    image: resolveSeoImage(),
-    price: formatSeoPriceCents(firstVariant?.price),
-    currency: firstVariant?.currency ?? "USD",
+    image: resolveSeoImage(product.images[0]?.url),
+    price: firstVariant ? formatSeoPriceCents(firstVariant.price) : null,
+    currency: firstVariant?.currency ?? null,
     availability: availableStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
     shop: product.shop,
+    brand: product.brand,
     category: product.category?.isActive ? product.category : null,
     aggregateRating: ratingValue
       ? {
@@ -295,16 +308,19 @@ export function productJsonLd(product: Awaited<ReturnType<typeof requirePublicPr
     image: [product.image],
     brand: {
       "@type": "Brand",
-      name: product.shop.name,
+      name: product.brand?.name ?? product.shop.name,
     },
-    offers: {
+  };
+
+  if (product.price && product.currency) {
+    data.offers = {
       "@type": "Offer",
       url: absoluteUrl(product.urlPath),
       price: product.price,
       priceCurrency: product.currency,
       availability: product.availability,
-    },
-  };
+    };
+  }
 
   if (product.aggregateRating) {
     data.aggregateRating = {
@@ -348,5 +364,18 @@ export function collectionPageJsonLd(category: Awaited<ReturnType<typeof require
     name: `${category.name} products`,
     url: absoluteUrl(withLocale(`/categories/${category.slug}`, "th")),
     description: `Browse active ${category.name} products on ${getSiteName()}.`,
+  };
+}
+
+export function breadcrumbJsonLd(items: Array<{ name: string; path: string }>) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: absoluteUrl(withLocale(item.path, "th")),
+    })),
   };
 }

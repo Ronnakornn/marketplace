@@ -227,7 +227,7 @@ export function ProductListingPage({
           </div>
         ) : null}
 
-        <div className={mode !== "home" ? "grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]" : ""}>
+        <div className={mode !== "home" ? "grid min-w-0 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]" : ""}>
           {mode !== "home" ? (
             <>
               <div className="lg:hidden">
@@ -245,7 +245,7 @@ export function ProductListingPage({
             </>
           ) : null}
 
-          <section className="space-y-3">
+          <section className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-slate-950">{mode === "home" ? t("product.recommendedProducts") : resultTitle}</h2>

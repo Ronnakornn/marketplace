@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
 import { JsonLd } from "#/components/JsonLd";
 import { ProductListingPage } from "#/features/product";
-import { collectionPageJsonLd, getSiteName, publicPageMetadata, requirePublicCategorySeo } from "#/lib/seo";
+import { breadcrumbJsonLd, collectionPageJsonLd, getSiteName, publicPageMetadata, requirePublicCategorySeo } from "#/lib/seo";
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string; categoryId: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string; categoryId: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}): Promise<Metadata> {
   const { locale, categoryId } = await params;
+  const query = await searchParams;
   const category = await requirePublicCategorySeo(categoryId);
 
   return publicPageMetadata({
@@ -12,6 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     description: `Browse active ${category.name} products on ${getSiteName()}.`,
     path: `/categories/${category.slug}`,
     locale,
+    noindex: hasIndexUnsafeCategoryFilters(query),
   });
 }
 
@@ -39,6 +47,10 @@ export default async function CategoryPage({
   return (
     <>
       <JsonLd data={collectionPageJsonLd(category)} />
+      <JsonLd data={breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: category.name, path: `/categories/${category.slug}` },
+      ])} />
       <ProductListingPage
         mode="category"
         categoryId={category.slug}
@@ -53,5 +65,19 @@ export default async function CategoryPage({
         onSale={query.onSale}
       />
     </>
+  );
+}
+
+function hasIndexUnsafeCategoryFilters(query: Record<string, string | undefined>) {
+  return Boolean(
+    query.brandId
+      || query.attributeFilters
+      || query.minPrice
+      || query.maxPrice
+      || query.sort
+      || query.rating
+      || query.inStock
+      || query.freeShipping
+      || query.onSale,
   );
 }
