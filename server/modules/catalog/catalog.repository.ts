@@ -37,9 +37,69 @@ export type CatalogCategoryListItem = Pick<Category, 'id' | 'name' | 'slug' | 's
   nameEn?: string | null
 }
 
+export type CatalogAdminCategoryRecord = Pick<Category, 'id' | 'parentId' | 'name' | 'nameTh' | 'nameEn' | 'slug' | 'sortOrder' | 'isActive' | 'createdAt' | 'updatedAt'>
 export type CatalogCategorySpecRecord = CategoryAttributeDefinition
 export type CatalogCategoryWithSpecs = Pick<Category, 'id' | 'isActive'> & {
   attributeDefinitions: CatalogCategorySpecRecord[]
+}
+
+export interface CreateCategoryRecord {
+  parentId?: string | null
+  name: string
+  nameTh?: string | null
+  nameEn?: string | null
+  slug: string
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface UpdateCategoryRecord {
+  parentId?: string | null
+  name?: string
+  nameTh?: string | null
+  nameEn?: string | null
+  slug?: string
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface ReorderCategoryRecord {
+  id: string
+  sortOrder: number
+}
+
+export interface CreateCategorySpecRecord {
+  categoryId: string
+  attributeKey: string
+  displayName: string
+  displayNameTh?: string | null
+  displayNameEn?: string | null
+  valueType: CategoryAttributeDefinition['valueType']
+  isRequired?: boolean
+  isFilterable?: boolean
+  unit?: string | null
+  allowedValues?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface UpdateCategorySpecRecord {
+  attributeKey?: string
+  displayName?: string
+  displayNameTh?: string | null
+  displayNameEn?: string | null
+  valueType?: CategoryAttributeDefinition['valueType']
+  isRequired?: boolean
+  isFilterable?: boolean
+  unit?: string | null
+  allowedValues?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface ReorderCategorySpecRecord {
+  id: string
+  sortOrder: number
 }
 
 export type CatalogBrandListItem = Pick<Brand, 'id' | 'name' | 'nameTh' | 'nameEn' | 'slug' | 'code' | 'description' | 'descriptionTh' | 'descriptionEn' | 'logoUrl' | 'websiteUrl' | 'countryCode' | 'sortOrder' | 'isFeatured' | 'isActive'> & {
@@ -268,6 +328,16 @@ export type CatalogProductRecord = Omit<Product, 'titleTh' | 'titleEn' | 'descri
 export interface ICatalogRepository {
   findActiveCategories(): Promise<CatalogCategoryListItem[]>
   findCategoryWithSpecs(id: string): Promise<CatalogCategoryWithSpecs | null>
+  findAdminCategories(): Promise<CatalogAdminCategoryRecord[]>
+  createCategory(data: CreateCategoryRecord): Promise<CatalogAdminCategoryRecord>
+  updateCategory(id: string, data: UpdateCategoryRecord): Promise<CatalogAdminCategoryRecord>
+  updateCategoryActiveState(id: string, isActive: boolean): Promise<CatalogAdminCategoryRecord>
+  reorderSiblingCategories(parentId: string | null, categories: ReorderCategoryRecord[]): Promise<CatalogAdminCategoryRecord[]>
+  findAdminCategorySpecs(categoryId: string): Promise<CatalogCategorySpecRecord[]>
+  createCategorySpec(data: CreateCategorySpecRecord): Promise<CatalogCategorySpecRecord>
+  updateCategorySpec(id: string, data: UpdateCategorySpecRecord): Promise<CatalogCategorySpecRecord>
+  updateCategorySpecActiveState(id: string, isActive: boolean): Promise<CatalogCategorySpecRecord>
+  reorderCategorySpecs(categoryId: string, specs: ReorderCategorySpecRecord[]): Promise<CatalogCategorySpecRecord[]>
   findActiveBrands(): Promise<CatalogBrandListItem[]>
   findBrandById(id: string): Promise<CatalogBrandListItem | null>
   findShopById(id: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
@@ -292,6 +362,19 @@ export interface ICatalogRepository {
   findLatestModerationCase(productId: string): Promise<CatalogModerationCaseRecord | null>
   createModerationAction(productId: string, actorId: string, action: string, note?: string | null): Promise<CatalogModerationCaseRecord>
 }
+
+const adminCategorySelect = {
+  id: true,
+  parentId: true,
+  name: true,
+  nameTh: true,
+  nameEn: true,
+  slug: true,
+  sortOrder: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.CategorySelect
 
 const productInclude = {
   category: {
@@ -410,15 +493,134 @@ export class PrismaCatalogRepository implements ICatalogRepository {
 
   findCategoryWithSpecs(id: string): Promise<CatalogCategoryWithSpecs | null> {
     this.logger.debug('PrismaCatalogRepository.findCategoryWithSpecs', { id })
-    return this.prisma.category.findUnique({
-      where: { id },
+    return this.prisma.category.findFirst({
+      where: { id, isActive: true },
       select: {
         id: true,
         isActive: true,
         attributeDefinitions: {
-          orderBy: [{ sortOrder: 'asc' }, { attributeKey: 'asc' }],
+          where: { isActive: true },
+          orderBy: [{ sortOrder: 'asc' }, { attributeKey: 'asc' }, { id: 'asc' }],
         },
       },
+    })
+  }
+
+  findAdminCategories(): Promise<CatalogAdminCategoryRecord[]> {
+    this.logger.debug('PrismaCatalogRepository.findAdminCategories')
+    return this.prisma.category.findMany({
+      select: adminCategorySelect,
+      orderBy: [{ parentId: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+    })
+  }
+
+  createCategory(data: CreateCategoryRecord): Promise<CatalogAdminCategoryRecord> {
+    this.logger.info('PrismaCatalogRepository.createCategory', { slug: data.slug, parentId: data.parentId })
+    return this.prisma.category.create({
+      data,
+      select: adminCategorySelect,
+    })
+  }
+
+  updateCategory(id: string, data: UpdateCategoryRecord): Promise<CatalogAdminCategoryRecord> {
+    this.logger.info('PrismaCatalogRepository.updateCategory', { id })
+    return this.prisma.category.update({
+      where: { id },
+      data,
+      select: adminCategorySelect,
+    })
+  }
+
+  updateCategoryActiveState(id: string, isActive: boolean): Promise<CatalogAdminCategoryRecord> {
+    this.logger.info('PrismaCatalogRepository.updateCategoryActiveState', { id, isActive })
+    return this.prisma.category.update({
+      where: { id },
+      data: { isActive },
+      select: adminCategorySelect,
+    })
+  }
+
+  async reorderSiblingCategories(parentId: string | null, categories: ReorderCategoryRecord[]): Promise<CatalogAdminCategoryRecord[]> {
+    this.logger.info('PrismaCatalogRepository.reorderSiblingCategories', { parentId, categoryCount: categories.length })
+    return this.prisma.$transaction(async (tx) => {
+      const ids = categories.map((category) => category.id)
+      const existing = await tx.category.findMany({
+        where: {
+          id: { in: ids },
+          parentId,
+        },
+        select: { id: true },
+      })
+      if (existing.length !== ids.length) {
+        throw new Error('CATEGORY_REORDER_SIBLING_MISMATCH')
+      }
+      for (const category of categories) {
+        await tx.category.update({
+          where: { id: category.id },
+          data: { sortOrder: category.sortOrder },
+        })
+      }
+      return tx.category.findMany({
+        where: { parentId },
+        select: adminCategorySelect,
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+      })
+    })
+  }
+
+  findAdminCategorySpecs(categoryId: string): Promise<CatalogCategorySpecRecord[]> {
+    this.logger.debug('PrismaCatalogRepository.findAdminCategorySpecs', { categoryId })
+    return this.prisma.categoryAttributeDefinition.findMany({
+      where: { categoryId },
+      orderBy: [{ sortOrder: 'asc' }, { attributeKey: 'asc' }, { id: 'asc' }],
+    })
+  }
+
+  createCategorySpec(data: CreateCategorySpecRecord): Promise<CatalogCategorySpecRecord> {
+    this.logger.info('PrismaCatalogRepository.createCategorySpec', { categoryId: data.categoryId, attributeKey: data.attributeKey })
+    return this.prisma.categoryAttributeDefinition.create({ data })
+  }
+
+  updateCategorySpec(id: string, data: UpdateCategorySpecRecord): Promise<CatalogCategorySpecRecord> {
+    this.logger.info('PrismaCatalogRepository.updateCategorySpec', { id })
+    return this.prisma.categoryAttributeDefinition.update({
+      where: { id },
+      data,
+    })
+  }
+
+  updateCategorySpecActiveState(id: string, isActive: boolean): Promise<CatalogCategorySpecRecord> {
+    this.logger.info('PrismaCatalogRepository.updateCategorySpecActiveState', { id, isActive })
+    return this.prisma.categoryAttributeDefinition.update({
+      where: { id },
+      data: { isActive },
+    })
+  }
+
+  async reorderCategorySpecs(categoryId: string, specs: ReorderCategorySpecRecord[]): Promise<CatalogCategorySpecRecord[]> {
+    this.logger.info('PrismaCatalogRepository.reorderCategorySpecs', { categoryId, specCount: specs.length })
+    return this.prisma.$transaction(async (tx) => {
+      const ids = specs.map((spec) => spec.id)
+      const existing = await tx.categoryAttributeDefinition.findMany({
+        where: {
+          id: { in: ids },
+          categoryId,
+        },
+        select: { id: true },
+      })
+      if (existing.length !== ids.length) {
+        throw new Error('CATEGORY_SPEC_REORDER_CATEGORY_MISMATCH')
+      }
+      for (const spec of specs) {
+        await tx.categoryAttributeDefinition.update({
+          where: { id: spec.id },
+          data: { sortOrder: spec.sortOrder },
+        })
+      }
+      return tx.categoryAttributeDefinition.findMany({
+        where: { categoryId },
+        orderBy: [{ sortOrder: 'asc' }, { attributeKey: 'asc' }, { id: 'asc' }],
+      })
     })
   }
 

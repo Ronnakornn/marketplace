@@ -828,17 +828,22 @@ model CategoryAttributeDefinition {
   valueType     CategoryAttributeValueType
   isRequired    Boolean                    @default(false)
   isFilterable  Boolean                    @default(false)
+  unit          String?
   allowedValues Json?
   sortOrder     Int                        @default(0)
+  isActive      Boolean                    @default(true)
   createdAt     DateTime                   @default(now())
   updatedAt     DateTime                   @updatedAt
 
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@unique([categoryId, attributeKey])
+  @@index([categoryId, isActive, sortOrder])
   @@index([categoryId, sortOrder])
   @@index([categoryId, isRequired])
   @@index([categoryId, isFilterable])
+  @@index([categoryId, isActive, isRequired])
+  @@index([categoryId, isActive, isFilterable, sortOrder])
 }
 
 model Brand {
