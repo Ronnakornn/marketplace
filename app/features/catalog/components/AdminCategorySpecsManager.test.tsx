@@ -3,19 +3,42 @@
  */
 import type { ReactNode } from "react";
 import * as React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminCategorySpecsManager } from "./AdminCategorySpecsManager";
 
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({
-    data: [
-      { id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 1 },
-      { id: "cat_2", name: "Electronics", slug: "electronics", sortOrder: 2 },
-    ],
-    isLoading: false,
-    error: null,
-  }),
+const mutateAsync = vi.fn();
+const updateCategory = vi.fn();
+const setCategoryActive = vi.fn();
+const createSpec = vi.fn();
+const updateSpec = vi.fn();
+const setSpecActive = vi.fn();
+
+const categories = [
+  { id: "cat_1", parentId: null, name: "Fashion", nameTh: null, nameEn: "Fashion", slug: "fashion", sortOrder: 1, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: "cat_2", parentId: null, name: "Electronics", nameTh: null, nameEn: "Electronics", slug: "electronics", sortOrder: 2, isActive: false, createdAt: new Date(), updatedAt: new Date() },
+];
+
+const specs = [
+  { id: "spec_1", categoryId: "cat_1", attributeKey: "color", displayName: "Color", displayNameTh: null, displayNameEn: "Color", valueType: "TEXT", isRequired: true, isFilterable: true, unit: null, allowedValues: null, sortOrder: 1, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+  { id: "spec_2", categoryId: "cat_1", attributeKey: "material", displayName: "Material", displayNameTh: null, displayNameEn: "Material", valueType: "TEXT", isRequired: false, isFilterable: false, unit: null, allowedValues: null, sortOrder: 2, isActive: false, createdAt: new Date(), updatedAt: new Date() },
+];
+
+function mutation(fn = mutateAsync) {
+  return { mutateAsync: fn, isPending: false };
+}
+
+vi.mock("../hooks/useCatalog", () => ({
+  useAdminCategories: () => ({ data: categories, isLoading: false, error: null }),
+  useAdminCategorySpecs: () => ({ data: specs, isLoading: false, error: null }),
+  useCreateAdminCategory: () => mutation(mutateAsync),
+  useUpdateAdminCategory: () => mutation(updateCategory),
+  useSetAdminCategoryActive: () => mutation(setCategoryActive),
+  useReorderAdminCategories: () => mutation(mutateAsync),
+  useCreateAdminCategorySpec: () => mutation(createSpec),
+  useUpdateAdminCategorySpec: () => mutation(updateSpec),
+  useSetAdminCategorySpecActive: () => mutation(setSpecActive),
+  useReorderAdminCategorySpecs: () => mutation(mutateAsync),
 }));
 
 vi.mock("#/components/ui/badge", () => ({
@@ -50,25 +73,55 @@ vi.mock("#/components/ui/table", () => ({
   TableRow: ({ children, ...props }: React.HTMLAttributes<HTMLTableRowElement> & { children: ReactNode }) => <tr {...props}>{children}</tr>,
 }));
 
-vi.mock("#/features/product/queries", () => ({
-  normalizePublicCategories: (items: unknown) => items,
-  publicCategoriesQueryOptions: () => ({ queryKey: ["categories"], queryFn: vi.fn() }),
-}));
+beforeEach(() => {
+  mutateAsync.mockResolvedValue({});
+  updateCategory.mockResolvedValue(categories[0]);
+  setCategoryActive.mockResolvedValue({ ...categories[1], isActive: true });
+  createSpec.mockResolvedValue(specs[0]);
+  updateSpec.mockResolvedValue(specs[0]);
+  setSpecActive.mockResolvedValue({ ...specs[1], isActive: true });
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+});
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe("AdminCategorySpecsManager", () => {
-  it("renders active categories and keeps mutation controls disabled when APIs are unavailable", () => {
+  it("renders admin categories, inactive states, and editable mutation controls", () => {
     render(<AdminCategorySpecsManager />);
 
     expect(screen.getAllByText("Fashion").length).toBeGreaterThan(0);
-    expect(screen.getByText("Electronics")).toBeTruthy();
-    expect(screen.getByText(/mutation APIs are not mounted yet/i)).toBeTruthy();
+    expect(screen.getAllByText("Electronics").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Inactive").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Category name")).toHaveProperty("disabled", false);
+    expect(screen.getByRole("button", { name: /save category/i })).toHaveProperty("disabled", false);
+    expect(screen.queryByText(/mutation APIs are not mounted/i)).toBeNull();
+  });
 
-    expect(screen.getByLabelText("Category name")).toHaveProperty("disabled", true);
-    expect(screen.getByLabelText("Parent category")).toHaveProperty("disabled", true);
-    expect(screen.getByLabelText("Spec name")).toHaveProperty("disabled", true);
-    expect(screen.getByRole("button", { name: /add spec/i })).toHaveProperty("disabled", true);
-    expect(screen.getByRole("button", { name: /save draft/i })).toHaveProperty("disabled", true);
+  it("submits category updates and active state changes", async () => {
+    render(<AdminCategorySpecsManager />);
+
+    fireEvent.change(screen.getByLabelText("Category name"), { target: { value: "Fashion Updated" } });
+    fireEvent.click(screen.getByRole("button", { name: /save category/i }));
+
+    await waitFor(() => expect(updateCategory).toHaveBeenCalledWith(expect.objectContaining({ id: "cat_1", name: "Fashion Updated" })));
+
+    fireEvent.click(screen.getAllByRole("button", { name: /reactivate/i })[0]);
+    await waitFor(() => expect(setCategoryActive).toHaveBeenCalledWith({ id: "cat_2", isActive: true }));
+  });
+
+  it("edits specs and deactivates inactive-aware spec rows", async () => {
+    render(<AdminCategorySpecsManager />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /edit/i })[0]);
+    fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Color family" } });
+    fireEvent.click(screen.getByRole("button", { name: /save spec/i }));
+
+    await waitFor(() => expect(updateSpec).toHaveBeenCalledWith(expect.objectContaining({ id: "spec_1", categoryId: "cat_1", displayName: "Color family" })));
+
+    fireEvent.click(screen.getAllByRole("button", { name: /reactivate/i })[1]);
+    await waitFor(() => expect(setSpecActive).toHaveBeenCalledWith({ categoryId: "cat_1", id: "spec_2", isActive: true }));
   });
 });
