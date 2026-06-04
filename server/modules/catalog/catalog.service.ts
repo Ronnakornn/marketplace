@@ -15,6 +15,7 @@ import type {
   CatalogProductImageRecord,
   CatalogProductVideoRecord,
   CatalogAdminCategoryRecord,
+  CatalogCategorySpecRecord,
   CatalogCategoryListItem,
   CatalogProductListItem,
   ICatalogRepository,
@@ -227,6 +228,41 @@ export interface ReorderCategoriesData {
   }>
 }
 
+type CategorySpecType = 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'SELECT' | 'MULTI_SELECT'
+
+export interface CreateCategorySpecData {
+  attributeKey: string
+  displayName: string
+  displayNameTh?: string | null
+  displayNameEn?: string | null
+  type: CategorySpecType
+  isRequired?: boolean
+  isFilterable?: boolean
+  unit?: string | null
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface UpdateCategorySpecData {
+  attributeKey?: string
+  displayName?: string
+  displayNameTh?: string | null
+  displayNameEn?: string | null
+  type?: CategorySpecType
+  isRequired?: boolean
+  isFilterable?: boolean
+  unit?: string | null
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface ReorderCategorySpecsData {
+  specs: Array<{
+    id: string
+    sortOrder?: number
+  }>
+}
+
 export class CatalogService {
   private logger: ILogger
 
@@ -349,6 +385,81 @@ export class CatalogService {
       return { id: category.id, sortOrder }
     })
     const result = await this.repo.reorderSiblingCategories(parentId, reordered)
+    await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
+    return result
+  }
+
+  async listCategorySpecs(categoryId: string): Promise<CatalogCategorySpecRecord[]> {
+    this.logger.debug('CatalogService.listCategorySpecs', { categoryId })
+    const category = await this.repo.findCategoryWithSpecs(categoryId)
+    if (!category?.isActive) {
+      throw new CatalogServiceError('Category not found', 404, 'CATEGORY_NOT_FOUND')
+    }
+    return category.attributeDefinitions
+  }
+
+  async listAdminCategorySpecs(categoryId: string): Promise<CatalogCategorySpecRecord[]> {
+    this.logger.debug('CatalogService.listAdminCategorySpecs', { categoryId })
+    const categories = await this.repo.findAdminCategories()
+    this.requireAdminCategory(categories, categoryId)
+    return this.repo.findAdminCategorySpecs(categoryId)
+  }
+
+  async createAdminCategorySpec(categoryId: string, data: CreateCategorySpecData): Promise<CatalogCategorySpecRecord> {
+    this.logger.info('CatalogService.createAdminCategorySpec', { categoryId })
+    const categories = await this.repo.findAdminCategories()
+    this.requireAdminCategory(categories, categoryId)
+    const specs = await this.repo.findAdminCategorySpecs(categoryId)
+    const normalized = this.normalizeCreateCategorySpec(data, specs)
+    const created = await this.handleUniqueConstraint(() =>
+      this.repo.createCategorySpec({
+        categoryId,
+        ...normalized,
+      }),
+    )
+    await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
+    return created
+  }
+
+  async updateAdminCategorySpec(categoryId: string, specId: string, data: UpdateCategorySpecData): Promise<CatalogCategorySpecRecord> {
+    this.logger.info('CatalogService.updateAdminCategorySpec', { categoryId, specId })
+    if (Object.keys(data).length === 0) {
+      throw new CatalogServiceError('At least one category spec field is required', 400, 'CATEGORY_SPEC_VALIDATION_FAILED')
+    }
+    const specs = await this.repo.findAdminCategorySpecs(categoryId)
+    const existing = this.requireAdminCategorySpec(specs, specId)
+    const normalized = this.normalizeUpdateCategorySpec(data, specs, existing.id)
+    const updated = await this.handleUniqueConstraint(() => this.repo.updateCategorySpec(existing.id, normalized))
+    await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
+    return updated
+  }
+
+  async deactivateAdminCategorySpec(categoryId: string, specId: string): Promise<CatalogCategorySpecRecord> {
+    return this.setAdminCategorySpecActiveState(categoryId, specId, false)
+  }
+
+  async reactivateAdminCategorySpec(categoryId: string, specId: string): Promise<CatalogCategorySpecRecord> {
+    return this.setAdminCategorySpecActiveState(categoryId, specId, true)
+  }
+
+  async reorderAdminCategorySpecs(categoryId: string, data: ReorderCategorySpecsData): Promise<CatalogCategorySpecRecord[]> {
+    this.logger.info('CatalogService.reorderAdminCategorySpecs', { categoryId, specCount: data.specs?.length })
+    if (!Array.isArray(data.specs) || data.specs.length === 0) {
+      throw new CatalogServiceError('Category spec reorder list is required', 400, 'CATEGORY_SPEC_REORDER_INVALID')
+    }
+    const specs = await this.repo.findAdminCategorySpecs(categoryId)
+    const seen = new Set<string>()
+    const reordered = data.specs.map((spec, index) => {
+      if (seen.has(spec.id)) throw new CatalogServiceError('Category spec reorder list contains duplicates', 400, 'CATEGORY_SPEC_REORDER_INVALID')
+      seen.add(spec.id)
+      this.requireAdminCategorySpec(specs, spec.id)
+      const sortOrder = spec.sortOrder ?? index
+      if (!Number.isInteger(sortOrder) || sortOrder < 0) {
+        throw new CatalogServiceError('Category spec sort order must be a non-negative integer', 400, 'CATEGORY_SPEC_REORDER_INVALID')
+      }
+      return { id: spec.id, sortOrder }
+    })
+    const result = await this.repo.reorderCategorySpecs(categoryId, reordered)
     await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
     return result
   }
@@ -1032,6 +1143,77 @@ export class CatalogService {
     }
   }
 
+  private requireAdminCategorySpec(specs: CatalogCategorySpecRecord[], specId: string): CatalogCategorySpecRecord {
+    const spec = specs.find((item) => item.id === specId)
+    if (!spec) throw new CatalogServiceError('Category spec not found', 404, 'CATEGORY_SPEC_NOT_FOUND')
+    return spec
+  }
+
+  private normalizeCreateCategorySpec(data: CreateCategorySpecData, specs: CatalogCategorySpecRecord[]) {
+    const attributeKey = this.normalizeSpecAttributeKey(data.attributeKey)
+    const displayName = this.normalizeSpecDisplayName(data.displayName)
+    this.assertCategorySpecAttributeKeyAvailable(specs, attributeKey)
+    this.validateCategorySpecType(data.type)
+    this.validateOptionalSortOrder(data.sortOrder, 'Category spec sort order must be a non-negative integer')
+    return {
+      attributeKey,
+      displayName,
+      displayNameTh: this.normalizeNullableText(data.displayNameTh),
+      displayNameEn: this.normalizeNullableText(data.displayNameEn),
+      valueType: data.type,
+      ...(data.isRequired === undefined ? {} : { isRequired: data.isRequired }),
+      ...(data.isFilterable === undefined ? {} : { isFilterable: data.isFilterable }),
+      unit: this.normalizeNullableText(data.unit),
+      ...(data.sortOrder === undefined ? {} : { sortOrder: data.sortOrder }),
+      ...(data.isActive === undefined ? {} : { isActive: data.isActive }),
+    }
+  }
+
+  private normalizeUpdateCategorySpec(data: UpdateCategorySpecData, specs: CatalogCategorySpecRecord[], ignoredSpecId: string) {
+    const attributeKey = data.attributeKey === undefined ? undefined : this.normalizeSpecAttributeKey(data.attributeKey)
+    if (attributeKey !== undefined) this.assertCategorySpecAttributeKeyAvailable(specs, attributeKey, ignoredSpecId)
+    if (data.type !== undefined) this.validateCategorySpecType(data.type)
+    this.validateOptionalSortOrder(data.sortOrder, 'Category spec sort order must be a non-negative integer')
+    return {
+      ...(attributeKey === undefined ? {} : { attributeKey }),
+      ...(data.displayName === undefined ? {} : { displayName: this.normalizeSpecDisplayName(data.displayName) }),
+      ...(data.displayNameTh === undefined ? {} : { displayNameTh: this.normalizeNullableText(data.displayNameTh) }),
+      ...(data.displayNameEn === undefined ? {} : { displayNameEn: this.normalizeNullableText(data.displayNameEn) }),
+      ...(data.type === undefined ? {} : { valueType: data.type }),
+      ...(data.isRequired === undefined ? {} : { isRequired: data.isRequired }),
+      ...(data.isFilterable === undefined ? {} : { isFilterable: data.isFilterable }),
+      ...(data.unit === undefined ? {} : { unit: this.normalizeNullableText(data.unit) }),
+      ...(data.sortOrder === undefined ? {} : { sortOrder: data.sortOrder }),
+      ...(data.isActive === undefined ? {} : { isActive: data.isActive }),
+    }
+  }
+
+  private normalizeSpecAttributeKey(value: string): string {
+    try {
+      return this.normalizeAttributeKey(value)
+    } catch {
+      throw new CatalogServiceError('Category spec attribute key is required', 400, 'CATEGORY_SPEC_VALIDATION_FAILED')
+    }
+  }
+
+  private normalizeSpecDisplayName(value: string): string {
+    const displayName = value.trim()
+    if (!displayName) throw new CatalogServiceError('Category spec display name is required', 400, 'CATEGORY_SPEC_VALIDATION_FAILED')
+    return displayName
+  }
+
+  private validateCategorySpecType(type: string): void {
+    if (!['TEXT', 'NUMBER', 'BOOLEAN', 'SELECT', 'MULTI_SELECT'].includes(type)) {
+      throw new CatalogServiceError('Category spec type is invalid', 400, 'CATEGORY_SPEC_VALIDATION_FAILED')
+    }
+  }
+
+  private assertCategorySpecAttributeKeyAvailable(specs: CatalogCategorySpecRecord[], attributeKey: string, ignoredSpecId?: string): void {
+    if (specs.some((spec) => spec.id !== ignoredSpecId && spec.attributeKey.toLowerCase() === attributeKey)) {
+      throw new CatalogServiceError('Category spec attribute key already exists', 409, 'CATEGORY_SPEC_ATTRIBUTE_DUPLICATE')
+    }
+  }
+
   private localizeCategory(category: CatalogCategoryListItem, locale: ContentLocale): CatalogCategoryListItem {
     return {
       ...category,
@@ -1153,6 +1335,15 @@ export class CatalogService {
     const categories = await this.repo.findAdminCategories()
     const existing = this.requireAdminCategory(categories, categoryId)
     const updated = await this.repo.updateCategoryActiveState(existing.id, isActive)
+    await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
+    return updated
+  }
+
+  private async setAdminCategorySpecActiveState(categoryId: string, specId: string, isActive: boolean): Promise<CatalogCategorySpecRecord> {
+    this.logger.info('CatalogService.setAdminCategorySpecActiveState', { categoryId, specId, isActive })
+    const specs = await this.repo.findAdminCategorySpecs(categoryId)
+    const existing = this.requireAdminCategorySpec(specs, specId)
+    const updated = await this.repo.updateCategorySpecActiveState(existing.id, isActive)
     await this.cacheInvalidation?.invalidateCatalogDiscoveryAndSearch()
     return updated
   }

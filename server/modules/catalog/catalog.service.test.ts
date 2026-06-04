@@ -243,6 +243,28 @@ function createCategory(overrides: Partial<{
   }
 }
 
+function createCategorySpec(overrides: Record<string, unknown> = {}): any {
+  const now = new Date('2026-05-12T00:00:00.000Z')
+  return {
+    id: '66666666-6666-4666-8666-666666666666',
+    categoryId: '55555555-5555-4555-8555-555555555555',
+    attributeKey: 'color',
+    displayName: 'Color',
+    displayNameTh: null,
+    displayNameEn: null,
+    valueType: 'TEXT',
+    isRequired: false,
+    isFilterable: true,
+    unit: null,
+    allowedValues: null,
+    sortOrder: 0,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
+}
+
 describe('CatalogService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -425,6 +447,101 @@ describe('CatalogService', () => {
     ])
     await expect(service.reorderAdminCategories({ parentId, categories: [{ id: other.id }] }))
       .rejects.toMatchObject({ code: 'CATEGORY_REORDER_SIBLING_MISMATCH' })
+  })
+
+  it('lists public category specs through active category spec lookup only', async () => {
+    const repo = createRepoMock()
+    const spec = createCategorySpec({ isActive: true })
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({
+      id: spec.categoryId,
+      isActive: true,
+      attributeDefinitions: [spec],
+    })
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.listCategorySpecs(spec.categoryId)).resolves.toEqual([spec])
+
+    expect(repo.findCategoryWithSpecs).toHaveBeenCalledWith(spec.categoryId)
+    expect(repo.findAdminCategorySpecs).not.toHaveBeenCalled()
+  })
+
+  it('creates and updates admin category specs with normalized unique attribute keys', async () => {
+    const repo = createRepoMock()
+    const category = createCategory()
+    const existingSpec = createCategorySpec({ attributeKey: 'screen_size' })
+    vi.mocked(repo.findAdminCategories).mockResolvedValue([category])
+    vi.mocked(repo.findAdminCategorySpecs).mockResolvedValue([existingSpec])
+    vi.mocked(repo.createCategorySpec).mockResolvedValue(createCategorySpec({ attributeKey: 'material', displayName: 'Material' }))
+    vi.mocked(repo.updateCategorySpec).mockResolvedValue(createCategorySpec({ id: existingSpec.id, attributeKey: 'screen_size', displayName: 'Screen Size' }))
+    const cacheInvalidation = { invalidateCatalogDiscoveryAndSearch: vi.fn(async () => 0) }
+    const service = new CatalogService(createAppContext(), repo, undefined, cacheInvalidation as any)
+
+    await service.createAdminCategorySpec(category.id, {
+      attributeKey: ' Material ',
+      displayName: ' Material ',
+      type: 'TEXT',
+      isRequired: true,
+      isFilterable: true,
+      unit: ' cm ',
+    })
+    await service.updateAdminCategorySpec(category.id, existingSpec.id, {
+      displayName: ' Screen Size ',
+      type: 'NUMBER',
+      unit: ' inch ',
+    })
+
+    expect(repo.createCategorySpec).toHaveBeenCalledWith(expect.objectContaining({
+      categoryId: category.id,
+      attributeKey: 'material',
+      displayName: 'Material',
+      valueType: 'TEXT',
+      isRequired: true,
+      isFilterable: true,
+      unit: 'cm',
+    }))
+    expect(repo.updateCategorySpec).toHaveBeenCalledWith(existingSpec.id, expect.objectContaining({
+      displayName: 'Screen Size',
+      valueType: 'NUMBER',
+      unit: 'inch',
+    }))
+    expect(cacheInvalidation.invalidateCatalogDiscoveryAndSearch).toHaveBeenCalledTimes(2)
+
+    await expect(service.createAdminCategorySpec(category.id, {
+      attributeKey: 'Screen Size',
+      displayName: 'Duplicate',
+      type: 'TEXT',
+    })).rejects.toMatchObject({ code: 'CATEGORY_SPEC_ATTRIBUTE_DUPLICATE' })
+    await expect(service.createAdminCategorySpec(category.id, {
+      attributeKey: ' ',
+      displayName: 'Invalid',
+      type: 'TEXT',
+    })).rejects.toMatchObject({ code: 'CATEGORY_SPEC_VALIDATION_FAILED' })
+  })
+
+  it('deactivates, reactivates, and reorders admin category specs within the selected category', async () => {
+    const repo = createRepoMock()
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const specA = createCategorySpec({ id: '66666666-6666-4666-8666-666666666666', categoryId, attributeKey: 'color' })
+    const specB = createCategorySpec({ id: '77777777-7777-4777-8777-777777777777', categoryId, attributeKey: 'size' })
+    vi.mocked(repo.findAdminCategorySpecs).mockResolvedValue([specA, specB])
+    vi.mocked(repo.updateCategorySpecActiveState).mockResolvedValueOnce({ ...specA, isActive: false }).mockResolvedValueOnce({ ...specA, isActive: true })
+    vi.mocked(repo.reorderCategorySpecs).mockResolvedValue([specB, specA])
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.deactivateAdminCategorySpec(categoryId, specA.id)
+    await service.reactivateAdminCategorySpec(categoryId, specA.id)
+    await service.reorderAdminCategorySpecs(categoryId, { specs: [{ id: specB.id }, { id: specA.id, sortOrder: 3 }] })
+
+    expect(repo.updateCategorySpecActiveState).toHaveBeenCalledWith(specA.id, false)
+    expect(repo.updateCategorySpecActiveState).toHaveBeenCalledWith(specA.id, true)
+    expect(repo.reorderCategorySpecs).toHaveBeenCalledWith(categoryId, [
+      { id: specB.id, sortOrder: 0 },
+      { id: specA.id, sortOrder: 3 },
+    ])
+    await expect(service.reorderAdminCategorySpecs(categoryId, { specs: [{ id: specA.id }, { id: specA.id }] }))
+      .rejects.toMatchObject({ code: 'CATEGORY_SPEC_REORDER_INVALID' })
+    await expect(service.reorderAdminCategorySpecs(categoryId, { specs: [{ id: '88888888-8888-4888-8888-888888888888' }] }))
+      .rejects.toMatchObject({ code: 'CATEGORY_SPEC_NOT_FOUND' })
   })
 
   it('rejects inactive products from public detail', async () => {
@@ -667,6 +784,27 @@ describe('CatalogService', () => {
     await expect(service.submitProductReview(createActor(), product.id)).rejects.toMatchObject({
       code: 'PRODUCT_PUBLISH_NOT_READY',
     })
+  })
+
+  it('publish readiness ignores inactive required category specs from active-only repository lookup', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({
+      ownerId: 'seller-1',
+      categoryId: '55555555-5555-4555-8555-555555555555',
+      images: [{ id: 'img-1', isPrimary: true }],
+    })
+    product.variants = [createVariant({ productId: product.id, price: BigInt(1299) })]
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({
+      id: product.categoryId,
+      isActive: true,
+      attributeDefinitions: [],
+    } as any)
+    vi.mocked(repo.updateProduct).mockResolvedValue({ ...product, status: 'PENDING_REVIEW' })
+    vi.mocked(repo.createModerationAction).mockResolvedValue({} as any)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.submitProductReview(createActor(), product.id)).resolves.toMatchObject({ status: 'PENDING_REVIEW' })
   })
 
   it('creates product images only after seller ownership validation', async () => {

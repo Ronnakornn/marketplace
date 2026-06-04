@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import { CategoryAttributeDefinitionPlainInputCreate, CategoryAttributeDefinitionPlainInputUpdate } from '#generated/prismabox/CategoryAttributeDefinition.ts'
 import { ProductPlainInputCreate, ProductPlainInputUpdate } from '#generated/prismabox/Product.ts'
 import { ProductVariantPlainInputCreate, ProductVariantPlainInputUpdate } from '#generated/prismabox/ProductVariant.ts'
 import type { ServiceContainer } from '#server/context/app-context.ts'
@@ -36,6 +37,32 @@ const AdminCategoryResponseSchema = t.Object({
   updatedAt: t.Date(),
 })
 
+const CategorySpecTypeSchema = t.Union([
+  t.Literal('TEXT'),
+  t.Literal('NUMBER'),
+  t.Literal('BOOLEAN'),
+  t.Literal('SELECT'),
+  t.Literal('MULTI_SELECT'),
+])
+
+const CategorySpecResponseSchema = t.Object({
+  id: t.String({ format: 'uuid' }),
+  categoryId: t.String({ format: 'uuid' }),
+  attributeKey: t.String(),
+  displayName: t.String(),
+  displayNameTh: t.Nullable(t.String()),
+  displayNameEn: t.Nullable(t.String()),
+  valueType: CategorySpecTypeSchema,
+  isRequired: t.Boolean(),
+  isFilterable: t.Boolean(),
+  unit: t.Nullable(t.String()),
+  allowedValues: t.Nullable(t.Any()),
+  sortOrder: t.Number(),
+  isActive: t.Boolean(),
+  createdAt: t.Date(),
+  updatedAt: t.Date(),
+})
+
 const BrandResponseSchema = t.Object({
   id: t.String({ format: 'uuid' }),
   name: t.String(),
@@ -60,6 +87,11 @@ const ProductParamsSchema = t.Object({
 
 const CategoryParamsSchema = t.Object({
   categoryId: t.String({ format: 'uuid' }),
+})
+
+const CategorySpecParamsSchema = t.Object({
+  categoryId: t.String({ format: 'uuid' }),
+  specId: t.String({ format: 'uuid' }),
 })
 
 const ProductVariantParamsSchema = t.Object({
@@ -169,6 +201,27 @@ const UpdateCategoryBodySchema = t.Partial(CategoryBodySchema)
 const ReorderCategoriesBodySchema = t.Object({
   parentId: t.Optional(t.Nullable(t.String({ format: 'uuid' }))),
   categories: t.Array(t.Object({
+    id: t.String({ format: 'uuid' }),
+    sortOrder: t.Optional(t.Number({ minimum: 0 })),
+  }), { minItems: 1 }),
+})
+
+const CategorySpecBodySchema = t.Composite([
+  t.Omit(CategoryAttributeDefinitionPlainInputCreate, ['valueType', 'allowedValues']),
+  t.Object({
+    type: CategorySpecTypeSchema,
+  }),
+])
+
+const UpdateCategorySpecBodySchema = t.Composite([
+  t.Omit(CategoryAttributeDefinitionPlainInputUpdate, ['valueType', 'allowedValues']),
+  t.Object({
+    type: t.Optional(CategorySpecTypeSchema),
+  }),
+])
+
+const ReorderCategorySpecsBodySchema = t.Object({
+  specs: t.Array(t.Object({
     id: t.String({ format: 'uuid' }),
     sortOrder: t.Optional(t.Number({ minimum: 0 })),
   }), { minItems: 1 }),
@@ -320,6 +373,50 @@ export function createCatalogRoutes(container: ServiceContainer) {
       withRole: 'ADMIN',
       body: ReorderCategoriesBodySchema,
       response: t.Array(AdminCategoryResponseSchema),
+    })
+    .get('/api/categories/:categoryId/specs', ({ params }: any) =>
+      container.catalogService.listCategorySpecs(params.categoryId), {
+      params: CategoryParamsSchema,
+      response: t.Array(CategorySpecResponseSchema),
+    })
+    .get('/api/admin/categories/:categoryId/specs', ({ params }: any) =>
+      container.catalogService.listAdminCategorySpecs(params.categoryId), {
+      withRole: 'ADMIN',
+      params: CategoryParamsSchema,
+      response: t.Array(CategorySpecResponseSchema),
+    })
+    .post('/api/admin/categories/:categoryId/specs', ({ params, body }: any) =>
+      container.catalogService.createAdminCategorySpec(params.categoryId, body), {
+      withRole: 'ADMIN',
+      params: CategoryParamsSchema,
+      body: CategorySpecBodySchema,
+      response: CategorySpecResponseSchema,
+    })
+    .patch('/api/admin/categories/:categoryId/specs/:specId', ({ params, body }: any) =>
+      container.catalogService.updateAdminCategorySpec(params.categoryId, params.specId, body), {
+      withRole: 'ADMIN',
+      params: CategorySpecParamsSchema,
+      body: UpdateCategorySpecBodySchema,
+      response: CategorySpecResponseSchema,
+    })
+    .patch('/api/admin/categories/:categoryId/specs/:specId/deactivate', ({ params }: any) =>
+      container.catalogService.deactivateAdminCategorySpec(params.categoryId, params.specId), {
+      withRole: 'ADMIN',
+      params: CategorySpecParamsSchema,
+      response: CategorySpecResponseSchema,
+    })
+    .patch('/api/admin/categories/:categoryId/specs/:specId/reactivate', ({ params }: any) =>
+      container.catalogService.reactivateAdminCategorySpec(params.categoryId, params.specId), {
+      withRole: 'ADMIN',
+      params: CategorySpecParamsSchema,
+      response: CategorySpecResponseSchema,
+    })
+    .put('/api/admin/categories/:categoryId/specs/reorder', ({ params, body }: any) =>
+      container.catalogService.reorderAdminCategorySpecs(params.categoryId, body), {
+      withRole: 'ADMIN',
+      params: CategoryParamsSchema,
+      body: ReorderCategorySpecsBodySchema,
+      response: t.Array(CategorySpecResponseSchema),
     })
     .get('/api/brands', () => container.catalogService.listActiveBrands(), {
       response: t.Array(BrandResponseSchema),

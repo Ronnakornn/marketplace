@@ -30,10 +30,33 @@ function createCategory(overrides: Record<string, unknown> = {}) {
   }
 }
 
+function createCategorySpec(overrides: Record<string, unknown> = {}) {
+  const now = new Date('2026-05-12T00:00:00.000Z')
+  return {
+    id: '66666666-6666-4666-8666-666666666666',
+    categoryId: '55555555-5555-4555-8555-555555555555',
+    attributeKey: 'color',
+    displayName: 'Color',
+    displayNameTh: null,
+    displayNameEn: null,
+    valueType: 'TEXT',
+    isRequired: false,
+    isFilterable: true,
+    unit: null,
+    allowedValues: null,
+    sortOrder: 0,
+    isActive: true,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
+}
+
 function createContainer() {
   return {
     catalogService: {
       listCategories: vi.fn(async () => [createCategory()]),
+      listCategorySpecs: vi.fn(async () => [createCategorySpec({ isActive: true })]),
       listActiveBrands: vi.fn(async () => []),
       listPublicProducts: vi.fn(),
       getPublicProductDetail: vi.fn(),
@@ -47,6 +70,12 @@ function createContainer() {
       deactivateAdminCategory: vi.fn(async (id) => createCategory({ id, isActive: false })),
       reactivateAdminCategory: vi.fn(async (id) => createCategory({ id, isActive: true })),
       reorderAdminCategories: vi.fn(async () => [createCategory()]),
+      listAdminCategorySpecs: vi.fn(async () => [createCategorySpec({ isActive: false })]),
+      createAdminCategorySpec: vi.fn(async (categoryId, body) => createCategorySpec({ categoryId, ...body, valueType: body.type })),
+      updateAdminCategorySpec: vi.fn(async (categoryId, id, body) => createCategorySpec({ id, categoryId, ...body, valueType: body.type ?? 'TEXT' })),
+      deactivateAdminCategorySpec: vi.fn(async (categoryId, id) => createCategorySpec({ categoryId, id, isActive: false })),
+      reactivateAdminCategorySpec: vi.fn(async (categoryId, id) => createCategorySpec({ categoryId, id, isActive: true })),
+      reorderAdminCategorySpecs: vi.fn(async () => [createCategorySpec()]),
       listAdminProducts: vi.fn(),
       listModerationProducts: vi.fn(),
       getAdminProductDetail: vi.fn(),
@@ -163,5 +192,88 @@ describe('catalog admin category routes', () => {
     expect(response.status).toBe(200)
     expect(container.catalogService.listCategories).toHaveBeenCalled()
     expect(container.catalogService.listAdminCategories).not.toHaveBeenCalled()
+  })
+
+  it('routes public category spec reads through active-only listCategorySpecs', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+
+    const response = await createApp(container).handle(new Request('http://localhost/api/categories/55555555-5555-4555-8555-555555555555/specs'))
+
+    expect(response.status).toBe(200)
+    expect(container.catalogService.listCategorySpecs).toHaveBeenCalledWith('55555555-5555-4555-8555-555555555555')
+    expect(container.catalogService.listAdminCategorySpecs).not.toHaveBeenCalled()
+  })
+
+  it('rejects unauthenticated and non-admin category spec mutations', async () => {
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+
+    const unauthenticated = await createApp().handle(new Request('http://localhost/api/admin/categories/55555555-5555-4555-8555-555555555555/specs'))
+    expect(unauthenticated.status).toBe(401)
+
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext({ role: 'SELLER' }) as any)
+    const forbidden = await createApp().handle(new Request('http://localhost/api/admin/categories/55555555-5555-4555-8555-555555555555/specs', {
+      method: 'POST',
+      body: JSON.stringify({ attributeKey: 'Color', displayName: 'Color', type: 'TEXT' }),
+      headers: { 'content-type': 'application/json' },
+    }))
+    expect(forbidden.status).toBe(403)
+  })
+
+  it('routes admin category spec mutation requests to the service', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext() as any)
+    const app = createApp(container)
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const specId = '66666666-6666-4666-8666-666666666666'
+
+    const list = await app.handle(new Request(`http://localhost/api/admin/categories/${categoryId}/specs`))
+    const created = await app.handle(new Request(`http://localhost/api/admin/categories/${categoryId}/specs`, {
+      method: 'POST',
+      body: JSON.stringify({ attributeKey: ' Screen Size ', displayName: 'Screen Size', type: 'NUMBER', unit: 'inch' }),
+      headers: { 'content-type': 'application/json' },
+    }))
+    const updated = await app.handle(new Request(`http://localhost/api/admin/categories/${categoryId}/specs/${specId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ displayName: 'Updated', type: 'TEXT' }),
+      headers: { 'content-type': 'application/json' },
+    }))
+    const deactivated = await app.handle(new Request(`http://localhost/api/admin/categories/${categoryId}/specs/${specId}/deactivate`, { method: 'PATCH' }))
+    const reactivated = await app.handle(new Request(`http://localhost/api/admin/categories/${categoryId}/specs/${specId}/reactivate`, { method: 'PATCH' }))
+    const reordered = await app.handle(new Request(`http://localhost/api/admin/categories/${categoryId}/specs/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ specs: [{ id: specId }] }),
+      headers: { 'content-type': 'application/json' },
+    }))
+
+    expect(list.status).toBe(200)
+    expect(created.status).toBe(200)
+    expect(updated.status).toBe(200)
+    expect(deactivated.status).toBe(200)
+    expect(reactivated.status).toBe(200)
+    expect(reordered.status).toBe(200)
+    expect(container.catalogService.listAdminCategorySpecs).toHaveBeenCalledWith(categoryId)
+    expect(container.catalogService.createAdminCategorySpec).toHaveBeenCalledWith(categoryId, {
+      attributeKey: ' Screen Size ',
+      displayName: 'Screen Size',
+      type: 'NUMBER',
+      unit: 'inch',
+    })
+    expect(container.catalogService.updateAdminCategorySpec).toHaveBeenCalledWith(categoryId, specId, { displayName: 'Updated', type: 'TEXT' })
+    expect(container.catalogService.deactivateAdminCategorySpec).toHaveBeenCalledWith(categoryId, specId)
+    expect(container.catalogService.reactivateAdminCategorySpec).toHaveBeenCalledWith(categoryId, specId)
+    expect(container.catalogService.reorderAdminCategorySpecs).toHaveBeenCalledWith(categoryId, { specs: [{ id: specId }] })
+  })
+
+  it('validates admin category spec payload type values', async () => {
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext() as any)
+
+    const response = await createApp().handle(new Request('http://localhost/api/admin/categories/55555555-5555-4555-8555-555555555555/specs', {
+      method: 'POST',
+      body: JSON.stringify({ attributeKey: 'Color', displayName: 'Color', type: 'INVALID' }),
+      headers: { 'content-type': 'application/json' },
+    }))
+
+    expect(response.status).toBe(422)
   })
 })
