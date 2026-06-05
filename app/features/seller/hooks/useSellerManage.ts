@@ -18,6 +18,8 @@ export type SellerProduct = SellerProductsResponse extends { data: Array<infer T
 export type SellerProductDetail = Treaty.Data<ReturnType<ReturnType<typeof api.api.seller.products>["get"]>>;
 export type SellerInventoryResponse = Treaty.Data<ReturnType<typeof api.api.seller.inventory.get>>;
 export type SellerCategory = Treaty.Data<ReturnType<typeof api.api.categories.get>> extends Array<infer T> ? T : never;
+export type SellerCategorySpecsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.categories>["specs"]["get"]>>;
+export type SellerCategorySpec = SellerCategorySpecsResponse extends Array<infer T> ? T : never;
 export type SellerBrand = Treaty.Data<ReturnType<typeof api.api.seller.brands.get>> extends Array<infer T> ? T : never;
 export type SellerProductImage = SellerProduct extends { images: Array<infer T> } ? T : never;
 export type SellerProductVideo = SellerProduct extends { video: infer T } ? NonNullable<T> : never;
@@ -196,6 +198,19 @@ export function useSellerCategories() {
       const { data, error } = await api.api.categories.get();
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+export function useSellerCategorySpecs(categoryId?: string | null) {
+  return useQuery({
+    queryKey: ["seller", "category-specs", categoryId ?? ""],
+    enabled: Boolean(categoryId),
+    queryFn: async (): Promise<SellerCategorySpecsResponse> => {
+      if (!categoryId) return [];
+      const { data, error } = await api.api.categories({ categoryId }).specs.get();
+      if (error) throw error;
+      return data ?? [];
     },
   });
 }

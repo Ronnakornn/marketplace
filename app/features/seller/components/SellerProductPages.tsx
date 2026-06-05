@@ -32,6 +32,7 @@ import {
   type SellerProductVideo,
   type SellerVariantInput,
   useArchiveSellerProduct,
+  useSellerCategorySpecs,
   useCreateSellerProduct,
   useCreateSellerVariant,
   useDeleteSellerProductImage,
@@ -394,8 +395,10 @@ function createPreviewUrl(file: File) {
   return typeof URL.createObjectURL === "function" ? URL.createObjectURL(file) : "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
 }
 
-function normalizeSpecDefinitions(category?: unknown, product?: SellerProduct | null): CategorySpecDefinition[] {
-  const categorySpecs = ((category as { attributeDefinitions?: CategorySpecDefinition[]; specs?: CategorySpecDefinition[] } | undefined)?.attributeDefinitions
+function normalizeSpecDefinitions(category?: unknown, product?: SellerProduct | null, fetchedSpecs?: CategorySpecDefinition[] | null): CategorySpecDefinition[] {
+  const categorySpecs = Array.isArray(fetchedSpecs)
+    ? fetchedSpecs
+    : ((category as { attributeDefinitions?: CategorySpecDefinition[]; specs?: CategorySpecDefinition[] } | undefined)?.attributeDefinitions
     ?? (category as { specs?: CategorySpecDefinition[] } | undefined)?.specs
     ?? []);
   if (categorySpecs.length) {
@@ -941,6 +944,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const [isDraggingImages, setIsDraggingImages] = useState(false);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const categorySpecsQuery = useSellerCategorySpecs(form.categoryId || null);
   const workingProduct = createdProduct ?? product;
   const workingProductId = workingProduct?.id ?? productId;
 
@@ -956,7 +960,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   }, [initialForm, mode, product?.id, seedProductId]);
 
   const selectedCategory = useMemo(() => (categoriesQuery.data ?? []).find((category) => category.id === form.categoryId) ?? workingProduct?.category ?? null, [categoriesQuery.data, form.categoryId, workingProduct?.category]);
-  const categorySpecs = useMemo(() => normalizeSpecDefinitions(selectedCategory, workingProduct), [selectedCategory, workingProduct]);
+  const categorySpecs = useMemo(() => normalizeSpecDefinitions(selectedCategory, workingProduct, categorySpecsQuery.data), [selectedCategory, workingProduct, categorySpecsQuery.data]);
   const requiredSpecs = useMemo(() => categorySpecs.filter((spec) => spec.isRequired), [categorySpecs]);
   const optionalSpecs = useMemo(() => categorySpecs.filter((spec) => !spec.isRequired), [categorySpecs]);
   const requiredSpecMissing = useMemo(() => getRequiredSpecMissing(form, categorySpecs), [form, categorySpecs]);
@@ -1510,7 +1514,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               </Field>
             </div>
             {!form.categoryId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Choose a category before submitting for review.</p> : null}
-            {form.categoryId && categoriesQuery.isLoading ? <p className="text-sm text-slate-500">Loading category specs...</p> : null}
+            {form.categoryId && (categoriesQuery.isLoading || categorySpecsQuery.isLoading) ? <p className="text-sm text-slate-500">Loading category specs...</p> : null}
             {requiredSpecs.length ? (
               <div className="space-y-3 rounded-lg border border-slate-200 p-3">
                 <div>

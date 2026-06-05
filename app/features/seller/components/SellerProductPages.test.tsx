@@ -121,6 +121,27 @@ let sellerProductsState: {
   isLoading: false,
 };
 
+const categorySpecDefinitions = [
+  { id: "spec_color", attributeKey: "color", displayName: "Color", valueType: "TEXT", isRequired: true, isFilterable: true, allowedValues: ["Blue", "Black"], sortOrder: 0 },
+  { id: "spec_weight", attributeKey: "weight", displayName: "Weight", valueType: "NUMBER", unit: "kg", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 1 },
+  { id: "spec_fragile", attributeKey: "fragile", displayName: "Fragile", valueType: "BOOLEAN", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 2 },
+  { id: "spec_material", attributeKey: "material", displayName: "Material", valueType: "MULTI_SELECT", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 3 },
+];
+
+let sellerCategories: Array<any> = [
+  {
+    id: "cat_1",
+    name: "Fashion",
+    slug: "fashion",
+    sortOrder: 0,
+    attributeDefinitions: categorySpecDefinitions,
+  },
+];
+
+let sellerCategorySpecsById: Record<string, Array<any> | undefined> = {
+  cat_1: undefined,
+};
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
 }));
@@ -225,20 +246,11 @@ vi.mock("../hooks/useSellerManage", () => ({
     refetch,
   })),
   useSellerCategories: vi.fn(() => ({
-    data: [
-      {
-        id: "cat_1",
-        name: "Fashion",
-        slug: "fashion",
-        sortOrder: 0,
-        attributeDefinitions: [
-          { id: "spec_color", attributeKey: "color", displayName: "Color", valueType: "TEXT", isRequired: true, isFilterable: true, allowedValues: ["Blue", "Black"], sortOrder: 0 },
-          { id: "spec_weight", attributeKey: "weight", displayName: "Weight", valueType: "NUMBER", unit: "kg", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 1 },
-          { id: "spec_fragile", attributeKey: "fragile", displayName: "Fragile", valueType: "BOOLEAN", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 2 },
-          { id: "spec_material", attributeKey: "material", displayName: "Material", valueType: "MULTI_SELECT", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 3 },
-        ],
-      },
-    ],
+    data: sellerCategories,
+    isLoading: false,
+  })),
+  useSellerCategorySpecs: vi.fn((categoryId?: string | null) => ({
+    data: categoryId ? sellerCategorySpecsById[categoryId] : undefined,
     isLoading: false,
   })),
   useSellerBrands: vi.fn(() => ({ data: [{ id: "brand_1", name: "Acme", slug: "acme", code: "ACME", isActive: true }], isLoading: false })),
@@ -263,6 +275,8 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   sellerProductsState = { data: { data: products, meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
+  sellerCategories = [{ id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 0, attributeDefinitions: categorySpecDefinitions }];
+  sellerCategorySpecsById = { cat_1: undefined };
 });
 
 describe("Seller product pages", () => {
@@ -354,6 +368,18 @@ describe("Seller product pages", () => {
     expect(screen.getByText("Choose true or false.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "True" }));
     expect(screen.getByText("Enter one or more values separated by commas.")).toBeTruthy();
+    expect(screen.getByLabelText("Material")).toBeInstanceOf(HTMLTextAreaElement);
+  });
+
+  it("renders category specs fetched from the category specs endpoint", () => {
+    sellerCategories = [{ id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 0 }];
+    sellerCategorySpecsById = { cat_1: categorySpecDefinitions };
+
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    const weight = screen.getByLabelText(/^Weight \(kg\)$/);
+    expect((weight as HTMLInputElement).type).toBe("number");
+    expect(screen.getByText("Choose true or false.")).toBeTruthy();
     expect(screen.getByLabelText("Material")).toBeInstanceOf(HTMLTextAreaElement);
   });
 
