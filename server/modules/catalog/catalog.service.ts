@@ -522,8 +522,10 @@ export class CatalogService {
   async listPublicProducts(filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
     this.logger.debug('CatalogService.listPublicProducts', { filters })
     const locale = resolveContentLocale(filters.locale)
+    const listFilters = this.normalizeListFilters(filters)
+    await this.validatePublicAttributeFilters(listFilters.categoryId, listFilters.attributeFilters)
     const normalizedFilters = {
-      ...this.normalizeListFilters(filters),
+      ...listFilters,
       status: 'ACTIVE',
       publicOnly: true,
     } as const
@@ -1832,6 +1834,35 @@ export class CatalogService {
       .map((pair) => ({ key: this.normalizeAttributeKey(pair.key), value: pair.value.trim() }))
       .filter((pair) => pair.key && pair.value)
     return attributeFilters.length > 0 ? { attributeFilters } : {}
+  }
+
+  private async validatePublicAttributeFilters(
+    categoryId: string | undefined,
+    attributeFilters: ReturnType<CatalogService['normalizeAttributeFilters']>['attributeFilters'],
+  ): Promise<void> {
+    if (!attributeFilters || attributeFilters.length === 0) return
+    if (!categoryId) {
+      throw new CatalogServiceError('Attribute filters require a category scope', 400, 'PRODUCT_SPEC_FILTER_INVALID')
+    }
+
+    const category = await this.repo.findCategoryWithSpecs(categoryId)
+    if (!category?.isActive) {
+      throw new CatalogServiceError('Attribute filter category scope is invalid', 400, 'PRODUCT_SPEC_FILTER_INVALID')
+    }
+
+    const filterableSpecKeys = new Set(
+      category.attributeDefinitions
+        .filter((spec) => spec.isActive && spec.isFilterable)
+        .map((spec) => spec.attributeKey.toLowerCase()),
+    )
+
+    for (const filter of attributeFilters) {
+      if (!filterableSpecKeys.has(filter.key)) {
+        throw new CatalogServiceError('Attribute filter is not allowed for this category', 400, 'PRODUCT_SPEC_FILTER_INVALID', {
+          attributeKey: filter.key,
+        })
+      }
+    }
   }
 
   private normalizeAttributeKey(value: string): string {

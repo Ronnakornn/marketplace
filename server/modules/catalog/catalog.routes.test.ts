@@ -350,4 +350,45 @@ describe('catalog admin category routes', () => {
     expect(updateResponse.status).toBe(400)
     expect(submitResponse.status).toBe(400)
   })
+
+  it('routes category-scoped public product filters with parsed attribute filters', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+    vi.mocked(container.catalogService.listPublicProducts).mockResolvedValueOnce({ data: [], meta: { nextCursor: null, hasNextPage: false } })
+
+    const response = await createApp(container).handle(new Request(
+      'http://localhost/api/categories/55555555-5555-4555-8555-555555555555/products?attributeFilters=color:red,screen%20size:6.1%20inch&brandId=44444444-4444-4444-8444-444444444444&minPrice=100&maxPrice=2000&limit=10',
+    ))
+
+    expect(response.status).toBe(200)
+    expect(container.catalogService.listPublicProducts).toHaveBeenCalledWith(expect.objectContaining({
+      categoryId: '55555555-5555-4555-8555-555555555555',
+      brandId: '44444444-4444-4444-8444-444444444444',
+      minPrice: 100,
+      maxPrice: 2000,
+      limit: 10,
+      attributes: [
+        { key: 'color', value: 'red' },
+        { key: 'screen size', value: '6.1 inch' },
+      ],
+    }))
+  })
+
+  it('returns stable public attribute filter validation errors from service failures', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+    vi.mocked(container.catalogService.listPublicProducts).mockRejectedValueOnce(
+      new CatalogServiceError('Attribute filters require a category scope', 400, 'PRODUCT_SPEC_FILTER_INVALID', { attributeKey: 'color' }),
+    )
+
+    const response = await createApp(container).handle(new Request('http://localhost/api/products?attributeFilters=color:red'))
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: 'PRODUCT_SPEC_FILTER_INVALID',
+        details: { attributeKey: 'color' },
+      },
+    })
+  })
 })

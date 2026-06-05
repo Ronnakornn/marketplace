@@ -307,15 +307,26 @@ describe('CatalogService', () => {
 
   it('passes public brand and filterable attribute filters to the repository', async () => {
     const repo = createRepoMock()
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({
+      id: categoryId,
+      isActive: true,
+      attributeDefinitions: [
+        createCategorySpec({ categoryId, attributeKey: 'color', isActive: true, isFilterable: true }),
+        createCategorySpec({ id: '66666666-6666-4666-8666-666666666667', categoryId, attributeKey: 'screen_size', isActive: true, isFilterable: true }),
+      ],
+    })
     vi.mocked(repo.findProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
     const service = new CatalogService(createAppContext(), repo)
 
     await service.listPublicProducts({
+      categoryId,
       brandId: '44444444-4444-4444-8444-444444444444',
       attributes: { Color: 'Red', 'Screen Size': '6.1 inch' },
     })
 
     expect(repo.findProducts).toHaveBeenCalledWith(expect.objectContaining({
+      categoryId,
       brandId: '44444444-4444-4444-8444-444444444444',
       attributeFilters: [
         { key: 'color', value: 'Red' },
@@ -324,6 +335,55 @@ describe('CatalogService', () => {
       status: 'ACTIVE',
       publicOnly: true,
     }))
+  })
+
+  it('rejects public attribute filters without category scope', async () => {
+    const repo = createRepoMock()
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.listPublicProducts({
+      attributes: { Color: 'Red' },
+    })).rejects.toMatchObject({
+      status: 400,
+      code: 'PRODUCT_SPEC_FILTER_INVALID',
+    })
+
+    expect(repo.findCategoryWithSpecs).not.toHaveBeenCalled()
+    expect(repo.findProducts).not.toHaveBeenCalled()
+  })
+
+  it('rejects unknown and non-filterable public attribute filters for scoped category', async () => {
+    const repo = createRepoMock()
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({
+      id: categoryId,
+      isActive: true,
+      attributeDefinitions: [
+        createCategorySpec({ categoryId, attributeKey: 'color', isActive: true, isFilterable: true }),
+        createCategorySpec({ id: '66666666-6666-4666-8666-666666666667', categoryId, attributeKey: 'internal_code', isActive: true, isFilterable: false }),
+      ],
+    })
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.listPublicProducts({
+      categoryId,
+      attributes: { Material: 'Cotton' },
+    })).rejects.toMatchObject({
+      status: 400,
+      code: 'PRODUCT_SPEC_FILTER_INVALID',
+      details: { attributeKey: 'material' },
+    })
+
+    await expect(service.listPublicProducts({
+      categoryId,
+      attributes: { 'Internal Code': 'A1' },
+    })).rejects.toMatchObject({
+      status: 400,
+      code: 'PRODUCT_SPEC_FILTER_INVALID',
+      details: { attributeKey: 'internal_code' },
+    })
+
+    expect(repo.findProducts).not.toHaveBeenCalled()
   })
 
   it('product list uses cache after first database fallback', async () => {

@@ -428,6 +428,22 @@ export function createCatalogRoutes(container: ServiceContainer) {
     .get('/api/products', listPublicProducts, {
       query: PublicListQuerySchema,
     })
+    .get('/api/categories/:categoryId/products', ({ params, query }: any) =>
+      container.catalogService.listPublicProducts({
+        keyword: query.keyword ?? query.q,
+        categoryId: params.categoryId,
+        brandId: query.brandId,
+        attributes: parseAttributeFilters(query.attributeFilters),
+        locale: query.locale,
+        shopId: query.shopId,
+        minPrice: query.minPrice ?? query.minPrice,
+        maxPrice: query.maxPrice ?? query.maxPrice,
+        cursor: query.cursor,
+        limit: query.limit,
+      }), {
+      params: CategoryParamsSchema,
+      query: PublicListQuerySchema,
+    })
     .get('/api/products/:productId', getPublicProductDetail, {
       params: IdParamsSchema,
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
