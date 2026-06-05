@@ -55,15 +55,17 @@ import {
 type ProductStatus = "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
 type VariantStatus = "ACTIVE" | "INACTIVE";
 type ProductStudioSectionId = "basics" | "category-specs" | "media" | "variants" | "inventory" | "review";
+type CategorySpecValueType = "TEXT" | "NUMBER" | "BOOLEAN" | "SELECT" | "MULTI_SELECT";
 type CategorySpecDefinition = {
   id?: string;
   attributeKey: string;
   displayName?: string | null;
   displayNameTh?: string | null;
   displayNameEn?: string | null;
-  valueType?: string | null;
+  valueType?: CategorySpecValueType | string | null;
   isRequired?: boolean | null;
   isFilterable?: boolean | null;
+  unit?: string | null;
   allowedValues?: unknown;
   sortOrder?: number | null;
 };
@@ -397,21 +399,44 @@ function normalizeSpecDefinitions(category?: unknown, product?: SellerProduct | 
     ?? (category as { specs?: CategorySpecDefinition[] } | undefined)?.specs
     ?? []);
   if (categorySpecs.length) {
-    return categorySpecs.filter((spec) => spec.attributeKey).sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
+    return categorySpecs
+      .filter((spec) => spec.attributeKey)
+      .map((spec) => ({ ...spec, valueType: normalizeSpecValueType(spec.valueType) }))
+      .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
   }
   return ((product?.attributes ?? []) as Array<{ attributeKey?: string; displayName?: string; isFilterable?: boolean; sortOrder?: number }>)
     .filter((attribute) => attribute.attributeKey || attribute.displayName)
     .map((attribute, index) => ({
       attributeKey: attribute.attributeKey ?? attribute.displayName ?? `attribute-${index + 1}`,
       displayName: attribute.displayName ?? attribute.attributeKey ?? `Attribute ${index + 1}`,
+      valueType: "TEXT",
       isRequired: false,
       isFilterable: Boolean(attribute.isFilterable),
       sortOrder: attribute.sortOrder ?? index,
     }));
 }
 
+function normalizeSpecValueType(valueType?: string | null): CategorySpecValueType {
+  const normalized = valueType?.trim().toUpperCase().replaceAll("-", "_");
+  if (normalized === "NUMBER" || normalized === "BOOLEAN" || normalized === "SELECT" || normalized === "MULTI_SELECT") return normalized;
+  return "TEXT";
+}
+
 function getSpecDisplayName(spec: CategorySpecDefinition) {
   return spec.displayName ?? spec.displayNameEn ?? spec.displayNameTh ?? spec.attributeKey;
+}
+
+function getSpecInputLabel(spec: CategorySpecDefinition) {
+  const name = getSpecDisplayName(spec);
+  return spec.unit ? `${name} (${spec.unit})` : name;
+}
+
+function getSpecHelperText(spec: CategorySpecDefinition) {
+  const valueType = normalizeSpecValueType(spec.valueType);
+  if (valueType === "NUMBER") return spec.unit ? `Enter a numeric value in ${spec.unit}.` : "Enter a numeric value.";
+  if (valueType === "BOOLEAN") return "Choose true or false.";
+  if (valueType === "MULTI_SELECT") return "Enter one or more values separated by commas.";
+  return "";
 }
 
 function getAllowedSpecValues(spec: CategorySpecDefinition) {
@@ -445,6 +470,22 @@ function updateAttributeValue(form: ProductFormState, spec: CategorySpecDefiniti
     ? attributes.map((attribute, index) => index === existingIndex ? nextAttribute : attribute)
     : [...attributes, nextAttribute];
   return { ...form, attributesText: serializeAttributeDrafts(nextAttributes) };
+}
+
+function getCategorySpecKeys(specs: CategorySpecDefinition[]) {
+  return new Set(specs.map((spec) => spec.attributeKey));
+}
+
+function getAdditionalAttributesText(form: ProductFormState, specs: CategorySpecDefinition[]) {
+  const specKeys = getCategorySpecKeys(specs);
+  return serializeAttributeDrafts(parseAttributeDrafts(form.attributesText).filter((attribute) => !specKeys.has(attribute.attributeKey)));
+}
+
+function updateAdditionalAttributesText(form: ProductFormState, specs: CategorySpecDefinition[], value: string): ProductFormState {
+  const specKeys = getCategorySpecKeys(specs);
+  const categoryAttributes = parseAttributeDrafts(form.attributesText).filter((attribute) => specKeys.has(attribute.attributeKey));
+  const additionalAttributes = parseAttributeDrafts(value).filter((attribute) => !specKeys.has(attribute.attributeKey));
+  return { ...form, attributesText: serializeAttributeDrafts([...categoryAttributes, ...additionalAttributes]) };
 }
 
 function getRequiredSpecMissing(form: ProductFormState, specs: CategorySpecDefinition[]) {
@@ -602,6 +643,55 @@ function ErrorState({ error, retry }: { error: unknown; retry: () => void }) {
         <Button type="button" variant="outline" onClick={retry}>Retry</Button>
       </CardContent>
     </Card>
+  );
+}
+
+function CategorySpecField({
+  spec,
+  fieldId,
+  value,
+  isMissing = false,
+  onChange,
+}: {
+  spec: CategorySpecDefinition;
+  fieldId: string;
+  value: string;
+  isMissing?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const valueType = normalizeSpecValueType(spec.valueType);
+  const allowedValues = getAllowedSpecValues(spec);
+  const helperText = getSpecHelperText(spec);
+  const displayName = getSpecDisplayName(spec);
+  const label = `${getSpecInputLabel(spec)}${spec.isRequired ? " *" : ""}`;
+
+  return (
+    <Field label={label} htmlFor={fieldId}>
+      {valueType === "BOOLEAN" ? (
+        <Select value={value || "NONE"} onValueChange={(nextValue) => onChange(nextValue === "NONE" ? "" : nextValue)}>
+          <SelectTrigger id={fieldId} aria-label={displayName}><SelectValue placeholder="Select value" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="NONE">No value</SelectItem>
+            <SelectItem value="true">True</SelectItem>
+            <SelectItem value="false">False</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : valueType === "SELECT" && allowedValues.length ? (
+        <Select value={value || "NONE"} onValueChange={(nextValue) => onChange(nextValue === "NONE" ? "" : nextValue)}>
+          <SelectTrigger id={fieldId} aria-label={displayName}><SelectValue placeholder="Select value" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="NONE">No value</SelectItem>
+            {allowedValues.map((allowedValue) => <SelectItem key={allowedValue} value={allowedValue}>{allowedValue}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      ) : valueType === "MULTI_SELECT" ? (
+        <Textarea id={fieldId} value={value} onChange={(event) => onChange(event.target.value)} rows={2} aria-invalid={isMissing} />
+      ) : (
+        <Input id={fieldId} type={valueType === "NUMBER" ? "number" : "text"} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={isMissing} />
+      )}
+      {helperText ? <p className="text-xs text-slate-500">{helperText}</p> : null}
+      {isMissing ? <p className="text-xs text-red-600">{displayName} is required.</p> : null}
+    </Field>
   );
 }
 
@@ -1431,23 +1521,16 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   {requiredSpecs.map((spec) => {
                     const fieldId = `required-spec-${spec.attributeKey}`;
                     const value = getAttributeValue(form, spec.attributeKey);
-                    const allowedValues = getAllowedSpecValues(spec);
                     const isMissing = !value.trim();
                     return (
-                      <Field key={spec.attributeKey} label={`${getSpecDisplayName(spec)} *`} htmlFor={fieldId}>
-                        {allowedValues.length ? (
-                          <Select value={value || "NONE"} onValueChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue === "NONE" ? "" : nextValue))}>
-                            <SelectTrigger id={fieldId} aria-label={getSpecDisplayName(spec)}><SelectValue placeholder="Select value" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="NONE">Select value</SelectItem>
-                              {allowedValues.map((allowedValue) => <SelectItem key={allowedValue} value={allowedValue}>{allowedValue}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input id={fieldId} value={value} onChange={(event) => setForm((current) => updateAttributeValue(current, spec, event.target.value))} aria-invalid={isMissing} />
-                        )}
-                        {isMissing ? <p className="text-xs text-red-600">{getSpecDisplayName(spec)} is required.</p> : null}
-                      </Field>
+                      <CategorySpecField
+                        key={spec.attributeKey}
+                        spec={spec}
+                        fieldId={fieldId}
+                        value={value}
+                        isMissing={isMissing}
+                        onChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue))}
+                      />
                     );
                   })}
                 </div>
@@ -1463,27 +1546,20 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   {optionalSpecs.map((spec) => {
                     const fieldId = `optional-spec-${spec.attributeKey}`;
                     const value = getAttributeValue(form, spec.attributeKey);
-                    const allowedValues = getAllowedSpecValues(spec);
                     return (
-                      <Field key={spec.attributeKey} label={getSpecDisplayName(spec)} htmlFor={fieldId}>
-                        {allowedValues.length ? (
-                          <Select value={value || "NONE"} onValueChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue === "NONE" ? "" : nextValue))}>
-                            <SelectTrigger id={fieldId} aria-label={getSpecDisplayName(spec)}><SelectValue placeholder="Select value" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="NONE">No value</SelectItem>
-                              {allowedValues.map((allowedValue) => <SelectItem key={allowedValue} value={allowedValue}>{allowedValue}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input id={fieldId} value={value} onChange={(event) => setForm((current) => updateAttributeValue(current, spec, event.target.value))} />
-                        )}
-                      </Field>
+                      <CategorySpecField
+                        key={spec.attributeKey}
+                        spec={spec}
+                        fieldId={fieldId}
+                        value={value}
+                        onChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue))}
+                      />
                     );
                   })}
                 </div>
               ) : <p className="text-sm text-slate-500">No category-specific optional specs are available for this category.</p>}
             </div>
-            <Field label="Additional specifications" htmlFor="product-attributes"><Textarea id="product-attributes" value={form.attributesText} onChange={(event) => setForm((current) => ({ ...current, attributesText: event.target.value }))} rows={3} placeholder="color|Color|Black|filterable" /></Field>
+            <Field label="Additional specifications" htmlFor="product-attributes"><Textarea id="product-attributes" value={getAdditionalAttributesText(form, categorySpecs)} onChange={(event) => setForm((current) => updateAdditionalAttributesText(current, categorySpecs, event.target.value))} rows={3} placeholder="care|Care instructions|Machine wash cold" /></Field>
             <Field label="Highlights" htmlFor="product-highlights"><Textarea id="product-highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder="One highlight per line" /></Field>
           </ProductSection>
         </div>
