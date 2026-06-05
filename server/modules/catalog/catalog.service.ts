@@ -21,6 +21,7 @@ import type {
   ICatalogRepository,
   PaginatedResult,
   ProductOptionWriteRecord,
+  ProductAttributeWriteRecord,
 } from './catalog.repository.ts'
 
 const DEFAULT_PAGE_LIMIT = 20
@@ -396,6 +397,55 @@ export class CatalogService {
       throw new CatalogServiceError('Category not found', 404, 'CATEGORY_NOT_FOUND')
     }
     return category.attributeDefinitions
+  }
+
+  async validateProductAttributesForCategory(
+    categoryId: string | null | undefined,
+    attributes: ProductAttributeData[] = [],
+  ): Promise<ProductAttributeWriteRecord[]> {
+    const normalizedCategoryId = this.normalizeNullableText(categoryId)
+    if (!normalizedCategoryId) return this.normalizeProductAttributes(attributes)
+
+    const category = await this.repo.findCategoryWithSpecs(normalizedCategoryId)
+    if (!category?.isActive) {
+      throw new CatalogServiceError('Category not found', 404, 'CATEGORY_NOT_FOUND')
+    }
+
+    const normalizedAttributes = this.normalizeProductAttributes(
+      attributes,
+      'PRODUCT_VALIDATION_FAILED',
+      'PRODUCT_SPEC_ATTRIBUTE_DUPLICATE',
+      false,
+    )
+    const submittedKeys = normalizedAttributes.map((attribute) => attribute.attributeKey)
+    const activeSpecs = category.attributeDefinitions.filter((spec) => spec.isActive)
+    const activeSpecByKey = new Map(activeSpecs.map((spec) => [spec.attributeKey.toLowerCase(), spec]))
+    const categorySpecsByKey = await this.loadSubmittedCategorySpecs(submittedKeys)
+    const submittedKeySet = new Set(submittedKeys)
+    const missingRequiredSpecs = activeSpecs.filter((spec) => spec.isRequired && !submittedKeySet.has(spec.attributeKey.toLowerCase()))
+
+    if (missingRequiredSpecs.length > 0) {
+      throw new CatalogServiceError('Product is missing required category specs', 400, 'PRODUCT_SPEC_REQUIRED_MISSING', {
+        missingSpecs: missingRequiredSpecs.map((spec) => spec.attributeKey),
+      })
+    }
+
+    return normalizedAttributes.map((attribute) => {
+      const activeSpec = activeSpecByKey.get(attribute.attributeKey)
+      if (activeSpec) return this.normalizeCategorySpecAttribute(attribute, activeSpec)
+
+      const categorySpecs = categorySpecsByKey.get(attribute.attributeKey) ?? []
+      if (categorySpecs.length > 0) {
+        throw new CatalogServiceError('Product attribute does not match an active spec for this category', 400, 'PRODUCT_SPEC_ATTRIBUTE_INVALID', {
+          attributeKey: attribute.attributeKey,
+        })
+      }
+      if (!attribute.value.trim()) {
+        throw new CatalogServiceError('Product attribute name and value are required', 400, 'PRODUCT_VALIDATION_FAILED')
+      }
+
+      return attribute
+    })
   }
 
   async listAdminCategorySpecs(categoryId: string): Promise<CatalogCategorySpecRecord[]> {
@@ -1599,14 +1649,100 @@ export class CatalogService {
       .filter((highlight) => highlight.text.length > 0)
   }
 
-  private normalizeProductAttributes(attributes: ProductAttributeData[]) {
+  private async loadSubmittedCategorySpecs(attributeKeys: string[]): Promise<Map<string, CatalogCategorySpecRecord[]>> {
+    if (attributeKeys.length === 0) return new Map()
+    const specs = await this.repo.findCategorySpecsByAttributeKeys([...new Set(attributeKeys)])
+    const specsByKey = new Map<string, CatalogCategorySpecRecord[]>()
+    for (const spec of specs) {
+      const key = spec.attributeKey.toLowerCase()
+      specsByKey.set(key, [...(specsByKey.get(key) ?? []), spec])
+    }
+    return specsByKey
+  }
+
+  private normalizeCategorySpecAttribute(
+    attribute: ProductAttributeWriteRecord,
+    spec: CatalogCategorySpecRecord,
+  ): ProductAttributeWriteRecord {
+    return {
+      ...attribute,
+      displayName: spec.displayName,
+      displayNameTh: spec.displayNameTh,
+      displayNameEn: spec.displayNameEn,
+      value: this.normalizeCategorySpecValue(attribute.value, spec),
+      isFilterable: spec.isFilterable,
+    }
+  }
+
+  private normalizeCategorySpecValue(value: string, spec: CatalogCategorySpecRecord): string {
+    const trimmed = value.trim()
+    switch (spec.valueType) {
+      case 'TEXT':
+      case 'SELECT':
+        if (!trimmed) {
+          throw new CatalogServiceError('Product spec value is invalid', 400, 'PRODUCT_SPEC_TYPE_INVALID', {
+            attributeKey: spec.attributeKey,
+            valueType: spec.valueType,
+          })
+        }
+        return trimmed
+      case 'NUMBER': {
+        const parsed = Number(trimmed)
+        if (!trimmed || !Number.isFinite(parsed)) {
+          throw new CatalogServiceError('Product spec value is invalid', 400, 'PRODUCT_SPEC_TYPE_INVALID', {
+            attributeKey: spec.attributeKey,
+            valueType: spec.valueType,
+          })
+        }
+        return String(parsed)
+      }
+      case 'BOOLEAN':
+        return this.normalizeCategorySpecBooleanValue(trimmed, spec)
+      case 'MULTI_SELECT': {
+        const values = trimmed.split(',').map((item) => item.trim()).filter((item) => item.length > 0)
+        if (values.length === 0) {
+          throw new CatalogServiceError('Product spec value is invalid', 400, 'PRODUCT_SPEC_TYPE_INVALID', {
+            attributeKey: spec.attributeKey,
+            valueType: spec.valueType,
+          })
+        }
+        return values.join(', ')
+      }
+      default:
+        throw new CatalogServiceError('Product spec value is invalid', 400, 'PRODUCT_SPEC_TYPE_INVALID', {
+          attributeKey: spec.attributeKey,
+          valueType: spec.valueType,
+        })
+    }
+  }
+
+  private normalizeCategorySpecBooleanValue(value: string, spec: CatalogCategorySpecRecord): string {
+    const normalized = value.toLowerCase()
+    if (['true', 'yes', '1'].includes(normalized)) return 'true'
+    if (['false', 'no', '0'].includes(normalized)) return 'false'
+    throw new CatalogServiceError('Product spec value is invalid', 400, 'PRODUCT_SPEC_TYPE_INVALID', {
+      attributeKey: spec.attributeKey,
+      valueType: spec.valueType,
+    })
+  }
+
+  private normalizeProductAttributes(
+    attributes: ProductAttributeData[],
+    validationErrorCode = 'PRODUCT_VALIDATION_FAILED',
+    duplicateErrorCode = validationErrorCode,
+    requireValue = true,
+  ) {
     const seen = new Set<string>()
     return attributes.map((attribute, index) => {
       const displayName = attribute.displayName.trim()
       const value = attribute.value.trim()
       const attributeKey = this.normalizeAttributeKey(attribute.attributeKey ?? displayName)
-      if (!displayName || !value) throw new CatalogServiceError('Product attribute name and value are required', 400, 'PRODUCT_VALIDATION_FAILED')
-      if (seen.has(attributeKey)) throw new CatalogServiceError('Duplicate product attribute key', 400, 'PRODUCT_VALIDATION_FAILED')
+      if (!displayName || (requireValue && !value)) {
+        throw new CatalogServiceError('Product attribute name and value are required', 400, validationErrorCode)
+      }
+      if (seen.has(attributeKey)) {
+        throw new CatalogServiceError('Duplicate product attribute key', 400, duplicateErrorCode, { attributeKey })
+      }
       seen.add(attributeKey)
       return {
         attributeKey,

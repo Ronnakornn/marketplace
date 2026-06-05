@@ -328,6 +328,7 @@ export type CatalogProductRecord = Omit<Product, 'titleTh' | 'titleEn' | 'descri
 export interface ICatalogRepository {
   findActiveCategories(): Promise<CatalogCategoryListItem[]>
   findCategoryWithSpecs(id: string): Promise<CatalogCategoryWithSpecs | null>
+  findCategorySpecsByAttributeKeys(attributeKeys: string[]): Promise<CatalogCategorySpecRecord[]>
   findAdminCategories(): Promise<CatalogAdminCategoryRecord[]>
   createCategory(data: CreateCategoryRecord): Promise<CatalogAdminCategoryRecord>
   updateCategory(id: string, data: UpdateCategoryRecord): Promise<CatalogAdminCategoryRecord>
@@ -503,6 +504,15 @@ export class PrismaCatalogRepository implements ICatalogRepository {
           orderBy: [{ sortOrder: 'asc' }, { attributeKey: 'asc' }, { id: 'asc' }],
         },
       },
+    })
+  }
+
+  findCategorySpecsByAttributeKeys(attributeKeys: string[]): Promise<CatalogCategorySpecRecord[]> {
+    this.logger.debug('PrismaCatalogRepository.findCategorySpecsByAttributeKeys', { attributeKeyCount: attributeKeys.length })
+    if (attributeKeys.length === 0) return Promise.resolve([])
+    return this.prisma.categoryAttributeDefinition.findMany({
+      where: { attributeKey: { in: attributeKeys } },
+      orderBy: [{ categoryId: 'asc' }, { sortOrder: 'asc' }, { attributeKey: 'asc' }, { id: 'asc' }],
     })
   }
 

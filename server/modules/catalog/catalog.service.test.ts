@@ -27,6 +27,7 @@ function createRepoMock(): ICatalogRepository {
   return {
     findActiveCategories: vi.fn(),
     findCategoryWithSpecs: vi.fn(),
+    findCategorySpecsByAttributeKeys: vi.fn(),
     findAdminCategories: vi.fn(),
     createCategory: vi.fn(),
     updateCategory: vi.fn(),
@@ -516,6 +517,115 @@ describe('CatalogService', () => {
       displayName: 'Invalid',
       type: 'TEXT',
     })).rejects.toMatchObject({ code: 'CATEGORY_SPEC_VALIDATION_FAILED' })
+  })
+
+  it('validates and normalizes product attributes against active category specs', async () => {
+    const repo = createRepoMock()
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const specs = [
+      createCategorySpec({ categoryId, attributeKey: 'material', displayName: 'Material', valueType: 'TEXT', isRequired: true, isFilterable: true }),
+      createCategorySpec({ id: '66666666-6666-4666-8666-666666666667', categoryId, attributeKey: 'weight', displayName: 'Weight', valueType: 'NUMBER', isRequired: true, isFilterable: true }),
+      createCategorySpec({ id: '66666666-6666-4666-8666-666666666668', categoryId, attributeKey: 'waterproof', displayName: 'Waterproof', valueType: 'BOOLEAN', isRequired: false, isFilterable: true }),
+      createCategorySpec({ id: '66666666-6666-4666-8666-666666666669', categoryId, attributeKey: 'color', displayName: 'Color', valueType: 'SELECT', isRequired: false, isFilterable: true }),
+      createCategorySpec({ id: '66666666-6666-4666-8666-666666666670', categoryId, attributeKey: 'features', displayName: 'Features', valueType: 'MULTI_SELECT', isRequired: false, isFilterable: false }),
+    ]
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({ id: categoryId, isActive: true, attributeDefinitions: specs })
+    vi.mocked(repo.findCategorySpecsByAttributeKeys).mockResolvedValue(specs)
+    const service = new CatalogService(createAppContext(), repo)
+
+    const normalized = await service.validateProductAttributesForCategory(categoryId, [
+      { attributeKey: ' Material ', displayName: 'Seller Material', value: ' cotton ' },
+      { attributeKey: 'Weight', displayName: 'Seller Weight', value: '001.50' },
+      { attributeKey: 'Waterproof', displayName: 'Seller Waterproof', value: 'YES' },
+      { attributeKey: 'Color', displayName: 'Seller Color', value: ' Red ' },
+      { attributeKey: 'Features', displayName: 'Seller Features', value: ' GPS, , Bluetooth ' },
+      { attributeKey: 'Care Instructions', displayName: 'Care Instructions', value: ' Hand wash ' },
+    ])
+
+    expect(normalized).toEqual([
+      expect.objectContaining({ attributeKey: 'material', displayName: 'Material', value: 'cotton', isFilterable: true }),
+      expect.objectContaining({ attributeKey: 'weight', displayName: 'Weight', value: '1.5', isFilterable: true }),
+      expect.objectContaining({ attributeKey: 'waterproof', displayName: 'Waterproof', value: 'true', isFilterable: true }),
+      expect.objectContaining({ attributeKey: 'color', displayName: 'Color', value: 'Red', isFilterable: true }),
+      expect.objectContaining({ attributeKey: 'features', displayName: 'Features', value: 'GPS, Bluetooth', isFilterable: false }),
+      expect.objectContaining({ attributeKey: 'care_instructions', displayName: 'Care Instructions', value: 'Hand wash', isFilterable: false }),
+    ])
+    expect(repo.findCategorySpecsByAttributeKeys).toHaveBeenCalledWith([
+      'material',
+      'weight',
+      'waterproof',
+      'color',
+      'features',
+      'care_instructions',
+    ])
+  })
+
+  it('rejects missing required and duplicate submitted product spec keys', async () => {
+    const repo = createRepoMock()
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const requiredSpec = createCategorySpec({ categoryId, attributeKey: 'material', displayName: 'Material', valueType: 'TEXT', isRequired: true })
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({ id: categoryId, isActive: true, attributeDefinitions: [requiredSpec] })
+    vi.mocked(repo.findCategorySpecsByAttributeKeys).mockResolvedValue([requiredSpec])
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.validateProductAttributesForCategory(categoryId, []))
+      .rejects.toMatchObject({ code: 'PRODUCT_SPEC_REQUIRED_MISSING' })
+
+    await expect(service.validateProductAttributesForCategory(categoryId, [
+      { attributeKey: 'Material', displayName: 'Material', value: 'Cotton' },
+      { attributeKey: ' material ', displayName: 'Material again', value: 'Wool' },
+    ])).rejects.toMatchObject({ code: 'PRODUCT_SPEC_ATTRIBUTE_DUPLICATE' })
+  })
+
+  it('rejects invalid product spec values for each supported type', async () => {
+    const repo = createRepoMock()
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const service = new CatalogService(createAppContext(), repo)
+
+    for (const spec of [
+      createCategorySpec({ categoryId, attributeKey: 'material', displayName: 'Material', valueType: 'TEXT' }),
+      createCategorySpec({ categoryId, attributeKey: 'weight', displayName: 'Weight', valueType: 'NUMBER' }),
+      createCategorySpec({ categoryId, attributeKey: 'waterproof', displayName: 'Waterproof', valueType: 'BOOLEAN' }),
+      createCategorySpec({ categoryId, attributeKey: 'color', displayName: 'Color', valueType: 'SELECT' }),
+      createCategorySpec({ categoryId, attributeKey: 'features', displayName: 'Features', valueType: 'MULTI_SELECT' }),
+    ]) {
+      vi.mocked(repo.findCategoryWithSpecs).mockResolvedValueOnce({ id: categoryId, isActive: true, attributeDefinitions: [spec] })
+      vi.mocked(repo.findCategorySpecsByAttributeKeys).mockResolvedValueOnce([spec])
+      const value = spec.valueType === 'NUMBER'
+        ? 'not-a-number'
+        : spec.valueType === 'BOOLEAN'
+          ? 'maybe'
+          : ' '
+
+      await expect(service.validateProductAttributesForCategory(categoryId, [
+        { attributeKey: spec.attributeKey, displayName: spec.displayName, value },
+      ])).rejects.toMatchObject({ code: 'PRODUCT_SPEC_TYPE_INVALID' })
+    }
+  })
+
+  it('rejects product attributes targeting inactive or wrong-category specs', async () => {
+    const repo = createRepoMock()
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const inactiveSpec = createCategorySpec({ categoryId, attributeKey: 'material', displayName: 'Material', valueType: 'TEXT', isActive: false })
+    const wrongCategorySpec = createCategorySpec({
+      id: '77777777-7777-4777-8777-777777777777',
+      categoryId: '77777777-7777-4777-8777-777777777778',
+      attributeKey: 'capacity',
+      displayName: 'Capacity',
+      valueType: 'NUMBER',
+    })
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({ id: categoryId, isActive: true, attributeDefinitions: [] })
+    const service = new CatalogService(createAppContext(), repo)
+
+    vi.mocked(repo.findCategorySpecsByAttributeKeys).mockResolvedValueOnce([inactiveSpec])
+    await expect(service.validateProductAttributesForCategory(categoryId, [
+      { attributeKey: 'Material', displayName: 'Material', value: 'Cotton' },
+    ])).rejects.toMatchObject({ code: 'PRODUCT_SPEC_ATTRIBUTE_INVALID' })
+
+    vi.mocked(repo.findCategorySpecsByAttributeKeys).mockResolvedValueOnce([wrongCategorySpec])
+    await expect(service.validateProductAttributesForCategory(categoryId, [
+      { attributeKey: 'Capacity', displayName: 'Capacity', value: '128' },
+    ])).rejects.toMatchObject({ code: 'PRODUCT_SPEC_ATTRIBUTE_INVALID' })
   })
 
   it('deactivates, reactivates, and reorders admin category specs within the selected category', async () => {
