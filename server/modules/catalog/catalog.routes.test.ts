@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAuthContext } from '#server/modules/auth/auth.context.ts'
+import { CatalogServiceError } from './catalog.errors.ts'
 import { createCatalogRoutes } from './catalog.routes.ts'
 
 vi.mock('#server/modules/auth/auth.ts', () => ({
@@ -87,8 +88,8 @@ function createContainer() {
       rejectProduct: vi.fn(),
       suspendProduct: vi.fn(),
       restoreProduct: vi.fn(),
-      createProduct: vi.fn(),
-      updateProduct: vi.fn(),
+      createProduct: vi.fn(async (_actor, body) => ({ id: '22222222-2222-4222-8222-222222222222', ...body })),
+      updateProduct: vi.fn(async (_actor, id, body) => ({ id, ...body })),
       archiveProduct: vi.fn(),
       createProductImage: vi.fn(),
       updateProductImage: vi.fn(),
@@ -275,5 +276,78 @@ describe('catalog admin category routes', () => {
     }))
 
     expect(response.status).toBe(422)
+  })
+
+  it('routes seller product create, update, and submit-review requests to the service', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext({ id: 'seller-1', role: 'SELLER' }) as any)
+    const app = createApp(container)
+    const productId = '22222222-2222-4222-8222-222222222222'
+
+    const created = await app.handle(new Request('http://localhost/api/seller/products', {
+      method: 'POST',
+      body: JSON.stringify({
+        shopId: '11111111-1111-4111-8111-111111111111',
+        categoryId: '55555555-5555-4555-8555-555555555555',
+        title: 'Phone',
+        attributes: [{ attributeKey: 'Weight', displayName: 'Weight', value: '1.5' }],
+      }),
+      headers: { 'content-type': 'application/json' },
+    }))
+    const updated = await app.handle(new Request(`http://localhost/api/seller/products/${productId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        attributes: [{ attributeKey: 'Waterproof', displayName: 'Waterproof', value: 'yes' }],
+      }),
+      headers: { 'content-type': 'application/json' },
+    }))
+    const submitted = await app.handle(new Request(`http://localhost/api/seller/products/${productId}/submit-review`, { method: 'POST' }))
+
+    expect(created.status).toBe(200)
+    expect(updated.status).toBe(200)
+    expect(submitted.status).toBe(200)
+    expect(container.catalogService.createProduct).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }), expect.objectContaining({
+      categoryId: '55555555-5555-4555-8555-555555555555',
+      attributes: [{ attributeKey: 'Weight', displayName: 'Weight', value: '1.5' }],
+    }))
+    expect(container.catalogService.updateProduct).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }), productId, expect.objectContaining({
+      attributes: [{ attributeKey: 'Waterproof', displayName: 'Waterproof', value: 'yes' }],
+    }))
+    expect(container.catalogService.submitProductReview).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }), productId)
+  })
+
+  it('returns stable seller product spec validation errors from service failures', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext({ id: 'seller-1', role: 'SELLER' }) as any)
+    vi.mocked(container.catalogService.createProduct).mockRejectedValueOnce(
+      new CatalogServiceError('Product is missing required category specs', 400, 'PRODUCT_SPEC_REQUIRED_MISSING', { missingSpecs: ['weight'] }),
+    )
+    vi.mocked(container.catalogService.updateProduct).mockRejectedValueOnce(
+      new CatalogServiceError('Product spec value is invalid', 400, 'PRODUCT_SPEC_TYPE_INVALID', { attributeKey: 'weight' }),
+    )
+    vi.mocked(container.catalogService.submitProductReview).mockRejectedValueOnce(
+      new CatalogServiceError('Product attribute does not match an active spec for this category', 400, 'PRODUCT_SPEC_ATTRIBUTE_INVALID', { attributeKey: 'archived_spec' }),
+    )
+    const app = createApp(container)
+    const productId = '22222222-2222-4222-8222-222222222222'
+
+    const createResponse = await app.handle(new Request('http://localhost/api/seller/products', {
+      method: 'POST',
+      body: JSON.stringify({ title: 'Phone', categoryId: '55555555-5555-4555-8555-555555555555' }),
+      headers: { 'content-type': 'application/json' },
+    }))
+    const updateResponse = await app.handle(new Request(`http://localhost/api/seller/products/${productId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ attributes: [{ attributeKey: 'Weight', displayName: 'Weight', value: 'heavy' }] }),
+      headers: { 'content-type': 'application/json' },
+    }))
+    const submitResponse = await app.handle(new Request(`http://localhost/api/seller/products/${productId}/submit-review`, { method: 'POST' }))
+
+    await expect(createResponse.json()).resolves.toMatchObject({ error: { code: 'PRODUCT_SPEC_REQUIRED_MISSING' } })
+    await expect(updateResponse.json()).resolves.toMatchObject({ error: { code: 'PRODUCT_SPEC_TYPE_INVALID' } })
+    await expect(submitResponse.json()).resolves.toMatchObject({ error: { code: 'PRODUCT_SPEC_ATTRIBUTE_INVALID' } })
+    expect(createResponse.status).toBe(400)
+    expect(updateResponse.status).toBe(400)
+    expect(submitResponse.status).toBe(400)
   })
 })

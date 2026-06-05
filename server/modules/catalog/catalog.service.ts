@@ -732,6 +732,8 @@ export class CatalogService {
     const shop = await this.resolveSellerShop(actor, data.shopId)
     this.assertCanManageShop(actor, shop.ownerId)
 
+    const enrichment = await this.normalizeProductEnrichmentForCategory(data, false, this.normalizeNullableText(data.categoryId))
+
     const created = await this.handleUniqueConstraint(() =>
       this.repo.createProduct({
         shopId: shop.id,
@@ -744,7 +746,7 @@ export class CatalogService {
         description: this.normalizeNullableText(data.description),
         ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
         ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
-        ...this.normalizeProductEnrichment(data, false),
+        ...enrichment,
         status: data.status ?? 'DRAFT',
       }),
     )
@@ -769,7 +771,15 @@ export class CatalogService {
       throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
     }
     await this.validateBrand(data.brandId)
-    await this.assertPublishReady(product, data)
+    const categoryId = data.categoryId === undefined ? product.categoryId : this.normalizeNullableText(data.categoryId)
+    const enrichment = await this.normalizeProductUpdateEnrichmentForCategory(product, data, categoryId)
+    const readinessAttributes = await this.validateProductAttributesForUpdateReadiness(product, data, categoryId)
+    const productForReadiness = {
+      ...product,
+      categoryId,
+      attributes: readinessAttributes,
+    } as CatalogProductDetail
+    await this.assertPublishReady(productForReadiness, data)
 
     const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateProduct(product.id, {
@@ -782,7 +792,7 @@ export class CatalogService {
         ...(data.description === undefined ? {} : { description: this.normalizeNullableText(data.description) }),
         ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
         ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
-        ...this.normalizeProductEnrichment(data, true),
+        ...enrichment,
         ...(data.status === undefined ? {} : { status: data.status }),
       }),
     )
@@ -814,6 +824,7 @@ export class CatalogService {
     if (product.status !== 'DRAFT' && product.status !== 'REJECTED') {
       throw new CatalogServiceError('Only draft or rejected products can be submitted for review', 400, 'PRODUCT_REVIEW_STATUS_INVALID')
     }
+    await this.validateProductAttributesForCategory(product.categoryId, this.toProductAttributeData(product.attributes))
     await this.assertPublishReady(product, { status: 'ACTIVE' })
     const updated = await this.repo.updateProduct(product.id, { status: 'PENDING_REVIEW' })
     await this.repo.createModerationAction(product.id, actor.id, 'ESCALATE', 'Submitted for review')
@@ -1516,6 +1527,60 @@ export class CatalogService {
       ...(data.highlights === undefined ? {} : { highlights: this.normalizeHighlights(data.highlights) }),
       ...(data.attributes === undefined ? {} : { attributes: this.normalizeProductAttributes(data.attributes) }),
     }
+  }
+
+  private async normalizeProductEnrichmentForCategory(
+    data: CreateProductData | UpdateProductData,
+    partial: boolean,
+    categoryId: string | null | undefined,
+  ) {
+    const enrichment = this.normalizeProductEnrichment(data, partial)
+    if (data.attributes === undefined && !categoryId) return enrichment
+    return {
+      ...enrichment,
+      attributes: await this.validateProductAttributesForCategory(categoryId, data.attributes ?? []),
+    }
+  }
+
+  private async normalizeProductUpdateEnrichmentForCategory(
+    product: CatalogProductDetail,
+    data: UpdateProductData,
+    categoryId: string | null | undefined,
+  ) {
+    if (data.attributes === undefined && data.categoryId === undefined) return this.normalizeProductEnrichment(data, true)
+    const attributes = data.attributes ?? this.toProductAttributeData(product.attributes)
+    return {
+      ...this.normalizeProductEnrichment(data, true),
+      attributes: await this.validateProductAttributesForCategory(categoryId, attributes),
+    }
+  }
+
+  private async validateProductAttributesForUpdateReadiness(
+    product: CatalogProductDetail,
+    data: UpdateProductData,
+    categoryId: string | null | undefined,
+  ): Promise<ProductAttributeWriteRecord[]> {
+    const shouldValidateAttributes =
+      data.attributes !== undefined ||
+      data.categoryId !== undefined ||
+      data.status === 'ACTIVE' ||
+      data.status === 'PENDING_REVIEW'
+    if (!shouldValidateAttributes) return product.attributes
+    return this.validateProductAttributesForCategory(categoryId, data.attributes ?? this.toProductAttributeData(product.attributes))
+  }
+
+  private toProductAttributeData(attributes: ProductAttributeWriteRecord[]): ProductAttributeData[] {
+    return attributes.map((attribute) => ({
+      attributeKey: attribute.attributeKey,
+      displayName: attribute.displayName,
+      displayNameTh: attribute.displayNameTh,
+      displayNameEn: attribute.displayNameEn,
+      value: attribute.value,
+      valueTh: attribute.valueTh,
+      valueEn: attribute.valueEn,
+      sortOrder: attribute.sortOrder,
+      isFilterable: attribute.isFilterable,
+    }))
   }
 
   private normalizeProductOptions(options: ProductOptionData[]): ProductOptionWriteRecord[] {

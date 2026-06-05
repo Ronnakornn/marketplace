@@ -749,6 +749,123 @@ describe('CatalogService', () => {
     }))
   })
 
+  it('enforces required active category specs during seller create', async () => {
+    const repo = createRepoMock()
+    const shopId = '11111111-1111-4111-8111-111111111111'
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const requiredSpec = createCategorySpec({ categoryId, attributeKey: 'material', displayName: 'Material', isRequired: true })
+    vi.mocked(repo.findShopById).mockResolvedValue({ id: shopId, ownerId: 'seller-1', status: 'ACTIVE' })
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({ id: categoryId, isActive: true, attributeDefinitions: [requiredSpec] })
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.createProduct(createActor(), {
+      shopId,
+      categoryId,
+      title: 'Phone',
+    })).rejects.toMatchObject({ code: 'PRODUCT_SPEC_REQUIRED_MISSING' })
+    expect(repo.createProduct).not.toHaveBeenCalled()
+  })
+
+  it('derives category-defined attribute metadata during seller create and preserves free-form attributes', async () => {
+    const repo = createRepoMock()
+    const shopId = '11111111-1111-4111-8111-111111111111'
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const spec = createCategorySpec({
+      categoryId,
+      attributeKey: 'weight',
+      displayName: 'Package Weight',
+      valueType: 'NUMBER',
+      isRequired: true,
+      isFilterable: true,
+    })
+    vi.mocked(repo.findShopById).mockResolvedValue({ id: shopId, ownerId: 'seller-1', status: 'ACTIVE' })
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({ id: categoryId, isActive: true, attributeDefinitions: [spec] })
+    vi.mocked(repo.findCategorySpecsByAttributeKeys).mockResolvedValue([spec])
+    vi.mocked(repo.createProduct).mockResolvedValue(createProduct({ shopId, categoryId, ownerId: 'seller-1' }))
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.createProduct(createActor(), {
+      shopId,
+      categoryId,
+      title: 'Phone',
+      attributes: [
+        { attributeKey: 'Weight', displayName: 'Seller Weight', value: ' 001.50 ', isFilterable: false },
+        { attributeKey: 'Care Instructions', displayName: 'Care Instructions', value: ' Keep dry ' },
+      ],
+    })
+
+    expect(repo.createProduct).toHaveBeenCalledWith(expect.objectContaining({
+      attributes: [
+        expect.objectContaining({ attributeKey: 'weight', displayName: 'Package Weight', value: '1.5', isFilterable: true }),
+        expect.objectContaining({ attributeKey: 'care_instructions', displayName: 'Care Instructions', value: 'Keep dry', isFilterable: false }),
+      ],
+    }))
+  })
+
+  it('validates seller update attributes against the effective category and rejects invalid values', async () => {
+    const repo = createRepoMock()
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const product = createProduct({ ownerId: 'seller-1', categoryId })
+    const spec = createCategorySpec({ categoryId, attributeKey: 'weight', displayName: 'Weight', valueType: 'NUMBER', isRequired: true })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({ id: categoryId, isActive: true, attributeDefinitions: [spec] })
+    vi.mocked(repo.findCategorySpecsByAttributeKeys).mockResolvedValue([spec])
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.updateProduct(createActor(), product.id, {
+      attributes: [{ attributeKey: 'Weight', displayName: 'Weight', value: 'heavy' }],
+    })).rejects.toMatchObject({ code: 'PRODUCT_SPEC_TYPE_INVALID' })
+    expect(repo.updateProduct).not.toHaveBeenCalled()
+  })
+
+  it('preserves historical inactive attributes when seller update does not replace attributes', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1', categoryId: '55555555-5555-4555-8555-555555555555' })
+    product.attributes = [{
+      id: 'attribute-1',
+      productId: product.id,
+      attributeKey: 'archived_spec',
+      displayName: 'Archived Spec',
+      displayNameTh: null,
+      displayNameEn: null,
+      value: 'Legacy',
+      valueTh: null,
+      valueEn: null,
+      sortOrder: 0,
+      isFilterable: false,
+      createdAt: new Date('2026-05-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-05-12T00:00:00.000Z'),
+    }]
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.updateProduct).mockResolvedValue({ ...product, title: 'Updated' })
+    const service = new CatalogService(createAppContext(), repo)
+
+    await service.updateProduct(createActor(), product.id, { title: ' Updated ' })
+
+    expect(repo.updateProduct).toHaveBeenCalledWith(product.id, expect.not.objectContaining({
+      attributes: expect.anything(),
+    }))
+  })
+
+  it('submit review rejects missing active required specs with stable spec error code', async () => {
+    const repo = createRepoMock()
+    const categoryId = '55555555-5555-4555-8555-555555555555'
+    const product = createProduct({
+      ownerId: 'seller-1',
+      categoryId,
+      images: [{ id: 'img-1', isPrimary: true }],
+    })
+    product.variants = [createVariant({ productId: product.id, price: BigInt(1299) })]
+    const requiredSpec = createCategorySpec({ categoryId, attributeKey: 'material', displayName: 'Material', isRequired: true })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({ id: categoryId, isActive: true, attributeDefinitions: [requiredSpec] })
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.submitProductReview(createActor(), product.id))
+      .rejects.toMatchObject({ code: 'PRODUCT_SPEC_REQUIRED_MISSING' })
+    expect(repo.updateProduct).not.toHaveBeenCalled()
+  })
+
   it('rejects duplicate normalized product attribute keys', async () => {
     const repo = createRepoMock()
     vi.mocked(repo.findShopById).mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', ownerId: 'seller-1', status: 'ACTIVE' })
