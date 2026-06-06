@@ -48,6 +48,7 @@ import { PrismaShipmentRepository } from '#server/modules/shipment/shipment.repo
 import { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
 import { PrismaReviewRepository } from '#server/modules/review/review.repository.ts'
 import { ReviewService } from '#server/modules/review/review.service.ts'
+import { PrismaProductQuestionRepository, ProductQuestionService } from '#server/modules/product-question'
 import { PrismaUserRepository } from '#server/modules/user/user.repository.ts'
 import { UserService } from '#server/modules/user/user.service.ts'
 import { PrismaUploadRepository } from '#server/modules/upload/upload.repository.ts'
@@ -107,6 +108,7 @@ export interface ServiceContainer {
   paymentService: PaymentService
   payoutService: PayoutService
   phoneOtpService: PhoneOtpService
+  productQuestionService: ProductQuestionService
   promotionService: PromotionService
   refundService: RefundService
   recommendationService: RecommendationService
@@ -197,6 +199,8 @@ export function createContainer(): ServiceContainer {
   const discoveryService = new DiscoveryService(appContext, discoveryRepo, catalogService, recommendationService, promotionService, trackingService)
   const reviewRepo = new PrismaReviewRepository(appContext, prisma)
   const reviewService = new ReviewService(appContext, reviewRepo)
+  const productQuestionRepo = new PrismaProductQuestionRepository(appContext, prisma)
+  const productQuestionService = new ProductQuestionService(appContext, productQuestionRepo, ownershipGuards)
   const searchRepo = new PrismaSearchRepository(appContext, prisma)
   const searchService = new SearchService(appContext, searchRepo, cacheService)
   const embeddingService = new EmbeddingService(appContext, aiSearchConfig)
@@ -268,6 +272,7 @@ export function createContainer(): ServiceContainer {
     paymentService,
     payoutService,
     phoneOtpService,
+    productQuestionService,
     promotionService,
     refundService,
     recommendationService,
