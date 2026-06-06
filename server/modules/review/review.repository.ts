@@ -5,6 +5,8 @@ import type {
   Product,
   ProductVariant,
   Review,
+  ReviewMedia,
+  Upload,
   User,
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -21,6 +23,19 @@ export type ReviewOrderItem = OrderItem & {
 export type ProductReview = Review & {
   user: Pick<User, 'id' | 'name'>
   orderItem: Pick<OrderItem, 'id' | 'productTitle' | 'productSlug' | 'variantTitle' | 'variantSku' | 'shopName' | 'shopSlug'>
+  media: ReviewMedia[]
+}
+
+export type ReviewUpload = Pick<Upload, 'id' | 'userId' | 'usage' | 'status' | 'fileName' | 'contentType' | 'fileSize' | 'publicUrl'>
+
+export interface ReviewMediaInput {
+  uploadId: string
+  uploadedById: string
+  url: string
+  mimeType: string
+  sizeBytes: number
+  altText: string | null
+  sortOrder: number
 }
 
 export interface CreateReviewRecord {
@@ -29,13 +44,13 @@ export interface CreateReviewRecord {
   orderItemId: string
   rating: number
   body?: string | null
-  images: string[]
+  media?: ReviewMediaInput[]
 }
 
 export interface UpdateReviewRecord {
   rating?: number
   body?: string | null
-  images?: string[]
+  media?: ReviewMediaInput[]
 }
 
 export interface RatingSummaryRecord {
@@ -50,6 +65,7 @@ export interface IReviewRepository {
   findOrderItemForReview(orderItemId: string): Promise<ReviewOrderItem | null>
   findReviewByOrderItem(orderItemId: string): Promise<Pick<Review, 'id'> | null>
   findReviewById(reviewId: string): Promise<Review | null>
+  findUploadsByIds(uploadIds: string[]): Promise<ReviewUpload[]>
   createReview(input: CreateReviewRecord): Promise<ProductReview>
   updateReview(reviewId: string, input: UpdateReviewRecord): Promise<ProductReview>
   deleteReview(reviewId: string): Promise<Review>
@@ -73,6 +89,11 @@ const productReviewInclude = {
       variantSku: true,
       shopName: true,
       shopSlug: true,
+    },
+  },
+  media: {
+    orderBy: {
+      sortOrder: 'asc',
     },
   },
 } as const
@@ -149,32 +170,93 @@ export class PrismaReviewRepository implements IReviewRepository {
     })
   }
 
+  findUploadsByIds(uploadIds: string[]): Promise<ReviewUpload[]> {
+    this.logger.debug('PrismaReviewRepository.findUploadsByIds', { count: uploadIds.length })
+    return this.prisma.upload.findMany({
+      where: {
+        id: { in: uploadIds },
+      },
+      select: {
+        id: true,
+        userId: true,
+        usage: true,
+        status: true,
+        fileName: true,
+        contentType: true,
+        fileSize: true,
+        publicUrl: true,
+      },
+    })
+  }
+
   createReview(input: CreateReviewRecord): Promise<ProductReview> {
     this.logger.info('PrismaReviewRepository.createReview', {
       userId: input.userId,
       productId: input.productId,
       orderItemId: input.orderItemId,
     })
-    return this.prisma.review.create({
-      data: {
-        userId: input.userId,
-        productId: input.productId,
-        orderItemId: input.orderItemId,
-        rating: input.rating,
-        body: input.body,
-        status: 'PUBLISHED',
-      },
-      include: productReviewInclude,
+    return this.prisma.$transaction(async (tx) => {
+      const review = await tx.review.create({
+        data: {
+          userId: input.userId,
+          productId: input.productId,
+          orderItemId: input.orderItemId,
+          rating: input.rating,
+          body: input.body,
+          status: 'PUBLISHED',
+          media: input.media?.length
+            ? {
+                create: input.media.map((media) => ({
+                  uploadedById: media.uploadedById,
+                  type: 'IMAGE',
+                  url: media.url,
+                  altText: media.altText,
+                  sortOrder: media.sortOrder,
+                  mimeType: media.mimeType,
+                  sizeBytes: media.sizeBytes,
+                })),
+              }
+            : undefined,
+        },
+        include: productReviewInclude,
+      })
+      return review
     })
   }
 
   updateReview(reviewId: string, input: UpdateReviewRecord): Promise<ProductReview> {
     this.logger.info('PrismaReviewRepository.updateReview', { reviewId })
-    const { images: _images, ...data } = input
-    return this.prisma.review.update({
-      where: { id: reviewId },
-      data,
-      include: productReviewInclude,
+    return this.prisma.$transaction(async (tx) => {
+      if (input.media) {
+        await tx.reviewMedia.deleteMany({
+          where: { reviewId },
+        })
+      }
+
+      const review = await tx.review.update({
+        where: { id: reviewId },
+        data: {
+          ...(input.rating === undefined ? {} : { rating: input.rating }),
+          ...(input.body === undefined ? {} : { body: input.body }),
+          ...(input.media === undefined || input.media.length === 0
+            ? {}
+            : {
+                media: {
+                  create: input.media.map((media) => ({
+                    uploadedById: media.uploadedById,
+                    type: 'IMAGE',
+                    url: media.url,
+                    altText: media.altText,
+                    sortOrder: media.sortOrder,
+                    mimeType: media.mimeType,
+                    sizeBytes: media.sizeBytes,
+                  })),
+                },
+              }),
+        },
+        include: productReviewInclude,
+      })
+      return review
     })
   }
 

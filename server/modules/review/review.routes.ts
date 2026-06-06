@@ -16,12 +16,14 @@ const CreateReviewBodySchema = t.Object({
   rating: t.Number({ minimum: 1, maximum: 5 }),
   comment: t.Optional(t.String()),
   images: t.Optional(t.Array(t.String())),
+  uploadIds: t.Optional(t.Array(t.String({ format: 'uuid' }))),
 })
 
 const UpdateReviewBodySchema = t.Partial(t.Object({
   rating: t.Number({ minimum: 1, maximum: 5 }),
   comment: t.Union([t.String(), t.Null()]),
   images: t.Array(t.String()),
+  uploadIds: t.Array(t.String({ format: 'uuid' })),
 }))
 
 export function createReviewRoutes(container: ServiceContainer) {

@@ -2,7 +2,9 @@ import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { ReviewServiceError } from './review.errors.ts'
-import type { IReviewRepository, ProductReview, RatingSummaryRecord } from './review.repository.ts'
+import type { IReviewRepository, ProductReview, RatingSummaryRecord, ReviewMediaInput, ReviewUpload } from './review.repository.ts'
+
+const MAX_REVIEW_IMAGE_COUNT = 5
 
 export interface ReviewActor {
   id: string
@@ -14,12 +16,26 @@ export interface CreateReviewInput {
   rating: number
   comment?: string
   images?: string[]
+  uploadIds?: string[]
 }
 
 export interface UpdateReviewInput {
   rating?: number
   comment?: string | null
   images?: string[]
+  uploadIds?: string[]
+}
+
+export interface ReviewMediaResponse {
+  id: string
+  type: 'IMAGE'
+  url: string
+  altText: string | null
+  sortOrder: number
+  width: number | null
+  height: number | null
+  mimeType: string | null
+  sizeBytes: number | null
 }
 
 export interface ReviewResponse {
@@ -31,6 +47,7 @@ export interface ReviewResponse {
   rating: number
   comment: string | null
   images: string[]
+  media: ReviewMediaResponse[]
   status: string
   createdAt: Date
   updatedAt: Date
@@ -88,6 +105,7 @@ export class ReviewService {
     if (orderItem.review || await this.repo.findReviewByOrderItem(orderItem.id)) {
       throw new ReviewServiceError('Order item already has a review', 409, 'REVIEW_ALREADY_EXISTS')
     }
+    const media = await this.resolveReviewMedia(actor, input.uploadIds)
 
     const review = await this.repo.createReview({
       userId: actor.id,
@@ -95,7 +113,7 @@ export class ReviewService {
       orderItemId: orderItem.id,
       rating: input.rating,
       body: this.normalizeComment(input.comment),
-      images: this.normalizeImages(input.images),
+      media,
     })
     return this.toResponse(review)
   }
@@ -108,11 +126,14 @@ export class ReviewService {
     if (review.userId !== actor.id) {
       throw new ReviewServiceError('Review does not belong to buyer', 403, 'REVIEW_FORBIDDEN')
     }
+    const media = input.uploadIds === undefined
+      ? undefined
+      : await this.resolveReviewMedia(actor, input.uploadIds)
 
     const updated = await this.repo.updateReview(review.id, {
       ...(input.rating === undefined ? {} : { rating: input.rating }),
       ...(input.comment === undefined ? {} : { body: this.normalizeComment(input.comment) }),
-      ...(input.images === undefined ? {} : { images: this.normalizeImages(input.images) }),
+      ...(media === undefined ? {} : { media }),
     })
     return this.toResponse(updated)
   }
@@ -152,11 +173,72 @@ export class ReviewService {
     return trimmed.length > 0 ? trimmed : null
   }
 
-  private normalizeImages(images: string[] | undefined): string[] {
-    return images?.map((image) => image.trim()).filter(Boolean) ?? []
+  private normalizeUploadIds(uploadIds: string[] | undefined): string[] {
+    const normalized = uploadIds?.map((uploadId) => uploadId.trim()).filter(Boolean) ?? []
+    return [...new Set(normalized)]
+  }
+
+  private async resolveReviewMedia(actor: ReviewActor, uploadIds: string[] | undefined): Promise<ReviewMediaInput[]> {
+    const normalizedUploadIds = this.normalizeUploadIds(uploadIds)
+    if (normalizedUploadIds.length > MAX_REVIEW_IMAGE_COUNT) {
+      throw new ReviewServiceError('A review can include at most 5 images', 400, 'REVIEW_MEDIA_LIMIT_EXCEEDED', {
+        maxImages: MAX_REVIEW_IMAGE_COUNT,
+      })
+    }
+    if (normalizedUploadIds.length === 0) return []
+
+    const uploads = await this.repo.findUploadsByIds(normalizedUploadIds)
+    const uploadsById = new Map(uploads.map((upload) => [upload.id, upload]))
+
+    return normalizedUploadIds.map((uploadId, index) => {
+      const upload = uploadsById.get(uploadId)
+      if (!upload) throw new ReviewServiceError('Review image upload not found', 404, 'UPLOAD_NOT_FOUND')
+      this.assertValidReviewImageUpload(actor, upload)
+      return {
+        uploadId: upload.id,
+        uploadedById: actor.id,
+        url: upload.publicUrl!,
+        mimeType: upload.contentType,
+        sizeBytes: upload.fileSize,
+        altText: this.toAltText(upload.fileName),
+        sortOrder: index,
+      }
+    })
+  }
+
+  private assertValidReviewImageUpload(actor: ReviewActor, upload: ReviewUpload): void {
+    if (actor.role !== 'ADMIN' && upload.userId !== actor.id) {
+      throw new ReviewServiceError('Review image upload does not belong to buyer', 403, 'REVIEW_MEDIA_FORBIDDEN')
+    }
+    if (upload.status !== 'COMPLETED') {
+      throw new ReviewServiceError('Review image upload must be completed', 400, 'REVIEW_MEDIA_UPLOAD_INCOMPLETE')
+    }
+    if (upload.usage !== 'REVIEW_IMAGE' || !upload.contentType.startsWith('image/')) {
+      throw new ReviewServiceError('Review media upload must be a review image', 400, 'REVIEW_MEDIA_UPLOAD_INVALID')
+    }
+    if (!upload.publicUrl) {
+      throw new ReviewServiceError('Review image upload does not have a public URL', 400, 'REVIEW_MEDIA_UPLOAD_INVALID')
+    }
+  }
+
+  private toAltText(fileName: string): string | null {
+    const baseName = fileName.trim().replace(/\\/g, '/').split('/').pop() ?? ''
+    const withoutExtension = baseName.replace(/\.[^.]+$/, '').trim()
+    return withoutExtension.length > 0 ? withoutExtension : null
   }
 
   private toResponse(review: ProductReview): ReviewResponse {
+    const media = review.media.map((item) => ({
+      id: item.id,
+      type: item.type as 'IMAGE',
+      url: item.url,
+      altText: item.altText,
+      sortOrder: item.sortOrder,
+      width: item.width,
+      height: item.height,
+      mimeType: item.mimeType,
+      sizeBytes: item.sizeBytes,
+    }))
     return {
       id: review.id,
       productId: review.productId,
@@ -165,7 +247,8 @@ export class ReviewService {
       userName: review.user.name,
       rating: review.rating,
       comment: review.body,
-      images: [],
+      images: media.map((item) => item.url),
+      media,
       status: review.status,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
