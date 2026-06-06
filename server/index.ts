@@ -4,6 +4,7 @@ import { authPlugin } from "#server/modules/auth";
 import { createPhoneOtpRoutes } from "#server/modules/auth";
 import { createContainer } from "#server/context/app-context";
 import { createAuditLogRoutes } from "#server/modules/audit-log";
+import { createContentModerationRoutes } from "#server/modules/content-moderation";
 import { getSecurityConfigFromEnv } from "#server/modules/security";
 import { createSecurityPlugin } from "#server/plugins/security.plugin";
 import { getObservabilityConfigFromEnv, createObservabilityRoutes } from "#server/modules/observability";
@@ -117,6 +118,9 @@ const baseApp = new Elysia()
 
   // --- Audit log admin routes ---
   .use(createAuditLogRoutes(container))
+
+  // --- Admin content moderation routes ---
+  .use(createContentModerationRoutes(container))
 
   // --- Affiliate tracking and commission routes ---
   .use(createAffiliateRoutes(container))

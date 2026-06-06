@@ -61,6 +61,7 @@ import { createCoreCommerceEventHandlers } from '#server/modules/events'
 import { createFraudEventHandlers, FraudService, getFraudRuleConfigFromEnv, PrismaFraudRepository } from '#server/modules/fraud'
 import { BullMqQueueProducer, getQueueConfigFromEnv, OptionalQueueProducer, type QueueProducer } from '#server/modules/queue'
 import { AuditLogService, PrismaAuditLogRepository } from '#server/modules/audit-log'
+import { ContentModerationService, PrismaContentModerationRepository } from '#server/modules/content-moderation'
 import { createPhoneOtpProvider, PhoneOtpService, PrismaPhoneOtpRepository } from '#server/modules/auth'
 import { ActiveShopResolver, OwnershipGuards, PrismaOwnershipGuardRepository, SecurityService } from '#server/modules/security'
 import { CacheInvalidation, CacheService, createRedisCacheClient, getCacheConfigFromEnv } from '#server/modules/cache'
@@ -90,6 +91,7 @@ export interface ServiceContainer {
   chatService: ChatService
   cacheInvalidation: CacheInvalidation
   cacheService: CacheService
+  contentModerationService: ContentModerationService
   checkoutService: CheckoutService
   commissionService: CommissionService
   catalogService: CatalogService
@@ -152,6 +154,8 @@ export function createContainer(): ServiceContainer {
 
   const auditLogRepo = new PrismaAuditLogRepository(appContext, prisma)
   const auditLogService = new AuditLogService(appContext, auditLogRepo)
+  const contentModerationRepo = new PrismaContentModerationRepository(appContext, prisma)
+  const contentModerationService = new ContentModerationService(appContext, contentModerationRepo, auditLogService)
   const fraudRepo = new PrismaFraudRepository(appContext, prisma)
   const fraudService = new FraudService(appContext, fraudRepo, fraudRuleConfig, auditLogService)
   const adminRepo = new PrismaAdminRepository(appContext, prisma)
@@ -254,6 +258,7 @@ export function createContainer(): ServiceContainer {
     chatService,
     cacheInvalidation,
     cacheService,
+    contentModerationService,
     checkoutService,
     commissionService,
     catalogService,
