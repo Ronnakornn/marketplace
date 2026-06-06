@@ -12,6 +12,7 @@ import {
   invalidateSellerProductQueries,
   normalizePublicProducts,
   normalizePublicProduct,
+  normalizePublicProductQuestions,
   normalizePublicProductRatingSummary,
   normalizePublicProductReviews,
   normalizeAffiliateProductTargets,
@@ -242,6 +243,9 @@ describe("product query invalidation helpers", () => {
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: productQueryKeys.public.detail({ productId: "product-1", locale: "th" }),
     });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: productQueryKeys.public.reviews("product-1") });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: productQueryKeys.public.ratingSummary("product-1") });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: productQueryKeys.public.questions("product-1") });
   });
 
   it("does not invalidate public keys for private-only product mutations", async () => {
@@ -269,6 +273,46 @@ describe("product query invalidation helpers", () => {
     expect(invalidatedKeys).toContainEqual(productQueryKeys.admin.detail("product-1"));
     expect(invalidatedKeys).toContainEqual(productQueryKeys.admin.catalogDetail("product-1"));
     expect(invalidatedKeys).toContainEqual(productQueryKeys.affiliate.all());
+  });
+});
+
+describe("public product question normalization", () => {
+  it("keeps only questions and answers returned by the public API", () => {
+    const questions = normalizePublicProductQuestions({
+      items: [{
+        id: "question-1",
+        productId: "product-1",
+        shopId: "shop-1",
+        question: "Does it fit?",
+        status: "PUBLISHED",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        user: { id: "buyer-1", name: "Buyer" },
+        answers: [{
+          id: "answer-1",
+          answer: "Yes",
+          status: "PUBLISHED",
+          createdAt: "2026-01-02T00:00:00.000Z",
+          user: { id: "seller-1", name: "Seller" },
+        }],
+      }],
+    });
+
+    expect(questions).toEqual([{
+      id: "question-1",
+      productId: "product-1",
+      shopId: "shop-1",
+      question: "Does it fit?",
+      status: "PUBLISHED",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      user: { id: "buyer-1", name: "Buyer" },
+      answers: [{
+        id: "answer-1",
+        answer: "Yes",
+        status: "PUBLISHED",
+        createdAt: "2026-01-02T00:00:00.000Z",
+        user: { id: "seller-1", name: "Seller" },
+      }],
+    }]);
   });
 });
 

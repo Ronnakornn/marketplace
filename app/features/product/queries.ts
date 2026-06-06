@@ -536,14 +536,23 @@ export function useAffiliateProductTargets(input: AffiliateProductTargetInput = 
 }
 
 export async function invalidatePublicProductQueries(queryClient: QueryClient, input: { productId?: string; locale?: Locale } = {}) {
+  const productScopedInvalidations = input.productId
+    ? [
+        queryClient.invalidateQueries({
+          queryKey: productQueryKeys.public.detail({ productId: input.productId, locale: input.locale }),
+        }),
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.public.reviews(input.productId) }),
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.public.ratingSummary(input.productId) }),
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.public.questions(input.productId) }),
+      ]
+    : [
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.public.details() }),
+      ];
+
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: productQueryKeys.public.lists() }),
     queryClient.invalidateQueries({ queryKey: productQueryKeys.public.searches() }),
-    input.productId
-      ? queryClient.invalidateQueries({
-          queryKey: productQueryKeys.public.detail({ productId: input.productId, locale: input.locale }),
-        })
-      : queryClient.invalidateQueries({ queryKey: productQueryKeys.public.details() }),
+    ...productScopedInvalidations,
   ]);
 }
 
