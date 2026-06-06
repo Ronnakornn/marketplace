@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
 import { fetchAdminAffiliates, updateAdminAffiliateStatus, type AdminAffiliate } from "#/features/affiliate/api";
-import { adminProductsQueryOptions, invalidateProductMutationQueries } from "#/features/product/queries";
+import { adminProductsQueryOptions, invalidateProductMutationQueries, productQueryKeys } from "#/features/product/queries";
 
 export const PAGE_SIZE = 10;
 
@@ -18,6 +18,14 @@ export type AdminProductsResponse = Treaty.Data<ReturnType<typeof api.api.admin.
 export type AdminProduct = AdminProductsResponse extends { items: Array<infer T> } ? T : never;
 export type AdminCatalogModerationResponse = Treaty.Data<ReturnType<typeof api.api.admin.catalog.products.moderation.get>>;
 export type AdminCatalogModerationProduct = AdminCatalogModerationResponse extends { data: Array<infer T> } ? T : never;
+export type AdminModerationReviewsResponse = Treaty.Data<ReturnType<(typeof api.api.admin)["content-moderation"]["reviews"]["get"]>>;
+export type AdminModerationReview = AdminModerationReviewsResponse extends { items: Array<infer T> } ? T : never;
+export type AdminModerationReviewReportsResponse = Treaty.Data<ReturnType<(typeof api.api.admin)["content-moderation"]["review-reports"]["get"]>>;
+export type AdminModerationReviewReport = AdminModerationReviewReportsResponse extends { items: Array<infer T> } ? T : never;
+export type AdminModerationQuestionsResponse = Treaty.Data<ReturnType<(typeof api.api.admin)["content-moderation"]["questions"]["get"]>>;
+export type AdminModerationQuestion = AdminModerationQuestionsResponse extends { items: Array<infer T> } ? T : never;
+export type AdminModerationAnswersResponse = Treaty.Data<ReturnType<(typeof api.api.admin)["content-moderation"]["answers"]["get"]>>;
+export type AdminModerationAnswer = AdminModerationAnswersResponse extends { items: Array<infer T> } ? T : never;
 export type AdminOrdersResponse = Treaty.Data<ReturnType<typeof api.api.admin.orders.get>>;
 export type AdminOrder = AdminOrdersResponse extends { items: Array<infer T> } ? T : never;
 export type AdminRefundsResponse = Treaty.Data<ReturnType<typeof api.api.admin.refunds.get>>;
@@ -39,6 +47,7 @@ export interface AdminListFilters {
   limit?: number;
   role?: string;
   status?: string;
+  q?: string;
 }
 
 export interface AdminShopMutationInput {
@@ -73,6 +82,7 @@ function cleanQuery(filters: AdminListFilters) {
       limit: filters.limit ?? PAGE_SIZE,
       role: filters.role || undefined,
       status: filters.status || undefined,
+      q: filters.q || undefined,
     }).filter(([, value]) => value !== undefined),
   );
 }
@@ -141,6 +151,50 @@ export function useAdminCatalogModerationList(filters: AdminListFilters & { q?: 
     queryKey: ["admin", "catalog", "moderation", query],
     queryFn: async () => {
       const { data, error } = await api.api.admin.catalog.products.moderation.get({ query });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminModerationReviewsList(filters: AdminListFilters) {
+  return useQuery({
+    queryKey: listKey("content-moderation-reviews", filters),
+    queryFn: async () => {
+      const { data, error } = await api.api.admin["content-moderation"].reviews.get({ query: cleanQuery(filters) });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminModerationReviewReportsList(filters: AdminListFilters) {
+  return useQuery({
+    queryKey: listKey("content-moderation-review-reports", filters),
+    queryFn: async () => {
+      const { data, error } = await api.api.admin["content-moderation"]["review-reports"].get({ query: cleanQuery(filters) });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminModerationQuestionsList(filters: AdminListFilters) {
+  return useQuery({
+    queryKey: listKey("content-moderation-questions", filters),
+    queryFn: async () => {
+      const { data, error } = await api.api.admin["content-moderation"].questions.get({ query: cleanQuery(filters) });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminModerationAnswersList(filters: AdminListFilters) {
+  return useQuery({
+    queryKey: listKey("content-moderation-answers", filters),
+    queryFn: async () => {
+      const { data, error } = await api.api.admin["content-moderation"].answers.get({ query: cleanQuery(filters) });
       if (error) throw error;
       return data;
     },
@@ -392,6 +446,71 @@ export function useRestoreCatalogProduct() {
         affectsAffiliateTargets: true,
       });
       await queryClient.invalidateQueries({ queryKey: ["admin", "catalog", "moderation"] });
+    },
+  });
+}
+
+async function invalidateContentModerationQueries(queryClient: ReturnType<typeof useQueryClient>, productId?: string | null, affectsReviews = false, affectsQuestions = false) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["admin", "content-moderation"] }),
+    productId && affectsReviews ? queryClient.invalidateQueries({ queryKey: productQueryKeys.public.reviews(productId) }) : Promise.resolve(),
+    productId && affectsReviews ? queryClient.invalidateQueries({ queryKey: productQueryKeys.public.ratingSummary(productId) }) : Promise.resolve(),
+    productId && affectsQuestions ? queryClient.invalidateQueries({ queryKey: productQueryKeys.public.questions(productId) }) : Promise.resolve(),
+  ]);
+}
+
+export function useUpdateModerationReviewStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, note }: { id: string; status: string; note?: string }) => {
+      const { data, error } = await api.api.admin["content-moderation"].reviews({ reviewId: id }).status.patch({ status, note });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await invalidateContentModerationQueries(queryClient, data.product?.id, true);
+    },
+  });
+}
+
+export function useUpdateModerationReviewReportStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, note }: { id: string; status: string; note?: string }) => {
+      const { data, error } = await api.api.admin["content-moderation"]["review-reports"]({ reportId: id }).status.patch({ status, note });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await invalidateContentModerationQueries(queryClient, data.review?.product?.id, true);
+    },
+  });
+}
+
+export function useUpdateModerationQuestionStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, note }: { id: string; status: string; note?: string }) => {
+      const { data, error } = await api.api.admin["content-moderation"].questions({ questionId: id }).status.patch({ status, note });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await invalidateContentModerationQueries(queryClient, data.product?.id, false, true);
+    },
+  });
+}
+
+export function useUpdateModerationAnswerStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, note }: { id: string; status: string; note?: string }) => {
+      const { data, error } = await api.api.admin["content-moderation"].answers({ answerId: id }).status.patch({ status, note });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      await invalidateContentModerationQueries(queryClient, data.question?.product?.id, false, true);
     },
   });
 }
