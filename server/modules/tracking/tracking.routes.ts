@@ -4,6 +4,7 @@ import { TrackingServiceError } from './tracking.errors.ts'
 
 const TrackingEventSchema = t.Object({
   eventType: t.Union([
+    t.Literal('product_viewed'),
     t.Literal('product_impression'),
     t.Literal('product_click'),
     t.Literal('search_submitted'),

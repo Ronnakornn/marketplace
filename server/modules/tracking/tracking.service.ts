@@ -10,6 +10,7 @@ const MAX_QUERY_LENGTH = 100
 const MAX_SOURCE_LENGTH = 64
 const MAX_SESSION_ID_LENGTH = 128
 const PRODUCT_LOG_EVENTS = new Set<TrackingEventType>([
+  'product_viewed',
   'product_impression',
   'product_click',
   'recommendation_clicked',
@@ -17,6 +18,7 @@ const PRODUCT_LOG_EVENTS = new Set<TrackingEventType>([
 ])
 
 export type TrackingEventType =
+  | 'product_viewed'
   | 'product_impression'
   | 'product_click'
   | 'search_submitted'
@@ -45,6 +47,16 @@ export interface TrackingEventInput {
 
 export interface TrackingActor {
   userId?: string
+}
+
+export interface ProductAddToCartTrackingInput {
+  productId: string
+  variantId: string
+  shopId: string
+  userId?: string
+  sessionId?: string
+  quantity: number
+  source?: string
 }
 
 export interface RecentlyViewedProductsInput {
@@ -109,6 +121,32 @@ export class TrackingService {
       limit,
     })
     return products.map((product) => this.toRecentlyViewedProduct(product))
+  }
+
+  async recordProductAddToCart(input: ProductAddToCartTrackingInput): Promise<{ ok: true }> {
+    const productId = this.requireUuid(input.productId, 'productId')
+    const variantId = this.requireUuid(input.variantId, 'variantId')
+    const shopId = this.requireUuid(input.shopId, 'shopId')
+    const userId = this.normalizeOptionalUuid(input.userId, 'userId')
+    const sessionId = this.normalizeOptionalString(input.sessionId, 'sessionId', MAX_SESSION_ID_LENGTH)
+    const source = this.normalizeOptionalString(input.source, 'source', MAX_SOURCE_LENGTH)
+    if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
+      throw new TrackingServiceError('Quantity must be a positive integer', 400, 'TRACKING_PAYLOAD_INVALID')
+    }
+
+    await this.repo.createProductAddToCartLog({
+      productId,
+      variantId,
+      shopId,
+      userId,
+      sessionId,
+      quantity: input.quantity,
+      source,
+      metadata: {
+        eventType: 'product_added_to_cart',
+      },
+    })
+    return { ok: true }
   }
 
   private async recordProductView(actor: TrackingActor, event: Required<Pick<TrackingEventInput, 'eventType'>> & TrackingEventInput): Promise<void> {

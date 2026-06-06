@@ -18,6 +18,17 @@ export interface ProductViewLogInput {
   metadata?: Prisma.InputJsonValue
 }
 
+export interface ProductAddToCartLogInput {
+  productId: string
+  variantId: string
+  shopId: string
+  userId?: string
+  sessionId?: string
+  quantity: number
+  source?: string
+  metadata?: Prisma.InputJsonValue
+}
+
 export interface SearchQueryLogInput {
   userId?: string
   sessionId?: string
@@ -38,6 +49,7 @@ export interface RecentlyViewedInput {
 export interface ITrackingRepository {
   findActiveProduct(productId: string): Promise<Pick<Product, 'id' | 'shopId'> | null>
   createProductViewLog(input: ProductViewLogInput): Promise<void>
+  createProductAddToCartLog(input: ProductAddToCartLogInput): Promise<void>
   createSearchQueryLog(input: SearchQueryLogInput): Promise<void>
   findRecentlyViewedProducts(input: RecentlyViewedInput): Promise<TrackingProductRecord[]>
 }
@@ -84,6 +96,30 @@ export class PrismaTrackingRepository implements ITrackingRepository {
         sessionId: input.sessionId,
         source: input.source,
         referrer: input.referrer,
+        metadata: input.metadata,
+      },
+    })
+  }
+
+  async createProductAddToCartLog(input: ProductAddToCartLogInput): Promise<void> {
+    this.logger.debug('PrismaTrackingRepository.createProductAddToCartLog', {
+      productId: input.productId,
+      variantId: input.variantId,
+      shopId: input.shopId,
+      userId: input.userId,
+      sessionId: input.sessionId,
+      quantity: input.quantity,
+      source: input.source,
+    })
+    await this.prisma.productAddToCartLog.create({
+      data: {
+        productId: input.productId,
+        variantId: input.variantId,
+        shopId: input.shopId,
+        userId: input.userId,
+        sessionId: input.sessionId,
+        quantity: input.quantity,
+        source: input.source,
         metadata: input.metadata,
       },
     })

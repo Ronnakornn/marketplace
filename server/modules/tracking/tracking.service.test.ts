@@ -29,6 +29,7 @@ function createRepoMock(): ITrackingRepository {
   return {
     findActiveProduct: vi.fn(),
     createProductViewLog: vi.fn(),
+    createProductAddToCartLog: vi.fn(),
     createSearchQueryLog: vi.fn(),
     findRecentlyViewedProducts: vi.fn(),
   }
@@ -84,6 +85,44 @@ describe('TrackingService', () => {
       sessionId: 'anon-session',
       source: 'search_results',
       metadata: expect.objectContaining({ eventType: 'product_click', position: 2 }),
+    }))
+  })
+
+  it('records product_viewed events as product view logs for backward-compatible discovery tracking', async () => {
+    await service.trackEvent({}, {
+      eventType: 'product_viewed',
+      productId,
+      sessionId: 'anon-session',
+    })
+
+    expect(repo.createProductViewLog).toHaveBeenCalledWith(expect.objectContaining({
+      productId,
+      shopId,
+      sessionId: 'anon-session',
+      metadata: expect.objectContaining({ eventType: 'product_viewed' }),
+    }))
+  })
+
+  it('records add-to-cart events with trusted product variant and shop context', async () => {
+    await service.recordProductAddToCart({
+      productId,
+      variantId: '33333333-3333-4333-8333-333333333333',
+      shopId,
+      userId: '44444444-4444-4444-8444-444444444444',
+      sessionId: ' anon-session ',
+      quantity: 2,
+      source: ' product_detail ',
+    })
+
+    expect(repo.createProductAddToCartLog).toHaveBeenCalledWith(expect.objectContaining({
+      productId,
+      variantId: '33333333-3333-4333-8333-333333333333',
+      shopId,
+      userId: '44444444-4444-4444-8444-444444444444',
+      sessionId: 'anon-session',
+      quantity: 2,
+      source: 'product_detail',
+      metadata: { eventType: 'product_added_to_cart' },
     }))
   })
 

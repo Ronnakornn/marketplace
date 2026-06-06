@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
+import type { TrackingService } from '#server/modules/tracking'
 import { CartServiceError } from './cart.errors.ts'
 import type { ActiveCartDetail, CartItemDetail, ICartRepository } from './cart.repository.ts'
 
@@ -13,6 +14,8 @@ export interface CartActor {
 export interface AddCartItemData {
   variantId: string
   quantity: number
+  sessionId?: string
+  source?: string
 }
 
 export interface UpdateCartItemData {
@@ -65,6 +68,7 @@ export class CartService {
   constructor(
     appContext: AppContext,
     private repo: ICartRepository,
+    private trackingService?: TrackingService,
   ) {
     this.logger = appContext.logger
   }
@@ -102,6 +106,7 @@ export class CartService {
       })
     }
 
+    await this.recordAddToCartAnalytics(actor, variant!, data)
     return this.getCart(actor)
   }
 
@@ -173,6 +178,30 @@ export class CartService {
     const inventory = variant.inventory
     if (!inventory) return 0
     return Math.max(0, inventory.quantityOnHand - inventory.quantityReserved)
+  }
+
+  private async recordAddToCartAnalytics(actor: CartActor, variant: CartItemDetail['variant'], data: AddCartItemData): Promise<void> {
+    if (!this.trackingService) return
+
+    try {
+      await this.trackingService.recordProductAddToCart({
+        productId: variant.product.id,
+        variantId: variant.id,
+        shopId: variant.product.shop.id,
+        userId: actor.id,
+        sessionId: data.sessionId,
+        quantity: data.quantity,
+        source: data.source,
+      })
+    } catch (error) {
+      this.logger.warn('CartService.addItem analytics write failed', {
+        actorId: actor.id,
+        productId: variant.product.id,
+        variantId: variant.id,
+        shopId: variant.product.shop.id,
+        error,
+      })
+    }
   }
 
   private toCartResponse(cart: ActiveCartDetail, locale: ContentLocale): CartResponse {
