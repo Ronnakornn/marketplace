@@ -3,7 +3,7 @@
  */
 import { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DealsPage } from "#/features/buyer/components/DealsPage";
 import { ProductDetailPage } from "./ProductDetailPage";
@@ -16,8 +16,15 @@ const queryMocks = vi.hoisted(() => ({
   productDetailError: null as Error | null,
   productsQueryFn: vi.fn(),
   productDetailQueryFn: vi.fn(),
+  reviewsResponse: [] as unknown[],
+  ratingSummaryResponse: { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } } as unknown,
+  reviewsError: null as Error | null,
+  ratingSummaryError: null as Error | null,
+  reviewsQueryFn: vi.fn(),
+  ratingSummaryQueryFn: vi.fn(),
   couponsQueryFn: vi.fn(async () => []),
   addCartItem: vi.fn(async () => ({})),
+  routerPush: vi.fn(),
   session: { user: { role: "USER" } } as { user: { role: string } } | null,
 }));
 
@@ -32,7 +39,7 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: queryMocks.routerPush }),
 }));
 
 vi.mock("#/components/BuyerShell", () => ({
@@ -100,6 +107,14 @@ vi.mock("#/features/product/queries", () => ({
     queryKey: ["product", "public", "details", { locale: "en", productId: "product-1" }],
     queryFn: queryMocks.productDetailQueryFn,
   }),
+  publicProductReviewsQueryOptions: () => ({
+    queryKey: ["product", "public", "reviews", "product-1"],
+    queryFn: queryMocks.reviewsQueryFn,
+  }),
+  publicProductRatingSummaryQueryOptions: () => ({
+    queryKey: ["product", "public", "rating-summary", "product-1"],
+    queryFn: queryMocks.ratingSummaryQueryFn,
+  }),
   publicProductSearchQueryOptions: () => ({
     queryKey: ["product", "public", "searches", { locale: "en", limit: 40 }],
     queryFn: queryMocks.productsQueryFn,
@@ -118,6 +133,8 @@ vi.mock("#/features/product/queries", () => ({
   }),
   normalizePublicProducts: (response: { items?: unknown[] }) => response.items ?? [],
   normalizePublicProduct: (response: unknown) => response,
+  normalizePublicProductReviews: (response: unknown[]) => response,
+  normalizePublicProductRatingSummary: (response: unknown) => response,
   normalizePublicCategories: () => [],
   normalizePublicBrands: () => [],
   normalizePublicSearchSuggestions: () => [],
@@ -197,12 +214,18 @@ function renderWithClient(ui: ReactNode) {
 }
 
 beforeEach(() => {
+  cleanup();
   queryMocks.productsResponse = { items: [] };
   queryMocks.productDetailResponse = createProductDetailFixture();
   queryMocks.productsError = null;
   queryMocks.productDetailError = null;
+  queryMocks.reviewsResponse = [];
+  queryMocks.ratingSummaryResponse = { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+  queryMocks.reviewsError = null;
+  queryMocks.ratingSummaryError = null;
   queryMocks.session = { user: { role: "USER" } };
   queryMocks.addCartItem.mockClear();
+  queryMocks.routerPush.mockClear();
   queryMocks.productsQueryFn.mockImplementation(async () => {
     if (queryMocks.productsError) throw queryMocks.productsError;
     return queryMocks.productsResponse;
@@ -210,6 +233,14 @@ beforeEach(() => {
   queryMocks.productDetailQueryFn.mockImplementation(async () => {
     if (queryMocks.productDetailError) throw queryMocks.productDetailError;
     return queryMocks.productDetailResponse;
+  });
+  queryMocks.reviewsQueryFn.mockImplementation(async () => {
+    if (queryMocks.reviewsError) throw queryMocks.reviewsError;
+    return queryMocks.reviewsResponse;
+  });
+  queryMocks.ratingSummaryQueryFn.mockImplementation(async () => {
+    if (queryMocks.ratingSummaryError) throw queryMocks.ratingSummaryError;
+    return queryMocks.ratingSummaryResponse;
   });
   queryMocks.couponsQueryFn.mockResolvedValue([]);
 });
@@ -274,19 +305,41 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     const addToCart = await screen.findByRole("button", { name: /Add to cart/ });
     expect(addToCart).toHaveProperty("disabled", true);
-    expect(screen.getByText("Choose all options before purchasing.")).toBeTruthy();
+    expect(screen.getAllByText("Choose product options before purchasing.").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Blue" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Green" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Blue" })).toHaveProperty("title", "Out of stock");
+    expect(screen.getByRole("button", { name: "Green" })).toHaveProperty("title", "Unavailable");
 
     fireEvent.click(screen.getByRole("button", { name: "Red" }));
     fireEvent.click(screen.getByRole("button", { name: "M" }));
 
-    expect(await screen.findByText(/SKU RED-M/)).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByText(/SKU RED-M/).length).toBeGreaterThan(0));
     expect(addToCart).toHaveProperty("disabled", false);
 
     fireEvent.click(screen.getByRole("button", { name: "Increase quantity" }));
     fireEvent.click(addToCart);
 
     await waitFor(() => expect(queryMocks.addCartItem).toHaveBeenCalledWith("variant-red-m", 2));
+  });
+
+  it("shows sticky purchase context and keeps buy-now on the current cart flow", async () => {
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    await screen.findByRole("button", { name: /Add to cart/ });
+    expect(screen.getAllByText("THB 12.00 - THB 15.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Select Color / Size").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Red" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+
+    expect(await screen.findAllByText(/Red \/ M/)).toHaveLength(2);
+    expect(screen.getAllByText("3 in stock").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: /Buy now/ }));
+
+    await waitFor(() => expect(queryMocks.addCartItem).toHaveBeenCalledWith("variant-red-m", 1));
+    await waitFor(() => expect(queryMocks.routerPush).toHaveBeenCalledWith("/en/cart"));
   });
 
   it("does not allow quantity above selected variant stock", async () => {
@@ -300,8 +353,30 @@ describe("ProductDetailPage buyer transaction states", () => {
     fireEvent.click(incrementButton);
     fireEvent.click(incrementButton);
 
-    expect(screen.getByText("2")).toBeTruthy();
+    expect(screen.getAllByText("2").length).toBeGreaterThan(0);
     expect(incrementButton).toHaveProperty("disabled", true);
+  });
+
+  it("clamps quantity when the selected variant changes to lower stock", async () => {
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    await screen.findByRole("button", { name: /Add to cart/ });
+    fireEvent.click(screen.getByRole("button", { name: "Red" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+
+    const incrementButton = screen.getByRole("button", { name: "Increase quantity" });
+    fireEvent.click(incrementButton);
+    fireEvent.click(incrementButton);
+    expect(screen.getAllByText("3").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "S" }));
+
+    await waitFor(() => {
+      const stickySummary = screen.getByText("Qty").closest("div");
+      expect(stickySummary).toBeTruthy();
+      expect(within(stickySummary as HTMLElement).getByText("2")).toBeTruthy();
+    });
+    expect(screen.getByRole("button", { name: "Increase quantity" })).toHaveProperty("disabled", true);
   });
 
   it("shows buyer purchase CTAs to anonymous visitors", async () => {
@@ -312,6 +387,103 @@ describe("ProductDetailPage buyer transaction states", () => {
     expect(await screen.findByRole("button", { name: /Add to cart/ })).toBeTruthy();
     expect(screen.getAllByRole("button", { name: /Buy now/ }).length).toBeGreaterThan(0);
     expect(screen.queryByText("Seller inbox")).toBeNull();
+  });
+
+  it("allows selecting standalone variants when no option groups are available", async () => {
+    queryMocks.productDetailResponse = {
+      ...createProductDetailFixture(),
+      options: [],
+    };
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    const addToCart = await screen.findByRole("button", { name: /Add to cart/ });
+    expect(addToCart).toHaveProperty("disabled", true);
+    expect(screen.getAllByText("Select a variant before purchasing.").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Red / M" }));
+
+    expect(await screen.findAllByText(/SKU RED-M/)).toHaveLength(2);
+    expect(addToCart).toHaveProperty("disabled", false);
+
+    fireEvent.click(addToCart);
+
+    await waitFor(() => expect(queryMocks.addCartItem).toHaveBeenCalledWith("variant-red-m", 1));
+  });
+
+  it("renders rating summary, review cards, media, date, and purchased item snapshot", async () => {
+    queryMocks.ratingSummaryResponse = {
+      averageRating: 4.5,
+      totalReviewCount: 2,
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 1, 5: 1 },
+    };
+    queryMocks.reviewsResponse = [{
+      id: "review-1",
+      reviewerName: "Jane Buyer",
+      rating: 5,
+      comment: "Great material and fast delivery.",
+      media: [{ id: "media-1", type: "IMAGE", url: "/uploads/review_image/review-1/front.jpg", altText: "front view", sortOrder: 0 }],
+      createdAt: "2026-01-02T03:04:05.000Z",
+      snapshot: {
+        productTitle: "Variant Product",
+        variantTitle: "Red / M",
+        variantSku: "RED-M",
+        shopName: "Demo Shop",
+      },
+    }];
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("Jane Buyer")).toBeTruthy();
+    expect(screen.getAllByText("4.5").length).toBeGreaterThan(0);
+    expect(screen.getByText("2 reviews")).toBeTruthy();
+    expect(screen.getByText("Great material and fast delivery.")).toBeTruthy();
+    expect(screen.getByAltText("front view").getAttribute("src")).toBe("/uploads/review_image/review-1/front.jpg");
+    expect(screen.getByText("Jan 2, 2026")).toBeTruthy();
+    expect(screen.getAllByText("Variant Product").length).toBeGreaterThan(1);
+    expect(screen.getByText("Red / M | SKU RED-M | Demo Shop")).toBeTruthy();
+  });
+
+  it("renders empty review state when no published reviews exist", async () => {
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("No reviews yet")).toBeTruthy();
+    expect(screen.getByText("Published buyer reviews will appear here.")).toBeTruthy();
+    expect(screen.getByText("0 reviews")).toBeTruthy();
+  });
+
+  it("renders review and rating summary error states with retry actions", async () => {
+    queryMocks.ratingSummaryError = new Error("summary unavailable");
+    queryMocks.reviewsError = new Error("reviews unavailable");
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("summary unavailable")).toBeTruthy();
+    expect(screen.getByText("reviews unavailable")).toBeTruthy();
+
+    queryMocks.ratingSummaryError = null;
+    queryMocks.ratingSummaryResponse = {
+      averageRating: 5,
+      totalReviewCount: 1,
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 1 },
+    };
+    queryMocks.reviewsError = null;
+    queryMocks.reviewsResponse = [{
+      id: "review-recovered",
+      reviewerName: "Recovered Buyer",
+      rating: 5,
+      comment: "Recovered review",
+      media: [],
+      createdAt: "2026-02-03T00:00:00.000Z",
+      snapshot: null,
+    }];
+
+    const retryButtons = screen.getAllByRole("button", { name: /Retry/ });
+    fireEvent.click(retryButtons[0]!);
+    fireEvent.click(retryButtons[1]!);
+
+    expect(await screen.findByText("Recovered Buyer")).toBeTruthy();
+    expect(screen.getByText("5.0")).toBeTruthy();
   });
 });
 
@@ -345,6 +517,7 @@ function createProductDetailFixture() {
         values: [
           { id: "value-red", value: "Red", colorHex: "#ff0000" },
           { id: "value-blue", value: "Blue", colorHex: "#0000ff" },
+          { id: "value-green", value: "Green", colorHex: "#00aa55" },
         ],
       },
       {

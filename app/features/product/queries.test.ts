@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import {
   cleanAdminProductListInput,
+  cleanPublicProductListApiInput,
   cleanPublicProductListInput,
   cleanSellerProductListInput,
   invalidateAffiliateProductTargetQueries,
@@ -11,6 +12,8 @@ import {
   invalidateSellerProductQueries,
   normalizePublicProducts,
   normalizePublicProduct,
+  normalizePublicProductRatingSummary,
+  normalizePublicProductReviews,
   normalizeAffiliateProductTargets,
   productQueryKeys,
 } from "./queries";
@@ -72,6 +75,34 @@ describe("product query keys", () => {
     expect(cleanAdminProductListInput({ q: "hat" })).toEqual({ q: "hat", limit: 50 });
   });
 
+  it("keeps client-only listing filters out of the catalog API query", () => {
+    expect(cleanPublicProductListApiInput({
+      locale: "th",
+      q: "shirt",
+      categoryId: "fashion",
+      shopId: "shop-1",
+      minPrice: "100",
+      maxPrice: "900",
+      rating: 4,
+      inStock: true,
+      freeShipping: true,
+      onSale: true,
+      sort: "price_asc",
+      cursor: "cursor-1",
+      page: 2,
+      limit: 24,
+    })).toEqual({
+      locale: "th",
+      q: "shirt",
+      categoryId: "fashion",
+      shopId: "shop-1",
+      minPrice: "100",
+      maxPrice: "900",
+      cursor: "cursor-1",
+      limit: 24,
+    });
+  });
+
   it("includes protected product list inputs without sharing namespaces", () => {
     expect(productQueryKeys.seller.list({ q: "bag", status: "ACTIVE", cursor: "next", limit: 12 })).toEqual([
       "product",
@@ -99,6 +130,11 @@ describe("product query keys", () => {
     expect(productQueryKeys.public.detail({ locale: "en", productId: "product-1" }).slice(0, 3)).toEqual(["product", "public", "details"]);
     expect(productQueryKeys.public.categories({ locale: "en" }).slice(0, 3)).toEqual(["product", "public", "categories"]);
     expect(productQueryKeys.public.shopProducts({ locale: "en", shopId: "shop-1" }).slice(0, 3)).toEqual(["product", "public", "shop-products"]);
+  });
+
+  it("keys public review resources by product", () => {
+    expect(productQueryKeys.public.reviews("product-1")).toEqual(["product", "public", "reviews", "product-1"]);
+    expect(productQueryKeys.public.ratingSummary("product-1")).toEqual(["product", "public", "rating-summary", "product-1"]);
   });
 
   it("keys public search by the normalized search endpoint input", () => {
@@ -136,6 +172,61 @@ describe("product query keys", () => {
         limit: 40,
       },
     ]);
+  });
+});
+
+describe("public product review normalization", () => {
+  it("normalizes review cards and keeps only returned public media URLs", () => {
+    const reviews = normalizePublicProductReviews([{
+      id: "review-1",
+      userName: "Jane Buyer",
+      rating: 5,
+      comment: "Great fit",
+      createdAt: "2026-01-02T03:04:05.000Z",
+      media: [
+        { id: "media-1", type: "IMAGE", url: "/uploads/review_image/review-1/a.jpg", altText: "front", sortOrder: 1 },
+        { id: "media-2", type: "IMAGE", url: "https://storage.example/review-1/b.jpg?X-Amz-Signature=secret", altText: "private", sortOrder: 2 },
+      ],
+      snapshot: {
+        productTitle: "Variant Product",
+        variantTitle: "Red / M",
+        variantSku: "RED-M",
+        shopName: "Demo Shop",
+      },
+    }]);
+
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0]).toMatchObject({
+      reviewerName: "Jane Buyer",
+      rating: 5,
+      comment: "Great fit",
+      createdAt: "2026-01-02T03:04:05.000Z",
+      snapshot: {
+        productTitle: "Variant Product",
+        variantTitle: "Red / M",
+        variantSku: "RED-M",
+        shopName: "Demo Shop",
+      },
+    });
+    expect(reviews[0]?.media).toEqual([{
+      id: "media-1",
+      type: "IMAGE",
+      url: "/uploads/review_image/review-1/a.jpg",
+      altText: "front",
+      sortOrder: 1,
+    }]);
+  });
+
+  it("normalizes rating summaries and derives totals when needed", () => {
+    expect(normalizePublicProductRatingSummary({
+      averageRating: "4.25",
+      totalReviewCount: "8",
+      distribution: { 5: 4, 4: 2, 3: 1, 2: 1, 1: 0 },
+    })).toEqual({
+      averageRating: 4.25,
+      totalReviewCount: 8,
+      distribution: { 1: 0, 2: 1, 3: 1, 4: 2, 5: 4 },
+    });
   });
 });
 

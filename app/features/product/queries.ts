@@ -13,11 +13,13 @@ export const ADMIN_PRODUCT_PAGE_SIZE = 50;
 export const AFFILIATE_TARGET_PAGE_SIZE = 10;
 
 type Locale = "th" | "en";
-type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+type ProductStatus = "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
 type ProductSort = "relevance" | "newest" | "best_selling" | "price_asc" | "price_desc" | "rating" | string;
 
 type PublicProductsResponse = Treaty.Data<ReturnType<typeof api.api.products.get>>;
 type PublicProductDetailResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["get"]>>;
+type PublicProductReviewsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["reviews"]["get"]>>;
+type PublicProductRatingSummaryResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["rating-summary"]["get"]>>;
 type PublicCategoriesResponse = Treaty.Data<ReturnType<typeof api.api.categories.get>>;
 type PublicSearchProductsResponse = Treaty.Data<ReturnType<typeof api.api.search.products.get>>;
 type PublicSearchSuggestionsResponse = Treaty.Data<ReturnType<typeof api.api.search.suggestions.get>>;
@@ -164,6 +166,35 @@ export interface BuyerBrand {
   name: string;
 }
 
+export interface BuyerReviewMedia {
+  id: string;
+  type: "IMAGE";
+  url: string;
+  altText: string | null;
+  sortOrder: number;
+}
+
+export interface BuyerProductReview {
+  id: string;
+  reviewerName: string;
+  rating: number;
+  comment: string | null;
+  media: BuyerReviewMedia[];
+  createdAt: string;
+  snapshot: {
+    productTitle: string;
+    variantTitle: string;
+    variantSku: string;
+    shopName: string;
+  } | null;
+}
+
+export interface BuyerProductRatingSummary {
+  averageRating: number;
+  totalReviewCount: number;
+  distribution: Record<1 | 2 | 3 | 4 | 5, number>;
+}
+
 export interface AffiliateProductTargetOption {
   id: string;
   label: string;
@@ -186,6 +217,8 @@ export const productQueryKeys = {
     details: () => [...productQueryKeys.public.all(), "details"] as const,
     detail: (input: PublicProductDetailInput) =>
       [...productQueryKeys.public.details(), cleanPublicProductDetailInput(input)] as const,
+    reviews: (productId: string) => [...productQueryKeys.public.all(), "reviews", productId] as const,
+    ratingSummary: (productId: string) => [...productQueryKeys.public.all(), "rating-summary", productId] as const,
     categories: (input: PublicCategoryListInput = {}) =>
       [...productQueryKeys.public.all(), "categories", cleanCategoryInput(input)] as const,
     brands: () => [...productQueryKeys.public.all(), "brands"] as const,
@@ -220,7 +253,7 @@ export const productQueryKeys = {
 };
 
 export function publicProductListQueryOptions(input: PublicProductListInput = {}) {
-  const query = cleanPublicProductListInput(input);
+  const query = cleanPublicProductListApiInput(input);
   return queryOptions({
     queryKey: productQueryKeys.public.list(input),
     queryFn: async (): Promise<PublicProductsResponse> => {
@@ -258,6 +291,30 @@ export function publicProductDetailQueryOptions(input: PublicProductDetailInput)
   });
 }
 
+export function publicProductReviewsQueryOptions(productId: string) {
+  return queryOptions({
+    queryKey: productQueryKeys.public.reviews(productId),
+    queryFn: async (): Promise<PublicProductReviewsResponse> => {
+      const { data, error } = await api.api.products({ productId }).reviews.get();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: PRODUCT_QUERY_STALE_TIME_MS,
+  });
+}
+
+export function publicProductRatingSummaryQueryOptions(productId: string) {
+  return queryOptions({
+    queryKey: productQueryKeys.public.ratingSummary(productId),
+    queryFn: async (): Promise<PublicProductRatingSummaryResponse> => {
+      const { data, error } = await api.api.products({ productId })["rating-summary"].get();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: PRODUCT_QUERY_STALE_TIME_MS,
+  });
+}
+
 export function publicCategoriesQueryOptions(input: PublicCategoryListInput = {}) {
   const query = cleanCategoryInput(input);
   return queryOptions({
@@ -284,7 +341,7 @@ export function publicBrandsQueryOptions() {
 }
 
 export function publicShopProductsQueryOptions(input: PublicProductListInput & { shopId: string }) {
-  const query = cleanPublicProductListInput(input);
+  const query = cleanPublicProductListApiInput(input);
   return queryOptions({
     queryKey: productQueryKeys.public.shopProducts(input),
     queryFn: async (): Promise<PublicProductsResponse> => {
@@ -387,6 +444,14 @@ export function usePublicProductSearch(input: PublicProductListInput = {}) {
 
 export function usePublicProductDetail(input: PublicProductDetailInput) {
   return useQuery(publicProductDetailQueryOptions(input));
+}
+
+export function usePublicProductReviews(productId: string) {
+  return useQuery(publicProductReviewsQueryOptions(productId));
+}
+
+export function usePublicProductRatingSummary(productId: string) {
+  return useQuery(publicProductRatingSummaryQueryOptions(productId));
 }
 
 export function usePublicCategories(input: PublicCategoryListInput = {}) {
@@ -505,6 +570,22 @@ export function cleanPublicProductListInput(input: PublicProductListInput = {}):
     sort: input.sort,
     cursor: input.cursor,
     page: input.page,
+    limit: input.limit ?? PUBLIC_PRODUCT_PAGE_SIZE,
+  });
+}
+
+export function cleanPublicProductListApiInput(input: PublicProductListInput = {}): CleanQuery {
+  return cleanQuery({
+    locale: input.locale,
+    q: input.q,
+    keyword: input.keyword,
+    categoryId: input.categoryId,
+    shopId: input.shopId,
+    brandId: input.brandId,
+    attributeFilters: input.attributeFilters,
+    minPrice: input.minPrice,
+    maxPrice: input.maxPrice,
+    cursor: input.cursor,
     limit: input.limit ?? PUBLIC_PRODUCT_PAGE_SIZE,
   });
 }
@@ -769,6 +850,69 @@ export function normalizePublicSearchSuggestions(response: PublicSearchSuggestio
       ? readArray(record.suggestions)
       : readArray(record.productTitles);
   return rawItems.map((item) => readString(typeof item === "string" ? item : toRecord(item).value)).filter(Boolean);
+}
+
+export function normalizePublicProductReviews(response: PublicProductReviewsResponse | unknown): BuyerProductReview[] {
+  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
+  return rawItems.map((item) => {
+    const record = toRecord(item);
+    const snapshot = toRecord(record.snapshot);
+    return {
+      id: readString(record.id),
+      reviewerName: readString(record.userName, "Marketplace buyer"),
+      rating: Math.min(5, Math.max(1, readNumber(record.rating, 5))),
+      comment: optionalString(record.comment),
+      media: normalizeReviewMedia(record.media),
+      createdAt: readDateString(record.createdAt),
+      snapshot: readString(snapshot.productTitle) || readString(snapshot.variantTitle) ? {
+        productTitle: readString(snapshot.productTitle),
+        variantTitle: readString(snapshot.variantTitle),
+        variantSku: readString(snapshot.variantSku),
+        shopName: readString(snapshot.shopName),
+      } : null,
+    };
+  }).filter((review) => review.id);
+}
+
+export function normalizePublicProductRatingSummary(response: PublicProductRatingSummaryResponse | unknown): BuyerProductRatingSummary {
+  const record = toRecord(response);
+  const distributionRecord = toRecord(record.distribution);
+  const distribution = {
+    1: readNumber(distributionRecord[1], readNumber(distributionRecord["1"])),
+    2: readNumber(distributionRecord[2], readNumber(distributionRecord["2"])),
+    3: readNumber(distributionRecord[3], readNumber(distributionRecord["3"])),
+    4: readNumber(distributionRecord[4], readNumber(distributionRecord["4"])),
+    5: readNumber(distributionRecord[5], readNumber(distributionRecord["5"])),
+  } as Record<1 | 2 | 3 | 4 | 5, number>;
+  const totalReviewCount = readNumber(record.totalReviewCount, Object.values(distribution).reduce((total, count) => total + count, 0));
+  const fallbackAverage = totalReviewCount
+    ? Object.entries(distribution).reduce((total, [rating, count]) => total + Number(rating) * count, 0) / totalReviewCount
+    : 0;
+  return {
+    averageRating: readNumber(record.averageRating, Number(fallbackAverage.toFixed(2))),
+    totalReviewCount,
+    distribution,
+  };
+}
+
+function normalizeReviewMedia(mediaInput: unknown): BuyerReviewMedia[] {
+  return readArray(mediaInput).map((item, index) => {
+    const media = toRecord(item);
+    const url = readString(media.url);
+    return {
+      id: readString(media.id, `${url}-${index}`),
+      type: "IMAGE" as const,
+      url,
+      altText: optionalString(media.altText),
+      sortOrder: readNumber(media.sortOrder, index),
+    };
+  }).filter((media) => media.url && media.type === "IMAGE" && !isSecretStorageUrl(media.url))
+    .sort((left, right) => left.sortOrder - right.sortOrder);
+}
+
+function readDateString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  return readString(value);
 }
 
 function toRecord(value: unknown): Record<string, unknown> {

@@ -24,15 +24,23 @@ import { createChatRoom } from "#/features/chat";
 import { ProductCard } from "#/features/product/components/ProductCard";
 import {
   normalizePublicProduct,
+  normalizePublicProductRatingSummary,
+  normalizePublicProductReviews,
   normalizePublicProducts,
   publicProductDetailQueryOptions,
   publicProductListQueryOptions,
+  publicProductRatingSummaryQueryOptions,
+  publicProductReviewsQueryOptions,
+  type BuyerProductRatingSummary,
+  type BuyerProductReview,
 } from "#/features/product/queries";
 import { saveLocalRecentlyViewedProduct, useDiscoveryTracking } from "#/features/tracking";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
+
+type OptionValueState = "selected" | "available" | "unavailable" | "out-of-stock";
 
 export function ProductDetailPage({ productId }: { productId: string }) {
   const router = useRouter();
@@ -46,6 +54,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const [selectedOptionValues, setSelectedOptionValues] = useState<Record<string, string>>({});
+  const [selectedStandaloneVariantId, setSelectedStandaloneVariantId] = useState("");
   const [quantity, setQuantity] = useState(1);
 
   const productQuery = useQuery({
@@ -55,6 +64,14 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const relatedQuery = useQuery({
     ...publicProductListQueryOptions({ limit: 4, locale }),
     select: normalizePublicProducts,
+  });
+  const reviewsQuery = useQuery({
+    ...publicProductReviewsQueryOptions(productId),
+    select: normalizePublicProductReviews,
+  });
+  const ratingSummaryQuery = useQuery({
+    ...publicProductRatingSummaryQueryOptions(productId),
+    select: normalizePublicProductRatingSummary,
   });
   const favoriteQuery = useQuery({
     queryKey: ["buyer-favorite-status", productId],
@@ -114,7 +131,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const requiredOptions = product?.options.slice(0, 2) ?? [];
   const selectedVariant = useMemo(() => {
     if (!product?.variants.length) return null;
-    if (!requiredOptions.length) return product.variants.length === 1 ? product.variants[0] : null;
+    if (!requiredOptions.length) {
+      if (product.variants.length === 1) return product.variants[0];
+      return product.variants.find((variant) => variant.id === selectedStandaloneVariantId) ?? null;
+    }
     const selectedEntries = Object.entries(selectedOptionValues).filter(([, valueId]) => valueId);
     if (selectedEntries.length < requiredOptions.length) return null;
     return product.variants.find((variant) =>
@@ -122,7 +142,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         variant.optionValues.some((optionValue) => optionValue.optionId === optionId && optionValue.valueId === valueId),
       ),
     ) ?? null;
-  }, [product, requiredOptions, selectedOptionValues]);
+  }, [product, requiredOptions, selectedOptionValues, selectedStandaloneVariantId]);
   const displayedStock = selectedVariant?.stock ?? product?.stock ?? 0;
 
   useEffect(() => {
@@ -197,10 +217,11 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const displayCurrency = selectedVariant?.currency ?? product.currency;
   const hasPriceRange = !selectedVariant && product.maxPrice > product.minPrice;
   const isOutOfStock = displayedStock < 1 || product.stock < 1;
-  const requiresVariantSelection = product.variants.length > 0 && !selectedVariant;
   const canPurchase = Boolean(selectedVariant) && !isOutOfStock;
+  const selectedOptionCount = Object.values(selectedOptionValues).filter(Boolean).length;
+  const missingOptionCount = Math.max(0, requiredOptions.length - selectedOptionCount);
   const selectedSummary = selectedVariant
-    ? [selectedVariant.title, selectedVariant.sku ? `SKU ${selectedVariant.sku}` : null].filter(Boolean).join(" · ")
+    ? [selectedVariant.title, selectedVariant.sku ? `SKU ${selectedVariant.sku}` : null].filter(Boolean).join(" | ")
     : requiredOptions.length
       ? `Select ${requiredOptions.map((option) => option.name).join(" / ")}`
       : product.variants.length > 1
@@ -209,17 +230,53 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const priceLabel = hasPriceRange
     ? `${formatMoney(product.minPrice, product.currency)} - ${formatMoney(product.maxPrice, product.currency)}`
     : formatMoney(displayPrice, displayCurrency);
+  const purchaseDisabledReason = (() => {
+    if (!product.variants.length) return t("product.noPurchasableVariant");
+    if (!requiredOptions.length && product.variants.length > 1 && !selectedVariant) return "Select a variant before purchasing.";
+    if (missingOptionCount > 0) return missingOptionCount === requiredOptions.length
+      ? "Choose product options before purchasing."
+      : `Choose ${missingOptionCount} more option${missingOptionCount > 1 ? "s" : ""} before purchasing.`;
+    if (!selectedVariant) return "This option combination is unavailable.";
+    if (selectedVariant.stock < 1 || product.stock < 1) return "Selected variant is out of stock.";
+    if (!canFetchBuyerState && session) return "Only buyer accounts can purchase.";
+    return null;
+  })();
+  const stockSummary = selectedVariant
+    ? selectedVariant.stock > 0
+      ? `${selectedVariant.stock} ${t("product.inStock")}`
+      : "Out of stock"
+    : product.stock > 0
+      ? `${product.stock} ${t("product.inStock")}`
+      : "Out of stock";
 
-  function isOptionValueDisabled(optionId: string, valueId: string) {
-    if (!product) return true;
-    return !product.variants.some((variant) => {
-      if (variant.stock < 1) return false;
-      if (!variant.optionValues.some((optionValue) => optionValue.optionId === optionId && optionValue.valueId === valueId)) return false;
-      return Object.entries(selectedOptionValues).every(([selectedOptionId, selectedValueId]) => {
+  function getOptionValueState(optionId: string, valueId: string): OptionValueState {
+    if (selectedOptionValues[optionId] === valueId) return "selected";
+    if (!product) return "unavailable";
+    const matchingValueVariants = product.variants.filter((variant) =>
+      variant.optionValues.some((optionValue) => optionValue.optionId === optionId && optionValue.valueId === valueId),
+    );
+    if (!matchingValueVariants.length) return "unavailable";
+    const compatibleVariants = matchingValueVariants.filter((variant) =>
+      Object.entries(selectedOptionValues).every(([selectedOptionId, selectedValueId]) => {
         if (!selectedValueId || selectedOptionId === optionId) return true;
         return variant.optionValues.some((optionValue) => optionValue.optionId === selectedOptionId && optionValue.valueId === selectedValueId);
-      });
-    });
+      }),
+    );
+    if (!compatibleVariants.length) return "unavailable";
+    return compatibleVariants.some((variant) => variant.stock > 0) ? "available" : "out-of-stock";
+  }
+
+  function getOptionValueClasses(state: OptionValueState) {
+    if (state === "selected") return "border-orange-500 bg-orange-50 text-orange-700 ring-2 ring-orange-100";
+    if (state === "available") return "border-slate-200 bg-white text-slate-700 hover:border-orange-300";
+    if (state === "out-of-stock") return "cursor-not-allowed border-red-200 bg-red-50 text-red-500 opacity-70";
+    return "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-70";
+  }
+
+  function getOptionValueHint(state: OptionValueState) {
+    if (state === "out-of-stock") return "Out of stock";
+    if (state === "unavailable") return "Unavailable";
+    return null;
   }
 
   return (
@@ -277,7 +334,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
             <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
               <span className="flex items-center gap-1"><StarIcon className="size-4 fill-amber-400 text-amber-400" />{product.rating.toFixed(1)}</span>
               <span>{product.soldCount} {t("product.sold")}</span>
-              <span>{displayedStock} {t("product.inStock")}</span>
+              <span>{stockSummary}</span>
             </div>
             <p className="text-3xl font-bold text-orange-600">{priceLabel}</p>
 
@@ -288,17 +345,21 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                   <div className="flex flex-wrap gap-2">
                     {option.values.map((value) => {
                       const selected = selectedOptionValues[option.id] === value.id;
-                      const disabled = isOptionValueDisabled(option.id, value.id);
+                      const state = getOptionValueState(option.id, value.id);
+                      const disabled = state === "unavailable" || state === "out-of-stock";
+                      const hint = getOptionValueHint(state);
                       return (
                         <button
                           key={value.id}
                           type="button"
                           disabled={disabled}
-                          className={`min-h-10 rounded-lg border px-3 text-sm font-medium transition ${selected ? "border-orange-500 bg-orange-50 text-orange-700" : "border-slate-200 bg-white text-slate-700 hover:border-orange-300"} ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
+                          title={hint ?? (selected ? "Selected" : "Available")}
+                          className={`min-h-10 rounded-lg border px-3 py-2 text-left text-sm font-medium transition ${getOptionValueClasses(state)}`}
                           onClick={() => setSelectedOptionValues((current) => ({ ...current, [option.id]: selected ? "" : value.id }))}
                         >
                           {value.colorHex ? <span className="mr-2 inline-block size-3 rounded-full align-middle" style={{ backgroundColor: value.colorHex }} /> : null}
                           {value.value}
+                          {hint ? <span aria-hidden="true" className="ml-2 text-[11px] font-semibold uppercase tracking-normal">{hint}</span> : null}
                         </button>
                       );
                     })}
@@ -309,7 +370,23 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                   <h2 className="font-semibold">{t("product.variants")}</h2>
                   <div className="flex flex-wrap gap-2">
                     {product.variants.length ? product.variants.map((variant) => (
-                      <Badge key={variant.id} variant="outline" className={`rounded-md px-3 py-1 ${variant.stock < 1 ? "opacity-40" : ""}`}>{variant.title}</Badge>
+                      <button
+                        key={variant.id}
+                        type="button"
+                        disabled={variant.stock < 1}
+                        title={variant.stock < 1 ? "Out of stock" : selectedVariant?.id === variant.id ? "Selected" : "Available"}
+                        className={`min-h-10 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                          selectedVariant?.id === variant.id
+                            ? "border-orange-500 bg-orange-50 text-orange-700 ring-2 ring-orange-100"
+                            : variant.stock < 1
+                              ? "cursor-not-allowed border-red-200 bg-red-50 text-red-500 opacity-70"
+                              : "border-slate-200 bg-white text-slate-700 hover:border-orange-300"
+                        }`}
+                        onClick={() => setSelectedStandaloneVariantId((current) => current === variant.id ? "" : variant.id)}
+                      >
+                        {variant.title}
+                        {variant.stock < 1 ? <span aria-hidden="true" className="ml-2 text-[11px] font-semibold uppercase tracking-normal">Out of stock</span> : null}
+                      </button>
                     )) : <Badge variant="outline" className="rounded-md px-3 py-1">{t("product.noPurchasableVariant")}</Badge>}
                   </div>
                 </div>
@@ -318,12 +395,17 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
                 <p className="font-medium text-slate-900">Selected variant</p>
                 <p className="mt-1">{selectedSummary}</p>
-                {requiresVariantSelection ? <p className="mt-2 text-orange-700">Choose all options before purchasing.</p> : null}
+                <p className={`mt-2 ${purchaseDisabledReason ? "text-orange-700" : "text-emerald-700"}`}>
+                  {purchaseDisabledReason ?? `${stockSummary} ready for cart.`}
+                </p>
               </div>
             </div>
 
             <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
-              <span className="text-sm font-medium text-slate-700">Quantity</span>
+              <div>
+                <span className="text-sm font-medium text-slate-700">Quantity</span>
+                <p className="mt-1 text-xs text-slate-500">{selectedVariant ? `Maximum ${selectedVariant.stock}` : "Select a variant to choose quantity"}</p>
+              </div>
               <div className="flex items-center rounded-lg border border-slate-200">
                 <Button type="button" variant="ghost" size="icon" className="size-9 rounded-none" aria-label="Decrease quantity" disabled={quantity <= 1 || !selectedVariant} onClick={() => setQuantity((current) => Math.max(1, current - 1))}>
                   <MinusIcon className="size-4" />
@@ -376,18 +458,18 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-bold">Product facts</h2>
-          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {product.condition ? <FactRow label="Condition" value={product.condition} /> : null}
             {product.countryOfOrigin ? <FactRow label="Country of origin" value={product.countryOfOrigin} /> : null}
             {product.warrantyInfo ? <FactRow label="Warranty" value={product.warrantyInfo} /> : null}
             {product.brand ? <FactRow label="Brand" value={product.brand.name} /> : null}
           </dl>
           {product.attributes.length ? (
-            <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
+            <div className="mt-4 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
               {product.attributes.map((attribute) => (
-                <div key={`${attribute.key}-${attribute.name}`} className="grid grid-cols-[140px_minmax(0,1fr)] border-b border-slate-100 text-sm last:border-b-0">
-                  <dt className="bg-slate-50 px-3 py-2 font-medium text-slate-600">{attribute.name}</dt>
-                  <dd className="px-3 py-2 text-slate-800">{attribute.value}</dd>
+                <div key={`${attribute.key}-${attribute.name}`} className="rounded-lg bg-white px-3 py-2 text-sm">
+                  <dt className="font-medium text-slate-500">{attribute.name}</dt>
+                  <dd className="mt-1 break-words text-slate-900">{attribute.value}</dd>
                 </div>
               ))}
             </div>
@@ -401,8 +483,17 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-bold">{t("product.reviews")}</h2>
-          <p className="mb-3 text-sm text-slate-500">{product.rating.toFixed(1)} rating · {product.soldCount} sold</p>
-          <BuyerEmptyState title={t("product.noReviewsTitle")} description={t("product.noReviewsDescription")} />
+          <ProductReviewsSection
+            fallbackRating={product.rating}
+            ratingSummary={ratingSummaryQuery.data}
+            ratingSummaryError={ratingSummaryQuery.error}
+            ratingSummaryLoading={ratingSummaryQuery.isLoading}
+            onRetryRatingSummary={() => void ratingSummaryQuery.refetch()}
+            reviews={reviewsQuery.data ?? []}
+            reviewsError={reviewsQuery.error}
+            reviewsLoading={reviewsQuery.isLoading}
+            onRetryReviews={() => void reviewsQuery.refetch()}
+          />
         </section>
 
         <section className="space-y-3">
@@ -414,34 +505,198 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       </article>
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
-        <div className="mx-auto grid max-w-6xl grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl" disabled={favoriteMutation.isPending} onClick={() => {
-            if (!session) router.push(localePath("/login"));
-            else if (canFetchBuyerState) favoriteMutation.mutate();
-          }}>
-            <HeartIcon className={`size-5 ${favoriteQuery.data ? "fill-orange-500 text-orange-500" : ""}`} />
-            <span className="sr-only">{t("product.wishlist")}</span>
-          </Button>
-          <Button variant="outline" className="hidden h-12 rounded-2xl sm:inline-flex" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
-            <MessageCircleIcon className="size-4" />
-            {t("chat.chatSeller")}
-          </Button>
-          <Button variant="outline" className="h-12 rounded-2xl" onClick={() => handlePurchaseAction("cart")} disabled={!canPurchase || addCartMutation.isPending}>
-            <span className="relative inline-flex">
-              <ShoppingCartIcon className="size-4" />
-              {cartItemCount > 0 ? (
-                <span className="absolute -right-2.5 -top-2.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white">
-                  {cartItemCount > 99 ? "99+" : cartItemCount}
-                </span>
-              ) : null}
-            </span>
-            {t("product.addToCart")}
-          </Button>
-          <Button className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={() => handlePurchaseAction("buy-now")} disabled={!canPurchase || addCartMutation.isPending}>{t("product.buyNow")}</Button>
+        <div className="mx-auto grid max-w-6xl gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-950">{priceLabel}</p>
+              <p className="truncate text-xs text-slate-600">{selectedSummary}</p>
+              <p className={`truncate text-xs ${purchaseDisabledReason ? "text-orange-700" : "text-emerald-700"}`}>
+                {purchaseDisabledReason ?? `${quantity} item${quantity > 1 ? "s" : ""} | ${stockSummary}`}
+              </p>
+            </div>
+            <div className="rounded-lg bg-white px-3 py-2 text-center">
+              <p className="text-[11px] font-medium uppercase tracking-normal text-slate-500">Qty</p>
+              <p className="text-sm font-bold text-slate-950">{quantity}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:grid-cols-[48px_140px_150px_150px]">
+            <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl" disabled={favoriteMutation.isPending} onClick={() => {
+              if (!session) router.push(localePath("/login"));
+              else if (canFetchBuyerState) favoriteMutation.mutate();
+            }}>
+              <HeartIcon className={`size-5 ${favoriteQuery.data ? "fill-orange-500 text-orange-500" : ""}`} />
+              <span className="sr-only">{t("product.wishlist")}</span>
+            </Button>
+            <Button variant="outline" className="hidden h-12 rounded-2xl sm:inline-flex" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
+              <MessageCircleIcon className="size-4" />
+              {t("chat.chatSeller")}
+            </Button>
+            <Button variant="outline" className="h-12 rounded-2xl" onClick={() => handlePurchaseAction("cart")} disabled={!canPurchase || addCartMutation.isPending}>
+              <span className="relative inline-flex">
+                <ShoppingCartIcon className="size-4" />
+                {cartItemCount > 0 ? (
+                  <span className="absolute -right-2.5 -top-2.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white">
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </span>
+                ) : null}
+              </span>
+              {t("product.addToCart")}
+            </Button>
+            <Button className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={() => handlePurchaseAction("buy-now")} disabled={!canPurchase || addCartMutation.isPending}>{t("product.buyNow")}</Button>
+          </div>
         </div>
       </div>
     </>
   );
+}
+
+function ProductReviewsSection({
+  fallbackRating,
+  ratingSummary,
+  ratingSummaryError,
+  ratingSummaryLoading,
+  onRetryRatingSummary,
+  reviews,
+  reviewsError,
+  reviewsLoading,
+  onRetryReviews,
+}: {
+  fallbackRating: number;
+  ratingSummary: BuyerProductRatingSummary | undefined;
+  ratingSummaryError: Error | null;
+  ratingSummaryLoading: boolean;
+  onRetryRatingSummary: () => void;
+  reviews: BuyerProductReview[];
+  reviewsError: Error | null;
+  reviewsLoading: boolean;
+  onRetryReviews: () => void;
+}) {
+  const totalReviewCount = ratingSummary?.totalReviewCount ?? reviews.length;
+  const averageRating = ratingSummary ? ratingSummary.averageRating : fallbackRating;
+
+  return (
+    <div className="mt-3 space-y-4">
+      {ratingSummaryLoading ? (
+        <div className="grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-[180px_minmax(0,1fr)]" aria-label="Loading rating summary">
+          <div className="h-20 animate-pulse rounded-lg bg-slate-200" />
+          <div className="space-y-2">
+            {[5, 4, 3, 2, 1].map((rating) => <div key={rating} className="h-4 animate-pulse rounded bg-slate-200" />)}
+          </div>
+        </div>
+      ) : ratingSummaryError ? (
+        <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+          <BuyerErrorState message={ratingSummaryError.message} onRetry={onRetryRatingSummary} />
+        </div>
+      ) : (
+        <RatingSummaryCard averageRating={averageRating} totalReviewCount={totalReviewCount} distribution={ratingSummary?.distribution} />
+      )}
+
+      {reviewsLoading ? (
+        <div className="space-y-3" aria-label="Loading reviews">
+          {[0, 1].map((item) => (
+            <div key={item} className="rounded-xl border border-slate-100 p-4">
+              <div className="h-5 w-36 animate-pulse rounded bg-slate-200" />
+              <div className="mt-3 h-4 animate-pulse rounded bg-slate-200" />
+              <div className="mt-2 h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+            </div>
+          ))}
+        </div>
+      ) : reviewsError ? (
+        <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+          <BuyerErrorState message={reviewsError.message} onRetry={onRetryReviews} />
+        </div>
+      ) : reviews.length ? (
+        <div className="space-y-3">
+          {reviews.map((review) => <ReviewCard key={review.id} review={review} />)}
+        </div>
+      ) : (
+        <BuyerEmptyState title="No reviews yet" description="Published buyer reviews will appear here." />
+      )}
+    </div>
+  );
+}
+
+function RatingSummaryCard({
+  averageRating,
+  totalReviewCount,
+  distribution,
+}: {
+  averageRating: number;
+  totalReviewCount: number;
+  distribution: BuyerProductRatingSummary["distribution"] | undefined;
+}) {
+  const hasDistribution = distribution && Object.values(distribution).some((count) => count > 0);
+
+  return (
+    <div className="grid gap-4 rounded-xl bg-slate-50 p-4 md:grid-cols-[180px_minmax(0,1fr)]">
+      <div>
+        <div className="flex items-center gap-2">
+          <StarIcon className="size-5 fill-amber-400 text-amber-400" />
+          <span className="text-3xl font-bold text-slate-950">{averageRating.toFixed(1)}</span>
+        </div>
+        <p className="mt-1 text-sm text-slate-500">{totalReviewCount} review{totalReviewCount === 1 ? "" : "s"}</p>
+      </div>
+      {hasDistribution ? (
+        <div className="space-y-2">
+          {[5, 4, 3, 2, 1].map((rating) => {
+            const count = distribution[rating as 1 | 2 | 3 | 4 | 5];
+            const width = totalReviewCount > 0 ? `${Math.round((count / totalReviewCount) * 100)}%` : "0%";
+            return (
+              <div key={rating} className="grid grid-cols-[48px_minmax(0,1fr)_32px] items-center gap-2 text-sm text-slate-600">
+                <span>{rating} star</span>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div className="h-full rounded-full bg-amber-400" style={{ width }} />
+                </div>
+                <span className="text-right tabular-nums">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ReviewCard({ review }: { review: BuyerProductReview }) {
+  return (
+    <article className="rounded-xl border border-slate-100 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-950">{review.reviewerName}</p>
+          <div className="mt-1 flex items-center gap-1 text-sm text-amber-500" aria-label={`${review.rating} star review`}>
+            {Array.from({ length: 5 }, (_, index) => (
+              <StarIcon key={index} className={`size-4 ${index < review.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+            ))}
+          </div>
+        </div>
+        {review.createdAt ? <time dateTime={review.createdAt} className="text-sm text-slate-500">{formatReviewDate(review.createdAt)}</time> : null}
+      </div>
+      {review.comment ? <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{review.comment}</p> : null}
+      {review.media.length ? (
+        <div className="mt-3 flex gap-2 overflow-x-auto" aria-label="Review media">
+          {review.media.map((media) => (
+            <a key={media.id} href={media.url} target="_blank" rel="noreferrer" className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+              <Image src={media.url} alt={media.altText ?? "Review image"} fill sizes="80px" className="object-cover" />
+            </a>
+          ))}
+        </div>
+      ) : null}
+      {review.snapshot ? (
+        <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <p className="font-medium text-slate-800">{review.snapshot.productTitle}</p>
+          <p className="mt-1">
+            {[review.snapshot.variantTitle, review.snapshot.variantSku ? `SKU ${review.snapshot.variantSku}` : null, review.snapshot.shopName].filter(Boolean).join(" | ")}
+          </p>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function formatReviewDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
 function FactRow({ label, value }: { label: string; value: string }) {
@@ -452,3 +707,4 @@ function FactRow({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
