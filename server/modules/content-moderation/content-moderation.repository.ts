@@ -3,12 +3,14 @@ import type {
   Prisma,
   PrismaClient,
   Product,
+  ProductAnswer,
+  ProductQuestion,
   Review,
   ReviewReport,
   Shop,
   User,
 } from '#generated/client/client.ts'
-import type { ReviewReportStatus, ReviewStatus } from '#generated/client/enums.ts'
+import type { ProductAnswerStatus, ProductQuestionStatus, ReviewReportStatus, ReviewStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -49,6 +51,26 @@ export type ModerationReviewReportRecord = ReviewReport & {
   moderatedBy: Pick<User, 'id' | 'name' | 'email'> | null
 }
 
+export type ModerationProductQuestionRecord = ProductQuestion & {
+  user: Pick<User, 'id' | 'name' | 'email'>
+  product: Pick<Product, 'id' | 'title' | 'slug' | 'status' | 'shopId'> & {
+    shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
+  }
+  _count: {
+    answers: number
+  }
+}
+
+export type ModerationProductAnswerRecord = ProductAnswer & {
+  user: Pick<User, 'id' | 'name' | 'email'>
+  question: Pick<ProductQuestion, 'id' | 'question' | 'status' | 'productId' | 'shopId' | 'userId'> & {
+    user: Pick<User, 'id' | 'name' | 'email'>
+    product: Pick<Product, 'id' | 'title' | 'slug' | 'status' | 'shopId'> & {
+      shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
+    }
+  }
+}
+
 export interface UpdateReviewReportStatusResult {
   report: ModerationReviewReportRecord
   reviewBeforeStatus?: ReviewStatus
@@ -71,6 +93,18 @@ export interface IContentModerationRepository {
     reportId: string,
     input: { status: ReviewReportStatus; moderatorId: string; note?: string | null },
   ): Promise<UpdateReviewReportStatusResult>
+  listQuestions(
+    filters: ContentModerationListFilters<ProductQuestionStatus>,
+    pagination: ContentModerationPaginationInput,
+  ): Promise<ContentModerationPaginatedResult<ModerationProductQuestionRecord>>
+  findQuestionById(questionId: string): Promise<ModerationProductQuestionRecord | null>
+  updateQuestionStatus(questionId: string, input: { status: ProductQuestionStatus }): Promise<ModerationProductQuestionRecord>
+  listAnswers(
+    filters: ContentModerationListFilters<ProductAnswerStatus>,
+    pagination: ContentModerationPaginationInput,
+  ): Promise<ContentModerationPaginatedResult<ModerationProductAnswerRecord>>
+  findAnswerById(answerId: string): Promise<ModerationProductAnswerRecord | null>
+  updateAnswerStatus(answerId: string, input: { status: ProductAnswerStatus }): Promise<ModerationProductAnswerRecord>
 }
 
 const reviewInclude = {
@@ -120,6 +154,46 @@ const reviewReportInclude = {
   },
   reportedBy: { select: { id: true, name: true, email: true } },
   moderatedBy: { select: { id: true, name: true, email: true } },
+} as const
+
+const productQuestionInclude = {
+  user: { select: { id: true, name: true, email: true } },
+  product: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      shopId: true,
+      shop: { select: { id: true, name: true, slug: true, status: true } },
+    },
+  },
+  _count: { select: { answers: true } },
+} as const
+
+const productAnswerInclude = {
+  user: { select: { id: true, name: true, email: true } },
+  question: {
+    select: {
+      id: true,
+      question: true,
+      status: true,
+      productId: true,
+      shopId: true,
+      userId: true,
+      user: { select: { id: true, name: true, email: true } },
+      product: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          status: true,
+          shopId: true,
+          shop: { select: { id: true, name: true, slug: true, status: true } },
+        },
+      },
+    },
+  },
 } as const
 
 export class PrismaContentModerationRepository implements IContentModerationRepository {
@@ -240,6 +314,78 @@ export class PrismaContentModerationRepository implements IContentModerationRepo
     })
   }
 
+  async listQuestions(
+    filters: ContentModerationListFilters<ProductQuestionStatus>,
+    pagination: ContentModerationPaginationInput,
+  ): Promise<ContentModerationPaginatedResult<ModerationProductQuestionRecord>> {
+    this.logger.debug('PrismaContentModerationRepository.listQuestions', { filters, pagination })
+    const where = this.questionWhere(filters)
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.productQuestion.findMany({
+        where,
+        include: productQuestionInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
+      }),
+      this.prisma.productQuestion.count({ where }),
+    ])
+    return { items, total }
+  }
+
+  findQuestionById(questionId: string): Promise<ModerationProductQuestionRecord | null> {
+    this.logger.debug('PrismaContentModerationRepository.findQuestionById', { questionId })
+    return this.prisma.productQuestion.findUnique({
+      where: { id: questionId },
+      include: productQuestionInclude,
+    })
+  }
+
+  updateQuestionStatus(questionId: string, input: { status: ProductQuestionStatus }): Promise<ModerationProductQuestionRecord> {
+    this.logger.info('PrismaContentModerationRepository.updateQuestionStatus', { questionId, status: input.status })
+    return this.prisma.productQuestion.update({
+      where: { id: questionId },
+      data: { status: input.status },
+      include: productQuestionInclude,
+    })
+  }
+
+  async listAnswers(
+    filters: ContentModerationListFilters<ProductAnswerStatus>,
+    pagination: ContentModerationPaginationInput,
+  ): Promise<ContentModerationPaginatedResult<ModerationProductAnswerRecord>> {
+    this.logger.debug('PrismaContentModerationRepository.listAnswers', { filters, pagination })
+    const where = this.answerWhere(filters)
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.productAnswer.findMany({
+        where,
+        include: productAnswerInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
+      }),
+      this.prisma.productAnswer.count({ where }),
+    ])
+    return { items, total }
+  }
+
+  findAnswerById(answerId: string): Promise<ModerationProductAnswerRecord | null> {
+    this.logger.debug('PrismaContentModerationRepository.findAnswerById', { answerId })
+    return this.prisma.productAnswer.findUnique({
+      where: { id: answerId },
+      include: productAnswerInclude,
+    })
+  }
+
+  updateAnswerStatus(answerId: string, input: { status: ProductAnswerStatus }): Promise<ModerationProductAnswerRecord> {
+    this.logger.info('PrismaContentModerationRepository.updateAnswerStatus', { answerId, status: input.status })
+    return this.prisma.productAnswer.update({
+      where: { id: answerId },
+      data: { status: input.status },
+      include: productAnswerInclude,
+    })
+  }
+
   private reviewWhere(filters: ContentModerationListFilters<ReviewStatus>): Prisma.ReviewWhereInput {
     return {
       ...(filters.status ? { status: filters.status } : {}),
@@ -268,6 +414,41 @@ export class PrismaContentModerationRepository implements IContentModerationRepo
               { review: { product: { title: { contains: filters.q, mode: 'insensitive' } } } },
               { reportedBy: { name: { contains: filters.q, mode: 'insensitive' } } },
               { reportedBy: { email: { contains: filters.q, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
+    }
+  }
+
+  private questionWhere(filters: ContentModerationListFilters<ProductQuestionStatus>): Prisma.ProductQuestionWhereInput {
+    return {
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.q
+        ? {
+            OR: [
+              { question: { contains: filters.q, mode: 'insensitive' } },
+              { product: { title: { contains: filters.q, mode: 'insensitive' } } },
+              { product: { shop: { name: { contains: filters.q, mode: 'insensitive' } } } },
+              { user: { name: { contains: filters.q, mode: 'insensitive' } } },
+              { user: { email: { contains: filters.q, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
+    }
+  }
+
+  private answerWhere(filters: ContentModerationListFilters<ProductAnswerStatus>): Prisma.ProductAnswerWhereInput {
+    return {
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.q
+        ? {
+            OR: [
+              { answer: { contains: filters.q, mode: 'insensitive' } },
+              { question: { question: { contains: filters.q, mode: 'insensitive' } } },
+              { question: { product: { title: { contains: filters.q, mode: 'insensitive' } } } },
+              { question: { product: { shop: { name: { contains: filters.q, mode: 'insensitive' } } } } },
+              { user: { name: { contains: filters.q, mode: 'insensitive' } } },
+              { user: { email: { contains: filters.q, mode: 'insensitive' } } },
             ],
           }
         : {}),

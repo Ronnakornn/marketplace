@@ -1,4 +1,4 @@
-import type { ReviewReportStatus, ReviewStatus, Role } from '#generated/client/enums.ts'
+import type { ProductAnswerStatus, ProductQuestionStatus, ReviewReportStatus, ReviewStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { AuditLogService } from '#server/modules/audit-log'
@@ -6,12 +6,16 @@ import { ContentModerationServiceError } from './content-moderation.errors.ts'
 import type {
   ContentModerationListFilters,
   IContentModerationRepository,
+  ModerationProductAnswerRecord,
+  ModerationProductQuestionRecord,
   ModerationReviewRecord,
   ModerationReviewReportRecord,
 } from './content-moderation.repository.ts'
 
 const reviewStatuses = ['PENDING', 'PUBLISHED', 'REJECTED', 'HIDDEN'] as const satisfies readonly ReviewStatus[]
 const reviewReportStatuses = ['OPEN', 'UNDER_REVIEW', 'RESOLVED_REMOVED', 'RESOLVED_DISMISSED', 'RESOLVED_HIDDEN'] as const satisfies readonly ReviewReportStatus[]
+const productQuestionStatuses = ['PENDING', 'PUBLISHED', 'HIDDEN', 'REJECTED'] as const satisfies readonly ProductQuestionStatus[]
+const productAnswerStatuses = ['PENDING', 'PUBLISHED', 'HIDDEN', 'REJECTED'] as const satisfies readonly ProductAnswerStatus[]
 
 const reviewTransitions: Record<ReviewStatus, readonly ReviewStatus[]> = {
   PENDING: ['PUBLISHED', 'REJECTED'],
@@ -26,6 +30,20 @@ const reviewReportTransitions: Record<ReviewReportStatus, readonly ReviewReportS
   RESOLVED_REMOVED: [],
   RESOLVED_DISMISSED: [],
   RESOLVED_HIDDEN: [],
+}
+
+const productQuestionTransitions: Record<ProductQuestionStatus, readonly ProductQuestionStatus[]> = {
+  PENDING: ['PUBLISHED', 'HIDDEN'],
+  PUBLISHED: ['HIDDEN'],
+  HIDDEN: ['PUBLISHED'],
+  REJECTED: ['PUBLISHED'],
+}
+
+const productAnswerTransitions: Record<ProductAnswerStatus, readonly ProductAnswerStatus[]> = {
+  PENDING: ['PUBLISHED', 'HIDDEN'],
+  PUBLISHED: ['HIDDEN'],
+  HIDDEN: ['PUBLISHED'],
+  REJECTED: ['PUBLISHED'],
 }
 
 export interface ContentModerationActor {
@@ -93,6 +111,40 @@ export interface ModerationReviewReportResponse {
   } | null
 }
 
+export interface ModerationProductQuestionResponse {
+  id: string
+  productId: string
+  shopId: string
+  userId: string
+  question: string
+  status: ProductQuestionStatus
+  answerCount: number
+  createdAt: Date
+  updatedAt: Date
+  user: { id: string; name: string; email: string }
+  product: { id: string; title: string; slug: string; status: string }
+  shop: { id: string; name: string; slug: string; status: string }
+}
+
+export interface ModerationProductAnswerResponse {
+  id: string
+  questionId: string
+  userId: string
+  answer: string
+  status: ProductAnswerStatus
+  createdAt: Date
+  updatedAt: Date
+  user: { id: string; name: string; email: string }
+  question: {
+    id: string
+    question: string
+    status: ProductQuestionStatus
+    user: { id: string; name: string; email: string }
+    product: { id: string; title: string; slug: string; status: string }
+    shop: { id: string; name: string; slug: string; status: string }
+  }
+}
+
 export class ContentModerationService {
   private logger: ILogger
 
@@ -132,6 +184,36 @@ export class ContentModerationService {
     }
     const result = await this.repo.listReviewReports(filters, query)
     return this.toListResponse(result.items.map((item) => this.toReviewReportResponse(item)), result.total, query)
+  }
+
+  async listQuestions(
+    actor: ContentModerationActor,
+    input: ContentModerationQueryInput = {},
+  ): Promise<ContentModerationListResponse<ModerationProductQuestionResponse>> {
+    this.logger.debug('ContentModerationService.listQuestions', { actorId: actor.id })
+    this.assertAdmin(actor)
+    const query = this.normalizeQuery(input)
+    const filters: ContentModerationListFilters<ProductQuestionStatus> = {
+      status: input.status === undefined ? undefined : this.parseProductQuestionStatus(input.status),
+      q: query.q,
+    }
+    const result = await this.repo.listQuestions(filters, query)
+    return this.toListResponse(result.items.map((item) => this.toProductQuestionResponse(item)), result.total, query)
+  }
+
+  async listAnswers(
+    actor: ContentModerationActor,
+    input: ContentModerationQueryInput = {},
+  ): Promise<ContentModerationListResponse<ModerationProductAnswerResponse>> {
+    this.logger.debug('ContentModerationService.listAnswers', { actorId: actor.id })
+    this.assertAdmin(actor)
+    const query = this.normalizeQuery(input)
+    const filters: ContentModerationListFilters<ProductAnswerStatus> = {
+      status: input.status === undefined ? undefined : this.parseProductAnswerStatus(input.status),
+      q: query.q,
+    }
+    const result = await this.repo.listAnswers(filters, query)
+    return this.toListResponse(result.items.map((item) => this.toProductAnswerResponse(item)), result.total, query)
   }
 
   async updateReviewStatus(
@@ -204,6 +286,76 @@ export class ContentModerationService {
     return this.toReviewReportResponse(result.report)
   }
 
+  async updateQuestionStatus(
+    actor: ContentModerationActor,
+    questionId: string,
+    input: ContentModerationStatusInput,
+  ): Promise<ModerationProductQuestionResponse> {
+    this.logger.info('ContentModerationService.updateQuestionStatus', { actorId: actor.id, questionId })
+    this.assertAdmin(actor)
+    const status = this.parseProductQuestionStatus(input.status)
+    const note = this.normalizeNote(input.note)
+    const question = await this.repo.findQuestionById(questionId)
+    if (!question) throw new ContentModerationServiceError('Product question not found', 404, 'PRODUCT_QUESTION_NOT_FOUND')
+    this.assertProductQuestionTransition(question.status, status)
+    this.assertProductQuestionNote(status, note)
+
+    const updated = await this.repo.updateQuestionStatus(question.id, { status })
+    await this.createAuditLogBestEffort({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'PRODUCT_QUESTION_STATUS_CHANGED',
+      entityType: 'ProductQuestion',
+      entityId: question.id,
+      before: { status: question.status },
+      after: { status: updated.status },
+      metadata: {
+        note,
+        productId: question.productId,
+        shopId: question.shopId,
+        userId: question.userId,
+      },
+      nonCritical: true,
+    })
+    return this.toProductQuestionResponse(updated)
+  }
+
+  async updateAnswerStatus(
+    actor: ContentModerationActor,
+    answerId: string,
+    input: ContentModerationStatusInput,
+  ): Promise<ModerationProductAnswerResponse> {
+    this.logger.info('ContentModerationService.updateAnswerStatus', { actorId: actor.id, answerId })
+    this.assertAdmin(actor)
+    const status = this.parseProductAnswerStatus(input.status)
+    const note = this.normalizeNote(input.note)
+    const answer = await this.repo.findAnswerById(answerId)
+    if (!answer) throw new ContentModerationServiceError('Product answer not found', 404, 'PRODUCT_ANSWER_NOT_FOUND')
+    this.assertProductAnswerTransition(answer.status, status)
+    this.assertProductAnswerNote(status, note)
+
+    const updated = await this.repo.updateAnswerStatus(answer.id, { status })
+    await this.createAuditLogBestEffort({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'PRODUCT_ANSWER_STATUS_CHANGED',
+      entityType: 'ProductAnswer',
+      entityId: answer.id,
+      before: { status: answer.status },
+      after: { status: updated.status },
+      metadata: {
+        note,
+        questionId: answer.questionId,
+        productId: answer.question.productId,
+        shopId: answer.question.shopId,
+        userId: answer.userId,
+        questionUserId: answer.question.userId,
+      },
+      nonCritical: true,
+    })
+    return this.toProductAnswerResponse(updated)
+  }
+
   private assertAdmin(actor: ContentModerationActor): void {
     if (actor.role !== 'ADMIN') {
       throw new ContentModerationServiceError('Content moderation requires admin role', 403, 'CONTENT_MODERATION_FORBIDDEN')
@@ -248,6 +400,20 @@ export class ContentModerationService {
     return status as ReviewReportStatus
   }
 
+  private parseProductQuestionStatus(status: string): ProductQuestionStatus {
+    if (!productQuestionStatuses.includes(status as ProductQuestionStatus)) {
+      throw new ContentModerationServiceError('Invalid product question status', 400, 'INVALID_PRODUCT_QUESTION_STATUS')
+    }
+    return status as ProductQuestionStatus
+  }
+
+  private parseProductAnswerStatus(status: string): ProductAnswerStatus {
+    if (!productAnswerStatuses.includes(status as ProductAnswerStatus)) {
+      throw new ContentModerationServiceError('Invalid product answer status', 400, 'INVALID_PRODUCT_ANSWER_STATUS')
+    }
+    return status as ProductAnswerStatus
+  }
+
   private normalizeNote(note: string | undefined): string | null {
     const trimmed = note?.trim()
     return trimmed ? trimmed : null
@@ -271,6 +437,24 @@ export class ContentModerationService {
     }
   }
 
+  private assertProductQuestionTransition(from: ProductQuestionStatus, to: ProductQuestionStatus): void {
+    if (!productQuestionTransitions[from].includes(to)) {
+      throw new ContentModerationServiceError('Invalid product question status transition', 400, 'INVALID_PRODUCT_QUESTION_STATUS_TRANSITION', {
+        from,
+        to,
+      })
+    }
+  }
+
+  private assertProductAnswerTransition(from: ProductAnswerStatus, to: ProductAnswerStatus): void {
+    if (!productAnswerTransitions[from].includes(to)) {
+      throw new ContentModerationServiceError('Invalid product answer status transition', 400, 'INVALID_PRODUCT_ANSWER_STATUS_TRANSITION', {
+        from,
+        to,
+      })
+    }
+  }
+
   private assertReviewNote(from: ReviewStatus, to: ReviewStatus, note: string | null): void {
     if ((from === 'PENDING' && to === 'REJECTED') || (from === 'PUBLISHED' && to === 'HIDDEN')) {
       this.assertNote(note, 'Moderation note is required for this review status change', 'REVIEW_MODERATION_NOTE_REQUIRED')
@@ -280,6 +464,18 @@ export class ContentModerationService {
   private assertReviewReportNote(to: ReviewReportStatus, note: string | null): void {
     if (to === 'RESOLVED_DISMISSED') {
       this.assertNote(note, 'Moderation note is required when dismissing a review report', 'REVIEW_REPORT_MODERATION_NOTE_REQUIRED')
+    }
+  }
+
+  private assertProductQuestionNote(to: ProductQuestionStatus, note: string | null): void {
+    if (to === 'HIDDEN') {
+      this.assertNote(note, 'Moderation note is required when hiding a product question', 'PRODUCT_QUESTION_MODERATION_NOTE_REQUIRED')
+    }
+  }
+
+  private assertProductAnswerNote(to: ProductAnswerStatus, note: string | null): void {
+    if (to === 'HIDDEN') {
+      this.assertNote(note, 'Moderation note is required when hiding a product answer', 'PRODUCT_ANSWER_MODERATION_NOTE_REQUIRED')
     }
   }
 
@@ -350,6 +546,54 @@ export class ContentModerationService {
             shop: report.review.product.shop,
           }
         : null,
+    }
+  }
+
+  private toProductQuestionResponse(question: ModerationProductQuestionRecord): ModerationProductQuestionResponse {
+    return {
+      id: question.id,
+      productId: question.productId,
+      shopId: question.shopId,
+      userId: question.userId,
+      question: question.question,
+      status: question.status,
+      answerCount: question._count.answers,
+      createdAt: question.createdAt,
+      updatedAt: question.updatedAt,
+      user: question.user,
+      product: {
+        id: question.product.id,
+        title: question.product.title,
+        slug: question.product.slug,
+        status: question.product.status,
+      },
+      shop: question.product.shop,
+    }
+  }
+
+  private toProductAnswerResponse(answer: ModerationProductAnswerRecord): ModerationProductAnswerResponse {
+    return {
+      id: answer.id,
+      questionId: answer.questionId,
+      userId: answer.userId,
+      answer: answer.answer,
+      status: answer.status,
+      createdAt: answer.createdAt,
+      updatedAt: answer.updatedAt,
+      user: answer.user,
+      question: {
+        id: answer.question.id,
+        question: answer.question.question,
+        status: answer.question.status,
+        user: answer.question.user,
+        product: {
+          id: answer.question.product.id,
+          title: answer.question.product.title,
+          slug: answer.question.product.slug,
+          status: answer.question.product.status,
+        },
+        shop: answer.question.product.shop,
+      },
     }
   }
 }

@@ -3,6 +3,8 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { AuditLogService } from '#server/modules/audit-log'
 import type {
   IContentModerationRepository,
+  ModerationProductAnswerRecord,
+  ModerationProductQuestionRecord,
   ModerationReviewRecord,
   ModerationReviewReportRecord,
   UpdateReviewReportStatusResult,
@@ -87,6 +89,55 @@ function report(overrides: Partial<ModerationReviewReportRecord> = {}): Moderati
   } as ModerationReviewReportRecord
 }
 
+function question(overrides: Partial<ModerationProductQuestionRecord> = {}): ModerationProductQuestionRecord {
+  return {
+    id: '88888888-8888-4888-8888-888888888888',
+    productId: '33333333-3333-4333-8333-333333333333',
+    shopId: '55555555-5555-4555-8555-555555555555',
+    userId: '22222222-2222-4222-8222-222222222222',
+    question: 'Is this authentic?',
+    status: 'PENDING',
+    createdAt: now,
+    updatedAt: now,
+    user: { id: '22222222-2222-4222-8222-222222222222', name: 'Buyer', email: 'buyer@example.com' },
+    product: {
+      id: '33333333-3333-4333-8333-333333333333',
+      title: 'Product',
+      slug: 'product',
+      status: 'ACTIVE',
+      shopId: '55555555-5555-4555-8555-555555555555',
+      shop: { id: '55555555-5555-4555-8555-555555555555', name: 'Shop', slug: 'shop', status: 'ACTIVE' },
+    },
+    _count: { answers: 2 },
+    ...overrides,
+  } as ModerationProductQuestionRecord
+}
+
+function answer(overrides: Partial<ModerationProductAnswerRecord> = {}): ModerationProductAnswerRecord {
+  const targetQuestion = question({ status: 'PUBLISHED' })
+  return {
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    questionId: targetQuestion.id,
+    userId: '99999999-9999-4999-8999-999999999999',
+    answer: 'Yes, it is authentic.',
+    status: 'PENDING',
+    createdAt: now,
+    updatedAt: now,
+    user: { id: '99999999-9999-4999-8999-999999999999', name: 'Seller', email: 'seller@example.com' },
+    question: {
+      id: targetQuestion.id,
+      question: targetQuestion.question,
+      status: targetQuestion.status,
+      productId: targetQuestion.productId,
+      shopId: targetQuestion.shopId,
+      userId: targetQuestion.userId,
+      user: targetQuestion.user,
+      product: targetQuestion.product,
+    },
+    ...overrides,
+  } as ModerationProductAnswerRecord
+}
+
 function createRepo(): IContentModerationRepository {
   return {
     listReviews: vi.fn().mockResolvedValue({ items: [review()], total: 1 }),
@@ -108,6 +159,12 @@ function createRepo(): IContentModerationRepository {
       reviewBeforeStatus: input.status === 'RESOLVED_REMOVED' ? 'PUBLISHED' : undefined,
       reviewAfterStatus: input.status === 'RESOLVED_REMOVED' ? 'HIDDEN' : undefined,
     })),
+    listQuestions: vi.fn().mockResolvedValue({ items: [question()], total: 1 }),
+    findQuestionById: vi.fn().mockResolvedValue(question()),
+    updateQuestionStatus: vi.fn(async (_questionId, input) => question({ status: input.status })),
+    listAnswers: vi.fn().mockResolvedValue({ items: [answer()], total: 1 }),
+    findAnswerById: vi.fn().mockResolvedValue(answer()),
+    updateAnswerStatus: vi.fn(async (_answerId, input) => answer({ status: input.status })),
   }
 }
 
@@ -217,6 +274,92 @@ describe('ContentModerationService', () => {
 
     await expect(service.updateReviewReportStatus(admin, '66666666-6666-4666-8666-666666666666', { status: 'UNDER_REVIEW' }))
       .rejects.toMatchObject({ code: 'INVALID_REVIEW_REPORT_STATUS_TRANSITION' })
+  })
+
+  it('lists product questions with filters and product/shop/user context', async () => {
+    const result = await service.listQuestions(admin, { page: '1', limit: '10', status: 'PENDING', q: 'authentic' })
+
+    expect(result.items[0]).toMatchObject({
+      id: '88888888-8888-4888-8888-888888888888',
+      answerCount: 2,
+      product: { id: '33333333-3333-4333-8333-333333333333' },
+      shop: { id: '55555555-5555-4555-8555-555555555555' },
+      user: { id: '22222222-2222-4222-8222-222222222222' },
+    })
+    expect(repo.listQuestions).toHaveBeenCalledWith({ status: 'PENDING', q: 'authentic' }, { page: 1, limit: 10, q: 'authentic' })
+  })
+
+  it('lists product answers with filters and question/product/shop/user context', async () => {
+    const result = await service.listAnswers(admin, { status: 'PENDING' })
+
+    expect(result.items[0]).toMatchObject({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      question: {
+        id: '88888888-8888-4888-8888-888888888888',
+        product: { id: '33333333-3333-4333-8333-333333333333' },
+        shop: { id: '55555555-5555-4555-8555-555555555555' },
+        user: { id: '22222222-2222-4222-8222-222222222222' },
+      },
+    })
+    expect(repo.listAnswers).toHaveBeenCalledWith({ status: 'PENDING', q: undefined }, { page: 1, limit: 20, q: undefined })
+  })
+
+  it('updates question status for a valid transition and writes audit log', async () => {
+    const result = await service.updateQuestionStatus(admin, '88888888-8888-4888-8888-888888888888', { status: 'PUBLISHED' })
+
+    expect(result.status).toBe('PUBLISHED')
+    expect(repo.updateQuestionStatus).toHaveBeenCalledWith('88888888-8888-4888-8888-888888888888', { status: 'PUBLISHED' })
+    expect(auditLogService.createAuditLogBestEffort).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'PRODUCT_QUESTION_STATUS_CHANGED',
+      entityType: 'ProductQuestion',
+      before: { status: 'PENDING' },
+      after: { status: 'PUBLISHED' },
+      nonCritical: true,
+    }))
+  })
+
+  it('requires a note when hiding a product question', async () => {
+    await expect(service.updateQuestionStatus(admin, '88888888-8888-4888-8888-888888888888', { status: 'HIDDEN' }))
+      .rejects.toMatchObject({ code: 'PRODUCT_QUESTION_MODERATION_NOTE_REQUIRED' })
+    expect(repo.updateQuestionStatus).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid product question transitions', async () => {
+    vi.mocked(repo.findQuestionById).mockResolvedValueOnce(question({ status: 'PUBLISHED' }))
+
+    await expect(service.updateQuestionStatus(admin, '88888888-8888-4888-8888-888888888888', { status: 'REJECTED', note: 'bad' }))
+      .rejects.toMatchObject({ code: 'INVALID_PRODUCT_QUESTION_STATUS_TRANSITION' })
+  })
+
+  it('updates answer status for a valid transition and writes audit log', async () => {
+    const result = await service.updateAnswerStatus(admin, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', { status: 'PUBLISHED' })
+
+    expect(result.status).toBe('PUBLISHED')
+    expect(repo.updateAnswerStatus).toHaveBeenCalledWith('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', { status: 'PUBLISHED' })
+    expect(auditLogService.createAuditLogBestEffort).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'PRODUCT_ANSWER_STATUS_CHANGED',
+      entityType: 'ProductAnswer',
+      before: { status: 'PENDING' },
+      after: { status: 'PUBLISHED' },
+      metadata: expect.objectContaining({
+        questionId: '88888888-8888-4888-8888-888888888888',
+        productId: '33333333-3333-4333-8333-333333333333',
+        shopId: '55555555-5555-4555-8555-555555555555',
+      }),
+    }))
+  })
+
+  it('requires a note when hiding a product answer', async () => {
+    await expect(service.updateAnswerStatus(admin, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', { status: 'HIDDEN' }))
+      .rejects.toMatchObject({ code: 'PRODUCT_ANSWER_MODERATION_NOTE_REQUIRED' })
+    expect(repo.updateAnswerStatus).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid product answer transitions', async () => {
+    vi.mocked(repo.findAnswerById).mockResolvedValueOnce(answer({ status: 'PUBLISHED' }))
+
+    await expect(service.updateAnswerStatus(admin, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', { status: 'REJECTED', note: 'bad' }))
+      .rejects.toMatchObject({ code: 'INVALID_PRODUCT_ANSWER_STATUS_TRANSITION' })
   })
 
   it('does not fail moderation when best-effort audit logging fails', async () => {
