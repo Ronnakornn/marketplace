@@ -4,8 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
 import {
+  answerProductQuestion,
   invalidateProductMutationQueries,
+  normalizePublicProductQuestions,
   invalidateSellerProductQueries,
+  productQueryKeys,
+  publicProductQuestionsQueryOptions,
   sellerProductsQueryOptions,
 } from "#/features/product/queries";
 import { uploadSellerFile, type SellerCompletedUpload, type SellerUploadUsage } from "#/features/seller/upload-helper";
@@ -177,6 +181,17 @@ export function useSellerProduct(productId?: string) {
       return data;
     },
     enabled: Boolean(productId),
+  });
+}
+
+export function useSellerProductQuestions(productId?: string) {
+  return useQuery({
+    ...(productId ? publicProductQuestionsQueryOptions(productId) : {
+      queryKey: ["product", "public", "questions", "missing"] as const,
+      queryFn: async () => ({ items: [] }),
+    }),
+    enabled: Boolean(productId),
+    select: normalizePublicProductQuestions,
   });
 }
 
@@ -576,6 +591,17 @@ export function useSubmitSellerProductReview() {
         productId,
         affectsPublic: false,
       });
+    },
+  });
+}
+
+export function useAnswerSellerProductQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ questionId, answer }: { questionId: string; productId: string; answer: string }) =>
+      answerProductQuestion(questionId, answer),
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: productQueryKeys.public.questions(variables.productId) });
     },
   });
 }

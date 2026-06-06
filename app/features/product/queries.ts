@@ -20,6 +20,9 @@ type PublicProductsResponse = Treaty.Data<ReturnType<typeof api.api.products.get
 type PublicProductDetailResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["get"]>>;
 type PublicProductReviewsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["reviews"]["get"]>>;
 type PublicProductRatingSummaryResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["rating-summary"]["get"]>>;
+type PublicProductQuestionsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["questions"]["get"]>>;
+type PublicProductQuestionResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["questions"]["post"]>>;
+type ProductQuestionAnswerResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products.questions>["answers"]["post"]>>;
 type PublicCategoriesResponse = Treaty.Data<ReturnType<typeof api.api.categories.get>>;
 type PublicSearchProductsResponse = Treaty.Data<ReturnType<typeof api.api.search.products.get>>;
 type PublicSearchSuggestionsResponse = Treaty.Data<ReturnType<typeof api.api.search.suggestions.get>>;
@@ -195,6 +198,31 @@ export interface BuyerProductRatingSummary {
   distribution: Record<1 | 2 | 3 | 4 | 5, number>;
 }
 
+export interface BuyerProductQuestionAnswer {
+  id: string;
+  answer: string;
+  status: "PUBLISHED" | string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface BuyerProductQuestion {
+  id: string;
+  productId: string;
+  shopId: string;
+  question: string;
+  status: "PUBLISHED" | string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+  };
+  answers: BuyerProductQuestionAnswer[];
+}
+
 export interface AffiliateProductTargetOption {
   id: string;
   label: string;
@@ -219,6 +247,7 @@ export const productQueryKeys = {
       [...productQueryKeys.public.details(), cleanPublicProductDetailInput(input)] as const,
     reviews: (productId: string) => [...productQueryKeys.public.all(), "reviews", productId] as const,
     ratingSummary: (productId: string) => [...productQueryKeys.public.all(), "rating-summary", productId] as const,
+    questions: (productId: string) => [...productQueryKeys.public.all(), "questions", productId] as const,
     categories: (input: PublicCategoryListInput = {}) =>
       [...productQueryKeys.public.all(), "categories", cleanCategoryInput(input)] as const,
     brands: () => [...productQueryKeys.public.all(), "brands"] as const,
@@ -308,6 +337,18 @@ export function publicProductRatingSummaryQueryOptions(productId: string) {
     queryKey: productQueryKeys.public.ratingSummary(productId),
     queryFn: async (): Promise<PublicProductRatingSummaryResponse> => {
       const { data, error } = await api.api.products({ productId })["rating-summary"].get();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: PRODUCT_QUERY_STALE_TIME_MS,
+  });
+}
+
+export function publicProductQuestionsQueryOptions(productId: string) {
+  return queryOptions({
+    queryKey: productQueryKeys.public.questions(productId),
+    queryFn: async (): Promise<PublicProductQuestionsResponse> => {
+      const { data, error } = await api.api.products({ productId }).questions.get();
       if (error) throw error;
       return data;
     },
@@ -454,6 +495,10 @@ export function usePublicProductRatingSummary(productId: string) {
   return useQuery(publicProductRatingSummaryQueryOptions(productId));
 }
 
+export function usePublicProductQuestions(productId: string) {
+  return useQuery(publicProductQuestionsQueryOptions(productId));
+}
+
 export function usePublicCategories(input: PublicCategoryListInput = {}) {
   return useQuery(publicCategoriesQueryOptions(input));
 }
@@ -500,6 +545,18 @@ export async function invalidatePublicProductQueries(queryClient: QueryClient, i
         })
       : queryClient.invalidateQueries({ queryKey: productQueryKeys.public.details() }),
   ]);
+}
+
+export async function createProductQuestion(productId: string, question: string): Promise<PublicProductQuestionResponse> {
+  const { data, error } = await api.api.products({ productId }).questions.post({ question });
+  if (error) throw error;
+  return data;
+}
+
+export async function answerProductQuestion(questionId: string, answer: string): Promise<ProductQuestionAnswerResponse> {
+  const { data, error } = await api.api.products.questions({ questionId }).answers.post({ answer });
+  if (error) throw error;
+  return data;
 }
 
 export async function invalidateSellerProductQueries(queryClient: QueryClient, input: { productId?: string } = {}) {
@@ -892,6 +949,40 @@ export function normalizePublicProductRatingSummary(response: PublicProductRatin
     averageRating: readNumber(record.averageRating, Number(fallbackAverage.toFixed(2))),
     totalReviewCount,
     distribution,
+  };
+}
+
+export function normalizePublicProductQuestions(response: PublicProductQuestionsResponse | unknown): BuyerProductQuestion[] {
+  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
+  return rawItems.map((item) => {
+    const record = toRecord(item);
+    return {
+      id: readString(record.id),
+      productId: readString(record.productId),
+      shopId: readString(record.shopId),
+      question: readString(record.question),
+      status: readString(record.status, "PUBLISHED"),
+      createdAt: readDateString(record.createdAt),
+      user: normalizeQuestionUser(record.user),
+      answers: readArray(record.answers).map((answerInput) => {
+        const answer = toRecord(answerInput);
+        return {
+          id: readString(answer.id),
+          answer: readString(answer.answer),
+          status: readString(answer.status, "PUBLISHED"),
+          createdAt: readDateString(answer.createdAt),
+          user: normalizeQuestionUser(answer.user),
+        };
+      }).filter((answer) => answer.id && answer.answer),
+    };
+  }).filter((question) => question.id && question.question);
+}
+
+function normalizeQuestionUser(input: unknown): BuyerProductQuestion["user"] {
+  const user = toRecord(input);
+  return {
+    id: readString(user.id),
+    name: readString(user.name, "Marketplace user"),
   };
 }
 

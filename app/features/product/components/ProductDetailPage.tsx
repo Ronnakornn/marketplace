@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HeartIcon, MessageCircleIcon, MinusIcon, PlayIcon, PlusIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, StoreIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerProductDetailSkeleton } from "#/components/BuyerState";
@@ -24,13 +24,18 @@ import { createChatRoom } from "#/features/chat";
 import { ProductCard } from "#/features/product/components/ProductCard";
 import {
   normalizePublicProduct,
+  normalizePublicProductQuestions,
   normalizePublicProductRatingSummary,
   normalizePublicProductReviews,
   normalizePublicProducts,
+  createProductQuestion,
   publicProductDetailQueryOptions,
   publicProductListQueryOptions,
+  publicProductQuestionsQueryOptions,
   publicProductRatingSummaryQueryOptions,
   publicProductReviewsQueryOptions,
+  productQueryKeys,
+  type BuyerProductQuestion,
   type BuyerProductRatingSummary,
   type BuyerProductReview,
 } from "#/features/product/queries";
@@ -56,6 +61,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const [selectedOptionValues, setSelectedOptionValues] = useState<Record<string, string>>({});
   const [selectedStandaloneVariantId, setSelectedStandaloneVariantId] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [questionText, setQuestionText] = useState("");
 
   const productQuery = useQuery({
     ...publicProductDetailQueryOptions({ productId, locale }),
@@ -72,6 +78,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const ratingSummaryQuery = useQuery({
     ...publicProductRatingSummaryQueryOptions(productId),
     select: normalizePublicProductRatingSummary,
+  });
+  const questionsQuery = useQuery({
+    ...publicProductQuestionsQueryOptions(productId),
+    select: normalizePublicProductQuestions,
   });
   const favoriteQuery = useQuery({
     queryKey: ["buyer-favorite-status", productId],
@@ -120,6 +130,13 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["buyer-shop-follow-status", shopId] });
       void queryClient.invalidateQueries({ queryKey: ["buyer-followed-shops"] });
+    },
+  });
+  const questionMutation = useMutation({
+    mutationFn: (question: string) => createProductQuestion(productId, question),
+    onSuccess: () => {
+      setQuestionText("");
+      void queryClient.invalidateQueries({ queryKey: productQueryKeys.public.questions(productId) });
     },
   });
   const cartItemCount = cartQuery.data?.shops.reduce(
@@ -180,6 +197,13 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         if (action === "buy-now") router.push(localePath("/cart"));
       },
     });
+  }
+
+  function handleQuestionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = questionText.trim();
+    if (!trimmed || !canFetchBuyerState) return;
+    questionMutation.mutate(trimmed);
   }
 
   if (productQuery.isLoading) {
@@ -496,6 +520,35 @@ export function ProductDetailPage({ productId }: { productId: string }) {
           />
         </section>
 
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">Questions & answers</h2>
+              <p className="mt-1 text-sm text-slate-500">Ask the seller about this product.</p>
+            </div>
+            {questionsQuery.data?.length ? (
+              <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-slate-700">
+                {questionsQuery.data.length} question{questionsQuery.data.length === 1 ? "" : "s"}
+              </Badge>
+            ) : null}
+          </div>
+          <ProductQuestionsSection
+            questions={questionsQuery.data ?? []}
+            questionsError={questionsQuery.error}
+            questionsLoading={questionsQuery.isLoading}
+            onRetryQuestions={() => void questionsQuery.refetch()}
+            canAskQuestion={canFetchBuyerState}
+            isAuthenticated={Boolean(session)}
+            questionText={questionText}
+            onQuestionTextChange={setQuestionText}
+            questionError={questionMutation.error}
+            questionPending={questionMutation.isPending}
+            questionSuccess={questionMutation.isSuccess}
+            onQuestionSubmit={handleQuestionSubmit}
+            onLogin={() => router.push(localePath("/login"))}
+          />
+        </section>
+
         <section className="space-y-3">
           <h2 className="text-lg font-bold">{t("product.relatedProducts")}</h2>
           {relatedQuery.isSuccess && relatedQuery.data.length > 0 ? (
@@ -613,6 +666,119 @@ function ProductReviewsSection({
         <BuyerEmptyState title="No reviews yet" description="Published buyer reviews will appear here." />
       )}
     </div>
+  );
+}
+
+function ProductQuestionsSection({
+  questions,
+  questionsError,
+  questionsLoading,
+  onRetryQuestions,
+  canAskQuestion,
+  isAuthenticated,
+  questionText,
+  onQuestionTextChange,
+  questionError,
+  questionPending,
+  questionSuccess,
+  onQuestionSubmit,
+  onLogin,
+}: {
+  questions: BuyerProductQuestion[];
+  questionsError: Error | null;
+  questionsLoading: boolean;
+  onRetryQuestions: () => void;
+  canAskQuestion: boolean;
+  isAuthenticated: boolean;
+  questionText: string;
+  onQuestionTextChange: (value: string) => void;
+  questionError: Error | null;
+  questionPending: boolean;
+  questionSuccess: boolean;
+  onQuestionSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onLogin: () => void;
+}) {
+  const trimmedQuestion = questionText.trim();
+
+  return (
+    <div className="mt-3 space-y-4">
+      {isAuthenticated && canAskQuestion ? (
+        <form className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3" onSubmit={onQuestionSubmit}>
+          <label htmlFor="product-question" className="text-sm font-semibold text-slate-900">Your question</label>
+          <textarea
+            id="product-question"
+            value={questionText}
+            onChange={(event) => onQuestionTextChange(event.target.value)}
+            placeholder="Ask about sizing, warranty, packaging, or product details."
+            className="min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+            disabled={questionPending}
+          />
+          {questionError ? <p className="text-sm text-red-600">{questionError.message}</p> : null}
+          {questionSuccess && !questionError ? <p className="text-sm text-emerald-700">Question submitted.</p> : null}
+          <Button type="submit" disabled={!trimmedQuestion || questionPending}>
+            {questionPending ? "Submitting..." : "Submit question"}
+          </Button>
+        </form>
+      ) : (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+          {isAuthenticated ? "Only buyer accounts can ask product questions." : (
+            <Button type="button" variant="outline" className="rounded-full" onClick={onLogin}>Log in to ask a question</Button>
+          )}
+        </div>
+      )}
+
+      {questionsLoading ? (
+        <div className="space-y-3" aria-label="Loading questions">
+          {[0, 1].map((item) => (
+            <div key={item} className="rounded-xl border border-slate-100 p-4">
+              <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
+              <div className="mt-3 h-4 animate-pulse rounded bg-slate-200" />
+              <div className="mt-2 h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+            </div>
+          ))}
+        </div>
+      ) : questionsError ? (
+        <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+          <BuyerErrorState message={questionsError.message} onRetry={onRetryQuestions} />
+        </div>
+      ) : questions.length ? (
+        <div className="space-y-3">
+          {questions.map((question) => <QuestionCard key={question.id} question={question} />)}
+        </div>
+      ) : (
+        <BuyerEmptyState title="No questions yet" description="Buyer questions and seller answers will appear here." />
+      )}
+    </div>
+  );
+}
+
+function QuestionCard({ question }: { question: BuyerProductQuestion }) {
+  return (
+    <article className="rounded-xl border border-slate-100 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-normal text-orange-600">Question</p>
+          <p className="mt-1 font-semibold text-slate-950">{question.user.name}</p>
+        </div>
+        {question.createdAt ? <time dateTime={question.createdAt} className="text-sm text-slate-500">{formatReviewDate(question.createdAt)}</time> : null}
+      </div>
+      <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{question.question}</p>
+      {question.answers.length ? (
+        <div className="mt-4 space-y-3 border-l-2 border-orange-200 pl-3">
+          {question.answers.map((answer) => (
+            <div key={answer.id} className="rounded-lg bg-orange-50 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-orange-900">Seller answer from {answer.user.name}</p>
+                {answer.createdAt ? <time dateTime={answer.createdAt} className="text-xs text-orange-700">{formatReviewDate(answer.createdAt)}</time> : null}
+              </div>
+              <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{answer.answer}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-slate-500">The seller has not answered yet.</p>
+      )}
+    </article>
   );
 }
 

@@ -23,6 +23,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Textarea } from "#/components/ui/textarea";
+import type { BuyerProductQuestion } from "#/features/product/queries";
 import { SellerPageHeader } from "./SellerShell";
 import {
   type SellerProduct,
@@ -31,6 +32,7 @@ import {
   type SellerProductOptionInput,
   type SellerProductVideo,
   type SellerVariantInput,
+  useAnswerSellerProductQuestion,
   useArchiveSellerProduct,
   useSellerCategorySpecs,
   useCreateSellerProduct,
@@ -41,6 +43,7 @@ import {
   useSellerBrands,
   useSellerCategories,
   useSellerProduct,
+  useSellerProductQuestions,
   useSellerProducts,
   useSubmitSellerProductReview,
   useUpdateSellerProductImagesOrder,
@@ -782,6 +785,7 @@ export function SellerProductsPage() {
     <>
       <SellerPageHeader title="Products" description="Create products, monitor catalog status, and prepare variants for your shop." />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
+      <SellerProductQuestionsPanel products={products} />
       <Card className="rounded-lg border-slate-200 bg-white">
         <CardContent className="pt-6">
           <DataTable
@@ -842,6 +846,113 @@ export function SellerProductsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+function SellerProductQuestionsPanel({ products }: { products: SellerProduct[] }) {
+  const activeProducts = products.filter((product) => product.status === "ACTIVE").slice(0, 6);
+
+  if (!activeProducts.length) {
+    return (
+      <Card className="mb-4 rounded-lg border-slate-200 bg-white">
+        <CardHeader>
+          <CardTitle>Product questions</CardTitle>
+          <p className="text-sm text-slate-500">Unanswered buyer questions for active products appear here.</p>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-500">No active products to check for questions.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="mb-4 rounded-lg border-slate-200 bg-white">
+      <CardHeader>
+        <CardTitle>Product questions</CardTitle>
+        <p className="text-sm text-slate-500">Answer unanswered buyer questions for products in this list.</p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {activeProducts.map((product) => (
+          <SellerProductQuestionList key={product.id} product={product} />
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SellerProductQuestionList({ product }: { product: SellerProduct }) {
+  const query = useSellerProductQuestions(product.id);
+  const unanswered = (query.data ?? []).filter((question) => question.answers.length === 0);
+
+  if (query.isLoading) {
+    return <p className="text-sm text-slate-500">Loading questions for {product.title}...</p>;
+  }
+
+  if (query.error) {
+    return (
+      <div className="rounded-md border border-red-100 bg-red-50 p-3">
+        <p className="text-sm font-medium text-red-700">{product.title}</p>
+        <p className="text-sm text-red-600">{query.error.message}</p>
+        <Button type="button" variant="outline" size="sm" onClick={() => void query.refetch()}>Retry</Button>
+      </div>
+    );
+  }
+
+  if (!unanswered.length) {
+    return (
+      <div className="rounded-md border border-slate-200 p-3">
+        <p className="text-sm font-medium text-slate-900">{product.title}</p>
+        <p className="text-sm text-slate-500">No unanswered questions.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 rounded-md border border-slate-200 p-3">
+      <p className="text-sm font-medium text-slate-900">{product.title}</p>
+      {unanswered.map((question) => (
+        <SellerProductQuestionAnswerForm key={question.id} productId={product.id} question={question} />
+      ))}
+    </div>
+  );
+}
+
+function SellerProductQuestionAnswerForm({ productId, question }: { productId: string; question: BuyerProductQuestion }) {
+  const answerQuestion = useAnswerSellerProductQuestion();
+  const [answer, setAnswer] = useState("");
+  const trimmed = answer.trim();
+
+  function submitAnswer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!trimmed) return;
+    answerQuestion.mutate({ productId, questionId: question.id, answer: trimmed }, {
+      onSuccess: () => setAnswer(""),
+      onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Answer could not be submitted."),
+    });
+  }
+
+  return (
+    <form className="space-y-2 rounded-md bg-slate-50 p-3" onSubmit={submitAnswer}>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-normal text-slate-500">Buyer question</p>
+        <p className="mt-1 text-sm text-slate-900">{question.question}</p>
+      </div>
+      <Field label={`Answer question from ${question.user.name}`} htmlFor={`answer-${question.id}`}>
+        <Textarea
+          id={`answer-${question.id}`}
+          value={answer}
+          onChange={(event) => setAnswer(event.target.value)}
+          disabled={answerQuestion.isPending}
+          placeholder="Write a clear answer for buyers."
+        />
+      </Field>
+      {answerQuestion.error ? <p className="text-sm text-red-600">{answerQuestion.error.message}</p> : null}
+      {answerQuestion.isSuccess && !answerQuestion.error ? <p className="text-sm text-green-700">Answer submitted.</p> : null}
+      <Button type="submit" disabled={!trimmed || answerQuestion.isPending}>
+        {answerQuestion.isPending ? "Submitting..." : "Submit answer"}
+      </Button>
+    </form>
   );
 }
 

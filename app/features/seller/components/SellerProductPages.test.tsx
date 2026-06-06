@@ -25,6 +25,7 @@ const uploadVideoMutate = vi.fn();
 const deleteVideoMutate = vi.fn();
 const updateOptionsMutate = vi.fn();
 const submitReviewMutate = vi.fn();
+const answerQuestionMutate = vi.fn();
 
 const products: Array<any> = [
   {
@@ -142,6 +143,11 @@ let sellerCategorySpecsById: Record<string, Array<any> | undefined> = {
   cat_1: undefined,
 };
 
+let sellerQuestionsByProductId: Record<string, Array<any>> = {};
+let sellerQuestionPending = false;
+let sellerQuestionSuccess = false;
+let sellerQuestionError: Error | null = null;
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
 }));
@@ -245,6 +251,12 @@ vi.mock("../hooks/useSellerManage", () => ({
     isLoading: sellerProductsState.isLoading,
     refetch,
   })),
+  useSellerProductQuestions: vi.fn((productId?: string) => ({
+    data: productId ? sellerQuestionsByProductId[productId] ?? [] : [],
+    error: null,
+    isLoading: false,
+    refetch,
+  })),
   useSellerCategories: vi.fn(() => ({
     data: sellerCategories,
     isLoading: false,
@@ -269,6 +281,12 @@ vi.mock("../hooks/useSellerManage", () => ({
   useDeleteSellerProductVideo: vi.fn(() => ({ mutate: deleteVideoMutate, isPending: false })),
   useUpdateSellerProductOptions: vi.fn(() => ({ mutate: updateOptionsMutate, isPending: false })),
   useSubmitSellerProductReview: vi.fn(() => ({ mutate: submitReviewMutate, isPending: false })),
+  useAnswerSellerProductQuestion: vi.fn(() => ({
+    mutate: answerQuestionMutate,
+    isPending: sellerQuestionPending,
+    isSuccess: sellerQuestionSuccess,
+    error: sellerQuestionError,
+  })),
 }));
 
 afterEach(() => {
@@ -277,6 +295,10 @@ afterEach(() => {
   sellerProductsState = { data: { data: products, meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
   sellerCategories = [{ id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 0, attributeDefinitions: categorySpecDefinitions }];
   sellerCategorySpecsById = { cat_1: undefined };
+  sellerQuestionsByProductId = {};
+  sellerQuestionPending = false;
+  sellerQuestionSuccess = false;
+  sellerQuestionError = null;
 });
 
 describe("Seller product pages", () => {
@@ -288,6 +310,70 @@ describe("Seller product pages", () => {
     expect(screen.getByLabelText("Filter by product status")).toBeTruthy();
     expect(screen.getByRole("link", { name: /create product/i }).getAttribute("href")).toBe("/seller/products/new");
     expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/seller/products/prod_1");
+  });
+
+  it("renders unanswered product questions and submits seller answers", () => {
+    sellerProductsState = {
+      data: {
+        data: [{ ...products[0], status: "ACTIVE" }],
+        meta: { nextCursor: null, hasNextPage: false },
+      },
+      error: null,
+      isLoading: false,
+    };
+    sellerQuestionsByProductId = {
+      prod_1: [{
+        id: "question-1",
+        productId: "prod_1",
+        shopId: "shop_1",
+        question: "Does this ship with a box?",
+        status: "PUBLISHED",
+        createdAt: "2026-01-04T00:00:00.000Z",
+        user: { id: "buyer-1", name: "Jane Buyer" },
+        answers: [],
+      }],
+    };
+
+    render(<SellerProductsPage />);
+
+    expect(screen.getByText("Product questions")).toBeTruthy();
+    expect(screen.getByText("Does this ship with a box?")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Answer question from Jane Buyer"), { target: { value: "Yes, retail box is included." } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
+
+    expect(answerQuestionMutate).toHaveBeenCalledWith(
+      { productId: "prod_1", questionId: "question-1", answer: "Yes, retail box is included." },
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
+  });
+
+  it("shows seller answer submission state", () => {
+    sellerProductsState = {
+      data: {
+        data: [{ ...products[0], status: "ACTIVE" }],
+        meta: { nextCursor: null, hasNextPage: false },
+      },
+      error: null,
+      isLoading: false,
+    };
+    sellerQuestionsByProductId = {
+      prod_1: [{
+        id: "question-1",
+        productId: "prod_1",
+        shopId: "shop_1",
+        question: "Is the fabric pre-shrunk?",
+        status: "PUBLISHED",
+        createdAt: "2026-01-04T00:00:00.000Z",
+        user: { id: "buyer-1", name: "Jane Buyer" },
+        answers: [],
+      }],
+    };
+    sellerQuestionPending = true;
+
+    render(<SellerProductsPage />);
+
+    expect(screen.getByRole("button", { name: "Submitting..." })).toHaveProperty("disabled", true);
   });
 
   it("requires archive confirmation before calling archive mutation", () => {

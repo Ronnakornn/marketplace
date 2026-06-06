@@ -17,11 +17,15 @@ const queryMocks = vi.hoisted(() => ({
   productsQueryFn: vi.fn(),
   productDetailQueryFn: vi.fn(),
   reviewsResponse: [] as unknown[],
+  questionsResponse: { items: [] } as { items: unknown[] },
   ratingSummaryResponse: { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } } as unknown,
   reviewsError: null as Error | null,
+  questionsError: null as Error | null,
   ratingSummaryError: null as Error | null,
   reviewsQueryFn: vi.fn(),
+  questionsQueryFn: vi.fn(),
   ratingSummaryQueryFn: vi.fn(),
+  createProductQuestion: vi.fn(async () => ({ id: "question-new" })),
   couponsQueryFn: vi.fn(async () => []),
   addCartItem: vi.fn(async () => ({})),
   routerPush: vi.fn(),
@@ -115,6 +119,10 @@ vi.mock("#/features/product/queries", () => ({
     queryKey: ["product", "public", "rating-summary", "product-1"],
     queryFn: queryMocks.ratingSummaryQueryFn,
   }),
+  publicProductQuestionsQueryOptions: () => ({
+    queryKey: ["product", "public", "questions", "product-1"],
+    queryFn: queryMocks.questionsQueryFn,
+  }),
   publicProductSearchQueryOptions: () => ({
     queryKey: ["product", "public", "searches", { locale: "en", limit: 40 }],
     queryFn: queryMocks.productsQueryFn,
@@ -135,6 +143,13 @@ vi.mock("#/features/product/queries", () => ({
   normalizePublicProduct: (response: unknown) => response,
   normalizePublicProductReviews: (response: unknown[]) => response,
   normalizePublicProductRatingSummary: (response: unknown) => response,
+  normalizePublicProductQuestions: (response: { items?: unknown[] }) => response.items ?? [],
+  createProductQuestion: queryMocks.createProductQuestion,
+  productQueryKeys: {
+    public: {
+      questions: (productId: string) => ["product", "public", "questions", productId],
+    },
+  },
   normalizePublicCategories: () => [],
   normalizePublicBrands: () => [],
   normalizePublicSearchSuggestions: () => [],
@@ -220,11 +235,14 @@ beforeEach(() => {
   queryMocks.productsError = null;
   queryMocks.productDetailError = null;
   queryMocks.reviewsResponse = [];
+  queryMocks.questionsResponse = { items: [] };
   queryMocks.ratingSummaryResponse = { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
   queryMocks.reviewsError = null;
+  queryMocks.questionsError = null;
   queryMocks.ratingSummaryError = null;
   queryMocks.session = { user: { role: "USER" } };
   queryMocks.addCartItem.mockClear();
+  queryMocks.createProductQuestion.mockClear();
   queryMocks.routerPush.mockClear();
   queryMocks.productsQueryFn.mockImplementation(async () => {
     if (queryMocks.productsError) throw queryMocks.productsError;
@@ -237,6 +255,10 @@ beforeEach(() => {
   queryMocks.reviewsQueryFn.mockImplementation(async () => {
     if (queryMocks.reviewsError) throw queryMocks.reviewsError;
     return queryMocks.reviewsResponse;
+  });
+  queryMocks.questionsQueryFn.mockImplementation(async () => {
+    if (queryMocks.questionsError) throw queryMocks.questionsError;
+    return queryMocks.questionsResponse;
   });
   queryMocks.ratingSummaryQueryFn.mockImplementation(async () => {
     if (queryMocks.ratingSummaryError) throw queryMocks.ratingSummaryError;
@@ -484,6 +506,59 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     expect(await screen.findByText("Recovered Buyer")).toBeTruthy();
     expect(screen.getByText("5.0")).toBeTruthy();
+  });
+
+  it("renders populated Q&A with seller answers", async () => {
+    queryMocks.questionsResponse = {
+      items: [{
+        id: "question-1",
+        productId: "product-1",
+        shopId: "shop-1",
+        question: "Does this include a dust bag?",
+        status: "PUBLISHED",
+        createdAt: "2026-01-04T00:00:00.000Z",
+        user: { id: "buyer-1", name: "Jane Buyer" },
+        answers: [{
+          id: "answer-1",
+          answer: "Yes, the dust bag is included.",
+          status: "PUBLISHED",
+          createdAt: "2026-01-05T00:00:00.000Z",
+          user: { id: "seller-1", name: "Demo Shop" },
+        }],
+      }],
+    };
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("Questions & answers")).toBeTruthy();
+    expect(screen.getByText("Does this include a dust bag?")).toBeTruthy();
+    expect(screen.getByText("Seller answer from Demo Shop")).toBeTruthy();
+    expect(screen.getByText("Yes, the dust bag is included.")).toBeTruthy();
+  });
+
+  it("renders empty Q&A state when no questions exist", async () => {
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("No questions yet")).toBeTruthy();
+    expect(screen.getByText("Buyer questions and seller answers will appear here.")).toBeTruthy();
+  });
+
+  it("submits buyer questions with pending and success states", async () => {
+    let resolveQuestion: (value: { id: string }) => void = () => {};
+    queryMocks.createProductQuestion.mockImplementation(() => new Promise((resolve) => {
+      resolveQuestion = resolve;
+    }));
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    fireEvent.change(await screen.findByLabelText("Your question"), { target: { value: "Is this gift wrapped?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit question" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Submitting..." })).toHaveProperty("disabled", true));
+    expect(queryMocks.createProductQuestion).toHaveBeenCalledWith("product-1", "Is this gift wrapped?");
+
+    resolveQuestion({ id: "question-new" });
+    expect(await screen.findByText("Question submitted.")).toBeTruthy();
   });
 });
 
