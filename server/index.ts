@@ -31,6 +31,7 @@ import { createRealtimeRoutes } from "#server/modules/realtime";
 import { createReturnRoutes } from "#server/modules/return";
 import { createReviewRoutes } from "#server/modules/review";
 import { createProductQuestionRoutes } from "#server/modules/product-question";
+import { createProductAnalyticsRoutes } from "#server/modules/product-analytics";
 import { createSearchRoutes } from "#server/modules/search";
 import { createSellerDashboardRoutes } from "#server/modules/seller";
 import { createSellerOnboardingRoutes } from "#server/modules/seller-onboarding";
@@ -92,6 +93,7 @@ const baseApp = new Elysia()
         { name: "Return", description: "Return request workflows" },
         { name: "Review", description: "Product review workflows" },
         { name: "Product Q&A", description: "Product questions and seller answers" },
+        { name: "Product Analytics", description: "Seller product analytics" },
         { name: "Search", description: "Marketplace search" },
         { name: "Discovery", description: "Homepage discovery and merchandising composition" },
         { name: "Tracking", description: "Lightweight discovery event tracking" },
@@ -130,6 +132,9 @@ const baseApp = new Elysia()
 
   // --- Product Q&A routes ---
   .use(createProductQuestionRoutes(container))
+
+  // --- Seller product analytics routes ---
+  .use(createProductAnalyticsRoutes(container))
 
   // --- Catalog routes ---
   .use(createCatalogRoutes(container))
