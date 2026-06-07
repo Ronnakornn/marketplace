@@ -40,6 +40,20 @@ export interface LocalRecentlyViewedProduct {
   viewedAt: string;
 }
 
+export interface RecentlyViewedProductCard {
+  productId: string;
+  title: string;
+  imageUrl: string | null;
+  href: string;
+  minPrice: number | null;
+  currency: string | null;
+  shop: {
+    id: string;
+    name: string;
+  };
+  viewedAt: string | null;
+}
+
 export function getAnonymousSessionId(): string {
   if (typeof window === "undefined") return "";
   const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
@@ -148,6 +162,60 @@ export function useRecentlyViewedFallback(limit = 12) {
   return { read, save: saveLocalRecentlyViewedProduct };
 }
 
+export async function fetchRecentlyViewedProducts(limit = 8): Promise<RecentlyViewedProductCard[]> {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  const sessionId = getAnonymousSessionId();
+  if (sessionId) params.set("sessionId", sessionId);
+
+  const response = await fetch(`/api/discovery/recently-viewed?${params.toString()}`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error("Recently viewed products are unavailable.");
+  }
+  const data = await response.json() as unknown;
+  return normalizeRecentlyViewedProducts(data);
+}
+
+export function normalizeRecentlyViewedProducts(input: unknown): RecentlyViewedProductCard[] {
+  const rawItems = Array.isArray(input) ? input : [];
+  return rawItems.map((item) => {
+    const record = toRecord(item);
+    const productId = readString(record.productId, readString(record.id));
+    const shop = toRecord(record.shop);
+    return {
+      productId,
+      title: readString(record.title, "Recently viewed product"),
+      imageUrl: optionalString(record.coverImage) ?? optionalString(record.imageUrl),
+      href: `/products/${productId}`,
+      minPrice: readNumberOrNull(record.minPrice),
+      currency: optionalString(record.currency),
+      shop: {
+        id: readString(shop.id),
+        name: readString(shop.name, "Marketplace shop"),
+      },
+      viewedAt: optionalString(record.viewedAt),
+    };
+  }).filter((item) => item.productId);
+}
+
+export function normalizeLocalRecentlyViewedProducts(input: LocalRecentlyViewedProduct[]): RecentlyViewedProductCard[] {
+  return input.map((item) => ({
+    productId: item.productId,
+    title: item.title,
+    imageUrl: item.imageUrl,
+    href: item.href,
+    minPrice: null,
+    currency: null,
+    shop: {
+      id: "",
+      name: "Recently viewed",
+    },
+    viewedAt: item.viewedAt,
+  }));
+}
+
 function flushImpressions(events: Map<string, TrackDiscoveryEventInput>): void {
   if (events.size === 0) return;
   const queued = [...events.values()];
@@ -172,6 +240,24 @@ function readLocalRecentlyViewedProduct(value: unknown): LocalRecentlyViewedProd
   };
 }
 
-function readString(value: unknown): string {
-  return typeof value === "string" && value.trim() ? value : "";
+function toRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function readString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function readNumberOrNull(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }

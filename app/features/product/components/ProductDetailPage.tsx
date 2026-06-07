@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HeartIcon, ImageOffIcon, MessageCircleIcon, MinusIcon, PlayIcon, PlusIcon, RotateCcwIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, StoreIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerProductDetailSkeleton } from "#/components/BuyerState";
@@ -30,16 +30,23 @@ import {
   normalizePublicProducts,
   createProductQuestion,
   publicProductDetailQueryOptions,
-  publicProductListQueryOptions,
   publicProductQuestionsQueryOptions,
   publicProductRatingSummaryQueryOptions,
+  publicRelatedProductsQueryOptions,
   publicProductReviewsQueryOptions,
   productQueryKeys,
   type BuyerProductQuestion,
   type BuyerProductRatingSummary,
   type BuyerProductReview,
 } from "#/features/product/queries";
-import { saveLocalRecentlyViewedProduct, useDiscoveryTracking } from "#/features/tracking";
+import {
+  fetchRecentlyViewedProducts,
+  getLocalRecentlyViewedProducts,
+  normalizeLocalRecentlyViewedProducts,
+  saveLocalRecentlyViewedProduct,
+  useDiscoveryTracking,
+  type RecentlyViewedProductCard as RecentlyViewedProductCardData,
+} from "#/features/tracking";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
@@ -68,8 +75,16 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     select: normalizePublicProduct,
   });
   const relatedQuery = useQuery({
-    ...publicProductListQueryOptions({ limit: 4, locale }),
+    ...publicRelatedProductsQueryOptions({ productId, limit: 8, locale }),
     select: normalizePublicProducts,
+  });
+  const recentlyViewedQuery = useQuery({
+    queryKey: ["discovery", "recently-viewed", { limit: 8, locale }],
+    queryFn: async () => {
+      const remote = await fetchRecentlyViewedProducts(8);
+      return remote.length ? remote : normalizeLocalRecentlyViewedProducts(getLocalRecentlyViewedProducts());
+    },
+    staleTime: 30_000,
   });
   const reviewsQuery = useQuery({
     ...publicProductReviewsQueryOptions(productId),
@@ -145,6 +160,8 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   ) ?? 0;
 
   const product = productQuery.data;
+  const relatedProducts = (relatedQuery.data ?? []).filter((item) => item.id !== product?.id).slice(0, 4);
+  const recentlyViewedProducts = (recentlyViewedQuery.data ?? []).filter((item) => item.productId !== product?.id).slice(0, 4);
   const requiredOptions = product?.options.slice(0, 2) ?? [];
   const selectedVariant = useMemo(() => {
     if (!product?.variants.length) return null;
@@ -580,12 +597,27 @@ export function ProductDetailPage({ productId }: { productId: string }) {
           />
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold">{t("product.relatedProducts")}</h2>
-          {relatedQuery.isSuccess && relatedQuery.data.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{relatedQuery.data.filter((item) => item.id !== product.id).slice(0, 4).map((item) => <ProductCard key={item.id} product={item} />)}</div>
-          ) : null}
-        </section>
+        <ProductDiscoverySection
+          title={t("product.relatedProducts")}
+          isLoading={relatedQuery.isLoading}
+          error={relatedQuery.error}
+          onRetry={() => void relatedQuery.refetch()}
+          emptyTitle="No related products yet"
+          emptyDescription="Similar products will appear here when available."
+        >
+          {relatedProducts.map((item) => <ProductCard key={item.id} product={item} />)}
+        </ProductDiscoverySection>
+
+        <ProductDiscoverySection
+          title="Recently viewed"
+          isLoading={recentlyViewedQuery.isLoading}
+          error={recentlyViewedQuery.error}
+          onRetry={() => void recentlyViewedQuery.refetch()}
+          emptyTitle="No recently viewed products"
+          emptyDescription="Products you viewed earlier will appear here."
+        >
+          {recentlyViewedProducts.map((item) => <RecentlyViewedProductCard key={item.productId} product={item} />)}
+        </ProductDiscoverySection>
       </article>
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
@@ -633,6 +665,77 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         </div>
       </div>
     </>
+  );
+}
+
+function ProductDiscoverySection({
+  title,
+  isLoading,
+  error,
+  onRetry,
+  emptyTitle,
+  emptyDescription,
+  children,
+}: {
+  title: string;
+  isLoading: boolean;
+  error: Error | null;
+  onRetry: () => void;
+  emptyTitle: string;
+  emptyDescription: string;
+  children: ReactNode[];
+}) {
+  const hasItems = children.length > 0;
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-slate-950">{title}</h2>
+        {error ? (
+          <Button type="button" variant="ghost" size="sm" className="rounded-full text-slate-600" onClick={onRetry}>
+            Retry
+          </Button>
+        ) : null}
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label={`Loading ${title}`}>
+          {[0, 1, 2, 3].map((item) => (
+            <div key={item} className="h-56 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
+          ))}
+        </div>
+      ) : error ? (
+        <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+          {title} are temporarily unavailable.
+        </p>
+      ) : hasItems ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{children}</div>
+      ) : (
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <p className="text-sm font-semibold text-slate-700">{emptyTitle}</p>
+          <p className="mt-1 text-sm text-slate-500">{emptyDescription}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RecentlyViewedProductCard({ product }: { product: RecentlyViewedProductCardData }) {
+  const image = resolveUploadedImageUrl(product.imageUrl ?? undefined);
+  const priceLabel = product.minPrice && product.currency ? formatMoney(product.minPrice, product.currency) : null;
+
+  return (
+    <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+      <a href={product.href} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">
+        <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
+          <Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" />
+        </div>
+        <div className="space-y-2 p-3">
+          <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-5 text-slate-900">{product.title}</h3>
+          {priceLabel ? <p className="truncate text-base font-bold text-orange-600">{priceLabel}</p> : null}
+          <p className="truncate text-xs text-slate-500">{product.shop.name}</p>
+        </div>
+      </a>
+    </article>
   );
 }
 

@@ -783,7 +783,7 @@ function cleanQuery(input: Record<string, QueryValue>): CleanQuery {
   ) as CleanQuery;
 }
 
-export function normalizePublicProducts(response: PublicProductsResponse | PublicSearchProductsResponse): BuyerProduct[] {
+export function normalizePublicProducts(response: PublicProductsResponse | PublicSearchProductsResponse | PublicRelatedProductsResponse): BuyerProduct[] {
   const record = toRecord(response);
   const rawItems = Array.isArray(response)
     ? response

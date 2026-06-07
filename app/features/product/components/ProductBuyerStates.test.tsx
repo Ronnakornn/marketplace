@@ -16,6 +16,12 @@ const queryMocks = vi.hoisted(() => ({
   productDetailError: null as Error | null,
   productsQueryFn: vi.fn(),
   productDetailQueryFn: vi.fn(),
+  relatedResponse: { items: [] } as { items: unknown[] },
+  relatedError: null as Error | null,
+  relatedQueryFn: vi.fn(),
+  recentlyViewedResponse: [] as unknown[],
+  recentlyViewedError: null as Error | null,
+  recentlyViewedQueryFn: vi.fn(),
   reviewsResponse: [] as unknown[],
   questionsResponse: { items: [] } as { items: unknown[] },
   ratingSummaryResponse: { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } } as unknown,
@@ -111,6 +117,10 @@ vi.mock("#/features/product/queries", () => ({
     queryKey: ["product", "public", "details", { locale: "en", productId: "product-1" }],
     queryFn: queryMocks.productDetailQueryFn,
   }),
+  publicRelatedProductsQueryOptions: () => ({
+    queryKey: ["product", "public", "related", { locale: "en", productId: "product-1", limit: 8 }],
+    queryFn: queryMocks.relatedQueryFn,
+  }),
   publicProductReviewsQueryOptions: () => ({
     queryKey: ["product", "public", "reviews", "product-1"],
     queryFn: queryMocks.reviewsQueryFn,
@@ -153,6 +163,19 @@ vi.mock("#/features/product/queries", () => ({
   normalizePublicCategories: () => [],
   normalizePublicBrands: () => [],
   normalizePublicSearchSuggestions: () => [],
+}));
+
+vi.mock("#/features/tracking", () => ({
+  fetchRecentlyViewedProducts: queryMocks.recentlyViewedQueryFn,
+  getLocalRecentlyViewedProducts: () => [],
+  normalizeLocalRecentlyViewedProducts: (items: unknown[]) => items,
+  saveLocalRecentlyViewedProduct: vi.fn(),
+  useDiscoveryTracking: () => ({
+    trackRecentlyViewed: vi.fn(),
+    trackProductClick: vi.fn(),
+    queueProductImpression: vi.fn(),
+  }),
+  useTrackVisibleProducts: vi.fn(),
 }));
 
 vi.mock("#/lib/auth-client", () => ({
@@ -234,6 +257,10 @@ beforeEach(() => {
   queryMocks.productDetailResponse = createProductDetailFixture();
   queryMocks.productsError = null;
   queryMocks.productDetailError = null;
+  queryMocks.relatedResponse = { items: [] };
+  queryMocks.relatedError = null;
+  queryMocks.recentlyViewedResponse = [];
+  queryMocks.recentlyViewedError = null;
   queryMocks.reviewsResponse = [];
   queryMocks.questionsResponse = { items: [] };
   queryMocks.ratingSummaryResponse = { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
@@ -251,6 +278,14 @@ beforeEach(() => {
   queryMocks.productDetailQueryFn.mockImplementation(async () => {
     if (queryMocks.productDetailError) throw queryMocks.productDetailError;
     return queryMocks.productDetailResponse;
+  });
+  queryMocks.relatedQueryFn.mockImplementation(async () => {
+    if (queryMocks.relatedError) throw queryMocks.relatedError;
+    return queryMocks.relatedResponse;
+  });
+  queryMocks.recentlyViewedQueryFn.mockImplementation(async () => {
+    if (queryMocks.recentlyViewedError) throw queryMocks.recentlyViewedError;
+    return queryMocks.recentlyViewedResponse;
   });
   queryMocks.reviewsQueryFn.mockImplementation(async () => {
     if (queryMocks.reviewsError) throw queryMocks.reviewsError;
@@ -576,6 +611,45 @@ describe("ProductDetailPage buyer transaction states", () => {
     expect(screen.getByText("Buyer questions and seller answers will appear here.")).toBeTruthy();
   });
 
+  it("renders related and recently viewed products while excluding the current product", async () => {
+    queryMocks.relatedResponse = {
+      items: [
+        createProductCardFixture({ id: "product-1", title: "Current product duplicate" }),
+        createProductCardFixture({ id: "related-1", title: "Related Bag" }),
+      ],
+    };
+    queryMocks.recentlyViewedResponse = [
+      createRecentlyViewedFixture({ productId: "product-1", title: "Current recent duplicate" }),
+      createRecentlyViewedFixture({ productId: "recent-1", title: "Recent Hat" }),
+    ];
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("Related Bag")).toBeTruthy();
+    expect(screen.getByText("Recent Hat")).toBeTruthy();
+    expect(screen.queryByText("Current product duplicate")).toBeNull();
+    expect(screen.queryByText("Current recent duplicate")).toBeNull();
+  });
+
+  it("renders quiet empty states for related and recently viewed products", async () => {
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("No related products yet")).toBeTruthy();
+    expect(screen.getByText("No recently viewed products")).toBeTruthy();
+  });
+
+  it("keeps product detail usable when discovery sections fail", async () => {
+    queryMocks.relatedError = new Error("related unavailable");
+    queryMocks.recentlyViewedError = new Error("recent unavailable");
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect((await screen.findAllByText("Variant Product")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /Add to cart/ })).toBeTruthy();
+    expect(screen.getByText("Related products are temporarily unavailable.")).toBeTruthy();
+    expect(screen.getByText("Recently viewed are temporarily unavailable.")).toBeTruthy();
+  });
+
   it("submits buyer questions with pending and success states", async () => {
     let resolveQuestion: (value: { id: string }) => void = () => {};
     queryMocks.createProductQuestion.mockImplementation(() => new Promise((resolve) => {
@@ -677,5 +751,45 @@ function createProductDetailFixture() {
         ],
       },
     ],
+  };
+}
+
+function createProductCardFixture(overrides: Partial<ReturnType<typeof createProductDetailFixture>> = {}) {
+  return {
+    ...createProductDetailFixture(),
+    ...overrides,
+    options: [],
+    variants: [{
+      id: `${overrides.id ?? "related"}-variant`,
+      title: "Default",
+      sku: "DEFAULT",
+      price: 1000,
+      currency: "THB",
+      stock: 5,
+      optionValues: [],
+    }],
+  };
+}
+
+function createRecentlyViewedFixture(overrides: Partial<{
+  productId: string;
+  title: string;
+  imageUrl: string | null;
+  href: string;
+  minPrice: number | null;
+  currency: string | null;
+  shop: { id: string; name: string };
+  viewedAt: string | null;
+}> = {}) {
+  const productId = overrides.productId ?? "recent-1";
+  return {
+    productId,
+    title: overrides.title ?? "Recent Product",
+    imageUrl: overrides.imageUrl ?? "/recent.jpg",
+    href: overrides.href ?? `/products/${productId}`,
+    minPrice: overrides.minPrice ?? 1000,
+    currency: overrides.currency ?? "THB",
+    shop: overrides.shop ?? { id: "shop-1", name: "Demo Shop" },
+    viewedAt: overrides.viewedAt ?? "2026-01-01T00:00:00.000Z",
   };
 }
