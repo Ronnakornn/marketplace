@@ -20,7 +20,11 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
   const image = resolveUploadedImageUrl(product.images[0]);
   const hasPriceRange = product.maxPrice > product.minPrice;
   const purchasableVariants = product.variants.filter((variant) => variant.stock > 0);
-  const quickAddVariant = product.options.length === 0 && purchasableVariants.length === 1 ? purchasableVariants[0] : null;
+  const quickAddVariant =
+    product.options.length === 0 && purchasableVariants.length === 1 && purchasableVariants[0]?.optionValues.length === 0
+      ? purchasableVariants[0]
+      : null;
+  const isOutOfStock = product.stock <= 0;
   const canFetchBuyerState = session?.user.role === "USER";
   const favoriteQuery = useQuery({
     queryKey: ["buyer-favorite-status", product.id],
@@ -41,13 +45,16 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
   const priceLabel = hasPriceRange
     ? `${formatMoney(product.minPrice, product.currency)} - ${formatMoney(product.maxPrice, product.currency)}`
     : formatMoney(product.price, product.currency);
-  const cardBadges = product.badges.length
-    ? product.badges
-    : [
-        product.stock <= 0 ? "Out" : null,
-        product.soldCount >= 20 ? "Hot" : null,
-        hasPriceRange ? "Options" : null,
-      ].filter((badge): badge is string => Boolean(badge));
+  const fallbackBadges = [
+    isOutOfStock ? "Out of stock" : null,
+    product.soldCount >= 20 ? "Hot" : null,
+    hasPriceRange ? "Options" : null,
+  ].filter((badge): badge is string => Boolean(badge));
+  const cardBadges = product.badges.length ? product.badges : fallbackBadges;
+  const discountLabel = product.discountPercent && product.discountPercent > 0 ? `${product.discountPercent}% off` : null;
+  const favoriteLabel = favoriteQuery.data ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`;
+  const favoriteUnavailableLabel = canFetchBuyerState ? "Wishlist unavailable" : "Sign in as a buyer to use wishlist";
+  const quickAddLabel = quickAddVariant ? `Quick add ${product.title} to cart` : `Open ${product.title} details`;
 
   function handleFavorite(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
@@ -64,47 +71,67 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
   }
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-      <Link
-        href={`/products/${product.id}`}
-        onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
-        className="block"
-      >
-        <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
-          <Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition group-hover:scale-105" />
-          <div className="absolute left-2 top-2 flex max-w-[calc(100%-3.5rem)] flex-wrap gap-1">
-            {cardBadges.slice(0, 2).map((badge) => <Badge key={badge} className="rounded-md bg-orange-600 px-1.5 py-0.5 text-[10px] leading-none text-white">{badge}</Badge>)}
+    <article className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-orange-500 focus-within:ring-offset-2">
+      <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
+        <Link
+          href={`/products/${product.id}`}
+          onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
+          className="block size-full focus-visible:outline-none"
+          aria-label={`View ${product.title}`}
+        >
+          <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
+            <Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition group-hover:scale-105" />
           </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon"
-            className="absolute right-2 top-2 size-9 rounded-full bg-white/90 shadow-sm"
-            aria-label="Wishlist"
-            disabled={!canFetchBuyerState || favoriteMutation.isPending}
-            onClick={handleFavorite}
-          >
-            <HeartIcon className={`size-4 ${favoriteQuery.data ? "fill-orange-500 text-orange-500" : "text-slate-700"}`} />
-          </Button>
+        </Link>
+        <div className="absolute left-2 top-2 flex min-h-5 max-w-[calc(100%-3.5rem)] flex-wrap gap-1">
+          {cardBadges.slice(0, 2).map((badge) => (
+            <Badge key={badge} className="rounded-md bg-orange-600 px-1.5 py-0.5 text-[10px] leading-none text-white">
+              {badge}
+            </Badge>
+          ))}
         </div>
-      </Link>
+        {discountLabel ? (
+          <Badge className="absolute bottom-2 left-2 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] leading-none text-white">
+            {discountLabel}
+          </Badge>
+        ) : null}
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="absolute right-2 top-2 size-9 rounded-full bg-white/90 shadow-sm focus-visible:ring-2 focus-visible:ring-orange-500"
+          aria-label={canFetchBuyerState ? favoriteLabel : favoriteUnavailableLabel}
+          title={canFetchBuyerState ? favoriteLabel : favoriteUnavailableLabel}
+          disabled={!canFetchBuyerState || favoriteMutation.isPending}
+          onClick={handleFavorite}
+        >
+          <HeartIcon className={`size-4 ${favoriteQuery.data ? "fill-orange-500 text-orange-500" : "text-slate-700"}`} />
+        </Button>
+        {isOutOfStock ? (
+          <div className="absolute inset-x-0 bottom-0 bg-slate-950/70 px-2 py-1 text-center text-xs font-semibold text-white">
+            Out of stock
+          </div>
+        ) : null}
+      </div>
       <div className="space-y-2 p-3">
         <Link
           href={`/products/${product.id}`}
           onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
-          className="block"
+          className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
         >
-          <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-slate-900">{product.title}</h3>
+          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-5 text-slate-900">{product.title}</h3>
         </Link>
         {product.brand ? <p className="truncate text-xs font-medium text-slate-500">{product.brand.name}</p> : null}
-        <div className="flex min-h-10 items-end justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-base font-bold text-orange-600">{priceLabel}</p>
+        <div className="flex min-h-12 items-end justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-base font-bold text-orange-600" title={priceLabel}>{priceLabel}</p>
             {product.originalPrice && product.originalPrice > product.minPrice ? (
-              <p className="text-xs text-slate-400 line-through">{formatMoney(product.originalPrice, product.currency)}</p>
+              <p className="truncate text-xs text-slate-400 line-through" title={formatMoney(product.originalPrice, product.currency)}>
+                {formatMoney(product.originalPrice, product.currency)}
+              </p>
             ) : null}
           </div>
-          <span className="text-xs text-slate-500">{product.stock > 0 ? `${product.soldCount} sold` : "Out of stock"}</span>
+          <span className="shrink-0 text-xs text-slate-500">{isOutOfStock ? "Unavailable" : `${product.soldCount} sold`}</span>
         </div>
         <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
           <span className="flex items-center gap-1">
@@ -125,15 +152,23 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
               type="button"
               size="icon"
               variant="outline"
-              className="size-8 shrink-0 rounded-full"
+              className="size-8 shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-orange-500"
+              aria-label={quickAddLabel}
+              title={quickAddLabel}
               disabled={addToCartMutation.isPending}
               onClick={handleQuickAdd}
             >
               <ShoppingCartIcon className="size-4" />
-              <span className="sr-only">Quick add to cart</span>
             </Button>
           ) : (
-            <span className="h-8 w-8 shrink-0" aria-hidden="true" />
+            <Link
+              href={`/products/${product.id}`}
+              onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
+              className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-orange-300 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+              aria-label={quickAddLabel}
+            >
+              Details
+            </Link>
           )}
         </div>
       </div>
