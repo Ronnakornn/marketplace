@@ -328,10 +328,10 @@ describe("ProductDetailPage buyer transaction states", () => {
     const addToCart = await screen.findByRole("button", { name: /Add to cart/ });
     expect(addToCart).toHaveProperty("disabled", true);
     expect(screen.getAllByText("Choose product options before purchasing.").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Blue" })).toHaveProperty("disabled", true);
-    expect(screen.getByRole("button", { name: "Green" })).toHaveProperty("disabled", true);
-    expect(screen.getByRole("button", { name: "Blue" })).toHaveProperty("title", "Out of stock");
-    expect(screen.getByRole("button", { name: "Green" })).toHaveProperty("title", "Unavailable");
+    expect(screen.getByRole("button", { name: /Blue/ })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: /Green/ })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: /Blue/ })).toHaveProperty("title", "Out of stock");
+    expect(screen.getByRole("button", { name: /Green/ })).toHaveProperty("title", "Unavailable");
 
     fireEvent.click(screen.getByRole("button", { name: "Red" }));
     fireEvent.click(screen.getByRole("button", { name: "M" }));
@@ -362,6 +362,39 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     await waitFor(() => expect(queryMocks.addCartItem).toHaveBeenCalledWith("variant-red-m", 1));
     await waitFor(() => expect(queryMocks.routerPush).toHaveBeenCalledWith("/en/cart"));
+  });
+
+  it("exposes gallery image and video controls as keyboard-accessible options", async () => {
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    const firstImage = await screen.findByRole("option", { name: "Show product image 1" });
+    const secondImage = screen.getByRole("option", { name: "Show product image 2" });
+    const videoControl = screen.getByRole("option", { name: "Show product video" });
+
+    expect(firstImage.getAttribute("aria-selected")).toBe("true");
+    expect(secondImage.getAttribute("aria-selected")).toBe("false");
+    expect(videoControl.getAttribute("aria-selected")).toBe("false");
+
+    secondImage.focus();
+    expect(document.activeElement).toBe(secondImage);
+    fireEvent.click(videoControl);
+
+    expect(await screen.findByLabelText("Variant Product video")).toBeTruthy();
+    expect(videoControl.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("renders a useful media fallback when a product has no images", async () => {
+    queryMocks.productDetailResponse = {
+      ...createProductDetailFixture(),
+      images: [],
+      video: null,
+    };
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByRole("img", { name: "Variant Product has no product images" })).toBeTruthy();
+    expect(screen.getByText("No product image available")).toBeTruthy();
+    expect(screen.queryByRole("listbox", { name: "Product media gallery" })).toBeNull();
   });
 
   it("does not allow quantity above selected variant stock", async () => {
@@ -574,6 +607,8 @@ function createProductDetailFixture() {
     rating: 4.5,
     soldCount: 8,
     stock: 5,
+    originalPrice: 1800,
+    discountPercent: 17,
     shop: { id: "shop-1", name: "Demo Shop", location: "Bangkok" },
     brand: { id: "brand-1", name: "Demo Brand", slug: "demo-brand" },
     metaTitle: null,

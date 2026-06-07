@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { HeartIcon, MessageCircleIcon, MinusIcon, PlayIcon, PlusIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, StoreIcon, TruckIcon } from "lucide-react";
+import { HeartIcon, ImageOffIcon, MessageCircleIcon, MinusIcon, PlayIcon, PlusIcon, RotateCcwIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, StoreIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerProductDetailSkeleton } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
@@ -235,11 +235,15 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     );
   }
 
-  const galleryImages = product.images.map((image) => resolveUploadedImageUrl(image));
+  const galleryImages = product.images.map((image) => resolveUploadedImageUrl(image)).filter(Boolean);
+  const hasGalleryImages = galleryImages.length > 0;
   const selectedImage = galleryImages[selectedImageIndex] ?? galleryImages[0] ?? resolveUploadedImageUrl(undefined);
   const displayPrice = selectedVariant?.price ?? product.minPrice;
   const displayCurrency = selectedVariant?.currency ?? product.currency;
   const hasPriceRange = !selectedVariant && product.maxPrice > product.minPrice;
+  const originalPriceLabel = product.originalPrice && product.originalPrice > displayPrice
+    ? formatMoney(product.originalPrice, displayCurrency)
+    : null;
   const isOutOfStock = displayedStock < 1 || product.stock < 1;
   const canPurchase = Boolean(selectedVariant) && !isOutOfStock;
   const selectedOptionCount = Object.values(selectedOptionValues).filter(Boolean).length;
@@ -272,6 +276,9 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     : product.stock > 0
       ? `${product.stock} ${t("product.inStock")}`
       : "Out of stock";
+  const selectedPurchaseSummary = selectedVariant
+    ? `${selectedSummary} · Qty ${quantity}`
+    : selectedSummary;
 
   function getOptionValueState(optionId: string, valueId: string): OptionValueState {
     if (selectedOptionValues[optionId] === valueId) return "selected";
@@ -309,22 +316,30 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       <article className="mx-auto max-w-6xl space-y-4 px-3 pb-32 pt-4">
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
+            <div className="relative aspect-square bg-slate-100">
               {showVideo && product.video ? (
                 <video controls className="size-full object-contain" aria-label={`${product.title} video`}>
                   <source src={product.video.url} type={product.video.contentType} />
                 </video>
-              ) : (
+              ) : hasGalleryImages ? (
                 <Image src={selectedImage} alt={product.title} fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
+              ) : (
+                <div className="flex size-full flex-col items-center justify-center gap-3 px-4 text-center text-slate-500" role="img" aria-label={`${product.title} has no product images`}>
+                  <ImageOffIcon className="size-12 text-slate-400" aria-hidden="true" />
+                  <p className="max-w-xs text-sm font-medium text-slate-600">No product image available</p>
+                </div>
               )}
             </div>
-            {(galleryImages.length > 1 || product.video) ? (
-              <div className="flex gap-2 overflow-x-auto p-3" aria-label="Product media gallery">
+            {(hasGalleryImages || product.video) ? (
+              <div className="flex gap-2 overflow-x-auto p-3" aria-label="Product media gallery" role="listbox">
                 {galleryImages.slice(0, 8).map((image, index) => (
                   <button
                     key={`${image}-${index}`}
                     type="button"
-                    className={`relative size-16 shrink-0 overflow-hidden rounded-md border bg-slate-100 ${!showVideo && selectedImageIndex === index ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`}
+                    aria-label={`Show product image ${index + 1}`}
+                    aria-selected={!showVideo && selectedImageIndex === index}
+                    role="option"
+                    className={`relative size-16 shrink-0 overflow-hidden rounded-md border bg-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${!showVideo && selectedImageIndex === index ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`}
                     onClick={() => {
                       setShowVideo(false);
                       setSelectedImageIndex(index);
@@ -334,9 +349,15 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                   </button>
                 ))}
                 {product.video ? (
-                  <button type="button" className={`flex size-16 shrink-0 items-center justify-center rounded-md border bg-slate-950 text-white ${showVideo ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`} onClick={() => setShowVideo(true)}>
-                    <PlayIcon className="size-5" />
-                    <span className="sr-only">Product video</span>
+                  <button
+                    type="button"
+                    aria-label="Show product video"
+                    aria-selected={showVideo}
+                    role="option"
+                    className={`flex size-16 shrink-0 items-center justify-center rounded-md border bg-slate-950 text-white outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${showVideo ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`}
+                    onClick={() => setShowVideo(true)}
+                  >
+                    <PlayIcon className="size-5" aria-hidden="true" />
                   </button>
                 ) : null}
               </div>
@@ -360,7 +381,13 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               <span>{product.soldCount} {t("product.sold")}</span>
               <span>{stockSummary}</span>
             </div>
-            <p className="text-3xl font-bold text-orange-600">{priceLabel}</p>
+            <div className="space-y-1">
+              <p className="break-words text-3xl font-bold text-orange-600">{priceLabel}</p>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                {originalPriceLabel ? <span className="text-slate-400 line-through">{originalPriceLabel}</span> : null}
+                {product.discountPercent ? <Badge variant="outline" className="rounded-full border-orange-200 bg-orange-50 text-orange-700">{product.discountPercent}% off</Badge> : null}
+              </div>
+            </div>
 
             <div className="space-y-3">
               {requiredOptions.length ? requiredOptions.map((option) => (
@@ -378,12 +405,14 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                           type="button"
                           disabled={disabled}
                           title={hint ?? (selected ? "Selected" : "Available")}
-                          className={`min-h-10 rounded-lg border px-3 py-2 text-left text-sm font-medium transition ${getOptionValueClasses(state)}`}
+                          aria-pressed={selected}
+                          aria-describedby={hint ? `${option.id}-${value.id}-hint` : undefined}
+                          className={`min-h-10 max-w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${getOptionValueClasses(state)}`}
                           onClick={() => setSelectedOptionValues((current) => ({ ...current, [option.id]: selected ? "" : value.id }))}
                         >
-                          {value.colorHex ? <span className="mr-2 inline-block size-3 rounded-full align-middle" style={{ backgroundColor: value.colorHex }} /> : null}
-                          {value.value}
-                          {hint ? <span aria-hidden="true" className="ml-2 text-[11px] font-semibold uppercase tracking-normal">{hint}</span> : null}
+                          {value.colorHex ? <span className="mr-2 inline-block size-3 rounded-full align-middle ring-1 ring-slate-300" style={{ backgroundColor: value.colorHex }} aria-hidden="true" /> : null}
+                          <span className="break-words">{value.value}</span>
+                          {hint ? <span id={`${option.id}-${value.id}-hint`} className="ml-2 text-[11px] font-semibold uppercase tracking-normal">{hint}</span> : null}
                         </button>
                       );
                     })}
@@ -399,7 +428,8 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                         type="button"
                         disabled={variant.stock < 1}
                         title={variant.stock < 1 ? "Out of stock" : selectedVariant?.id === variant.id ? "Selected" : "Available"}
-                        className={`min-h-10 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                        aria-pressed={selectedVariant?.id === variant.id}
+                        className={`min-h-10 max-w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${
                           selectedVariant?.id === variant.id
                             ? "border-orange-500 bg-orange-50 text-orange-700 ring-2 ring-orange-100"
                             : variant.stock < 1
@@ -408,7 +438,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                         }`}
                         onClick={() => setSelectedStandaloneVariantId((current) => current === variant.id ? "" : variant.id)}
                       >
-                        {variant.title}
+                        <span className="break-words">{variant.title}</span>
                         {variant.stock < 1 ? <span aria-hidden="true" className="ml-2 text-[11px] font-semibold uppercase tracking-normal">Out of stock</span> : null}
                       </button>
                     )) : <Badge variant="outline" className="rounded-md px-3 py-1">{t("product.noPurchasableVariant")}</Badge>}
@@ -442,8 +472,9 @@ export function ProductDetailPage({ productId }: { productId: string }) {
             </div>
 
             <div className="grid gap-2 rounded-2xl bg-orange-50 p-3 text-sm text-slate-700">
-              <span className="flex items-center gap-2"><TruckIcon className="size-4 text-orange-600" />{t("product.shippingCalculated")}</span>
-              <span className="flex items-center gap-2"><ShieldCheckIcon className="size-4 text-emerald-600" />{t("product.buyerProtection")}</span>
+              <span className="flex items-start gap-2"><TruckIcon className="mt-0.5 size-4 shrink-0 text-orange-600" /> <span>{t("product.shippingCalculated")}</span></span>
+              <span className="flex items-start gap-2"><ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-emerald-600" /> <span>{t("product.buyerProtection")}</span></span>
+              <span className="flex items-start gap-2"><RotateCcwIcon className="mt-0.5 size-4 shrink-0 text-sky-600" /> <span>Returns follow marketplace policy.</span></span>
             </div>
             {isOutOfStock ? <Badge variant="outline" className="w-fit rounded-full border-red-200 bg-red-50 text-red-700">Out of stock</Badge> : null}
           </div>
@@ -562,7 +593,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
           <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-950">{priceLabel}</p>
-              <p className="truncate text-xs text-slate-600">{selectedSummary}</p>
+              <p className="truncate text-xs text-slate-600">{selectedPurchaseSummary}</p>
               <p className={`truncate text-xs ${purchaseDisabledReason ? "text-orange-700" : "text-emerald-700"}`}>
                 {purchaseDisabledReason ?? `${quantity} item${quantity > 1 ? "s" : ""} | ${stockSummary}`}
               </p>
@@ -584,7 +615,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               <MessageCircleIcon className="size-4" />
               {t("chat.chatSeller")}
             </Button>
-            <Button variant="outline" className="h-12 rounded-2xl" onClick={() => handlePurchaseAction("cart")} disabled={!canPurchase || addCartMutation.isPending}>
+            <Button variant="outline" className="h-12 min-w-0 rounded-2xl px-2 text-xs sm:px-4 sm:text-sm" onClick={() => handlePurchaseAction("cart")} disabled={!canPurchase || addCartMutation.isPending}>
               <span className="relative inline-flex">
                 <ShoppingCartIcon className="size-4" />
                 {cartItemCount > 0 ? (
@@ -593,9 +624,11 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                   </span>
                 ) : null}
               </span>
-              {t("product.addToCart")}
+              <span className="truncate">{t("product.addToCart")}</span>
             </Button>
-            <Button className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700" onClick={() => handlePurchaseAction("buy-now")} disabled={!canPurchase || addCartMutation.isPending}>{t("product.buyNow")}</Button>
+            <Button className="h-12 min-w-0 rounded-2xl bg-orange-600 px-2 text-xs hover:bg-orange-700 sm:px-4 sm:text-sm" onClick={() => handlePurchaseAction("buy-now")} disabled={!canPurchase || addCartMutation.isPending}>
+              <span className="truncate">{t("product.buyNow")}</span>
+            </Button>
           </div>
         </div>
       </div>
