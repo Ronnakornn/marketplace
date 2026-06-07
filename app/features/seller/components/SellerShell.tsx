@@ -7,6 +7,7 @@ import {
   BanknoteIcon,
   BellIcon,
   BoxesIcon,
+  ChartNoAxesCombinedIcon,
   ClipboardListIcon,
   LayoutDashboardIcon,
   MegaphoneIcon,
@@ -23,6 +24,7 @@ import { getSellerRouteKind } from "#/lib/seller-access";
 const navItems = [
   { href: "/seller", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/seller/products", label: "Products", icon: BoxesIcon },
+  { href: "/seller/analytics/products", label: "Product Analytics", icon: ChartNoAxesCombinedIcon },
   { href: "/seller/inventory", label: "Inventory", icon: ClipboardListIcon },
   { href: "/seller/orders", label: "Orders", icon: PackageCheckIcon },
   { href: "/seller/returns", label: "Returns", icon: RotateCcwIcon },

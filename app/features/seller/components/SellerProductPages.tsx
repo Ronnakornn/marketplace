@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, EditIcon, PlusIcon, SaveIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
+import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, BarChart3Icon, EditIcon, PlusIcon, SaveIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -814,6 +814,12 @@ export function SellerProductsPage() {
                   </Select>
                 </div>
                 <Button asChild className="w-full sm:w-auto">
+                  <Link href="/seller/analytics/products">
+                    <BarChart3Icon className="size-4" />
+                    Product analytics
+                  </Link>
+                </Button>
+                <Button asChild>
                   <Link href="/seller/products/new">
                     <PlusIcon className="size-4" />
                     Create product
