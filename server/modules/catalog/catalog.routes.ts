@@ -118,6 +118,11 @@ const PublicListQuerySchema = t.Object({
   locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
 
+const RelatedProductsQuerySchema = t.Object({
+  locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
+  limit: t.Optional(t.Number({ minimum: 1, maximum: 12 })),
+})
+
 const SellerListQuerySchema = t.Composite([
   PublicListQuerySchema,
   t.Object({
@@ -334,6 +339,12 @@ export function createCatalogRoutes(container: ServiceContainer) {
   const getPublicProductDetail = ({ params, query }: any) =>
     container.catalogService.getPublicProductDetail(params.productId, query.locale)
 
+  const listRelatedProducts = ({ params, query }: any) =>
+    container.catalogService.listRelatedProducts(params.productId, {
+      locale: query.locale,
+      limit: query.limit,
+    })
+
   return app
     .get('/api/categories', ({ query }: any) => container.catalogService.listCategories(query.locale), {
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
@@ -444,6 +455,10 @@ export function createCatalogRoutes(container: ServiceContainer) {
       params: CategoryParamsSchema,
       query: PublicListQuerySchema,
     })
+    .get('/api/products/:productId/related', listRelatedProducts, {
+      params: IdParamsSchema,
+      query: RelatedProductsQuerySchema,
+    })
     .get('/api/products/:productId', getPublicProductDetail, {
       params: IdParamsSchema,
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
@@ -465,6 +480,10 @@ export function createCatalogRoutes(container: ServiceContainer) {
     })
     .get('/api/catalog/products', listPublicProducts, {
       query: PublicListQuerySchema,
+    })
+    .get('/api/catalog/products/:productId/related', listRelatedProducts, {
+      params: IdParamsSchema,
+      query: RelatedProductsQuerySchema,
     })
     .get('/api/catalog/products/:productId', getPublicProductDetail, {
       params: IdParamsSchema,

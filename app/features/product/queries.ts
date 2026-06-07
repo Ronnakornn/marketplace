@@ -18,6 +18,7 @@ type ProductSort = "relevance" | "newest" | "best_selling" | "price_asc" | "pric
 
 type PublicProductsResponse = Treaty.Data<ReturnType<typeof api.api.products.get>>;
 type PublicProductDetailResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["get"]>>;
+type PublicRelatedProductsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["related"]["get"]>>;
 type PublicProductReviewsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["reviews"]["get"]>>;
 type PublicProductRatingSummaryResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["rating-summary"]["get"]>>;
 type PublicProductQuestionsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["questions"]["get"]>>;
@@ -56,6 +57,10 @@ export interface PublicProductListInput {
 export interface PublicProductDetailInput {
   productId: string;
   locale?: Locale;
+}
+
+export interface PublicRelatedProductsInput extends PublicProductDetailInput {
+  limit?: number;
 }
 
 export interface PublicCategoryListInput {
@@ -245,6 +250,8 @@ export const productQueryKeys = {
     details: () => [...productQueryKeys.public.all(), "details"] as const,
     detail: (input: PublicProductDetailInput) =>
       [...productQueryKeys.public.details(), cleanPublicProductDetailInput(input)] as const,
+    related: (input: PublicRelatedProductsInput) =>
+      [...productQueryKeys.public.all(), "related", cleanPublicRelatedProductsInput(input)] as const,
     reviews: (productId: string) => [...productQueryKeys.public.all(), "reviews", productId] as const,
     ratingSummary: (productId: string) => [...productQueryKeys.public.all(), "rating-summary", productId] as const,
     questions: (productId: string) => [...productQueryKeys.public.all(), "questions", productId] as const,
@@ -313,6 +320,19 @@ export function publicProductDetailQueryOptions(input: PublicProductDetailInput)
     queryKey: productQueryKeys.public.detail(input),
     queryFn: async (): Promise<PublicProductDetailResponse> => {
       const { data, error } = await api.api.products({ productId: input.productId }).get({ query });
+      if (error) throw error;
+      return data;
+    },
+    staleTime: PRODUCT_QUERY_STALE_TIME_MS,
+  });
+}
+
+export function publicRelatedProductsQueryOptions(input: PublicRelatedProductsInput) {
+  const query = cleanPublicRelatedProductsApiInput(input);
+  return queryOptions({
+    queryKey: productQueryKeys.public.related(input),
+    queryFn: async (): Promise<PublicRelatedProductsResponse> => {
+      const { data, error } = await api.api.products({ productId: input.productId }).related.get({ query });
       if (error) throw error;
       return data;
     },
@@ -487,6 +507,10 @@ export function usePublicProductDetail(input: PublicProductDetailInput) {
   return useQuery(publicProductDetailQueryOptions(input));
 }
 
+export function usePublicRelatedProducts(input: PublicRelatedProductsInput) {
+  return useQuery(publicRelatedProductsQueryOptions(input));
+}
+
 export function usePublicProductReviews(productId: string) {
   return useQuery(publicProductReviewsQueryOptions(productId));
 }
@@ -540,6 +564,9 @@ export async function invalidatePublicProductQueries(queryClient: QueryClient, i
     ? [
         queryClient.invalidateQueries({
           queryKey: productQueryKeys.public.detail({ productId: input.productId, locale: input.locale }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: productQueryKeys.public.related({ productId: input.productId, locale: input.locale }),
         }),
         queryClient.invalidateQueries({ queryKey: productQueryKeys.public.reviews(input.productId) }),
         queryClient.invalidateQueries({ queryKey: productQueryKeys.public.ratingSummary(input.productId) }),
@@ -693,6 +720,21 @@ function cleanPublicProductDetailInput(input: PublicProductDetailInput): CleanQu
   return cleanQuery({
     productId: input.productId,
     locale: input.locale,
+  });
+}
+
+function cleanPublicRelatedProductsInput(input: PublicRelatedProductsInput): CleanQuery {
+  return cleanQuery({
+    productId: input.productId,
+    locale: input.locale,
+    limit: input.limit ?? 8,
+  });
+}
+
+function cleanPublicRelatedProductsApiInput(input: PublicRelatedProductsInput): CleanQuery {
+  return cleanQuery({
+    locale: input.locale,
+    limit: input.limit ?? 8,
   });
 }
 

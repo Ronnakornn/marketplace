@@ -43,6 +43,7 @@ function createRepoMock(): ICatalogRepository {
     findShopById: vi.fn(),
     findFirstShopByOwnerId: vi.fn(),
     findProductById: vi.fn(),
+    findRelatedProducts: vi.fn(),
     findProducts: vi.fn(),
     findUploadById: vi.fn(),
     createProduct: vi.fn(),
@@ -406,6 +407,112 @@ describe('CatalogService', () => {
     await service.getPublicProductDetail('22222222-2222-4222-8222-222222222222')
 
     expect(repo.findProductById).toHaveBeenCalledTimes(1)
+  })
+
+  it('product detail returns variant option matrix with stock and hides private media URLs', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ status: 'ACTIVE' })
+    product.images = [
+      { id: 'image-private', url: 'https://storage.example/product.jpg?X-Amz-Signature=secret', isPrimary: true, sortOrder: 0 },
+      { id: 'image-public', url: '/uploads/product_image/product-1/public.jpg', isPrimary: false, sortOrder: 1 },
+    ]
+    product.video = { id: 'video-private', url: 'https://storage.example/video.mp4?token=secret', contentType: 'video/mp4', fileName: 'demo.mp4' }
+    product.options = [{
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      productId: product.id,
+      name: 'Color',
+      nameTh: null,
+      nameEn: null,
+      sortOrder: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      values: [{
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        optionId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        value: 'Blue',
+        valueTh: null,
+        valueEn: null,
+        displayType: 'TEXT',
+        colorHex: '#0000ff',
+        sortOrder: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }],
+    }]
+    product.variants = [{
+      ...createVariant({ productId: product.id }),
+      inventory: {
+        id: 'inventory-1',
+        quantityOnHand: 5,
+        quantityReserved: 2,
+        reorderLevel: 1,
+        updatedAt: new Date(),
+      },
+      optionValues: [{
+        id: 'link-1',
+        variantId: '33333333-3333-4333-8333-333333333333',
+        optionValueId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        createdAt: new Date(),
+        optionValue: {
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          optionId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          value: 'Blue',
+          valueTh: null,
+          valueEn: null,
+          displayType: 'TEXT',
+          colorHex: '#0000ff',
+          sortOrder: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          option: {
+            id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            productId: product.id,
+            name: 'Color',
+            nameTh: null,
+            nameEn: null,
+            sortOrder: 0,
+          },
+        },
+      }],
+    }]
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    const service = new CatalogService(createAppContext(), repo)
+
+    const detail = await service.getPublicProductDetail(product.id)
+
+    expect(detail.images).toEqual([expect.objectContaining({ id: 'image-public' })])
+    expect(detail.video).toBeNull()
+    expect(detail.options[0]?.values[0]).toMatchObject({ value: 'Blue', colorHex: '#0000ff' })
+    expect(detail.variants[0]?.inventory).toMatchObject({ quantityOnHand: 5, quantityReserved: 2 })
+    expect(detail.variants[0]?.optionValues[0]?.optionValue).toMatchObject({
+      id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      value: 'Blue',
+      option: { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', name: 'Color' },
+    })
+  })
+
+  it('lists related products from the active public source product with a small validated limit', async () => {
+    const repo = createRepoMock()
+    const source = createProduct({
+      status: 'ACTIVE',
+      categoryId: '55555555-5555-4555-8555-555555555555',
+      brandId: '44444444-4444-4444-8444-444444444444',
+    })
+    const related = createProduct({
+      id: '99999999-9999-4999-8999-999999999999',
+      status: 'ACTIVE',
+      categoryId: source.categoryId,
+    })
+    vi.mocked(repo.findProductById).mockResolvedValue(source)
+    vi.mocked(repo.findRelatedProducts).mockResolvedValue([related])
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.listRelatedProducts(source.id, { limit: 6, locale: 'en' })).resolves.toEqual([related])
+
+    expect(repo.findRelatedProducts).toHaveBeenCalledWith(source, 6)
+    await expect(service.listRelatedProducts(source.id, { limit: 13 })).rejects.toMatchObject({
+      code: 'CATALOG_QUERY_INVALID',
+    })
   })
 
   it('lists only active public categories through the repository', async () => {

@@ -26,6 +26,8 @@ import type {
 
 const DEFAULT_PAGE_LIMIT = 20
 const MAX_PAGE_LIMIT = 50
+const DEFAULT_RELATED_LIMIT = 8
+const MAX_RELATED_LIMIT = 12
 const MAX_PRODUCT_IMAGES = 10
 const PRODUCT_VIDEO_CONTENT_TYPES = new Set(['video/mp4', 'video/webm'])
 const PRODUCT_VIDEO_MAX_FILE_SIZE = 25 * 1024 * 1024
@@ -195,6 +197,11 @@ export interface PublicListProductsData {
   cursor?: string
   limit?: number
   locale?: string
+}
+
+export interface RelatedProductsData {
+  locale?: string
+  limit?: number
 }
 
 export interface SellerListProductsData extends PublicListProductsData {
@@ -560,7 +567,19 @@ export class CatalogService {
     if (!product || product.status !== 'ACTIVE' || product.deletedAt || product.shop.status !== 'ACTIVE') {
       throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     }
-    return this.localizeProduct(product, locale)
+    return this.preparePublicProduct(product, locale)
+  }
+
+  async listRelatedProducts(id: string, data: RelatedProductsData = {}): Promise<CatalogProductListItem[]> {
+    this.logger.debug('CatalogService.listRelatedProducts', { id, limit: data.limit })
+    const locale = resolveContentLocale(data.locale)
+    const limit = this.normalizeRelatedLimit(data.limit)
+    const product = await this.repo.findProductById(id)
+    if (!product || product.status !== 'ACTIVE' || product.deletedAt || product.shop.status !== 'ACTIVE') {
+      throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
+    }
+    const related = await this.repo.findRelatedProducts(product, limit)
+    return related.map((item) => this.preparePublicProduct(item, locale))
   }
 
   listAdminProducts(filters: SellerListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
@@ -1155,6 +1174,14 @@ export class CatalogService {
     }
   }
 
+  private normalizeRelatedLimit(limit: number | undefined): number {
+    const value = limit ?? DEFAULT_RELATED_LIMIT
+    if (!Number.isInteger(value) || value < 1 || value > MAX_RELATED_LIMIT) {
+      throw new CatalogServiceError(`Limit must be between 1 and ${MAX_RELATED_LIMIT}`, 400, 'CATALOG_QUERY_INVALID')
+    }
+    return value
+  }
+
   private validateProductInput(data: CreateProductData): void {
     if (!data.title.trim()) throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
     if (data.status === 'ACTIVE') {
@@ -1330,7 +1357,60 @@ export class CatalogService {
       variants: product.variants.map((variant) => ({
         ...variant,
         title: localizedText(locale, { th: variant.titleTh, en: variant.titleEn, fallback: variant.title }) ?? variant.title,
+        optionValues: variant.optionValues.map((link) => ({
+          ...link,
+          optionValue: {
+            ...link.optionValue,
+            value: localizedText(locale, {
+              th: link.optionValue.valueTh,
+              en: link.optionValue.valueEn,
+              fallback: link.optionValue.value,
+            }) ?? link.optionValue.value,
+            option: {
+              ...link.optionValue.option,
+              name: localizedText(locale, {
+                th: link.optionValue.option.nameTh,
+                en: link.optionValue.option.nameEn,
+                fallback: link.optionValue.option.name,
+              }) ?? link.optionValue.option.name,
+            },
+          },
+        })),
       })),
+      options: product.options.map((option) => ({
+        ...option,
+        name: localizedText(locale, { th: option.nameTh, en: option.nameEn, fallback: option.name }) ?? option.name,
+        values: option.values.map((value) => ({
+          ...value,
+          value: localizedText(locale, { th: value.valueTh, en: value.valueEn, fallback: value.value }) ?? value.value,
+        })),
+      })),
+    }
+  }
+
+  private preparePublicProduct<T extends CatalogProductListItem>(product: T, locale: ContentLocale): T {
+    const localized = this.localizeProduct(product, locale)
+    return {
+      ...localized,
+      images: localized.images.filter((image) => this.isPublicSafeAssetUrl(image.url)),
+      video: localized.video && this.isPublicSafeAssetUrl(localized.video.url) ? localized.video : null,
+    }
+  }
+
+  private isPublicSafeAssetUrl(url: string): boolean {
+    const value = url.trim()
+    if (!value) return false
+    if (value.startsWith('/')) return true
+    try {
+      const parsed = new URL(value)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+      const secretIndicators = ['x-amz-signature', 'x-amz-credential', 'x-goog-signature', 'signature', 'token', 'expires']
+      for (const key of parsed.searchParams.keys()) {
+        if (secretIndicators.includes(key.toLowerCase())) return false
+      }
+      return true
+    } catch {
+      return false
     }
   }
 

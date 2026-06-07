@@ -129,6 +129,12 @@ describe("product query keys", () => {
     expect(productQueryKeys.public.list({ locale: "en" }).slice(0, 3)).toEqual(["product", "public", "lists"]);
     expect(productQueryKeys.public.search({ locale: "en", q: "bag" }).slice(0, 3)).toEqual(["product", "public", "searches"]);
     expect(productQueryKeys.public.detail({ locale: "en", productId: "product-1" }).slice(0, 3)).toEqual(["product", "public", "details"]);
+    expect(productQueryKeys.public.related({ locale: "en", productId: "product-1", limit: 8 })).toEqual([
+      "product",
+      "public",
+      "related",
+      { productId: "product-1", locale: "en", limit: 8 },
+    ]);
     expect(productQueryKeys.public.categories({ locale: "en" }).slice(0, 3)).toEqual(["product", "public", "categories"]);
     expect(productQueryKeys.public.shopProducts({ locale: "en", shopId: "shop-1" }).slice(0, 3)).toEqual(["product", "public", "shop-products"]);
   });

@@ -61,6 +61,7 @@ function createContainer() {
       listActiveBrands: vi.fn(async () => []),
       listPublicProducts: vi.fn(),
       getPublicProductDetail: vi.fn(),
+      listRelatedProducts: vi.fn(),
       listPublicShopProducts: vi.fn(),
       listSellerProducts: vi.fn(),
       getSellerProductDetail: vi.fn(),
@@ -372,6 +373,30 @@ describe('catalog admin category routes', () => {
         { key: 'screen size', value: '6.1 inch' },
       ],
     }))
+  })
+
+  it('routes related public products with validated query params before product detail fallback', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+    vi.mocked(container.catalogService.listRelatedProducts).mockResolvedValueOnce([])
+    const productId = '22222222-2222-4222-8222-222222222222'
+
+    const response = await createApp(container).handle(new Request(`http://localhost/api/products/${productId}/related?locale=en&limit=6`))
+
+    expect(response.status).toBe(200)
+    expect(container.catalogService.listRelatedProducts).toHaveBeenCalledWith(productId, { locale: 'en', limit: 6 })
+    expect(container.catalogService.getPublicProductDetail).not.toHaveBeenCalled()
+  })
+
+  it('rejects related public product limits above the validated maximum', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+    const productId = '22222222-2222-4222-8222-222222222222'
+
+    const response = await createApp(container).handle(new Request(`http://localhost/api/products/${productId}/related?limit=13`))
+
+    expect(response.status).toBe(422)
+    expect(container.catalogService.listRelatedProducts).not.toHaveBeenCalled()
   })
 
   it('returns stable public attribute filter validation errors from service failures', async () => {

@@ -15,6 +15,7 @@ export interface ProductListFilters {
   maxPrice?: number
   attributeFilters?: ProductAttributeFilter[]
   publicOnly?: boolean
+  excludeProductId?: string
   cursor?: string
   limit: number
 }
@@ -344,6 +345,7 @@ export interface ICatalogRepository {
   findShopById(id: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findFirstShopByOwnerId(ownerId: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findProductById(id: string): Promise<CatalogProductDetail | null>
+  findRelatedProducts(product: Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'>, limit: number): Promise<CatalogProductListItem[]>
   findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>>
   findUploadById(id: string): Promise<CatalogUploadRecord | null>
   createProduct(data: CreateProductRecord): Promise<CatalogProductDetail>
@@ -424,7 +426,7 @@ const productInclude = {
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
   },
   images: {
-    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+    orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
   },
   video: true,
   shop: {
@@ -434,6 +436,12 @@ const productInclude = {
       slug: true,
       ownerId: true,
       status: true,
+      logoUrl: true,
+      coverUrl: true,
+      ratingAverage: true,
+      ratingCount: true,
+      followerCount: true,
+      productCount: true,
     },
   },
   variants: {
@@ -740,6 +748,47 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     }
   }
 
+  async findRelatedProducts(product: Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'>, limit: number): Promise<CatalogProductListItem[]> {
+    this.logger.debug('PrismaCatalogRepository.findRelatedProducts', { productId: product.id, limit })
+    const seen = new Set<string>([product.id])
+    const rows: CatalogProductListItem[] = []
+
+    const addRows = async (where: Prisma.ProductWhereInput) => {
+      if (rows.length >= limit) return
+      const batch = await this.prisma.product.findMany({
+        where: {
+          ...this.publicRelatedProductWhere(product.id),
+          id: { notIn: [...seen] },
+          ...where,
+        },
+        include: productInclude,
+        orderBy: [
+          { variants: { _count: 'desc' } },
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+        take: limit - rows.length,
+      })
+      for (const row of batch) {
+        seen.add(row.id)
+        rows.push(row)
+      }
+    }
+
+    if (product.categoryId) await addRows({ categoryId: product.categoryId })
+    if (product.shopId || product.brandId) {
+      await addRows({
+        OR: [
+          ...(product.shopId ? [{ shopId: product.shopId }] : []),
+          ...(product.brandId ? [{ brandId: product.brandId }] : []),
+        ],
+      })
+    }
+    await addRows({})
+
+    return rows
+  }
+
   async createProduct(data: CreateProductRecord): Promise<CatalogProductDetail> {
     this.logger.info('PrismaCatalogRepository.createProduct', { shopId: data.shopId, slug: data.slug })
     return this.prisma.$transaction(async (tx) => {
@@ -1020,6 +1069,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       ...(filters.shopId ? { shopId: filters.shopId } : {}),
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.publicOnly ? { shop: { status: 'ACTIVE' } } : {}),
+      ...(filters.excludeProductId ? { id: { not: filters.excludeProductId } } : {}),
       ...(filters.attributeFilters && filters.attributeFilters.length > 0
         ? {
             AND: filters.attributeFilters.map((filter) => ({
@@ -1061,6 +1111,15 @@ export class PrismaCatalogRepository implements ICatalogRepository {
             },
           }
         : {}),
+    }
+  }
+
+  private publicRelatedProductWhere(productId: string): Prisma.ProductWhereInput {
+    return {
+      id: { not: productId },
+      status: 'ACTIVE',
+      deletedAt: null,
+      shop: { status: 'ACTIVE' },
     }
   }
 
