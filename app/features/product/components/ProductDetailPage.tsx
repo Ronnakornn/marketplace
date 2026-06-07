@@ -236,7 +236,9 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     return (
       <>
         <BuyerTopBar title={t("product.products")} />
-        <div className="mx-auto max-w-6xl px-3 pb-28 pt-4"><BuyerErrorState message={productQuery.error.message} onRetry={() => void productQuery.refetch()} /></div>
+        <div className="mx-auto max-w-6xl px-3 pb-28 pt-4">
+          <BuyerErrorState message={getReadableErrorMessage(productQuery.error, "Product details are temporarily unavailable.")} onRetry={() => void productQuery.refetch()} />
+        </div>
       </>
     );
   }
@@ -774,7 +776,7 @@ function ProductReviewsSection({
         </div>
       ) : ratingSummaryError ? (
         <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-          <BuyerErrorState message={ratingSummaryError.message} onRetry={onRetryRatingSummary} />
+          <BuyerErrorState message={getReadableErrorMessage(ratingSummaryError, "Rating summary is temporarily unavailable.")} onRetry={onRetryRatingSummary} />
         </div>
       ) : (
         <RatingSummaryCard averageRating={averageRating} totalReviewCount={totalReviewCount} distribution={ratingSummary?.distribution} />
@@ -792,7 +794,7 @@ function ProductReviewsSection({
         </div>
       ) : reviewsError ? (
         <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-          <BuyerErrorState message={reviewsError.message} onRetry={onRetryReviews} />
+          <BuyerErrorState message={getReadableErrorMessage(reviewsError, "Reviews are temporarily unavailable.")} onRetry={onRetryReviews} />
         </div>
       ) : reviews.length ? (
         <div className="space-y-3">
@@ -849,7 +851,7 @@ function ProductQuestionsSection({
             className="min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
             disabled={questionPending}
           />
-          {questionError ? <p className="text-sm text-red-600">{questionError.message}</p> : null}
+          {questionError ? <p className="text-sm text-red-600">{getReadableErrorMessage(questionError, "Question submission is temporarily unavailable.")}</p> : null}
           {questionSuccess && !questionError ? <p className="text-sm text-emerald-700">Question submitted.</p> : null}
           <Button type="submit" disabled={!trimmedQuestion || questionPending}>
             {questionPending ? "Submitting..." : "Submit question"}
@@ -875,7 +877,7 @@ function ProductQuestionsSection({
         </div>
       ) : questionsError ? (
         <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-          <BuyerErrorState message={questionsError.message} onRetry={onRetryQuestions} />
+          <BuyerErrorState message={getReadableErrorMessage(questionsError, "Questions are temporarily unavailable.")} onRetry={onRetryQuestions} />
         </div>
       ) : questions.length ? (
         <div className="space-y-3">
@@ -886,6 +888,24 @@ function ProductQuestionsSection({
       )}
     </div>
   );
+}
+
+function getReadableErrorMessage(error: unknown, fallback: string) {
+  const extracted = extractErrorText(error);
+  return extracted && extracted !== "[object Object]" ? extracted : fallback;
+}
+
+function extractErrorText(value: unknown): string | null {
+  if (typeof value === "string") return value.trim() || null;
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  for (const key of ["message", "detail", "error", "reason"]) {
+    const nested = extractErrorText(record[key]);
+    if (nested) return nested;
+  }
+
+  return null;
 }
 
 function QuestionCard({ question }: { question: BuyerProductQuestion }) {

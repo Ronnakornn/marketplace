@@ -12,22 +12,22 @@ import { ProductListingPage } from "./ProductListingPage";
 const queryMocks = vi.hoisted(() => ({
   productsResponse: { items: [] } as { items: unknown[] },
   productDetailResponse: null as unknown,
-  productsError: null as Error | null,
-  productDetailError: null as Error | null,
+  productsError: null as unknown,
+  productDetailError: null as unknown,
   productsQueryFn: vi.fn(),
   productDetailQueryFn: vi.fn(),
   relatedResponse: { items: [] } as { items: unknown[] },
-  relatedError: null as Error | null,
+  relatedError: null as unknown,
   relatedQueryFn: vi.fn(),
   recentlyViewedResponse: [] as unknown[],
-  recentlyViewedError: null as Error | null,
+  recentlyViewedError: null as unknown,
   recentlyViewedQueryFn: vi.fn(),
   reviewsResponse: [] as unknown[],
   questionsResponse: { items: [] } as { items: unknown[] },
   ratingSummaryResponse: { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } } as unknown,
-  reviewsError: null as Error | null,
-  questionsError: null as Error | null,
-  ratingSummaryError: null as Error | null,
+  reviewsError: null as unknown,
+  questionsError: null as unknown,
+  ratingSummaryError: null as unknown,
   reviewsQueryFn: vi.fn(),
   questionsQueryFn: vi.fn(),
   ratingSummaryQueryFn: vi.fn(),
@@ -574,6 +574,17 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     expect(await screen.findByText("Recovered Buyer")).toBeTruthy();
     expect(screen.getByText("5.0")).toBeTruthy();
+  });
+
+  it("renders readable review and Q&A fallback messages when API errors contain object payloads", async () => {
+    queryMocks.reviewsError = { message: { code: "REVIEWS_UNAVAILABLE" } };
+    queryMocks.questionsError = { error: { code: "QUESTIONS_UNAVAILABLE" } };
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("Reviews are temporarily unavailable.")).toBeTruthy();
+    expect(screen.getByText("Questions are temporarily unavailable.")).toBeTruthy();
+    expect(screen.queryByText("[object Object]")).toBeNull();
   });
 
   it("renders populated Q&A with seller answers", async () => {
