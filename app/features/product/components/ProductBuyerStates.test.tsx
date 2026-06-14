@@ -11,8 +11,10 @@ import { ProductListingPage } from "./ProductListingPage";
 
 const queryMocks = vi.hoisted(() => ({
   productsResponse: { items: [] } as { items: unknown[] },
+  productsResponsesByPage: new Map<number, { items: unknown[]; meta?: Record<string, unknown>; facets?: Record<string, unknown> }>(),
   productDetailResponse: null as unknown,
   productsError: null as unknown,
+  productsErrorPages: new Set<number>(),
   productDetailError: null as unknown,
   productsQueryFn: vi.fn(),
   productDetailQueryFn: vi.fn(),
@@ -109,9 +111,9 @@ vi.mock("#/features/product/components/ProductCard", () => ({
 }));
 
 vi.mock("#/features/product/queries", () => ({
-  publicProductListQueryOptions: () => ({
-    queryKey: ["product", "public", "lists", { locale: "en", limit: 40 }],
-    queryFn: queryMocks.productsQueryFn,
+  publicProductListQueryOptions: (input: { page?: number } = {}) => ({
+    queryKey: ["product", "public", "lists", { locale: "en", limit: 40, page: input.page ?? 1 }],
+    queryFn: () => queryMocks.productsQueryFn(input.page ?? 1),
   }),
   publicProductDetailQueryOptions: () => ({
     queryKey: ["product", "public", "details", { locale: "en", productId: "product-1" }],
@@ -133,9 +135,9 @@ vi.mock("#/features/product/queries", () => ({
     queryKey: ["product", "public", "questions", "product-1"],
     queryFn: queryMocks.questionsQueryFn,
   }),
-  publicProductSearchQueryOptions: () => ({
-    queryKey: ["product", "public", "searches", { locale: "en", limit: 40 }],
-    queryFn: queryMocks.productsQueryFn,
+  publicProductSearchQueryOptions: (input: { page?: number } = {}) => ({
+    queryKey: ["product", "public", "searches", { locale: "en", limit: 40, page: input.page ?? 1 }],
+    queryFn: () => queryMocks.productsQueryFn(input.page ?? 1),
   }),
   publicSearchSuggestionsQueryOptions: () => ({
     queryKey: ["product", "public", "suggestions", { locale: "en", limit: 8 }],
@@ -150,6 +152,21 @@ vi.mock("#/features/product/queries", () => ({
     queryFn: async () => [],
   }),
   normalizePublicProducts: (response: { items?: unknown[] }) => response.items ?? [],
+  normalizePublicProductListing: (response: { items?: unknown[]; meta?: Record<string, unknown>; facets?: Record<string, unknown> }) => ({
+    products: response.items ?? [],
+    meta: {
+      totalCount: typeof response.meta?.totalCount === "number" ? response.meta.totalCount : null,
+      page: typeof response.meta?.page === "number" ? response.meta.page : 1,
+      pageSize: typeof response.meta?.pageSize === "number" ? response.meta.pageSize : (response.items ?? []).length,
+      hasNextPage: response.meta?.hasNextPage === true,
+      query: {},
+    },
+    facets: {
+      categories: [],
+      brands: [],
+      price: { min: null, max: null, currency: "THB" },
+    },
+  }),
   normalizePublicProduct: (response: unknown) => response,
   normalizePublicProductReviews: (response: unknown[]) => response,
   normalizePublicProductRatingSummary: (response: unknown) => response,
@@ -254,8 +271,10 @@ function renderWithClient(ui: ReactNode) {
 beforeEach(() => {
   cleanup();
   queryMocks.productsResponse = { items: [] };
+  queryMocks.productsResponsesByPage.clear();
   queryMocks.productDetailResponse = createProductDetailFixture();
   queryMocks.productsError = null;
+  queryMocks.productsErrorPages.clear();
   queryMocks.productDetailError = null;
   queryMocks.relatedResponse = { items: [] };
   queryMocks.relatedError = null;
@@ -271,9 +290,10 @@ beforeEach(() => {
   queryMocks.addCartItem.mockClear();
   queryMocks.createProductQuestion.mockClear();
   queryMocks.routerPush.mockClear();
-  queryMocks.productsQueryFn.mockImplementation(async () => {
+  queryMocks.productsQueryFn.mockImplementation(async (page = 1) => {
+    if (queryMocks.productsErrorPages.has(page)) throw new Error(`page ${page} unavailable`);
     if (queryMocks.productsError) throw queryMocks.productsError;
-    return queryMocks.productsResponse;
+    return queryMocks.productsResponsesByPage.get(page) ?? queryMocks.productsResponse;
   });
   queryMocks.productDetailQueryFn.mockImplementation(async () => {
     if (queryMocks.productDetailError) throw queryMocks.productDetailError;
@@ -326,6 +346,63 @@ describe("ProductListingPage buyer states", () => {
     fireEvent.click(screen.getByRole("button", { name: /Retry/ }));
 
     await waitFor(() => expect(screen.getByText("Recovered API product")).toBeTruthy());
+  });
+
+  it("shows exact totals, appends load-more results, and dedupes product ids", async () => {
+    queryMocks.productsResponsesByPage.set(1, {
+      items: [
+        createProductCardFixture({ id: "product-1", title: "First product" }),
+        createProductCardFixture({ id: "product-2", title: "Second product" }),
+      ],
+      meta: { totalCount: 4, page: 1, pageSize: 2, hasNextPage: true },
+    });
+    queryMocks.productsResponsesByPage.set(2, {
+      items: [
+        createProductCardFixture({ id: "product-2", title: "Second product duplicate" }),
+        createProductCardFixture({ id: "product-3", title: "Third product" }),
+      ],
+      meta: { totalCount: 4, page: 2, pageSize: 2, hasNextPage: false },
+    });
+
+    renderWithClient(<ProductListingPage mode="home" />);
+
+    expect(await screen.findByText("First product")).toBeTruthy();
+    expect(screen.getByText("Second product")).toBeTruthy();
+    expect(screen.getByText("4 items found (2 shown)")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+
+    expect(await screen.findByText("Third product")).toBeTruthy();
+    expect(screen.queryByText("Second product duplicate")).toBeNull();
+    expect(screen.getByText("4 items found (3 shown)")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("keeps current products visible and retries when the next page fails", async () => {
+    queryMocks.productsResponsesByPage.set(1, {
+      items: [createProductCardFixture({ id: "product-1", title: "Stable product" })],
+      meta: { totalCount: 2, page: 1, pageSize: 1, hasNextPage: true },
+    });
+    queryMocks.productsResponsesByPage.set(2, {
+      items: [createProductCardFixture({ id: "product-2", title: "Recovered next product" })],
+      meta: { totalCount: 2, page: 2, pageSize: 1, hasNextPage: false },
+    });
+    queryMocks.productsErrorPages.add(2);
+
+    renderWithClient(<ProductListingPage mode="home" />);
+
+    expect(await screen.findByText("Stable product")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+
+    expect(await screen.findByText("page 2 unavailable")).toBeTruthy();
+    expect(screen.getByText("Stable product")).toBeTruthy();
+    expect(screen.queryByTestId("skeleton")).toBeNull();
+
+    queryMocks.productsErrorPages.delete(2);
+    fireEvent.click(screen.getByRole("button", { name: "Retry load more" }));
+
+    expect(await screen.findByText("Recovered next product")).toBeTruthy();
+    expect(screen.getByText("Stable product")).toBeTruthy();
   });
 });
 

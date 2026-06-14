@@ -15,7 +15,7 @@ import { ProductCard } from "#/features/product/components/ProductCard";
 import {
   normalizePublicCategories,
   normalizePublicBrands,
-  normalizePublicProducts,
+  normalizePublicProductListing,
   normalizePublicSearchSuggestions,
   publicBrandsQueryOptions,
   publicCategoriesQueryOptions,
@@ -23,6 +23,7 @@ import {
   publicProductSearchQueryOptions,
   publicSearchSuggestionsQueryOptions,
   type BuyerProduct,
+  type BuyerProductListing,
 } from "#/features/product/queries";
 import { trackDiscoveryEvent, useTrackVisibleProducts } from "#/features/tracking";
 import { useLocale, useTranslations } from "#/i18n/client";
@@ -70,9 +71,26 @@ export function ProductListingPage({
   const t = useTranslations();
   const localePath = useLocalePath();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const [accumulatedListing, setAccumulatedListing] = useState<BuyerProductListing | null>(null);
   const minRating = toNumber(rating);
   const currentCategory = mode === "category" ? categoryId : undefined;
   const basePath = mode === "category" && categoryId ? `/categories/${categoryId}` : "/search";
+  const listingResetKey = [
+    mode,
+    query,
+    currentCategory ?? categoryId ?? "",
+    brandId ?? "",
+    attributeFilters ?? "",
+    minPrice ?? "",
+    maxPrice ?? "",
+    sort,
+    rating ?? "",
+    inStock ?? "",
+    freeShipping ?? "",
+    onSale ?? "",
+    locale,
+  ].join("|");
   const productListInput = {
     q: query,
     categoryId: currentCategory ?? categoryId,
@@ -86,17 +104,18 @@ export function ProductListingPage({
     freeShipping: freeShipping === "true" ? true : undefined,
     onSale: onSale === "true" ? true : undefined,
     limit: 40,
+    page,
     locale,
   };
   const listProductsQuery = useQuery({
     ...publicProductListQueryOptions(productListInput),
     enabled: mode !== "search",
-    select: normalizePublicProducts,
+    select: normalizePublicProductListing,
   });
   const searchProductsQuery = useQuery({
     ...publicProductSearchQueryOptions(productListInput),
     enabled: mode === "search",
-    select: normalizePublicProducts,
+    select: normalizePublicProductListing,
   });
   const productsQuery = mode === "search" ? searchProductsQuery : listProductsQuery;
   const suggestionsQuery = useQuery({
@@ -126,15 +145,32 @@ export function ProductListingPage({
     window.localStorage.setItem("buyer-recent-searches", JSON.stringify(next));
   }, [mode, query]);
 
+  useEffect(() => {
+    setPage(1);
+    setAccumulatedListing(null);
+  }, [listingResetKey]);
+
+  useEffect(() => {
+    if (!productsQuery.data) return;
+    setAccumulatedListing((current) => mergeListingPages(current, productsQuery.data, page));
+  }, [productsQuery.data, page]);
+
   const title = mode === "home" ? t("product.discover") : mode === "category" ? categoryId ?? t("product.category") : t("common.search");
+  const listing = accumulatedListing ?? productsQuery.data ?? null;
   const products = sortProducts(
-    (productsQuery.data ?? [])
+    (listing?.products ?? [])
       .filter((product) => minRating === undefined || product.rating >= minRating)
       .filter((product) => inStock !== "true" || product.stock > 0)
       .filter((product) => freeShipping !== "true" || product.badges?.some((badge) => badge.toLowerCase() === "free shipping"))
       .filter((product) => onSale !== "true" || product.discountPercent !== null || product.badges?.some((badge) => badge.toLowerCase().includes("sale") || badge.toLowerCase().includes("off"))),
     sort,
   );
+  const hasAccumulatedProducts = (accumulatedListing?.products.length ?? 0) > 0;
+  const isInitialLoading = productsQuery.isLoading && !hasAccumulatedProducts;
+  const isNextPageLoading = productsQuery.isFetching && page > 1;
+  const isNextPageError = productsQuery.isError && hasAccumulatedProducts;
+  const isInitialError = productsQuery.isError && !hasAccumulatedProducts;
+  const canLoadMore = Boolean(listing?.meta.hasNextPage);
   useTrackVisibleProducts(products, mode === "search" ? "search_results" : mode === "category" ? "category_listing" : "product_listing");
 
   useEffect(() => {
@@ -250,7 +286,7 @@ export function ProductListingPage({
               <div>
                 <h2 className="text-lg font-bold text-slate-950">{mode === "home" ? t("product.recommendedProducts") : resultTitle}</h2>
                 <p className="text-xs text-slate-500">
-                  {productsQuery.isSuccess ? t("product.itemsFound").replace("{count}", String(products.length)) : t("product.loadingResults")}
+                  {listing ? formatResultSummary(t("product.itemsFound"), products.length, listing.meta.totalCount) : t("product.loadingResults")}
                 </p>
               </div>
               {mode !== "home" ? (
@@ -274,9 +310,9 @@ export function ProductListingPage({
               </div>
             ) : null}
 
-            {productsQuery.isLoading ? <BuyerLoadingGrid /> : null}
-            {productsQuery.isError ? <BuyerErrorState message={productsQuery.error.message} onRetry={() => void productsQuery.refetch()} /> : null}
-            {productsQuery.isSuccess && products.length === 0 ? (
+            {isInitialLoading ? <BuyerLoadingGrid /> : null}
+            {isInitialError ? <BuyerErrorState message={productsQuery.error.message} onRetry={() => void productsQuery.refetch()} /> : null}
+            {listing && products.length === 0 && !isInitialLoading && !isInitialError ? (
               <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <BuyerEmptyState title={t("product.noProductsFound")} description={t("product.noProductsDescription")} />
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
@@ -291,10 +327,34 @@ export function ProductListingPage({
                 </div>
               </div>
             ) : null}
-            {productsQuery.isSuccess && products.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                {products.map((product) => <ProductCard key={product.id} product={product} />)}
-              </div>
+            {products.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                  {products.map((product) => <ProductCard key={product.id} product={product} />)}
+                </div>
+                <div className="flex flex-col items-center gap-2 py-3">
+                  {isNextPageError ? (
+                    <p className="text-sm text-red-600">{productsQuery.error.message}</p>
+                  ) : null}
+                  {canLoadMore || isNextPageError ? (
+                    <Button
+                      type="button"
+                      variant={isNextPageError ? "outline" : "default"}
+                      className="rounded-full"
+                      disabled={isNextPageLoading}
+                      onClick={() => {
+                        if (isNextPageError) {
+                          void productsQuery.refetch();
+                          return;
+                        }
+                        setPage((current) => current + 1);
+                      }}
+                    >
+                      {isNextPageLoading ? "Loading more..." : isNextPageError ? "Retry load more" : "Load more"}
+                    </Button>
+                  ) : null}
+                </div>
+              </>
             ) : null}
           </section>
         </div>
@@ -578,6 +638,39 @@ function sortProducts(products: BuyerProduct[], sort: string): BuyerProduct[] {
     default:
       return items;
   }
+}
+
+function mergeListingPages(current: BuyerProductListing | null, next: BuyerProductListing, page: number): BuyerProductListing {
+  if (!current || page <= 1) {
+    return {
+      ...next,
+      products: dedupeProducts(next.products),
+    };
+  }
+
+  return {
+    products: dedupeProducts([...current.products, ...next.products]),
+    meta: next.meta,
+    facets: next.facets.categories.length || next.facets.brands.length || next.facets.price.min !== null || next.facets.price.max !== null
+      ? next.facets
+      : current.facets,
+  };
+}
+
+function dedupeProducts(products: BuyerProduct[]): BuyerProduct[] {
+  const seen = new Set<string>();
+  return products.filter((product) => {
+    if (seen.has(product.id)) return false;
+    seen.add(product.id);
+    return true;
+  });
+}
+
+function formatResultSummary(template: string, visibleCount: number, totalCount: number | null): string {
+  const count = totalCount === null ? visibleCount : totalCount;
+  const summary = template.replace("{count}", String(count));
+  if (totalCount === null || visibleCount >= totalCount) return summary;
+  return `${summary} (${visibleCount} shown)`;
 }
 
 function buildActiveFilters(

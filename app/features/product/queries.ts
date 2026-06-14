@@ -174,6 +174,49 @@ export interface BuyerBrand {
   name: string;
 }
 
+export interface BuyerListingMeta {
+  totalCount: number | null;
+  page: number;
+  pageSize: number;
+  hasNextPage: boolean;
+  query: {
+    q?: string;
+    categoryId?: string;
+    brandId?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sort?: string;
+  };
+}
+
+export interface BuyerListingFacets {
+  categories: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    count: number;
+    active: boolean;
+  }>;
+  brands: Array<{
+    id: string;
+    name: string;
+    slug?: string;
+    count: number;
+    active: boolean;
+  }>;
+  price: {
+    min: number | null;
+    max: number | null;
+    currency: string;
+  };
+}
+
+export interface BuyerProductListing {
+  products: BuyerProduct[];
+  meta: BuyerListingMeta;
+  facets: BuyerListingFacets;
+}
+
 export interface BuyerReviewMedia {
   id: string;
   type: "IMAGE";
@@ -678,7 +721,9 @@ export function cleanPublicProductListApiInput(input: PublicProductListInput = {
     attributeFilters: input.attributeFilters,
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
+    sort: input.sort,
     cursor: input.cursor,
+    page: input.page,
     limit: input.limit ?? PUBLIC_PRODUCT_PAGE_SIZE,
   });
 }
@@ -791,6 +836,85 @@ export function normalizePublicProducts(response: PublicProductsResponse | Publi
       ? readArray(record.data)
       : readArray(record.items);
   return rawItems.map(normalizePublicProduct);
+}
+
+export function normalizePublicProductListing(
+  response: PublicProductsResponse | PublicSearchProductsResponse | PublicRelatedProductsResponse,
+): BuyerProductListing {
+  const record = toRecord(response);
+  const rawItems = Array.isArray(response)
+    ? response
+    : readArray(record.data).length
+      ? readArray(record.data)
+      : readArray(record.items);
+
+  return {
+    products: rawItems.map(normalizePublicProduct),
+    meta: normalizeListingMeta(record.meta, rawItems.length),
+    facets: normalizeListingFacets(record.facets),
+  };
+}
+
+function normalizeListingMeta(metaInput: unknown, itemCount: number): BuyerListingMeta {
+  const meta = toRecord(metaInput);
+  const page = Math.max(1, readNumber(meta.page, 1));
+  const pageSize = Math.max(1, readNumber(meta.pageSize, readNumber(meta.limit, itemCount || PUBLIC_PRODUCT_PAGE_SIZE)));
+  const totalCount = optionalNumber(meta.totalCount);
+  const hasNextPage = typeof meta.hasNextPage === "boolean"
+    ? meta.hasNextPage
+    : totalCount !== null
+      ? page * pageSize < totalCount
+      : false;
+  const query = toRecord(meta.query);
+
+  return {
+    totalCount,
+    page,
+    pageSize,
+    hasNextPage,
+    query: {
+      q: optionalString(query.q) ?? optionalString(query.keyword) ?? undefined,
+      categoryId: optionalString(query.categoryId) ?? undefined,
+      brandId: optionalString(query.brandId) ?? undefined,
+      minPrice: optionalNumber(query.minPrice) ?? undefined,
+      maxPrice: optionalNumber(query.maxPrice) ?? undefined,
+      sort: optionalString(query.sort) ?? undefined,
+    },
+  };
+}
+
+function normalizeListingFacets(facetsInput: unknown): BuyerListingFacets {
+  const facets = toRecord(facetsInput);
+  const price = toRecord(facets.price);
+
+  return {
+    categories: readArray(facets.categories).map((item) => {
+      const category = toRecord(item);
+      return {
+        id: readString(category.id, readString(category.slug)),
+        slug: readString(category.slug),
+        name: readString(category.name, "Category"),
+        count: readNumber(category.count),
+        active: category.active === true,
+      };
+    }).filter((category) => category.id && category.slug),
+    brands: readArray(facets.brands).map((item) => {
+      const brand = toRecord(item);
+      const slug = optionalString(brand.slug) ?? undefined;
+      return {
+        id: readString(brand.id, slug ?? readString(brand.name)),
+        name: readString(brand.name, "Brand"),
+        ...(slug ? { slug } : {}),
+        count: readNumber(brand.count),
+        active: brand.active === true,
+      };
+    }).filter((brand) => brand.id),
+    price: {
+      min: optionalNumber(price.min),
+      max: optionalNumber(price.max),
+      currency: readString(price.currency, defaultCurrency),
+    },
+  };
 }
 
 export function normalizePublicProduct(input: PublicProductDetailResponse | unknown, index = 0): BuyerProduct {

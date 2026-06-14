@@ -11,6 +11,7 @@ import {
   invalidatePublicProductQueries,
   invalidateSellerProductQueries,
   normalizePublicProducts,
+  normalizePublicProductListing,
   normalizePublicProduct,
   normalizePublicProductQuestions,
   normalizePublicProductRatingSummary,
@@ -76,7 +77,7 @@ describe("product query keys", () => {
     expect(cleanAdminProductListInput({ q: "hat" })).toEqual({ q: "hat", limit: 50 });
   });
 
-  it("keeps client-only listing filters out of the catalog API query", () => {
+  it("keeps client-only listing filters out of the catalog API query while passing API pagination and sort", () => {
     expect(cleanPublicProductListApiInput({
       locale: "th",
       q: "shirt",
@@ -99,7 +100,9 @@ describe("product query keys", () => {
       shopId: "shop-1",
       minPrice: "100",
       maxPrice: "900",
+      sort: "price_asc",
       cursor: "cursor-1",
+      page: 2,
       limit: 24,
     });
   });
@@ -337,6 +340,75 @@ describe("affiliate product target normalization", () => {
 });
 
 describe("public product normalization", () => {
+  it("normalizes listing arrays with default metadata and empty facets", () => {
+    const listing = normalizePublicProductListing([
+      { id: "product-1", title: "Legacy product" },
+    ] as unknown as Parameters<typeof normalizePublicProductListing>[0]);
+
+    expect(listing.products).toHaveLength(1);
+    expect(listing.products[0]?.title).toBe("Legacy product");
+    expect(listing.meta).toMatchObject({
+      totalCount: null,
+      page: 1,
+      pageSize: 1,
+      hasNextPage: false,
+      query: {},
+    });
+    expect(listing.facets).toEqual({
+      categories: [],
+      brands: [],
+      price: { min: null, max: null, currency: "THB" },
+    });
+  });
+
+  it("normalizes data/meta and items/meta/facets listing response shapes", () => {
+    const dataListing = normalizePublicProductListing({
+      data: [{ id: "product-1", title: "Data product" }],
+      meta: {
+        totalCount: 3,
+        page: 1,
+        pageSize: 1,
+        query: { q: "bag", minPrice: "100", sort: "newest" },
+      },
+    } as unknown as Parameters<typeof normalizePublicProductListing>[0]);
+
+    expect(dataListing.products[0]?.title).toBe("Data product");
+    expect(dataListing.meta).toMatchObject({
+      totalCount: 3,
+      page: 1,
+      pageSize: 1,
+      hasNextPage: true,
+      query: { q: "bag", minPrice: 100, sort: "newest" },
+    });
+
+    const itemsListing = normalizePublicProductListing({
+      items: [{ id: "product-2", title: "Faceted product" }],
+      meta: { totalCount: 1, page: 1, pageSize: 40, hasNextPage: false },
+      facets: {
+        categories: [{ id: "cat-1", slug: "fashion", name: "Fashion", count: "8", active: true }],
+        brands: [{ id: "brand-1", slug: "acme", name: "Acme", count: 4, active: false }],
+        price: { min: "100", max: 900, currency: "THB" },
+      },
+    } as unknown as Parameters<typeof normalizePublicProductListing>[0]);
+
+    expect(itemsListing.products[0]?.title).toBe("Faceted product");
+    expect(itemsListing.facets.categories[0]).toEqual({
+      id: "cat-1",
+      slug: "fashion",
+      name: "Fashion",
+      count: 8,
+      active: true,
+    });
+    expect(itemsListing.facets.brands[0]).toEqual({
+      id: "brand-1",
+      slug: "acme",
+      name: "Acme",
+      count: 4,
+      active: false,
+    });
+    expect(itemsListing.facets.price).toEqual({ min: 100, max: 900, currency: "THB" });
+  });
+
   it("extracts image URLs from API product image records", () => {
     const products = normalizePublicProducts({
       data: [{
