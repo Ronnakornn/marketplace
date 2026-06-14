@@ -51,6 +51,20 @@ export interface ProductSearchItem {
 
 export interface ProductSearchResponse {
   items: ProductSearchItem[]
+  meta: {
+    totalCount: number
+    page: number
+    pageSize: number
+    hasNextPage: boolean
+    query: {
+      q?: string
+      categoryId?: string
+      brandId?: string
+      minPrice?: number
+      maxPrice?: number
+      sort?: string
+    }
+  }
   pagination: {
     page: number
     limit: number
@@ -130,6 +144,13 @@ export class SearchService {
 
     return {
       items: pageItems,
+      meta: {
+        totalCount: total,
+        page: filters.page,
+        pageSize: filters.limit,
+        hasNextPage: nextCursor !== null,
+        query: this.responseQuery(filters),
+      },
       pagination: {
         page: filters.page,
         limit: filters.limit,
@@ -341,6 +362,17 @@ export class SearchService {
       ...(filters.inStock ? { inStock: true } : {}),
       ...(filters.badges.length > 0 ? { badges: filters.badges } : {}),
       ...(filters.cursor ? { cursor: filters.cursor } : {}),
+    }
+  }
+
+  private responseQuery(filters: ReturnType<SearchService['normalizeInput']>): ProductSearchResponse['meta']['query'] {
+    return {
+      ...(filters.q ? { q: filters.q } : {}),
+      ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+      ...(filters.brandId ? { brandId: filters.brandId } : {}),
+      ...(filters.minPrice !== undefined ? { minPrice: filters.minPrice } : {}),
+      ...(filters.maxPrice !== undefined ? { maxPrice: filters.maxPrice } : {}),
+      ...(filters.sort ? { sort: filters.sort } : {}),
     }
   }
 

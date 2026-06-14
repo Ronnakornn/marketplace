@@ -278,7 +278,16 @@ describe('CatalogService', () => {
       data: [createProduct({ status: 'ACTIVE' })],
       meta: {
         nextCursor: '22222222-2222-4222-8222-222222222222',
+        totalCount: 11,
+        page: 2,
+        pageSize: 10,
         hasNextPage: true,
+        query: {
+          q: 'bag',
+          minPrice: 100,
+          maxPrice: 2000,
+          sort: 'newest',
+        },
       },
     })
     const service = new CatalogService(createAppContext(), repo)
@@ -288,10 +297,24 @@ describe('CatalogService', () => {
       shopId: '11111111-1111-4111-8111-111111111111',
       minPrice: 100,
       maxPrice: 2000,
+      sort: ' newest ',
       cursor: '99999999-9999-4999-8999-999999999999',
+      page: 2,
       limit: 10,
     })).resolves.toMatchObject({
-      meta: { hasNextPage: true },
+      items: [expect.objectContaining({ status: 'ACTIVE' })],
+      meta: {
+        totalCount: 11,
+        page: 2,
+        pageSize: 10,
+        hasNextPage: true,
+        query: {
+          q: 'bag',
+          minPrice: 100,
+          maxPrice: 2000,
+          sort: 'newest',
+        },
+      },
     })
 
     expect(repo.findProducts).toHaveBeenCalledWith({
@@ -299,7 +322,9 @@ describe('CatalogService', () => {
       shopId: '11111111-1111-4111-8111-111111111111',
       minPrice: 100,
       maxPrice: 2000,
+      sort: 'newest',
       cursor: '99999999-9999-4999-8999-999999999999',
+      page: 2,
       limit: 10,
       status: 'ACTIVE',
       publicOnly: true,

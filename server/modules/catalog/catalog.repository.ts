@@ -13,10 +13,12 @@ export interface ProductListFilters {
   status?: ProductStatus
   minPrice?: number
   maxPrice?: number
+  sort?: string
   attributeFilters?: ProductAttributeFilter[]
   publicOnly?: boolean
   excludeProductId?: string
   cursor?: string
+  page?: number
   limit: number
 }
 
@@ -27,9 +29,21 @@ export interface ProductAttributeFilter {
 
 export interface PaginatedResult<T> {
   data: T[]
+  items?: T[]
   meta: {
     nextCursor: string | null
     hasNextPage: boolean
+    totalCount?: number
+    page?: number
+    pageSize?: number
+    query?: {
+      q?: string
+      categoryId?: string
+      brandId?: string
+      minPrice?: number
+      maxPrice?: number
+      sort?: string
+    }
   }
 }
 
@@ -728,22 +742,34 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   async findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>> {
     this.logger.debug('PrismaCatalogRepository.findProducts', { filters })
     const where = this.buildProductWhere(filters)
-    const rows = await this.prisma.product.findMany({
-      where,
-      include: productInclude,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      cursor: filters.cursor ? { id: filters.cursor } : undefined,
-      skip: filters.cursor ? 1 : 0,
-      take: filters.limit + 1,
-    })
+    const page = filters.page ?? 1
+    const skip = filters.cursor ? 1 : (page - 1) * filters.limit
+    const cursor = filters.cursor ? { id: filters.cursor } : undefined
+    const take = filters.cursor ? filters.limit + 1 : filters.limit
+    const [rows, totalCount] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where,
+        include: productInclude,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        cursor,
+        skip,
+        take: take + (filters.cursor ? 0 : 1),
+      }),
+      this.prisma.product.count({ where }),
+    ])
     const hasNextPage = rows.length > filters.limit
     const data = hasNextPage ? rows.slice(0, filters.limit) : rows
 
     return {
       data,
+      items: data,
       meta: {
         nextCursor: hasNextPage ? data.at(-1)?.id ?? null : null,
+        totalCount,
+        page,
+        pageSize: filters.limit,
         hasNextPage,
+        query: this.buildResultQuery(filters),
       },
     }
   }
@@ -1111,6 +1137,17 @@ export class PrismaCatalogRepository implements ICatalogRepository {
             },
           }
         : {}),
+    }
+  }
+
+  private buildResultQuery(filters: ProductListFilters): NonNullable<PaginatedResult<CatalogProductListItem>['meta']['query']> {
+    return {
+      ...(filters.keyword ? { q: filters.keyword } : {}),
+      ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+      ...(filters.brandId ? { brandId: filters.brandId } : {}),
+      ...(filters.minPrice !== undefined ? { minPrice: filters.minPrice } : {}),
+      ...(filters.maxPrice !== undefined ? { maxPrice: filters.maxPrice } : {}),
+      ...(filters.sort ? { sort: filters.sort } : {}),
     }
   }
 

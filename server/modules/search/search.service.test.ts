@@ -155,6 +155,15 @@ describe('SearchService', () => {
   it('supports pagination', async () => {
     const result = await service.searchProducts({ page: 2, limit: 1 })
 
+    expect(result.meta).toEqual({
+      totalCount: 2,
+      page: 2,
+      pageSize: 1,
+      hasNextPage: false,
+      query: {
+        sort: 'relevance',
+      },
+    })
     expect(result.pagination).toMatchObject({
       page: 2,
       limit: 1,
@@ -201,6 +210,11 @@ describe('SearchService', () => {
       maxPrice: 4000,
     }))
     expect(result.items[0]).toMatchObject({ minPrice: 2500, maxPrice: 3500 })
+    expect(result.meta.query).toMatchObject({
+      minPrice: 2000,
+      maxPrice: 4000,
+      sort: 'relevance',
+    })
   })
 
   it('supports contract filters for brand, attributes, in-stock, badges, and cursor', async () => {

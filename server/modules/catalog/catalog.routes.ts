@@ -112,7 +112,9 @@ const PublicListQuerySchema = t.Object({
   attributeFilters: t.Optional(t.String()),
   minPrice: t.Optional(t.Number({ minimum: 0 })),
   maxPrice: t.Optional(t.Number({ minimum: 0 })),
+  sort: t.Optional(t.String()),
   cursor: t.Optional(t.String({ format: 'uuid' })),
+  page: t.Optional(t.Number({ minimum: 1 })),
   limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
   categoryId: t.Optional(t.String()),
   locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
@@ -332,7 +334,9 @@ export function createCatalogRoutes(container: ServiceContainer) {
       shopId: query.shopId,
       minPrice: query.minPrice ?? query.minPrice,
       maxPrice: query.maxPrice ?? query.maxPrice,
+      sort: query.sort,
       cursor: query.cursor,
+      page: query.page,
       limit: query.limit,
     })
 
@@ -449,7 +453,9 @@ export function createCatalogRoutes(container: ServiceContainer) {
         shopId: query.shopId,
         minPrice: query.minPrice ?? query.minPrice,
         maxPrice: query.maxPrice ?? query.maxPrice,
+        sort: query.sort,
         cursor: query.cursor,
+        page: query.page,
         limit: query.limit,
       }), {
       params: CategoryParamsSchema,
@@ -472,7 +478,9 @@ export function createCatalogRoutes(container: ServiceContainer) {
         locale: query.locale,
         minPrice: query.minPrice ?? query.minPrice,
         maxPrice: query.maxPrice ?? query.maxPrice,
+        sort: query.sort,
         cursor: query.cursor,
+        page: query.page,
         limit: query.limit,
       }), {
       params: ShopProductsParamsSchema,
@@ -499,7 +507,9 @@ export function createCatalogRoutes(container: ServiceContainer) {
         status: query.status,
         minPrice: query.minPrice ?? query.minPrice,
         maxPrice: query.maxPrice ?? query.maxPrice,
+        sort: query.sort,
         cursor: query.cursor,
+        page: query.page,
         limit: query.limit,
       }), {
       withAuth: true,
@@ -525,7 +535,9 @@ export function createCatalogRoutes(container: ServiceContainer) {
         status: query.status,
         minPrice: query.minPrice ?? query.minPrice,
         maxPrice: query.maxPrice ?? query.maxPrice,
+        sort: query.sort,
         cursor: query.cursor,
+        page: query.page,
         limit: query.limit,
       }), {
       withRole: 'ADMIN',

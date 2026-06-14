@@ -21,6 +21,60 @@ function createAppContext() {
 }
 
 describe('PrismaCatalogRepository', () => {
+  it('returns public listing metadata from the same filters used for items', async () => {
+    const rows = [{ id: 'p1' }, { id: 'p2' }]
+    const findMany = vi.fn().mockResolvedValue(rows)
+    const count = vi.fn().mockResolvedValue(3)
+    const transaction = vi.fn(async (operations: Array<Promise<unknown>>) => Promise.all(operations))
+    const repo = new PrismaCatalogRepository(createAppContext() as any, {
+      $transaction: transaction,
+      product: { findMany, count },
+    } as any)
+
+    const result = await repo.findProducts({
+      keyword: 'cotton',
+      categoryId: 'fashion',
+      brandId: '44444444-4444-4444-8444-444444444444',
+      minPrice: 100,
+      maxPrice: 500,
+      sort: 'newest',
+      page: 2,
+      limit: 1,
+      status: 'ACTIVE',
+      publicOnly: true,
+    })
+
+    expect(result.data).toEqual([{ id: 'p1' }])
+    expect(result.items).toEqual([{ id: 'p1' }])
+    expect(result.meta).toMatchObject({
+      totalCount: 3,
+      page: 2,
+      pageSize: 1,
+      hasNextPage: true,
+      nextCursor: 'p1',
+      query: {
+        q: 'cotton',
+        categoryId: 'fashion',
+        brandId: '44444444-4444-4444-8444-444444444444',
+        minPrice: 100,
+        maxPrice: 500,
+        sort: 'newest',
+      },
+    })
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        status: 'ACTIVE',
+        deletedAt: null,
+        shop: { status: 'ACTIVE' },
+      }),
+      skip: 1,
+      take: 2,
+    }))
+    expect(count).toHaveBeenCalledWith({
+      where: findMany.mock.calls[0]![0].where,
+    })
+  })
+
   it('finds related products with public active filters and excludes the current product', async () => {
     const findMany = vi
       .fn()

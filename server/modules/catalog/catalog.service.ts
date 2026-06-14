@@ -193,8 +193,10 @@ export interface PublicListProductsData {
   minPrice?: number
   maxPrice?: number
   brandId?: string
+  sort?: string
   attributes?: Record<string, string> | Array<{ key: string; value: string }>
   cursor?: string
+  page?: number
   limit?: number
   locale?: string
 }
@@ -546,6 +548,7 @@ export class CatalogService {
     return {
       ...result,
       data: result.data.map((product) => this.localizeProduct(product, locale)),
+      items: result.data.map((product) => this.localizeProduct(product, locale)),
     }
   }
 
@@ -1159,6 +1162,9 @@ export class CatalogService {
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_LIMIT) {
       throw new CatalogServiceError(`Limit must be between 1 and ${MAX_PAGE_LIMIT}`, 400, 'CATALOG_QUERY_INVALID')
     }
+    if (filters.page !== undefined && (!Number.isInteger(filters.page) || filters.page < 1)) {
+      throw new CatalogServiceError('Page must be a positive integer', 400, 'CATALOG_QUERY_INVALID')
+    }
     this.validatePriceRange(filters.minPrice, filters.maxPrice)
 
     return {
@@ -1166,10 +1172,12 @@ export class CatalogService {
       ...(filters.categoryId?.trim() ? { categoryId: filters.categoryId.trim() } : {}),
       ...(filters.shopId ? { shopId: filters.shopId } : {}),
       ...(filters.brandId?.trim() ? { brandId: filters.brandId.trim() } : {}),
+      ...(filters.sort?.trim() ? { sort: filters.sort.trim() } : {}),
       ...this.normalizeAttributeFilters(filters.attributes),
       ...(filters.minPrice !== undefined ? { minPrice: filters.minPrice } : {}),
       ...(filters.maxPrice !== undefined ? { maxPrice: filters.maxPrice } : {}),
       ...(filters.cursor ? { cursor: filters.cursor } : {}),
+      ...(filters.page !== undefined ? { page: filters.page } : {}),
       limit,
     }
   }

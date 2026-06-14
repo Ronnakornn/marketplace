@@ -355,10 +355,10 @@ describe('catalog admin category routes', () => {
   it('routes category-scoped public product filters with parsed attribute filters', async () => {
     const container = createContainer()
     vi.mocked(getAuthContext).mockResolvedValue(null)
-    vi.mocked(container.catalogService.listPublicProducts).mockResolvedValueOnce({ data: [], meta: { nextCursor: null, hasNextPage: false } })
+    vi.mocked(container.catalogService.listPublicProducts).mockResolvedValueOnce({ data: [], items: [], meta: { nextCursor: null, hasNextPage: false, totalCount: 0, page: 2, pageSize: 10, query: {} } })
 
     const response = await createApp(container).handle(new Request(
-      'http://localhost/api/categories/55555555-5555-4555-8555-555555555555/products?attributeFilters=color:red,screen%20size:6.1%20inch&brandId=44444444-4444-4444-8444-444444444444&minPrice=100&maxPrice=2000&limit=10',
+      'http://localhost/api/categories/55555555-5555-4555-8555-555555555555/products?attributeFilters=color:red,screen%20size:6.1%20inch&brandId=44444444-4444-4444-8444-444444444444&minPrice=100&maxPrice=2000&sort=newest&page=2&limit=10',
     ))
 
     expect(response.status).toBe(200)
@@ -367,6 +367,8 @@ describe('catalog admin category routes', () => {
       brandId: '44444444-4444-4444-8444-444444444444',
       minPrice: 100,
       maxPrice: 2000,
+      sort: 'newest',
+      page: 2,
       limit: 10,
       attributes: [
         { key: 'color', value: 'red' },
