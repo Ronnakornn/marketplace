@@ -18,6 +18,20 @@ export interface SearchRepositoryFilters {
 export type SearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title' | 'price' | 'currency'> & {
   titleTh?: string | null
   titleEn?: string | null
+  optionValues: Array<{
+    optionValue: {
+      id: string
+      value: string
+      valueTh?: string | null
+      valueEn?: string | null
+      option: {
+        id: string
+        name: string
+        nameTh?: string | null
+        nameEn?: string | null
+      }
+    }
+  }>
   orderItems: Array<{
     quantity: number
   }>
@@ -39,6 +53,18 @@ export type SearchProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'descr
     nameEn?: string | null
     slug: string
   } | null
+  options: Array<{
+    id: string
+    name: string
+    nameTh?: string | null
+    nameEn?: string | null
+    values: Array<{
+      id: string
+      value: string
+      valueTh?: string | null
+      valueEn?: string | null
+    }>
+  }>
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
   variants: SearchProductVariant[]
   reviews: Array<Pick<Review, 'rating' | 'status'>>
@@ -112,6 +138,26 @@ const searchProductSelect = {
       titleEn: true,
       price: true,
       currency: true,
+      optionValues: {
+        select: {
+          optionValue: {
+            select: {
+              id: true,
+              value: true,
+              valueTh: true,
+              valueEn: true,
+              option: {
+                select: {
+                  id: true,
+                  name: true,
+                  nameTh: true,
+                  nameEn: true,
+                },
+              },
+            },
+          },
+        },
+      },
       orderItems: {
         select: {
           quantity: true,
@@ -121,6 +167,22 @@ const searchProductSelect = {
         select: {
           quantityOnHand: true,
           quantityReserved: true,
+        },
+      },
+    },
+  },
+  options: {
+    select: {
+      id: true,
+      name: true,
+      nameTh: true,
+      nameEn: true,
+      values: {
+        select: {
+          id: true,
+          value: true,
+          valueTh: true,
+          valueEn: true,
         },
       },
     },

@@ -46,6 +46,40 @@ export interface ProductSearchItem {
     name: string
     slug: string
   }
+  variants: Array<{
+    id: string
+    sku: string
+    title: string
+    titleTh?: string | null
+    titleEn?: string | null
+    price: number
+    currency: string
+    stock: number
+    optionValues: Array<{
+      id: string
+      value: string
+      valueTh?: string | null
+      valueEn?: string | null
+      option: {
+        id: string
+        name: string
+        nameTh?: string | null
+        nameEn?: string | null
+      }
+    }>
+  }>
+  options: Array<{
+    id: string
+    name: string
+    nameTh?: string | null
+    nameEn?: string | null
+    values: Array<{
+      id: string
+      value: string
+      valueTh?: string | null
+      valueEn?: string | null
+    }>
+  }>
   badges: string[]
 }
 
@@ -312,6 +346,44 @@ export class SearchService {
         name: product.shop.name,
         slug: product.shop.slug,
       },
+      variants: product.variants.map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        title: localizedText(locale, { th: variant.titleTh, en: variant.titleEn, fallback: variant.title }) ?? variant.title,
+        titleTh: variant.titleTh,
+        titleEn: variant.titleEn,
+        price: Number(variant.price),
+        currency: variant.currency,
+        stock: variant.inventory ? Math.max(0, variant.inventory.quantityOnHand - variant.inventory.quantityReserved) : 0,
+        optionValues: variant.optionValues.map(({ optionValue }) => ({
+          id: optionValue.id,
+          value: localizedText(locale, { th: optionValue.valueTh, en: optionValue.valueEn, fallback: optionValue.value }) ?? optionValue.value,
+          valueTh: optionValue.valueTh,
+          valueEn: optionValue.valueEn,
+          option: {
+            id: optionValue.option.id,
+            name: localizedText(locale, {
+              th: optionValue.option.nameTh,
+              en: optionValue.option.nameEn,
+              fallback: optionValue.option.name,
+            }) ?? optionValue.option.name,
+            nameTh: optionValue.option.nameTh,
+            nameEn: optionValue.option.nameEn,
+          },
+        })),
+      })),
+      options: product.options.map((option) => ({
+        id: option.id,
+        name: localizedText(locale, { th: option.nameTh, en: option.nameEn, fallback: option.name }) ?? option.name,
+        nameTh: option.nameTh,
+        nameEn: option.nameEn,
+        values: option.values.map((value) => ({
+          id: value.id,
+          value: localizedText(locale, { th: value.valueTh, en: value.valueEn, fallback: value.value }) ?? value.value,
+          valueTh: value.valueTh,
+          valueEn: value.valueEn,
+        })),
+      })),
       badges: this.buildBadges(product, soldCount, hasStock),
     }
   }

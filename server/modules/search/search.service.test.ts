@@ -103,6 +103,7 @@ function createProduct(overrides: Partial<{
         title: 'Default',
         price: overrides.price ? BigInt(overrides.price) : BigInt(1000),
         currency: 'USD',
+        optionValues: [],
         orderItems: [{ quantity: overrides.soldCount ?? 0 }],
         inventory: { quantityOnHand: 10, quantityReserved: 2 },
       },
@@ -112,10 +113,12 @@ function createProduct(overrides: Partial<{
         title: 'Large',
         price: BigInt(overrides.secondPrice), // Convert price to bigint
         currency: 'USD',
+        optionValues: [],
         orderItems: [],
         inventory: { quantityOnHand: 0, quantityReserved: 0 },
       }] : []),
     ],
+    options: [],
     reviews: Array.from({ length: reviewCount }, () => ({
       rating,
       status: 'PUBLISHED' as const,
@@ -230,6 +233,24 @@ describe('SearchService', () => {
       minPrice: 2000,
       maxPrice: 4000,
       sort: 'relevance',
+    })
+  })
+
+  it('keeps variant stock and option data for reusable product card quick-add decisions', async () => {
+    const result = await service.searchProducts({})
+
+    expect(result.items[0]).toMatchObject({
+      productId: 'p1',
+      variants: [{
+        id: 'variant-1',
+        sku: 'TEE-1',
+        title: 'Default',
+        price: 1000,
+        currency: 'USD',
+        stock: 8,
+        optionValues: [],
+      }],
+      options: [],
     })
   })
 
