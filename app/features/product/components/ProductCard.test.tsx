@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { type ReactNode } from "react";
+import { type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,13 +13,25 @@ const cardMocks = vi.hoisted(() => ({
   addFavoriteProduct: vi.fn(async () => ({})),
   fetchFavoriteStatus: vi.fn(async () => false),
   removeFavoriteProduct: vi.fn(async () => ({})),
+  routerPush: vi.fn(),
+  showAddToCartError: vi.fn(),
+  showAddToCartSuccess: vi.fn(),
   trackProductClick: vi.fn(),
   session: { user: { role: "USER" } } as { user: { role: string } } | null,
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean }) => (
-    <a href={href} {...props}>{children}</a>
+  default: ({ href, children, onClick, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; onClick?: (event: ReactMouseEvent<HTMLAnchorElement>) => void; prefetch?: boolean }) => (
+    <a
+      href={href}
+      {...props}
+      onClick={(event) => {
+        event.preventDefault();
+        onClick?.(event);
+      }}
+    >
+      {children}
+    </a>
   ),
 }));
 
@@ -27,6 +39,10 @@ vi.mock("next/image", () => ({
   default: ({ src, alt, fill: _fill, sizes: _sizes, ...props }: { src: string; alt: string; fill?: boolean; sizes?: string }) => (
     <img src={src} alt={alt} {...props} />
   ),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: cardMocks.routerPush }),
 }));
 
 vi.mock("#/components/ui/badge", () => ({
@@ -45,8 +61,17 @@ vi.mock("#/features/buyer/api", () => ({
   removeFavoriteProduct: cardMocks.removeFavoriteProduct,
 }));
 
+vi.mock("#/features/product/cart-handoff", () => ({
+  showAddToCartError: cardMocks.showAddToCartError,
+  showAddToCartSuccess: cardMocks.showAddToCartSuccess,
+}));
+
 vi.mock("#/features/tracking", () => ({
   useDiscoveryTracking: () => ({ trackProductClick: cardMocks.trackProductClick }),
+}));
+
+vi.mock("#/i18n/navigation", () => ({
+  useLocalePath: () => (path: string) => `/en${path}`,
 }));
 
 vi.mock("#/lib/assets", () => ({
@@ -75,6 +100,9 @@ beforeEach(() => {
   cardMocks.addFavoriteProduct.mockClear();
   cardMocks.fetchFavoriteStatus.mockClear();
   cardMocks.removeFavoriteProduct.mockClear();
+  cardMocks.routerPush.mockClear();
+  cardMocks.showAddToCartError.mockClear();
+  cardMocks.showAddToCartSuccess.mockClear();
   cardMocks.trackProductClick.mockClear();
   cardMocks.session = { user: { role: "USER" } };
 });
@@ -144,6 +172,74 @@ describe("ProductCard", () => {
 
     await waitFor(() => expect(cardMocks.addCartItem).toHaveBeenCalledWith("variant-safe", 1));
     expect(cardMocks.trackProductClick).not.toHaveBeenCalled();
+  });
+
+  it("shows quick-add confirmation and refreshes the buyer cart query after success", async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(client, "invalidateQueries");
+    const product = createProductFixture({
+      variants: [{ ...createVariant("variant-safe", 1200, 4), optionValues: [] }],
+      options: [],
+    });
+
+    render(
+      <QueryClientProvider client={client}>
+        <ProductCard product={product} />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ }));
+
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["buyer-cart"] }));
+    expect(cardMocks.showAddToCartSuccess).toHaveBeenCalledWith({
+      context: {
+        productTitle: "Canvas Weekender Bag",
+        variantTitle: "Default",
+      },
+      onViewCart: expect.any(Function),
+    });
+
+    const successOptions = cardMocks.showAddToCartSuccess.mock.calls[0]?.[0];
+    successOptions.onViewCart();
+    expect(cardMocks.routerPush).toHaveBeenCalledWith("/en/cart");
+    expect(cardMocks.trackProductClick).not.toHaveBeenCalled();
+  });
+
+  it("shows readable quick-add error feedback without navigating", async () => {
+    const error = { response: { error: "Variant is out of stock" } };
+    cardMocks.addCartItem.mockRejectedValueOnce(error);
+
+    renderWithClient(createProductFixture({
+      variants: [{ ...createVariant("variant-safe", 1200, 4), optionValues: [] }],
+      options: [],
+    }));
+
+    fireEvent.click(screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ }));
+
+    await waitFor(() => expect(cardMocks.showAddToCartError).toHaveBeenCalledWith({ error }));
+    expect(cardMocks.showAddToCartSuccess).not.toHaveBeenCalled();
+    expect(cardMocks.routerPush).not.toHaveBeenCalled();
+    expect(cardMocks.trackProductClick).not.toHaveBeenCalled();
+  });
+
+  it("keeps ambiguous products on the detail fallback action", () => {
+    renderWithClient(createProductFixture({
+      variants: [
+        { ...createVariant("variant-one", 1200, 4), optionValues: [] },
+        { ...createVariant("variant-two", 1500, 2), optionValues: [] },
+      ],
+      options: [],
+    }));
+
+    expect(screen.queryByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ })).toBeNull();
+
+    const detailsLink = screen.getByRole("link", { name: /Open Canvas Weekender Bag details/ });
+    expect(detailsLink.getAttribute("href")).toBe("/products/product-1");
+
+    fireEvent.click(detailsLink);
+    expect(cardMocks.trackProductClick).toHaveBeenCalledWith({ productId: "product-1", shopId: "shop-1" });
   });
 
   it("makes out-of-stock state visible and keeps keyboard focus targets accessible", () => {

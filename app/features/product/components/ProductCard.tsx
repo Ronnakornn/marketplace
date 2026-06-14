@@ -2,18 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HeartIcon, MapPinIcon, ShoppingCartIcon, StarIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { addCartItem, addFavoriteProduct, fetchFavoriteStatus, formatMoney, removeFavoriteProduct } from "#/features/buyer/api";
+import { showAddToCartError, showAddToCartSuccess } from "#/features/product/cart-handoff";
 import type { BuyerProduct } from "#/features/product/queries";
 import { useDiscoveryTracking } from "#/features/tracking";
+import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
 
 export function ProductCard({ product }: { product: BuyerProduct }) {
+  const router = useRouter();
+  const localePath = useLocalePath();
   const tracking = useDiscoveryTracking("product_card");
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -40,7 +45,17 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
   });
   const addToCartMutation = useMutation({
     mutationFn: () => quickAddVariant ? addCartItem(quickAddVariant.id, 1) : Promise.resolve(null),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["buyer-cart"] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
+      showAddToCartSuccess({
+        context: {
+          productTitle: product.title,
+          variantTitle: quickAddVariant?.title,
+        },
+        onViewCart: () => router.push(localePath("/cart")),
+      });
+    },
+    onError: (error) => showAddToCartError({ error }),
   });
   const priceLabel = hasPriceRange
     ? `${formatMoney(product.minPrice, product.currency)} - ${formatMoney(product.maxPrice, product.currency)}`
