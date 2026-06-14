@@ -73,7 +73,7 @@ import {
   useUpdateSellerVariant,
 } from "../hooks/useSellerManage";
 
-type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+type ProductStatus = "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
 
 interface ProductFormState {
   title: string;

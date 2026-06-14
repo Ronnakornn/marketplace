@@ -22,6 +22,7 @@ export function createJobWorker(container: ServiceContainer, config: QueueConfig
     {
       connection: createRedisConnection(config),
       concurrency: config.concurrency,
+      skipVersionCheck: config.skipRedisVersionCheck,
     },
   )
 
@@ -54,6 +55,7 @@ export function createJobWorker(container: ServiceContainer, config: QueueConfig
 export function createJobQueueEvents(container: ServiceContainer, config: QueueConfig): QueueEvents {
   const events = new QueueEvents(queueName, {
     connection: createRedisConnection(config),
+    skipVersionCheck: config.skipRedisVersionCheck,
   })
   events.on('failed', ({ jobId, failedReason }) => {
     container.appContext.logger.error('Job queue recorded failed job', {

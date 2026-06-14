@@ -149,7 +149,7 @@ let sellerQuestionSuccess = false;
 let sellerQuestionError: Error | null = null;
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
+  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean }) => <a href={href} {...props}>{children}</a>,
 }));
 
 vi.mock("next/navigation", () => ({

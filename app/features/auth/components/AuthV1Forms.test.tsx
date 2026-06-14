@@ -8,7 +8,7 @@ import { ChangePasswordForm, ForgotPasswordForm, ResetPasswordForm, VerifyEmailF
 import { changePassword, completePasswordReset, requestPasswordResetOtp, verifyEmailOtp } from "#/features/auth/api";
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
+  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean }) => <a href={href} {...props}>{children}</a>,
 }));
 
 const push = vi.fn();
