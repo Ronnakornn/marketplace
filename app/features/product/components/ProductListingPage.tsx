@@ -23,6 +23,7 @@ import {
   publicProductSearchQueryOptions,
   publicSearchSuggestionsQueryOptions,
   type BuyerProduct,
+  type BuyerListingFacets,
   type BuyerProductListing,
 } from "#/features/product/queries";
 import { trackDiscoveryEvent, useTrackVisibleProducts } from "#/features/tracking";
@@ -201,12 +202,12 @@ export function ProductListingPage({
     });
   }, [mode, query, categoryId, brandId, attributeFilters, minPrice, maxPrice, rating, inStock, freeShipping, onSale, sort, products.length]);
   const filterProps = useMemo(() => ({
-    categories: categoriesQuery.data ?? [],
-    brands: brandsQuery.data ?? [],
+    categories: buildCategoryFilterOptions(listing?.facets.categories, categoriesQuery.data ?? []),
+    brands: buildBrandFilterOptions(listing?.facets.brands, brandsQuery.data ?? []),
+    price: listing?.facets.price ?? { min: null, max: null, currency: "THB" },
     query,
     categoryId,
     brandId,
-    attributeFilters,
     minPrice,
     maxPrice,
     sort,
@@ -216,12 +217,11 @@ export function ProductListingPage({
     onSale,
     basePath,
     showCategoryFilter: mode === "search",
-  }), [categoriesQuery.data, brandsQuery.data, query, categoryId, brandId, attributeFilters, minPrice, maxPrice, sort, rating, inStock, freeShipping, onSale, basePath, mode]);
+  }), [listing?.facets, categoriesQuery.data, brandsQuery.data, query, categoryId, brandId, minPrice, maxPrice, sort, rating, inStock, freeShipping, onSale, basePath, mode]);
   const activeFilters = buildActiveFilters({
     q: query,
     categoryId: mode === "search" ? categoryId : undefined,
     brandId,
-    attributeFilters,
     minPrice,
     maxPrice,
     rating,
@@ -422,12 +422,12 @@ function HomeBlocks() {
 }
 
 function SearchFilterSidebar(props: {
-  categories: Array<{ slug: string; name: string }>;
-  brands: Array<{ id: string; name: string }>;
+  categories: CategoryFilterOption[];
+  brands: BrandFilterOption[];
+  price: BuyerListingFacets["price"];
   query: string;
   categoryId?: string;
   brandId?: string;
-  attributeFilters?: string;
   minPrice?: string;
   maxPrice?: string;
   rating?: string;
@@ -450,8 +450,10 @@ function SearchFilterSidebar(props: {
     onSale: props.onSale,
     sort: props.sort,
     brandId: props.brandId,
-    attributeFilters: props.attributeFilters,
   };
+  const minPricePlaceholder = props.minPrice ? t("product.min") : props.price.min !== null ? String(props.price.min) : t("product.min");
+  const maxPricePlaceholder = props.maxPrice ? t("product.max") : props.price.max !== null ? String(props.price.max) : t("product.max");
+  const hasPriceMetadata = props.price.min !== null || props.price.max !== null;
 
   return (
     <aside className={`space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-20 lg:self-start ${props.compact ? "" : "hidden lg:block"}`}>
@@ -467,9 +469,10 @@ function SearchFilterSidebar(props: {
             <FilterLink
               key={category.slug}
               active={props.categoryId === category.slug}
+              disabled={category.unavailable}
               href={buildSearchHref({ ...base, categoryId: category.slug }, props.basePath)}
             >
-              {category.name}
+              <FilterOptionLabel label={category.name} count={category.count} />
             </FilterLink>
           ))}
         </div>
@@ -480,16 +483,20 @@ function SearchFilterSidebar(props: {
           <input type="hidden" name="q" value={props.query} />
           {props.categoryId ? <input type="hidden" name="categoryId" value={props.categoryId} /> : null}
           {props.brandId ? <input type="hidden" name="brandId" value={props.brandId} /> : null}
-          {props.attributeFilters ? <input type="hidden" name="attributeFilters" value={props.attributeFilters} /> : null}
           {props.rating ? <input type="hidden" name="rating" value={props.rating} /> : null}
           {props.inStock ? <input type="hidden" name="inStock" value={props.inStock} /> : null}
           {props.freeShipping ? <input type="hidden" name="freeShipping" value={props.freeShipping} /> : null}
           {props.onSale ? <input type="hidden" name="onSale" value={props.onSale} /> : null}
           <input type="hidden" name="sort" value={props.sort} />
           <div className="grid grid-cols-2 gap-2">
-            <Input name="minPrice" defaultValue={props.minPrice} inputMode="numeric" placeholder={t("product.min")} className="h-9 rounded-xl" />
-            <Input name="maxPrice" defaultValue={props.maxPrice} inputMode="numeric" placeholder={t("product.max")} className="h-9 rounded-xl" />
+            <Input name="minPrice" defaultValue={props.minPrice} inputMode="numeric" placeholder={minPricePlaceholder} className="h-9 rounded-xl" />
+            <Input name="maxPrice" defaultValue={props.maxPrice} inputMode="numeric" placeholder={maxPricePlaceholder} className="h-9 rounded-xl" />
           </div>
+          {hasPriceMetadata ? (
+            <p className="text-xs leading-5 text-slate-500">
+              {formatPriceRangeHelper(props.price)}
+            </p>
+          ) : null}
           <Button type="submit" size="sm" className="w-full rounded-full bg-orange-600 hover:bg-orange-700">{t("product.applyFilters")}</Button>
         </form>
       </FilterBlock>
@@ -498,29 +505,11 @@ function SearchFilterSidebar(props: {
         <div className="space-y-1">
           <FilterLink active={!props.brandId} href={buildSearchHref({ ...base, brandId: undefined }, props.basePath)}>All brands</FilterLink>
           {props.brands.map((brand) => (
-            <FilterLink key={brand.id} active={props.brandId === brand.id} href={buildSearchHref({ ...base, brandId: brand.id }, props.basePath)}>
-              {brand.name}
+            <FilterLink key={brand.id} active={props.brandId === brand.id} disabled={brand.unavailable} href={buildSearchHref({ ...base, brandId: brand.id }, props.basePath)}>
+              <FilterOptionLabel label={brand.name} count={brand.count} />
             </FilterLink>
           ))}
         </div>
-      </FilterBlock>
-
-      <FilterBlock title="Specifications">
-        <form action={props.basePath} className="space-y-2">
-          <input type="hidden" name="q" value={props.query} />
-          {props.categoryId ? <input type="hidden" name="categoryId" value={props.categoryId} /> : null}
-          {props.brandId ? <input type="hidden" name="brandId" value={props.brandId} /> : null}
-          {props.minPrice ? <input type="hidden" name="minPrice" value={props.minPrice} /> : null}
-          {props.maxPrice ? <input type="hidden" name="maxPrice" value={props.maxPrice} /> : null}
-          {props.rating ? <input type="hidden" name="rating" value={props.rating} /> : null}
-          {props.inStock ? <input type="hidden" name="inStock" value={props.inStock} /> : null}
-          {props.freeShipping ? <input type="hidden" name="freeShipping" value={props.freeShipping} /> : null}
-          {props.onSale ? <input type="hidden" name="onSale" value={props.onSale} /> : null}
-          <input type="hidden" name="sort" value={props.sort} />
-          <label htmlFor="attributeFilters" className="text-xs font-medium text-slate-600">Attribute filters</label>
-          <Input id="attributeFilters" name="attributeFilters" defaultValue={props.attributeFilters} placeholder="color:black" className="h-9 rounded-xl" />
-          <Button type="submit" size="sm" variant="outline" className="w-full rounded-full">Apply specifications</Button>
-        </form>
       </FilterBlock>
 
       <FilterBlock title={t("product.rating")}>
@@ -605,7 +594,18 @@ function FilterBlock({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-function FilterLink({ href, active, children }: { href: string; active?: boolean; children: ReactNode }) {
+function FilterLink({ href, active, disabled, children }: { href: string; active?: boolean; disabled?: boolean; children: ReactNode }) {
+  if (disabled) {
+    return (
+      <span
+        aria-disabled="true"
+        className="flex cursor-not-allowed rounded-xl px-2 py-1.5 text-sm text-slate-400"
+      >
+        {children}
+      </span>
+    );
+  }
+
   return (
     <Link
       href={href}
@@ -613,6 +613,15 @@ function FilterLink({ href, active, children }: { href: string; active?: boolean
     >
       {children}
     </Link>
+  );
+}
+
+function FilterOptionLabel({ label, count }: { label: string; count?: number }) {
+  return (
+    <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+      <span className="min-w-0 truncate">{label}</span>
+      {typeof count === "number" ? <span className="shrink-0 text-xs tabular-nums text-slate-400">{count}</span> : null}
+    </span>
   );
 }
 
@@ -671,6 +680,56 @@ function formatResultSummary(template: string, visibleCount: number, totalCount:
   const summary = template.replace("{count}", String(count));
   if (totalCount === null || visibleCount >= totalCount) return summary;
   return `${summary} (${visibleCount} shown)`;
+}
+
+type CategoryFilterOption = {
+  slug: string;
+  name: string;
+  count?: number;
+  unavailable?: boolean;
+};
+
+type BrandFilterOption = {
+  id: string;
+  name: string;
+  count?: number;
+  unavailable?: boolean;
+};
+
+function buildCategoryFilterOptions(
+  facets: BuyerListingFacets["categories"] | undefined,
+  fallback: Array<{ slug: string; name: string }>,
+): CategoryFilterOption[] {
+  if (facets?.length) {
+    return facets.map((facet) => ({
+      slug: facet.slug,
+      name: facet.name,
+      count: facet.count,
+      unavailable: facet.count <= 0 && !facet.active,
+    }));
+  }
+  return fallback.map((category) => ({ slug: category.slug, name: category.name }));
+}
+
+function buildBrandFilterOptions(
+  facets: BuyerListingFacets["brands"] | undefined,
+  fallback: Array<{ id: string; name: string }>,
+): BrandFilterOption[] {
+  if (facets?.length) {
+    return facets.map((facet) => ({
+      id: facet.id,
+      name: facet.name,
+      count: facet.count,
+      unavailable: facet.count <= 0 && !facet.active,
+    }));
+  }
+  return fallback.map((brand) => ({ id: brand.id, name: brand.name }));
+}
+
+function formatPriceRangeHelper(price: BuyerListingFacets["price"]): string {
+  const min = price.min === null ? "*" : String(price.min);
+  const max = price.max === null ? "*" : String(price.max);
+  return `${price.currency} ${min} - ${max}`;
 }
 
 function buildActiveFilters(

@@ -10,7 +10,7 @@ import { ProductDetailPage } from "./ProductDetailPage";
 import { ProductListingPage } from "./ProductListingPage";
 
 const queryMocks = vi.hoisted(() => ({
-  productsResponse: { items: [] } as { items: unknown[] },
+  productsResponse: { items: [] } as { items: unknown[]; meta?: Record<string, unknown>; facets?: Record<string, unknown> },
   productsResponsesByPage: new Map<number, { items: unknown[]; meta?: Record<string, unknown>; facets?: Record<string, unknown> }>(),
   productDetailResponse: null as unknown,
   productsError: null as unknown,
@@ -152,21 +152,29 @@ vi.mock("#/features/product/queries", () => ({
     queryFn: async () => [],
   }),
   normalizePublicProducts: (response: { items?: unknown[] }) => response.items ?? [],
-  normalizePublicProductListing: (response: { items?: unknown[]; meta?: Record<string, unknown>; facets?: Record<string, unknown> }) => ({
-    products: response.items ?? [],
-    meta: {
-      totalCount: typeof response.meta?.totalCount === "number" ? response.meta.totalCount : null,
-      page: typeof response.meta?.page === "number" ? response.meta.page : 1,
-      pageSize: typeof response.meta?.pageSize === "number" ? response.meta.pageSize : (response.items ?? []).length,
-      hasNextPage: response.meta?.hasNextPage === true,
-      query: {},
-    },
-    facets: {
-      categories: [],
-      brands: [],
-      price: { min: null, max: null, currency: "THB" },
-    },
-  }),
+  normalizePublicProductListing: (response: { items?: unknown[]; meta?: Record<string, unknown>; facets?: Record<string, unknown> }) => {
+    const facets = response.facets ?? {};
+    const price = facets.price && typeof facets.price === "object" ? facets.price as Record<string, unknown> : {};
+    return {
+      products: response.items ?? [],
+      meta: {
+        totalCount: typeof response.meta?.totalCount === "number" ? response.meta.totalCount : null,
+        page: typeof response.meta?.page === "number" ? response.meta.page : 1,
+        pageSize: typeof response.meta?.pageSize === "number" ? response.meta.pageSize : (response.items ?? []).length,
+        hasNextPage: response.meta?.hasNextPage === true,
+        query: {},
+      },
+      facets: {
+        categories: Array.isArray(facets.categories) ? facets.categories : [],
+        brands: Array.isArray(facets.brands) ? facets.brands : [],
+        price: {
+          min: typeof price.min === "number" ? price.min : null,
+          max: typeof price.max === "number" ? price.max : null,
+          currency: typeof price.currency === "string" ? price.currency : "THB",
+        },
+      },
+    };
+  },
   normalizePublicProduct: (response: unknown) => response,
   normalizePublicProductReviews: (response: unknown[]) => response,
   normalizePublicProductRatingSummary: (response: unknown) => response,
@@ -187,6 +195,7 @@ vi.mock("#/features/tracking", () => ({
   getLocalRecentlyViewedProducts: () => [],
   normalizeLocalRecentlyViewedProducts: (items: unknown[]) => items,
   saveLocalRecentlyViewedProduct: vi.fn(),
+  trackDiscoveryEvent: vi.fn(),
   useDiscoveryTracking: () => ({
     trackRecentlyViewed: vi.fn(),
     trackProductClick: vi.fn(),
@@ -222,9 +231,15 @@ vi.mock("#/i18n/client", () => ({
     "common.deals": "Deals",
     "common.search": "Search",
     "product.category": "Category",
+    "product.allCategories": "All categories",
+    "product.applyFilters": "Apply filters",
+    "product.clearFilters": "Clear filters",
     "product.discover": "Discover",
+    "product.filterAndSort": "Filter and sort",
     "product.itemsFound": "{count} items found",
     "product.loadingResults": "Loading results",
+    "product.max": "Max",
+    "product.min": "Min",
     "product.noProductsDescription": "No products match your filters.",
     "product.noProductsFound": "No products found",
     "product.noPurchasableVariant": "No purchasable variant",
@@ -244,6 +259,7 @@ vi.mock("#/i18n/client", () => ({
     "product.noReviewsTitle": "No reviews",
     "product.relatedProducts": "Related products",
     "product.reviews": "Reviews",
+    "product.searchFilter": "Search filter",
     "product.shippingCalculated": "Shipping calculated at checkout",
     "product.sold": "sold",
     "product.variants": "Variants",
@@ -403,6 +419,75 @@ describe("ProductListingPage buyer states", () => {
 
     expect(await screen.findByText("Recovered next product")).toBeTruthy();
     expect(screen.getByText("Stable product")).toBeTruthy();
+  });
+
+  it("renders metadata-driven category, brand, and price filters with unavailable facets disabled", async () => {
+    queryMocks.productsResponse = {
+      items: [createProductCardFixture({ id: "product-1", title: "Faceted listing product" })],
+      meta: { totalCount: 1, page: 1, pageSize: 40, hasNextPage: false },
+      facets: {
+        categories: [
+          { id: "cat-1", slug: "fashion", name: "Fashion", count: 3, active: false },
+          { id: "cat-2", slug: "electronics", name: "Electronics", count: 0, active: false },
+        ],
+        brands: [
+          { id: "brand-1", name: "Acme", slug: "acme", count: 2, active: false },
+          { id: "brand-2", name: "Dormant", slug: "dormant", count: 0, active: false },
+        ],
+        price: { min: 100, max: 900, currency: "THB" },
+      },
+    };
+
+    renderWithClient(<ProductListingPage mode="search" query="bag" />);
+
+    expect(await screen.findByText("Faceted listing product")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: /Fashion3/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Acme2/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("THB 100 - 900").length).toBeGreaterThan(0);
+    expect(screen.getAllByPlaceholderText("100").length).toBeGreaterThan(0);
+    expect(screen.getAllByPlaceholderText("900").length).toBeGreaterThan(0);
+
+    const unavailableCategory = screen.getAllByText("Electronics")[0]?.closest("[aria-disabled='true']");
+    const unavailableBrand = screen.getAllByText("Dormant")[0]?.closest("[aria-disabled='true']");
+    expect(unavailableCategory).toBeTruthy();
+    expect(unavailableBrand).toBeTruthy();
+  });
+
+  it("keeps active chips removable and clear filters preserving the search query", async () => {
+    queryMocks.productsResponse = {
+      items: [createProductCardFixture({ id: "product-1", title: "Filtered product" })],
+      meta: { totalCount: 1, page: 1, pageSize: 40, hasNextPage: false },
+      facets: {
+        categories: [{ id: "cat-1", slug: "fashion", name: "Fashion", count: 1, active: true }],
+        brands: [{ id: "brand-1", name: "Acme", slug: "acme", count: 1, active: true }],
+        price: { min: 100, max: 900, currency: "THB" },
+      },
+    };
+
+    renderWithClient(<ProductListingPage mode="search" query="bag" categoryId="fashion" brandId="brand-1" minPrice="100" maxPrice="900" />);
+
+    expect(await screen.findByText("Filtered product")).toBeTruthy();
+    const categoryChip = screen.getAllByRole("link", { name: /Fashion/ }).find((link) => !link.getAttribute("href")?.includes("categoryId=fashion"));
+    const brandChip = screen.getAllByRole("link", { name: /Acme/ }).find((link) => !link.getAttribute("href")?.includes("brandId=brand-1"));
+    const priceChip = screen.getAllByRole("link", { name: /100 - 900/ }).find((link) => !link.getAttribute("href")?.includes("minPrice=100"));
+    expect(categoryChip?.getAttribute("href")).toContain("brandId=brand-1");
+    expect(brandChip?.getAttribute("href")).toContain("categoryId=fashion");
+    expect(priceChip?.getAttribute("href")).not.toContain("maxPrice=900");
+    expect(screen.getAllByRole("link", { name: "Clear filters" })[0]?.getAttribute("href")).toBe("/search?q=bag");
+  });
+
+  it("keeps listing usable when products load without facet metadata", async () => {
+    queryMocks.productsResponse = {
+      items: [createProductCardFixture({ id: "product-1", title: "No facet product" })],
+      meta: { totalCount: 1, page: 1, pageSize: 40, hasNextPage: false },
+    };
+
+    renderWithClient(<ProductListingPage mode="search" query="plain" />);
+
+    expect(await screen.findByText("No facet product")).toBeTruthy();
+    expect(screen.getAllByText("Search filter").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Specifications")).toBeNull();
+    expect(screen.queryByText("Attribute filters")).toBeNull();
   });
 });
 
