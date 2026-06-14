@@ -2,6 +2,7 @@
 
 import { queryOptions } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
+import type { BuyerProduct } from "#/features/product/queries";
 import { api } from "#/lib/eden";
 
 export const MARKETPLACE_HOME_STALE_TIME_MS = 60_000;
@@ -48,6 +49,7 @@ export interface MarketplaceProductCard {
   badges: string[];
   variantId: string | null;
   stock: number | null;
+  buyerProduct: BuyerProduct;
 }
 
 export interface MarketplaceFlashSale {
@@ -171,7 +173,7 @@ function normalizeFlashSaleItem(input: unknown, index: number): MarketplaceProdu
   const salePrice = readNumber(record.salePrice);
   const originalPrice = readNumber(record.originalPrice);
   const shop = toRecord(product.shop);
-  return {
+  const normalized = {
     id: readString(product.id, readString(record.productId, `flash-product-${index}`)),
     title: readString(product.title, "Untitled product"),
     imageUrl: optionalString(product.coverImage),
@@ -190,6 +192,18 @@ function normalizeFlashSaleItem(input: unknown, index: number): MarketplaceProdu
     variantId: optionalString(variant.id),
     stock: readNumber(record.stockLimit),
   };
+  return withBuyerProduct(normalized, {
+    variants: normalized.variantId ? [{
+      id: normalized.variantId,
+      title: readString(variant.title, "Default"),
+      sku: readString(variant.sku),
+      price: normalized.price,
+      currency: normalized.currency,
+      stock: normalized.stock ?? 0,
+      optionValues: [],
+    }] : [],
+    options: [],
+  });
 }
 
 function normalizeRecommendationProduct(input: unknown, index: number, badge: string): MarketplaceProductCard {
@@ -197,7 +211,7 @@ function normalizeRecommendationProduct(input: unknown, index: number, badge: st
   const shop = toRecord(record.shop);
   const minPrice = readNumber(record.minPrice, readNumber(record.price));
   const maxPrice = readNumber(record.maxPrice, minPrice);
-  return {
+  const normalized = {
     id: readString(record.productId, readString(record.id, `product-${index}`)),
     title: readString(record.title, "Untitled product"),
     imageUrl: optionalString(record.coverImage),
@@ -216,12 +230,24 @@ function normalizeRecommendationProduct(input: unknown, index: number, badge: st
     variantId: optionalString(record.variantId),
     stock: readNumber(record.stock),
   };
+  return withBuyerProduct(normalized, {
+    variants: normalized.variantId ? [{
+      id: normalized.variantId,
+      title: readString(record.variantTitle, "Default"),
+      sku: readString(record.sku),
+      price: normalized.price,
+      currency: normalized.currency,
+      stock: normalized.stock ?? 0,
+      optionValues: [],
+    }] : [],
+    options: [],
+  });
 }
 
 function normalizeRecentlyViewedProduct(input: unknown, index: number): MarketplaceProductCard {
   const record = toRecord(input);
   const shop = toRecord(record.shop);
-  return {
+  const normalized = {
     id: readString(record.productId, readString(record.id, `recent-product-${index}`)),
     title: readString(record.title, "Untitled product"),
     imageUrl: optionalString(record.coverImage),
@@ -239,6 +265,53 @@ function normalizeRecentlyViewedProduct(input: unknown, index: number): Marketpl
     badges: [],
     variantId: null,
     stock: null,
+  };
+  return withBuyerProduct(normalized, { variants: [], options: [] });
+}
+
+function withBuyerProduct(
+  product: Omit<MarketplaceProductCard, "buyerProduct">,
+  purchaseData: Pick<BuyerProduct, "variants" | "options">,
+): MarketplaceProductCard {
+  const stock = Math.max(0, product.stock ?? purchaseData.variants.reduce((total, variant) => total + variant.stock, 0));
+  const discountPercent = product.originalPrice && product.originalPrice > product.price && product.price > 0
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : null;
+
+  return {
+    ...product,
+    buyerProduct: {
+      id: product.id,
+      title: product.title,
+      description: null,
+      price: product.price,
+      minPrice: product.price,
+      maxPrice: product.originalPrice && product.originalPrice > product.price ? product.originalPrice : product.price,
+      currency: product.currency,
+      rating: product.rating,
+      soldCount: product.soldCount,
+      stock,
+      originalPrice: product.originalPrice,
+      discountPercent,
+      badges: product.badges,
+      shop: {
+        id: product.shop.id,
+        name: product.shop.name,
+        location: product.shop.location ?? "Local",
+      },
+      brand: null,
+      metaTitle: null,
+      metaDescription: null,
+      warrantyInfo: null,
+      condition: null,
+      countryOfOrigin: null,
+      highlights: [],
+      attributes: [],
+      variants: purchaseData.variants,
+      images: product.imageUrl ? [product.imageUrl] : [],
+      video: null,
+      options: purchaseData.options,
+    },
   };
 }
 

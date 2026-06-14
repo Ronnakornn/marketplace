@@ -98,6 +98,12 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+vi.mock("next/image", () => ({
+  default: ({ src, alt, fill: _fill, sizes: _sizes, ...props }: { src: string; alt: string; fill?: boolean; sizes?: string }) => (
+    <img src={src} alt={alt} {...props} />
+  ),
+}));
+
 vi.mock("#/components/BuyerShell", () => ({
   BuyerTopBar: ({ title }: { title: string }) => <header>{title}</header>,
 }));
@@ -123,6 +129,15 @@ vi.mock("#/components/ui/skeleton", () => ({
 
 vi.mock("#/features/buyer/api", () => ({
   addCartItem: vi.fn(),
+  addFavoriteProduct: vi.fn(async () => ({})),
+  fetchFavoriteStatus: vi.fn(async () => false),
+  formatMoney: (cents: number, currency = "THB") => `${currency} ${(cents / 100).toFixed(2)}`,
+  removeFavoriteProduct: vi.fn(async () => ({})),
+}));
+
+vi.mock("#/features/product/cart-handoff", () => ({
+  showAddToCartError: vi.fn(),
+  showAddToCartSuccess: vi.fn(),
 }));
 
 vi.mock("#/features/marketplace/queries", async () => {
@@ -139,6 +154,7 @@ vi.mock("#/features/marketplace/queries", async () => {
 vi.mock("#/features/tracking", () => ({
   getAnonymousSessionId: () => "test-session",
   trackDiscoveryEvent: vi.fn(),
+  useDiscoveryTracking: () => ({ trackProductClick: vi.fn() }),
   useTrackVisibleProducts: vi.fn(),
 }));
 
@@ -183,6 +199,10 @@ vi.mock("#/i18n/client", () => ({
 
 vi.mock("#/i18n/navigation", () => ({
   useLocalePath: () => (path: string) => `/en${path}`,
+}));
+
+vi.mock("#/lib/auth-client", () => ({
+  useSession: () => ({ data: { user: { role: "USER" } } }),
 }));
 
 function renderWithClient(ui: ReactNode) {

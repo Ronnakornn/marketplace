@@ -92,14 +92,28 @@ function product(overrides: Partial<{
     variants: [
       {
         id: `${id}-v1`,
+        title: 'Default',
+        sku: `${id.toUpperCase()}-V1`,
+        currency: 'THB',
         price: BigInt(overrides.price ?? 1000),
         status: 'ACTIVE',
+        inventory: {
+          quantityOnHand: 15,
+          quantityReserved: 3,
+        },
         orderItems: [{ quantity: overrides.soldCount ?? 0 }],
       },
       ...(overrides.secondPrice ? [{
         id: `${id}-v2`,
+        title: 'Second',
+        sku: `${id.toUpperCase()}-V2`,
+        currency: 'THB',
         price: BigInt(overrides.secondPrice),
         status: 'ACTIVE' as const,
+        inventory: {
+          quantityOnHand: 8,
+          quantityReserved: 1,
+        },
         orderItems: [],
       }] : []),
     ],
@@ -130,6 +144,11 @@ describe('RecommendationService', () => {
       productId: 'p1',
       title: 'Cotton Tee',
       minPrice: 1000,
+      variantId: 'p1-v1',
+      variantTitle: 'Default',
+      sku: 'P1-V1',
+      currency: 'THB',
+      stock: 12,
       rating: 4,
       soldCount: 12,
       shop: {

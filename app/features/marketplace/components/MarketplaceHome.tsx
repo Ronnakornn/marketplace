@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -22,7 +22,6 @@ import {
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent } from "#/components/ui/card";
 import { Skeleton } from "#/components/ui/skeleton";
 import { addCartItem } from "#/features/buyer/api";
 import {
@@ -35,6 +34,8 @@ import {
   type MarketplacePromotion,
   type MarketplaceShop,
 } from "#/features/marketplace/queries";
+import { ProductCard as BuyerProductCard } from "#/features/product/components/ProductCard";
+import { showAddToCartError, showAddToCartSuccess } from "#/features/product/cart-handoff";
 import { getAnonymousSessionId, trackDiscoveryEvent, useTrackVisibleProducts } from "#/features/tracking";
 import { useFormatters, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
@@ -115,10 +116,18 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
     select: normalizeMarketplaceHome,
   });
   const addToCartMutation = useMutation({
-    mutationFn: (variantId: string) => addCartItem(variantId, 1),
-    onSuccess: async () => {
+    mutationFn: ({ product, variantId }: { product: MarketplaceProductCard; variantId: string }) => addCartItem(variantId, 1).then(() => product),
+    onSuccess: async (product) => {
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart", locale] });
+      await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
+      showAddToCartSuccess({
+        context: {
+          productTitle: product.title,
+        },
+        onViewCart: () => router.push(localePath("/cart")),
+      });
     },
+    onError: (error) => showAddToCartError({ error }),
   });
   const [visibleCount, setVisibleCount] = useState(8);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -144,7 +153,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
       return;
     }
     if (!canUseBuyerCart) return;
-    if (product.variantId) addToCartMutation.mutate(product.variantId);
+    if (product.variantId && product.stock !== 0) addToCartMutation.mutate({ product, variantId: product.variantId });
   }
 
   useEffect(() => {
@@ -183,7 +192,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           flashSale={home.flashSale}
           isLoading={homeQuery.isLoading}
           onAddToCart={handleAddToCart}
-          pendingVariantId={addToCartMutation.variables}
+          pendingVariantId={addToCartMutation.variables?.variantId}
           formatMoney={formatters.currency}
         />
         <CategoryGrid categories={categories} apiCategories={home.categories} isLoading={homeQuery.isLoading} />
@@ -199,7 +208,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           hasMore={visibleCount < home.recommendedProducts.length}
           loadMoreRef={loadMoreRef}
           onAddToCart={handleAddToCart}
-          pendingVariantId={addToCartMutation.variables}
+          pendingVariantId={addToCartMutation.variables?.variantId}
           formatMoney={formatters.currency}
           onRetry={() => void homeQuery.refetch()}
         />
@@ -213,7 +222,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           emptyTitle="No new arrivals yet"
           emptyDescription="New products will appear here when sellers publish them."
           onAddToCart={handleAddToCart}
-          pendingVariantId={addToCartMutation.variables}
+          pendingVariantId={addToCartMutation.variables?.variantId}
           formatMoney={formatters.currency}
         />
         <FeaturedShopsSection shops={home.featuredShops} isLoading={homeQuery.isLoading} />
@@ -227,7 +236,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           emptyTitle="No recently viewed products"
           emptyDescription="Products you open will be shown here for quick access."
           onAddToCart={handleAddToCart}
-          pendingVariantId={addToCartMutation.variables}
+          pendingVariantId={addToCartMutation.variables?.variantId}
           formatMoney={formatters.currency}
         />
         {homeQuery.isError ? <HomeErrorState onRetry={() => void homeQuery.refetch()} /> : null}
@@ -464,15 +473,9 @@ function ProductRail(props: {
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
         {props.products.map((product, index) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            source={props.source}
-            position={index}
-            onAddToCart={props.onAddToCart}
-            isAdding={props.pendingVariantId === product.variantId}
-            formatMoney={props.formatMoney}
-          />
+          <div key={`${props.source}-${product.id}-${index}`}>
+            <BuyerProductCard product={product.buyerProduct} />
+          </div>
         ))}
         {props.isLoading ? Array.from({ length: 6 }).map((_, index) => (
           <Skeleton key={index} className="h-72 rounded-3xl" />
@@ -494,72 +497,6 @@ function ProductRail(props: {
         {props.hasMore ? t("home.loadingMore") : t("home.youAreCaughtUp")}
       </div>
     </section>
-  );
-}
-
-function ProductCard({
-  product,
-  source,
-  position,
-  onAddToCart,
-  isAdding,
-  formatMoney,
-}: {
-  product: MarketplaceProductCard;
-  source: string;
-  position: number;
-  onAddToCart: (product: MarketplaceProductCard) => void;
-  isAdding: boolean;
-  formatMoney: (cents: number, currency?: string) => string;
-}) {
-  const t = useTranslations();
-  const localePath = useLocalePath();
-  return (
-    <Card className="group overflow-hidden rounded-3xl border-slate-200 bg-white py-0 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-      <Link
-        href={localePath(`/products/${product.id}`)}
-        onClick={() => trackDiscoveryEvent({ eventType: "recommendation_clicked", productId: product.id, shopId: product.shop.id, source, position })}
-      >
-        <ProductVisual product={product} />
-      </Link>
-      <CardContent className="p-3">
-        <div className="mb-2 flex flex-wrap gap-1">
-          {product.badges.map((badge) => (
-            <Badge key={badge} variant="outline" className="border-emerald-200 bg-emerald-50 px-1.5 text-[10px] text-emerald-700">
-              {badge}
-            </Badge>
-          ))}
-          {product.originalPrice && product.originalPrice > product.price ? <Badge variant="outline" className="border-orange-200 bg-orange-50 px-1.5 text-[10px] text-orange-700">Sale</Badge> : null}
-        </div>
-        <Link
-          href={localePath(`/products/${product.id}`)}
-          onClick={() => trackDiscoveryEvent({ eventType: "product_click", productId: product.id, shopId: product.shop.id, source, position })}
-        >
-          <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-snug text-slate-900">
-            {product.title}
-          </h3>
-        </Link>
-        <p className="mt-1 truncate text-xs text-slate-500">{product.shop.name}{product.shop.location ? ` · ${product.shop.location}` : ""}</p>
-        <div className="mt-2 flex items-end gap-1">
-          <p className="text-lg font-extrabold text-orange-600">{formatMoney(product.price, product.currency)}</p>
-          {product.originalPrice ? <p className="mb-0.5 text-xs text-slate-400 line-through">{formatMoney(product.originalPrice, product.currency)}</p> : null}
-        </div>
-        <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500">
-          <span className="inline-flex items-center gap-1">
-            <StarIcon className="size-3 fill-amber-400 text-amber-400" />
-            {product.rating.toFixed(1)}
-          </span>
-          <span>{product.soldCount.toLocaleString()} {t("product.sold")}</span>
-        </div>
-        <Button
-          className="mt-3 h-9 w-full rounded-full bg-slate-950 text-white hover:bg-slate-800"
-          disabled={!product.variantId || isAdding}
-          onClick={() => onAddToCart(product)}
-        >
-          {isAdding ? t("product.adding") : product.stock === 0 ? t("product.outOfStock") : product.variantId ? t("product.addToCart") : "View item"}
-        </Button>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -609,7 +546,7 @@ function FeaturedShopsSection({ shops, isLoading }: { shops: MarketplaceShop[]; 
             className="min-w-0 rounded-2xl border border-slate-100 p-3 transition hover:bg-slate-50"
           >
             <p className="truncate text-sm font-extrabold text-slate-950">{shop.name}</p>
-            <p className="mt-1 text-xs text-slate-500">{shop.productCount.toLocaleString()} products · {shop.followerCount.toLocaleString()} followers</p>
+            <p className="mt-1 text-xs text-slate-500">{shop.productCount.toLocaleString()} products ยท {shop.followerCount.toLocaleString()} followers</p>
             <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-600"><StarIcon className="size-3 fill-amber-400 text-amber-400" /> {shop.ratingAverage.toFixed(1)} ({shop.ratingCount})</p>
           </Link>
         ))}
