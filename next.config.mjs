@@ -45,6 +45,7 @@ const assetPrefix = getAssetPrefix()
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   assetPrefix,
+  allowedDevOrigins: ['192.168.1.103'],
   images: {
     remotePatterns: imageRemotePatterns(),
     formats: ['image/avif', 'image/webp'],
