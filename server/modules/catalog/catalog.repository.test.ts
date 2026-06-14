@@ -75,6 +75,68 @@ describe('PrismaCatalogRepository', () => {
     })
   })
 
+  it('returns bounded public category, brand, and price facets from active product filters', async () => {
+    const productGroupBy = vi
+      .fn()
+      .mockResolvedValueOnce([
+        { categoryId: 'cat-1', _count: 2 },
+      ])
+      .mockResolvedValueOnce([
+        { brandId: 'brand-1', _count: 1 },
+      ])
+    const aggregate = vi.fn().mockResolvedValue({ _min: { price: BigInt(1000) }, _max: { price: BigInt(3000) } })
+    const categoryFindMany = vi.fn().mockResolvedValue([{ id: 'cat-1', slug: 'fashion', name: 'Fashion' }])
+    const brandFindMany = vi.fn().mockResolvedValue([{ id: 'brand-1', slug: 'acme', name: 'Acme' }])
+    const variantFindFirst = vi.fn().mockResolvedValue({ currency: 'THB' })
+    const transaction = vi.fn(async (operations: Array<Promise<unknown>>) => Promise.all(operations))
+    const repo = new PrismaCatalogRepository(createAppContext() as any, {
+      $transaction: transaction,
+      product: { groupBy: productGroupBy },
+      productVariant: { aggregate, findFirst: variantFindFirst },
+      category: { findMany: categoryFindMany },
+      brand: { findMany: brandFindMany },
+    } as any)
+
+    const result = await repo.findProductFacets({
+      categoryId: 'fashion',
+      brandId: 'brand-1',
+      status: 'ACTIVE',
+      publicOnly: true,
+      limit: 20,
+    })
+
+    expect(result).toEqual({
+      categories: [{ id: 'cat-1', slug: 'fashion', name: 'Fashion', count: 2, active: true }],
+      brands: [{ id: 'brand-1', slug: 'acme', name: 'Acme', count: 1, active: true }],
+      price: { min: 1000, max: 3000, currency: 'THB' },
+    })
+    expect(productGroupBy).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      by: ['categoryId'],
+      where: expect.objectContaining({
+        status: 'ACTIVE',
+        deletedAt: null,
+        shop: { status: 'ACTIVE' },
+        category: { slug: 'fashion', isActive: true },
+      }),
+      take: 20,
+    }))
+    expect(productGroupBy).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      by: ['brandId'],
+      take: 20,
+    }))
+    expect(aggregate).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        status: 'ACTIVE',
+        product: expect.objectContaining({
+          status: 'ACTIVE',
+          shop: { status: 'ACTIVE' },
+        }),
+      }),
+      _min: { price: true },
+      _max: { price: true },
+    })
+  })
+
   it('finds related products with public active filters and excludes the current product', async () => {
     const findMany = vi
       .fn()

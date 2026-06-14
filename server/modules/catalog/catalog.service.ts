@@ -20,6 +20,7 @@ import type {
   CatalogProductListItem,
   ICatalogRepository,
   PaginatedResult,
+  ProductListingFacets,
   ProductOptionWriteRecord,
   ProductAttributeWriteRecord,
 } from './catalog.repository.ts'
@@ -545,10 +546,13 @@ export class CatalogService {
       () => this.repo.findProducts(normalizedFilters),
       { ttlSeconds: this.cache.ttl().product },
     )
+    const facets = await this.loadProductFacets(normalizedFilters)
+    const data = result.data.map((product) => this.localizeProduct(product, locale))
     return {
       ...result,
-      data: result.data.map((product) => this.localizeProduct(product, locale)),
-      items: result.data.map((product) => this.localizeProduct(product, locale)),
+      data,
+      items: data,
+      facets,
     }
   }
 
@@ -1393,6 +1397,27 @@ export class CatalogService {
           value: localizedText(locale, { th: value.valueTh, en: value.valueEn, fallback: value.value }) ?? value.value,
         })),
       })),
+    }
+  }
+
+  private async loadProductFacets(filters: Parameters<ICatalogRepository['findProductFacets']>[0]): Promise<ProductListingFacets> {
+    try {
+      return await this.repo.findProductFacets(filters)
+    } catch (error) {
+      this.logger.warn('CatalogService.loadProductFacets failed', { error })
+      return this.emptyProductFacets()
+    }
+  }
+
+  private emptyProductFacets(): ProductListingFacets {
+    return {
+      categories: [],
+      brands: [],
+      price: {
+        min: null,
+        max: null,
+        currency: 'THB',
+      },
     }
   }
 

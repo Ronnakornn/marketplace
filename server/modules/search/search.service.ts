@@ -3,7 +3,7 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheService } from '#server/modules/cache'
 import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { SearchServiceError } from './search.errors.ts'
-import type { ISearchRepository, SearchProductRecord } from './search.repository.ts'
+import type { ISearchRepository, SearchProductFacets, SearchProductRecord } from './search.repository.ts'
 
 const DEFAULT_PAGE = 1
 const DEFAULT_LIMIT = 20
@@ -65,6 +65,7 @@ export interface ProductSearchResponse {
       sort?: string
     }
   }
+  facets: SearchProductFacets
   pagination: {
     page: number
     limit: number
@@ -129,6 +130,7 @@ export class SearchService {
       attributeFilters: filters.attributeFilters,
       inStock: filters.inStock,
     })
+    const facets = await this.loadProductFacets(filters)
 
     const items = products
       .map((product) => this.toSearchItem(product, filters.locale))
@@ -151,6 +153,7 @@ export class SearchService {
         hasNextPage: nextCursor !== null,
         query: this.responseQuery(filters),
       },
+      facets,
       pagination: {
         page: filters.page,
         limit: filters.limit,
@@ -321,6 +324,36 @@ export class SearchService {
     if (soldCount >= 100) badges.push('best_seller')
     if (hasStock) badges.push('in_stock')
     return badges
+  }
+
+  private async loadProductFacets(filters: ReturnType<SearchService['normalizeInput']>): Promise<SearchProductFacets> {
+    try {
+      return await this.repo.findProductFacets({
+        q: filters.q,
+        categoryId: filters.categoryId,
+        brandId: filters.brandId,
+        shopId: filters.shopId,
+        minPrice: filters.minPrice,
+        maxPrice: filters.maxPrice,
+        attributeFilters: filters.attributeFilters,
+        inStock: filters.inStock,
+      })
+    } catch (error) {
+      this.logger.warn('SearchService.loadProductFacets failed', { error })
+      return this.emptyProductFacets()
+    }
+  }
+
+  private emptyProductFacets(): SearchProductFacets {
+    return {
+      categories: [],
+      brands: [],
+      price: {
+        min: null,
+        max: null,
+        currency: 'THB',
+      },
+    }
   }
 
   private sortItems(items: ProductSearchItem[], sort: SearchSort): ProductSearchItem[] {

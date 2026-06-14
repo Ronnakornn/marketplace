@@ -26,6 +26,11 @@ function createAppContext(): AppContext {
 function createRepoMock(): ISearchRepository {
   return {
     findSearchableProducts: vi.fn(),
+    findProductFacets: vi.fn(async () => ({
+      categories: [],
+      brands: [],
+      price: { min: null, max: null, currency: 'THB' },
+    })),
     findSuggestions: vi.fn(),
   }
 }
@@ -63,6 +68,8 @@ function createProduct(overrides: Partial<{
   description: string | null
   status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
   shopId: string
+  categoryId: string
+  categorySlug: string
   price: number
   secondPrice: number
   rating: number
@@ -78,7 +85,11 @@ function createProduct(overrides: Partial<{
     description: overrides.description ?? 'Soft cotton shirt',
     status: overrides.status ?? 'ACTIVE',
     createdAt: now,
-    category: null,
+    category: {
+      id: overrides.categoryId ?? 'category-1',
+      name: 'Fashion',
+      slug: overrides.categorySlug ?? 'fashion',
+    },
     shop: {
       id: overrides.shopId ?? 'shop-1',
       name: 'Shop One',
@@ -164,6 +175,11 @@ describe('SearchService', () => {
         sort: 'relevance',
       },
     })
+    expect(result.facets).toEqual({
+      categories: [],
+      brands: [],
+      price: { min: null, max: null, currency: 'THB' },
+    })
     expect(result.pagination).toMatchObject({
       page: 2,
       limit: 1,
@@ -214,6 +230,34 @@ describe('SearchService', () => {
       minPrice: 2000,
       maxPrice: 4000,
       sort: 'relevance',
+    })
+  })
+
+  it('returns backend product facets and keeps facet failures non-fatal', async () => {
+    vi.mocked(repo.findProductFacets).mockResolvedValueOnce({
+      categories: [{ id: 'category-1', slug: 'fashion', name: 'Fashion', count: 2, active: true }],
+      brands: [{ id: 'brand-1', slug: 'acme', name: 'Acme', count: 2, active: false }],
+      price: { min: 1000, max: 3000, currency: 'USD' },
+    })
+
+    await expect(service.searchProducts({ categoryId: 'fashion' })).resolves.toMatchObject({
+      facets: {
+        categories: [{ id: 'category-1', slug: 'fashion', name: 'Fashion', count: 2, active: true }],
+        brands: [{ id: 'brand-1', slug: 'acme', name: 'Acme', count: 2, active: false }],
+        price: { min: 1000, max: 3000, currency: 'USD' },
+      },
+    })
+    expect(repo.findProductFacets).toHaveBeenCalledWith(expect.objectContaining({ categoryId: 'fashion' }))
+
+    vi.mocked(repo.findProductFacets).mockRejectedValueOnce(new Error('facet query failed'))
+
+    await expect(service.searchProducts({})).resolves.toMatchObject({
+      items: [{ productId: 'p1' }, { productId: 'p2' }],
+      facets: {
+        categories: [],
+        brands: [],
+        price: { min: null, max: null, currency: 'THB' },
+      },
     })
   })
 

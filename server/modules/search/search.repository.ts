@@ -2,6 +2,8 @@ import type { Prisma, PrismaClient, Product, ProductVariant, Review, Shop } from
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
+const MAX_FACET_OPTIONS = 20
+
 export interface SearchRepositoryFilters {
   q?: string
   categoryId?: string
@@ -42,8 +44,31 @@ export type SearchProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'descr
   reviews: Array<Pick<Review, 'rating' | 'status'>>
 }
 
+export interface SearchProductFacets {
+  categories: Array<{
+    id: string
+    slug: string
+    name: string
+    count: number
+    active: boolean
+  }>
+  brands: Array<{
+    id: string
+    name: string
+    slug?: string
+    count: number
+    active: boolean
+  }>
+  price: {
+    min: number | null
+    max: number | null
+    currency: string
+  }
+}
+
 export interface ISearchRepository {
   findSearchableProducts(filters: SearchRepositoryFilters): Promise<SearchProductRecord[]>
+  findProductFacets(filters: SearchRepositoryFilters): Promise<SearchProductFacets>
   findSuggestions(q: string, limit: number): Promise<Array<Pick<Product, 'id' | 'title'> & { titleTh?: string | null; titleEn?: string | null }>>
 }
 
@@ -130,6 +155,88 @@ export class PrismaSearchRepository implements ISearchRepository {
     })
   }
 
+  async findProductFacets(filters: SearchRepositoryFilters): Promise<SearchProductFacets> {
+    this.logger.debug('PrismaSearchRepository.findProductFacets', { filters })
+    const where = this.buildProductWhere(filters)
+    const variantWhere = this.buildVariantFacetWhere(where)
+    const [categoryGroups, brandGroups, priceRange] = await this.prisma.$transaction([
+      this.prisma.product.groupBy({
+        by: ['categoryId'],
+        where: { ...where, categoryId: { not: null } },
+        _count: true,
+        orderBy: { _count: { categoryId: 'desc' } },
+        take: MAX_FACET_OPTIONS,
+      }),
+      this.prisma.product.groupBy({
+        by: ['brandId'],
+        where: { ...where, brandId: { not: null } },
+        _count: true,
+        orderBy: { _count: { brandId: 'desc' } },
+        take: MAX_FACET_OPTIONS,
+      }),
+      this.prisma.productVariant.aggregate({
+        where: variantWhere,
+        _min: { price: true },
+        _max: { price: true },
+      }),
+    ])
+
+    const categoryIds = categoryGroups.map((group) => group.categoryId).filter((id): id is string => Boolean(id))
+    const brandIds = brandGroups.map((group) => group.brandId).filter((id): id is string => Boolean(id))
+    const [categories, brands, firstVariant] = await this.prisma.$transaction([
+      this.prisma.category.findMany({
+        where: { id: { in: categoryIds }, isActive: true },
+        select: { id: true, slug: true, name: true },
+      }),
+      this.prisma.brand.findMany({
+        where: { id: { in: brandIds }, isActive: true },
+        select: { id: true, slug: true, name: true },
+      }),
+      this.prisma.productVariant.findFirst({
+        where: variantWhere,
+        select: { currency: true },
+        orderBy: [{ price: 'asc' }, { id: 'asc' }],
+      }),
+    ])
+
+    const categoryById = new Map(categories.map((category) => [category.id, category]))
+    const brandById = new Map(brands.map((brand) => [brand.id, brand]))
+
+    return {
+      categories: categoryGroups
+        .flatMap((group) => {
+          if (!group.categoryId) return []
+          const category = categoryById.get(group.categoryId)
+          if (!category) return []
+          return [{
+            id: category.id,
+            slug: category.slug,
+            name: category.name,
+            count: this.productGroupCount(group),
+            active: filters.categoryId === category.slug || filters.categoryId === category.id,
+          }]
+        }),
+      brands: brandGroups
+        .flatMap((group) => {
+          if (!group.brandId) return []
+          const brand = brandById.get(group.brandId)
+          if (!brand) return []
+          return [{
+            id: brand.id,
+            name: brand.name,
+            slug: brand.slug,
+            count: this.productGroupCount(group),
+            active: filters.brandId === brand.id || filters.brandId === brand.slug,
+          }]
+        }),
+      price: {
+        min: priceRange._min.price === null ? null : Number(priceRange._min.price),
+        max: priceRange._max.price === null ? null : Number(priceRange._max.price),
+        currency: firstVariant?.currency ?? 'THB',
+      },
+    }
+  }
+
   findSuggestions(q: string, limit: number): Promise<Array<Pick<Product, 'id' | 'title'> & { titleTh?: string | null; titleEn?: string | null }>> {
     this.logger.debug('PrismaSearchRepository.findSuggestions', { q, limit })
     return this.prisma.product.findMany({
@@ -209,5 +316,20 @@ export class PrismaSearchRepository implements ISearchRepository {
           }
         : {}),
     }
+  }
+
+  private buildVariantFacetWhere(productWhere: Prisma.ProductWhereInput): Prisma.ProductVariantWhereInput {
+    return {
+      status: 'ACTIVE',
+      product: productWhere,
+    }
+  }
+
+  private productGroupCount(group: { _count?: unknown }): number {
+    if (typeof group._count === 'number') return group._count
+    if (typeof group._count === 'object' && group._count && '_all' in group._count && typeof group._count._all === 'number') {
+      return group._count._all
+    }
+    return 0
   }
 }

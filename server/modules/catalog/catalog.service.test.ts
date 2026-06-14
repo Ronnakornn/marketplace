@@ -45,6 +45,11 @@ function createRepoMock(): ICatalogRepository {
     findProductById: vi.fn(),
     findRelatedProducts: vi.fn(),
     findProducts: vi.fn(),
+    findProductFacets: vi.fn(async () => ({
+      categories: [],
+      brands: [],
+      price: { min: null, max: null, currency: 'THB' },
+    })),
     findUploadById: vi.fn(),
     createProduct: vi.fn(),
     updateProduct: vi.fn(),
@@ -315,6 +320,11 @@ describe('CatalogService', () => {
           sort: 'newest',
         },
       },
+      facets: {
+        categories: [],
+        brands: [],
+        price: { min: null, max: null, currency: 'THB' },
+      },
     })
 
     expect(repo.findProducts).toHaveBeenCalledWith({
@@ -328,6 +338,37 @@ describe('CatalogService', () => {
       limit: 10,
       status: 'ACTIVE',
       publicOnly: true,
+    })
+    expect(repo.findProductFacets).toHaveBeenCalledWith({
+      keyword: 'bag',
+      shopId: '11111111-1111-4111-8111-111111111111',
+      minPrice: 100,
+      maxPrice: 2000,
+      sort: 'newest',
+      cursor: '99999999-9999-4999-8999-999999999999',
+      page: 2,
+      limit: 10,
+      status: 'ACTIVE',
+      publicOnly: true,
+    })
+  })
+
+  it('returns empty facet metadata when public listing facets cannot be calculated', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findProducts).mockResolvedValue({
+      data: [],
+      meta: { nextCursor: null, totalCount: 0, page: 1, pageSize: 20, hasNextPage: false, query: {} },
+    })
+    vi.mocked(repo.findProductFacets).mockRejectedValue(new Error('facet aggregate failed'))
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.listPublicProducts({})).resolves.toMatchObject({
+      items: [],
+      facets: {
+        categories: [],
+        brands: [],
+        price: { min: null, max: null, currency: 'THB' },
+      },
     })
   })
 
