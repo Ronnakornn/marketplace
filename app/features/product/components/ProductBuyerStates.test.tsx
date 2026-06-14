@@ -364,6 +364,16 @@ describe("ProductListingPage buyer states", () => {
     await waitFor(() => expect(screen.getByText("Recovered API product")).toBeTruthy());
   });
 
+  it("renders a readable listing error when API errors contain object payloads", async () => {
+    queryMocks.productsError = { message: { code: "INVALID_FILTER" } };
+
+    renderWithClient(<ProductListingPage mode="search" query="shirt" brandId="brand-does-not-exist" minPrice="999999" />);
+
+    expect(await screen.findByText("Unable to load products")).toBeTruthy();
+    expect(screen.getByText("Products are temporarily unavailable.")).toBeTruthy();
+    expect(screen.queryByText("[object Object]")).toBeNull();
+  });
+
   it("shows exact totals, appends load-more results, and dedupes product ids", async () => {
     queryMocks.productsResponsesByPage.set(1, {
       items: [

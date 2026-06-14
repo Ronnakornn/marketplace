@@ -311,7 +311,7 @@ export function ProductListingPage({
             ) : null}
 
             {isInitialLoading ? <BuyerLoadingGrid /> : null}
-            {isInitialError ? <BuyerErrorState message={productsQuery.error.message} onRetry={() => void productsQuery.refetch()} /> : null}
+            {isInitialError ? <BuyerErrorState message={getReadableListingErrorMessage(productsQuery.error)} onRetry={() => void productsQuery.refetch()} /> : null}
             {listing && products.length === 0 && !isInitialLoading && !isInitialError ? (
               <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <BuyerEmptyState title={t("product.noProductsFound")} description={t("product.noProductsDescription")} />
@@ -334,7 +334,7 @@ export function ProductListingPage({
                 </div>
                 <div className="flex flex-col items-center gap-2 py-3">
                   {isNextPageError ? (
-                    <p className="text-sm text-red-600">{productsQuery.error.message}</p>
+                    <p className="text-sm text-red-600">{getReadableListingErrorMessage(productsQuery.error)}</p>
                   ) : null}
                   {canLoadMore || isNextPageError ? (
                     <Button
@@ -730,6 +730,22 @@ function formatPriceRangeHelper(price: BuyerListingFacets["price"]): string {
   const min = price.min === null ? "*" : String(price.min);
   const max = price.max === null ? "*" : String(price.max);
   return `${price.currency} ${min} - ${max}`;
+}
+
+function getReadableListingErrorMessage(error: unknown) {
+  return extractErrorText(error) ?? "Products are temporarily unavailable.";
+}
+
+function extractErrorText(value: unknown): string | null {
+  if (typeof value === "string") return value.trim() && value !== "[object Object]" ? value.trim() : null;
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  for (const key of ["message", "detail", "error", "reason"]) {
+    const nested = extractErrorText(record[key]);
+    if (nested) return nested;
+  }
+  return null;
 }
 
 function buildActiveFilters(
