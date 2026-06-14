@@ -47,6 +47,7 @@ import {
   useDiscoveryTracking,
   type RecentlyViewedProductCard as RecentlyViewedProductCardData,
 } from "#/features/tracking";
+import { showAddToCartError, showAddToCartSuccess } from "#/features/product/cart-handoff";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
@@ -116,7 +117,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   });
   const addCartMutation = useMutation({
     mutationFn: ({ variantId, itemQuantity }: { variantId: string; itemQuantity: number }) => addCartItem(variantId, itemQuantity),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-cart"] }),
+    onError: (error) => showAddToCartError({ error }),
   });
   const favoriteMutation = useMutation({
     mutationFn: async () => {
@@ -196,7 +197,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
   function handleChatSeller() {
     if (!session) {
-      router.push(localePath("/login"));
+      router.push(getProductLoginPath());
       return;
     }
     if (!canFetchBuyerState) return;
@@ -205,15 +206,27 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
   function handlePurchaseAction(action: "cart" | "buy-now") {
     if (!session) {
-      router.push(localePath("/login"));
+      router.push(getProductLoginPath());
       return;
     }
     if (!canFetchBuyerState || !selectedVariant || displayedStock < 1) return;
     addCartMutation.mutate({ variantId: selectedVariant.id, itemQuantity: quantity }, {
-      onSuccess: () => {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
+        showAddToCartSuccess({
+          context: {
+            productTitle: product?.title,
+            variantTitle: selectedVariant.title,
+          },
+          onViewCart: () => router.push(localePath("/cart")),
+        });
         if (action === "buy-now") router.push(localePath("/cart"));
       },
     });
+  }
+
+  function getProductLoginPath() {
+    return localePath(`/login?next=${encodeURIComponent(`/products/${productId}`)}`);
   }
 
   function handleQuestionSubmit(event: FormEvent<HTMLFormElement>) {

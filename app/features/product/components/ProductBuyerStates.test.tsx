@@ -36,6 +36,9 @@ const queryMocks = vi.hoisted(() => ({
   createProductQuestion: vi.fn(async () => ({ id: "question-new" })),
   couponsQueryFn: vi.fn(async () => []),
   addCartItem: vi.fn(async () => ({})),
+  fetchCart: vi.fn(async (): Promise<{ shops: Array<{ items: Array<{ quantity: number }> }> }> => ({ shops: [] })),
+  showAddToCartSuccess: vi.fn(),
+  showAddToCartError: vi.fn(),
   routerPush: vi.fn(),
   session: { user: { role: "USER" } } as { user: { role: string } } | null,
 }));
@@ -92,7 +95,7 @@ vi.mock("#/components/ui/skeleton", () => ({
 vi.mock("#/features/buyer/api", () => ({
   addCartItem: queryMocks.addCartItem,
   addFavoriteProduct: vi.fn(async () => ({})),
-  fetchCart: vi.fn(async () => ({ shops: [] })),
+  fetchCart: queryMocks.fetchCart,
   fetchFavoriteStatus: vi.fn(async () => false),
   fetchShopFollowStatus: vi.fn(async () => false),
   followShop: vi.fn(async () => ({})),
@@ -104,6 +107,11 @@ vi.mock("#/features/buyer/api", () => ({
 
 vi.mock("#/features/chat", () => ({
   createChatRoom: vi.fn(async () => ({ roomId: "room-1" })),
+}));
+
+vi.mock("#/features/product/cart-handoff", () => ({
+  showAddToCartError: queryMocks.showAddToCartError,
+  showAddToCartSuccess: queryMocks.showAddToCartSuccess,
 }));
 
 vi.mock("#/features/product/components/ProductCard", () => ({
@@ -304,6 +312,10 @@ beforeEach(() => {
   queryMocks.ratingSummaryError = null;
   queryMocks.session = { user: { role: "USER" } };
   queryMocks.addCartItem.mockClear();
+  queryMocks.fetchCart.mockClear();
+  queryMocks.fetchCart.mockResolvedValue({ shops: [] });
+  queryMocks.showAddToCartError.mockClear();
+  queryMocks.showAddToCartSuccess.mockClear();
   queryMocks.createProductQuestion.mockClear();
   queryMocks.routerPush.mockClear();
   queryMocks.productsQueryFn.mockImplementation(async (page = 1) => {
@@ -552,6 +564,52 @@ describe("ProductDetailPage buyer transaction states", () => {
     await waitFor(() => expect(queryMocks.addCartItem).toHaveBeenCalledWith("variant-red-m", 2));
   });
 
+  it("shows add-to-cart confirmation and refreshes the buyer cart query after success", async () => {
+    queryMocks.fetchCart
+      .mockResolvedValueOnce({ shops: [] })
+      .mockResolvedValueOnce({
+        shops: [{
+          items: [{ quantity: 2 }],
+        }],
+      });
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Red" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+    fireEvent.click(screen.getByRole("button", { name: "Increase quantity" }));
+    fireEvent.click(screen.getByRole("button", { name: /Add to cart/ }));
+
+    await waitFor(() => expect(queryMocks.addCartItem).toHaveBeenCalledWith("variant-red-m", 2));
+    await waitFor(() => expect(queryMocks.fetchCart).toHaveBeenCalledTimes(2));
+    expect(queryMocks.showAddToCartSuccess).toHaveBeenCalledWith({
+      context: {
+        productTitle: "Variant Product",
+        variantTitle: "Red / M",
+      },
+      onViewCart: expect.any(Function),
+    });
+    expect(queryMocks.showAddToCartError).not.toHaveBeenCalled();
+
+    queryMocks.showAddToCartSuccess.mock.calls[0]?.[0]?.onViewCart?.();
+    expect(queryMocks.routerPush).toHaveBeenCalledWith("/en/cart");
+  });
+
+  it("shows a readable add-to-cart error when the mutation fails", async () => {
+    const apiError = { response: { error: "Selected stock is no longer available." } };
+    queryMocks.addCartItem.mockRejectedValueOnce(apiError);
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Red" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+    fireEvent.click(screen.getByRole("button", { name: /Add to cart/ }));
+
+    await waitFor(() => expect(queryMocks.showAddToCartError).toHaveBeenCalledWith({ error: apiError }));
+    expect(queryMocks.showAddToCartSuccess).not.toHaveBeenCalled();
+    expect(queryMocks.routerPush).not.toHaveBeenCalledWith("/en/cart");
+  });
+
   it("shows sticky purchase context and keeps buy-now on the current cart flow", async () => {
     renderWithClient(<ProductDetailPage productId="product-1" />);
 
@@ -568,6 +626,13 @@ describe("ProductDetailPage buyer transaction states", () => {
     fireEvent.click(screen.getByRole("button", { name: /Buy now/ }));
 
     await waitFor(() => expect(queryMocks.addCartItem).toHaveBeenCalledWith("variant-red-m", 1));
+    await waitFor(() => expect(queryMocks.showAddToCartSuccess).toHaveBeenCalledWith({
+      context: {
+        productTitle: "Variant Product",
+        variantTitle: "Red / M",
+      },
+      onViewCart: expect.any(Function),
+    }));
     await waitFor(() => expect(queryMocks.routerPush).toHaveBeenCalledWith("/en/cart"));
   });
 
@@ -649,6 +714,21 @@ describe("ProductDetailPage buyer transaction states", () => {
     expect(await screen.findByRole("button", { name: /Add to cart/ })).toBeTruthy();
     expect(screen.getAllByRole("button", { name: /Buy now/ }).length).toBeGreaterThan(0);
     expect(screen.queryByText("Seller inbox")).toBeNull();
+  });
+
+  it("routes anonymous buyers to login with the current product path before mutating", async () => {
+    queryMocks.session = null;
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Red" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+    fireEvent.click(screen.getByRole("button", { name: /Add to cart/ }));
+
+    expect(queryMocks.routerPush).toHaveBeenCalledWith("/en/login?next=%2Fproducts%2Fproduct-1");
+    expect(queryMocks.addCartItem).not.toHaveBeenCalled();
+    expect(queryMocks.showAddToCartSuccess).not.toHaveBeenCalled();
+    expect(queryMocks.showAddToCartError).not.toHaveBeenCalled();
   });
 
   it("allows selecting standalone variants when no option groups are available", async () => {
