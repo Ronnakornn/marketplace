@@ -174,6 +174,27 @@ describe("ProductCard", () => {
     expect(cardMocks.trackProductClick).not.toHaveBeenCalled();
   });
 
+  it("uses a stable pending label for quick add", async () => {
+    let resolveAdd: (value: Record<string, never>) => void = () => {};
+    cardMocks.addCartItem.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveAdd = resolve;
+    }));
+
+    renderWithClient(createProductFixture({
+      variants: [{ ...createVariant("variant-safe", 1200, 4), optionValues: [] }],
+      options: [],
+    }));
+
+    fireEvent.click(screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ }));
+
+    const pendingButton = await screen.findByRole("button", { name: "Adding Canvas Weekender Bag to cart" });
+    expect(pendingButton).toHaveProperty("disabled", true);
+    expect(screen.getByText("Adding to cart...")).toBeTruthy();
+
+    resolveAdd({});
+    await waitFor(() => expect(cardMocks.showAddToCartSuccess).toHaveBeenCalled());
+  });
+
   it("shows quick-add confirmation and refreshes the buyer cart query after success", async () => {
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -219,9 +240,38 @@ describe("ProductCard", () => {
     fireEvent.click(screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ }));
 
     await waitFor(() => expect(cardMocks.showAddToCartError).toHaveBeenCalledWith({ error }));
+    expect((await screen.findAllByText("Variant is out of stock")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("[object Object]")).toBeNull();
     expect(cardMocks.showAddToCartSuccess).not.toHaveBeenCalled();
     expect(cardMocks.routerPush).not.toHaveBeenCalled();
     expect(cardMocks.trackProductClick).not.toHaveBeenCalled();
+  });
+
+  it("disables quick add with login and non-buyer reasons", () => {
+    cardMocks.session = null;
+    const product = createProductFixture({
+      variants: [{ ...createVariant("variant-safe", 1200, 4), optionValues: [] }],
+      options: [],
+    });
+    const { rerender } = renderWithClient(product);
+
+    const anonymousQuickAdd = screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ });
+    expect(anonymousQuickAdd).toHaveProperty("disabled", true);
+    expect(screen.getByText("Log in to add this item to your cart.")).toBeTruthy();
+
+    cardMocks.session = { user: { role: "SELLER" } };
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    rerender(
+      <QueryClientProvider client={client}>
+        <ProductCard product={product} />
+      </QueryClientProvider>,
+    );
+
+    const sellerQuickAdd = screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ });
+    expect(sellerQuickAdd).toHaveProperty("disabled", true);
+    expect(screen.getByText("Only buyer accounts can purchase.")).toBeTruthy();
   });
 
   it("keeps ambiguous products on the detail fallback action", () => {

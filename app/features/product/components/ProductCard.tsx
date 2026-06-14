@@ -69,7 +69,21 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
   const discountLabel = product.discountPercent && product.discountPercent > 0 ? `${product.discountPercent}% off` : null;
   const favoriteLabel = favoriteQuery.data ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`;
   const favoriteUnavailableLabel = canFetchBuyerState ? "Wishlist unavailable" : "Sign in as a buyer to use wishlist";
-  const quickAddLabel = quickAddVariant ? `Quick add ${product.title} to cart` : `Open ${product.title} details`;
+  const quickAddDisabledReason = (() => {
+    if (!quickAddVariant) return null;
+    if (!session) return "Log in to add this item to your cart.";
+    if (!canFetchBuyerState) return "Only buyer accounts can purchase.";
+    if (product.stock <= 0 || quickAddVariant.stock <= 0) return "This item is out of stock.";
+    return null;
+  })();
+  const quickAddErrorMessage = addToCartMutation.error
+    ? getReadableErrorMessage(addToCartMutation.error, "Add to cart is temporarily unavailable.")
+    : null;
+  const quickAddStatusId = `product-card-action-status-${product.id}`;
+  const quickAddErrorId = `product-card-action-error-${product.id}`;
+  const quickAddPendingLabel = `Adding ${product.title} to cart`;
+  const quickAddReadyLabel = quickAddVariant ? `Quick add ${product.title} to cart` : `Open ${product.title} details`;
+  const quickAddLabel = addToCartMutation.isPending ? quickAddPendingLabel : quickAddReadyLabel;
 
   function handleFavorite(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
@@ -81,7 +95,7 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
   function handleQuickAdd(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
-    if (!quickAddVariant || addToCartMutation.isPending) return;
+    if (!quickAddVariant || quickAddDisabledReason || addToCartMutation.isPending) return;
     addToCartMutation.mutate();
   }
 
@@ -169,8 +183,9 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
               variant="outline"
               className="size-8 shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-orange-500"
               aria-label={quickAddLabel}
+              aria-describedby={`${quickAddStatusId}${quickAddErrorMessage ? ` ${quickAddErrorId}` : ""}`}
               title={quickAddLabel}
-              disabled={addToCartMutation.isPending}
+              disabled={Boolean(quickAddDisabledReason) || addToCartMutation.isPending}
               onClick={handleQuickAdd}
             >
               <ShoppingCartIcon className="size-4" />
@@ -186,7 +201,37 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
             </Link>
           )}
         </div>
+        <p
+          id={quickAddStatusId}
+          className={`min-h-4 truncate text-[11px] leading-4 ${quickAddDisabledReason || quickAddErrorMessage ? "text-orange-700" : "text-slate-500"}`}
+          aria-live="polite"
+        >
+          {quickAddErrorMessage ?? quickAddDisabledReason ?? (addToCartMutation.isPending ? "Adding to cart..." : "\u00a0")}
+        </p>
+        {quickAddErrorMessage ? (
+          <p id={quickAddErrorId} className="sr-only">
+            {quickAddErrorMessage}
+          </p>
+        ) : null}
       </div>
     </article>
   );
+}
+
+function getReadableErrorMessage(error: unknown, fallback: string) {
+  const extracted = extractErrorText(error);
+  return extracted && extracted !== "[object Object]" ? extracted : fallback;
+}
+
+function extractErrorText(value: unknown): string | null {
+  if (typeof value === "string") return value.trim() || null;
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  for (const key of ["message", "detail", "error", "reason", "response"]) {
+    const nested = extractErrorText(record[key]);
+    if (nested) return nested;
+  }
+
+  return null;
 }

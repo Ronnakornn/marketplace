@@ -546,6 +546,7 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     const addToCart = await screen.findByRole("button", { name: /Add to cart/ });
     expect(addToCart).toHaveProperty("disabled", true);
+    expect(addToCart.getAttribute("aria-describedby")).toContain("product-purchase-status");
     expect(screen.getAllByText("Choose product options before purchasing.").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /Blue/ })).toHaveProperty("disabled", true);
     expect(screen.getByRole("button", { name: /Green/ })).toHaveProperty("disabled", true);
@@ -562,6 +563,25 @@ describe("ProductDetailPage buyer transaction states", () => {
     fireEvent.click(addToCart);
 
     await waitFor(() => expect(queryMocks.addCartItem).toHaveBeenCalledWith("variant-red-m", 2));
+  });
+
+  it("uses stable pending labels on product detail purchase actions", async () => {
+    let resolveAdd: (value: Record<string, never>) => void = () => {};
+    queryMocks.addCartItem.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveAdd = resolve;
+    }));
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Red" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+    fireEvent.click(screen.getByRole("button", { name: /Add to cart/ }));
+
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /Adding/ }).length).toBeGreaterThan(0));
+    expect(screen.getAllByRole("button", { name: /Adding/ })[0]).toHaveProperty("disabled", true);
+
+    resolveAdd({});
+    await waitFor(() => expect(queryMocks.showAddToCartSuccess).toHaveBeenCalled());
   });
 
   it("shows add-to-cart confirmation and refreshes the buyer cart query after success", async () => {
@@ -606,6 +626,8 @@ describe("ProductDetailPage buyer transaction states", () => {
     fireEvent.click(screen.getByRole("button", { name: /Add to cart/ }));
 
     await waitFor(() => expect(queryMocks.showAddToCartError).toHaveBeenCalledWith({ error: apiError }));
+    expect(await screen.findAllByText("Selected stock is no longer available.")).toHaveLength(2);
+    expect(screen.queryByText("[object Object]")).toBeNull();
     expect(queryMocks.showAddToCartSuccess).not.toHaveBeenCalled();
     expect(queryMocks.routerPush).not.toHaveBeenCalledWith("/en/cart");
   });
@@ -713,7 +735,25 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     expect(await screen.findByRole("button", { name: /Add to cart/ })).toBeTruthy();
     expect(screen.getAllByRole("button", { name: /Buy now/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Log in to add this item to your cart.").length).toBeGreaterThan(0);
     expect(screen.queryByText("Seller inbox")).toBeNull();
+  });
+
+  it("disables product detail purchase actions for non-buyer accounts with a reason", async () => {
+    queryMocks.session = { user: { role: "SELLER" } };
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Red" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+
+    const addToCart = screen.getByRole("button", { name: /Add to cart/ });
+    const buyNow = screen.getByRole("button", { name: /Buy now/ });
+
+    expect(addToCart).toHaveProperty("disabled", true);
+    expect(buyNow).toHaveProperty("disabled", true);
+    expect(addToCart).toHaveProperty("title", "Only buyer accounts can purchase.");
+    expect(screen.getAllByText("Only buyer accounts can purchase.").length).toBeGreaterThan(0);
   });
 
   it("routes anonymous buyers to login with the current product path before mutating", async () => {

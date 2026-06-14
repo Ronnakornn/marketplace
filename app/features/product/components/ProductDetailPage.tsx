@@ -292,6 +292,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     : formatMoney(displayPrice, displayCurrency);
   const purchaseDisabledReason = (() => {
     if (!product.variants.length) return t("product.noPurchasableVariant");
+    if (!session) return "Log in to add this item to your cart.";
     if (!requiredOptions.length && product.variants.length > 1 && !selectedVariant) return "Select a variant before purchasing.";
     if (missingOptionCount > 0) return missingOptionCount === requiredOptions.length
       ? "Choose product options before purchasing."
@@ -301,6 +302,13 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     if (!canFetchBuyerState && session) return "Only buyer accounts can purchase.";
     return null;
   })();
+  const purchaseBlockedReason = session ? purchaseDisabledReason : null;
+  const purchaseActionDisabled = Boolean(purchaseBlockedReason) || !canPurchase || addCartMutation.isPending;
+  const purchaseStatusId = "product-purchase-status";
+  const purchaseErrorId = "product-purchase-error";
+  const purchaseErrorMessage = addCartMutation.error
+    ? getReadableErrorMessage(addCartMutation.error, "Add to cart is temporarily unavailable. Please try again.")
+    : null;
   const stockSummary = selectedVariant
     ? selectedVariant.stock > 0
       ? `${selectedVariant.stock} ${t("product.inStock")}`
@@ -481,9 +489,14 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
                 <p className="font-medium text-slate-900">Selected variant</p>
                 <p className="mt-1">{selectedSummary}</p>
-                <p className={`mt-2 ${purchaseDisabledReason ? "text-orange-700" : "text-emerald-700"}`}>
+                <p id={purchaseStatusId} className={`mt-2 ${purchaseDisabledReason ? "text-orange-700" : "text-emerald-700"}`}>
                   {purchaseDisabledReason ?? `${stockSummary} ready for cart.`}
                 </p>
+                {purchaseErrorMessage ? (
+                  <p id={purchaseErrorId} className="mt-2 line-clamp-2 break-words text-red-600">
+                    {purchaseErrorMessage}
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -641,7 +654,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-950">{priceLabel}</p>
               <p className="truncate text-xs text-slate-600">{selectedPurchaseSummary}</p>
-              <p className={`truncate text-xs ${purchaseDisabledReason ? "text-orange-700" : "text-emerald-700"}`}>
+              <p className={`truncate text-xs ${purchaseDisabledReason || purchaseErrorMessage ? "text-orange-700" : "text-emerald-700"}`}>
+                {purchaseErrorMessage ?? purchaseDisabledReason ?? `${quantity} item${quantity > 1 ? "s" : ""} | ${stockSummary}`}
+              </p>
+              <p className="sr-only" aria-live="polite">
                 {purchaseDisabledReason ?? `${quantity} item${quantity > 1 ? "s" : ""} | ${stockSummary}`}
               </p>
             </div>
@@ -651,7 +667,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
             </div>
           </div>
           <div className="grid grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:grid-cols-[48px_140px_150px_150px]">
-            <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl" disabled={favoriteMutation.isPending} onClick={() => {
+            <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl" aria-label={favoriteQuery.data ? "Remove from wishlist" : "Add to wishlist"} disabled={favoriteMutation.isPending} onClick={() => {
               if (!session) router.push(localePath("/login"));
               else if (canFetchBuyerState) favoriteMutation.mutate();
             }}>
@@ -662,7 +678,14 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               <MessageCircleIcon className="size-4" />
               {t("chat.chatSeller")}
             </Button>
-            <Button variant="outline" className="h-12 min-w-0 rounded-2xl px-2 text-xs sm:px-4 sm:text-sm" onClick={() => handlePurchaseAction("cart")} disabled={!canPurchase || addCartMutation.isPending}>
+            <Button
+              variant="outline"
+              className="h-12 min-w-0 rounded-2xl px-2 text-xs sm:px-4 sm:text-sm"
+              aria-describedby={`${purchaseStatusId}${purchaseErrorMessage ? ` ${purchaseErrorId}` : ""}`}
+              title={purchaseBlockedReason ?? undefined}
+              onClick={() => handlePurchaseAction("cart")}
+              disabled={purchaseActionDisabled}
+            >
               <span className="relative inline-flex">
                 <ShoppingCartIcon className="size-4" />
                 {cartItemCount > 0 ? (
@@ -671,10 +694,20 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                   </span>
                 ) : null}
               </span>
-              <span className="truncate">{t("product.addToCart")}</span>
+              <span className="inline-block min-w-[5.75rem] truncate text-center">
+                {addCartMutation.isPending ? "Adding..." : t("product.addToCart")}
+              </span>
             </Button>
-            <Button className="h-12 min-w-0 rounded-2xl bg-orange-600 px-2 text-xs hover:bg-orange-700 sm:px-4 sm:text-sm" onClick={() => handlePurchaseAction("buy-now")} disabled={!canPurchase || addCartMutation.isPending}>
-              <span className="truncate">{t("product.buyNow")}</span>
+            <Button
+              className="h-12 min-w-0 rounded-2xl bg-orange-600 px-2 text-xs hover:bg-orange-700 sm:px-4 sm:text-sm"
+              aria-describedby={`${purchaseStatusId}${purchaseErrorMessage ? ` ${purchaseErrorId}` : ""}`}
+              title={purchaseBlockedReason ?? undefined}
+              onClick={() => handlePurchaseAction("buy-now")}
+              disabled={purchaseActionDisabled}
+            >
+              <span className="inline-block min-w-[4.75rem] truncate text-center">
+                {addCartMutation.isPending ? "Adding..." : t("product.buyNow")}
+              </span>
             </Button>
           </div>
         </div>
@@ -913,7 +946,7 @@ function extractErrorText(value: unknown): string | null {
   if (!value || typeof value !== "object") return null;
 
   const record = value as Record<string, unknown>;
-  for (const key of ["message", "detail", "error", "reason"]) {
+  for (const key of ["message", "detail", "error", "reason", "response"]) {
     const nested = extractErrorText(record[key]);
     if (nested) return nested;
   }
