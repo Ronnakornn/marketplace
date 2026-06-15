@@ -316,8 +316,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     : product.stock > 0
       ? `${product.stock} ${t("product.inStock")}`
       : "Out of stock";
+  const quantityLabel = `${quantity} item${quantity > 1 ? "s" : ""}`;
+  const purchaseStatusText = purchaseErrorMessage ?? purchaseDisabledReason ?? `${quantityLabel} | ${stockSummary}`;
   const selectedPurchaseSummary = selectedVariant
-    ? `${selectedSummary} · Qty ${quantity}`
+    ? `${selectedSummary} | Qty ${quantity}`
     : selectedSummary;
 
   function getOptionValueState(optionId: string, valueId: string): OptionValueState {
@@ -353,7 +355,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   return (
     <>
       <BuyerTopBar title={product.title} />
-      <article className="mx-auto max-w-6xl space-y-4 px-3 pb-32 pt-4">
+      <article className="mx-auto max-w-6xl space-y-4 px-3 pb-40 pt-4 sm:pb-36">
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="relative aspect-square bg-slate-100">
@@ -422,7 +424,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               <span>{stockSummary}</span>
             </div>
             <div className="space-y-1">
-              <p className="break-words text-3xl font-bold text-orange-600">{priceLabel}</p>
+              <p className="break-words text-2xl font-bold leading-tight text-orange-600 sm:text-3xl">{priceLabel}</p>
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 {originalPriceLabel ? <span className="text-slate-400 line-through">{originalPriceLabel}</span> : null}
                 {product.discountPercent ? <Badge variant="outline" className="rounded-full border-orange-200 bg-orange-50 text-orange-700">{product.discountPercent}% off</Badge> : null}
@@ -487,10 +489,17 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               )}
 
               <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
-                <p className="font-medium text-slate-900">Selected variant</p>
-                <p className="mt-1">{selectedSummary}</p>
-                <p id={purchaseStatusId} className={`mt-2 ${purchaseDisabledReason ? "text-orange-700" : "text-emerald-700"}`}>
-                  {purchaseDisabledReason ?? `${stockSummary} ready for cart.`}
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900">Selected variant</p>
+                    <p className="mt-1 break-words">{selectedSummary}</p>
+                  </div>
+                  <Badge variant="outline" className={`shrink-0 rounded-full ${isOutOfStock ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
+                    {stockSummary}
+                  </Badge>
+                </div>
+                <p id={purchaseStatusId} className={`mt-2 break-words ${purchaseDisabledReason || purchaseErrorMessage ? "text-orange-700" : "text-emerald-700"}`}>
+                  {purchaseStatusText}
                 </p>
                 {purchaseErrorMessage ? (
                   <p id={purchaseErrorId} className="mt-2 line-clamp-2 break-words text-red-600">
@@ -501,9 +510,9 @@ export function ProductDetailPage({ productId }: { productId: string }) {
             </div>
 
             <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
-              <div>
+              <div className="min-w-0">
                 <span className="text-sm font-medium text-slate-700">Quantity</span>
-                <p className="mt-1 text-xs text-slate-500">{selectedVariant ? `Maximum ${selectedVariant.stock}` : "Select a variant to choose quantity"}</p>
+                <p className="mt-1 break-words text-xs text-slate-500">{selectedVariant ? `Maximum ${selectedVariant.stock}` : "Select a variant to choose quantity"}</p>
               </div>
               <div className="flex items-center rounded-lg border border-slate-200">
                 <Button type="button" variant="ghost" size="icon" className="size-9 rounded-none" aria-label="Decrease quantity" disabled={quantity <= 1 || !selectedVariant} onClick={() => setQuantity((current) => Math.max(1, current - 1))}>
@@ -648,26 +657,26 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         </ProductDiscoverySection>
       </article>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
-        <div className="mx-auto grid max-w-6xl gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-2 pb-[max(env(safe-area-inset-bottom),0.65rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)] sm:p-3 sm:pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <div className="mx-auto grid max-w-6xl gap-2 sm:gap-3 md:grid-cols-[minmax(0,1fr)_auto]" data-testid="product-sticky-buy-bar">
           <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-950">{priceLabel}</p>
               <p className="truncate text-xs text-slate-600">{selectedPurchaseSummary}</p>
               <p className={`truncate text-xs ${purchaseDisabledReason || purchaseErrorMessage ? "text-orange-700" : "text-emerald-700"}`}>
-                {purchaseErrorMessage ?? purchaseDisabledReason ?? `${quantity} item${quantity > 1 ? "s" : ""} | ${stockSummary}`}
+                {purchaseStatusText}
               </p>
               <p className="sr-only" aria-live="polite">
-                {purchaseDisabledReason ?? `${quantity} item${quantity > 1 ? "s" : ""} | ${stockSummary}`}
+                {purchaseStatusText}
               </p>
             </div>
-            <div className="rounded-lg bg-white px-3 py-2 text-center">
+            <div className="rounded-lg bg-white px-2 py-2 text-center sm:px-3">
               <p className="text-[11px] font-medium uppercase tracking-normal text-slate-500">Qty</p>
               <p className="text-sm font-bold text-slate-950">{quantity}</p>
             </div>
           </div>
-          <div className="grid grid-cols-[48px_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:grid-cols-[48px_140px_150px_150px]">
-            <Button variant="outline" size="icon" className="size-12 shrink-0 rounded-2xl" aria-label={favoriteQuery.data ? "Remove from wishlist" : "Add to wishlist"} disabled={favoriteMutation.isPending} onClick={() => {
+          <div className="grid grid-cols-[44px_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:grid-cols-[48px_140px_150px_150px]">
+            <Button variant="outline" size="icon" className="size-11 shrink-0 rounded-2xl sm:size-12" aria-label={favoriteQuery.data ? "Remove from wishlist" : "Add to wishlist"} disabled={favoriteMutation.isPending} onClick={() => {
               if (!session) router.push(localePath("/login"));
               else if (canFetchBuyerState) favoriteMutation.mutate();
             }}>
@@ -680,7 +689,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
             </Button>
             <Button
               variant="outline"
-              className="h-12 min-w-0 rounded-2xl px-2 text-xs sm:px-4 sm:text-sm"
+              className="h-11 min-w-0 rounded-2xl px-2 text-xs sm:h-12 sm:px-4 sm:text-sm"
               aria-describedby={`${purchaseStatusId}${purchaseErrorMessage ? ` ${purchaseErrorId}` : ""}`}
               title={purchaseBlockedReason ?? undefined}
               onClick={() => handlePurchaseAction("cart")}
@@ -694,18 +703,18 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                   </span>
                 ) : null}
               </span>
-              <span className="inline-block min-w-[5.75rem] truncate text-center">
+              <span className="inline-block min-w-0 max-w-full truncate text-center sm:min-w-[5.75rem]">
                 {addCartMutation.isPending ? "Adding..." : t("product.addToCart")}
               </span>
             </Button>
             <Button
-              className="h-12 min-w-0 rounded-2xl bg-orange-600 px-2 text-xs hover:bg-orange-700 sm:px-4 sm:text-sm"
+              className="h-11 min-w-0 rounded-2xl bg-orange-600 px-2 text-xs hover:bg-orange-700 sm:h-12 sm:px-4 sm:text-sm"
               aria-describedby={`${purchaseStatusId}${purchaseErrorMessage ? ` ${purchaseErrorId}` : ""}`}
               title={purchaseBlockedReason ?? undefined}
               onClick={() => handlePurchaseAction("buy-now")}
               disabled={purchaseActionDisabled}
             >
-              <span className="inline-block min-w-[4.75rem] truncate text-center">
+              <span className="inline-block min-w-0 max-w-full truncate text-center sm:min-w-[4.75rem]">
                 {addCartMutation.isPending ? "Adding..." : t("product.buyNow")}
               </span>
             </Button>

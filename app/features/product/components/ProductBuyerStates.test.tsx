@@ -626,7 +626,7 @@ describe("ProductDetailPage buyer transaction states", () => {
     fireEvent.click(screen.getByRole("button", { name: /Add to cart/ }));
 
     await waitFor(() => expect(queryMocks.showAddToCartError).toHaveBeenCalledWith({ error: apiError }));
-    expect(await screen.findAllByText("Selected stock is no longer available.")).toHaveLength(2);
+    expect((await screen.findAllByText("Selected stock is no longer available.")).length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText("[object Object]")).toBeNull();
     expect(queryMocks.showAddToCartSuccess).not.toHaveBeenCalled();
     expect(queryMocks.routerPush).not.toHaveBeenCalledWith("/en/cart");
@@ -656,6 +656,40 @@ describe("ProductDetailPage buyer transaction states", () => {
       onViewCart: expect.any(Function),
     }));
     await waitFor(() => expect(queryMocks.routerPush).toHaveBeenCalledWith("/en/cart"));
+  });
+
+  it("does not navigate buy-now when add-to-cart fails", async () => {
+    const apiError = { response: { error: "Selected stock is no longer available." } };
+    queryMocks.addCartItem.mockRejectedValueOnce(apiError);
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Red" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+    fireEvent.click(screen.getByRole("button", { name: /Buy now/ }));
+
+    await waitFor(() => expect(queryMocks.showAddToCartError).toHaveBeenCalledWith({ error: apiError }));
+    expect(queryMocks.routerPush).not.toHaveBeenCalledWith("/en/cart");
+    expect(queryMocks.showAddToCartSuccess).not.toHaveBeenCalled();
+    expect(screen.queryByText("[object Object]")).toBeNull();
+  });
+
+  it("keeps sticky purchase actions described by visible purchase status", async () => {
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    const stickyBar = await screen.findByTestId("product-sticky-buy-bar");
+    const addToCart = within(stickyBar).getByRole("button", { name: /Add to cart/ });
+    const buyNow = within(stickyBar).getByRole("button", { name: /Buy now/ });
+
+    expect(addToCart.getAttribute("aria-describedby")).toContain("product-purchase-status");
+    expect(buyNow.getAttribute("aria-describedby")).toContain("product-purchase-status");
+    expect(within(stickyBar).getAllByText("Choose product options before purchasing.").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Red" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+
+    await waitFor(() => expect(within(stickyBar).getAllByText("1 item | 3 in stock").length).toBeGreaterThan(0));
+    expect(within(stickyBar).getByText("Red / M | SKU RED-M | Qty 1")).toBeTruthy();
   });
 
   it("exposes gallery image and video controls as keyboard-accessible options", async () => {
