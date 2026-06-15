@@ -54,6 +54,11 @@ import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
 
 type OptionValueState = "selected" | "available" | "unavailable" | "out-of-stock";
+type TrustItem = {
+  icon: ReactNode;
+  title: string;
+  description: string;
+};
 
 export function ProductDetailPage({ productId }: { productId: string }) {
   const router = useRouter();
@@ -321,6 +326,24 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const selectedPurchaseSummary = selectedVariant
     ? `${selectedSummary} | Qty ${quantity}`
     : selectedSummary;
+  const trustItems: TrustItem[] = [
+    {
+      icon: <TruckIcon className="size-4 text-orange-600" aria-hidden="true" />,
+      title: "Shipping",
+      description: t("product.shippingCalculated"),
+    },
+    {
+      icon: <ShieldCheckIcon className="size-4 text-emerald-600" aria-hidden="true" />,
+      title: "Buyer protection",
+      description: t("product.buyerProtection"),
+    },
+    {
+      icon: <RotateCcwIcon className="size-4 text-sky-600" aria-hidden="true" />,
+      title: "Returns",
+      description: "Returns follow marketplace policy.",
+    },
+  ];
+  const factCount = [product.condition, product.countryOfOrigin, product.warrantyInfo, product.brand?.name].filter(Boolean).length;
 
   function getOptionValueState(optionId: string, valueId: string): OptionValueState {
     if (selectedOptionValues[optionId] === valueId) return "selected";
@@ -525,31 +548,41 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-2xl bg-orange-50 p-3 text-sm text-slate-700">
-              <span className="flex items-start gap-2"><TruckIcon className="mt-0.5 size-4 shrink-0 text-orange-600" /> <span>{t("product.shippingCalculated")}</span></span>
-              <span className="flex items-start gap-2"><ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-emerald-600" /> <span>{t("product.buyerProtection")}</span></span>
-              <span className="flex items-start gap-2"><RotateCcwIcon className="mt-0.5 size-4 shrink-0 text-sky-600" /> <span>Returns follow marketplace policy.</span></span>
+            <div className="grid gap-2 rounded-2xl border border-orange-100 bg-orange-50 p-3 text-sm text-slate-700" aria-label="Marketplace assurances">
+              {trustItems.map((item) => (
+                <div key={item.title} className="grid grid-cols-[32px_minmax(0,1fr)] gap-2 rounded-xl bg-white/70 p-2">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-white shadow-sm">{item.icon}</span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-semibold uppercase tracking-normal text-slate-500">{item.title}</span>
+                    <span className="block break-words text-sm text-slate-700">{item.description}</span>
+                  </span>
+                </div>
+              ))}
             </div>
             {isOutOfStock ? <Badge variant="outline" className="w-fit rounded-full border-red-200 bg-red-50 text-red-700">Out of stock</Badge> : null}
           </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-bold">Highlights</h2>
+          <SectionHeader title="Highlights" description="Quick seller-provided notes for this product." />
           {product.highlights.length ? (
             <ul className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
-              {product.highlights.map((highlight) => <li key={highlight} className="rounded-lg bg-slate-50 px-3 py-2">{highlight}</li>)}
+              {product.highlights.map((highlight) => <li key={highlight} className="break-words rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">{highlight}</li>)}
             </ul>
           ) : <p className="mt-2 text-sm text-slate-500">No highlights provided.</p>}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold">{product.shop.name}</h2>
-              <p className="text-sm text-slate-500">{product.shop.location}</p>
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Shop trust">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-normal text-orange-600">Sold by</p>
+              <h2 className="mt-1 break-words text-lg font-bold text-slate-950">{product.shop.name}</h2>
+              <div className="mt-2 flex flex-wrap gap-2 text-sm text-slate-600">
+                <span className="rounded-full bg-slate-100 px-3 py-1">{product.shop.location}</span>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Active marketplace shop</span>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
               <Button type="button" variant="outline" className="rounded-full" disabled={createChatMutation.isPending} onClick={handleChatSeller}>
                 <MessageCircleIcon className="size-4" />
                 {t("chat.chatSeller")}
@@ -566,18 +599,22 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-bold">Product facts</h2>
-          <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {product.condition ? <FactRow label="Condition" value={product.condition} /> : null}
-            {product.countryOfOrigin ? <FactRow label="Country of origin" value={product.countryOfOrigin} /> : null}
-            {product.warrantyInfo ? <FactRow label="Warranty" value={product.warrantyInfo} /> : null}
-            {product.brand ? <FactRow label="Brand" value={product.brand.name} /> : null}
-          </dl>
+          <SectionHeader title="Product facts" description="Seller-provided facts and catalog attributes." meta={factCount ? `${factCount} facts` : undefined} />
+          {factCount ? (
+            <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {product.condition ? <FactRow label="Condition" value={product.condition} /> : null}
+              {product.countryOfOrigin ? <FactRow label="Country of origin" value={product.countryOfOrigin} /> : null}
+              {product.warrantyInfo ? <FactRow label="Warranty" value={product.warrantyInfo} /> : null}
+              {product.brand ? <FactRow label="Brand" value={product.brand.name} /> : null}
+            </dl>
+          ) : (
+            <p className="mt-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">No product facts provided.</p>
+          )}
           {product.attributes.length ? (
             <div className="mt-4 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
               {product.attributes.map((attribute) => (
                 <div key={`${attribute.key}-${attribute.name}`} className="rounded-lg bg-white px-3 py-2 text-sm">
-                  <dt className="font-medium text-slate-500">{attribute.name}</dt>
+                  <dt className="break-words font-medium text-slate-500">{attribute.name}</dt>
                   <dd className="mt-1 break-words text-slate-900">{attribute.value}</dd>
                 </div>
               ))}
@@ -586,12 +623,12 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-bold">Description</h2>
-          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">{product.description ?? t("product.noDescription")}</p>
+          <SectionHeader title="Description" description="Product details from the seller." />
+          <p className="mt-3 whitespace-pre-line break-words rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">{product.description ?? t("product.noDescription")}</p>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-bold">{t("product.reviews")}</h2>
+          <SectionHeader title={t("product.reviews")} description="Published buyer feedback and rating summary." />
           <ProductReviewsSection
             fallbackRating={product.rating}
             ratingSummary={ratingSummaryQuery.data}
@@ -607,10 +644,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold">Questions & answers</h2>
-              <p className="mt-1 text-sm text-slate-500">Ask the seller about this product.</p>
-            </div>
+            <SectionHeader title="Questions & answers" description="Ask the seller about sizing, packaging, warranty, or product details." />
             {questionsQuery.data?.length ? (
               <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-slate-700">
                 {questionsQuery.data.length} question{questionsQuery.data.length === 1 ? "" : "s"}
@@ -745,9 +779,9 @@ function ProductDiscoverySection({
   const hasItems = children.length > 0;
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-slate-950">{title}</h2>
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <SectionHeader title={title} description={hasItems ? "Continue browsing similar or recently viewed items." : emptyDescription} meta={hasItems ? `${children.length} shown` : undefined} />
         {error ? (
           <Button type="button" variant="ghost" size="sm" className="rounded-full text-slate-600" onClick={onRetry}>
             Retry
@@ -761,13 +795,13 @@ function ProductDiscoverySection({
           ))}
         </div>
       ) : error ? (
-        <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+        <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
           {title} are temporarily unavailable.
         </p>
       ) : hasItems ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{children}</div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <p className="text-sm font-semibold text-slate-700">{emptyTitle}</p>
           <p className="mt-1 text-sm text-slate-500">{emptyDescription}</p>
         </div>
@@ -789,7 +823,7 @@ function RecentlyViewedProductCard({ product }: { product: RecentlyViewedProduct
         <div className="space-y-2 p-3">
           <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-5 text-slate-900">{product.title}</h3>
           {priceLabel ? <p className="truncate text-base font-bold text-orange-600">{priceLabel}</p> : null}
-          <p className="truncate text-xs text-slate-500">{product.shop.name}</p>
+          <p className="break-words text-xs text-slate-500">{product.shop.name}</p>
         </div>
       </a>
     </article>
@@ -852,7 +886,7 @@ function ProductReviewsSection({
           <BuyerErrorState message={getReadableErrorMessage(reviewsError, "Reviews are temporarily unavailable.")} onRetry={onRetryReviews} />
         </div>
       ) : reviews.length ? (
-        <div className="space-y-3">
+        <div className="grid gap-3">
           {reviews.map((review) => <ReviewCard key={review.id} review={review} />)}
         </div>
       ) : (
@@ -935,7 +969,7 @@ function ProductQuestionsSection({
           <BuyerErrorState message={getReadableErrorMessage(questionsError, "Questions are temporarily unavailable.")} onRetry={onRetryQuestions} />
         </div>
       ) : questions.length ? (
-        <div className="space-y-3">
+        <div className="grid gap-3">
           {questions.map((question) => <QuestionCard key={question.id} question={question} />)}
         </div>
       ) : (
@@ -965,24 +999,24 @@ function extractErrorText(value: unknown): string | null {
 
 function QuestionCard({ question }: { question: BuyerProductQuestion }) {
   return (
-    <article className="rounded-xl border border-slate-100 p-4">
+    <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-normal text-orange-600">Question</p>
-          <p className="mt-1 font-semibold text-slate-950">{question.user.name}</p>
+          <p className="mt-1 break-words font-semibold text-slate-950">{question.user.name}</p>
         </div>
         {question.createdAt ? <time dateTime={question.createdAt} className="text-sm text-slate-500">{formatReviewDate(question.createdAt)}</time> : null}
       </div>
-      <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{question.question}</p>
+      <p className="mt-3 whitespace-pre-line break-words text-sm leading-6 text-slate-700">{question.question}</p>
       {question.answers.length ? (
         <div className="mt-4 space-y-3 border-l-2 border-orange-200 pl-3">
           {question.answers.map((answer) => (
             <div key={answer.id} className="rounded-lg bg-orange-50 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-orange-900">Seller answer from {answer.user.name}</p>
+                <p className="break-words text-sm font-semibold text-orange-900">Seller answer from {answer.user.name}</p>
                 {answer.createdAt ? <time dateTime={answer.createdAt} className="text-xs text-orange-700">{formatReviewDate(answer.createdAt)}</time> : null}
               </div>
-              <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{answer.answer}</p>
+              <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">{answer.answer}</p>
             </div>
           ))}
         </div>
@@ -1078,9 +1112,21 @@ function formatReviewDate(value: string): string {
 
 function FactRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
-      <dt className="font-medium text-slate-500">{label}</dt>
-      <dd className="mt-1 text-slate-900">{value}</dd>
+    <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+      <dt className="break-words font-medium text-slate-500">{label}</dt>
+      <dd className="mt-1 break-words text-slate-900">{value}</dd>
+    </div>
+  );
+}
+
+function SectionHeader({ title, description, meta }: { title: string; description?: string; meta?: string }) {
+  return (
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-start gap-2">
+        <h2 className="break-words text-lg font-bold text-slate-950">{title}</h2>
+        {meta ? <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-slate-700">{meta}</Badge> : null}
+      </div>
+      {description ? <p className="mt-1 max-w-2xl break-words text-sm text-slate-500">{description}</p> : null}
     </div>
   );
 }

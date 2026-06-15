@@ -725,6 +725,53 @@ describe("ProductDetailPage buyer transaction states", () => {
     expect(screen.queryByRole("listbox", { name: "Product media gallery" })).toBeNull();
   });
 
+  it("renders trust, facts, and description sections as scannable buyer content", async () => {
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByRole("img", { name: "Variant Product" })).toBeTruthy();
+    expect(screen.getByLabelText("Marketplace assurances")).toBeTruthy();
+    expect(screen.getByText("Shipping")).toBeTruthy();
+    expect(screen.getByText("Shipping calculated at checkout")).toBeTruthy();
+    expect(screen.getAllByText("Buyer protection").length).toBeGreaterThan(0);
+    expect(screen.getByText("Returns")).toBeTruthy();
+    expect(screen.getByLabelText("Shop trust")).toBeTruthy();
+    expect(screen.getByText("Sold by")).toBeTruthy();
+    expect(screen.getAllByText("Demo Shop").length).toBeGreaterThan(0);
+    expect(screen.getByText("Active marketplace shop")).toBeTruthy();
+    expect(screen.getByText("Seller-provided facts and catalog attributes.")).toBeTruthy();
+    expect(screen.getByText("4 facts")).toBeTruthy();
+    expect(screen.getByText("Condition")).toBeTruthy();
+    expect(screen.getByText("One year")).toBeTruthy();
+    expect(screen.getByText("Material")).toBeTruthy();
+    expect(screen.getByText("Cotton")).toBeTruthy();
+    expect(screen.getByText("Product details from the seller.")).toBeTruthy();
+    expect(screen.getByText("Detailed description")).toBeTruthy();
+  });
+
+  it("keeps missing facts and long trust content readable without fake metrics", async () => {
+    queryMocks.productDetailResponse = {
+      ...createProductDetailFixture(),
+      description: "A very long product description with manual line breaks.\nUse this to verify readable wrapping.",
+      shop: { id: "shop-1", name: "Demo Shop With A Very Long Marketplace Display Name", location: "Bangkok metropolitan area with extended location copy" },
+      brand: null,
+      warrantyInfo: null,
+      condition: null,
+      countryOfOrigin: null,
+      attributes: [],
+    };
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect((await screen.findAllByText("Demo Shop With A Very Long Marketplace Display Name")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Bangkok metropolitan area with extended location copy").length).toBeGreaterThan(0);
+    expect(screen.getByText("No product facts provided.")).toBeTruthy();
+    expect(screen.queryByText("4 facts")).toBeNull();
+    expect(screen.queryByText("ratingCount")).toBeNull();
+    expect(screen.getByText(/A very long product description/)).toBeTruthy();
+    expect(screen.getByText(/Use this to verify readable wrapping/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Add to cart/ })).toBeTruthy();
+  });
+
   it("does not allow quantity above selected variant stock", async () => {
     renderWithClient(<ProductDetailPage productId="product-1" />);
 
