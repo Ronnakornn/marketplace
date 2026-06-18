@@ -96,6 +96,7 @@ export async function getPublicProductSeo(productId: string) {
         { slug: productId },
       ],
       status: "ACTIVE",
+      deletedAt: null,
       shop: { status: "ACTIVE" },
     },
     select: {

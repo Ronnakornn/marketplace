@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   absoluteUrl,
   breadcrumbJsonLd,
   collectionPageJsonLd,
   formatSeoPriceCents,
+  getPublicProductSeo,
   productJsonLd,
   publicPageMetadata,
   resolveSeoImage,
@@ -11,6 +12,44 @@ import {
   storeJsonLd,
   websiteJsonLd,
 } from "./seo";
+
+const findFirstProductMock = vi.fn();
+
+vi.mock("#server/lib/prisma.ts", () => ({
+  prisma: {
+    product: {
+      findFirst: findFirstProductMock,
+    },
+  },
+}));
+
+function createSeoProduct(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "22222222-2222-4222-8222-222222222222",
+    title: "Canvas Bag",
+    description: "Durable canvas bag.",
+    slug: "canvas-bag",
+    updatedAt: new Date("2026-05-14T00:00:00.000Z"),
+    category: { id: "cat-1", name: "Fashion", slug: "fashion", isActive: true },
+    brand: { name: "Demo Brand" },
+    shop: { id: "shop-1", name: "Demo Shop", slug: "demo-shop" },
+    images: [{ url: "/uploads/canvas-bag.jpg" }],
+    variants: [
+      {
+        id: "variant-1",
+        price: BigInt(4890),
+        currency: "THB",
+        inventory: { quantityOnHand: 10, quantityReserved: 2 },
+      },
+    ],
+    reviews: [{ rating: 5 }, { rating: 4 }],
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  findFirstProductMock.mockReset();
+});
 
 describe("SEO helpers", () => {
   it("builds canonical URLs and social metadata with a fallback image", () => {
@@ -147,5 +186,61 @@ describe("SEO helpers", () => {
 
   it("formats BigInt product price for JSON-LD offers", () => {
     expect(formatSeoPriceCents(BigInt(4890))).toBe("48.90");
+  });
+
+  it("resolves active public product SEO by id with the public API visibility filters", async () => {
+    findFirstProductMock.mockResolvedValueOnce(createSeoProduct());
+
+    const product = await getPublicProductSeo("22222222-2222-4222-8222-222222222222");
+
+    expect(findFirstProductMock).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        OR: [
+          { id: "22222222-2222-4222-8222-222222222222" },
+          { slug: "22222222-2222-4222-8222-222222222222" },
+        ],
+        status: "ACTIVE",
+        deletedAt: null,
+        shop: { status: "ACTIVE" },
+      },
+    }));
+    expect(product).toMatchObject({
+      id: "22222222-2222-4222-8222-222222222222",
+      title: "Canvas Bag",
+      urlPath: "/products/22222222-2222-4222-8222-222222222222",
+      price: "48.90",
+      currency: "THB",
+      availability: "https://schema.org/InStock",
+      aggregateRating: { ratingValue: 4.5, reviewCount: 2 },
+    });
+  });
+
+  it("resolves supported slug product SEO while keeping canonical id URL", async () => {
+    findFirstProductMock.mockResolvedValueOnce(createSeoProduct());
+
+    const product = await getPublicProductSeo("canvas-bag");
+
+    expect(findFirstProductMock).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: [{ slug: "canvas-bag" }],
+        status: "ACTIVE",
+        deletedAt: null,
+        shop: { status: "ACTIVE" },
+      }),
+    }));
+    expect(product?.urlPath).toBe("/products/22222222-2222-4222-8222-222222222222");
+  });
+
+  it("returns null when product SEO lookup cannot find an active public product", async () => {
+    findFirstProductMock.mockResolvedValueOnce(null);
+
+    await expect(getPublicProductSeo("missing-product")).resolves.toBeNull();
+    expect(findFirstProductMock).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        status: "ACTIVE",
+        deletedAt: null,
+        shop: { status: "ACTIVE" },
+      }),
+    }));
   });
 });

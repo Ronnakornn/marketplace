@@ -10,7 +10,7 @@ import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "#/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "#/components/ui/sheet";
 import { ProductCard } from "#/features/product/components/ProductCard";
 import {
   normalizePublicCategories,
@@ -208,6 +208,7 @@ export function ProductListingPage({
     query,
     categoryId,
     brandId,
+    attributeFilters,
     minPrice,
     maxPrice,
     sort,
@@ -217,7 +218,7 @@ export function ProductListingPage({
     onSale,
     basePath,
     showCategoryFilter: mode === "search",
-  }), [listing?.facets, categoriesQuery.data, brandsQuery.data, query, categoryId, brandId, minPrice, maxPrice, sort, rating, inStock, freeShipping, onSale, basePath, mode]);
+  }), [listing?.facets, categoriesQuery.data, brandsQuery.data, query, categoryId, brandId, attributeFilters, minPrice, maxPrice, sort, rating, inStock, freeShipping, onSale, basePath, mode]);
   const activeFilters = buildActiveFilters({
     q: query,
     categoryId: mode === "search" ? categoryId : undefined,
@@ -229,7 +230,8 @@ export function ProductListingPage({
     freeShipping,
     onSale,
     sort,
-  }, filterProps.categories, filterProps.brands, basePath);
+  }, filterProps.categories, filterProps.brands, basePath, t);
+  const activeFilterCount = activeFilters.length;
   const resultTitle = query
     ? t("product.searchResultsFor").replace("{query}", query)
     : mode === "category"
@@ -269,11 +271,32 @@ export function ProductListingPage({
               <div className="lg:hidden">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full rounded-2xl"><SlidersHorizontalIcon className="size-4" />{t("product.filterAndSort")}</Button>
+                    <button
+                      type="button"
+                      className="flex h-auto w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium shadow-xs transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                    >
+                      <span className="inline-flex min-w-0 items-center gap-2">
+                        <SlidersHorizontalIcon className="size-4 shrink-0 text-orange-600" />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold leading-5">{t("product.filterAndSort")}</span>
+                          <span className="block truncate text-xs font-normal text-slate-500">
+                            {activeFilterCount ? `${activeFilterCount} active` : t("product.searchFilter")}
+                          </span>
+                        </span>
+                      </span>
+                      {activeFilterCount ? (
+                        <Badge className="shrink-0 rounded-full bg-orange-600 px-2 py-0.5 text-xs text-white">{activeFilterCount}</Badge>
+                      ) : null}
+                    </button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-3xl p-0">
-                    <SheetHeader><SheetTitle>{t("product.filterAndSort")}</SheetTitle></SheetHeader>
-                    <div className="p-4"><SearchFilterSidebar {...filterProps} compact /></div>
+                    <SheetHeader className="border-b border-slate-100 px-4 py-3 text-left">
+                      <SheetTitle>{t("product.filterAndSort")}</SheetTitle>
+                      <SheetDescription>
+                        {activeFilterCount > 0 ? `${activeFilterCount} active filters` : "Refine results without leaving this page."}
+                      </SheetDescription>
+                    </SheetHeader>
+                    <SearchFilterSidebar {...filterProps} compact activeFilterCount={activeFilterCount} />
                   </SheetContent>
                 </Sheet>
               </div>
@@ -282,10 +305,10 @@ export function ProductListingPage({
           ) : null}
 
           <section className="min-w-0 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-slate-950">{mode === "home" ? t("product.recommendedProducts") : resultTitle}</h2>
-                <p className="text-xs text-slate-500">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="break-words text-lg font-bold leading-6 text-slate-950">{mode === "home" ? t("product.recommendedProducts") : resultTitle}</h2>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
                   {listing ? formatResultSummary(t("product.itemsFound"), products.length, listing.meta.totalCount) : t("product.loadingResults")}
                 </p>
               </div>
@@ -298,15 +321,23 @@ export function ProductListingPage({
               )}
             </div>
             {activeFilters.length ? (
-              <div className="flex flex-wrap gap-2">
-                {activeFilters.map((filter) => (
-                  <Button key={filter.key} asChild variant="outline" size="sm" className="h-8 rounded-full">
-                    <Link href={filter.href}>
-                      {filter.label}
-                      <XIcon className="size-3" />
-                    </Link>
+              <div className="space-y-2 rounded-2xl border border-orange-100 bg-orange-50/60 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase text-orange-700">Active filters</p>
+                  <Button asChild variant="ghost" size="sm" className="h-7 shrink-0 rounded-full px-2 text-xs text-orange-700">
+                    <Link href={buildSearchHref({ q: query }, basePath)}>{t("product.clearFilters")}</Link>
                   </Button>
-                ))}
+                </div>
+                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+                  {activeFilters.map((filter) => (
+                    <Button key={filter.key} asChild variant="outline" size="sm" className="h-8 max-w-[15rem] shrink-0 rounded-full border-orange-200 bg-white px-3 text-orange-800">
+                      <Link href={filter.href} aria-label={`Remove ${filter.label}`}>
+                        <span className="truncate">{filter.label}</span>
+                        <XIcon className="size-3 shrink-0" />
+                      </Link>
+                    </Button>
+                  ))}
+                </div>
               </div>
             ) : null}
 
@@ -428,6 +459,7 @@ function SearchFilterSidebar(props: {
   query: string;
   categoryId?: string;
   brandId?: string;
+  attributeFilters?: string;
   minPrice?: string;
   maxPrice?: string;
   rating?: string;
@@ -438,6 +470,7 @@ function SearchFilterSidebar(props: {
   basePath: string;
   showCategoryFilter: boolean;
   compact?: boolean;
+  activeFilterCount?: number;
 }) {
   const t = useTranslations();
   const base = {
@@ -450,17 +483,32 @@ function SearchFilterSidebar(props: {
     onSale: props.onSale,
     sort: props.sort,
     brandId: props.brandId,
+    attributeFilters: props.attributeFilters,
   };
   const minPricePlaceholder = props.minPrice ? t("product.min") : props.price.min !== null ? String(props.price.min) : t("product.min");
   const maxPricePlaceholder = props.maxPrice ? t("product.max") : props.price.max !== null ? String(props.price.max) : t("product.max");
   const hasPriceMetadata = props.price.min !== null || props.price.max !== null;
 
   return (
-    <aside className={`space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-20 lg:self-start ${props.compact ? "" : "hidden lg:block"}`}>
-      <div className="flex items-center gap-2 font-bold text-slate-950">
-        <SlidersHorizontalIcon className="size-4 text-orange-600" />
-        {t("product.searchFilter")}
+    <aside className={`space-y-4 bg-white p-4 lg:sticky lg:top-20 lg:self-start lg:rounded-3xl lg:border lg:border-slate-200 lg:shadow-sm ${props.compact ? "" : "hidden lg:block"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 font-bold text-slate-950">
+            <SlidersHorizontalIcon className="size-4 shrink-0 text-orange-600" />
+            {t("product.searchFilter")}
+          </div>
+          {props.activeFilterCount ? (
+            <p className="mt-1 text-xs leading-5 text-slate-500">{props.activeFilterCount} active filters</p>
+          ) : null}
+        </div>
+        <Button variant="outline" size="sm" className="h-8 shrink-0 rounded-full px-3" asChild>
+          <Link href={buildSearchHref({ q: props.query }, props.basePath)}>{t("product.clearFilters")}</Link>
+        </Button>
       </div>
+
+      <FilterBlock title="Sort by">
+        <SortLinkList {...props} />
+      </FilterBlock>
 
       {props.showCategoryFilter ? <FilterBlock title={t("product.category")}>
         <div className="space-y-1">
@@ -483,6 +531,7 @@ function SearchFilterSidebar(props: {
           <input type="hidden" name="q" value={props.query} />
           {props.categoryId ? <input type="hidden" name="categoryId" value={props.categoryId} /> : null}
           {props.brandId ? <input type="hidden" name="brandId" value={props.brandId} /> : null}
+          {props.attributeFilters ? <input type="hidden" name="attributeFilters" value={props.attributeFilters} /> : null}
           {props.rating ? <input type="hidden" name="rating" value={props.rating} /> : null}
           {props.inStock ? <input type="hidden" name="inStock" value={props.inStock} /> : null}
           {props.freeShipping ? <input type="hidden" name="freeShipping" value={props.freeShipping} /> : null}
@@ -537,10 +586,44 @@ function SearchFilterSidebar(props: {
         </FilterLink>
       </FilterBlock>
 
-      <Button variant="outline" className="w-full rounded-full" asChild>
-        <Link href={buildSearchHref({ q: props.query }, props.basePath)}>{t("product.clearFilters")}</Link>
-      </Button>
+      <div className="sticky bottom-0 -mx-4 -mb-4 border-t border-slate-100 bg-white/95 p-4 backdrop-blur lg:static lg:m-0 lg:border-0 lg:bg-transparent lg:p-0">
+        <Button variant="outline" className="w-full rounded-full" asChild>
+          <Link href={buildSearchHref({ q: props.query }, props.basePath)}>{t("product.clearFilters")}</Link>
+        </Button>
+      </div>
     </aside>
+  );
+}
+
+function SortLinkList(props: {
+  query: string;
+  categoryId?: string;
+  brandId?: string;
+  attributeFilters?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  rating?: string;
+  sort: string;
+  inStock?: string;
+  freeShipping?: string;
+  onSale?: string;
+  basePath: string;
+}) {
+  const t = useTranslations();
+  const sorts = getSortOptions(t);
+
+  return (
+    <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+      {sorts.map(([value, label]) => (
+        <FilterLink
+          key={value}
+          active={props.sort === value}
+          href={buildSearchHref({ q: props.query, categoryId: props.categoryId, brandId: props.brandId, attributeFilters: props.attributeFilters, minPrice: props.minPrice, maxPrice: props.maxPrice, rating: props.rating, inStock: props.inStock, freeShipping: props.freeShipping, onSale: props.onSale, sort: value }, props.basePath)}
+        >
+          {label}
+        </FilterLink>
+      ))}
+    </div>
   );
 }
 
@@ -559,17 +642,10 @@ function SortTabs(props: {
   basePath: string;
 }) {
   const t = useTranslations();
-  const sorts = [
-    ["relevance", t("product.relevant")],
-    ["newest", t("product.latest")],
-    ["best_selling", t("product.topSales")],
-    ["price_asc", t("product.priceLow")],
-    ["price_desc", t("product.priceHigh")],
-    ["rating", t("product.rating")],
-  ] as const;
+  const sorts = getSortOptions(t);
 
   return (
-    <div className="flex max-w-full gap-1 overflow-x-auto rounded-full border border-slate-200 bg-white p-1">
+    <div className="flex max-w-full gap-1 overflow-x-auto rounded-full border border-slate-200 bg-white p-1 sm:max-w-[min(100%,34rem)]">
       {sorts.map(([value, label]) => (
         <Button
           key={value}
@@ -587,7 +663,7 @@ function SortTabs(props: {
 
 function FilterBlock({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="border-t border-slate-100 pt-3">
+    <div className="border-t border-slate-100 pt-4">
       <h3 className="mb-2 text-sm font-bold text-slate-950">{title}</h3>
       {children}
     </div>
@@ -599,7 +675,7 @@ function FilterLink({ href, active, disabled, children }: { href: string; active
     return (
       <span
         aria-disabled="true"
-        className="flex cursor-not-allowed rounded-xl px-2 py-1.5 text-sm text-slate-400"
+        className="flex cursor-not-allowed rounded-xl border border-dashed border-slate-200 bg-slate-50 px-2 py-1.5 text-sm text-slate-400"
       >
         {children}
       </span>
@@ -609,7 +685,7 @@ function FilterLink({ href, active, disabled, children }: { href: string; active
   return (
     <Link
       href={href}
-      className={`flex rounded-xl px-2 py-1.5 text-sm transition ${active ? "bg-orange-50 font-semibold text-orange-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"}`}
+      className={`flex min-w-0 rounded-xl px-2 py-1.5 text-sm leading-5 transition ${active ? "bg-orange-50 font-semibold text-orange-700 ring-1 ring-orange-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"}`}
     >
       {children}
     </Link>
@@ -623,6 +699,17 @@ function FilterOptionLabel({ label, count }: { label: string; count?: number }) 
       {typeof count === "number" ? <span className="shrink-0 text-xs tabular-nums text-slate-400">{count}</span> : null}
     </span>
   );
+}
+
+function getSortOptions(t: ReturnType<typeof useTranslations>) {
+  return [
+    ["relevance", t("product.relevant")],
+    ["newest", t("product.latest")],
+    ["best_selling", t("product.topSales")],
+    ["price_asc", t("product.priceLow")],
+    ["price_desc", t("product.priceHigh")],
+    ["rating", t("product.rating")],
+  ] as const;
 }
 
 function toNumber(value?: string): number | undefined {
@@ -753,26 +840,28 @@ function buildActiveFilters(
   categories: Array<{ slug: string; name: string }>,
   brands: Array<{ id: string; name: string }>,
   basePath: string,
+  t: ReturnType<typeof useTranslations>,
 ) {
   const labels: Array<{ key: string; label: string; href: string }> = [];
+  const sortLabels: Record<string, string> = Object.fromEntries(getSortOptions(t));
   const add = (key: string, label: string) => labels.push({
     key,
     label,
     href: buildSearchHref({ ...params, [key]: undefined }, basePath),
   });
-  if (params.categoryId) add("categoryId", categories.find((category) => category.slug === params.categoryId)?.name ?? params.categoryId);
-  if (params.brandId) add("brandId", brands.find((brand) => brand.id === params.brandId)?.name ?? params.brandId);
+  if (params.categoryId) add("categoryId", `${t("product.category")}: ${categories.find((category) => category.slug === params.categoryId)?.name ?? params.categoryId}`);
+  if (params.brandId) add("brandId", `Brand: ${brands.find((brand) => brand.id === params.brandId)?.name ?? params.brandId}`);
   if (params.attributeFilters) add("attributeFilters", params.attributeFilters);
   if (params.minPrice || params.maxPrice) labels.push({
     key: "price",
-    label: `${params.minPrice ?? "0"} - ${params.maxPrice ?? "*"}`,
+    label: `${t("product.priceRange")}: ${params.minPrice ?? "0"} - ${params.maxPrice ?? "*"}`,
     href: buildSearchHref({ ...params, minPrice: undefined, maxPrice: undefined }, basePath),
   });
-  if (params.rating) add("rating", `${params.rating}+ stars`);
-  if (params.inStock === "true") add("inStock", "In stock");
-  if (params.freeShipping === "true") add("freeShipping", "Free shipping");
-  if (params.onSale === "true") add("onSale", "On sale");
-  if (params.sort && params.sort !== "relevance") add("sort", `Sort: ${params.sort.replaceAll("_", " ")}`);
+  if (params.rating) add("rating", `${t("product.rating")}: ${params.rating}+`);
+  if (params.inStock === "true") add("inStock", t("product.inStock"));
+  if (params.freeShipping === "true") add("freeShipping", t("product.freeShipping"));
+  if (params.onSale === "true") add("onSale", t("product.onSale"));
+  if (params.sort && params.sort !== "relevance") add("sort", `Sort: ${sortLabels[params.sort] ?? params.sort.replaceAll("_", " ")}`);
   return labels;
 }
 
