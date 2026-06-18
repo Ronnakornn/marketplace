@@ -26,6 +26,11 @@ function createAppContext(): AppContext {
 function createRepoMock(): ISearchRepository {
   return {
     findSearchableProducts: vi.fn(),
+    findProductFacets: vi.fn(async () => ({
+      categories: [],
+      brands: [],
+      price: { min: null, max: null, currency: 'THB' },
+    })),
     findSuggestions: vi.fn(),
   }
 }
@@ -63,6 +68,8 @@ function createProduct(overrides: Partial<{
   description: string | null
   status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
   shopId: string
+  categoryId: string
+  categorySlug: string
   price: number
   secondPrice: number
   rating: number
@@ -78,7 +85,11 @@ function createProduct(overrides: Partial<{
     description: overrides.description ?? 'Soft cotton shirt',
     status: overrides.status ?? 'ACTIVE',
     createdAt: now,
-    category: null,
+    category: {
+      id: overrides.categoryId ?? 'category-1',
+      name: 'Fashion',
+      slug: overrides.categorySlug ?? 'fashion',
+    },
     shop: {
       id: overrides.shopId ?? 'shop-1',
       name: 'Shop One',
@@ -92,7 +103,9 @@ function createProduct(overrides: Partial<{
         title: 'Default',
         price: overrides.price ? BigInt(overrides.price) : BigInt(1000),
         currency: 'USD',
+        optionValues: [],
         orderItems: [{ quantity: overrides.soldCount ?? 0 }],
+        inventory: { quantityOnHand: 10, quantityReserved: 2 },
       },
       ...(overrides.secondPrice ? [{
         id: 'variant-2',
@@ -100,9 +113,12 @@ function createProduct(overrides: Partial<{
         title: 'Large',
         price: BigInt(overrides.secondPrice), // Convert price to bigint
         currency: 'USD',
+        optionValues: [],
         orderItems: [],
-      }] : [])
+        inventory: { quantityOnHand: 0, quantityReserved: 0 },
+      }] : []),
     ],
+    options: [],
     reviews: Array.from({ length: reviewCount }, () => ({
       rating,
       status: 'PUBLISHED' as const,
@@ -137,6 +153,9 @@ describe('SearchService', () => {
       shopId: undefined,
       minPrice: undefined,
       maxPrice: undefined,
+      attributeFilters: undefined,
+      brandId: undefined,
+      inStock: false,
     })
     expect(result.items[0]).toMatchObject({ productId: 'p1', title: 'Cotton Tee' })
   })
@@ -150,7 +169,21 @@ describe('SearchService', () => {
   it('supports pagination', async () => {
     const result = await service.searchProducts({ page: 2, limit: 1 })
 
-    expect(result.pagination).toEqual({
+    expect(result.meta).toEqual({
+      totalCount: 2,
+      page: 2,
+      pageSize: 1,
+      hasNextPage: false,
+      query: {
+        sort: 'relevance',
+      },
+    })
+    expect(result.facets).toEqual({
+      categories: [],
+      brands: [],
+      price: { min: null, max: null, currency: 'THB' },
+    })
+    expect(result.pagination).toMatchObject({
       page: 2,
       limit: 1,
       total: 2,
@@ -166,9 +199,13 @@ describe('SearchService', () => {
       sort: 'price_desc',
     })
 
-    await expect(service.searchProducts({ sort: 'best_selling' })).resolves.toMatchObject({
+    await expect(service.searchProducts({ sort: 'top_sales' })).resolves.toMatchObject({
       items: [{ productId: 'p1' }, { productId: 'p2' }],
-      sort: 'best_selling',
+      sort: 'top_sales',
+    })
+
+    await expect(service.searchProducts({ sort: 'best_selling' })).resolves.toMatchObject({
+      sort: 'top_sales',
     })
   })
 
@@ -192,6 +229,83 @@ describe('SearchService', () => {
       maxPrice: 4000,
     }))
     expect(result.items[0]).toMatchObject({ minPrice: 2500, maxPrice: 3500 })
+    expect(result.meta.query).toMatchObject({
+      minPrice: 2000,
+      maxPrice: 4000,
+      sort: 'relevance',
+    })
+  })
+
+  it('keeps variant stock and option data for reusable product card quick-add decisions', async () => {
+    const result = await service.searchProducts({})
+
+    expect(result.items[0]).toMatchObject({
+      productId: 'p1',
+      variants: [{
+        id: 'variant-1',
+        sku: 'TEE-1',
+        title: 'Default',
+        price: 1000,
+        currency: 'USD',
+        stock: 8,
+        optionValues: [],
+      }],
+      options: [],
+    })
+  })
+
+  it('returns backend product facets and keeps facet failures non-fatal', async () => {
+    vi.mocked(repo.findProductFacets).mockResolvedValueOnce({
+      categories: [{ id: 'category-1', slug: 'fashion', name: 'Fashion', count: 2, active: true }],
+      brands: [{ id: 'brand-1', slug: 'acme', name: 'Acme', count: 2, active: false }],
+      price: { min: 1000, max: 3000, currency: 'USD' },
+    })
+
+    await expect(service.searchProducts({ categoryId: 'fashion' })).resolves.toMatchObject({
+      facets: {
+        categories: [{ id: 'category-1', slug: 'fashion', name: 'Fashion', count: 2, active: true }],
+        brands: [{ id: 'brand-1', slug: 'acme', name: 'Acme', count: 2, active: false }],
+        price: { min: 1000, max: 3000, currency: 'USD' },
+      },
+    })
+    expect(repo.findProductFacets).toHaveBeenCalledWith(expect.objectContaining({ categoryId: 'fashion' }))
+
+    vi.mocked(repo.findProductFacets).mockRejectedValueOnce(new Error('facet query failed'))
+
+    await expect(service.searchProducts({})).resolves.toMatchObject({
+      items: [{ productId: 'p1' }, { productId: 'p2' }],
+      facets: {
+        categories: [],
+        brands: [],
+        price: { min: null, max: null, currency: 'THB' },
+      },
+    })
+  })
+
+  it('supports contract filters for brand, attributes, in-stock, badges, and cursor', async () => {
+    const result = await service.searchProducts({
+      brandId: 'brand-1',
+      attributeFilters: 'Color:Red',
+      inStock: true,
+      badges: 'in_stock',
+      cursor: 'p1',
+      limit: 1,
+    })
+
+    expect(repo.findSearchableProducts).toHaveBeenCalledWith(expect.objectContaining({
+      brandId: 'brand-1',
+      attributeFilters: [{ key: 'color', value: 'Red' }],
+      inStock: true,
+    }))
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]!.productId).toBe('p2')
+    expect(result.pagination).toMatchObject({ nextCursor: null, hasNextPage: false })
+    expect(result.filters).toMatchObject({
+      brandId: 'brand-1',
+      inStock: true,
+      badges: ['in_stock'],
+      cursor: 'p1',
+    })
   })
 
   it('rejects invalid sort and invalid filters', async () => {

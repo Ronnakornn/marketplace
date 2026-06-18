@@ -1,0 +1,2 @@
+$ concurrently -n frontend,backend -c cyan,magenta "bun run dev:frontend" "bun run dev:server"
+error: script "dev" exited with code 255

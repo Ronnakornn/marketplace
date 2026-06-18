@@ -23,6 +23,7 @@ export class BullMqQueueProducer implements QueueProducer {
     this.queue = new Queue(queueName, {
       connection: createRedisConnection(config),
       defaultJobOptions: getDefaultJobOptions(config),
+      skipVersionCheck: config.skipRedisVersionCheck,
     })
   }
 

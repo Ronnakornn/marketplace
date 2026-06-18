@@ -1,4 +1,4 @@
-import type { Category, Prisma, PrismaClient, Product, ProductVariant, Review, Shop } from '#generated/client/client.ts'
+import type { Category, Inventory, Prisma, PrismaClient, Product, ProductVariant, Review, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -20,7 +20,8 @@ export type RecommendationProductRecord = Pick<Product, 'id' | 'title' | 'create
   titleEn?: string | null
   category: (Pick<Category, 'id' | 'name' | 'slug' | 'sortOrder'> & { nameTh?: string | null; nameEn?: string | null }) | null
   shop: Pick<Shop, 'id' | 'name' | 'status'>
-  variants: Array<Pick<ProductVariant, 'id' | 'price' | 'status'> & {
+  variants: Array<Pick<ProductVariant, 'id' | 'price' | 'status' | 'title' | 'sku' | 'currency'> & {
+    inventory: Pick<Inventory, 'quantityOnHand' | 'quantityReserved'> | null
     orderItems: Array<{ quantity: number }>
   }>
   reviews: Array<Pick<Review, 'rating' | 'status'>>
@@ -75,6 +76,15 @@ const recommendationProductSelect = {
       id: true,
       price: true,
       status: true,
+      title: true,
+      sku: true,
+      currency: true,
+      inventory: {
+        select: {
+          quantityOnHand: true,
+          quantityReserved: true,
+        },
+      },
       orderItems: {
         select: {
           quantity: true,

@@ -18,10 +18,14 @@ const updateVariantMutate = vi.fn();
 const deleteVariantMutate = vi.fn();
 const updateVariantStockMutate = vi.fn();
 const uploadImageMutate = vi.fn();
+const updateImageOrderMutate = vi.fn();
 const updateImageMutate = vi.fn();
 const deleteImageMutate = vi.fn();
 const uploadVideoMutate = vi.fn();
 const deleteVideoMutate = vi.fn();
+const updateOptionsMutate = vi.fn();
+const submitReviewMutate = vi.fn();
+const answerQuestionMutate = vi.fn();
 
 const products: Array<any> = [
   {
@@ -45,6 +49,19 @@ const products: Array<any> = [
     countryOfOrigin: "",
     highlights: [{ text: "Soft cotton", sortOrder: 0 }],
     attributes: [{ attributeKey: "color", displayName: "Color", value: "Blue", isFilterable: true }],
+    moderationCase: null,
+    options: [
+      {
+        id: "opt_color",
+        name: "Color",
+        nameTh: null,
+        nameEn: "Color",
+        sortOrder: 0,
+        values: [
+          { id: "opt_value_blue", optionId: "opt_color", value: "Blue", valueTh: null, valueEn: "Blue", displayType: "TEXT", colorHex: "#0000ff", sortOrder: 0 },
+        ],
+      },
+    ],
     images: [
       { id: "img_1", productId: "prod_1", url: "https://example.com/shirt.jpg", altText: "Cotton shirt front", sortOrder: 0, isPrimary: true, width: 800, height: 600 },
     ],
@@ -63,6 +80,7 @@ const products: Array<any> = [
         widthMm: 200,
         heightMm: 20,
         inventory: { quantityOnHand: 10, quantityReserved: 2, reorderLevel: 1 },
+        optionValues: [{ optionValueId: "opt_value_blue", optionValue: { id: "opt_value_blue", value: "Blue", option: { id: "opt_color", name: "Color" } } }],
       },
     ],
   },
@@ -87,6 +105,8 @@ const products: Array<any> = [
     countryOfOrigin: null,
     highlights: [],
     attributes: [],
+    options: [],
+    moderationCase: { actions: [{ action: "REJECT", note: "Missing image proof" }] },
     images: [],
     variants: [],
   },
@@ -102,8 +122,34 @@ let sellerProductsState: {
   isLoading: false,
 };
 
+const categorySpecDefinitions = [
+  { id: "spec_color", attributeKey: "color", displayName: "Color", valueType: "TEXT", isRequired: true, isFilterable: true, allowedValues: ["Blue", "Black"], sortOrder: 0 },
+  { id: "spec_weight", attributeKey: "weight", displayName: "Weight", valueType: "NUMBER", unit: "kg", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 1 },
+  { id: "spec_fragile", attributeKey: "fragile", displayName: "Fragile", valueType: "BOOLEAN", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 2 },
+  { id: "spec_material", attributeKey: "material", displayName: "Material", valueType: "MULTI_SELECT", isRequired: false, isFilterable: true, allowedValues: null, sortOrder: 3 },
+];
+
+let sellerCategories: Array<any> = [
+  {
+    id: "cat_1",
+    name: "Fashion",
+    slug: "fashion",
+    sortOrder: 0,
+    attributeDefinitions: categorySpecDefinitions,
+  },
+];
+
+let sellerCategorySpecsById: Record<string, Array<any> | undefined> = {
+  cat_1: undefined,
+};
+
+let sellerQuestionsByProductId: Record<string, Array<any>> = {};
+let sellerQuestionPending = false;
+let sellerQuestionSuccess = false;
+let sellerQuestionError: Error | null = null;
+
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => <a href={href} {...props}>{children}</a>,
+  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean }) => <a href={href} {...props}>{children}</a>,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -199,7 +245,26 @@ vi.mock("../hooks/useSellerManage", () => ({
     ...sellerProductsState,
     refetch,
   })),
-  useSellerCategories: vi.fn(() => ({ data: [{ id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 0 }], isLoading: false })),
+  useSellerProduct: vi.fn((productId?: string) => ({
+    data: productId ? (sellerProductsState.data?.data ?? products).find((product) => product.id === productId) : undefined,
+    error: sellerProductsState.error,
+    isLoading: sellerProductsState.isLoading,
+    refetch,
+  })),
+  useSellerProductQuestions: vi.fn((productId?: string) => ({
+    data: productId ? sellerQuestionsByProductId[productId] ?? [] : [],
+    error: null,
+    isLoading: false,
+    refetch,
+  })),
+  useSellerCategories: vi.fn(() => ({
+    data: sellerCategories,
+    isLoading: false,
+  })),
+  useSellerCategorySpecs: vi.fn((categoryId?: string | null) => ({
+    data: categoryId ? sellerCategorySpecsById[categoryId] : undefined,
+    isLoading: false,
+  })),
   useSellerBrands: vi.fn(() => ({ data: [{ id: "brand_1", name: "Acme", slug: "acme", code: "ACME", isActive: true }], isLoading: false })),
   useCreateSellerProduct: vi.fn(() => ({ mutate: createMutate, isPending: false })),
   useUpdateSellerProduct: vi.fn(() => ({ mutate: updateMutate, isPending: false })),
@@ -209,16 +274,31 @@ vi.mock("../hooks/useSellerManage", () => ({
   useDeleteSellerVariant: vi.fn(() => ({ mutate: deleteVariantMutate, isPending: false })),
   useUpdateSellerVariantStock: vi.fn(() => ({ mutate: updateVariantStockMutate, isPending: false })),
   useUploadAndCreateSellerProductImage: vi.fn(() => ({ mutate: uploadImageMutate, isPending: false })),
+  useUpdateSellerProductImagesOrder: vi.fn(() => ({ mutate: updateImageOrderMutate, isPending: false })),
   useUpdateSellerProductImage: vi.fn(() => ({ mutate: updateImageMutate, isPending: false })),
   useDeleteSellerProductImage: vi.fn(() => ({ mutate: deleteImageMutate, isPending: false })),
   useUploadAndUpsertSellerProductVideo: vi.fn(() => ({ mutate: uploadVideoMutate, isPending: false })),
   useDeleteSellerProductVideo: vi.fn(() => ({ mutate: deleteVideoMutate, isPending: false })),
+  useUpdateSellerProductOptions: vi.fn(() => ({ mutate: updateOptionsMutate, isPending: false })),
+  useSubmitSellerProductReview: vi.fn(() => ({ mutate: submitReviewMutate, isPending: false })),
+  useAnswerSellerProductQuestion: vi.fn(() => ({
+    mutate: answerQuestionMutate,
+    isPending: sellerQuestionPending,
+    isSuccess: sellerQuestionSuccess,
+    error: sellerQuestionError,
+  })),
 }));
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   sellerProductsState = { data: { data: products, meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
+  sellerCategories = [{ id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 0, attributeDefinitions: categorySpecDefinitions }];
+  sellerCategorySpecsById = { cat_1: undefined };
+  sellerQuestionsByProductId = {};
+  sellerQuestionPending = false;
+  sellerQuestionSuccess = false;
+  sellerQuestionError = null;
 });
 
 describe("Seller product pages", () => {
@@ -228,8 +308,72 @@ describe("Seller product pages", () => {
     expect(screen.getAllByText("Cotton Shirt").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Search products")).toBeTruthy();
     expect(screen.getByLabelText("Filter by product status")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /create product/i }).getAttribute("href")).toBe("/seller/products/create");
-    expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/seller/products/prod_1/edit");
+    expect(screen.getByRole("link", { name: /create product/i }).getAttribute("href")).toBe("/seller/products/new");
+    expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/seller/products/prod_1");
+  });
+
+  it("renders unanswered product questions and submits seller answers", () => {
+    sellerProductsState = {
+      data: {
+        data: [{ ...products[0], status: "ACTIVE" }],
+        meta: { nextCursor: null, hasNextPage: false },
+      },
+      error: null,
+      isLoading: false,
+    };
+    sellerQuestionsByProductId = {
+      prod_1: [{
+        id: "question-1",
+        productId: "prod_1",
+        shopId: "shop_1",
+        question: "Does this ship with a box?",
+        status: "PUBLISHED",
+        createdAt: "2026-01-04T00:00:00.000Z",
+        user: { id: "buyer-1", name: "Jane Buyer" },
+        answers: [],
+      }],
+    };
+
+    render(<SellerProductsPage />);
+
+    expect(screen.getByText("Product questions")).toBeTruthy();
+    expect(screen.getByText("Does this ship with a box?")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Answer question from Jane Buyer"), { target: { value: "Yes, retail box is included." } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
+
+    expect(answerQuestionMutate).toHaveBeenCalledWith(
+      { productId: "prod_1", questionId: "question-1", answer: "Yes, retail box is included." },
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
+  });
+
+  it("shows seller answer submission state", () => {
+    sellerProductsState = {
+      data: {
+        data: [{ ...products[0], status: "ACTIVE" }],
+        meta: { nextCursor: null, hasNextPage: false },
+      },
+      error: null,
+      isLoading: false,
+    };
+    sellerQuestionsByProductId = {
+      prod_1: [{
+        id: "question-1",
+        productId: "prod_1",
+        shopId: "shop_1",
+        question: "Is the fabric pre-shrunk?",
+        status: "PUBLISHED",
+        createdAt: "2026-01-04T00:00:00.000Z",
+        user: { id: "buyer-1", name: "Jane Buyer" },
+        answers: [],
+      }],
+    };
+    sellerQuestionPending = true;
+
+    render(<SellerProductsPage />);
+
+    expect(screen.getByRole("button", { name: "Submitting..." })).toHaveProperty("disabled", true);
   });
 
   it("requires archive confirmation before calling archive mutation", () => {
@@ -242,51 +386,34 @@ describe("Seller product pages", () => {
     expect(archiveMutate).toHaveBeenCalledWith("prod_1", expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }));
   });
 
-  it("renders create form shell with key mobile-friendly page sections", () => {
+  it("prepares a draft from the new product route before opening Product Studio", () => {
     render(<SellerProductCreatePage />);
 
     expect(screen.getByRole("heading", { name: "Create product" })).toBeTruthy();
-    for (const section of ["Basic info", "Category and brand", "Localized content", "Highlights and attributes", "Media", "Variants", "Stock", "Dimensions"]) {
-      if (["Stock", "Dimensions"].includes(section)) continue;
-      expect(screen.getByRole("heading", { name: section })).toBeTruthy();
-    }
-    expect(screen.getByLabelText("Title")).toBeTruthy();
-    expect(screen.getByLabelText("Description")).toBeTruthy();
-    expect(screen.getByText("Save this product as a draft before uploading media.")).toBeTruthy();
-    expect(screen.getByText("Save this product as a draft before adding variants.")).toBeTruthy();
-  });
-
-  it("creates a product from the page form and preserves values until mutation success", () => {
-    render(<SellerProductCreatePage />);
-
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "New Product" } });
-    fireEvent.change(screen.getByLabelText("Slug"), { target: { value: "new-product" } });
-    fireEvent.click(screen.getByRole("button", { name: /save product/i }));
-
+    expect(screen.getByText("Draft preparation")).toBeTruthy();
     expect(createMutate).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "New Product", slug: "new-product", status: "DRAFT" }),
+      expect.objectContaining({ title: "Untitled product draft", status: "DRAFT" }),
       expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
     );
-    expect(screen.getByDisplayValue("New Product")).toBeTruthy();
   });
 
-  it("asks before discarding dirty create form changes", () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("redirects to Product Studio after draft creation succeeds", () => {
+    createMutate.mockImplementation((_input, options) => options.onSuccess({ id: "prod_new" }));
     render(<SellerProductCreatePage />);
 
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Changed Product" } });
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(confirm).toHaveBeenCalledWith("Discard unsaved product changes?");
-    expect(push).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith("/seller/products/prod_new");
   });
 
   it("renders edit form data and page-level retry state", async () => {
     render(<SellerProductEditPage productId="prod_1" />);
 
-    expect(screen.getByRole("heading", { name: "Edit product" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Product Studio" })).toBeTruthy();
     expect(screen.getAllByDisplayValue("Cotton Shirt").length).toBeGreaterThan(0);
     expect(screen.getByText("1/10 images. Video limit: one MP4 or WebM up to 25MB.")).toBeTruthy();
+    for (const section of ["Basics", "Category & Specs", "Media", "Variants", "Inventory", "Review"]) {
+      expect(screen.getByRole("link", { name: section })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: section })).toBeTruthy();
+    }
 
     cleanup();
     sellerProductsState = { data: undefined, error: new Error("Load failed"), isLoading: false };
@@ -296,6 +423,75 @@ describe("Seller product pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => expect(refetch).toHaveBeenCalled());
+  });
+
+  it("shows required and optional category specs with inline readiness validation", () => {
+    const missingSpecProduct = {
+      ...products[0],
+      attributes: [],
+    };
+    sellerProductsState = { data: { data: [missingSpecProduct], meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    expect(screen.getByText("Required specs")).toBeTruthy();
+    expect(screen.getByText("Optional specs")).toBeTruthy();
+    expect(screen.getByText("Color is required.")).toBeTruthy();
+    expect(screen.getByText(/Missing: required specs: Color/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.change(screen.getByLabelText(/Color/), { target: { value: "Blue" } });
+    expect(screen.queryByText("Color is required.")).toBeNull();
+    expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("renders number, boolean, and multi-select category specs with helper text", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    const weight = screen.getByLabelText(/^Weight \(kg\)$/);
+    expect((weight as HTMLInputElement).type).toBe("number");
+    expect(screen.getByText("Enter a numeric value in kg.")).toBeTruthy();
+
+    expect(screen.getByText("Choose true or false.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "True" }));
+    expect(screen.getByText("Enter one or more values separated by commas.")).toBeTruthy();
+    expect(screen.getByLabelText("Material")).toBeInstanceOf(HTMLTextAreaElement);
+  });
+
+  it("renders category specs fetched from the category specs endpoint", () => {
+    sellerCategories = [{ id: "cat_1", name: "Fashion", slug: "fashion", sortOrder: 0 }];
+    sellerCategorySpecsById = { cat_1: categorySpecDefinitions };
+
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    const weight = screen.getByLabelText(/^Weight \(kg\)$/);
+    expect((weight as HTMLInputElement).type).toBe("number");
+    expect(screen.getByText("Choose true or false.")).toBeTruthy();
+    expect(screen.getByLabelText("Material")).toBeInstanceOf(HTMLTextAreaElement);
+  });
+
+  it("keeps category spec attributes in the save payload while additional specs stay free-form", () => {
+    updateMutate.mockImplementation((_input, options) => options.onSuccess(products[0]));
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    fireEvent.change(screen.getByLabelText(/^Weight \(kg\)$/), { target: { value: "1.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "False" }));
+    fireEvent.change(screen.getByLabelText("Material"), { target: { value: "cotton, linen" } });
+    fireEvent.change(screen.getByLabelText("Additional specifications"), { target: { value: "care|Care instructions|Machine wash cold" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save product" }));
+
+    expect(updateMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: "prod_1",
+        attributes: expect.arrayContaining([
+          expect.objectContaining({ attributeKey: "color", displayName: "Color", value: "Blue", isFilterable: true }),
+          expect.objectContaining({ attributeKey: "weight", displayName: "Weight", value: "1.5", isFilterable: true }),
+          expect.objectContaining({ attributeKey: "fragile", displayName: "Fragile", value: "false", isFilterable: true }),
+          expect.objectContaining({ attributeKey: "material", displayName: "Material", value: "cotton, linen", isFilterable: true }),
+          expect.objectContaining({ attributeKey: "care", displayName: "Care instructions", value: "Machine wash cold" }),
+        ]),
+      }),
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
   });
 
   it("prevents adding more than ten images before upload", () => {
@@ -337,6 +533,32 @@ describe("Seller product pages", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 
+  it("keeps exactly one primary image while reordering and removing media", () => {
+    const multiImageProduct = {
+      ...products[0],
+      images: [
+        products[0].images[0],
+        { ...products[0].images[0], id: "img_2", url: "https://example.com/back.jpg", altText: "Cotton shirt back", sortOrder: 1, isPrimary: false },
+      ],
+    };
+    sellerProductsState = { data: { data: [multiImageProduct], meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    const primaryInputs = screen.getAllByRole("radio", { name: /primary/i });
+    expect(primaryInputs.filter((input) => (input as HTMLInputElement).checked)).toHaveLength(1);
+
+    fireEvent.click(primaryInputs[1]);
+    expect(primaryInputs.filter((input) => (input as HTMLInputElement).checked)).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Move image 2 up" }));
+    expect(updateImageOrderMutate).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Save image order" }));
+    expect(updateImageOrderMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ productId: "prod_1", primaryImageId: "img_2" }),
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
+  });
+
   it("creates, edits, and deletes variants with stock fields limited to allowed values", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     updateVariantMutate.mockImplementation((_input, options) => options.onSuccess());
@@ -370,26 +592,83 @@ describe("Seller product pages", () => {
     expect(deleteVariantMutate).toHaveBeenCalledWith({ productId: "prod_1", variantId: "var_1" }, expect.any(Object));
   });
 
-  it("blocks active save with publish readiness messaging while preserving form state", () => {
-    render(<SellerProductCreatePage />);
+  it("shows inventory as derived stock state with reserved quantity read-only and movement access", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
 
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Almost Active" } });
-    fireEvent.click(screen.getByText("Active"));
-    fireEvent.click(screen.getByRole("button", { name: /save product/i }));
-
-    expect(screen.getByText("Active products need category, at least one product image, one active variant with price greater than zero before publishing.")).toBeTruthy();
-    expect(screen.getByDisplayValue("Almost Active")).toBeTruthy();
-    expect(createMutate).not.toHaveBeenCalled();
+    expect(screen.getAllByText("On hand").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Reserved").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Available").length).toBeGreaterThan(0);
+    expect(screen.getByText("On hand minus reserved")).toBeTruthy();
+    expect((screen.getByLabelText("Quantity reserved") as HTMLInputElement).readOnly).toBe(true);
+    expect(screen.getByRole("link", { name: "Movement history" }).getAttribute("href")).toBe("/seller/inventory?variantId=var_1");
   });
 
-  it("preserves product form values after mutation failure", () => {
+  it("generates variant rows, applies bulk values, and shows duplicate SKU errors inline", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate rows" }));
+    expect(screen.getAllByText("Color: Blue").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add variant" }));
+    fireEvent.change(screen.getByLabelText("SKU", { selector: "#variant-sku-1" }), { target: { value: "SHIRT-1" } });
+    expect(screen.getAllByText("Duplicate SKU.").length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByLabelText("Bulk price"), { target: { value: "22.25" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply price" }));
+    expect(screen.getAllByDisplayValue("22.25").length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByLabelText("Bulk stock"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply stock" }));
+    expect(screen.getAllByText("Out of stock").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Inactive" }).at(-1)!);
+    fireEvent.click(screen.getByRole("button", { name: "Apply status" }));
+    expect(screen.getAllByText("Inactive").length).toBeGreaterThan(0);
+  });
+
+  it("limits options to two axes and confirms removal when variants are affected", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add option" }));
+    expect(screen.getByRole("button", { name: "Add option" }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("variant row(s) using it will be affected"));
+    expect(screen.getAllByDisplayValue("Blue").length).toBeGreaterThan(0);
+  });
+
+  it("shows retry when draft preparation fails", () => {
     createMutate.mockImplementation((_input, options) => options.onError(new Error("Save failed")));
     render(<SellerProductCreatePage />);
 
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Retry Product" } });
-    fireEvent.click(screen.getByRole("button", { name: /save product/i }));
-
     expect(screen.getByText("Save failed")).toBeTruthy();
-    expect(screen.getByDisplayValue("Retry Product")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  it("submits a ready draft for review and shows moderation rejection reasons", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /submit for review/i }));
+    expect(submitReviewMutate).toHaveBeenCalledWith("prod_1", expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }));
+
+    cleanup();
+    render(<SellerProductEditPage productId="prod_2" />);
+    expect(screen.getByText("Reason: Missing image proof")).toBeTruthy();
+  });
+
+  it("blocks submit review when variant option combinations are duplicated", () => {
+    const duplicateProduct = {
+      ...products[0],
+      variants: [
+        products[0].variants[0],
+        { ...products[0].variants[0], id: "var_2", sku: "SHIRT-2" },
+      ],
+    };
+    sellerProductsState = { data: { data: [duplicateProduct], meta: { nextCursor: null, hasNextPage: false } }, error: null, isLoading: false };
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    expect(screen.getAllByText("Duplicate variant option combination. Choose a unique option value set for each variant.").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(true);
   });
 });

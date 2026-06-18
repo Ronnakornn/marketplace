@@ -14,4 +14,5 @@ export {
   SellerProductEditPage,
   SellerProductsPage,
 } from "./components/SellerProductPages";
+export { SellerProductAnalyticsPage } from "./components/SellerProductAnalyticsPage";
 export { SellerRegisterPage, SellerStatusPage } from "./components/SellerOnboardingPages";

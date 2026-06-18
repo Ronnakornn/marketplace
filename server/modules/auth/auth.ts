@@ -63,6 +63,16 @@ function createSocialProviders(env: NodeJS.ProcessEnv = process.env) {
   };
 }
 
+function getTrustedOrigins(env: NodeJS.ProcessEnv = process.env): string[] {
+  return [
+    env.BETTER_AUTH_URL,
+    env.NEXT_PUBLIC_APP_URL,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://192.168.1.103:3000",
+  ].filter((origin): origin is string => Boolean(origin?.trim()));
+}
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -120,6 +130,7 @@ export const auth = betterAuth({
   },
   secret: process.env.BETTER_AUTH_SECRET ?? "dev-secret-change-in-production",
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+  trustedOrigins: getTrustedOrigins(),
   socialProviders: createSocialProviders(),
 });
 

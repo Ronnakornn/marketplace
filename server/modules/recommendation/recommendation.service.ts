@@ -21,6 +21,11 @@ export interface RecommendationProductCard {
   coverImage?: string
   minPrice: number
   maxPrice?: number
+  variantId?: string
+  variantTitle?: string
+  sku?: string
+  currency?: string
+  stock?: number
   rating?: number
   soldCount?: number
   shop?: {
@@ -177,11 +182,21 @@ export class RecommendationService {
       ? undefined
       : Number((product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length).toFixed(2))
 
+    const singleVariant = product.variants.length === 1 ? product.variants[0] : null
+    const singleVariantStock = singleVariant?.inventory
+      ? Math.max(0, singleVariant.inventory.quantityOnHand - singleVariant.inventory.quantityReserved)
+      : undefined
+
     return {
       productId: product.id,
       title: localizedText(locale, { th: product.titleTh, en: product.titleEn, fallback: product.title }) ?? product.title,
       minPrice,
       ...(maxPrice !== minPrice ? { maxPrice } : {}),
+      ...(singleVariant?.id ? { variantId: singleVariant.id } : {}),
+      ...(singleVariant?.title ? { variantTitle: singleVariant.title } : {}),
+      ...(singleVariant?.sku ? { sku: singleVariant.sku } : {}),
+      ...(singleVariant?.currency ? { currency: singleVariant.currency } : {}),
+      ...(singleVariantStock !== undefined ? { stock: singleVariantStock } : {}),
       ...(rating !== undefined ? { rating } : {}),
       soldCount,
       shop: {

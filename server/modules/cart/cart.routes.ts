@@ -12,6 +12,8 @@ const AddCartItemBodySchema = t.Composite([
   t.Pick(CartItemPlainInputCreate, ['quantity']),
   t.Object({
     variantId: t.String({ format: 'uuid' }),
+    sessionId: t.Optional(t.String({ maxLength: 128 })),
+    source: t.Optional(t.String({ maxLength: 64 })),
   }),
 ])
 

@@ -13,11 +13,17 @@ export const ADMIN_PRODUCT_PAGE_SIZE = 50;
 export const AFFILIATE_TARGET_PAGE_SIZE = 10;
 
 type Locale = "th" | "en";
-type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
+type ProductStatus = "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
 type ProductSort = "relevance" | "newest" | "best_selling" | "price_asc" | "price_desc" | "rating" | string;
 
 type PublicProductsResponse = Treaty.Data<ReturnType<typeof api.api.products.get>>;
 type PublicProductDetailResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["get"]>>;
+type PublicRelatedProductsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["related"]["get"]>>;
+type PublicProductReviewsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["reviews"]["get"]>>;
+type PublicProductRatingSummaryResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["rating-summary"]["get"]>>;
+type PublicProductQuestionsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["questions"]["get"]>>;
+type PublicProductQuestionResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products>["questions"]["post"]>>;
+type ProductQuestionAnswerResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.products.questions>["answers"]["post"]>>;
 type PublicCategoriesResponse = Treaty.Data<ReturnType<typeof api.api.categories.get>>;
 type PublicSearchProductsResponse = Treaty.Data<ReturnType<typeof api.api.search.products.get>>;
 type PublicSearchSuggestionsResponse = Treaty.Data<ReturnType<typeof api.api.search.suggestions.get>>;
@@ -39,6 +45,9 @@ export interface PublicProductListInput {
   minPrice?: number | string;
   maxPrice?: number | string;
   rating?: number | string;
+  inStock?: boolean | string;
+  freeShipping?: boolean | string;
+  onSale?: boolean | string;
   sort?: ProductSort;
   cursor?: string;
   page?: number;
@@ -48,6 +57,32 @@ export interface PublicProductListInput {
 export interface PublicProductDetailInput {
   productId: string;
   locale?: Locale;
+}
+
+export interface PublicRelatedProductsInput extends PublicProductDetailInput {
+  limit?: number;
+}
+
+export type PublicProductReviewSort = "latest" | "rating_desc" | "rating_asc";
+export type PublicProductQuestionAnswerStatus = "all" | "answered" | "unanswered";
+export type PublicProductQuestionSort = "latest" | "oldest";
+
+export interface PublicProductReviewsInput {
+  productId: string;
+  rating?: 1 | 2 | 3 | 4 | 5;
+  hasMedia?: boolean;
+  hasComment?: boolean;
+  sort?: PublicProductReviewSort;
+  page?: number;
+  limit?: number;
+}
+
+export interface PublicProductQuestionsInput {
+  productId: string;
+  answerStatus?: PublicProductQuestionAnswerStatus;
+  sort?: PublicProductQuestionSort;
+  page?: number;
+  limit?: number;
 }
 
 export interface PublicCategoryListInput {
@@ -77,18 +112,23 @@ export interface AffiliateProductTargetInput {
   limit?: number;
 }
 
-type QueryValue = string | number | undefined;
-type CleanQuery = Record<string, string | number>;
+type QueryValue = string | number | boolean | undefined;
+type CleanQuery = Record<string, string | number | boolean>;
 
 export interface BuyerProduct {
   id: string;
   title: string;
   description: string | null;
   price: number;
+  minPrice: number;
+  maxPrice: number;
   currency: string;
   rating: number;
   soldCount: number;
   stock: number;
+  originalPrice: number | null;
+  discountPercent: number | null;
+  badges: string[];
   shop: {
     id: string;
     name: string;
@@ -118,8 +158,29 @@ export interface BuyerProduct {
     price: number;
     currency: string;
     stock: number;
+    optionValues: Array<{
+      optionId: string;
+      optionName: string;
+      valueId: string;
+      value: string;
+      colorHex: string | null;
+    }>;
   }>;
   images: string[];
+  video: {
+    url: string;
+    contentType: string;
+    fileName: string;
+  } | null;
+  options: Array<{
+    id: string;
+    name: string;
+    values: Array<{
+      id: string;
+      value: string;
+      colorHex: string | null;
+    }>;
+  }>;
 }
 
 export interface BuyerCategory {
@@ -133,6 +194,120 @@ export interface BuyerBrand {
   id: string;
   slug: string;
   name: string;
+}
+
+export interface BuyerListingMeta {
+  totalCount: number | null;
+  page: number;
+  pageSize: number;
+  hasNextPage: boolean;
+  query: {
+    q?: string;
+    categoryId?: string;
+    brandId?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sort?: string;
+  };
+}
+
+export interface BuyerListingFacets {
+  categories: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    count: number;
+    active: boolean;
+  }>;
+  brands: Array<{
+    id: string;
+    name: string;
+    slug?: string;
+    count: number;
+    active: boolean;
+  }>;
+  price: {
+    min: number | null;
+    max: number | null;
+    currency: string;
+  };
+}
+
+export interface BuyerPaginatedMeta {
+  page: number;
+  limit: number;
+  totalCount: number;
+  hasNextPage: boolean;
+}
+
+export interface BuyerProductListing {
+  products: BuyerProduct[];
+  meta: BuyerListingMeta;
+  facets: BuyerListingFacets;
+}
+
+export interface BuyerReviewMedia {
+  id: string;
+  type: "IMAGE";
+  url: string;
+  altText: string | null;
+  sortOrder: number;
+}
+
+export interface BuyerProductReview {
+  id: string;
+  reviewerName: string;
+  rating: number;
+  comment: string | null;
+  media: BuyerReviewMedia[];
+  createdAt: string;
+  snapshot: {
+    productTitle: string;
+    variantTitle: string;
+    variantSku: string;
+    shopName: string;
+  } | null;
+}
+
+export interface BuyerProductReviewsPage {
+  items: BuyerProductReview[];
+  meta: BuyerPaginatedMeta;
+}
+
+export interface BuyerProductRatingSummary {
+  averageRating: number;
+  totalReviewCount: number;
+  distribution: Record<1 | 2 | 3 | 4 | 5, number>;
+}
+
+export interface BuyerProductQuestionAnswer {
+  id: string;
+  answer: string;
+  status: "PUBLISHED" | string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface BuyerProductQuestion {
+  id: string;
+  productId: string;
+  shopId: string;
+  question: string;
+  status: "PUBLISHED" | string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+  };
+  answers: BuyerProductQuestionAnswer[];
+}
+
+export interface BuyerProductQuestionsPage {
+  items: BuyerProductQuestion[];
+  meta: BuyerPaginatedMeta;
 }
 
 export interface AffiliateProductTargetOption {
@@ -157,6 +332,21 @@ export const productQueryKeys = {
     details: () => [...productQueryKeys.public.all(), "details"] as const,
     detail: (input: PublicProductDetailInput) =>
       [...productQueryKeys.public.details(), cleanPublicProductDetailInput(input)] as const,
+    related: (input: PublicRelatedProductsInput) =>
+      [...productQueryKeys.public.all(), "related", cleanPublicRelatedProductsInput(input)] as const,
+    reviews: (input: string | PublicProductReviewsInput) => {
+      const normalized = typeof input === "string"
+        ? cleanPublicProductReviewsInput({ productId: input })
+        : cleanPublicProductReviewsInput(input);
+      return [...productQueryKeys.public.all(), "reviews", normalized] as const;
+    },
+    ratingSummary: (productId: string) => [...productQueryKeys.public.all(), "rating-summary", productId] as const,
+    questions: (input: string | PublicProductQuestionsInput) => {
+      const normalized = typeof input === "string"
+        ? cleanPublicProductQuestionsInput({ productId: input })
+        : cleanPublicProductQuestionsInput(input);
+      return [...productQueryKeys.public.all(), "questions", normalized] as const;
+    },
     categories: (input: PublicCategoryListInput = {}) =>
       [...productQueryKeys.public.all(), "categories", cleanCategoryInput(input)] as const,
     brands: () => [...productQueryKeys.public.all(), "brands"] as const,
@@ -191,7 +381,7 @@ export const productQueryKeys = {
 };
 
 export function publicProductListQueryOptions(input: PublicProductListInput = {}) {
-  const query = cleanPublicProductListInput(input);
+  const query = cleanPublicProductListApiInput(input);
   return queryOptions({
     queryKey: productQueryKeys.public.list(input),
     queryFn: async (): Promise<PublicProductsResponse> => {
@@ -229,6 +419,59 @@ export function publicProductDetailQueryOptions(input: PublicProductDetailInput)
   });
 }
 
+export function publicRelatedProductsQueryOptions(input: PublicRelatedProductsInput) {
+  const query = cleanPublicRelatedProductsApiInput(input);
+  return queryOptions({
+    queryKey: productQueryKeys.public.related(input),
+    queryFn: async (): Promise<PublicRelatedProductsResponse> => {
+      const { data, error } = await api.api.products({ productId: input.productId }).related.get({ query });
+      if (error) throw error;
+      return data;
+    },
+    staleTime: PRODUCT_QUERY_STALE_TIME_MS,
+  });
+}
+
+export function publicProductReviewsQueryOptions(input: string | PublicProductReviewsInput) {
+  const normalizedInput = typeof input === "string" ? { productId: input } : input;
+  const query = cleanPublicProductReviewsApiInput(normalizedInput);
+  return queryOptions({
+    queryKey: productQueryKeys.public.reviews(normalizedInput),
+    queryFn: async (): Promise<PublicProductReviewsResponse> => {
+      const { data, error } = await api.api.products({ productId: normalizedInput.productId }).reviews.get({ query });
+      if (error) throw error;
+      return data;
+    },
+    staleTime: PRODUCT_QUERY_STALE_TIME_MS,
+  });
+}
+
+export function publicProductRatingSummaryQueryOptions(productId: string) {
+  return queryOptions({
+    queryKey: productQueryKeys.public.ratingSummary(productId),
+    queryFn: async (): Promise<PublicProductRatingSummaryResponse> => {
+      const { data, error } = await api.api.products({ productId })["rating-summary"].get();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: PRODUCT_QUERY_STALE_TIME_MS,
+  });
+}
+
+export function publicProductQuestionsQueryOptions(input: string | PublicProductQuestionsInput) {
+  const normalizedInput = typeof input === "string" ? { productId: input } : input;
+  const query = cleanPublicProductQuestionsApiInput(normalizedInput);
+  return queryOptions({
+    queryKey: productQueryKeys.public.questions(normalizedInput),
+    queryFn: async (): Promise<PublicProductQuestionsResponse> => {
+      const { data, error } = await api.api.products({ productId: normalizedInput.productId }).questions.get({ query });
+      if (error) throw error;
+      return data;
+    },
+    staleTime: PRODUCT_QUERY_STALE_TIME_MS,
+  });
+}
+
 export function publicCategoriesQueryOptions(input: PublicCategoryListInput = {}) {
   const query = cleanCategoryInput(input);
   return queryOptions({
@@ -255,7 +498,7 @@ export function publicBrandsQueryOptions() {
 }
 
 export function publicShopProductsQueryOptions(input: PublicProductListInput & { shopId: string }) {
-  const query = cleanPublicProductListInput(input);
+  const query = cleanPublicProductListApiInput(input);
   return queryOptions({
     queryKey: productQueryKeys.public.shopProducts(input),
     queryFn: async (): Promise<PublicProductsResponse> => {
@@ -360,6 +603,22 @@ export function usePublicProductDetail(input: PublicProductDetailInput) {
   return useQuery(publicProductDetailQueryOptions(input));
 }
 
+export function usePublicRelatedProducts(input: PublicRelatedProductsInput) {
+  return useQuery(publicRelatedProductsQueryOptions(input));
+}
+
+export function usePublicProductReviews(input: string | PublicProductReviewsInput) {
+  return useQuery(publicProductReviewsQueryOptions(input));
+}
+
+export function usePublicProductRatingSummary(productId: string) {
+  return useQuery(publicProductRatingSummaryQueryOptions(productId));
+}
+
+export function usePublicProductQuestions(input: string | PublicProductQuestionsInput) {
+  return useQuery(publicProductQuestionsQueryOptions(input));
+}
+
 export function usePublicCategories(input: PublicCategoryListInput = {}) {
   return useQuery(publicCategoriesQueryOptions(input));
 }
@@ -397,15 +656,39 @@ export function useAffiliateProductTargets(input: AffiliateProductTargetInput = 
 }
 
 export async function invalidatePublicProductQueries(queryClient: QueryClient, input: { productId?: string; locale?: Locale } = {}) {
+  const productScopedInvalidations = input.productId
+    ? [
+        queryClient.invalidateQueries({
+          queryKey: productQueryKeys.public.detail({ productId: input.productId, locale: input.locale }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: productQueryKeys.public.related({ productId: input.productId, locale: input.locale }),
+        }),
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.public.reviews(input.productId) }),
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.public.ratingSummary(input.productId) }),
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.public.questions(input.productId) }),
+      ]
+    : [
+        queryClient.invalidateQueries({ queryKey: productQueryKeys.public.details() }),
+      ];
+
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: productQueryKeys.public.lists() }),
     queryClient.invalidateQueries({ queryKey: productQueryKeys.public.searches() }),
-    input.productId
-      ? queryClient.invalidateQueries({
-          queryKey: productQueryKeys.public.detail({ productId: input.productId, locale: input.locale }),
-        })
-      : queryClient.invalidateQueries({ queryKey: productQueryKeys.public.details() }),
+    ...productScopedInvalidations,
   ]);
+}
+
+export async function createProductQuestion(productId: string, question: string): Promise<PublicProductQuestionResponse> {
+  const { data, error } = await api.api.products({ productId }).questions.post({ question });
+  if (error) throw error;
+  return data;
+}
+
+export async function answerProductQuestion(questionId: string, answer: string): Promise<ProductQuestionAnswerResponse> {
+  const { data, error } = await api.api.products.questions({ questionId }).answers.post({ answer });
+  if (error) throw error;
+  return data;
 }
 
 export async function invalidateSellerProductQueries(queryClient: QueryClient, input: { productId?: string } = {}) {
@@ -470,6 +753,27 @@ export function cleanPublicProductListInput(input: PublicProductListInput = {}):
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
     rating: input.rating,
+    inStock: input.inStock,
+    freeShipping: input.freeShipping,
+    onSale: input.onSale,
+    sort: input.sort,
+    cursor: input.cursor,
+    page: input.page,
+    limit: input.limit ?? PUBLIC_PRODUCT_PAGE_SIZE,
+  });
+}
+
+export function cleanPublicProductListApiInput(input: PublicProductListInput = {}): CleanQuery {
+  return cleanQuery({
+    locale: input.locale,
+    q: input.q,
+    keyword: input.keyword,
+    categoryId: input.categoryId,
+    shopId: input.shopId,
+    brandId: input.brandId,
+    attributeFilters: input.attributeFilters,
+    minPrice: input.minPrice,
+    maxPrice: input.maxPrice,
     sort: input.sort,
     cursor: input.cursor,
     page: input.page,
@@ -517,6 +821,63 @@ function cleanPublicProductDetailInput(input: PublicProductDetailInput): CleanQu
   });
 }
 
+function cleanPublicRelatedProductsInput(input: PublicRelatedProductsInput): CleanQuery {
+  return cleanQuery({
+    productId: input.productId,
+    locale: input.locale,
+    limit: input.limit ?? 8,
+  });
+}
+
+function cleanPublicRelatedProductsApiInput(input: PublicRelatedProductsInput): CleanQuery {
+  return cleanQuery({
+    locale: input.locale,
+    limit: input.limit ?? 8,
+  });
+}
+
+export function cleanPublicProductReviewsInput(input: PublicProductReviewsInput): CleanQuery {
+  return cleanQuery({
+    productId: input.productId,
+    rating: input.rating,
+    hasMedia: input.hasMedia,
+    hasComment: input.hasComment,
+    sort: input.sort ?? "latest",
+    page: input.page ?? 1,
+    limit: input.limit ?? 5,
+  });
+}
+
+function cleanPublicProductReviewsApiInput(input: PublicProductReviewsInput): CleanQuery {
+  return cleanQuery({
+    rating: input.rating,
+    hasMedia: input.hasMedia,
+    hasComment: input.hasComment,
+    sort: input.sort ?? "latest",
+    page: input.page ?? 1,
+    limit: input.limit ?? 5,
+  });
+}
+
+export function cleanPublicProductQuestionsInput(input: PublicProductQuestionsInput): CleanQuery {
+  return cleanQuery({
+    productId: input.productId,
+    answerStatus: input.answerStatus ?? "all",
+    sort: input.sort ?? "latest",
+    page: input.page ?? 1,
+    limit: input.limit ?? 5,
+  });
+}
+
+function cleanPublicProductQuestionsApiInput(input: PublicProductQuestionsInput): CleanQuery {
+  return cleanQuery({
+    answerStatus: input.answerStatus ?? "all",
+    sort: input.sort ?? "latest",
+    page: input.page ?? 1,
+    limit: input.limit ?? 5,
+  });
+}
+
 function cleanCategoryInput(input: PublicCategoryListInput = {}): CleanQuery {
   return cleanQuery({ locale: input.locale });
 }
@@ -532,6 +893,9 @@ function cleanSearchProductInput(input: PublicProductListInput = {}): CleanQuery
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
     rating: input.rating,
+    inStock: input.inStock,
+    freeShipping: input.freeShipping,
+    onSale: input.onSale,
     sort: input.sort === "relevance" ? "newest" : input.sort,
     page: input.page,
     limit: input.limit ?? PUBLIC_PRODUCT_PAGE_SIZE,
@@ -555,11 +919,11 @@ function cleanAffiliateTargetInput(input: AffiliateProductTargetInput = {}): Cle
 
 function cleanQuery(input: Record<string, QueryValue>): CleanQuery {
   return Object.fromEntries(
-    Object.entries(input).filter(([, value]) => value !== undefined && value !== ""),
+    Object.entries(input).filter(([, value]) => value !== undefined && value !== "" && value !== false),
   ) as CleanQuery;
 }
 
-export function normalizePublicProducts(response: PublicProductsResponse | PublicSearchProductsResponse): BuyerProduct[] {
+export function normalizePublicProducts(response: PublicProductsResponse | PublicSearchProductsResponse | PublicRelatedProductsResponse): BuyerProduct[] {
   const record = toRecord(response);
   const rawItems = Array.isArray(response)
     ? response
@@ -569,6 +933,85 @@ export function normalizePublicProducts(response: PublicProductsResponse | Publi
   return rawItems.map(normalizePublicProduct);
 }
 
+export function normalizePublicProductListing(
+  response: PublicProductsResponse | PublicSearchProductsResponse | PublicRelatedProductsResponse,
+): BuyerProductListing {
+  const record = toRecord(response);
+  const rawItems = Array.isArray(response)
+    ? response
+    : readArray(record.data).length
+      ? readArray(record.data)
+      : readArray(record.items);
+
+  return {
+    products: rawItems.map(normalizePublicProduct),
+    meta: normalizeListingMeta(record.meta, rawItems.length),
+    facets: normalizeListingFacets(record.facets),
+  };
+}
+
+function normalizeListingMeta(metaInput: unknown, itemCount: number): BuyerListingMeta {
+  const meta = toRecord(metaInput);
+  const page = Math.max(1, readNumber(meta.page, 1));
+  const pageSize = Math.max(1, readNumber(meta.pageSize, readNumber(meta.limit, itemCount || PUBLIC_PRODUCT_PAGE_SIZE)));
+  const totalCount = optionalNumber(meta.totalCount);
+  const hasNextPage = typeof meta.hasNextPage === "boolean"
+    ? meta.hasNextPage
+    : totalCount !== null
+      ? page * pageSize < totalCount
+      : false;
+  const query = toRecord(meta.query);
+
+  return {
+    totalCount,
+    page,
+    pageSize,
+    hasNextPage,
+    query: {
+      q: optionalString(query.q) ?? optionalString(query.keyword) ?? undefined,
+      categoryId: optionalString(query.categoryId) ?? undefined,
+      brandId: optionalString(query.brandId) ?? undefined,
+      minPrice: optionalNumber(query.minPrice) ?? undefined,
+      maxPrice: optionalNumber(query.maxPrice) ?? undefined,
+      sort: optionalString(query.sort) ?? undefined,
+    },
+  };
+}
+
+function normalizeListingFacets(facetsInput: unknown): BuyerListingFacets {
+  const facets = toRecord(facetsInput);
+  const price = toRecord(facets.price);
+
+  return {
+    categories: readArray(facets.categories).map((item) => {
+      const category = toRecord(item);
+      return {
+        id: readString(category.id, readString(category.slug)),
+        slug: readString(category.slug),
+        name: readString(category.name, "Category"),
+        count: readNumber(category.count),
+        active: category.active === true,
+      };
+    }).filter((category) => category.id && category.slug),
+    brands: readArray(facets.brands).map((item) => {
+      const brand = toRecord(item);
+      const slug = optionalString(brand.slug) ?? undefined;
+      return {
+        id: readString(brand.id, slug ?? readString(brand.name)),
+        name: readString(brand.name, "Brand"),
+        ...(slug ? { slug } : {}),
+        count: readNumber(brand.count),
+        active: brand.active === true,
+      };
+    }).filter((brand) => brand.id),
+    price: {
+      min: optionalNumber(price.min),
+      max: optionalNumber(price.max),
+      currency: readString(price.currency, defaultCurrency),
+    },
+  };
+}
+
 export function normalizePublicProduct(input: PublicProductDetailResponse | unknown, index = 0): BuyerProduct {
   const record = toRecord(input);
   const shop = toRecord(record.shop);
@@ -576,28 +1019,40 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
   const variants = readArray(record.variants).map((variantInput, variantIndex) => {
     const variant = toRecord(variantInput);
     const inventory = toRecord(variant.inventory);
+    const stock = Math.max(0, readNumber(inventory.quantityOnHand, readNumber(variant.stock, 0)) - readNumber(inventory.quantityReserved, 0));
     return {
       id: readString(variant.id, `${readString(record.id)}-variant-${variantIndex}`),
       title: readString(variant.title, "Default"),
       sku: readString(variant.sku),
       price: readNumber(variant.price, readNumber(record.price, 0)),
       currency: readString(variant.currency, readString(record.currency, defaultCurrency)),
-      stock: readNumber(inventory.quantityOnHand, readNumber(variant.stock, 0)),
+      stock,
+      optionValues: normalizeVariantOptionValues(variant.optionValues),
     };
   });
   const firstVariant = variants[0];
   const ratingSummary = toRecord(record.ratingSummary);
-  const minPrice = readNumber(record.minPrice, readNumber(record.price));
+  const variantPrices = variants.map((variant) => variant.price).filter((price) => price > 0);
+  const minPrice = readNumber(record.minPrice, variantPrices.length ? Math.min(...variantPrices) : readNumber(record.price));
+  const maxPrice = readNumber(record.maxPrice, variantPrices.length ? Math.max(...variantPrices) : minPrice);
+  const stock = variants.length ? variants.reduce((total, variant) => total + variant.stock, 0) : readNumber(record.stock);
+  const originalPrice = optionalNumber(record.originalPrice) ?? optionalNumber(record.compareAtPrice) ?? optionalNumber(record.listPrice);
+  const discountPercent = optionalNumber(record.discountPercent) ?? calculateDiscountPercent(originalPrice, minPrice);
 
   return {
     id: readString(record.id, readString(record.productId, `product-${index}`)),
     title: readString(record.title, "Untitled product"),
     description: optionalString(record.description),
     price: firstVariant?.price ?? minPrice,
+    minPrice,
+    maxPrice,
     currency: firstVariant?.currency ?? readString(record.currency, defaultCurrency),
     rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 4.7)),
     soldCount: readNumber(record.soldCount, readNumber(record.sold, 0)),
-    stock: firstVariant?.stock ?? readNumber(record.stock),
+    stock,
+    originalPrice,
+    discountPercent,
+    badges: normalizeProductBadges(record, stock, discountPercent),
     shop: {
       id: readString(shop.id),
       name: readString(shop.name, "Marketplace shop"),
@@ -625,6 +1080,52 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
     }).filter((attribute) => attribute.name && attribute.value),
     variants,
     images: normalizeProductImages(record.images, record.coverImage),
+    video: normalizeProductVideo(record.video),
+    options: normalizeProductOptions(record.options),
+  };
+}
+
+function normalizeProductOptions(optionsInput: unknown): BuyerProduct["options"] {
+  return readArray(optionsInput).map((item) => {
+    const option = toRecord(item);
+    return {
+      id: readString(option.id),
+      name: readString(option.name, "Option"),
+      values: readArray(option.values).map((valueInput) => {
+        const value = toRecord(valueInput);
+        return {
+          id: readString(value.id),
+          value: readString(value.value, "Option"),
+          colorHex: optionalString(value.colorHex),
+        };
+      }).filter((value) => value.id && value.value),
+    };
+  }).filter((option) => option.id && option.values.length).slice(0, 2);
+}
+
+function normalizeVariantOptionValues(optionValuesInput: unknown): BuyerProduct["variants"][number]["optionValues"] {
+  return readArray(optionValuesInput).map((item) => {
+    const link = toRecord(item);
+    const optionValue = toRecord(link.optionValue);
+    const option = toRecord(optionValue.option);
+    return {
+      optionId: readString(option.id),
+      optionName: readString(option.name, "Option"),
+      valueId: readString(optionValue.id, readString(link.optionValueId)),
+      value: readString(optionValue.value, "Option"),
+      colorHex: optionalString(optionValue.colorHex),
+    };
+  }).filter((item) => item.optionId && item.valueId);
+}
+
+function normalizeProductVideo(videoInput: unknown): BuyerProduct["video"] {
+  const video = toRecord(videoInput);
+  const url = readString(video.url);
+  if (!url || isSecretStorageUrl(url)) return null;
+  return {
+    url,
+    contentType: readString(video.contentType, "video/mp4"),
+    fileName: readString(video.fileName, "Product video"),
   };
 }
 
@@ -678,6 +1179,138 @@ export function normalizePublicSearchSuggestions(response: PublicSearchSuggestio
   return rawItems.map((item) => readString(typeof item === "string" ? item : toRecord(item).value)).filter(Boolean);
 }
 
+export function normalizePublicProductReviews(response: PublicProductReviewsResponse | unknown): BuyerProductReview[] {
+  return normalizePublicProductReviewsPage(response).items;
+}
+
+export function normalizePublicProductReviewsPage(response: PublicProductReviewsResponse | unknown): BuyerProductReviewsPage {
+  const record = toRecord(response);
+  const rawItems = Array.isArray(response)
+    ? response
+    : readArray(record.items).length
+      ? readArray(record.items)
+      : readArray(record.data);
+  const items = rawItems.map((item) => {
+    const record = toRecord(item);
+    const snapshot = toRecord(record.snapshot);
+    return {
+      id: readString(record.id),
+      reviewerName: readString(record.userName, "Marketplace buyer"),
+      rating: Math.min(5, Math.max(1, readNumber(record.rating, 5))),
+      comment: optionalString(record.comment),
+      media: normalizeReviewMedia(record.media),
+      createdAt: readDateString(record.createdAt),
+      snapshot: readString(snapshot.productTitle) || readString(snapshot.variantTitle) ? {
+        productTitle: readString(snapshot.productTitle),
+        variantTitle: readString(snapshot.variantTitle),
+        variantSku: readString(snapshot.variantSku),
+        shopName: readString(snapshot.shopName),
+      } : null,
+    };
+  }).filter((review) => review.id);
+  return {
+    items,
+    meta: normalizePaginatedMeta(record.meta, items.length),
+  };
+}
+
+export function normalizePublicProductRatingSummary(response: PublicProductRatingSummaryResponse | unknown): BuyerProductRatingSummary {
+  const record = toRecord(response);
+  const distributionRecord = toRecord(record.distribution);
+  const distribution = {
+    1: readNumber(distributionRecord[1], readNumber(distributionRecord["1"])),
+    2: readNumber(distributionRecord[2], readNumber(distributionRecord["2"])),
+    3: readNumber(distributionRecord[3], readNumber(distributionRecord["3"])),
+    4: readNumber(distributionRecord[4], readNumber(distributionRecord["4"])),
+    5: readNumber(distributionRecord[5], readNumber(distributionRecord["5"])),
+  } as Record<1 | 2 | 3 | 4 | 5, number>;
+  const totalReviewCount = readNumber(record.totalReviewCount, Object.values(distribution).reduce((total, count) => total + count, 0));
+  const fallbackAverage = totalReviewCount
+    ? Object.entries(distribution).reduce((total, [rating, count]) => total + Number(rating) * count, 0) / totalReviewCount
+    : 0;
+  return {
+    averageRating: readNumber(record.averageRating, Number(fallbackAverage.toFixed(2))),
+    totalReviewCount,
+    distribution,
+  };
+}
+
+export function normalizePublicProductQuestions(response: PublicProductQuestionsResponse | unknown): BuyerProductQuestion[] {
+  return normalizePublicProductQuestionsPage(response).items;
+}
+
+export function normalizePublicProductQuestionsPage(response: PublicProductQuestionsResponse | unknown): BuyerProductQuestionsPage {
+  const record = toRecord(response);
+  const rawItems = Array.isArray(response)
+    ? response
+    : readArray(record.items).length
+      ? readArray(record.items)
+      : readArray(record.data);
+  const items = rawItems.map((item) => {
+    const record = toRecord(item);
+    return {
+      id: readString(record.id),
+      productId: readString(record.productId),
+      shopId: readString(record.shopId),
+      question: readString(record.question),
+      status: readString(record.status, "PUBLISHED"),
+      createdAt: readDateString(record.createdAt),
+      user: normalizeQuestionUser(record.user),
+      answers: readArray(record.answers).map((answerInput) => {
+        const answer = toRecord(answerInput);
+        return {
+          id: readString(answer.id),
+          answer: readString(answer.answer),
+          status: readString(answer.status, "PUBLISHED"),
+          createdAt: readDateString(answer.createdAt),
+          user: normalizeQuestionUser(answer.user),
+        };
+      }).filter((answer) => answer.id && answer.answer),
+    };
+  }).filter((question) => question.id && question.question);
+  return {
+    items,
+    meta: normalizePaginatedMeta(record.meta, items.length),
+  };
+}
+
+function normalizePaginatedMeta(metaInput: unknown, itemCount: number): BuyerPaginatedMeta {
+  const meta = toRecord(metaInput);
+  const page = Math.max(1, readNumber(meta.page, 1));
+  const limit = Math.max(1, readNumber(meta.limit, readNumber(meta.pageSize, itemCount || 5)));
+  const totalCount = Math.max(0, readNumber(meta.totalCount, itemCount));
+  const hasNextPage = typeof meta.hasNextPage === "boolean" ? meta.hasNextPage : page * limit < totalCount;
+  return { page, limit, totalCount, hasNextPage };
+}
+
+function normalizeQuestionUser(input: unknown): BuyerProductQuestion["user"] {
+  const user = toRecord(input);
+  return {
+    id: readString(user.id),
+    name: readString(user.name, "Marketplace user"),
+  };
+}
+
+function normalizeReviewMedia(mediaInput: unknown): BuyerReviewMedia[] {
+  return readArray(mediaInput).map((item, index) => {
+    const media = toRecord(item);
+    const url = readString(media.url);
+    return {
+      id: readString(media.id, `${url}-${index}`),
+      type: "IMAGE" as const,
+      url,
+      altText: optionalString(media.altText),
+      sortOrder: readNumber(media.sortOrder, index),
+    };
+  }).filter((media) => media.url && media.type === "IMAGE" && !isSecretStorageUrl(media.url))
+    .sort((left, right) => left.sortOrder - right.sortOrder);
+}
+
+function readDateString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  return readString(value);
+}
+
 function toRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
@@ -695,5 +1328,39 @@ function optionalString(value: unknown): string | null {
 }
 
 function readNumber(value: unknown, fallback = 0): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+function optionalNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function calculateDiscountPercent(originalPrice: number | null, currentPrice: number): number | null {
+  if (!originalPrice || originalPrice <= currentPrice || currentPrice < 1) return null;
+  return Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
+}
+
+function normalizeProductBadges(record: Record<string, unknown>, stock: number, discountPercent: number | null): string[] {
+  const rawBadges = readArray(record.badges).map((badge) => readString(badge)).filter(Boolean);
+  const badges = new Set(rawBadges);
+  if (Boolean(record.isFlashSale) || Boolean(record.flashSale)) badges.add("Flash Sale");
+  if (Boolean(record.freeShipping) || Boolean(record.hasFreeShipping)) badges.add("Free Shipping");
+  if (Boolean(record.verifiedShop) || Boolean(toRecord(record.shop).verified)) badges.add("Verified Shop");
+  if (Boolean(record.preferredShop) || Boolean(toRecord(record.shop).preferred)) badges.add("Preferred Shop");
+  if (stock > 0 && stock <= 5) badges.add("Low Stock");
+  if (Boolean(record.isNew) || Boolean(record.newArrival)) badges.add("New");
+  if (discountPercent) badges.add(`${discountPercent}% off`);
+  return [...badges].slice(0, 4);
 }
