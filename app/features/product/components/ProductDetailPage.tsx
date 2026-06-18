@@ -1259,7 +1259,7 @@ function ReviewCard({ review }: { review: BuyerProductReview }) {
         <div className="mt-3 flex gap-2 overflow-x-auto" aria-label="Review media">
           {review.media.map((media) => (
             <a key={media.id} href={media.url} target="_blank" rel="noreferrer" className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-              <Image src={media.url} alt={media.altText ?? "Review image"} fill sizes="80px" className="object-cover" />
+              <img src={media.url} alt={media.altText ?? "Review image"} className="size-full object-cover" loading="lazy" />
             </a>
           ))}
         </div>

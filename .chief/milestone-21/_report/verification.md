@@ -10,12 +10,19 @@
   - Result: pass
 
 - `bun run test`
-  - Result: fail due to unrelated seller product page timeout.
-  - Summary: 92 test files passed, 1 failed; 697 tests passed, 1 failed.
-  - Failing test: `app/features/seller/components/SellerProductPages.test.tsx` > `Seller product pages` > `generates variant rows, applies bulk values, and shows duplicate SKU errors inline`
-  - Failure: test timeout at 5000ms.
+  - Result: pass
+  - Summary: 93 test files passed, 698 tests passed.
+
+## Browser Verification
+
+- Clean dev origin: `http://localhost:3020`
+- Seed product: `Relaxed Linen Resort Shirt`
+- Desktop product detail showed review controls, Q&A controls, a published review, and no horizontal overflow.
+- Mobile product detail showed review controls, Q&A controls, and no horizontal overflow.
+- Filter interaction with `With media` stayed on the product detail section without runtime errors.
 
 ## Notes
 
 - Focused milestone-21 verification passed.
-- Full-suite failure is outside review/Q&A discovery scope.
+- Typecheck and full-suite verification passed after the review media thumbnail runtime fix.
+
