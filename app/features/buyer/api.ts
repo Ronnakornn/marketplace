@@ -124,7 +124,16 @@ export interface BuyerFavoriteProduct {
   title: string;
   price: number;
   currency: string;
-  shop: { id: string; name: string; slug: string };
+  status: string;
+  imageUrls: string[];
+  shop: { id: string; name: string; slug: string; status: string };
+  purchaseVariant: {
+    id: string;
+    title: string;
+    stock: number;
+    currency: string;
+    price: number;
+  } | null;
   createdAt: string;
 }
 
@@ -209,17 +218,29 @@ export async function fetchFavoriteProducts(): Promise<BuyerFavoriteProduct[]> {
   return rawItems.map((item) => {
     const record = toRecord(item);
     const shop = toRecord(record.shop);
+    const purchaseVariant = toRecord(record.purchaseVariant);
+    const purchaseVariantId = readString(purchaseVariant.id);
     return {
       id: readString(record.id),
       productId: readString(record.productId),
       title: readString(record.title, "Product"),
       price: readNumber(record.price),
       currency: readString(record.currency, defaultCurrency),
+      status: readString(record.status, "ACTIVE"),
+      imageUrls: readArray(record.imageUrls).map((image) => readString(image)).filter(Boolean),
       shop: {
         id: readString(shop.id),
         name: readString(shop.name, "Shop"),
         slug: readString(shop.slug),
+        status: readString(shop.status, "ACTIVE"),
       },
+      purchaseVariant: purchaseVariantId ? {
+        id: purchaseVariantId,
+        title: readString(purchaseVariant.title, "Default"),
+        stock: readNumber(purchaseVariant.stock),
+        currency: readString(purchaseVariant.currency, readString(record.currency, defaultCurrency)),
+        price: readNumber(purchaseVariant.price, readNumber(record.price)),
+      } : null,
       createdAt: readString(record.createdAt, new Date().toISOString()),
     };
   });

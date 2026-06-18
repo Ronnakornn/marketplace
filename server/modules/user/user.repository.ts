@@ -1,4 +1,4 @@
-import type { Account, Address, FavoriteProduct, PrismaClient, Product, ProductVariant, Shop, ShopFollow, User, Verification } from '#generated/client/client.ts'
+import type { Account, Address, FavoriteProduct, Inventory, PrismaClient, Product, ProductImage, ProductVariant, Shop, ShopFollow, User, Verification } from '#generated/client/client.ts'
 import type { Role, UserStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -36,8 +36,9 @@ export interface CreateVerificationData {
 export type BuyerAddress = Address
 export type FavoriteProductRecord = FavoriteProduct & {
   product: Product & {
-    shop: Pick<Shop, 'id' | 'name' | 'slug'>
-    variants: ProductVariant[]
+    shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
+    images: Pick<ProductImage, 'url' | 'sortOrder' | 'isPrimary'>[]
+    variants: Array<ProductVariant & { inventory: Inventory | null }>
   }
 }
 export type ShopFollowRecord = ShopFollow & {
@@ -317,8 +318,9 @@ export class PrismaUserRepository implements IUserRepository {
       include: {
         product: {
           include: {
-            shop: { select: { id: true, name: true, slug: true } },
-            variants: { where: { status: 'ACTIVE' }, orderBy: { createdAt: 'asc' } },
+            shop: { select: { id: true, name: true, slug: true, status: true } },
+            images: { select: { url: true, sortOrder: true, isPrimary: true }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }], take: 3 },
+            variants: { where: { status: 'ACTIVE' }, include: { inventory: true }, orderBy: { createdAt: 'asc' } },
           },
         },
       },

@@ -50,7 +50,16 @@ export interface FavoriteProductResponse {
   title: string
   price: number
   currency: string
-  shop: { id: string; name: string; slug: string }
+  status: string
+  imageUrls: string[]
+  shop: { id: string; name: string; slug: string; status: string }
+  purchaseVariant: {
+    id: string
+    title: string
+    stock: number
+    currency: string
+    price: number
+  } | null
   createdAt: Date
 }
 
@@ -548,14 +557,32 @@ export class UserService {
   }
 
   private toFavoriteProduct(favorite: FavoriteProductRecord): FavoriteProductResponse {
-    const variant = favorite.product.variants[0]
+    const variants = favorite.product.variants.map((variant) => ({
+      variant,
+      stock: Math.max(0, (variant.inventory?.quantityOnHand ?? 0) - (variant.inventory?.quantityReserved ?? 0)),
+    }))
+    const firstVariant = variants[0]
+    const purchaseVariant = favorite.product.status === 'ACTIVE' && favorite.product.shop.status === 'ACTIVE'
+      ? variants.find((item) => item.stock > 0)
+      : undefined
+    const displayVariant = purchaseVariant ?? firstVariant
+
     return {
       id: favorite.id,
       productId: favorite.productId,
       title: favorite.product.title,
-      price: Number(variant?.price) ?? 0,
-      currency: variant?.currency ?? 'USD',
+      price: displayVariant ? Number(displayVariant.variant.price) : 0,
+      currency: displayVariant?.variant.currency ?? 'USD',
+      status: favorite.product.status,
+      imageUrls: favorite.product.images.map((image) => image.url),
       shop: favorite.product.shop,
+      purchaseVariant: purchaseVariant ? {
+        id: purchaseVariant.variant.id,
+        title: purchaseVariant.variant.title,
+        stock: purchaseVariant.stock,
+        currency: purchaseVariant.variant.currency,
+        price: Number(purchaseVariant.variant.price),
+      } : null,
       createdAt: favorite.createdAt,
     }
   }
