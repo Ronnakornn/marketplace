@@ -14,8 +14,10 @@ import {
   normalizePublicProductListing,
   normalizePublicProduct,
   normalizePublicProductQuestions,
+  normalizePublicProductQuestionsPage,
   normalizePublicProductRatingSummary,
   normalizePublicProductReviews,
+  normalizePublicProductReviewsPage,
   normalizeAffiliateProductTargets,
   productQueryKeys,
 } from "./queries";
@@ -143,7 +145,38 @@ describe("product query keys", () => {
   });
 
   it("keys public review resources by product", () => {
-    expect(productQueryKeys.public.reviews("product-1")).toEqual(["product", "public", "reviews", "product-1"]);
+    expect(productQueryKeys.public.reviews("product-1")).toEqual([
+      "product",
+      "public",
+      "reviews",
+      { productId: "product-1", sort: "latest", page: 1, limit: 5 },
+    ]);
+    expect(productQueryKeys.public.reviews({
+      productId: "product-1",
+      rating: 5,
+      hasMedia: true,
+      hasComment: true,
+      sort: "rating_desc",
+      page: 2,
+      limit: 10,
+    })).toEqual([
+      "product",
+      "public",
+      "reviews",
+      { productId: "product-1", rating: 5, hasMedia: true, hasComment: true, sort: "rating_desc", page: 2, limit: 10 },
+    ]);
+    expect(productQueryKeys.public.questions({
+      productId: "product-1",
+      answerStatus: "answered",
+      sort: "oldest",
+      page: 3,
+      limit: 8,
+    })).toEqual([
+      "product",
+      "public",
+      "questions",
+      { productId: "product-1", answerStatus: "answered", sort: "oldest", page: 3, limit: 8 },
+    ]);
     expect(productQueryKeys.public.ratingSummary("product-1")).toEqual(["product", "public", "rating-summary", "product-1"]);
   });
 
@@ -238,6 +271,23 @@ describe("public product review normalization", () => {
       distribution: { 1: 0, 2: 1, 3: 1, 4: 2, 5: 4 },
     });
   });
+
+  it("normalizes paginated and legacy review responses", () => {
+    const page = normalizePublicProductReviewsPage({
+      items: [{ id: "review-1", userName: "Jane", rating: 5, comment: "Great" }],
+      meta: { page: 2, limit: 1, totalCount: 3, hasNextPage: true },
+    });
+
+    expect(page.meta).toEqual({ page: 2, limit: 1, totalCount: 3, hasNextPage: true });
+    expect(page.items[0]?.reviewerName).toBe("Jane");
+    expect(normalizePublicProductReviews([{ id: "review-legacy", rating: 4 }])).toHaveLength(1);
+    expect(normalizePublicProductReviewsPage({ items: [], meta: { page: "bad" } }).meta).toEqual({
+      page: 1,
+      limit: 5,
+      totalCount: 0,
+      hasNextPage: false,
+    });
+  });
 });
 
 describe("product query invalidation helpers", () => {
@@ -322,6 +372,31 @@ describe("public product question normalization", () => {
         user: { id: "seller-1", name: "Seller" },
       }],
     }]);
+  });
+
+  it("normalizes paginated and legacy public product questions", () => {
+    const page = normalizePublicProductQuestionsPage({
+      items: [{
+        id: "question-1",
+        productId: "product-1",
+        shopId: "shop-1",
+        question: "Answered?",
+        user: { id: "buyer-1", name: "Buyer" },
+        answers: [],
+      }],
+      meta: { page: 2, limit: 1, totalCount: 4, hasNextPage: true },
+    });
+
+    expect(page.meta).toEqual({ page: 2, limit: 1, totalCount: 4, hasNextPage: true });
+    expect(page.items[0]?.question).toBe("Answered?");
+    expect(normalizePublicProductQuestions([{
+      id: "question-legacy",
+      productId: "product-1",
+      shopId: "shop-1",
+      question: "Legacy?",
+      user: {},
+      answers: [],
+    }])).toHaveLength(1);
   });
 });
 

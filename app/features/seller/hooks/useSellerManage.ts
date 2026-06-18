@@ -187,8 +187,11 @@ export function useSellerProduct(productId?: string) {
 export function useSellerProductQuestions(productId?: string) {
   return useQuery({
     ...(productId ? publicProductQuestionsQueryOptions(productId) : {
-      queryKey: ["product", "public", "questions", "missing"] as const,
-      queryFn: async () => ({ items: [] }),
+      queryKey: productQueryKeys.public.questions("missing"),
+      queryFn: async () => ({
+        items: [],
+        meta: { page: 1, limit: 5, totalCount: 0, hasNextPage: false },
+      }),
     }),
     enabled: Boolean(productId),
     select: normalizePublicProductQuestions,

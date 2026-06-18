@@ -24,8 +24,10 @@ const queryMocks = vi.hoisted(() => ({
   recentlyViewedResponse: [] as unknown[],
   recentlyViewedError: null as unknown,
   recentlyViewedQueryFn: vi.fn(),
-  reviewsResponse: [] as unknown[],
-  questionsResponse: { items: [] } as { items: unknown[] },
+  reviewsResponse: { items: [], meta: { page: 1, limit: 5, totalCount: 0, hasNextPage: false } } as { items: unknown[]; meta: Record<string, unknown> },
+  reviewsResponsesByPage: new Map<number, { items: unknown[]; meta: Record<string, unknown> }>(),
+  questionsResponse: { items: [], meta: { page: 1, limit: 5, totalCount: 0, hasNextPage: false } } as { items: unknown[]; meta: Record<string, unknown> },
+  questionsResponsesByPage: new Map<number, { items: unknown[]; meta: Record<string, unknown> }>(),
   ratingSummaryResponse: { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } } as unknown,
   reviewsError: null as unknown,
   questionsError: null as unknown,
@@ -83,6 +85,7 @@ vi.mock("#/components/ui/progress", () => ({
 vi.mock("#/components/ui/sheet", () => ({
   Sheet: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SheetContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  SheetDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>,
   SheetHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SheetTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
   SheetTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -131,18 +134,24 @@ vi.mock("#/features/product/queries", () => ({
     queryKey: ["product", "public", "related", { locale: "en", productId: "product-1", limit: 8 }],
     queryFn: queryMocks.relatedQueryFn,
   }),
-  publicProductReviewsQueryOptions: () => ({
-    queryKey: ["product", "public", "reviews", "product-1"],
-    queryFn: queryMocks.reviewsQueryFn,
-  }),
+  publicProductReviewsQueryOptions: (input: { productId?: string; page?: number; rating?: number; hasMedia?: boolean; hasComment?: boolean; sort?: string } | string = "product-1") => {
+    const normalized = typeof input === "string" ? { productId: input, page: 1 } : input;
+    return {
+      queryKey: ["product", "public", "reviews", normalized],
+      queryFn: () => queryMocks.reviewsQueryFn(normalized),
+    };
+  },
   publicProductRatingSummaryQueryOptions: () => ({
     queryKey: ["product", "public", "rating-summary", "product-1"],
     queryFn: queryMocks.ratingSummaryQueryFn,
   }),
-  publicProductQuestionsQueryOptions: () => ({
-    queryKey: ["product", "public", "questions", "product-1"],
-    queryFn: queryMocks.questionsQueryFn,
-  }),
+  publicProductQuestionsQueryOptions: (input: { productId?: string; page?: number; answerStatus?: string; sort?: string } | string = "product-1") => {
+    const normalized = typeof input === "string" ? { productId: input, page: 1 } : input;
+    return {
+      queryKey: ["product", "public", "questions", normalized],
+      queryFn: () => queryMocks.questionsQueryFn(normalized),
+    };
+  },
   publicProductSearchQueryOptions: (input: { page?: number } = {}) => ({
     queryKey: ["product", "public", "searches", { locale: "en", limit: 40, page: input.page ?? 1 }],
     queryFn: () => queryMocks.productsQueryFn(input.page ?? 1),
@@ -184,9 +193,21 @@ vi.mock("#/features/product/queries", () => ({
     };
   },
   normalizePublicProduct: (response: unknown) => response,
-  normalizePublicProductReviews: (response: unknown[]) => response,
+  normalizePublicProductReviews: (response: { items?: unknown[] } | unknown[]) => Array.isArray(response) ? response : response.items ?? [],
+  normalizePublicProductReviewsPage: (response: { items?: unknown[]; meta?: Record<string, unknown> } | unknown[]) => ({
+    items: Array.isArray(response) ? response : response.items ?? [],
+    meta: Array.isArray(response)
+      ? { page: 1, limit: response.length || 5, totalCount: response.length, hasNextPage: false }
+      : response.meta ?? { page: 1, limit: 5, totalCount: response.items?.length ?? 0, hasNextPage: false },
+  }),
   normalizePublicProductRatingSummary: (response: unknown) => response,
-  normalizePublicProductQuestions: (response: { items?: unknown[] }) => response.items ?? [],
+  normalizePublicProductQuestions: (response: { items?: unknown[] } | unknown[]) => Array.isArray(response) ? response : response.items ?? [],
+  normalizePublicProductQuestionsPage: (response: { items?: unknown[]; meta?: Record<string, unknown> } | unknown[]) => ({
+    items: Array.isArray(response) ? response : response.items ?? [],
+    meta: Array.isArray(response)
+      ? { page: 1, limit: response.length || 5, totalCount: response.length, hasNextPage: false }
+      : response.meta ?? { page: 1, limit: 5, totalCount: response.items?.length ?? 0, hasNextPage: false },
+  }),
   createProductQuestion: queryMocks.createProductQuestion,
   productQueryKeys: {
     public: {
@@ -244,7 +265,9 @@ vi.mock("#/i18n/client", () => ({
     "product.clearFilters": "Clear filters",
     "product.discover": "Discover",
     "product.filterAndSort": "Filter and sort",
+    "product.freeShipping": "Free shipping",
     "product.itemsFound": "{count} items found",
+    "product.latest": "Latest",
     "product.loadingResults": "Loading results",
     "product.max": "Max",
     "product.min": "Min",
@@ -252,7 +275,11 @@ vi.mock("#/i18n/client", () => ({
     "product.noProductsFound": "No products found",
     "product.noPurchasableVariant": "No purchasable variant",
     "product.products": "Products",
+    "product.priceHigh": "Price high",
+    "product.priceLow": "Price low",
+    "product.priceRange": "Price range",
     "product.recommendedProducts": "Recommended products",
+    "product.relevant": "Relevant",
     "product.shopTrustedStores": "Shop trusted stores",
     "product.specialDealsSoon": "Special deals soon",
     "product.soon": "Soon",
@@ -268,8 +295,10 @@ vi.mock("#/i18n/client", () => ({
     "product.relatedProducts": "Related products",
     "product.reviews": "Reviews",
     "product.searchFilter": "Search filter",
+    "product.searchResultsFor": "Search results for \"{query}\"",
     "product.shippingCalculated": "Shipping calculated at checkout",
     "product.sold": "sold",
+    "product.topSales": "Top sales",
     "product.variants": "Variants",
     "product.wishlist": "Wishlist",
     "product.viewAll": "View all",
@@ -304,8 +333,10 @@ beforeEach(() => {
   queryMocks.relatedError = null;
   queryMocks.recentlyViewedResponse = [];
   queryMocks.recentlyViewedError = null;
-  queryMocks.reviewsResponse = [];
-  queryMocks.questionsResponse = { items: [] };
+  queryMocks.reviewsResponse = { items: [], meta: { page: 1, limit: 5, totalCount: 0, hasNextPage: false } };
+  queryMocks.reviewsResponsesByPage.clear();
+  queryMocks.questionsResponse = { items: [], meta: { page: 1, limit: 5, totalCount: 0, hasNextPage: false } };
+  queryMocks.questionsResponsesByPage.clear();
   queryMocks.ratingSummaryResponse = { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
   queryMocks.reviewsError = null;
   queryMocks.questionsError = null;
@@ -335,13 +366,13 @@ beforeEach(() => {
     if (queryMocks.recentlyViewedError) throw queryMocks.recentlyViewedError;
     return queryMocks.recentlyViewedResponse;
   });
-  queryMocks.reviewsQueryFn.mockImplementation(async () => {
+  queryMocks.reviewsQueryFn.mockImplementation(async (input: { page?: number } = {}) => {
     if (queryMocks.reviewsError) throw queryMocks.reviewsError;
-    return queryMocks.reviewsResponse;
+    return queryMocks.reviewsResponsesByPage.get(input.page ?? 1) ?? queryMocks.reviewsResponse;
   });
-  queryMocks.questionsQueryFn.mockImplementation(async () => {
+  queryMocks.questionsQueryFn.mockImplementation(async (input: { page?: number } = {}) => {
     if (queryMocks.questionsError) throw queryMocks.questionsError;
-    return queryMocks.questionsResponse;
+    return queryMocks.questionsResponsesByPage.get(input.page ?? 1) ?? queryMocks.questionsResponse;
   });
   queryMocks.ratingSummaryQueryFn.mockImplementation(async () => {
     if (queryMocks.ratingSummaryError) throw queryMocks.ratingSummaryError;
@@ -463,11 +494,13 @@ describe("ProductListingPage buyer states", () => {
     renderWithClient(<ProductListingPage mode="search" query="bag" />);
 
     expect(await screen.findByText("Faceted listing product")).toBeTruthy();
-    expect(screen.getAllByRole("link", { name: /Fashion3/ }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: /Acme2/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Fashion\s*3/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Acme\s*2/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByText("THB 100 - 900").length).toBeGreaterThan(0);
     expect(screen.getAllByPlaceholderText("100").length).toBeGreaterThan(0);
     expect(screen.getAllByPlaceholderText("900").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sort by").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Price low" }).length).toBeGreaterThan(0);
 
     const unavailableCategory = screen.getAllByText("Electronics")[0]?.closest("[aria-disabled='true']");
     const unavailableBrand = screen.getAllByText("Dormant")[0]?.closest("[aria-disabled='true']");
@@ -880,7 +913,7 @@ describe("ProductDetailPage buyer transaction states", () => {
       totalReviewCount: 2,
       distribution: { 1: 0, 2: 0, 3: 0, 4: 1, 5: 1 },
     };
-    queryMocks.reviewsResponse = [{
+    queryMocks.reviewsResponse = { items: [{
       id: "review-1",
       reviewerName: "Jane Buyer",
       rating: 5,
@@ -893,7 +926,7 @@ describe("ProductDetailPage buyer transaction states", () => {
         variantSku: "RED-M",
         shopName: "Demo Shop",
       },
-    }];
+    }], meta: { page: 1, limit: 5, totalCount: 1, hasNextPage: false } };
 
     renderWithClient(<ProductDetailPage productId="product-1" />);
 
@@ -915,6 +948,55 @@ describe("ProductDetailPage buyer transaction states", () => {
     expect(screen.getByText("0 reviews")).toBeTruthy();
   });
 
+  it("renders review discovery controls and loads additional review pages", async () => {
+    queryMocks.ratingSummaryResponse = {
+      averageRating: 5,
+      totalReviewCount: 2,
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 2 },
+    };
+    queryMocks.reviewsResponsesByPage.set(1, {
+      items: [{
+        id: "review-1",
+        reviewerName: "First Buyer",
+        rating: 5,
+        comment: "First review",
+        media: [],
+        createdAt: "2026-01-01T00:00:00.000Z",
+        snapshot: null,
+      }],
+      meta: { page: 1, limit: 1, totalCount: 2, hasNextPage: true },
+    });
+    queryMocks.reviewsResponsesByPage.set(2, {
+      items: [{
+        id: "review-2",
+        reviewerName: "Second Buyer",
+        rating: 5,
+        comment: "Second review",
+        media: [],
+        createdAt: "2026-01-02T00:00:00.000Z",
+        snapshot: null,
+      }],
+      meta: { page: 2, limit: 1, totalCount: 2, hasNextPage: false },
+    });
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("All ratings")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load more reviews" }));
+
+    expect(await screen.findByText("Second Buyer")).toBeTruthy();
+    expect(screen.getByText("First Buyer")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "With media" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rating high" }));
+
+    await waitFor(() => expect(queryMocks.reviewsQueryFn).toHaveBeenCalledWith(expect.objectContaining({
+      hasMedia: true,
+      sort: "rating_desc",
+      page: 1,
+    })));
+  });
+
   it("renders review and rating summary error states with retry actions", async () => {
     queryMocks.ratingSummaryError = new Error("summary unavailable");
     queryMocks.reviewsError = new Error("reviews unavailable");
@@ -931,7 +1013,7 @@ describe("ProductDetailPage buyer transaction states", () => {
       distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 1 },
     };
     queryMocks.reviewsError = null;
-    queryMocks.reviewsResponse = [{
+    queryMocks.reviewsResponse = { items: [{
       id: "review-recovered",
       reviewerName: "Recovered Buyer",
       rating: 5,
@@ -939,7 +1021,7 @@ describe("ProductDetailPage buyer transaction states", () => {
       media: [],
       createdAt: "2026-02-03T00:00:00.000Z",
       snapshot: null,
-    }];
+    }], meta: { page: 1, limit: 5, totalCount: 1, hasNextPage: false } };
 
     const retryButtons = screen.getAllByRole("button", { name: /Retry/ });
     fireEvent.click(retryButtons[0]!);
@@ -978,6 +1060,7 @@ describe("ProductDetailPage buyer transaction states", () => {
           user: { id: "seller-1", name: "Demo Shop" },
         }],
       }],
+      meta: { page: 1, limit: 5, totalCount: 1, hasNextPage: false },
     };
 
     renderWithClient(<ProductDetailPage productId="product-1" />);
@@ -993,6 +1076,52 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     expect(await screen.findByText("No questions yet")).toBeTruthy();
     expect(screen.getByText("Buyer questions and seller answers will appear here.")).toBeTruthy();
+  });
+
+  it("renders Q&A discovery controls and loads additional question pages", async () => {
+    queryMocks.questionsResponsesByPage.set(1, {
+      items: [{
+        id: "question-1",
+        productId: "product-1",
+        shopId: "shop-1",
+        question: "First question?",
+        status: "PUBLISHED",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        user: { id: "buyer-1", name: "Buyer" },
+        answers: [],
+      }],
+      meta: { page: 1, limit: 1, totalCount: 2, hasNextPage: true },
+    });
+    queryMocks.questionsResponsesByPage.set(2, {
+      items: [{
+        id: "question-2",
+        productId: "product-1",
+        shopId: "shop-1",
+        question: "Second question?",
+        status: "PUBLISHED",
+        createdAt: "2026-01-02T00:00:00.000Z",
+        user: { id: "buyer-2", name: "Buyer 2" },
+        answers: [],
+      }],
+      meta: { page: 2, limit: 1, totalCount: 2, hasNextPage: false },
+    });
+
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+
+    expect(await screen.findByText("All questions")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load more questions" }));
+
+    expect(await screen.findByText("Second question?")).toBeTruthy();
+    expect(screen.getByText("First question?")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Answered" }));
+    fireEvent.click(screen.getByRole("button", { name: "Oldest" }));
+
+    await waitFor(() => expect(queryMocks.questionsQueryFn).toHaveBeenCalledWith(expect.objectContaining({
+      answerStatus: "answered",
+      sort: "oldest",
+      page: 1,
+    })));
   });
 
   it("renders related and recently viewed products while excluding the current product", async () => {

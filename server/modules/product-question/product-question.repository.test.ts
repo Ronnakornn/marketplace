@@ -30,8 +30,10 @@ describe('PrismaProductQuestionRepository public visibility filters', () => {
 
   it('lists only published questions with only published answers', async () => {
     const prisma = {
+      $transaction: vi.fn(async (operations) => Promise.all(operations)),
       productQuestion: {
         findMany: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(0),
       },
     }
     const repository = createRepository(prisma)
@@ -42,6 +44,12 @@ describe('PrismaProductQuestionRepository public visibility filters', () => {
       where: {
         productId: 'product-1',
         status: 'PUBLISHED',
+        product: {
+          status: 'ACTIVE',
+          shop: {
+            status: 'ACTIVE',
+          },
+        },
       },
       include: expect.objectContaining({
         user: expect.any(Object),
@@ -57,9 +65,15 @@ describe('PrismaProductQuestionRepository public visibility filters', () => {
           },
         }),
       }),
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 0,
+      take: 5,
+    }))
+    expect(prisma.productQuestion.count).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        productId: 'product-1',
+        status: 'PUBLISHED',
+      }),
     }))
   })
 

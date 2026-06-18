@@ -339,7 +339,7 @@ describe('ReviewService', () => {
   })
 
   it('lists public product reviews and returns rating summary', async () => {
-    vi.mocked(repo.listProductReviews).mockResolvedValue([createReview()])
+    vi.mocked(repo.listProductReviews).mockResolvedValue({ items: [createReview()], totalCount: 1 })
     vi.mocked(repo.getRatingDistribution).mockResolvedValue([
       { rating: 5, _count: { rating: 2 } },
       { rating: 3, _count: { rating: 1 } },
@@ -347,8 +347,14 @@ describe('ReviewService', () => {
 
     const reviews = await service.listProductReviews('product-1')
     expect(repo.findActiveProduct).toHaveBeenCalledWith('product-1')
-    expect(reviews).toHaveLength(1)
-    expect(reviews[0]!.userName).toBe('Jane Buyer')
+    expect(reviews.items).toHaveLength(1)
+    expect(reviews.items[0]!.userName).toBe('Jane Buyer')
+    expect(reviews.meta).toEqual({
+      page: 1,
+      limit: 5,
+      totalCount: 1,
+      hasNextPage: false,
+    })
 
     const summary = await service.getRatingSummary('product-1')
     expect(summary).toEqual({

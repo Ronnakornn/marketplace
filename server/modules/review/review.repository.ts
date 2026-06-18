@@ -1,6 +1,7 @@
 import type {
   Order,
   OrderItem,
+  Prisma,
   PrismaClient,
   Product,
   ProductVariant,
@@ -60,6 +61,22 @@ export interface RatingSummaryRecord {
   }
 }
 
+export type ReviewSort = 'latest' | 'rating_desc' | 'rating_asc'
+
+export interface ListProductReviewsInput {
+  rating?: 1 | 2 | 3 | 4 | 5
+  hasMedia?: boolean
+  hasComment?: boolean
+  sort: ReviewSort
+  page: number
+  limit: number
+}
+
+export interface PaginatedProductReviews {
+  items: ProductReview[]
+  totalCount: number
+}
+
 export interface IReviewRepository {
   findActiveProduct(productId: string): Promise<Pick<Product, 'id' | 'status'> | null>
   findOrderItemForReview(orderItemId: string): Promise<ReviewOrderItem | null>
@@ -69,7 +86,7 @@ export interface IReviewRepository {
   createReview(input: CreateReviewRecord): Promise<ProductReview>
   updateReview(reviewId: string, input: UpdateReviewRecord): Promise<ProductReview>
   deleteReview(reviewId: string): Promise<Review>
-  listProductReviews(productId: string): Promise<ProductReview[]>
+  listProductReviews(productId: string, input: ListProductReviewsInput): Promise<PaginatedProductReviews>
   getRatingDistribution(productId: string): Promise<RatingSummaryRecord[]>
 }
 
@@ -267,16 +284,45 @@ export class PrismaReviewRepository implements IReviewRepository {
     })
   }
 
-  listProductReviews(productId: string): Promise<ProductReview[]> {
-    this.logger.debug('PrismaReviewRepository.listProductReviews', { productId })
-    return this.prisma.review.findMany({
+  async listProductReviews(
+    productId: string,
+    input: ListProductReviewsInput = { sort: 'latest', page: 1, limit: 5 },
+  ): Promise<PaginatedProductReviews> {
+    this.logger.debug('PrismaReviewRepository.listProductReviews', { productId, input })
+    const where: Prisma.ReviewWhereInput = {
+      productId,
+      status: 'PUBLISHED',
+      product: {
+        status: 'ACTIVE',
+      },
+      ...(input.rating ? { rating: input.rating } : {}),
+      ...(input.hasMedia ? { media: { some: { type: 'IMAGE' as const } } } : {}),
+      ...(input.hasComment ? { body: { not: null } } : {}),
+    }
+    const orderBy = input.sort === 'rating_desc'
+      ? [{ rating: 'desc' as const }, { createdAt: 'desc' as const }, { id: 'desc' as const }]
+      : input.sort === 'rating_asc'
+        ? [{ rating: 'asc' as const }, { createdAt: 'desc' as const }, { id: 'desc' as const }]
+        : [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
+    const [items, totalCount] = await this.prisma.$transaction([
+      this.prisma.review.findMany({
       where: {
-        productId,
-        status: 'PUBLISHED',
+        ...where,
+        ...(input.hasComment ? { body: { notIn: ['', ' ', '\t', '\n', '\r'] } } : {}),
       },
       include: productReviewInclude,
-      orderBy: { createdAt: 'desc' },
-    })
+      orderBy,
+      skip: (input.page - 1) * input.limit,
+      take: input.limit,
+    }),
+      this.prisma.review.count({
+        where: {
+          ...where,
+          ...(input.hasComment ? { body: { notIn: ['', ' ', '\t', '\n', '\r'] } } : {}),
+        },
+      }),
+    ])
+    return { items, totalCount }
   }
 
   async getRatingDistribution(productId: string): Promise<RatingSummaryRecord[]> {

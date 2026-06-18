@@ -24,9 +24,9 @@ import { createChatRoom } from "#/features/chat";
 import { ProductCard } from "#/features/product/components/ProductCard";
 import {
   normalizePublicProduct,
-  normalizePublicProductQuestions,
+  normalizePublicProductQuestionsPage,
   normalizePublicProductRatingSummary,
-  normalizePublicProductReviews,
+  normalizePublicProductReviewsPage,
   normalizePublicProducts,
   createProductQuestion,
   publicProductDetailQueryOptions,
@@ -36,8 +36,13 @@ import {
   publicProductReviewsQueryOptions,
   productQueryKeys,
   type BuyerProductQuestion,
+  type BuyerProductQuestionsPage,
   type BuyerProductRatingSummary,
   type BuyerProductReview,
+  type BuyerProductReviewsPage,
+  type PublicProductQuestionAnswerStatus,
+  type PublicProductQuestionSort,
+  type PublicProductReviewSort,
 } from "#/features/product/queries";
 import {
   fetchRecentlyViewedProducts,
@@ -59,6 +64,10 @@ type TrustItem = {
   title: string;
   description: string;
 };
+type ReviewContentFilter = "all" | "media" | "comment";
+
+const PRODUCT_DETAIL_REVIEW_PAGE_LIMIT = 5;
+const PRODUCT_DETAIL_QUESTION_PAGE_LIMIT = 5;
 
 export function ProductDetailPage({ productId }: { productId: string }) {
   const router = useRouter();
@@ -75,6 +84,15 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const [selectedStandaloneVariantId, setSelectedStandaloneVariantId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [questionText, setQuestionText] = useState("");
+  const [reviewRatingFilter, setReviewRatingFilter] = useState<1 | 2 | 3 | 4 | 5 | undefined>(undefined);
+  const [reviewContentFilter, setReviewContentFilter] = useState<ReviewContentFilter>("all");
+  const [reviewSort, setReviewSort] = useState<PublicProductReviewSort>("latest");
+  const [reviewPage, setReviewPage] = useState(1);
+  const [loadedReviews, setLoadedReviews] = useState<BuyerProductReview[]>([]);
+  const [questionAnswerStatus, setQuestionAnswerStatus] = useState<PublicProductQuestionAnswerStatus>("all");
+  const [questionSort, setQuestionSort] = useState<PublicProductQuestionSort>("latest");
+  const [questionPage, setQuestionPage] = useState(1);
+  const [loadedQuestions, setLoadedQuestions] = useState<BuyerProductQuestion[]>([]);
 
   const productQuery = useQuery({
     ...publicProductDetailQueryOptions({ productId, locale }),
@@ -93,16 +111,30 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     staleTime: 30_000,
   });
   const reviewsQuery = useQuery({
-    ...publicProductReviewsQueryOptions(productId),
-    select: normalizePublicProductReviews,
+    ...publicProductReviewsQueryOptions({
+      productId,
+      rating: reviewRatingFilter,
+      hasMedia: reviewContentFilter === "media" ? true : undefined,
+      hasComment: reviewContentFilter === "comment" ? true : undefined,
+      sort: reviewSort,
+      page: reviewPage,
+      limit: PRODUCT_DETAIL_REVIEW_PAGE_LIMIT,
+    }),
+    select: normalizePublicProductReviewsPage,
   });
   const ratingSummaryQuery = useQuery({
     ...publicProductRatingSummaryQueryOptions(productId),
     select: normalizePublicProductRatingSummary,
   });
   const questionsQuery = useQuery({
-    ...publicProductQuestionsQueryOptions(productId),
-    select: normalizePublicProductQuestions,
+    ...publicProductQuestionsQueryOptions({
+      productId,
+      answerStatus: questionAnswerStatus,
+      sort: questionSort,
+      page: questionPage,
+      limit: PRODUCT_DETAIL_QUESTION_PAGE_LIMIT,
+    }),
+    select: normalizePublicProductQuestionsPage,
   });
   const favoriteQuery = useQuery({
     queryKey: ["buyer-favorite-status", productId],
@@ -164,6 +196,26 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     (total, shop) => total + shop.items.reduce((shopTotal, item) => shopTotal + item.quantity, 0),
     0,
   ) ?? 0;
+
+  useEffect(() => {
+    setReviewPage(1);
+    setLoadedReviews([]);
+  }, [productId, reviewRatingFilter, reviewContentFilter, reviewSort]);
+
+  useEffect(() => {
+    setQuestionPage(1);
+    setLoadedQuestions([]);
+  }, [productId, questionAnswerStatus, questionSort]);
+
+  useEffect(() => {
+    if (!reviewsQuery.data) return;
+    setLoadedReviews((current) => mergeById(reviewPage === 1 ? [] : current, reviewsQuery.data.items));
+  }, [reviewsQuery.data, reviewPage]);
+
+  useEffect(() => {
+    if (!questionsQuery.data) return;
+    setLoadedQuestions((current) => mergeById(questionPage === 1 ? [] : current, questionsQuery.data.items));
+  }, [questionsQuery.data, questionPage]);
 
   const product = productQuery.data;
   const relatedProducts = (relatedQuery.data ?? []).filter((item) => item.id !== product?.id).slice(0, 4);
@@ -635,9 +687,18 @@ export function ProductDetailPage({ productId }: { productId: string }) {
             ratingSummaryError={ratingSummaryQuery.error}
             ratingSummaryLoading={ratingSummaryQuery.isLoading}
             onRetryRatingSummary={() => void ratingSummaryQuery.refetch()}
-            reviews={reviewsQuery.data ?? []}
+            reviews={loadedReviews}
+            reviewPage={reviewsQuery.data}
+            ratingFilter={reviewRatingFilter}
+            contentFilter={reviewContentFilter}
+            sort={reviewSort}
+            onRatingFilterChange={setReviewRatingFilter}
+            onContentFilterChange={setReviewContentFilter}
+            onSortChange={setReviewSort}
+            onLoadMore={() => setReviewPage((page) => page + 1)}
             reviewsError={reviewsQuery.error}
-            reviewsLoading={reviewsQuery.isLoading}
+            reviewsLoading={reviewsQuery.isLoading && !loadedReviews.length}
+            reviewsFetchingMore={reviewsQuery.isFetching && reviewPage > 1}
             onRetryReviews={() => void reviewsQuery.refetch()}
           />
         </section>
@@ -645,16 +706,23 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <SectionHeader title="Questions & answers" description="Ask the seller about sizing, packaging, warranty, or product details." />
-            {questionsQuery.data?.length ? (
+            {loadedQuestions.length ? (
               <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-slate-700">
-                {questionsQuery.data.length} question{questionsQuery.data.length === 1 ? "" : "s"}
+                {loadedQuestions.length} question{loadedQuestions.length === 1 ? "" : "s"}
               </Badge>
             ) : null}
           </div>
           <ProductQuestionsSection
-            questions={questionsQuery.data ?? []}
+            questions={loadedQuestions}
+            questionsPage={questionsQuery.data}
+            answerStatus={questionAnswerStatus}
+            sort={questionSort}
+            onAnswerStatusChange={setQuestionAnswerStatus}
+            onSortChange={setQuestionSort}
+            onLoadMore={() => setQuestionPage((page) => page + 1)}
             questionsError={questionsQuery.error}
-            questionsLoading={questionsQuery.isLoading}
+            questionsLoading={questionsQuery.isLoading && !loadedQuestions.length}
+            questionsFetchingMore={questionsQuery.isFetching && questionPage > 1}
             onRetryQuestions={() => void questionsQuery.refetch()}
             canAskQuestion={canFetchBuyerState}
             isAuthenticated={Boolean(session)}
@@ -837,8 +905,17 @@ function ProductReviewsSection({
   ratingSummaryLoading,
   onRetryRatingSummary,
   reviews,
+  reviewPage,
+  ratingFilter,
+  contentFilter,
+  sort,
+  onRatingFilterChange,
+  onContentFilterChange,
+  onSortChange,
+  onLoadMore,
   reviewsError,
   reviewsLoading,
+  reviewsFetchingMore,
   onRetryReviews,
 }: {
   fallbackRating: number;
@@ -847,12 +924,22 @@ function ProductReviewsSection({
   ratingSummaryLoading: boolean;
   onRetryRatingSummary: () => void;
   reviews: BuyerProductReview[];
+  reviewPage: BuyerProductReviewsPage | undefined;
+  ratingFilter: 1 | 2 | 3 | 4 | 5 | undefined;
+  contentFilter: ReviewContentFilter;
+  sort: PublicProductReviewSort;
+  onRatingFilterChange: (rating: 1 | 2 | 3 | 4 | 5 | undefined) => void;
+  onContentFilterChange: (filter: ReviewContentFilter) => void;
+  onSortChange: (sort: PublicProductReviewSort) => void;
+  onLoadMore: () => void;
   reviewsError: Error | null;
   reviewsLoading: boolean;
+  reviewsFetchingMore: boolean;
   onRetryReviews: () => void;
 }) {
   const totalReviewCount = ratingSummary?.totalReviewCount ?? reviews.length;
   const averageRating = ratingSummary ? ratingSummary.averageRating : fallbackRating;
+  const hasActiveFilter = ratingFilter !== undefined || contentFilter !== "all";
 
   return (
     <div className="mt-3 space-y-4">
@@ -871,6 +958,27 @@ function ProductReviewsSection({
         <RatingSummaryCard averageRating={averageRating} totalReviewCount={totalReviewCount} distribution={ratingSummary?.distribution} />
       )}
 
+      <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+        <div className="flex flex-wrap gap-2" aria-label="Review rating filter">
+          <FilterButton active={ratingFilter === undefined} onClick={() => onRatingFilterChange(undefined)}>All ratings</FilterButton>
+          {[5, 4, 3, 2, 1].map((rating) => (
+            <FilterButton key={rating} active={ratingFilter === rating} onClick={() => onRatingFilterChange(rating as 1 | 2 | 3 | 4 | 5)}>
+              {rating} star
+            </FilterButton>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2" aria-label="Review content filter">
+          <FilterButton active={contentFilter === "all"} onClick={() => onContentFilterChange("all")}>All reviews</FilterButton>
+          <FilterButton active={contentFilter === "media"} onClick={() => onContentFilterChange("media")}>With media</FilterButton>
+          <FilterButton active={contentFilter === "comment"} onClick={() => onContentFilterChange("comment")}>With comment</FilterButton>
+        </div>
+        <div className="flex flex-wrap gap-2" aria-label="Review sort">
+          <FilterButton active={sort === "latest"} onClick={() => onSortChange("latest")}>Latest</FilterButton>
+          <FilterButton active={sort === "rating_desc"} onClick={() => onSortChange("rating_desc")}>Rating high</FilterButton>
+          <FilterButton active={sort === "rating_asc"} onClick={() => onSortChange("rating_asc")}>Rating low</FilterButton>
+        </div>
+      </div>
+
       {reviewsLoading ? (
         <div className="space-y-3" aria-label="Loading reviews">
           {[0, 1].map((item) => (
@@ -888,9 +996,17 @@ function ProductReviewsSection({
       ) : reviews.length ? (
         <div className="grid gap-3">
           {reviews.map((review) => <ReviewCard key={review.id} review={review} />)}
+          {reviewPage?.meta.hasNextPage ? (
+            <Button type="button" variant="outline" className="justify-self-center rounded-full" disabled={reviewsFetchingMore} onClick={onLoadMore}>
+              {reviewsFetchingMore ? "Loading..." : "Load more reviews"}
+            </Button>
+          ) : null}
         </div>
       ) : (
-        <BuyerEmptyState title="No reviews yet" description="Published buyer reviews will appear here." />
+        <BuyerEmptyState
+          title={hasActiveFilter ? "No reviews match these filters" : "No reviews yet"}
+          description={hasActiveFilter ? "Try a different rating, media, or comment filter." : "Published buyer reviews will appear here."}
+        />
       )}
     </div>
   );
@@ -898,8 +1014,15 @@ function ProductReviewsSection({
 
 function ProductQuestionsSection({
   questions,
+  questionsPage,
+  answerStatus,
+  sort,
+  onAnswerStatusChange,
+  onSortChange,
+  onLoadMore,
   questionsError,
   questionsLoading,
+  questionsFetchingMore,
   onRetryQuestions,
   canAskQuestion,
   isAuthenticated,
@@ -912,8 +1035,15 @@ function ProductQuestionsSection({
   onLogin,
 }: {
   questions: BuyerProductQuestion[];
+  questionsPage: BuyerProductQuestionsPage | undefined;
+  answerStatus: PublicProductQuestionAnswerStatus;
+  sort: PublicProductQuestionSort;
+  onAnswerStatusChange: (status: PublicProductQuestionAnswerStatus) => void;
+  onSortChange: (sort: PublicProductQuestionSort) => void;
+  onLoadMore: () => void;
   questionsError: Error | null;
   questionsLoading: boolean;
+  questionsFetchingMore: boolean;
   onRetryQuestions: () => void;
   canAskQuestion: boolean;
   isAuthenticated: boolean;
@@ -926,6 +1056,7 @@ function ProductQuestionsSection({
   onLogin: () => void;
 }) {
   const trimmedQuestion = questionText.trim();
+  const hasActiveFilter = answerStatus !== "all";
 
   return (
     <div className="mt-3 space-y-4">
@@ -954,6 +1085,18 @@ function ProductQuestionsSection({
         </div>
       )}
 
+      <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+        <div className="flex flex-wrap gap-2" aria-label="Question answer filter">
+          <FilterButton active={answerStatus === "all"} onClick={() => onAnswerStatusChange("all")}>All questions</FilterButton>
+          <FilterButton active={answerStatus === "answered"} onClick={() => onAnswerStatusChange("answered")}>Answered</FilterButton>
+          <FilterButton active={answerStatus === "unanswered"} onClick={() => onAnswerStatusChange("unanswered")}>Unanswered</FilterButton>
+        </div>
+        <div className="flex flex-wrap gap-2" aria-label="Question sort">
+          <FilterButton active={sort === "latest"} onClick={() => onSortChange("latest")}>Latest</FilterButton>
+          <FilterButton active={sort === "oldest"} onClick={() => onSortChange("oldest")}>Oldest</FilterButton>
+        </div>
+      </div>
+
       {questionsLoading ? (
         <div className="space-y-3" aria-label="Loading questions">
           {[0, 1].map((item) => (
@@ -971,9 +1114,17 @@ function ProductQuestionsSection({
       ) : questions.length ? (
         <div className="grid gap-3">
           {questions.map((question) => <QuestionCard key={question.id} question={question} />)}
+          {questionsPage?.meta.hasNextPage ? (
+            <Button type="button" variant="outline" className="justify-self-center rounded-full" disabled={questionsFetchingMore} onClick={onLoadMore}>
+              {questionsFetchingMore ? "Loading..." : "Load more questions"}
+            </Button>
+          ) : null}
         </div>
       ) : (
-        <BuyerEmptyState title="No questions yet" description="Buyer questions and seller answers will appear here." />
+        <BuyerEmptyState
+          title={hasActiveFilter ? "No questions match these filters" : "No questions yet"}
+          description={hasActiveFilter ? "Try another answer status filter." : "Buyer questions and seller answers will appear here."}
+        />
       )}
     </div>
   );
@@ -982,6 +1133,27 @@ function ProductQuestionsSection({
 function getReadableErrorMessage(error: unknown, fallback: string) {
   const extracted = extractErrorText(error);
   return extracted && extracted !== "[object Object]" ? extracted : fallback;
+}
+
+function mergeById<T extends { id: string }>(current: T[], next: T[]): T[] {
+  const itemsById = new Map(current.map((item) => [item.id, item]));
+  for (const item of next) itemsById.set(item.id, item);
+  return [...itemsById.values()];
+}
+
+function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <Button
+      type="button"
+      variant={active ? "default" : "outline"}
+      size="sm"
+      className={`min-h-9 rounded-full px-3 text-xs sm:text-sm ${active ? "bg-orange-600 text-white hover:bg-orange-700" : "bg-white text-slate-700"}`}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  );
 }
 
 function extractErrorText(value: unknown): string | null {

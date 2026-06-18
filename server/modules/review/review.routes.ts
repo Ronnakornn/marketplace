@@ -11,6 +11,19 @@ const ReviewParamsSchema = t.Object({
   reviewId: t.String({ format: 'uuid' }),
 })
 
+const ListProductReviewsQuerySchema = t.Object({
+  rating: t.Optional(t.Number({ minimum: 1, maximum: 5 })),
+  hasMedia: t.Optional(t.Boolean()),
+  hasComment: t.Optional(t.Boolean()),
+  sort: t.Optional(t.Union([
+    t.Literal('latest'),
+    t.Literal('rating_desc'),
+    t.Literal('rating_asc'),
+  ])),
+  page: t.Optional(t.Number({ minimum: 1 })),
+  limit: t.Optional(t.Number({ minimum: 1, maximum: 20 })),
+})
+
 const CreateReviewBodySchema = t.Object({
   orderItemId: t.String({ format: 'uuid' }),
   rating: t.Number({ minimum: 1, maximum: 5 }),
@@ -40,9 +53,10 @@ export function createReviewRoutes(container: ServiceContainer) {
         })
       }
     })
-    .get('/api/products/:productId/reviews', ({ params }: any) =>
-      container.reviewService.listProductReviews(params.productId), {
+    .get('/api/products/:productId/reviews', ({ params, query }: any) =>
+      container.reviewService.listProductReviews(params.productId, query), {
       params: ProductParamsSchema,
+      query: ListProductReviewsQuerySchema,
     })
     .get('/api/products/:productId/rating-summary', ({ params }: any) =>
       container.reviewService.getRatingSummary(params.productId), {

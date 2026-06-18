@@ -1,5 +1,6 @@
 import type {
   PrismaClient,
+  Prisma,
   Product,
   ProductAnswer,
   ProductQuestion,
@@ -39,9 +40,24 @@ export interface CreateProductAnswerRecord {
   answer: string
 }
 
+export type ProductQuestionAnswerStatusFilter = 'all' | 'answered' | 'unanswered'
+export type ProductQuestionSort = 'latest' | 'oldest'
+
+export interface ListProductQuestionsInput {
+  answerStatus: ProductQuestionAnswerStatusFilter
+  sort: ProductQuestionSort
+  page: number
+  limit: number
+}
+
+export interface PaginatedProductQuestions {
+  items: ProductQuestionRecord[]
+  totalCount: number
+}
+
 export interface IProductQuestionRepository {
   findActiveProductWithActiveShop(productId: string): Promise<ProductQuestionProduct | null>
-  listPublishedQuestions(productId: string): Promise<ProductQuestionRecord[]>
+  listPublishedQuestions(productId: string, input: ListProductQuestionsInput): Promise<PaginatedProductQuestions>
   createPublishedQuestion(input: CreateProductQuestionRecord): Promise<ProductQuestionRecord>
   findPublishedQuestionWithContext(questionId: string): Promise<ProductQuestionWithContext | null>
   createPublishedAnswer(input: CreateProductAnswerRecord): Promise<ProductAnswer & { user: Pick<User, 'id' | 'name'> }>
@@ -107,18 +123,41 @@ export class PrismaProductQuestionRepository implements IProductQuestionReposito
     })
   }
 
-  listPublishedQuestions(productId: string): Promise<ProductQuestionRecord[]> {
-    this.logger.debug('PrismaProductQuestionRepository.listPublishedQuestions', { productId })
-    return this.prisma.productQuestion.findMany({
-      where: {
-        productId,
-        status: 'PUBLISHED',
+  async listPublishedQuestions(
+    productId: string,
+    input: ListProductQuestionsInput = { answerStatus: 'all', sort: 'latest', page: 1, limit: 5 },
+  ): Promise<PaginatedProductQuestions> {
+    this.logger.debug('PrismaProductQuestionRepository.listPublishedQuestions', { productId, input })
+    const answerFilter: Prisma.ProductQuestionWhereInput = input.answerStatus === 'answered'
+      ? { answers: { some: { status: 'PUBLISHED' as const } } }
+      : input.answerStatus === 'unanswered'
+        ? { answers: { none: { status: 'PUBLISHED' as const } } }
+        : {}
+    const where: Prisma.ProductQuestionWhereInput = {
+      productId,
+      status: 'PUBLISHED',
+      product: {
+        status: 'ACTIVE',
+        shop: {
+          status: 'ACTIVE',
+        },
       },
+      ...answerFilter,
+    }
+    const orderBy = input.sort === 'oldest'
+      ? [{ createdAt: 'asc' as const }, { id: 'asc' as const }]
+      : [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
+    const [items, totalCount] = await this.prisma.$transaction([
+      this.prisma.productQuestion.findMany({
+      where,
       include: productQuestionInclude,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+      orderBy,
+      skip: (input.page - 1) * input.limit,
+      take: input.limit,
+    }),
+      this.prisma.productQuestion.count({ where }),
+    ])
+    return { items, totalCount }
   }
 
   createPublishedQuestion(input: CreateProductQuestionRecord): Promise<ProductQuestionRecord> {

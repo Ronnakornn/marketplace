@@ -5,7 +5,9 @@ import type { OwnershipGuards } from '#server/modules/security'
 import { ProductQuestionServiceError } from './product-question.errors.ts'
 import type {
   IProductQuestionRepository,
+  ProductQuestionAnswerStatusFilter,
   ProductQuestionRecord,
+  ProductQuestionSort,
 } from './product-question.repository.ts'
 
 export interface ProductQuestionActor {
@@ -48,6 +50,19 @@ export interface ProductQuestionResponse {
 
 export interface ProductQuestionListResponse {
   items: ProductQuestionResponse[]
+  meta: {
+    page: number
+    limit: number
+    totalCount: number
+    hasNextPage: boolean
+  }
+}
+
+export interface ListProductQuestionsInput {
+  answerStatus?: ProductQuestionAnswerStatusFilter
+  sort?: ProductQuestionSort
+  page?: number
+  limit?: number
 }
 
 export class ProductQuestionService {
@@ -61,10 +76,25 @@ export class ProductQuestionService {
     this.logger = appContext.logger
   }
 
-  async listProductQuestions(productId: string): Promise<ProductQuestionListResponse> {
+  async listProductQuestions(productId: string, input: ListProductQuestionsInput = {}): Promise<ProductQuestionListResponse> {
     await this.requireActiveProduct(productId)
-    const questions = await this.repo.listPublishedQuestions(productId)
-    return { items: questions.map((question) => this.toQuestionResponse(question)) }
+    const page = this.normalizePage(input.page)
+    const limit = this.normalizeLimit(input.limit)
+    const result = await this.repo.listPublishedQuestions(productId, {
+      answerStatus: input.answerStatus ?? 'all',
+      sort: input.sort ?? 'latest',
+      page,
+      limit,
+    })
+    return {
+      items: result.items.map((question) => this.toQuestionResponse(question)),
+      meta: {
+        page,
+        limit,
+        totalCount: result.totalCount,
+        hasNextPage: page * limit < result.totalCount,
+      },
+    }
   }
 
   async createQuestion(
@@ -118,6 +148,22 @@ export class ProductQuestionService {
     const trimmed = value?.trim() ?? ''
     if (!trimmed) throw new ProductQuestionServiceError(message, 400, code)
     return trimmed
+  }
+
+  private normalizePage(page: number | undefined): number {
+    if (page === undefined) return 1
+    if (!Number.isInteger(page) || page < 1) {
+      throw new ProductQuestionServiceError('Page must be a positive integer', 400, 'INVALID_PAGINATION')
+    }
+    return page
+  }
+
+  private normalizeLimit(limit: number | undefined): number {
+    if (limit === undefined) return 5
+    if (!Number.isInteger(limit) || limit < 1 || limit > 20) {
+      throw new ProductQuestionServiceError('Limit must be an integer from 1 to 20', 400, 'INVALID_PAGINATION')
+    }
+    return limit
   }
 
   private toQuestionResponse(question: ProductQuestionRecord): ProductQuestionResponse {

@@ -12,6 +12,20 @@ const QuestionParamsSchema = t.Object({
   questionId: t.String({ format: 'uuid' }),
 })
 
+const ListProductQuestionsQuerySchema = t.Object({
+  answerStatus: t.Optional(t.Union([
+    t.Literal('all'),
+    t.Literal('answered'),
+    t.Literal('unanswered'),
+  ])),
+  sort: t.Optional(t.Union([
+    t.Literal('latest'),
+    t.Literal('oldest'),
+  ])),
+  page: t.Optional(t.Number({ minimum: 1 })),
+  limit: t.Optional(t.Number({ minimum: 1, maximum: 20 })),
+})
+
 const CreateQuestionBodySchema = t.Object({
   question: t.String(),
 })
@@ -42,9 +56,10 @@ export function createProductQuestionRoutes(container: ServiceContainer) {
         return errorResponse(error)
       }
     })
-    .get('/api/products/:productId/questions', ({ params }: any) =>
-      container.productQuestionService.listProductQuestions(params.productId), {
+    .get('/api/products/:productId/questions', ({ params, query }: any) =>
+      container.productQuestionService.listProductQuestions(params.productId, query), {
       params: ProductParamsSchema,
+      query: ListProductQuestionsQuerySchema,
     })
     .post('/api/products/:productId/questions', ({ authContext, params, body }: any) =>
       container.productQuestionService.createQuestion(productQuestionActor(authContext), params.productId, body), {

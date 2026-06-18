@@ -50,6 +50,43 @@ describe('review routes', () => {
     vi.clearAllMocks()
   })
 
+  it('allows public product review listing with default query shape', async () => {
+    const container = createContainer()
+    const response = await createApp(container).handle(
+      new Request('http://localhost/api/products/11111111-1111-4111-8111-111111111111/reviews'),
+    )
+
+    expect(response.status).toBe(200)
+    expect(container.reviewService.listProductReviews)
+      .toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', {})
+  })
+
+  it('passes public product review discovery query controls to the service', async () => {
+    const container = createContainer()
+    const response = await createApp(container).handle(
+      new Request('http://localhost/api/products/11111111-1111-4111-8111-111111111111/reviews?rating=5&hasMedia=true&hasComment=true&sort=rating_desc&page=2&limit=10'),
+    )
+
+    expect(response.status).toBe(200)
+    expect(container.reviewService.listProductReviews)
+      .toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', {
+        rating: 5,
+        hasMedia: true,
+        hasComment: true,
+        sort: 'rating_desc',
+        page: 2,
+        limit: 10,
+      })
+  })
+
+  it('rejects invalid public product review discovery query controls', async () => {
+    const response = await createApp().handle(
+      new Request('http://localhost/api/products/11111111-1111-4111-8111-111111111111/reviews?rating=6&sort=unknown&limit=30'),
+    )
+
+    expect(response.status).toBe(422)
+  })
+
   it('passes review create uploadIds to the service', async () => {
     mockAuth()
     const container = createContainer()

@@ -63,6 +63,28 @@ export interface PublicRelatedProductsInput extends PublicProductDetailInput {
   limit?: number;
 }
 
+export type PublicProductReviewSort = "latest" | "rating_desc" | "rating_asc";
+export type PublicProductQuestionAnswerStatus = "all" | "answered" | "unanswered";
+export type PublicProductQuestionSort = "latest" | "oldest";
+
+export interface PublicProductReviewsInput {
+  productId: string;
+  rating?: 1 | 2 | 3 | 4 | 5;
+  hasMedia?: boolean;
+  hasComment?: boolean;
+  sort?: PublicProductReviewSort;
+  page?: number;
+  limit?: number;
+}
+
+export interface PublicProductQuestionsInput {
+  productId: string;
+  answerStatus?: PublicProductQuestionAnswerStatus;
+  sort?: PublicProductQuestionSort;
+  page?: number;
+  limit?: number;
+}
+
 export interface PublicCategoryListInput {
   locale?: Locale;
 }
@@ -211,6 +233,13 @@ export interface BuyerListingFacets {
   };
 }
 
+export interface BuyerPaginatedMeta {
+  page: number;
+  limit: number;
+  totalCount: number;
+  hasNextPage: boolean;
+}
+
 export interface BuyerProductListing {
   products: BuyerProduct[];
   meta: BuyerListingMeta;
@@ -238,6 +267,11 @@ export interface BuyerProductReview {
     variantSku: string;
     shopName: string;
   } | null;
+}
+
+export interface BuyerProductReviewsPage {
+  items: BuyerProductReview[];
+  meta: BuyerPaginatedMeta;
 }
 
 export interface BuyerProductRatingSummary {
@@ -271,6 +305,11 @@ export interface BuyerProductQuestion {
   answers: BuyerProductQuestionAnswer[];
 }
 
+export interface BuyerProductQuestionsPage {
+  items: BuyerProductQuestion[];
+  meta: BuyerPaginatedMeta;
+}
+
 export interface AffiliateProductTargetOption {
   id: string;
   label: string;
@@ -295,9 +334,19 @@ export const productQueryKeys = {
       [...productQueryKeys.public.details(), cleanPublicProductDetailInput(input)] as const,
     related: (input: PublicRelatedProductsInput) =>
       [...productQueryKeys.public.all(), "related", cleanPublicRelatedProductsInput(input)] as const,
-    reviews: (productId: string) => [...productQueryKeys.public.all(), "reviews", productId] as const,
+    reviews: (input: string | PublicProductReviewsInput) => {
+      const normalized = typeof input === "string"
+        ? cleanPublicProductReviewsInput({ productId: input })
+        : cleanPublicProductReviewsInput(input);
+      return [...productQueryKeys.public.all(), "reviews", normalized] as const;
+    },
     ratingSummary: (productId: string) => [...productQueryKeys.public.all(), "rating-summary", productId] as const,
-    questions: (productId: string) => [...productQueryKeys.public.all(), "questions", productId] as const,
+    questions: (input: string | PublicProductQuestionsInput) => {
+      const normalized = typeof input === "string"
+        ? cleanPublicProductQuestionsInput({ productId: input })
+        : cleanPublicProductQuestionsInput(input);
+      return [...productQueryKeys.public.all(), "questions", normalized] as const;
+    },
     categories: (input: PublicCategoryListInput = {}) =>
       [...productQueryKeys.public.all(), "categories", cleanCategoryInput(input)] as const,
     brands: () => [...productQueryKeys.public.all(), "brands"] as const,
@@ -383,11 +432,13 @@ export function publicRelatedProductsQueryOptions(input: PublicRelatedProductsIn
   });
 }
 
-export function publicProductReviewsQueryOptions(productId: string) {
+export function publicProductReviewsQueryOptions(input: string | PublicProductReviewsInput) {
+  const normalizedInput = typeof input === "string" ? { productId: input } : input;
+  const query = cleanPublicProductReviewsApiInput(normalizedInput);
   return queryOptions({
-    queryKey: productQueryKeys.public.reviews(productId),
+    queryKey: productQueryKeys.public.reviews(normalizedInput),
     queryFn: async (): Promise<PublicProductReviewsResponse> => {
-      const { data, error } = await api.api.products({ productId }).reviews.get();
+      const { data, error } = await api.api.products({ productId: normalizedInput.productId }).reviews.get({ query });
       if (error) throw error;
       return data;
     },
@@ -407,11 +458,13 @@ export function publicProductRatingSummaryQueryOptions(productId: string) {
   });
 }
 
-export function publicProductQuestionsQueryOptions(productId: string) {
+export function publicProductQuestionsQueryOptions(input: string | PublicProductQuestionsInput) {
+  const normalizedInput = typeof input === "string" ? { productId: input } : input;
+  const query = cleanPublicProductQuestionsApiInput(normalizedInput);
   return queryOptions({
-    queryKey: productQueryKeys.public.questions(productId),
+    queryKey: productQueryKeys.public.questions(normalizedInput),
     queryFn: async (): Promise<PublicProductQuestionsResponse> => {
-      const { data, error } = await api.api.products({ productId }).questions.get();
+      const { data, error } = await api.api.products({ productId: normalizedInput.productId }).questions.get({ query });
       if (error) throw error;
       return data;
     },
@@ -554,16 +607,16 @@ export function usePublicRelatedProducts(input: PublicRelatedProductsInput) {
   return useQuery(publicRelatedProductsQueryOptions(input));
 }
 
-export function usePublicProductReviews(productId: string) {
-  return useQuery(publicProductReviewsQueryOptions(productId));
+export function usePublicProductReviews(input: string | PublicProductReviewsInput) {
+  return useQuery(publicProductReviewsQueryOptions(input));
 }
 
 export function usePublicProductRatingSummary(productId: string) {
   return useQuery(publicProductRatingSummaryQueryOptions(productId));
 }
 
-export function usePublicProductQuestions(productId: string) {
-  return useQuery(publicProductQuestionsQueryOptions(productId));
+export function usePublicProductQuestions(input: string | PublicProductQuestionsInput) {
+  return useQuery(publicProductQuestionsQueryOptions(input));
 }
 
 export function usePublicCategories(input: PublicCategoryListInput = {}) {
@@ -780,6 +833,48 @@ function cleanPublicRelatedProductsApiInput(input: PublicRelatedProductsInput): 
   return cleanQuery({
     locale: input.locale,
     limit: input.limit ?? 8,
+  });
+}
+
+export function cleanPublicProductReviewsInput(input: PublicProductReviewsInput): CleanQuery {
+  return cleanQuery({
+    productId: input.productId,
+    rating: input.rating,
+    hasMedia: input.hasMedia,
+    hasComment: input.hasComment,
+    sort: input.sort ?? "latest",
+    page: input.page ?? 1,
+    limit: input.limit ?? 5,
+  });
+}
+
+function cleanPublicProductReviewsApiInput(input: PublicProductReviewsInput): CleanQuery {
+  return cleanQuery({
+    rating: input.rating,
+    hasMedia: input.hasMedia,
+    hasComment: input.hasComment,
+    sort: input.sort ?? "latest",
+    page: input.page ?? 1,
+    limit: input.limit ?? 5,
+  });
+}
+
+export function cleanPublicProductQuestionsInput(input: PublicProductQuestionsInput): CleanQuery {
+  return cleanQuery({
+    productId: input.productId,
+    answerStatus: input.answerStatus ?? "all",
+    sort: input.sort ?? "latest",
+    page: input.page ?? 1,
+    limit: input.limit ?? 5,
+  });
+}
+
+function cleanPublicProductQuestionsApiInput(input: PublicProductQuestionsInput): CleanQuery {
+  return cleanQuery({
+    answerStatus: input.answerStatus ?? "all",
+    sort: input.sort ?? "latest",
+    page: input.page ?? 1,
+    limit: input.limit ?? 5,
   });
 }
 
@@ -1085,8 +1180,17 @@ export function normalizePublicSearchSuggestions(response: PublicSearchSuggestio
 }
 
 export function normalizePublicProductReviews(response: PublicProductReviewsResponse | unknown): BuyerProductReview[] {
-  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
-  return rawItems.map((item) => {
+  return normalizePublicProductReviewsPage(response).items;
+}
+
+export function normalizePublicProductReviewsPage(response: PublicProductReviewsResponse | unknown): BuyerProductReviewsPage {
+  const record = toRecord(response);
+  const rawItems = Array.isArray(response)
+    ? response
+    : readArray(record.items).length
+      ? readArray(record.items)
+      : readArray(record.data);
+  const items = rawItems.map((item) => {
     const record = toRecord(item);
     const snapshot = toRecord(record.snapshot);
     return {
@@ -1104,6 +1208,10 @@ export function normalizePublicProductReviews(response: PublicProductReviewsResp
       } : null,
     };
   }).filter((review) => review.id);
+  return {
+    items,
+    meta: normalizePaginatedMeta(record.meta, items.length),
+  };
 }
 
 export function normalizePublicProductRatingSummary(response: PublicProductRatingSummaryResponse | unknown): BuyerProductRatingSummary {
@@ -1128,8 +1236,17 @@ export function normalizePublicProductRatingSummary(response: PublicProductRatin
 }
 
 export function normalizePublicProductQuestions(response: PublicProductQuestionsResponse | unknown): BuyerProductQuestion[] {
-  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
-  return rawItems.map((item) => {
+  return normalizePublicProductQuestionsPage(response).items;
+}
+
+export function normalizePublicProductQuestionsPage(response: PublicProductQuestionsResponse | unknown): BuyerProductQuestionsPage {
+  const record = toRecord(response);
+  const rawItems = Array.isArray(response)
+    ? response
+    : readArray(record.items).length
+      ? readArray(record.items)
+      : readArray(record.data);
+  const items = rawItems.map((item) => {
     const record = toRecord(item);
     return {
       id: readString(record.id),
@@ -1151,6 +1268,19 @@ export function normalizePublicProductQuestions(response: PublicProductQuestions
       }).filter((answer) => answer.id && answer.answer),
     };
   }).filter((question) => question.id && question.question);
+  return {
+    items,
+    meta: normalizePaginatedMeta(record.meta, items.length),
+  };
+}
+
+function normalizePaginatedMeta(metaInput: unknown, itemCount: number): BuyerPaginatedMeta {
+  const meta = toRecord(metaInput);
+  const page = Math.max(1, readNumber(meta.page, 1));
+  const limit = Math.max(1, readNumber(meta.limit, readNumber(meta.pageSize, itemCount || 5)));
+  const totalCount = Math.max(0, readNumber(meta.totalCount, itemCount));
+  const hasNextPage = typeof meta.hasNextPage === "boolean" ? meta.hasNextPage : page * limit < totalCount;
+  return { page, limit, totalCount, hasNextPage };
 }
 
 function normalizeQuestionUser(input: unknown): BuyerProductQuestion["user"] {

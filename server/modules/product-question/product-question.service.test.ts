@@ -63,7 +63,7 @@ function createQuestionContext(overrides: Record<string, unknown> = {}) {
 function createRepo(overrides: Partial<IProductQuestionRepository> = {}) {
   return {
     findActiveProductWithActiveShop: vi.fn().mockResolvedValue(createProduct()),
-    listPublishedQuestions: vi.fn().mockResolvedValue([createQuestion()]),
+    listPublishedQuestions: vi.fn().mockResolvedValue({ items: [createQuestion()], totalCount: 1 }),
     createPublishedQuestion: vi.fn(async (input: any) => createQuestion(input)),
     findPublishedQuestionWithContext: vi.fn().mockResolvedValue(createQuestionContext()),
     createPublishedAnswer: vi.fn(async (input: any) => ({
@@ -100,8 +100,19 @@ describe('ProductQuestionService', () => {
     const response = await createService(repo).listProductQuestions('22222222-2222-4222-8222-222222222222')
 
     expect(repo.findActiveProductWithActiveShop).toHaveBeenCalledWith('22222222-2222-4222-8222-222222222222')
-    expect(repo.listPublishedQuestions).toHaveBeenCalledWith('22222222-2222-4222-8222-222222222222')
+    expect(repo.listPublishedQuestions).toHaveBeenCalledWith('22222222-2222-4222-8222-222222222222', {
+      answerStatus: 'all',
+      sort: 'latest',
+      page: 1,
+      limit: 5,
+    })
     expect(response.items).toHaveLength(1)
+    expect(response.meta).toEqual({
+      page: 1,
+      limit: 5,
+      totalCount: 1,
+      hasNextPage: false,
+    })
     expect(response.items[0]).toMatchObject({
       id: '11111111-1111-4111-8111-111111111111',
       status: 'PUBLISHED',

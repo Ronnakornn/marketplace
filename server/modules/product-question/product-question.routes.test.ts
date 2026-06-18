@@ -54,7 +54,31 @@ describe('product question routes', () => {
 
     expect(response.status).toBe(200)
     expect(container.productQuestionService.listProductQuestions)
-      .toHaveBeenCalledWith('22222222-2222-4222-8222-222222222222')
+      .toHaveBeenCalledWith('22222222-2222-4222-8222-222222222222', {})
+  })
+
+  it('passes public product question discovery query controls to the service', async () => {
+    const container = createContainer()
+    const response = await createApp(container).handle(
+      new Request('http://localhost/api/products/22222222-2222-4222-8222-222222222222/questions?answerStatus=answered&sort=oldest&page=2&limit=10'),
+    )
+
+    expect(response.status).toBe(200)
+    expect(container.productQuestionService.listProductQuestions)
+      .toHaveBeenCalledWith('22222222-2222-4222-8222-222222222222', {
+        answerStatus: 'answered',
+        sort: 'oldest',
+        page: 2,
+        limit: 10,
+      })
+  })
+
+  it('rejects invalid public product question discovery query controls', async () => {
+    const response = await createApp().handle(
+      new Request('http://localhost/api/products/22222222-2222-4222-8222-222222222222/questions?answerStatus=maybe&limit=30'),
+    )
+
+    expect(response.status).toBe(422)
   })
 
   it('requires auth for buyer question creation', async () => {
