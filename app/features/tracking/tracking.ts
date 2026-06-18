@@ -1,5 +1,6 @@
 "use client";
 
+import { v4 as uuidv4 } from "uuid";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 const SESSION_STORAGE_KEY = "marketplace-anonymous-session-id";
@@ -58,7 +59,7 @@ export function getAnonymousSessionId(): string {
   if (typeof window === "undefined") return "";
   const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
   if (existing) return existing;
-  const generated = window.crypto.randomUUID();
+  const generated = uuidv4();
   window.localStorage.setItem(SESSION_STORAGE_KEY, generated);
   return generated;
 }
