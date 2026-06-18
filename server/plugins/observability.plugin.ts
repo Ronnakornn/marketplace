@@ -1,4 +1,4 @@
-import crypto from 'node:crypto'
+import { v4 as uuidv4 } from 'uuid'
 import { Elysia } from 'elysia'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { MetricsCollector } from '#server/modules/observability'
@@ -13,7 +13,7 @@ export function createObservabilityPlugin(
 ) {
   return new Elysia({ name: 'observability' })
     .derive(({ request, set }) => {
-      const requestId = request.headers.get('x-request-id') || crypto.randomUUID()
+      const requestId = request.headers.get('x-request-id') || uuidv4()
       set.headers['x-request-id'] = requestId
       requestStartTimes.set(request, performance.now())
       return { requestId }

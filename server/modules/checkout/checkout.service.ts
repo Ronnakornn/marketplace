@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -209,7 +210,7 @@ export class CheckoutService {
 
   private createOrderNumber(): string {
     const timestamp = Date.now().toString(36).toUpperCase()
-    const random = crypto.randomUUID().slice(0, 8).toUpperCase()
+    const random = uuidv4().slice(0, 8).toUpperCase()
     return `ORD-${timestamp}-${random}`
   }
 
