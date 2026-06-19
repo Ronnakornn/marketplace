@@ -114,7 +114,7 @@ const nonUiStringKeys = new Set([
 
 const englishWordPattern = /\b(?:[A-Z][a-z]{2,}|[a-z]{3,})(?:\s+(?:[A-Z][a-z]{2,}|[a-z]{2,})){0,8}\b/;
 const thaiPattern = /[\u0E00-\u0E7F]/;
-const mojibakePattern = /(?:เธ|เน|โ||||€|||||||||)/;
+const mojibakePattern = /(?:เธ[\u0080-\u00BF]|เน€|เน|โ|[\u0080-\u009F\u00A0-\u00BF€])/;
 const placeholderPattern = /\{[A-Za-z0-9_]+\}/g;
 
 function readJson(filePath: string): JsonValue {

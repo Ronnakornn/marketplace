@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-19T18:00:30.696Z",
+  "updatedAt": "2026-06-19T18:09:13.332Z",
   "exceptions": [
     "test files and fixtures are excluded by filename",
     "import paths, dynamic imports, and module specifiers are excluded",
@@ -162,30 +162,6 @@
     "hardcoded-english|app/features/product/components/ProductListingPage.tsx|857|${t(\"product.priceRange\")}: ${params.minPrice ?? \"0\"} - ${params.maxPrice ?? \"*\"}",
     "hardcoded-english|app/features/product/components/ProductListingPage.tsx|860|${t(\"product.rating\")}: ${params.rating}+",
     "hardcoded-english|app/features/product/components/ProductListingPage.tsx|864|Sort: ${sortLabels[params.sort] ?? params.sort.replaceAll(\"_\", \" \")}",
-    "hardcoded-english|app/i18n/client.tsx|53|useI18n must be used inside I18nProvider",
-    "thai-readability|messages/th.json|0|affiliate.customCode",
-    "thai-readability|messages/th.json|0|buyer.loadingSavedAddresses",
-    "thai-readability|messages/th.json|0|buyer.noFavoritesTitle",
-    "thai-readability|messages/th.json|0|buyer.noFollowedShopsDescription",
-    "thai-readability|messages/th.json|0|buyer.profile",
-    "thai-readability|messages/th.json|0|buyer.waitingPaymentDescription",
-    "thai-readability|messages/th.json|0|buyer.wishlist",
-    "thai-readability|messages/th.json|0|checkout.loadingAddresses",
-    "thai-readability|messages/th.json|0|checkout.phone",
-    "thai-readability|messages/th.json|0|common.actions",
-    "thai-readability|messages/th.json|0|common.loading",
-    "thai-readability|messages/th.json|0|common.profile",
-    "thai-readability|messages/th.json|0|home.claimVoucher",
-    "thai-readability|messages/th.json|0|home.loadingMore",
-    "thai-readability|messages/th.json|0|home.voucherAutoApplies",
-    "thai-readability|messages/th.json|0|nav.profile",
-    "thai-readability|messages/th.json|0|notification.emptyDescription",
-    "thai-readability|messages/th.json|0|notification.promos",
-    "thai-readability|messages/th.json|0|order.noOrdersDescription",
-    "thai-readability|messages/th.json|0|product.loadingResults",
-    "thai-readability|messages/th.json|0|product.servicePromotion",
-    "thai-readability|messages/th.json|0|product.shopeeMall",
-    "thai-readability|messages/th.json|0|product.wishlist",
-    "thai-readability|messages/th.json|0|state.loadErrorTitle"
+    "hardcoded-english|app/i18n/client.tsx|53|useI18n must be used inside I18nProvider"
   ]
 }
