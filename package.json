@@ -22,6 +22,7 @@
     "build:all": "bunx prisma generate && next build",
     "preview": "next start --port 3000",
     "test": "vitest run",
+    "audit:i18n": "bun run scripts/i18n-audit.ts",
     "db:generate": "bunx prisma generate",
     "db:push": "bunx prisma db push",
     "db:migrate:deploy": "bunx prisma migrate deploy",
