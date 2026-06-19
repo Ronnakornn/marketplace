@@ -31,12 +31,12 @@ import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
 const homeCategories = [
-  { id: "fashion", label: "Fashion" },
-  { id: "beauty", label: "Beauty" },
-  { id: "electronics", label: "Electronics" },
-  { id: "home", label: "Home" },
-  { id: "groceries", label: "Groceries" },
-];
+  { id: "fashion", labelKey: "product.categoryFashion" },
+  { id: "beauty", labelKey: "product.categoryBeauty" },
+  { id: "electronics", labelKey: "product.categoryElectronics" },
+  { id: "home", labelKey: "product.categoryHome" },
+  { id: "groceries", labelKey: "product.categoryGroceries" },
+] as const;
 const trendingKeywords = ["phone", "beauty", "fashion", "home", "deal", "gaming"];
 
 interface ProductListingPageProps {
@@ -280,7 +280,7 @@ export function ProductListingPage({
                         <span className="min-w-0">
                           <span className="block text-sm font-semibold leading-5">{t("product.filterAndSort")}</span>
                           <span className="block truncate text-xs font-normal text-slate-500">
-                            {activeFilterCount ? `${activeFilterCount} active` : t("product.searchFilter")}
+                            {activeFilterCount ? t("product.activeCount").replace("{count}", String(activeFilterCount)) : t("product.searchFilter")}
                           </span>
                         </span>
                       </span>
@@ -293,7 +293,7 @@ export function ProductListingPage({
                     <SheetHeader className="border-b border-slate-100 px-4 py-3 text-left">
                       <SheetTitle>{t("product.filterAndSort")}</SheetTitle>
                       <SheetDescription>
-                        {activeFilterCount > 0 ? `${activeFilterCount} active filters` : "Refine results without leaving this page."}
+                        {activeFilterCount > 0 ? t("product.activeFiltersCount").replace("{count}", String(activeFilterCount)) : t("product.filterDescription")}
                       </SheetDescription>
                     </SheetHeader>
                     <SearchFilterSidebar {...filterProps} compact activeFilterCount={activeFilterCount} />
@@ -323,7 +323,7 @@ export function ProductListingPage({
             {activeFilters.length ? (
               <div className="space-y-2 rounded-2xl border border-orange-100 bg-orange-50/60 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold uppercase text-orange-700">Active filters</p>
+                  <p className="text-xs font-semibold uppercase text-orange-700">{t("product.activeFilters")}</p>
                   <Button asChild variant="ghost" size="sm" className="h-7 shrink-0 rounded-full px-2 text-xs text-orange-700">
                     <Link href={buildSearchHref({ q: query }, basePath)}>{t("product.clearFilters")}</Link>
                   </Button>
@@ -331,7 +331,7 @@ export function ProductListingPage({
                 <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
                   {activeFilters.map((filter) => (
                     <Button key={filter.key} asChild variant="outline" size="sm" className="h-8 max-w-[15rem] shrink-0 rounded-full border-orange-200 bg-white px-3 text-orange-800">
-                      <Link href={filter.href} aria-label={`Remove ${filter.label}`}>
+                      <Link href={filter.href} aria-label={t("product.removeFilter").replace("{label}", filter.label)}>
                         <span className="truncate">{filter.label}</span>
                         <XIcon className="size-3 shrink-0" />
                       </Link>
@@ -381,7 +381,7 @@ export function ProductListingPage({
                         setPage((current) => current + 1);
                       }}
                     >
-                      {isNextPageLoading ? "Loading more..." : isNextPageError ? "Retry load more" : "Load more"}
+                      {isNextPageLoading ? t("product.loadingMore") : isNextPageError ? t("product.retryLoadMore") : t("product.loadMore")}
                     </Button>
                   ) : null}
                 </div>
@@ -434,7 +434,7 @@ function HomeBlocks() {
         <div className="mt-4 grid grid-cols-5 gap-2">
           {homeCategories.map((category) => (
             <Link key={category.id} href={localePath(`/categories/${category.id}`)} className="rounded-2xl border border-orange-100 bg-orange-50 px-2 py-3 text-center text-xs font-semibold text-orange-700 transition hover:bg-orange-100">
-              {category.label}
+              {t(category.labelKey)}
             </Link>
           ))}
         </div>
@@ -498,7 +498,7 @@ function SearchFilterSidebar(props: {
             {t("product.searchFilter")}
           </div>
           {props.activeFilterCount ? (
-            <p className="mt-1 text-xs leading-5 text-slate-500">{props.activeFilterCount} active filters</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">{t("product.activeFiltersCount").replace("{count}", String(props.activeFilterCount))}</p>
           ) : null}
         </div>
         <Button variant="outline" size="sm" className="h-8 shrink-0 rounded-full px-3" asChild>
@@ -506,7 +506,7 @@ function SearchFilterSidebar(props: {
         </Button>
       </div>
 
-      <FilterBlock title="Sort by">
+      <FilterBlock title={t("product.sortBy")}>
         <SortLinkList {...props} />
       </FilterBlock>
 
@@ -550,9 +550,9 @@ function SearchFilterSidebar(props: {
         </form>
       </FilterBlock>
 
-      <FilterBlock title="Brand">
+      <FilterBlock title={t("product.brand")}>
         <div className="space-y-1">
-          <FilterLink active={!props.brandId} href={buildSearchHref({ ...base, brandId: undefined }, props.basePath)}>All brands</FilterLink>
+          <FilterLink active={!props.brandId} href={buildSearchHref({ ...base, brandId: undefined }, props.basePath)}>{t("product.allBrands")}</FilterLink>
           {props.brands.map((brand) => (
             <FilterLink key={brand.id} active={props.brandId === brand.id} disabled={brand.unavailable} href={buildSearchHref({ ...base, brandId: brand.id }, props.basePath)}>
               <FilterOptionLabel label={brand.name} count={brand.count} />
@@ -850,7 +850,7 @@ function buildActiveFilters(
     href: buildSearchHref({ ...params, [key]: undefined }, basePath),
   });
   if (params.categoryId) add("categoryId", `${t("product.category")}: ${categories.find((category) => category.slug === params.categoryId)?.name ?? params.categoryId}`);
-  if (params.brandId) add("brandId", `Brand: ${brands.find((brand) => brand.id === params.brandId)?.name ?? params.brandId}`);
+  if (params.brandId) add("brandId", t("product.brandFilter").replace("{value}", brands.find((brand) => brand.id === params.brandId)?.name ?? params.brandId));
   if (params.attributeFilters) add("attributeFilters", params.attributeFilters);
   if (params.minPrice || params.maxPrice) labels.push({
     key: "price",
@@ -861,7 +861,7 @@ function buildActiveFilters(
   if (params.inStock === "true") add("inStock", t("product.inStock"));
   if (params.freeShipping === "true") add("freeShipping", t("product.freeShipping"));
   if (params.onSale === "true") add("onSale", t("product.onSale"));
-  if (params.sort && params.sort !== "relevance") add("sort", `Sort: ${sortLabels[params.sort] ?? params.sort.replaceAll("_", " ")}`);
+  if (params.sort && params.sort !== "relevance") add("sort", t("product.sortFilter").replace("{value}", sortLabels[params.sort] ?? params.sort.replaceAll("_", " ")));
   return labels;
 }
 

@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { DealsPage } from "#/features/buyer";
+import { createTranslator } from "#/i18n/server";
 import { publicPageMetadata } from "#/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  const t = createTranslator(locale);
   return publicPageMetadata({
-    title: "Deals",
-    description: "Flash sale products, vouchers, and marketplace deals.",
+    title: t("common.deals"),
+    description: t("seo.dealsDescription"),
     path: "/deals",
     locale,
   });

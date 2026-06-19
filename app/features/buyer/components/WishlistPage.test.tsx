@@ -81,7 +81,29 @@ vi.mock("#/i18n/client", () => ({
     "buyer.noFavoritesTitle": "No saved products yet",
     "buyer.shopMore": "Shop more",
     "buyer.wishlist": "Wishlist",
+    "buyer.addFavoriteToCart": "Add {title} to cart",
+    "buyer.onlyLeft": "Only {count} left",
+    "buyer.readyToShip": "Ready to ship",
+    "buyer.removeFavorite": "Remove {title} from wishlist",
+    "buyer.removedFromWishlist": "Removed from wishlist",
+    "buyer.removedFromWishlistDescription": "The product was removed from your saved items.",
+    "buyer.viewFavorite": "View {title}",
+    "buyer.wishlistRemoveErrorDescription": "Please try again.",
+    "buyer.wishlistRemoveErrorTitle": "Could not remove item",
+    "buyer.wishlistRemoveFallback": "Wishlist item could not be removed.",
+    "cart.continueShopping": "Continue shopping",
+    "cart.handoffAddedDescription": "Your item was added to the cart.",
+    "cart.handoffAddedTitle": "Added to cart",
+    "cart.handoffErrorDescription": "Please try again or review the selected options.",
+    "cart.handoffErrorTitle": "Could not add to cart",
+    "cart.viewCart": "View cart",
+    "common.add": "Add",
     "common.loading": "Loading",
+    "product.adding": "Adding",
+    "product.chooseOptions": "Choose options",
+    "product.outOfStock": "Out of stock",
+    "product.productUnavailable": "Product unavailable",
+    "product.shopUnavailable": "Shop unavailable",
   })[key] ?? key,
 }));
 
@@ -186,6 +208,12 @@ describe("WishlistPage", () => {
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["buyer-cart"] }));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["buyer-cart", "en"] });
     expect(wishlistMocks.showAddToCartSuccess).toHaveBeenCalledWith({
+      copy: {
+        successTitle: "Added to cart",
+        successDescription: "Your item was added to the cart.",
+        viewCart: "View cart",
+        continueShopping: "Continue shopping",
+      },
       context: {
         productTitle: "Canvas Weekender Bag",
         variantTitle: "Default",

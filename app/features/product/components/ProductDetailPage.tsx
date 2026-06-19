@@ -154,7 +154,13 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   });
   const addCartMutation = useMutation({
     mutationFn: ({ variantId, itemQuantity }: { variantId: string; itemQuantity: number }) => addCartItem(variantId, itemQuantity),
-    onError: (error) => showAddToCartError({ error }),
+    onError: (error) => showAddToCartError({
+      error,
+      copy: {
+        errorTitle: t("cart.handoffErrorTitle"),
+        errorDescription: t("cart.handoffErrorDescription"),
+      },
+    }),
   });
   const favoriteMutation = useMutation({
     mutationFn: async () => {
@@ -271,6 +277,12 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
         showAddToCartSuccess({
+          copy: {
+            successTitle: t("cart.handoffAddedTitle"),
+            successDescription: t("cart.handoffAddedDescription"),
+            viewCart: t("cart.viewCart"),
+            continueShopping: t("cart.continueShopping"),
+          },
           context: {
             productTitle: product?.title,
             variantTitle: selectedVariant.title,
@@ -307,7 +319,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       <>
         <BuyerTopBar title={t("product.products")} />
         <div className="mx-auto max-w-6xl px-3 pb-28 pt-4">
-          <BuyerErrorState message={getReadableErrorMessage(productQuery.error, "Product details are temporarily unavailable.")} onRetry={() => void productQuery.refetch()} />
+          <BuyerErrorState message={getReadableErrorMessage(productQuery.error, t("product.productUnavailable"))} onRetry={() => void productQuery.refetch()} />
         </div>
       </>
     );
@@ -342,21 +354,21 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     : requiredOptions.length
       ? `Select ${requiredOptions.map((option) => option.name).join(" / ")}`
       : product.variants.length > 1
-        ? "Select a variant"
+        ? t("product.selectVariant")
         : t("product.noPurchasableVariant");
   const priceLabel = hasPriceRange
     ? `${formatMoney(product.minPrice, product.currency)} - ${formatMoney(product.maxPrice, product.currency)}`
     : formatMoney(displayPrice, displayCurrency);
   const purchaseDisabledReason = (() => {
     if (!product.variants.length) return t("product.noPurchasableVariant");
-    if (!session) return "Log in to add this item to your cart.";
-    if (!requiredOptions.length && product.variants.length > 1 && !selectedVariant) return "Select a variant before purchasing.";
+    if (!session) return t("product.loginToAddToCart");
+    if (!requiredOptions.length && product.variants.length > 1 && !selectedVariant) return t("product.selectVariantBeforePurchase");
     if (missingOptionCount > 0) return missingOptionCount === requiredOptions.length
-      ? "Choose product options before purchasing."
-      : `Choose ${missingOptionCount} more option${missingOptionCount > 1 ? "s" : ""} before purchasing.`;
-    if (!selectedVariant) return "This option combination is unavailable.";
-    if (selectedVariant.stock < 1 || product.stock < 1) return "Selected variant is out of stock.";
-    if (!canFetchBuyerState && session) return "Only buyer accounts can purchase.";
+      ? t("product.chooseOptionsBeforePurchase")
+      : t("product.chooseMoreOptions").replace("{count}", String(missingOptionCount));
+    if (!selectedVariant) return t("product.optionCombinationUnavailable");
+    if (selectedVariant.stock < 1 || product.stock < 1) return t("product.selectedVariantOutOfStock");
+    if (!canFetchBuyerState && session) return t("product.onlyBuyerAccountsCanPurchase");
     return null;
   })();
   const purchaseBlockedReason = session ? purchaseDisabledReason : null;
@@ -364,16 +376,16 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const purchaseStatusId = "product-purchase-status";
   const purchaseErrorId = "product-purchase-error";
   const purchaseErrorMessage = addCartMutation.error
-    ? getReadableErrorMessage(addCartMutation.error, "Add to cart is temporarily unavailable. Please try again.")
+    ? getReadableErrorMessage(addCartMutation.error, t("product.actionUnavailableTryAgain"))
     : null;
   const stockSummary = selectedVariant
     ? selectedVariant.stock > 0
       ? `${selectedVariant.stock} ${t("product.inStock")}`
-      : "Out of stock"
+      : t("product.outOfStock")
     : product.stock > 0
       ? `${product.stock} ${t("product.inStock")}`
-      : "Out of stock";
-  const quantityLabel = `${quantity} item${quantity > 1 ? "s" : ""}`;
+      : t("product.outOfStock");
+  const quantityLabel = t(quantity === 1 ? "product.selectedQuantityOne" : "product.selectedQuantity").replace("{quantity}", String(quantity));
   const purchaseStatusText = purchaseErrorMessage ?? purchaseDisabledReason ?? `${quantityLabel} | ${stockSummary}`;
   const selectedPurchaseSummary = selectedVariant
     ? `${selectedSummary} | Qty ${quantity}`
@@ -381,18 +393,18 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const trustItems: TrustItem[] = [
     {
       icon: <TruckIcon className="size-4 text-orange-600" aria-hidden="true" />,
-      title: "Shipping",
+      title: t("product.shipping"),
       description: t("product.shippingCalculated"),
     },
     {
       icon: <ShieldCheckIcon className="size-4 text-emerald-600" aria-hidden="true" />,
-      title: "Buyer protection",
+      title: t("product.buyerProtectionTitle"),
       description: t("product.buyerProtection"),
     },
     {
       icon: <RotateCcwIcon className="size-4 text-sky-600" aria-hidden="true" />,
-      title: "Returns",
-      description: "Returns follow marketplace policy.",
+      title: t("product.returns"),
+      description: t("product.returnsPolicy"),
     },
   ];
   const factCount = [product.condition, product.countryOfOrigin, product.warrantyInfo, product.brand?.name].filter(Boolean).length;
@@ -422,8 +434,8 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   }
 
   function getOptionValueHint(state: OptionValueState) {
-    if (state === "out-of-stock") return "Out of stock";
-    if (state === "unavailable") return "Unavailable";
+    if (state === "out-of-stock") return t("product.outOfStock");
+    if (state === "unavailable") return t("common.unavailable");
     return null;
   }
 
@@ -435,25 +447,25 @@ export function ProductDetailPage({ productId }: { productId: string }) {
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="relative aspect-square bg-slate-100">
               {showVideo && product.video ? (
-                <video controls className="size-full object-contain" aria-label={`${product.title} video`}>
+                <video controls className="size-full object-contain" aria-label={t("product.productVideo").replace("{title}", product.title)}>
                   <source src={product.video.url} type={product.video.contentType} />
                 </video>
               ) : hasGalleryImages ? (
                 <Image src={selectedImage} alt={product.title} fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
               ) : (
-                <div className="flex size-full flex-col items-center justify-center gap-3 px-4 text-center text-slate-500" role="img" aria-label={`${product.title} has no product images`}>
+                <div className="flex size-full flex-col items-center justify-center gap-3 px-4 text-center text-slate-500" role="img" aria-label={t("product.noProductImages").replace("{title}", product.title)}>
                   <ImageOffIcon className="size-12 text-slate-400" aria-hidden="true" />
-                  <p className="max-w-xs text-sm font-medium text-slate-600">No product image available</p>
+                  <p className="max-w-xs text-sm font-medium text-slate-600">{t("product.noProductImageAvailable")}</p>
                 </div>
               )}
             </div>
             {(hasGalleryImages || product.video) ? (
-              <div className="flex gap-2 overflow-x-auto p-3" aria-label="Product media gallery" role="listbox">
+              <div className="flex gap-2 overflow-x-auto p-3" aria-label={t("product.productMediaGallery")} role="listbox">
                 {galleryImages.slice(0, 8).map((image, index) => (
                   <button
                     key={`${image}-${index}`}
                     type="button"
-                    aria-label={`Show product image ${index + 1}`}
+                    aria-label={t("product.showProductImage").replace("{index}", String(index + 1))}
                     aria-selected={!showVideo && selectedImageIndex === index}
                     role="option"
                     className={`relative size-16 shrink-0 overflow-hidden rounded-md border bg-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${!showVideo && selectedImageIndex === index ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`}
@@ -462,13 +474,13 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                       setSelectedImageIndex(index);
                     }}
                   >
-                    <Image src={image} alt={`${product.title} image ${index + 1}`} fill sizes="64px" className="object-cover" />
+                    <Image src={image} alt={t("product.productImage").replace("{title}", product.title).replace("{index}", String(index + 1))} fill sizes="64px" className="object-cover" />
                   </button>
                 ))}
                 {product.video ? (
                   <button
                     type="button"
-                    aria-label="Show product video"
+                    aria-label={t("product.showProductVideo")}
                     aria-selected={showVideo}
                     role="option"
                     className={`flex size-16 shrink-0 items-center justify-center rounded-md border bg-slate-950 text-white outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${showVideo ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`}
@@ -521,7 +533,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                           key={value.id}
                           type="button"
                           disabled={disabled}
-                          title={hint ?? (selected ? "Selected" : "Available")}
+                          title={hint ?? (selected ? t("product.selected") : t("common.available"))}
                           aria-pressed={selected}
                           aria-describedby={hint ? `${option.id}-${value.id}-hint` : undefined}
                           className={`min-h-10 max-w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${getOptionValueClasses(state)}`}
@@ -544,7 +556,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                         key={variant.id}
                         type="button"
                         disabled={variant.stock < 1}
-                        title={variant.stock < 1 ? "Out of stock" : selectedVariant?.id === variant.id ? "Selected" : "Available"}
+                        title={variant.stock < 1 ? t("product.outOfStock") : selectedVariant?.id === variant.id ? t("product.selected") : t("common.available")}
                         aria-pressed={selectedVariant?.id === variant.id}
                         className={`min-h-10 max-w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${
                           selectedVariant?.id === variant.id
@@ -556,7 +568,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                         onClick={() => setSelectedStandaloneVariantId((current) => current === variant.id ? "" : variant.id)}
                       >
                         <span className="break-words">{variant.title}</span>
-                        {variant.stock < 1 ? <span aria-hidden="true" className="ml-2 text-[11px] font-semibold uppercase tracking-normal">Out of stock</span> : null}
+                        {variant.stock < 1 ? <span aria-hidden="true" className="ml-2 text-[11px] font-semibold uppercase tracking-normal">{t("product.outOfStock")}</span> : null}
                       </button>
                     )) : <Badge variant="outline" className="rounded-md px-3 py-1">{t("product.noPurchasableVariant")}</Badge>}
                   </div>
@@ -566,7 +578,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-medium text-slate-900">Selected variant</p>
+                    <p className="font-medium text-slate-900">{t("product.selectedVariant")}</p>
                     <p className="mt-1 break-words">{selectedSummary}</p>
                   </div>
                   <Badge variant="outline" className={`shrink-0 rounded-full ${isOutOfStock ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
@@ -586,21 +598,21 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
             <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
               <div className="min-w-0">
-                <span className="text-sm font-medium text-slate-700">Quantity</span>
-                <p className="mt-1 break-words text-xs text-slate-500">{selectedVariant ? `Maximum ${selectedVariant.stock}` : "Select a variant to choose quantity"}</p>
+                <span className="text-sm font-medium text-slate-700">{t("product.quantity")}</span>
+                <p className="mt-1 break-words text-xs text-slate-500">{selectedVariant ? t("product.maximumStock").replace("{count}", String(selectedVariant.stock)) : t("product.selectVariantForQuantity")}</p>
               </div>
               <div className="flex items-center rounded-lg border border-slate-200">
-                <Button type="button" variant="ghost" size="icon" className="size-9 rounded-none" aria-label="Decrease quantity" disabled={quantity <= 1 || !selectedVariant} onClick={() => setQuantity((current) => Math.max(1, current - 1))}>
+                <Button type="button" variant="ghost" size="icon" className="size-9 rounded-none" aria-label={t("product.decreaseQuantity")} disabled={quantity <= 1 || !selectedVariant} onClick={() => setQuantity((current) => Math.max(1, current - 1))}>
                   <MinusIcon className="size-4" />
                 </Button>
                 <span className="w-12 text-center text-sm font-semibold">{quantity}</span>
-                <Button type="button" variant="ghost" size="icon" className="size-9 rounded-none" aria-label="Increase quantity" disabled={!selectedVariant || quantity >= displayedStock} onClick={() => setQuantity((current) => Math.min(displayedStock, current + 1))}>
+                <Button type="button" variant="ghost" size="icon" className="size-9 rounded-none" aria-label={t("product.increaseQuantity")} disabled={!selectedVariant || quantity >= displayedStock} onClick={() => setQuantity((current) => Math.min(displayedStock, current + 1))}>
                   <PlusIcon className="size-4" />
                 </Button>
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-2xl border border-orange-100 bg-orange-50 p-3 text-sm text-slate-700" aria-label="Marketplace assurances">
+            <div className="grid gap-2 rounded-2xl border border-orange-100 bg-orange-50 p-3 text-sm text-slate-700" aria-label={t("product.marketplaceAssurances")}>
               {trustItems.map((item) => (
                 <div key={item.title} className="grid grid-cols-[32px_minmax(0,1fr)] gap-2 rounded-xl bg-white/70 p-2">
                   <span className="flex size-8 items-center justify-center rounded-full bg-white shadow-sm">{item.icon}</span>
@@ -611,27 +623,27 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                 </div>
               ))}
             </div>
-            {isOutOfStock ? <Badge variant="outline" className="w-fit rounded-full border-red-200 bg-red-50 text-red-700">Out of stock</Badge> : null}
+            {isOutOfStock ? <Badge variant="outline" className="w-fit rounded-full border-red-200 bg-red-50 text-red-700">{t("product.outOfStock")}</Badge> : null}
           </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <SectionHeader title="Highlights" description="Quick seller-provided notes for this product." />
+          <SectionHeader title={t("product.highlights")} description={t("product.highlightsDescription")} />
           {product.highlights.length ? (
             <ul className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
               {product.highlights.map((highlight) => <li key={highlight} className="break-words rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">{highlight}</li>)}
             </ul>
-          ) : <p className="mt-2 text-sm text-slate-500">No highlights provided.</p>}
+          ) : <p className="mt-2 text-sm text-slate-500">{t("product.noHighlights")}</p>}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-label="Shop trust">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-label={t("product.shopTrust")}>
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-normal text-orange-600">Sold by</p>
+              <p className="text-xs font-semibold uppercase tracking-normal text-orange-600">{t("product.soldBy")}</p>
               <h2 className="mt-1 break-words text-lg font-bold text-slate-950">{product.shop.name}</h2>
               <div className="mt-2 flex flex-wrap gap-2 text-sm text-slate-600">
                 <span className="rounded-full bg-slate-100 px-3 py-1">{product.shop.location}</span>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Active marketplace shop</span>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">{t("product.activeMarketplaceShop")}</span>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
@@ -651,16 +663,16 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <SectionHeader title="Product facts" description="Seller-provided facts and catalog attributes." meta={factCount ? `${factCount} facts` : undefined} />
+          <SectionHeader title={t("product.productFacts")} description={t("product.productFactsDescription")} meta={factCount ? t("product.factsCount").replace("{count}", String(factCount)) : undefined} />
           {factCount ? (
             <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {product.condition ? <FactRow label="Condition" value={product.condition} /> : null}
-              {product.countryOfOrigin ? <FactRow label="Country of origin" value={product.countryOfOrigin} /> : null}
-              {product.warrantyInfo ? <FactRow label="Warranty" value={product.warrantyInfo} /> : null}
-              {product.brand ? <FactRow label="Brand" value={product.brand.name} /> : null}
+              {product.condition ? <FactRow label={t("product.condition")} value={product.condition} /> : null}
+              {product.countryOfOrigin ? <FactRow label={t("product.countryOfOrigin")} value={product.countryOfOrigin} /> : null}
+              {product.warrantyInfo ? <FactRow label={t("product.warranty")} value={product.warrantyInfo} /> : null}
+              {product.brand ? <FactRow label={t("product.brand")} value={product.brand.name} /> : null}
             </dl>
           ) : (
-            <p className="mt-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">No product facts provided.</p>
+            <p className="mt-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-500">{t("product.noProductFacts")}</p>
           )}
           {product.attributes.length ? (
             <div className="mt-4 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
@@ -675,12 +687,12 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <SectionHeader title="Description" description="Product details from the seller." />
+          <SectionHeader title={t("product.description")} description={t("product.descriptionSubtitle")} />
           <p className="mt-3 whitespace-pre-line break-words rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">{product.description ?? t("product.noDescription")}</p>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <SectionHeader title={t("product.reviews")} description="Published buyer feedback and rating summary." />
+          <SectionHeader title={t("product.reviews")} description={t("product.reviewsSubtitle")} />
           <ProductReviewsSection
             fallbackRating={product.rating}
             ratingSummary={ratingSummaryQuery.data}
@@ -705,10 +717,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <SectionHeader title="Questions & answers" description="Ask the seller about sizing, packaging, warranty, or product details." />
+            <SectionHeader title={t("product.questionsTitle")} description={t("product.questionsSubtitle")} />
             {loadedQuestions.length ? (
               <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-slate-700">
-                {loadedQuestions.length} question{loadedQuestions.length === 1 ? "" : "s"}
+                {t(loadedQuestions.length === 1 ? "product.questionCountOne" : "product.questionCount").replace("{count}", String(loadedQuestions.length))}
               </Badge>
             ) : null}
           </div>
@@ -741,19 +753,19 @@ export function ProductDetailPage({ productId }: { productId: string }) {
           isLoading={relatedQuery.isLoading}
           error={relatedQuery.error}
           onRetry={() => void relatedQuery.refetch()}
-          emptyTitle="No related products yet"
-          emptyDescription="Similar products will appear here when available."
+          emptyTitle={t("product.relatedEmptyTitle")}
+          emptyDescription={t("product.relatedEmptyDescription")}
         >
           {relatedProducts.map((item) => <ProductCard key={item.id} product={item} />)}
         </ProductDiscoverySection>
 
         <ProductDiscoverySection
-          title="Recently viewed"
+          title={t("home.recentlyViewedTitle")}
           isLoading={recentlyViewedQuery.isLoading}
           error={recentlyViewedQuery.error}
           onRetry={() => void recentlyViewedQuery.refetch()}
-          emptyTitle="No recently viewed products"
-          emptyDescription="Products you viewed earlier will appear here."
+          emptyTitle={t("home.recentlyViewedEmptyTitle")}
+          emptyDescription={t("product.recentlyViewedEmptyDescription")}
         >
           {recentlyViewedProducts.map((item) => <RecentlyViewedProductCard key={item.productId} product={item} />)}
         </ProductDiscoverySection>
@@ -773,12 +785,12 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               </p>
             </div>
             <div className="rounded-lg bg-white px-2 py-2 text-center sm:px-3">
-              <p className="text-[11px] font-medium uppercase tracking-normal text-slate-500">Qty</p>
+              <p className="text-[11px] font-medium uppercase tracking-normal text-slate-500">{t("product.quantityShort")}</p>
               <p className="text-sm font-bold text-slate-950">{quantity}</p>
             </div>
           </div>
           <div className="grid grid-cols-[44px_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:grid-cols-[48px_140px_150px_150px]">
-            <Button variant="outline" size="icon" className="size-11 shrink-0 rounded-2xl sm:size-12" aria-label={favoriteQuery.data ? "Remove from wishlist" : "Add to wishlist"} disabled={favoriteMutation.isPending} onClick={() => {
+            <Button variant="outline" size="icon" className="size-11 shrink-0 rounded-2xl sm:size-12" aria-label={favoriteQuery.data ? t("product.removeFromWishlistShort") : t("product.addToWishlist")} disabled={favoriteMutation.isPending} onClick={() => {
               if (!session) router.push(localePath("/login"));
               else if (canFetchBuyerState) favoriteMutation.mutate();
             }}>
@@ -806,7 +818,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
                 ) : null}
               </span>
               <span className="inline-block min-w-0 max-w-full truncate text-center sm:min-w-[5.75rem]">
-                {addCartMutation.isPending ? "Adding..." : t("product.addToCart")}
+                {addCartMutation.isPending ? t("product.adding") : t("product.addToCart")}
               </span>
             </Button>
             <Button
@@ -817,7 +829,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               disabled={purchaseActionDisabled}
             >
               <span className="inline-block min-w-0 max-w-full truncate text-center sm:min-w-[4.75rem]">
-                {addCartMutation.isPending ? "Adding..." : t("product.buyNow")}
+                {addCartMutation.isPending ? t("product.adding") : t("product.buyNow")}
               </span>
             </Button>
           </div>
@@ -845,26 +857,27 @@ function ProductDiscoverySection({
   children: ReactNode[];
 }) {
   const hasItems = children.length > 0;
+  const t = useTranslations();
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-start justify-between gap-3">
-        <SectionHeader title={title} description={hasItems ? "Continue browsing similar or recently viewed items." : emptyDescription} meta={hasItems ? `${children.length} shown` : undefined} />
+        <SectionHeader title={title} description={hasItems ? t("product.discoveryRailDescription") : emptyDescription} meta={hasItems ? t("product.shownCount").replace("{count}", String(children.length)) : undefined} />
         {error ? (
           <Button type="button" variant="ghost" size="sm" className="rounded-full text-slate-600" onClick={onRetry}>
-            Retry
+            {t("state.retry")}
           </Button>
         ) : null}
       </div>
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label={`Loading ${title}`}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label={t("product.loadingRail").replace("{title}", title)}>
           {[0, 1, 2, 3].map((item) => (
             <div key={item} className="h-56 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
           ))}
         </div>
       ) : error ? (
         <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-          {title} are temporarily unavailable.
+          {t("product.railUnavailable").replace("{title}", title)}
         </p>
       ) : hasItems ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{children}</div>
@@ -937,6 +950,7 @@ function ProductReviewsSection({
   reviewsFetchingMore: boolean;
   onRetryReviews: () => void;
 }) {
+  const t = useTranslations();
   const totalReviewCount = ratingSummary?.totalReviewCount ?? reviews.length;
   const averageRating = ratingSummary ? ratingSummary.averageRating : fallbackRating;
   const hasActiveFilter = ratingFilter !== undefined || contentFilter !== "all";
@@ -944,7 +958,7 @@ function ProductReviewsSection({
   return (
     <div className="mt-3 space-y-4">
       {ratingSummaryLoading ? (
-        <div className="grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-[180px_minmax(0,1fr)]" aria-label="Loading rating summary">
+        <div className="grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-[180px_minmax(0,1fr)]" aria-label={t("product.loadingRatingSummary")}>
           <div className="h-20 animate-pulse rounded-lg bg-slate-200" />
           <div className="space-y-2">
             {[5, 4, 3, 2, 1].map((rating) => <div key={rating} className="h-4 animate-pulse rounded bg-slate-200" />)}
@@ -952,35 +966,35 @@ function ProductReviewsSection({
         </div>
       ) : ratingSummaryError ? (
         <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-          <BuyerErrorState message={getReadableErrorMessage(ratingSummaryError, "Rating summary is temporarily unavailable.")} onRetry={onRetryRatingSummary} />
+          <BuyerErrorState message={getReadableErrorMessage(ratingSummaryError, t("product.ratingSummaryUnavailable"))} onRetry={onRetryRatingSummary} />
         </div>
       ) : (
         <RatingSummaryCard averageRating={averageRating} totalReviewCount={totalReviewCount} distribution={ratingSummary?.distribution} />
       )}
 
       <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
-        <div className="flex flex-wrap gap-2" aria-label="Review rating filter">
-          <FilterButton active={ratingFilter === undefined} onClick={() => onRatingFilterChange(undefined)}>All ratings</FilterButton>
+        <div className="flex flex-wrap gap-2" aria-label={t("product.reviewRatingFilter")}>
+          <FilterButton active={ratingFilter === undefined} onClick={() => onRatingFilterChange(undefined)}>{t("product.allRatings")}</FilterButton>
           {[5, 4, 3, 2, 1].map((rating) => (
             <FilterButton key={rating} active={ratingFilter === rating} onClick={() => onRatingFilterChange(rating as 1 | 2 | 3 | 4 | 5)}>
-              {rating} star
+              {t("product.starCount").replace("{count}", String(rating))}
             </FilterButton>
           ))}
         </div>
-        <div className="flex flex-wrap gap-2" aria-label="Review content filter">
-          <FilterButton active={contentFilter === "all"} onClick={() => onContentFilterChange("all")}>All reviews</FilterButton>
-          <FilterButton active={contentFilter === "media"} onClick={() => onContentFilterChange("media")}>With media</FilterButton>
-          <FilterButton active={contentFilter === "comment"} onClick={() => onContentFilterChange("comment")}>With comment</FilterButton>
+        <div className="flex flex-wrap gap-2" aria-label={t("product.reviewContentFilter")}>
+          <FilterButton active={contentFilter === "all"} onClick={() => onContentFilterChange("all")}>{t("product.allReviews")}</FilterButton>
+          <FilterButton active={contentFilter === "media"} onClick={() => onContentFilterChange("media")}>{t("product.withMedia")}</FilterButton>
+          <FilterButton active={contentFilter === "comment"} onClick={() => onContentFilterChange("comment")}>{t("product.withComment")}</FilterButton>
         </div>
-        <div className="flex flex-wrap gap-2" aria-label="Review sort">
-          <FilterButton active={sort === "latest"} onClick={() => onSortChange("latest")}>Latest</FilterButton>
-          <FilterButton active={sort === "rating_desc"} onClick={() => onSortChange("rating_desc")}>Rating high</FilterButton>
-          <FilterButton active={sort === "rating_asc"} onClick={() => onSortChange("rating_asc")}>Rating low</FilterButton>
+        <div className="flex flex-wrap gap-2" aria-label={t("product.reviewSort")}>
+          <FilterButton active={sort === "latest"} onClick={() => onSortChange("latest")}>{t("product.latest")}</FilterButton>
+          <FilterButton active={sort === "rating_desc"} onClick={() => onSortChange("rating_desc")}>{t("product.ratingHigh")}</FilterButton>
+          <FilterButton active={sort === "rating_asc"} onClick={() => onSortChange("rating_asc")}>{t("product.ratingLow")}</FilterButton>
         </div>
       </div>
 
       {reviewsLoading ? (
-        <div className="space-y-3" aria-label="Loading reviews">
+        <div className="space-y-3" aria-label={t("product.loadingReviews")}>
           {[0, 1].map((item) => (
             <div key={item} className="rounded-xl border border-slate-100 p-4">
               <div className="h-5 w-36 animate-pulse rounded bg-slate-200" />
@@ -991,21 +1005,21 @@ function ProductReviewsSection({
         </div>
       ) : reviewsError ? (
         <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-          <BuyerErrorState message={getReadableErrorMessage(reviewsError, "Reviews are temporarily unavailable.")} onRetry={onRetryReviews} />
+          <BuyerErrorState message={getReadableErrorMessage(reviewsError, t("product.reviewsUnavailable"))} onRetry={onRetryReviews} />
         </div>
       ) : reviews.length ? (
         <div className="grid gap-3">
           {reviews.map((review) => <ReviewCard key={review.id} review={review} />)}
           {reviewPage?.meta.hasNextPage ? (
             <Button type="button" variant="outline" className="justify-self-center rounded-full" disabled={reviewsFetchingMore} onClick={onLoadMore}>
-              {reviewsFetchingMore ? "Loading..." : "Load more reviews"}
+              {reviewsFetchingMore ? t("common.loading") : t("product.loadMoreReviews")}
             </Button>
           ) : null}
         </div>
       ) : (
         <BuyerEmptyState
-          title={hasActiveFilter ? "No reviews match these filters" : "No reviews yet"}
-          description={hasActiveFilter ? "Try a different rating, media, or comment filter." : "Published buyer reviews will appear here."}
+          title={hasActiveFilter ? t("product.noReviewsMatchFilters") : t("product.noReviewsTitle")}
+          description={hasActiveFilter ? t("product.tryDifferentReviewFilter") : t("product.noPublishedReviewsDescription")}
         />
       )}
     </div>
@@ -1055,6 +1069,7 @@ function ProductQuestionsSection({
   onQuestionSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onLogin: () => void;
 }) {
+  const t = useTranslations();
   const trimmedQuestion = questionText.trim();
   const hasActiveFilter = answerStatus !== "all";
 
@@ -1062,43 +1077,43 @@ function ProductQuestionsSection({
     <div className="mt-3 space-y-4">
       {isAuthenticated && canAskQuestion ? (
         <form className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3" onSubmit={onQuestionSubmit}>
-          <label htmlFor="product-question" className="text-sm font-semibold text-slate-900">Your question</label>
+          <label htmlFor="product-question" className="text-sm font-semibold text-slate-900">{t("product.yourQuestion")}</label>
           <textarea
             id="product-question"
             value={questionText}
             onChange={(event) => onQuestionTextChange(event.target.value)}
-            placeholder="Ask about sizing, warranty, packaging, or product details."
+            placeholder={t("product.questionPlaceholder")}
             className="min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
             disabled={questionPending}
           />
-          {questionError ? <p className="text-sm text-red-600">{getReadableErrorMessage(questionError, "Question submission is temporarily unavailable.")}</p> : null}
-          {questionSuccess && !questionError ? <p className="text-sm text-emerald-700">Question submitted.</p> : null}
+          {questionError ? <p className="text-sm text-red-600">{getReadableErrorMessage(questionError, t("product.questionUnavailable"))}</p> : null}
+          {questionSuccess && !questionError ? <p className="text-sm text-emerald-700">{t("product.questionSubmitted")}</p> : null}
           <Button type="submit" disabled={!trimmedQuestion || questionPending}>
-            {questionPending ? "Submitting..." : "Submit question"}
+            {questionPending ? t("product.submittingQuestion") : t("product.submitQuestion")}
           </Button>
         </form>
       ) : (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-          {isAuthenticated ? "Only buyer accounts can ask product questions." : (
-            <Button type="button" variant="outline" className="rounded-full" onClick={onLogin}>Log in to ask a question</Button>
+          {isAuthenticated ? t("product.onlyBuyerQuestions") : (
+            <Button type="button" variant="outline" className="rounded-full" onClick={onLogin}>{t("product.loginToAskQuestion")}</Button>
           )}
         </div>
       )}
 
       <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
-        <div className="flex flex-wrap gap-2" aria-label="Question answer filter">
-          <FilterButton active={answerStatus === "all"} onClick={() => onAnswerStatusChange("all")}>All questions</FilterButton>
-          <FilterButton active={answerStatus === "answered"} onClick={() => onAnswerStatusChange("answered")}>Answered</FilterButton>
-          <FilterButton active={answerStatus === "unanswered"} onClick={() => onAnswerStatusChange("unanswered")}>Unanswered</FilterButton>
+        <div className="flex flex-wrap gap-2" aria-label={t("product.questionAnswerFilter")}>
+          <FilterButton active={answerStatus === "all"} onClick={() => onAnswerStatusChange("all")}>{t("product.allQuestions")}</FilterButton>
+          <FilterButton active={answerStatus === "answered"} onClick={() => onAnswerStatusChange("answered")}>{t("product.answered")}</FilterButton>
+          <FilterButton active={answerStatus === "unanswered"} onClick={() => onAnswerStatusChange("unanswered")}>{t("product.unanswered")}</FilterButton>
         </div>
-        <div className="flex flex-wrap gap-2" aria-label="Question sort">
-          <FilterButton active={sort === "latest"} onClick={() => onSortChange("latest")}>Latest</FilterButton>
-          <FilterButton active={sort === "oldest"} onClick={() => onSortChange("oldest")}>Oldest</FilterButton>
+        <div className="flex flex-wrap gap-2" aria-label={t("product.questionSort")}>
+          <FilterButton active={sort === "latest"} onClick={() => onSortChange("latest")}>{t("product.latest")}</FilterButton>
+          <FilterButton active={sort === "oldest"} onClick={() => onSortChange("oldest")}>{t("product.oldest")}</FilterButton>
         </div>
       </div>
 
       {questionsLoading ? (
-        <div className="space-y-3" aria-label="Loading questions">
+        <div className="space-y-3" aria-label={t("product.loadingQuestions")}>
           {[0, 1].map((item) => (
             <div key={item} className="rounded-xl border border-slate-100 p-4">
               <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
@@ -1109,21 +1124,21 @@ function ProductQuestionsSection({
         </div>
       ) : questionsError ? (
         <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-          <BuyerErrorState message={getReadableErrorMessage(questionsError, "Questions are temporarily unavailable.")} onRetry={onRetryQuestions} />
+          <BuyerErrorState message={getReadableErrorMessage(questionsError, t("product.questionsUnavailable"))} onRetry={onRetryQuestions} />
         </div>
       ) : questions.length ? (
         <div className="grid gap-3">
           {questions.map((question) => <QuestionCard key={question.id} question={question} />)}
           {questionsPage?.meta.hasNextPage ? (
             <Button type="button" variant="outline" className="justify-self-center rounded-full" disabled={questionsFetchingMore} onClick={onLoadMore}>
-              {questionsFetchingMore ? "Loading..." : "Load more questions"}
+              {questionsFetchingMore ? t("common.loading") : t("product.loadMoreQuestions")}
             </Button>
           ) : null}
         </div>
       ) : (
         <BuyerEmptyState
-          title={hasActiveFilter ? "No questions match these filters" : "No questions yet"}
-          description={hasActiveFilter ? "Try another answer status filter." : "Buyer questions and seller answers will appear here."}
+          title={hasActiveFilter ? t("product.noQuestionsMatchFilters") : t("product.noQuestionsTitle")}
+          description={hasActiveFilter ? t("product.tryAnotherQuestionFilter") : t("product.noQuestionsDescription")}
         />
       )}
     </div>
@@ -1170,14 +1185,16 @@ function extractErrorText(value: unknown): string | null {
 }
 
 function QuestionCard({ question }: { question: BuyerProductQuestion }) {
+  const t = useTranslations();
+  const locale = useLocale();
   return (
     <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-normal text-orange-600">Question</p>
+          <p className="text-xs font-semibold uppercase tracking-normal text-orange-600">{t("product.question")}</p>
           <p className="mt-1 break-words font-semibold text-slate-950">{question.user.name}</p>
         </div>
-        {question.createdAt ? <time dateTime={question.createdAt} className="text-sm text-slate-500">{formatReviewDate(question.createdAt)}</time> : null}
+        {question.createdAt ? <time dateTime={question.createdAt} className="text-sm text-slate-500">{formatReviewDate(question.createdAt, locale)}</time> : null}
       </div>
       <p className="mt-3 whitespace-pre-line break-words text-sm leading-6 text-slate-700">{question.question}</p>
       {question.answers.length ? (
@@ -1185,15 +1202,15 @@ function QuestionCard({ question }: { question: BuyerProductQuestion }) {
           {question.answers.map((answer) => (
             <div key={answer.id} className="rounded-lg bg-orange-50 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="break-words text-sm font-semibold text-orange-900">Seller answer from {answer.user.name}</p>
-                {answer.createdAt ? <time dateTime={answer.createdAt} className="text-xs text-orange-700">{formatReviewDate(answer.createdAt)}</time> : null}
+                <p className="break-words text-sm font-semibold text-orange-900">{t("product.sellerAnswerFrom").replace("{name}", answer.user.name)}</p>
+                {answer.createdAt ? <time dateTime={answer.createdAt} className="text-xs text-orange-700">{formatReviewDate(answer.createdAt, locale)}</time> : null}
               </div>
               <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">{answer.answer}</p>
             </div>
           ))}
         </div>
       ) : (
-        <p className="mt-3 text-sm text-slate-500">The seller has not answered yet.</p>
+        <p className="mt-3 text-sm text-slate-500">{t("product.sellerNotAnswered")}</p>
       )}
     </article>
   );
@@ -1208,6 +1225,7 @@ function RatingSummaryCard({
   totalReviewCount: number;
   distribution: BuyerProductRatingSummary["distribution"] | undefined;
 }) {
+  const t = useTranslations();
   const hasDistribution = distribution && Object.values(distribution).some((count) => count > 0);
 
   return (
@@ -1217,7 +1235,7 @@ function RatingSummaryCard({
           <StarIcon className="size-5 fill-amber-400 text-amber-400" />
           <span className="text-3xl font-bold text-slate-950">{averageRating.toFixed(1)}</span>
         </div>
-        <p className="mt-1 text-sm text-slate-500">{totalReviewCount} review{totalReviewCount === 1 ? "" : "s"}</p>
+        <p className="mt-1 text-sm text-slate-500">{t(totalReviewCount === 1 ? "product.reviewCountOne" : "product.reviewCount").replace("{count}", String(totalReviewCount))}</p>
       </div>
       {hasDistribution ? (
         <div className="space-y-2">
@@ -1226,7 +1244,7 @@ function RatingSummaryCard({
             const width = totalReviewCount > 0 ? `${Math.round((count / totalReviewCount) * 100)}%` : "0%";
             return (
               <div key={rating} className="grid grid-cols-[48px_minmax(0,1fr)_32px] items-center gap-2 text-sm text-slate-600">
-                <span>{rating} star</span>
+                <span>{t("product.starCount").replace("{count}", String(rating))}</span>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                   <div className="h-full rounded-full bg-amber-400" style={{ width }} />
                 </div>
@@ -1241,25 +1259,27 @@ function RatingSummaryCard({
 }
 
 function ReviewCard({ review }: { review: BuyerProductReview }) {
+  const t = useTranslations();
+  const locale = useLocale();
   return (
     <article className="rounded-xl border border-slate-100 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-semibold text-slate-950">{review.reviewerName}</p>
-          <div className="mt-1 flex items-center gap-1 text-sm text-amber-500" aria-label={`${review.rating} star review`}>
+          <div className="mt-1 flex items-center gap-1 text-sm text-amber-500" aria-label={t("product.starReview").replace("{rating}", String(review.rating))}>
             {Array.from({ length: 5 }, (_, index) => (
               <StarIcon key={index} className={`size-4 ${index < review.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
             ))}
           </div>
         </div>
-        {review.createdAt ? <time dateTime={review.createdAt} className="text-sm text-slate-500">{formatReviewDate(review.createdAt)}</time> : null}
+        {review.createdAt ? <time dateTime={review.createdAt} className="text-sm text-slate-500">{formatReviewDate(review.createdAt, locale)}</time> : null}
       </div>
       {review.comment ? <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{review.comment}</p> : null}
       {review.media.length ? (
-        <div className="mt-3 flex gap-2 overflow-x-auto" aria-label="Review media">
+        <div className="mt-3 flex gap-2 overflow-x-auto" aria-label={t("product.reviewMedia")}>
           {review.media.map((media) => (
             <a key={media.id} href={media.url} target="_blank" rel="noreferrer" className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-              <img src={media.url} alt={media.altText ?? "Review image"} className="size-full object-cover" loading="lazy" />
+              <img src={media.url} alt={media.altText ?? t("product.reviewImage")} className="size-full object-cover" loading="lazy" />
             </a>
           ))}
         </div>
@@ -1276,10 +1296,10 @@ function ReviewCard({ review }: { review: BuyerProductReview }) {
   );
 }
 
-function formatReviewDate(value: string): string {
+function formatReviewDate(value: string, locale: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
 function FactRow({ label, value }: { label: string; value: string }) {

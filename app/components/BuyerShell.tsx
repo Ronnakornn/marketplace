@@ -44,7 +44,7 @@ export function BuyerPageShell({ children }: { children: ReactNode }) {
   );
 }
 
-export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title?: string; searchQuery?: string }) {
+export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searchQuery?: string }) {
   const { data: session } = useSession();
   const router = useRouter();
   const t = useTranslations();
@@ -142,13 +142,13 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
             {session.user.role !== "ADMIN" ? (
               <Link href={localePath("/seller/register")} prefetch={false} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 sm:flex">
                 <StoreIcon className="size-4" />
-                Start Selling
+                {t("buyer.startSelling")}
               </Link>
             ) : null}
             {session.user.role !== "ADMIN" && !isSellerRoute ? (
               <Link href={localePath(sellerChatHref)} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 lg:flex">
                 <StoreIcon className="size-4" />
-                Seller Chat
+                {t("buyer.sellerChat")}
               </Link>
             ) : null}
             <Link href={localePath("/profile")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
@@ -182,7 +182,7 @@ export function BuyerTopBar({ title = "Marketplace", searchQuery = "" }: { title
         )}
       </div>
       <div className="mx-auto mt-1 flex max-w-6xl items-center justify-between gap-2 px-1">
-        <p className="min-w-0 truncate text-xs font-semibold text-orange-600">{title}</p>
+        <p className="min-w-0 truncate text-xs font-semibold text-orange-600">{title ?? t("common.marketplace")}</p>
         <LanguageSwitcher />
       </div>
     </header>

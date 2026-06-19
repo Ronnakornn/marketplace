@@ -109,6 +109,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   const localePath = useLocalePath();
   const locale = useLocale();
   const formatters = useFormatters();
+  const t = useTranslations();
   const [sessionId, setSessionId] = useState("");
   const canUseBuyerCart = user?.role === "USER";
   const homeQuery = useQuery({
@@ -121,13 +122,25 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart", locale] });
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
       showAddToCartSuccess({
+        copy: {
+          successTitle: t("cart.handoffAddedTitle"),
+          successDescription: t("cart.handoffAddedDescription"),
+          viewCart: t("cart.viewCart"),
+          continueShopping: t("cart.continueShopping"),
+        },
         context: {
           productTitle: product.title,
         },
         onViewCart: () => router.push(localePath("/cart")),
       });
     },
-    onError: (error) => showAddToCartError({ error }),
+    onError: (error) => showAddToCartError({
+      error,
+      copy: {
+        errorTitle: t("cart.handoffErrorTitle"),
+        errorDescription: t("cart.handoffErrorDescription"),
+      },
+    }),
   });
   const [visibleCount, setVisibleCount] = useState(8);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -179,7 +192,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   return (
     <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950">
-      <ClientReadyBuyerTopBar title={user?.name ? `Welcome back, ${user.name}` : "Marketplace"} />
+      <ClientReadyBuyerTopBar title={user?.name ? t("home.welcomeBack").replace("{name}", user.name) : t("common.marketplace")} />
 
       <main className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
         <HeroPromo banners={home.banners} isLoading={homeQuery.isLoading} />
@@ -197,14 +210,14 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
         />
         <CategoryGrid categories={categories} apiCategories={home.categories} isLoading={homeQuery.isLoading} />
         <ProductRail
-          title="Recommended for you"
-          subtitle="Fresh picks based on deals and shop momentum"
+          title={t("home.recommendedTitle")}
+          subtitle={t("home.recommendedSubtitle")}
           products={visibleProducts}
           source="marketplace_home_recommended"
           isLoading={homeQuery.isLoading}
           isError={homeQuery.isError}
-          emptyTitle="No recommendations yet"
-          emptyDescription="Browse products to improve marketplace recommendations."
+          emptyTitle={t("home.recommendedEmptyTitle")}
+          emptyDescription={t("home.recommendedEmptyDescription")}
           hasMore={visibleCount < home.recommendedProducts.length}
           loadMoreRef={loadMoreRef}
           onAddToCart={handleAddToCart}
@@ -213,28 +226,28 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           onRetry={() => void homeQuery.refetch()}
         />
         <ProductRail
-          title="New arrivals"
-          subtitle="Recently added products from active shops"
+          title={t("home.newArrivalsTitle")}
+          subtitle={t("home.newArrivalsSubtitle")}
           products={home.newArrivals}
           source="marketplace_home_new_arrivals"
           isLoading={homeQuery.isLoading}
           isError={false}
-          emptyTitle="No new arrivals yet"
-          emptyDescription="New products will appear here when sellers publish them."
+          emptyTitle={t("home.newArrivalsEmptyTitle")}
+          emptyDescription={t("home.newArrivalsEmptyDescription")}
           onAddToCart={handleAddToCart}
           pendingVariantId={addToCartMutation.variables?.variantId}
           formatMoney={formatters.currency}
         />
         <FeaturedShopsSection shops={home.featuredShops} isLoading={homeQuery.isLoading} />
         <ProductRail
-          title="Recently viewed"
-          subtitle="Products from your latest browsing activity"
+          title={t("home.recentlyViewedTitle")}
+          subtitle={t("home.recentlyViewedSubtitle")}
           products={home.recentlyViewed}
           source="marketplace_home_recently_viewed"
           isLoading={homeQuery.isLoading}
           isError={false}
-          emptyTitle="No recently viewed products"
-          emptyDescription="Products you open will be shown here for quick access."
+          emptyTitle={t("home.recentlyViewedEmptyTitle")}
+          emptyDescription={t("home.recentlyViewedEmptyDescription")}
           onAddToCart={handleAddToCart}
           pendingVariantId={addToCartMutation.variables?.variantId}
           formatMoney={formatters.currency}
@@ -315,9 +328,9 @@ function VoucherStrip({ promotions, hasProducts, isLoading }: { promotions: Mark
   const vouchers = liveVouchers.length
     ? liveVouchers
     : [
-        [t("home.freeShipping"), "THB 500"],
-        ["15% OFF", "Selected shops"],
-        ["Coins Cashback", t("home.upToCashback")],
+        [t("home.freeShipping"), t("home.voucherAmount").replace("{amount}", "500")],
+        [t("home.voucherPercentOff").replace("{percent}", "15"), t("home.selectedShops")],
+        [t("home.coinsCashback"), t("home.upToCashback")],
       ];
 
   return (
@@ -365,7 +378,7 @@ function FlashSaleSection({
           </div>
           <div>
             <h2 className="text-lg font-extrabold text-slate-950">{flashSale?.title ?? t("home.flashSale")}</h2>
-            <p className="text-xs text-slate-500">{flashSale?.description ?? (flashSale?.endsAt ? `Ends ${new Date(flashSale.endsAt).toLocaleDateString()}` : "Limited-time deals")}</p>
+            <p className="text-xs text-slate-500">{flashSale?.description ?? (flashSale?.endsAt ? t("home.endsAt").replace("{time}", new Date(flashSale.endsAt).toLocaleDateString()) : t("home.limitedTimeDeals"))}</p>
           </div>
         </div>
         <Button variant="ghost" size="sm" className="rounded-full text-red-600 hover:bg-red-50 hover:text-red-700">
@@ -400,7 +413,7 @@ function FlashSaleSection({
               </Button>
             </div>
           </article>
-        )) : <SectionEmptyState title="No flash sale right now" description="Active flash deals will appear here when promotions are available." />}
+        )) : <SectionEmptyState title={t("home.noFlashSaleTitle")} description={t("home.noFlashSaleDescription")} />}
       </div>
     </section>
   );
@@ -483,7 +496,7 @@ function ProductRail(props: {
       </div>
       {props.isError ? (
         <div className="mt-3 rounded-3xl border border-red-100 bg-white p-4 text-center shadow-sm">
-          <p className="text-sm font-semibold text-slate-950">Request failed</p>
+          <p className="text-sm font-semibold text-slate-950">{t("state.loadErrorTitle")}</p>
           {props.onRetry ? <Button className="mt-3 rounded-full" variant="outline" onClick={props.onRetry}>{t("state.retry")}</Button> : null}
         </div>
       ) : null}
@@ -515,7 +528,7 @@ function ProductVisual({ product, compact = false }: { product: MarketplaceProdu
         />
       ) : null}
       {imageUrl ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-transparent" /> : null}
-      {product.originalPrice && product.originalPrice > product.price ? <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-600 shadow-sm">Sale</div> : null}
+      {product.originalPrice && product.originalPrice > product.price ? <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-600 shadow-sm">{t("home.saleBadge")}</div> : null}
       <span className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-500 shadow-sm">
         <HeartIcon className="size-4" />
         <span className="sr-only">{t("product.saveProduct")}</span>
@@ -529,12 +542,13 @@ function ProductVisual({ product, compact = false }: { product: MarketplaceProdu
 
 function FeaturedShopsSection({ shops, isLoading }: { shops: MarketplaceShop[]; isLoading: boolean }) {
   const localePath = useLocalePath();
+  const t = useTranslations();
   if (isLoading) return <Skeleton className="mt-5 h-40 rounded-3xl" />;
-  if (shops.length === 0) return <SectionEmptyState title="No featured shops yet" description="Featured shops will appear once seller highlights are available." />;
+  if (shops.length === 0) return <SectionEmptyState title={t("home.featuredShopsEmptyTitle")} description={t("home.featuredShopsEmptyDescription")} />;
   return (
     <section className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70 sm:p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-extrabold text-slate-950">Featured shops</h2>
+        <h2 className="text-lg font-extrabold text-slate-950">{t("home.featuredShopsTitle")}</h2>
         <ShoppingBagIcon className="size-5 text-orange-500" />
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -546,7 +560,9 @@ function FeaturedShopsSection({ shops, isLoading }: { shops: MarketplaceShop[]; 
             className="min-w-0 rounded-2xl border border-slate-100 p-3 transition hover:bg-slate-50"
           >
             <p className="truncate text-sm font-extrabold text-slate-950">{shop.name}</p>
-            <p className="mt-1 text-xs text-slate-500">{shop.productCount.toLocaleString()} products ยท {shop.followerCount.toLocaleString()} followers</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {t("buyer.productsCount").replace("{count}", shop.productCount.toLocaleString())} · {t("buyer.followersCount").replace("{count}", shop.followerCount.toLocaleString())}
+            </p>
             <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-600"><StarIcon className="size-3 fill-amber-400 text-amber-400" /> {shop.ratingAverage.toFixed(1)} ({shop.ratingCount})</p>
           </Link>
         ))}
@@ -559,7 +575,7 @@ function HomeErrorState({ onRetry }: { onRetry: () => void }) {
   const t = useTranslations();
   return (
     <div className="mt-5 rounded-3xl border border-red-100 bg-white p-5 text-center shadow-sm">
-      <p className="text-sm font-bold text-slate-950">Homepage data failed to load</p>
+      <p className="text-sm font-bold text-slate-950">{t("home.homepageLoadError")}</p>
       <Button className="mt-3 rounded-full" variant="outline" onClick={onRetry}>{t("state.retry")}</Button>
     </div>
   );

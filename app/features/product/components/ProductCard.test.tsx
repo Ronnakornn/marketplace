@@ -74,6 +74,37 @@ vi.mock("#/i18n/navigation", () => ({
   useLocalePath: () => (path: string) => `/en${path}`,
 }));
 
+vi.mock("#/i18n/client", () => ({
+  useTranslations: () => (key: string) => ({
+    "cart.handoffAddedTitle": "Added to cart",
+    "cart.handoffAddedDescription": "Your item was added to the cart.",
+    "cart.handoffErrorTitle": "Could not add to cart",
+    "cart.handoffErrorDescription": "Please try again or review the selected options.",
+    "cart.viewCart": "View cart",
+    "cart.continueShopping": "Continue shopping",
+    "common.available": "Available",
+    "common.details": "Details",
+    "common.unavailable": "Unavailable",
+    "product.actionUnavailable": "Add to cart is temporarily unavailable.",
+    "product.adding": "Adding",
+    "product.addingProductToCart": "Adding {title} to cart",
+    "product.addingToCart": "Adding to cart...",
+    "product.addToWishlistWithTitle": "Add {title} to wishlist",
+    "product.discountPercentOff": "{percent}% off",
+    "product.itemOutOfStock": "This item is out of stock.",
+    "product.loginToAddToCart": "Log in to add this item to your cart.",
+    "product.onlyBuyerAccountsCanPurchase": "Only buyer accounts can purchase.",
+    "product.openProductDetails": "Open {title} details",
+    "product.outOfStock": "Out of stock",
+    "product.quickAddToCart": "Quick add {title} to cart",
+    "product.removeFromWishlist": "Remove {title} from wishlist",
+    "product.signInBuyerWishlist": "Sign in as a buyer to use wishlist",
+    "product.soldCount": "{count} sold",
+    "product.viewProduct": "View {title}",
+    "product.wishlistUnavailable": "Wishlist unavailable",
+  })[key] ?? key,
+}));
+
 vi.mock("#/lib/assets", () => ({
   resolveUploadedImageUrl: (url?: string) => url ?? "/placeholder.png",
 }));
@@ -215,6 +246,12 @@ describe("ProductCard", () => {
 
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["buyer-cart"] }));
     expect(cardMocks.showAddToCartSuccess).toHaveBeenCalledWith({
+      copy: {
+        successTitle: "Added to cart",
+        successDescription: "Your item was added to the cart.",
+        viewCart: "View cart",
+        continueShopping: "Continue shopping",
+      },
       context: {
         productTitle: "Canvas Weekender Bag",
         variantTitle: "Default",
@@ -239,7 +276,13 @@ describe("ProductCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ }));
 
-    await waitFor(() => expect(cardMocks.showAddToCartError).toHaveBeenCalledWith({ error }));
+    await waitFor(() => expect(cardMocks.showAddToCartError).toHaveBeenCalledWith({
+      error,
+      copy: {
+        errorTitle: "Could not add to cart",
+        errorDescription: "Please try again or review the selected options.",
+      },
+    }));
     expect((await screen.findAllByText("Variant is out of stock")).length).toBeGreaterThan(0);
     expect(screen.queryByText("[object Object]")).toBeNull();
     expect(cardMocks.showAddToCartSuccess).not.toHaveBeenCalled();

@@ -2,11 +2,6 @@
 
 import { toast } from "sonner";
 
-const DEFAULT_SUCCESS_TITLE = "Added to cart";
-const DEFAULT_SUCCESS_DESCRIPTION = "Your item was added to the cart.";
-const DEFAULT_ERROR_TITLE = "Could not add to cart";
-const DEFAULT_ERROR_DESCRIPTION = "Please try again or review the selected options.";
-
 export interface ProductCartHandoffContext {
   productTitle?: string | null;
   variantTitle?: string | null;
@@ -14,40 +9,50 @@ export interface ProductCartHandoffContext {
 
 export interface ShowAddToCartSuccessOptions {
   context?: ProductCartHandoffContext;
+  copy: {
+    successTitle: string;
+    successDescription: string;
+    viewCart: string;
+    continueShopping: string;
+  };
   onViewCart?: () => void;
   onContinueShopping?: () => void;
 }
 
 export interface ShowAddToCartErrorOptions {
   error: unknown;
+  copy: {
+    errorTitle: string;
+    errorDescription: string;
+  };
   fallbackMessage?: string;
 }
 
-export function showAddToCartSuccess(options: ShowAddToCartSuccessOptions = {}) {
-  const description = buildSuccessDescription(options.context);
+export function showAddToCartSuccess(options: ShowAddToCartSuccessOptions) {
+  const description = buildSuccessDescription(options.context, options.copy.successDescription);
 
-  return toast.success(DEFAULT_SUCCESS_TITLE, {
+  return toast.success(options.copy.successTitle, {
     description,
     action: options.onViewCart
       ? {
-          label: "View cart",
+          label: options.copy.viewCart,
           onClick: options.onViewCart,
         }
       : undefined,
     cancel: {
-      label: "Continue shopping",
+      label: options.copy.continueShopping,
       onClick: options.onContinueShopping ?? (() => toast.dismiss()),
     },
   });
 }
 
 export function showAddToCartError(options: ShowAddToCartErrorOptions) {
-  return toast.error(DEFAULT_ERROR_TITLE, {
-    description: normalizeAddToCartError(options.error, options.fallbackMessage),
+  return toast.error(options.copy.errorTitle, {
+    description: normalizeAddToCartError(options.error, options.fallbackMessage ?? options.copy.errorDescription),
   });
 }
 
-export function normalizeAddToCartError(error: unknown, fallbackMessage = DEFAULT_ERROR_DESCRIPTION): string {
+export function normalizeAddToCartError(error: unknown, fallbackMessage: string): string {
   if (typeof error === "string") return cleanMessage(error, fallbackMessage);
   if (error instanceof Error) return cleanMessage(error.message, fallbackMessage);
   if (!error || typeof error !== "object") return fallbackMessage;
@@ -59,7 +64,7 @@ export function normalizeAddToCartError(error: unknown, fallbackMessage = DEFAUL
   );
 }
 
-function buildSuccessDescription(context?: ProductCartHandoffContext): string {
+function buildSuccessDescription(context: ProductCartHandoffContext | undefined, fallbackDescription: string): string {
   const productTitle = cleanOptionalMessage(context?.productTitle);
   const variantTitle = cleanOptionalMessage(context?.variantTitle);
 
@@ -67,7 +72,7 @@ function buildSuccessDescription(context?: ProductCartHandoffContext): string {
     return `${productTitle} - ${variantTitle}`;
   }
 
-  return productTitle ?? variantTitle ?? DEFAULT_SUCCESS_DESCRIPTION;
+  return productTitle ?? variantTitle ?? fallbackDescription;
 }
 
 function cleanMessage(value: string, fallbackMessage: string): string {

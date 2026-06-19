@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ProductListingPage } from "#/features/product";
+import { createTranslator } from "#/i18n/server";
 import { publicPageMetadata, safeDescription } from "#/lib/seo";
 
 export async function generateMetadata({
@@ -12,9 +13,10 @@ export async function generateMetadata({
   const { locale } = await params;
   const resolvedSearchParams = await searchParams;
   const query = (resolvedSearchParams.q ?? resolvedSearchParams.keyword ?? "").trim();
+  const t = createTranslator(locale);
   return publicPageMetadata({
-    title: query ? `Search results for ${query}` : "Search",
-    description: safeDescription(undefined, "Search marketplace products and sellers."),
+    title: query ? t("product.searchResultsFor").replace("{query}", query) : t("common.search"),
+    description: safeDescription(undefined, t("seo.searchDescription")),
     path: "/search",
     locale,
     noindex: true,

@@ -36,8 +36,8 @@ export function WishlistPage() {
       return { previousFavorites };
     },
     onSuccess: () => {
-      toast.success("Removed from wishlist", {
-        description: "The product was removed from your saved items.",
+      toast.success(t("buyer.removedFromWishlist"), {
+        description: t("buyer.removedFromWishlistDescription"),
       });
     },
     onError: (error, _productId, context) => {
@@ -45,8 +45,8 @@ export function WishlistPage() {
         queryClient.setQueryData(favoriteQueryKey, context.previousFavorites);
       }
 
-      toast.error("Could not remove item", {
-        description: error instanceof Error ? error.message : "Please try again.",
+      toast.error(t("buyer.wishlistRemoveErrorTitle"), {
+        description: error instanceof Error ? error.message : t("buyer.wishlistRemoveErrorDescription"),
       });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: favoriteQueryKey }),
@@ -57,6 +57,12 @@ export function WishlistPage() {
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart", locale] });
       showAddToCartSuccess({
+        copy: {
+          successTitle: t("cart.handoffAddedTitle"),
+          successDescription: t("cart.handoffAddedDescription"),
+          viewCart: t("cart.viewCart"),
+          continueShopping: t("cart.continueShopping"),
+        },
         context: {
           productTitle: product.title,
           variantTitle: product.purchaseVariant?.title,
@@ -64,7 +70,13 @@ export function WishlistPage() {
         onViewCart: () => router.push(localePath("/cart")),
       });
     },
-    onError: (error) => showAddToCartError({ error }),
+    onError: (error) => showAddToCartError({
+      error,
+      copy: {
+        errorTitle: t("cart.handoffErrorTitle"),
+        errorDescription: t("cart.handoffErrorDescription"),
+      },
+    }),
   });
 
   const favorites = favoritesQuery.data ?? [];
@@ -90,13 +102,13 @@ export function WishlistPage() {
             {favorites.map((favorite) => {
               const isRemoving = removeMutation.isPending && removeMutation.variables === favorite.productId;
               const imageUrl = resolveUploadedImageUrl(favorite.imageUrls[0]);
-              const disabledReason = getAddToCartDisabledReason(favorite);
+              const disabledReason = getAddToCartDisabledReason(favorite, t);
               const canAddToCart = Boolean(favorite.purchaseVariant) && !disabledReason;
               const isAdding = addToCartMutation.isPending && addToCartMutation.variables?.product.productId === favorite.productId;
               const availabilityLabel = disabledReason ?? (
                 favorite.purchaseVariant?.stock && favorite.purchaseVariant.stock <= 5
-                  ? `Only ${favorite.purchaseVariant.stock} left`
-                  : "Ready to ship"
+                  ? t("buyer.onlyLeft").replace("{count}", String(favorite.purchaseVariant.stock))
+                  : t("buyer.readyToShip")
               );
 
               return (
@@ -136,17 +148,17 @@ export function WishlistPage() {
                         type="button"
                         className="h-11 rounded-2xl bg-orange-600 px-3 hover:bg-orange-700"
                         disabled={!canAddToCart || isAdding}
-                        title={disabledReason ?? `Add ${favorite.title} to cart`}
+                        title={disabledReason ?? t("buyer.addFavoriteToCart").replace("{title}", favorite.title)}
                         onClick={() => {
                           if (!favorite.purchaseVariant || disabledReason) return;
                           addToCartMutation.mutate({ product: favorite, variantId: favorite.purchaseVariant.id });
                         }}
                       >
                         <ShoppingCartIcon className="size-4" />
-                        <span className="truncate">{isAdding ? "Adding" : "Add"}</span>
+                        <span className="truncate">{isAdding ? t("product.adding") : t("common.add")}</span>
                       </Button>
                       <Button asChild variant="outline" className="size-11 rounded-2xl px-0">
-                        <Link href={localePath(`/products/${favorite.productId}`)} aria-label={`View ${favorite.title}`}>
+                        <Link href={localePath(`/products/${favorite.productId}`)} aria-label={t("buyer.viewFavorite").replace("{title}", favorite.title)}>
                           <ImageIcon className="size-4" />
                         </Link>
                       </Button>
@@ -156,7 +168,7 @@ export function WishlistPage() {
                         variant="outline"
                         className="size-11 rounded-2xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                         disabled={isRemoving}
-                        aria-label={`Remove ${favorite.title} from wishlist`}
+                        aria-label={t("buyer.removeFavorite").replace("{title}", favorite.title)}
                         onClick={() => removeMutation.mutate(favorite.productId)}
                       >
                         <Trash2Icon className="size-4" />
@@ -170,7 +182,7 @@ export function WishlistPage() {
         ) : null}
         {removeMutation.isError && favorites.length > 0 ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            {removeMutation.error instanceof Error ? removeMutation.error.message : "Wishlist item could not be removed."}
+            {removeMutation.error instanceof Error ? removeMutation.error.message : t("buyer.wishlistRemoveFallback")}
           </div>
         ) : null}
         {favoritesQuery.isFetching && !favoritesQuery.isLoading ? (
@@ -181,10 +193,10 @@ export function WishlistPage() {
   );
 }
 
-function getAddToCartDisabledReason(favorite: BuyerFavoriteProduct): string | null {
-  if (favorite.status !== "ACTIVE") return "Product unavailable";
-  if (favorite.shop.status !== "ACTIVE") return "Shop unavailable";
-  if (!favorite.purchaseVariant) return "Choose options";
-  if (favorite.purchaseVariant.stock <= 0) return "Out of stock";
+function getAddToCartDisabledReason(favorite: BuyerFavoriteProduct, t: ReturnType<typeof useTranslations>): string | null {
+  if (favorite.status !== "ACTIVE") return t("product.productUnavailable");
+  if (favorite.shop.status !== "ACTIVE") return t("product.shopUnavailable");
+  if (!favorite.purchaseVariant) return t("product.chooseOptions");
+  if (favorite.purchaseVariant.stock <= 0) return t("product.outOfStock");
   return null;
 }

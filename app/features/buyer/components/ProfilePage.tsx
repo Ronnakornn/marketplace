@@ -38,11 +38,11 @@ export function ProfilePage() {
                 <div className="min-w-0">
                   <h1 className="truncate text-xl font-bold text-slate-950">{profileQuery.data.name}</h1>
                   <p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><MailIcon className="size-4" />{profileQuery.data.email}</p>
-                  <p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><PhoneIcon className="size-4" />{profileQuery.data.phone ?? "No phone added"}</p>
+                  <p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><PhoneIcon className="size-4" />{profileQuery.data.phone ?? t("buyer.noPhoneAdded")}</p>
                   <div className="mt-2 flex gap-2">
                     <Badge className="rounded-md bg-orange-600">{profileQuery.data.role}</Badge>
                     <Badge variant="outline" className="rounded-md">{profileQuery.data.status}</Badge>
-                    <Badge variant="outline" className="rounded-md">{profileQuery.data.emailVerified ? "Email verified" : "Email unverified"}</Badge>
+                    <Badge variant="outline" className="rounded-md">{profileQuery.data.emailVerified ? t("buyer.emailVerified") : t("buyer.emailUnverified")}</Badge>
                   </div>
                 </div>
               </div>
@@ -54,7 +54,7 @@ export function ProfilePage() {
               <h2 className="font-bold">{t("buyer.buyerShortcuts")}</h2>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <Button asChild variant="outline" className="justify-start"><Link href={localePath("/orders")}><PackageIcon className="size-4" />{t("buyer.myOrders")}</Link></Button>
-                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/chat")}><MessageCircleIcon className="size-4" />Buyer chat</Link></Button>
+                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/chat")}><MessageCircleIcon className="size-4" />{t("buyer.buyerChat")}</Link></Button>
                 <Button asChild variant="outline" className="justify-start"><Link href={localePath("/account/addresses")}><MapPinIcon className="size-4" />{t("buyer.addresses")}</Link></Button>
                 <Button asChild variant="outline" className="justify-start"><Link href={localePath("/wishlist")}><HeartIcon className="size-4" />{t("buyer.wishlist")}</Link></Button>
                 <Button asChild variant="outline" className="justify-start"><Link href={localePath("/vouchers")}><TicketIcon className="size-4" />{t("buyer.vouchers")}</Link></Button>
@@ -112,6 +112,8 @@ function ProfileIdentityForm({
   };
 }) {
   const queryClient = useQueryClient();
+  const t = useTranslations();
+  const localePath = useLocalePath();
   const [name, setName] = useState(profile.name);
   const [phone, setPhone] = useState(profile.phone ?? "");
   const [otp, setOtp] = useState("");
@@ -120,7 +122,7 @@ function ProfileIdentityForm({
   const mutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: async () => {
-      setMessage("Profile updated.");
+      setMessage(t("buyer.profileUpdated"));
       await queryClient.invalidateQueries({ queryKey: ["buyer-profile"] });
     },
   });
@@ -129,13 +131,13 @@ function ProfileIdentityForm({
     onSuccess: () => {
       setOtpRequested(true);
       setOtp("");
-      setMessage("Phone verification code sent.");
+      setMessage(t("buyer.phoneCodeSent"));
     },
   });
   const verifyPhoneMutation = useMutation({
     mutationFn: verifyProfilePhoneOtp,
     onSuccess: async () => {
-      setMessage("Phone linked and verified.");
+      setMessage(t("buyer.phoneLinkedVerified"));
       setOtpRequested(false);
       setOtp("");
       await queryClient.invalidateQueries({ queryKey: ["buyer-profile"] });
@@ -173,14 +175,14 @@ function ProfileIdentityForm({
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="mb-4 flex flex-col gap-1">
-        <h2 className="font-bold text-slate-950">Profile details</h2>
-        <p className="text-sm text-slate-500">Phone changes require verification before linking.</p>
+        <h2 className="font-bold text-slate-950">{t("buyer.profileDetails")}</h2>
+        <p className="text-sm text-slate-500">{t("buyer.phoneVerificationHelp")}</p>
       </div>
       {message ? <p className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
       {mutation.error ? <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{mutation.error.message}</p> : null}
       <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
-          <label htmlFor="profile-name" className="mb-1.5 block text-sm font-medium text-slate-700">Name</label>
+          <label htmlFor="profile-name" className="mb-1.5 block text-sm font-medium text-slate-700">{t("buyer.name")}</label>
           <input
             id="profile-name"
             value={name}
@@ -190,12 +192,12 @@ function ProfileIdentityForm({
           />
         </div>
         <Button type="submit" disabled={mutation.isPending} className="rounded-full bg-orange-600 hover:bg-orange-700">
-          {mutation.isPending ? "Saving..." : "Save"}
+          {mutation.isPending ? t("common.saving") : t("common.save")}
         </Button>
       </form>
       <form onSubmit={handleRequestPhoneOtp} className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
-          <label htmlFor="profile-phone" className="mb-1.5 block text-sm font-medium text-slate-700">Phone</label>
+          <label htmlFor="profile-phone" className="mb-1.5 block text-sm font-medium text-slate-700">{t("checkout.phone")}</label>
           <input
             id="profile-phone"
             value={phone}
@@ -208,17 +210,17 @@ function ProfileIdentityForm({
             placeholder="+66812345678"
             inputMode="tel"
           />
-          <p className="mt-1 text-xs text-slate-500">{profile.phoneVerified ? "Phone verified" : "Phone not verified"}</p>
+          <p className="mt-1 text-xs text-slate-500">{profile.phoneVerified ? t("buyer.phoneVerified") : t("buyer.phoneNotVerified")}</p>
         </div>
         <Button type="submit" disabled={requestPhoneMutation.isPending || !phone.trim() || (!phoneChanged && profile.phoneVerified)} variant="outline" className="rounded-full">
-          {requestPhoneMutation.isPending ? "Sending..." : "Send phone code"}
+          {requestPhoneMutation.isPending ? t("buyer.sendingPhoneCode") : t("buyer.sendPhoneCode")}
         </Button>
       </form>
       {phoneMutationError ? <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{phoneMutationError.message}</p> : null}
       {otpRequested ? (
         <form onSubmit={handleVerifyPhoneOtp} className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
-            <label htmlFor="profile-phone-code" className="mb-1.5 block text-sm font-medium text-slate-700">Phone code</label>
+            <label htmlFor="profile-phone-code" className="mb-1.5 block text-sm font-medium text-slate-700">{t("buyer.phoneCode")}</label>
             <input
               id="profile-phone-code"
               value={otp}
@@ -230,13 +232,13 @@ function ProfileIdentityForm({
             />
           </div>
           <Button type="submit" disabled={verifyPhoneMutation.isPending || !otp.trim()} className="rounded-full bg-orange-600 hover:bg-orange-700">
-            {verifyPhoneMutation.isPending ? "Verifying..." : "Verify and link"}
+            {verifyPhoneMutation.isPending ? t("buyer.verifying") : t("buyer.verifyAndLink")}
           </Button>
         </form>
       ) : null}
       <div className="mt-3">
         <Button asChild variant="outline" className="rounded-full">
-          <Link href="/change-password">Change password</Link>
+          <Link href={localePath("/change-password")}>{t("buyer.changePassword")}</Link>
         </Button>
       </div>
     </section>
@@ -263,29 +265,30 @@ function SellerAccountStatusCard({
   shop: { id: string; name: string; slug: string; status: string } | null;
 }) {
   const localePath = useLocalePath();
+  const t = useTranslations();
   const status = shop?.status === "ACTIVE" ? "ACTIVE_SHOP" : application?.status ?? "NOT_STARTED";
   const title = shop?.status === "ACTIVE"
-    ? "Seller account active"
+    ? t("buyer.sellerAccountActive")
     : application
-      ? "Seller application status"
-      : "Start selling";
+      ? t("buyer.sellerApplicationStatus")
+      : t("buyer.startSelling");
   const description = shop?.status === "ACTIVE"
-    ? `${shop.name} is active. Seller tools are available while buyer cart, orders, reviews, returns, and chat remain available.`
+    ? t("buyer.sellerActiveDescription").replace("{name}", shop.name)
     : application?.status === "SUBMITTED"
-      ? "Your seller application is waiting for admin review. Buyer shopping tools remain available."
+      ? t("buyer.sellerSubmittedDescription")
       : application?.status === "REJECTED"
-        ? application.rejectionReason ?? "Update your seller application and submit again."
-        : "Open a shop without changing your buyer account.";
+        ? application.rejectionReason ?? t("buyer.sellerRejectedDescription")
+        : t("buyer.startSellingDescription");
   const primaryHref = shop?.status === "ACTIVE"
     ? "/seller"
     : application
       ? "/seller/status"
       : "/seller/register";
   const primaryLabel = shop?.status === "ACTIVE"
-    ? "Seller dashboard"
+    ? t("seller.dashboard")
     : application
-      ? "View seller status"
-      : "Start selling";
+      ? t("buyer.viewSellerStatus")
+      : t("buyer.startSelling");
 
   return (
     <section className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
@@ -295,11 +298,11 @@ function SellerAccountStatusCard({
             <h2 className="font-bold text-slate-950">{title}</h2>
             <Badge className="rounded-md bg-emerald-700">{status.replaceAll("_", " ")}</Badge>
           </div>
-          {isLoading ? <p className="mt-2 text-sm text-slate-600">Loading seller status...</p> : null}
+          {isLoading ? <p className="mt-2 text-sm text-slate-600">{t("buyer.loadingSellerStatus")}</p> : null}
           {error ? (
             <div className="mt-2 space-y-2">
               <p className="text-sm text-red-700">{error.message}</p>
-              <Button type="button" size="sm" variant="outline" onClick={onRetry}>Retry</Button>
+              <Button type="button" size="sm" variant="outline" onClick={onRetry}>{t("state.retry")}</Button>
             </div>
           ) : (
             <p className="mt-2 text-sm text-slate-700">{description}</p>
@@ -311,7 +314,7 @@ function SellerAccountStatusCard({
             <Link href={localePath(primaryHref)}><StoreIcon className="size-4" />{primaryLabel}</Link>
           </Button>
           <Button asChild variant="outline" className="rounded-full bg-white/70">
-            <Link href={localePath("/seller/chat")}><MessageCircleIcon className="size-4" />Seller chat</Link>
+            <Link href={localePath("/seller/chat")}><MessageCircleIcon className="size-4" />{t("buyer.sellerChat")}</Link>
           </Button>
         </div>
       </div>

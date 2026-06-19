@@ -12,6 +12,7 @@ import { addCartItem, addFavoriteProduct, fetchFavoriteStatus, formatMoney, remo
 import { showAddToCartError, showAddToCartSuccess } from "#/features/product/cart-handoff";
 import type { BuyerProduct } from "#/features/product/queries";
 import { useDiscoveryTracking } from "#/features/tracking";
+import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
@@ -19,6 +20,7 @@ import { useSession } from "#/lib/auth-client";
 export function ProductCard({ product }: { product: BuyerProduct }) {
   const router = useRouter();
   const localePath = useLocalePath();
+  const t = useTranslations();
   const tracking = useDiscoveryTracking("product_card");
   const queryClient = useQueryClient();
   const { data: session } = useSession();
@@ -48,6 +50,7 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
       showAddToCartSuccess({
+        copy: getCartHandoffCopy(t),
         context: {
           productTitle: product.title,
           variantTitle: quickAddVariant?.title,
@@ -55,34 +58,38 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
         onViewCart: () => router.push(localePath("/cart")),
       });
     },
-    onError: (error) => showAddToCartError({ error }),
+    onError: (error) => showAddToCartError({ error, copy: getCartHandoffErrorCopy(t) }),
   });
   const priceLabel = hasPriceRange
     ? `${formatMoney(product.minPrice, product.currency)} - ${formatMoney(product.maxPrice, product.currency)}`
     : formatMoney(product.price, product.currency);
   const fallbackBadges = [
-    isOutOfStock ? "Out of stock" : null,
+    isOutOfStock ? t("product.outOfStock") : null,
     product.soldCount >= 20 ? "Hot" : null,
     hasPriceRange ? "Options" : null,
   ].filter((badge): badge is string => Boolean(badge));
   const cardBadges = product.badges.length ? product.badges : fallbackBadges;
-  const discountLabel = product.discountPercent && product.discountPercent > 0 ? `${product.discountPercent}% off` : null;
-  const favoriteLabel = favoriteQuery.data ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`;
-  const favoriteUnavailableLabel = canFetchBuyerState ? "Wishlist unavailable" : "Sign in as a buyer to use wishlist";
+  const discountLabel = product.discountPercent && product.discountPercent > 0 ? t("product.discountPercentOff").replace("{percent}", String(product.discountPercent)) : null;
+  const favoriteLabel = favoriteQuery.data
+    ? t("product.removeFromWishlist").replace("{title}", product.title)
+    : t("product.addToWishlistWithTitle").replace("{title}", product.title);
+  const favoriteUnavailableLabel = canFetchBuyerState ? t("product.wishlistUnavailable") : t("product.signInBuyerWishlist");
   const quickAddDisabledReason = (() => {
     if (!quickAddVariant) return null;
-    if (!session) return "Log in to add this item to your cart.";
-    if (!canFetchBuyerState) return "Only buyer accounts can purchase.";
-    if (product.stock <= 0 || quickAddVariant.stock <= 0) return "This item is out of stock.";
+    if (!session) return t("product.loginToAddToCart");
+    if (!canFetchBuyerState) return t("product.onlyBuyerAccountsCanPurchase");
+    if (product.stock <= 0 || quickAddVariant.stock <= 0) return t("product.itemOutOfStock");
     return null;
   })();
   const quickAddErrorMessage = addToCartMutation.error
-    ? getReadableErrorMessage(addToCartMutation.error, "Add to cart is temporarily unavailable.")
+    ? getReadableErrorMessage(addToCartMutation.error, t("product.actionUnavailable"))
     : null;
   const quickAddStatusId = `product-card-action-status-${product.id}`;
   const quickAddErrorId = `product-card-action-error-${product.id}`;
-  const quickAddPendingLabel = `Adding ${product.title} to cart`;
-  const quickAddReadyLabel = quickAddVariant ? `Quick add ${product.title} to cart` : `Open ${product.title} details`;
+  const quickAddPendingLabel = t("product.addingProductToCart").replace("{title}", product.title);
+  const quickAddReadyLabel = quickAddVariant
+    ? t("product.quickAddToCart").replace("{title}", product.title)
+    : t("product.openProductDetails").replace("{title}", product.title);
   const quickAddLabel = addToCartMutation.isPending ? quickAddPendingLabel : quickAddReadyLabel;
 
   function handleFavorite(event: MouseEvent<HTMLButtonElement>) {
@@ -106,7 +113,7 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
           href={`/products/${product.id}`}
           onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
           className="block size-full focus-visible:outline-none"
-          aria-label={`View ${product.title}`}
+          aria-label={t("product.viewProduct").replace("{title}", product.title)}
         >
           <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
             <Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition group-hover:scale-105" />
@@ -138,7 +145,7 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
         </Button>
         {isOutOfStock ? (
           <div className="absolute inset-x-0 bottom-0 bg-slate-950/70 px-2 py-1 text-center text-xs font-semibold text-white">
-            Out of stock
+            {t("product.outOfStock")}
           </div>
         ) : null}
       </div>
@@ -160,7 +167,7 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
               </p>
             ) : null}
           </div>
-          <span className="shrink-0 text-xs text-slate-500">{isOutOfStock ? "Unavailable" : `${product.soldCount} sold`}</span>
+          <span className="shrink-0 text-xs text-slate-500">{isOutOfStock ? t("common.unavailable") : t("product.soldCount").replace("{count}", String(product.soldCount))}</span>
         </div>
         <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
           <span className="flex items-center gap-1">
@@ -197,7 +204,7 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
               className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-orange-300 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
               aria-label={quickAddLabel}
             >
-              Details
+              {t("common.details")}
             </Link>
           )}
         </div>
@@ -206,7 +213,7 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
           className={`min-h-4 truncate text-[11px] leading-4 ${quickAddDisabledReason || quickAddErrorMessage ? "text-orange-700" : "text-slate-500"}`}
           aria-live="polite"
         >
-          {quickAddErrorMessage ?? quickAddDisabledReason ?? (addToCartMutation.isPending ? "Adding to cart..." : "\u00a0")}
+          {quickAddErrorMessage ?? quickAddDisabledReason ?? (addToCartMutation.isPending ? t("product.addingToCart") : "\u00a0")}
         </p>
         {quickAddErrorMessage ? (
           <p id={quickAddErrorId} className="sr-only">
@@ -216,6 +223,22 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
       </div>
     </article>
   );
+}
+
+function getCartHandoffCopy(t: ReturnType<typeof useTranslations>) {
+  return {
+    successTitle: t("cart.handoffAddedTitle"),
+    successDescription: t("cart.handoffAddedDescription"),
+    viewCart: t("cart.viewCart"),
+    continueShopping: t("cart.continueShopping"),
+  };
+}
+
+function getCartHandoffErrorCopy(t: ReturnType<typeof useTranslations>) {
+  return {
+    errorTitle: t("cart.handoffErrorTitle"),
+    errorDescription: t("cart.handoffErrorDescription"),
+  };
 }
 
 function getReadableErrorMessage(error: unknown, fallback: string) {

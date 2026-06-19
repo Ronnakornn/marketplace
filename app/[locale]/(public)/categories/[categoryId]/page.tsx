@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JsonLd } from "#/components/JsonLd";
 import { ProductListingPage } from "#/features/product";
+import { createTranslator } from "#/i18n/server";
 import { breadcrumbJsonLd, collectionPageJsonLd, getSiteName, publicPageMetadata, requirePublicCategorySeo } from "#/lib/seo";
 
 export async function generateMetadata({
@@ -13,10 +14,13 @@ export async function generateMetadata({
   const { locale, categoryId } = await params;
   const query = await searchParams;
   const category = await requirePublicCategorySeo(categoryId);
+  const t = createTranslator(locale);
 
   return publicPageMetadata({
-    title: `${category.name} products`,
-    description: `Browse active ${category.name} products on ${getSiteName()}.`,
+    title: t("seo.categoryProductsTitle").replace("{category}", category.name),
+    description: t("seo.categoryProductsDescription")
+      .replace("{category}", category.name)
+      .replace("{site}", getSiteName()),
     path: `/categories/${category.slug}`,
     locale,
     noindex: hasIndexUnsafeCategoryFilters(query),
@@ -40,15 +44,16 @@ export default async function CategoryPage({
     onSale?: string;
   }>;
 }) {
-  const { categoryId } = await params;
+  const { locale, categoryId } = await params;
   const query = await searchParams;
   const category = await requirePublicCategorySeo(categoryId);
+  const t = createTranslator(locale);
 
   return (
     <>
       <JsonLd data={collectionPageJsonLd(category)} />
       <JsonLd data={breadcrumbJsonLd([
-        { name: "Home", path: "/" },
+        { name: t("common.home"), path: "/" },
         { name: category.name, path: `/categories/${category.slug}` },
       ])} />
       <ProductListingPage
