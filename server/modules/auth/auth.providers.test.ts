@@ -91,6 +91,24 @@ describe("auth social provider configuration", () => {
     expect(auth.options.trustedOrigins.filter((origin: string) => origin === "http://165.245.191.63")).toHaveLength(1);
   });
 
+  it("uses non-secure cookies when Better Auth runs behind an HTTP public URL", async () => {
+    const { auth } = await importAuthWithEnv({
+      BETTER_AUTH_URL: "http://165.245.191.63",
+    });
+
+    expect(auth.options.advanced.useSecureCookies).toBe(false);
+    expect(auth.options.advanced.defaultCookieAttributes.secure).toBe(false);
+  });
+
+  it("keeps secure cookies when Better Auth runs behind an HTTPS public URL", async () => {
+    const { auth } = await importAuthWithEnv({
+      BETTER_AUTH_URL: "https://marketplace.example.com",
+    });
+
+    expect(auth.options.advanced.useSecureCookies).toBe(true);
+    expect(auth.options.advanced.defaultCookieAttributes.secure).toBe(true);
+  });
+
   it("accepts social profiles only when the provider email is verified", async () => {
     const { requireVerifiedSocialEmail } = await importAuthWithEnv({});
 

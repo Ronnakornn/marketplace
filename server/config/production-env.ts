@@ -5,6 +5,7 @@ export interface RequiredProductionEnvOptions {
   forbiddenValues?: string[]
   forbiddenSubstrings?: string[]
   requireHttpsUrl?: boolean
+  allowInsecureHttp?: boolean
 }
 
 export function isProductionRuntime(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -36,7 +37,7 @@ export function requireProductionEnv(
     throw new Error(`Production environment variable ${name} uses an unsafe development value`)
   }
 
-  if (options.requireHttpsUrl) {
+  if (options.requireHttpsUrl && !options.allowInsecureHttp) {
     let url: URL
     try {
       url = new URL(normalized)
@@ -52,6 +53,8 @@ export function requireProductionEnv(
 }
 
 export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.env): void {
+  const allowInsecureHttp = env['ALLOW_INSECURE_HTTP'] === 'true'
+
   requireProductionEnv('DATABASE_URL', env['DATABASE_URL'], {
     forbiddenSubstrings: ['postgres:password@localhost', 'localhost:5432/sming'],
   }, env)
@@ -61,9 +64,11 @@ export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.en
   }, env)
   requireProductionEnv('BETTER_AUTH_URL', env['BETTER_AUTH_URL'], {
     requireHttpsUrl: true,
+    allowInsecureHttp,
   }, env)
   requireProductionEnv('NEXT_PUBLIC_APP_URL', env['NEXT_PUBLIC_APP_URL'], {
     requireHttpsUrl: true,
+    allowInsecureHttp,
   }, env)
   requireProductionEnv('API_BASE_URL', env['API_BASE_URL'], {}, env)
   requireProductionEnv('PAYMENT_WEBHOOK_SECRET', env['PAYMENT_WEBHOOK_SECRET'], {

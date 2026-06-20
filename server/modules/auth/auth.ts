@@ -83,6 +83,19 @@ function getTrustedOrigins(env: NodeJS.ProcessEnv = process.env): string[] {
   return Array.from(new Set(origins));
 }
 
+function shouldUseSecureAuthCookies(env: NodeJS.ProcessEnv = process.env): boolean {
+  const baseUrl = env.BETTER_AUTH_URL?.trim();
+  if (!baseUrl) return process.env.NODE_ENV === "production";
+
+  try {
+    return new URL(baseUrl).protocol === "https:";
+  } catch {
+    return process.env.NODE_ENV === "production";
+  }
+}
+
+const useSecureAuthCookies = shouldUseSecureAuthCookies();
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -131,6 +144,10 @@ export const auth = betterAuth({
     },
   },
   advanced: {
+    useSecureCookies: useSecureAuthCookies,
+    defaultCookieAttributes: {
+      secure: useSecureAuthCookies,
+    },
     database: {
       generateId: "uuid",
     },

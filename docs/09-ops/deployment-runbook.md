@@ -21,6 +21,7 @@ Each environment should have:
 ## Required Environment Variables
 
 - `DATABASE_URL`
+- `ALLOW_INSECURE_HTTP`
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL`
 - `BETTER_AUTH_TRUSTED_ORIGINS`
@@ -56,7 +57,8 @@ Security:
 - verify webhook secrets
 - verify admin emails
 - verify environment does not expose development secrets
-- verify `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS`, and `NEXT_PUBLIC_APP_URL` match the public browser origin, for example `http://165.245.191.63` for an IP-based deployment
+- verify `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS`, and `NEXT_PUBLIC_APP_URL` match the public browser origin
+- set `ALLOW_INSECURE_HTTP=true` only for temporary IP-based HTTP deployments such as `http://165.245.191.63`
 
 ## Migration Deployment
 

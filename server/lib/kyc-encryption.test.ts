@@ -48,4 +48,20 @@ describe('KYC encryption helpers', () => {
 
     expect(() => validateProductionRuntimeEnv(env)).toThrow(/KYC_ENCRYPTION_KEY/)
   })
+
+  it('allows explicit HTTP public URLs for IP-based production deployments', () => {
+    const env = {
+      NODE_ENV: 'production',
+      ALLOW_INSECURE_HTTP: 'true',
+      DATABASE_URL: 'postgresql://postgres:password@db.example.com:5432/sming',
+      BETTER_AUTH_SECRET: 'production-auth-secret-at-least-32-chars',
+      BETTER_AUTH_URL: 'http://165.245.191.63',
+      NEXT_PUBLIC_APP_URL: 'http://165.245.191.63',
+      API_BASE_URL: 'http://127.0.0.1:3001',
+      PAYMENT_WEBHOOK_SECRET: 'production-payment-secret-at-least-32-chars',
+      KYC_ENCRYPTION_KEY: 'production-kyc-secret-at-least-32-chars',
+    } as const
+
+    expect(() => validateProductionRuntimeEnv(env)).not.toThrow()
+  })
 })
