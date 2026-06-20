@@ -93,6 +93,7 @@ Configure `.env`:
 DATABASE_URL="postgresql://postgres:password@localhost:5432/sming?schema=public"
 BETTER_AUTH_SECRET="your-secret-key-here"
 BETTER_AUTH_URL="http://localhost:3000"
+BETTER_AUTH_TRUSTED_ORIGINS="http://localhost:3000"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 API_BASE_URL="http://localhost:3001"
 ADMIN_EMAILS="admin@example.com"
@@ -157,6 +158,7 @@ bun run test             # Run Vitest
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:password@localhost:5432/sming?schema=public` |
 | `BETTER_AUTH_SECRET` | Auth secret (min 32 chars in production) | - |
 | `BETTER_AUTH_URL` | Public app URL used by Better Auth | `http://localhost:3000` |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated browser origins allowed to post to Better Auth endpoints | `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` |
 | `NEXT_PUBLIC_APP_URL` | Browser-facing frontend URL | `http://localhost:3000` |
 | `API_BASE_URL` | Internal API target used by Next.js rewrites | `http://localhost:3001` |
 | `ADMIN_EMAILS` | Comma-separated emails to promote via seed script | `admin@example.com` |
@@ -209,6 +211,7 @@ NODE_ENV="production"
 DATABASE_URL="postgresql://postgres:password@localhost:5432/sming?schema=public"
 BETTER_AUTH_SECRET="secure-production-secret-at-least-32-chars"
 BETTER_AUTH_URL="https://yourdomain.com"
+BETTER_AUTH_TRUSTED_ORIGINS="https://yourdomain.com"
 ```
 
 ## AI Agent Setup

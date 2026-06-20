@@ -76,6 +76,21 @@ describe("auth social provider configuration", () => {
     });
   });
 
+  it("includes configured deployment origins in Better Auth trusted origins", async () => {
+    const { auth } = await importAuthWithEnv({
+      BETTER_AUTH_URL: "http://165.245.191.63",
+      NEXT_PUBLIC_APP_URL: "http://165.245.191.63",
+      BETTER_AUTH_TRUSTED_ORIGINS: " http://165.245.191.63 , https://marketplace.example.com ",
+    });
+
+    expect(auth.options.baseURL).toBe("http://165.245.191.63");
+    expect(auth.options.trustedOrigins).toEqual(expect.arrayContaining([
+      "http://165.245.191.63",
+      "https://marketplace.example.com",
+    ]));
+    expect(auth.options.trustedOrigins.filter((origin: string) => origin === "http://165.245.191.63")).toHaveLength(1);
+  });
+
   it("accepts social profiles only when the provider email is verified", async () => {
     const { requireVerifiedSocialEmail } = await importAuthWithEnv({});
 

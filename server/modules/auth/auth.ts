@@ -64,13 +64,23 @@ function createSocialProviders(env: NodeJS.ProcessEnv = process.env) {
 }
 
 function getTrustedOrigins(env: NodeJS.ProcessEnv = process.env): string[] {
-  return [
+  const configuredOrigins = [
+    env.BETTER_AUTH_TRUSTED_ORIGINS,
+    env.AUTH_TRUSTED_ORIGINS,
+  ].flatMap((value) => value?.split(",") ?? []);
+
+  const origins = [
     env.BETTER_AUTH_URL,
     env.NEXT_PUBLIC_APP_URL,
+    ...configuredOrigins,
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://192.168.1.103:3000",
-  ].filter((origin): origin is string => Boolean(origin?.trim()));
+  ]
+    .map((origin) => origin?.trim())
+    .filter((origin): origin is string => Boolean(origin));
+
+  return Array.from(new Set(origins));
 }
 
 export const auth = betterAuth({
