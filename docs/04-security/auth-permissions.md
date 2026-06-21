@@ -26,7 +26,10 @@ Seller authorization must not depend on a user role. A seller is a user who owns
 - Provider webhooks use signature verification, not user sessions.
 - Phone OTP auth supports login for users with `phoneVerified = true`, pending signup for verified new phones, and authenticated profile phone linking.
 - Phone signup still requires email, name, and password before user creation; phone-only users are not supported.
-- Local phone OTP delivery uses a deterministic dev/mock provider. Production phone OTP delivery can use the generic HTTPS SMS adapter configured with `PHONE_OTP_PROVIDER=http` and `PHONE_OTP_HTTP_URL`.
+- Local phone OTP delivery uses a deterministic dev/mock provider.
+- Production phone OTP delivery can use the generic HTTPS SMS adapter configured with `PHONE_OTP_PROVIDER=http` and `PHONE_OTP_HTTP_URL`.
+- Demo or staging deployments that must run deterministic OTP under `NODE_ENV=production` must explicitly set `ALLOW_DETERMINISTIC_OTP=true`.
+- Phone OTP delivery can be disabled with `PHONE_OTP_ENABLED=false`; this keeps the API bootable without SMS provider credentials.
 
 ## Route Protection
 

@@ -51,10 +51,13 @@ Phone OTP auth is first-party and uses same-origin `/api/*` endpoints. OTP codes
 
 Production phone OTP delivery can use the generic HTTP SMS adapter by setting:
 
+- `PHONE_OTP_ENABLED=true`
 - `PHONE_OTP_PROVIDER=http`
 - `PHONE_OTP_HTTP_URL=https://...`
 - `PHONE_OTP_HTTP_BEARER_TOKEN=...` when the gateway requires bearer auth
 - `PHONE_OTP_HTTP_TIMEOUT_MS=5000`
+
+For demo or staging deployments that run with `NODE_ENV=production` but still need deterministic OTPs, set `PHONE_OTP_PROVIDER=deterministic-dev` with `ALLOW_DETERMINISTIC_OTP=true`. Phone OTP delivery can be disabled entirely with `PHONE_OTP_ENABLED=false` so the API can boot without SMS provider credentials.
 
 The HTTP adapter sends a JSON payload containing `phone`, `purpose`, and `otp`. Production URLs must use HTTPS. Vendor-specific adapters may still be added later if a gateway requires a non-HTTP-JSON contract.
 

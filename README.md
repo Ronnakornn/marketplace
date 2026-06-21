@@ -96,6 +96,7 @@ BETTER_AUTH_URL="http://localhost:3000"
 BETTER_AUTH_TRUSTED_ORIGINS="http://localhost:3000"
 ALLOW_INSECURE_HTTP="false"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_ALLOWED_DEV_ORIGINS="localhost:3000,127.0.0.1:3000"
 API_BASE_URL="http://localhost:3001"
 ADMIN_EMAILS="admin@example.com"
 PAYMENT_WEBHOOK_SECRET="your-payment-webhook-secret-at-least-32-chars"
@@ -162,8 +163,15 @@ bun run test             # Run Vitest
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated browser origins allowed to post to Better Auth endpoints | `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` |
 | `ALLOW_INSECURE_HTTP` | Allows `http://` public app/auth URLs in production for IP-only deployments; use only until HTTPS is available | `false` |
 | `NEXT_PUBLIC_APP_URL` | Browser-facing frontend URL | `http://localhost:3000` |
+| `NEXT_ALLOWED_DEV_ORIGINS` | Comma-separated hosts allowed to access Next.js dev resources such as HMR | `localhost:3000,127.0.0.1:3000` |
 | `API_BASE_URL` | Internal API target used by Next.js rewrites | `http://localhost:3001` |
 | `ADMIN_EMAILS` | Comma-separated emails to promote via seed script | `admin@example.com` |
+| `PHONE_OTP_ENABLED` | Enables phone OTP delivery; set `false` to disable phone OTP without requiring provider credentials | `true` |
+| `PHONE_OTP_PROVIDER` | Phone OTP delivery provider: `deterministic-dev` for local/demo OTPs or `http` for an HTTPS SMS gateway adapter | `deterministic-dev` |
+| `ALLOW_DETERMINISTIC_OTP` | Allows `deterministic-dev` phone OTP in production; use only for demo/staging deployments | `false` |
+| `PHONE_OTP_HTTP_URL` | HTTPS endpoint for the generic HTTP SMS gateway adapter | - |
+| `PHONE_OTP_HTTP_BEARER_TOKEN` | Optional bearer token for the HTTP SMS gateway adapter | - |
+| `PHONE_OTP_HTTP_TIMEOUT_MS` | Timeout for the HTTP SMS gateway adapter | `5000` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID; Google login is enabled only when paired with `GOOGLE_CLIENT_SECRET` | - |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret; never expose to browser code | - |
 | `FACEBOOK_CLIENT_ID` | Facebook App ID; Facebook login is enabled only when paired with `FACEBOOK_CLIENT_SECRET` | - |

@@ -16,6 +16,7 @@ export {
   createOtpHash,
   createPhoneOtpProvider,
   DeterministicPhoneOtpProvider,
+  DisabledPhoneOtpProvider,
   PHONE_OTP_LENGTH,
   PHONE_OTP_MAX_ATTEMPTS,
   PHONE_OTP_MAX_REQUESTS_PER_WINDOW,

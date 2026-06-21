@@ -40,12 +40,21 @@ export function getAssetPrefix() {
   return process.env.NEXT_PUBLIC_ASSET_BASE_URL || process.env.NEXT_PUBLIC_CDN_URL || undefined
 }
 
+export function allowedDevOrigins() {
+  const configuredOrigins = process.env.NEXT_ALLOWED_DEV_ORIGINS
+    ?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+
+  return configuredOrigins?.length ? configuredOrigins : ['localhost:3000', '127.0.0.1:3000']
+}
+
 const assetPrefix = getAssetPrefix()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   assetPrefix,
-  allowedDevOrigins: ['192.168.1.103'],
+  allowedDevOrigins: allowedDevOrigins(),
   images: {
     remotePatterns: imageRemotePatterns(),
     formats: ['image/avif', 'image/webp'],

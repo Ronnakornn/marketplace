@@ -4,6 +4,7 @@ import {
   createOtpHash,
   createPhoneOtpProvider,
   DeterministicPhoneOtpProvider,
+  DisabledPhoneOtpProvider,
   HttpPhoneOtpProvider,
   normalizePhoneNumber,
   readHttpPhoneOtpProviderConfig,
@@ -59,9 +60,31 @@ describe("phone OTP provider foundation", () => {
     expect(() => createPhoneOtpProvider({ NODE_ENV: "production" })).toThrow("Phone OTP provider is not configured");
   });
 
+  it("can disable phone OTP without requiring a delivery provider", async () => {
+    const provider = createPhoneOtpProvider({
+      NODE_ENV: "production",
+      PHONE_OTP_ENABLED: "false",
+    });
+
+    expect(provider).toBeInstanceOf(DisabledPhoneOtpProvider);
+    await expect(provider.send({
+      phone: "+66812345678",
+      purpose: "PHONE_LOGIN",
+      otp: "123456",
+    })).rejects.toThrow("Phone OTP is disabled");
+  });
+
   it("uses the deterministic provider only outside production", () => {
     expect(createPhoneOtpProvider({ NODE_ENV: "development" })).toBeInstanceOf(DeterministicPhoneOtpProvider);
     expect(createPhoneOtpProvider({ NODE_ENV: "test", PHONE_OTP_PROVIDER: "deterministic-dev" })).toBeInstanceOf(DeterministicPhoneOtpProvider);
+  });
+
+  it("allows deterministic OTP in production only when explicitly enabled", () => {
+    expect(createPhoneOtpProvider({
+      NODE_ENV: "production",
+      PHONE_OTP_PROVIDER: "deterministic-dev",
+      ALLOW_DETERMINISTIC_OTP: "true",
+    })).toBeInstanceOf(DeterministicPhoneOtpProvider);
   });
 
   it("reads HTTP provider configuration from environment", () => {

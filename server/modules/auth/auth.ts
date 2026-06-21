@@ -75,7 +75,6 @@ function getTrustedOrigins(env: NodeJS.ProcessEnv = process.env): string[] {
     ...configuredOrigins,
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://192.168.1.103:3000",
   ]
     .map((origin) => origin?.trim())
     .filter((origin): origin is string => Boolean(origin));

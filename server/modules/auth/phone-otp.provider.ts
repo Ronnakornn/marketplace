@@ -37,6 +37,14 @@ export class PhoneOtpProviderError extends Error {
   }
 }
 
+export class DisabledPhoneOtpProvider implements PhoneOtpProvider {
+  readonly provider = "disabled";
+
+  async send(): Promise<SendPhoneOtpResult> {
+    throw new PhoneOtpProviderError("Phone OTP is disabled");
+  }
+}
+
 export function normalizePhoneNumber(phone: string): string {
   const compact = phone.trim().replace(/[\s().-]/g, "");
 
@@ -136,13 +144,20 @@ export class HttpPhoneOtpProvider implements PhoneOtpProvider {
 }
 
 export function createPhoneOtpProvider(env: NodeJS.ProcessEnv = process.env): PhoneOtpProvider {
+  if (env.PHONE_OTP_ENABLED === "false") {
+    return new DisabledPhoneOtpProvider();
+  }
+
   const provider = env.PHONE_OTP_PROVIDER?.trim() || "deterministic-dev";
 
   if (provider === "http") {
     return new HttpPhoneOtpProvider(readHttpPhoneOtpProviderConfig(env));
   }
 
-  if (provider === "deterministic-dev" && env.NODE_ENV !== "production") {
+  if (
+    provider === "deterministic-dev" &&
+    (env.NODE_ENV !== "production" || env.ALLOW_DETERMINISTIC_OTP === "true")
+  ) {
     return new DeterministicPhoneOtpProvider();
   }
 

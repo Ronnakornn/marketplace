@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import config, { imageRemotePatterns } from "./next.config.mjs";
+import config, { allowedDevOrigins, imageRemotePatterns } from "./next.config.mjs";
 
 const originalEnv = { ...process.env };
 
@@ -16,6 +16,18 @@ describe("Next CDN and cache config", () => {
       expect.objectContaining({ protocol: "https", hostname: "cdn.example.com", pathname: "/**" }),
       expect.objectContaining({ protocol: "https", hostname: "bucket.storage.example.com", pathname: "/**" }),
     ]));
+  });
+
+  it("allows Next dev origins from env", () => {
+    process.env.NEXT_ALLOWED_DEV_ORIGINS = "178.128.25.91, localhost:3000";
+
+    expect(allowedDevOrigins()).toEqual(["178.128.25.91", "localhost:3000"]);
+  });
+
+  it("defaults Next dev origins to local hosts", () => {
+    delete process.env.NEXT_ALLOWED_DEV_ORIGINS;
+
+    expect(allowedDevOrigins()).toEqual(["localhost:3000", "127.0.0.1:3000"]);
   });
 
   it("sets no-store headers for private API and checkout surfaces", async () => {
