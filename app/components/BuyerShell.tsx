@@ -93,12 +93,12 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
           <ShoppingBagIcon className="size-4 text-white" />
           <span className="hidden sm:inline text-white">{t("common.marketplace")}</span>
         </Link>
-        {/* <Link href={localePath("/categories/deals")} className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-orange-50 hover:text-orange-600">
+        {/* <Link href={localePath("/categories/deals")} className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
           <MenuIcon className="size-5" />
           <span className="sr-only">{t("common.categories")}</span>
         </Link> */}
         <form action={localePath("/search")} className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-orange-200 md:max-w-[520px] lg:max-w-[640px]">
-          <SearchIcon className="size-4 shrink-0 text-slate-700" />
+          <SearchIcon className="size-4 shrink-0 text-slate-900" />
           <Input
             name="q"
             defaultValue={searchQuery}
@@ -106,7 +106,7 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
             className="h-8 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
           />
         </form>
-        <Link href={localePath(notificationHref)} className="relative flex size-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-orange-50 hover:text-orange-600">
+        <Link href={localePath(notificationHref)} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
           <BellIcon className="size-5" />
           {notificationUnreadCount > 0 ? (
             <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
@@ -116,7 +116,7 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
           <span className="sr-only">{t("common.notifications")}</span>
         </Link>
         {canUseChat ? (
-          <Link href={localePath(chatHref)} className="relative flex size-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-orange-50 hover:text-orange-600">
+          <Link href={localePath(chatHref)} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
             <MessageCircleIcon className="size-5" />
             {chatUnreadCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
@@ -127,7 +127,7 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
           </Link>
         ) : null}
         {canUseBuyerCart ? (
-          <Link href={localePath("/cart")} className="relative flex size-10 items-center justify-center rounded-full text-slate-700 transition hover:bg-orange-50 hover:text-orange-600">
+          <Link href={localePath("/cart")} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
             <ShoppingCartIcon className="size-5" />
             {cartItemCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-600 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
@@ -140,25 +140,25 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
         {session ? (
           <>
             {session.user.role !== "ADMIN" ? (
-              <Link href={localePath("/seller/register")} prefetch={false} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700 sm:flex">
+              <Link href={localePath("/seller/register")} prefetch={false} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900 sm:flex">
                 <StoreIcon className="size-4" />
                 {t("buyer.startSelling")}
               </Link>
             ) : null}
             {session.user.role !== "ADMIN" && !isSellerRoute ? (
-              <Link href={localePath(sellerChatHref)} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700 lg:flex">
+              <Link href={localePath(sellerChatHref)} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900 lg:flex">
                 <StoreIcon className="size-4" />
                 {t("buyer.sellerChat")}
               </Link>
             ) : null}
-            <Link href={localePath("/profile")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-700 transition hover:bg-orange-50 hover:text-orange-600">
+            <Link href={localePath("/profile")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
               <UserCircleIcon className="size-5" />
              
             </Link>
             <button
               type="button"
               onClick={() => void handleSignOut()}
-              className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-700 transition hover:bg-orange-50 hover:text-orange-600"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600"
             >
               <LogOutIcon className="size-5" />
               <span className="sr-only">{t("common.logout")}</span>
@@ -209,7 +209,7 @@ export function MobileBottomNavigation() {
               href={localizedHref}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-xl px-1 py-1 text-[11px] font-semibold",
-                active ? "bg-orange-50 text-orange-600" : "text-slate-700",
+                active ? "bg-orange-50 text-orange-600" : "text-slate-900",
               )}
             >
               <Icon className="size-5" />

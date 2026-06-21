@@ -52,27 +52,27 @@ interface MarketplaceHomeProps {
 const fallbackCategoryItems = [
   ["fashion", "Fashion", "bg-rose-100 text-rose-600"],
   ["beauty", "Beauty", "bg-pink-100 text-pink-600"],
-  ["gadgets", "Gadgets", "bg-slate-100 text-slate-700"],
-  ["home", "Home", "bg-emerald-100 text-emerald-700"],
+  ["gadgets", "Gadgets", "bg-slate-100 text-slate-900"],
+  ["home", "Home", "bg-emerald-100 text-emerald-900"],
   ["sports", "Sports", "bg-orange-100 text-orange-600"],
   ["kids", "Kids", "bg-violet-100 text-violet-600"],
-  ["groceries", "Groceries", "bg-lime-100 text-lime-700"],
+  ["groceries", "Groceries", "bg-lime-100 text-emerald-900"],
   ["pets", "Pets", "bg-amber-100 text-amber-700"],
   ["deals", "Deals", "bg-red-100 text-red-600"],
-  ["more", "More", "bg-slate-100 text-slate-700"],
+  ["more", "More", "bg-slate-100 text-slate-900"],
 ] as const;
 
 const categoryStyles = [
   "bg-rose-100 text-rose-600",
   "bg-pink-100 text-pink-600",
-  "bg-slate-100 text-slate-700",
-  "bg-emerald-100 text-emerald-700",
+  "bg-slate-100 text-slate-900",
+  "bg-emerald-100 text-emerald-900",
   "bg-orange-100 text-orange-600",
   "bg-violet-100 text-violet-600",
-  "bg-lime-100 text-lime-700",
+  "bg-lime-100 text-emerald-900",
   "bg-amber-100 text-amber-700",
   "bg-red-100 text-red-600",
-  "bg-slate-100 text-slate-700",
+  "bg-slate-100 text-slate-900",
 ];
 
 const productGradients = [
@@ -345,7 +345,7 @@ function VoucherStrip({ promotions, hasProducts, isLoading }: { promotions: Mark
           </div>
           <div>
             <p className="text-sm font-bold text-slate-950">{title}</p>
-            <p className="text-xs text-slate-600">{subtitle}</p>
+            <p className="text-xs text-slate-900">{subtitle}</p>
           </div>
         </div>
       ))}
@@ -378,7 +378,7 @@ function FlashSaleSection({
           </div>
           <div>
             <h2 className="text-lg font-extrabold text-slate-950">{flashSale?.title ?? t("home.flashSale")}</h2>
-            <p className="text-xs text-slate-600">{flashSale?.description ?? (flashSale?.endsAt ? t("home.endsAt").replace("{time}", new Date(flashSale.endsAt).toLocaleDateString()) : t("home.limitedTimeDeals"))}</p>
+            <p className="text-xs text-slate-900">{flashSale?.description ?? (flashSale?.endsAt ? t("home.endsAt").replace("{time}", new Date(flashSale.endsAt).toLocaleDateString()) : t("home.limitedTimeDeals"))}</p>
           </div>
         </div>
         <Button variant="ghost" size="sm" className="rounded-full text-red-600 hover:bg-red-50 hover:text-red-700">
@@ -402,7 +402,7 @@ function FlashSaleSection({
               <div className="mt-2 h-2 rounded-full bg-orange-100">
                 <div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: `${Math.min(92, 42 + product.soldCount * 4)}%` }} />
               </div>
-              <p className="mt-1 text-[11px] text-slate-600">{product.soldCount.toLocaleString()} {t("product.sold")}</p>
+              <p className="mt-1 text-[11px] text-slate-900">{product.soldCount.toLocaleString()} {t("product.sold")}</p>
               <Button
                 size="sm"
                 className="mt-2 h-8 w-full rounded-full bg-orange-600 text-white hover:bg-orange-700"
@@ -434,7 +434,7 @@ function CategoryGrid({
     <section className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70 sm:p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-extrabold text-slate-950">{t("common.categories")}</h2>
-        <Grid3X3Icon className="size-5 text-slate-600" />
+        <Grid3X3Icon className="size-5 text-slate-900" />
       </div>
       {isLoading ? <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">{Array.from({ length: 10 }).map((_, index) => <Skeleton key={index} className="h-20 rounded-2xl" />)}</div> : null}
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
@@ -448,7 +448,7 @@ function CategoryGrid({
             <span className={`flex size-11 items-center justify-center rounded-2xl ${className}`}>
               <PackageIcon className="size-5" />
             </span>
-            <span className="w-full truncate text-center text-[11px] font-semibold text-slate-700">
+            <span className="w-full truncate text-center text-[11px] font-semibold text-slate-900">
               {label}
             </span>
           </Link>
@@ -480,7 +480,7 @@ function ProductRail(props: {
       <div className="mb-3 flex items-center justify-between px-1">
         <div>
           <h2 className="text-lg font-extrabold text-slate-950">{props.title}</h2>
-          <p className="text-xs text-slate-600">{props.subtitle}</p>
+          <p className="text-xs text-slate-900">{props.subtitle}</p>
         </div>
         <SparklesIcon className="size-5 text-orange-500" />
       </div>
@@ -503,10 +503,10 @@ function ProductRail(props: {
       {!props.isLoading && !props.isError && props.products.length === 0 ? (
         <div className="mt-3 rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm">
           <p className="text-sm font-bold text-slate-950">{props.emptyTitle}</p>
-          <p className="mt-1 text-xs text-slate-600">{props.emptyDescription}</p>
+          <p className="mt-1 text-xs text-slate-900">{props.emptyDescription}</p>
         </div>
       ) : null}
-      <div ref={props.loadMoreRef} className="py-6 text-center text-xs text-slate-600">
+      <div ref={props.loadMoreRef} className="py-6 text-center text-xs text-slate-900">
         {props.hasMore ? t("home.loadingMore") : t("home.youAreCaughtUp")}
       </div>
     </section>
@@ -529,12 +529,12 @@ function ProductVisual({ product, compact = false }: { product: MarketplaceProdu
       ) : null}
       {imageUrl ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-transparent" /> : null}
       {product.originalPrice && product.originalPrice > product.price ? <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-600 shadow-sm">{t("home.saleBadge")}</div> : null}
-      <span className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-700 shadow-sm">
+      <span className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-900 shadow-sm">
         <HeartIcon className="size-4" />
         <span className="sr-only">{t("product.saveProduct")}</span>
       </span>
       <div className={`absolute inset-0 flex items-center justify-center ${imageUrl ? "hidden" : ""}`}>
-        <ShoppingBagIcon className={`${compact ? "size-12" : "size-20"} text-slate-600/60`} />
+        <ShoppingBagIcon className={`${compact ? "size-12" : "size-20"} text-slate-900/60`} />
       </div>
     </div>
   );
@@ -560,7 +560,7 @@ function FeaturedShopsSection({ shops, isLoading }: { shops: MarketplaceShop[]; 
             className="min-w-0 rounded-2xl border border-slate-100 p-3 transition hover:bg-slate-50"
           >
             <p className="truncate text-sm font-extrabold text-slate-950">{shop.name}</p>
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-1 text-xs text-slate-900">
               {t("buyer.productsCount").replace("{count}", shop.productCount.toLocaleString())} · {t("buyer.followersCount").replace("{count}", shop.followerCount.toLocaleString())}
             </p>
             <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-600"><StarIcon className="size-3 fill-amber-400 text-amber-400" /> {shop.ratingAverage.toFixed(1)} ({shop.ratingCount})</p>
@@ -585,7 +585,7 @@ function SectionEmptyState({ title, description }: { title: string; description:
   return (
     <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
       <p className="text-sm font-bold text-slate-950">{title}</p>
-      <p className="mt-1 text-xs text-slate-600">{description}</p>
+      <p className="mt-1 text-xs text-slate-900">{description}</p>
     </div>
   );
 }
@@ -607,7 +607,7 @@ function StickyCheckoutCTA() {
       <div className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-white/95 p-2 shadow-[0_18px_48px_rgba(15,23,42,0.18)] backdrop-blur-xl">
         <div className="min-w-0 pl-2">
           <p className="truncate text-sm font-extrabold text-slate-950">{t("home.extraOff")}</p>
-          <p className="text-xs text-slate-600">{t("home.voucherAutoApplies")}</p>
+          <p className="text-xs text-slate-900">{t("home.voucherAutoApplies")}</p>
         </div>
         <Button className="rounded-xl bg-orange-600 px-4 text-white hover:bg-orange-700">
           {t("product.buyNow")}
@@ -632,7 +632,7 @@ function MobileBottomNav() {
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.35rem)] pt-1.5 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:hidden">
       <div className="mx-auto grid max-w-md grid-cols-5">
         {items.map(([Icon, label, href], index) => (
-          <Link key={label} href={localePath(href)} className={`flex flex-col items-center gap-1 rounded-xl px-1 py-1 text-[11px] font-semibold ${index === 0 ? "bg-orange-50 text-orange-600" : "text-slate-700"}`}>
+          <Link key={label} href={localePath(href)} className={`flex flex-col items-center gap-1 rounded-xl px-1 py-1 text-[11px] font-semibold ${index === 0 ? "bg-orange-50 text-orange-600" : "text-slate-900"}`}>
             <Icon className="size-5" />
             <span>{label}</span>
           </Link>
