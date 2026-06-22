@@ -4,8 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
 import {
+  answerProductQuestion,
   invalidateProductMutationQueries,
+  normalizePublicProductQuestions,
   invalidateSellerProductQueries,
+  productQueryKeys,
+  publicProductQuestionsQueryOptions,
   sellerProductsQueryOptions,
 } from "#/features/product/queries";
 import { uploadSellerFile, type SellerCompletedUpload, type SellerUploadUsage } from "#/features/seller/upload-helper";
@@ -17,7 +21,11 @@ export type SellerShopList = Treaty.Data<ReturnType<typeof api.api.seller.shops.
 export type SellerShopSummary = SellerShopList extends { shops: Array<infer T> } ? T : never;
 export type SellerProductsResponse = Treaty.Data<ReturnType<typeof api.api.seller.products.get>>;
 export type SellerProduct = SellerProductsResponse extends { data: Array<infer T> } ? T : never;
+export type SellerProductDetail = Treaty.Data<ReturnType<ReturnType<typeof api.api.seller.products>["get"]>>;
+export type SellerInventoryResponse = Treaty.Data<ReturnType<typeof api.api.seller.inventory.get>>;
 export type SellerCategory = Treaty.Data<ReturnType<typeof api.api.categories.get>> extends Array<infer T> ? T : never;
+export type SellerCategorySpecsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.categories>["specs"]["get"]>>;
+export type SellerCategorySpec = SellerCategorySpecsResponse extends Array<infer T> ? T : never;
 export type SellerBrand = Treaty.Data<ReturnType<typeof api.api.seller.brands.get>> extends Array<infer T> ? T : never;
 export type SellerProductImage = SellerProduct extends { images: Array<infer T> } ? T : never;
 export type SellerProductVideo = SellerProduct extends { video: infer T } ? NonNullable<T> : never;
@@ -31,7 +39,7 @@ export type SellerPayout = Treaty.Data<ReturnType<typeof api.api.seller.payouts.
 
 export interface ProductFilters {
   q?: string;
-  status?: "DRAFT" | "ACTIVE" | "ARCHIVED" | "";
+  status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED" | "";
   categoryId?: string;
   cursor?: string;
   limit?: number;
@@ -73,7 +81,7 @@ export interface SellerProductInput {
   description?: string | null;
   descriptionTh?: string | null;
   descriptionEn?: string | null;
-  status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
   categoryId?: string | null;
   brandId?: string | null;
   metaTitle?: string | null;
@@ -104,6 +112,22 @@ export interface SellerVariantInput {
   lengthMm?: number | null;
   widthMm?: number | null;
   heightMm?: number | null;
+  optionValueIds?: string[];
+}
+
+export interface SellerProductOptionInput {
+  name: string;
+  nameTh?: string | null;
+  nameEn?: string | null;
+  sortOrder?: number;
+  values: Array<{
+    value: string;
+    valueTh?: string | null;
+    valueEn?: string | null;
+    displayType?: string;
+    colorHex?: string | null;
+    sortOrder?: number;
+  }>;
 }
 
 export interface SellerProductImageInput {
@@ -267,6 +291,44 @@ export function useSellerProducts(filters: ProductFilters = {}) {
   return useQuery(sellerProductsQueryOptions(cleanProductFilters(filters)));
 }
 
+export function useSellerProduct(productId?: string) {
+  return useQuery({
+    queryKey: productId ? ["product", "seller", "details", productId] : ["product", "seller", "details", "missing"],
+    queryFn: async (): Promise<SellerProductDetail> => {
+      if (!productId) throw new Error("Product id is required.");
+      const { data, error } = await api.api.seller.products({ productId }).get();
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(productId),
+  });
+}
+
+export function useSellerProductQuestions(productId?: string) {
+  return useQuery({
+    ...(productId ? publicProductQuestionsQueryOptions(productId) : {
+      queryKey: productQueryKeys.public.questions("missing"),
+      queryFn: async () => ({
+        items: [],
+        meta: { page: 1, limit: 5, totalCount: 0, hasNextPage: false },
+      }),
+    }),
+    enabled: Boolean(productId),
+    select: normalizePublicProductQuestions,
+  });
+}
+
+export function useSellerInventory() {
+  return useQuery({
+    queryKey: sellerKey("inventory"),
+    queryFn: async (): Promise<SellerInventoryResponse> => {
+      const { data, error } = await api.api.seller.inventory.get();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 export function useSellerCategories() {
   return useQuery({
     queryKey: ["seller", "categories"],
@@ -274,6 +336,19 @@ export function useSellerCategories() {
       const { data, error } = await api.api.categories.get();
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+export function useSellerCategorySpecs(categoryId?: string | null) {
+  return useQuery({
+    queryKey: ["seller", "category-specs", categoryId ?? ""],
+    enabled: Boolean(categoryId),
+    queryFn: async (): Promise<SellerCategorySpecsResponse> => {
+      if (!categoryId) return [];
+      const { data, error } = await api.api.categories({ categoryId }).specs.get();
+      if (error) throw error;
+      return data ?? [];
     },
   });
 }
@@ -537,6 +612,23 @@ export function useDeleteSellerProductImage() {
   });
 }
 
+export function useUpdateSellerProductImagesOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, images, primaryImageId }: { productId: string; images: Array<{ id: string; sortOrder?: number }>; primaryImageId?: string | null }) => {
+      const { data, error } = await api.api.seller.products({ productId }).images.order.put({ images, primaryImageId });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
+  });
+}
+
 export function useUpsertSellerProductVideo() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -592,11 +684,56 @@ export function useDeleteSellerProductVideo() {
   });
 }
 
+export function useUpdateSellerProductOptions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, options }: { productId: string; options: SellerProductOptionInput[] }) => {
+      const { data, error } = await api.api.seller.products({ productId }).options.put({ options });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, variables) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId: variables.productId,
+        affectsPublic: true,
+      });
+    },
+  });
+}
+
+export function useSubmitSellerProductReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (productId: string) => {
+      const { data, error } = await api.api.seller.products({ productId })["submit-review"].post();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, productId) => {
+      await invalidateProductMutationQueries(queryClient, {
+        productId,
+        affectsPublic: false,
+      });
+    },
+  });
+}
+
+export function useAnswerSellerProductQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ questionId, answer }: { questionId: string; productId: string; answer: string }) =>
+      answerProductQuestion(questionId, answer),
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: productQueryKeys.public.questions(variables.productId) });
+    },
+  });
+}
+
 export function useUpdateSellerVariantStock() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ variantId, quantityOnHand, reorderLevel }: SellerVariantStockInput) => {
-      const { data, error } = await api.api.seller.variants({ variantId }).inventory.patch({ quantityOnHand, reorderLevel });
+      const { data, error } = await api.api.seller.variants({ variantId }).inventory.patch({ quantityOnHand, reorderLevel, reason: "seller stock update" });
       if (error) throw error;
       return data;
     },

@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
   return publicPageMetadata({
     title: shop.name,
-    description: `Shop active products from ${shop.name}.`,
+    description: createTranslator(locale)("seo.shopDescription").replace("{shop}", shop.name),
     path: `/shops/${shop.id}`,
     locale,
   });
@@ -37,11 +37,11 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: s
           <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold text-slate-950">{shop.name}</h1>
-              <p className="mt-2 text-sm text-slate-600">Browse active products from this marketplace seller.</p>
+              <p className="mt-2 text-sm text-slate-600">{t("seo.shopPageDescription")}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
-                <span className="rounded-full bg-orange-50 px-3 py-1 text-orange-700">Verified marketplace shop</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1">{shop.products.length} active items</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1">Fast chat available</span>
+                <span className="rounded-full bg-orange-50 px-3 py-1 text-orange-700">{t("seller.verifiedMarketplaceShop")}</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1">{t("seller.activeItemsCount").replace("{count}", String(shop.products.length))}</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1">{t("seller.fastChatAvailable")}</span>
               </div>
             </div>
             <ShopFollowButton shopId={shop.id} />
@@ -51,7 +51,7 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: s
         <section className="space-y-3">
           <div>
             <h2 className="text-lg font-bold text-slate-950">{t("common.marketplace")}</h2>
-            <p className="text-xs text-slate-500">{shop.products.length} active items</p>
+            <p className="text-xs text-slate-500">{t("seller.activeItemsCount").replace("{count}", String(shop.products.length))}</p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {shop.products.map((product) => {
@@ -64,7 +64,7 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: s
                       <h3 className="line-clamp-2 min-h-10 text-sm font-bold text-slate-900">{product.title}</h3>
                     </Link>
                     <p className="mt-1 line-clamp-2 text-xs text-slate-500">
-                      {product.description || "Product details available on the product page."}
+                      {product.description || t("product.detailsAvailableOnProductPage")}
                     </p>
                     {variant ? (
                       <p className="mt-2 font-bold text-orange-600">

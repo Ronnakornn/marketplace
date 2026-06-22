@@ -1,51 +1,40 @@
-# task-5: Deliver seller UI, i18n, and verification
+# task-5: Verify Auth v1 with focused backend/frontend tests, typecheck, and documentation updates
 
-## Goal
+## Objective
 
-Deliver seller-facing UI integration for onboarding, profile, multi-shop context, dashboard insights, shop reviews, and staff foundation with Thai and English localization and focused verification.
+Prove Auth v1 works end to end at the contract level and update documentation where behavior or schema changed.
 
 ## Scope
 
-- Implement or extend seller pages for:
-  - onboarding and status UX
-  - shop profile management
-  - multi-shop selection behavior
-  - dashboard insight display
-  - shop review visibility and status communication
-  - staff foundation management surfaces
-- Integrate backend APIs with Eden and TanStack Query patterns.
-- Ensure all new user-facing strings are available in `th` and `en` locale messages.
-- Add focused UI and integration tests for changed flows.
+- Run required generation and verification commands after implementation:
+  - `bun run db:generate`
+  - `bunx tsc --noEmit`
+  - focused Vitest suites for auth/user/admin behavior
+- Add missing focused tests required by the Auth v1 contract.
+- Update docs when architecture, schema, or user-visible auth behavior changed.
+- Confirm out-of-scope items remain unimplemented:
+  - phone login
+  - phone verification
+  - social login
+  - RBAC tables
+  - admin invite flow
 
-## Affected Areas
+## Constraints
 
-- `app/[locale]/seller/**`
-- `features/seller/**`
-- shared UI components if needed under `components/**`
-- `messages/th.json`
-- `messages/en.json`
-- frontend hooks for seller and review data fetching
-- frontend tests for seller feature flows
+- Do not treat generated files as manually authored changes.
+- Do not skip generation after Prisma schema changes.
+- Do not broaden tests into unrelated marketplace domains unless Auth v1 changes affect them.
 
 ## Implementation Notes
 
-- Preserve existing visual language and navigation patterns.
-- Keep query keys shop-scoped for multi-shop flows.
-- Show explicit loading, empty, error, and success states on all new seller surfaces.
-- Use inferred backend types through Eden where available; avoid manual DTO duplication.
-- Keep accessibility basics: labels, focusable controls, visible validation/error text.
+- Prefer focused test runs during iteration, then run the agreed final verification commands.
+- If a command cannot run in the local environment, capture the blocker clearly in the task report.
+- Documentation updates should be concise and limited to changed auth behavior/contracts.
 
 ## Verification
 
-- Add or update focused tests for:
-  - onboarding and status UI states
-  - shop profile edit and retry paths
-  - multi-shop selector behavior
-  - dashboard insight rendering states
-  - shop review and moderation-aware display states
-  - staff invitation and status update UX states
-  - locale message coverage for new UI text
-- Run:
-  - `bunx tsc --noEmit`
-  - focused frontend seller and review tests
-  - `bun run test` if shared behavior changes require wider regression safety
+- Produce a task report under `.chief/milestone-2/_report/task-5/` or equivalent milestone report location summarizing:
+  - commands run
+  - tests added/updated
+  - docs updated
+  - any residual risks or blocked verification

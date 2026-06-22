@@ -186,6 +186,26 @@ describe('CacheService', () => {
     await expect(service.get(service.keys.searchSuggestions({ q: 'tee', locale: 'th', limit: 8 }))).resolves.toBeNull()
   })
 
+  it('category mutation invalidates catalog discovery and search cache keys', async () => {
+    const service = new CacheService(createAppContext(), createConfig(), createClient())
+    const invalidation = new CacheInvalidation(service)
+    await service.set(service.keys.categoryList('th'), { data: [] })
+    await service.set(service.keys.productList({ categoryId: 'fashion' }), { data: [] })
+    await service.set(service.keys.productSearch({ categoryId: 'fashion' }), { items: [] })
+    await service.set(service.keys.searchSuggestions({ q: 'dress' }), { productTitles: [] })
+    await service.set(service.keys.aiSearch({ q: 'dress' }), { items: [] })
+    await service.set(service.keys.recommendations('home', { categoryId: 'fashion' }), { items: [] })
+
+    await invalidation.invalidateCatalogDiscoveryAndSearch()
+
+    await expect(service.get(service.keys.categoryList('th'))).resolves.toBeNull()
+    await expect(service.get(service.keys.productList({ categoryId: 'fashion' }))).resolves.toBeNull()
+    await expect(service.get(service.keys.productSearch({ categoryId: 'fashion' }))).resolves.toBeNull()
+    await expect(service.get(service.keys.searchSuggestions({ q: 'dress' }))).resolves.toBeNull()
+    await expect(service.get(service.keys.aiSearch({ q: 'dress' }))).resolves.toBeNull()
+    await expect(service.get(service.keys.recommendations('home', { categoryId: 'fashion' }))).resolves.toBeNull()
+  })
+
   it('inventory update invalidates product/search cache', async () => {
     const service = new CacheService(createAppContext(), createConfig(), createClient())
     const invalidation = new CacheInvalidation(service)

@@ -20,6 +20,8 @@ import { PrismaCheckoutRepository } from '#server/modules/checkout/checkout.repo
 import { CheckoutService } from '#server/modules/checkout/checkout.service.ts'
 import { PrismaCatalogRepository } from '#server/modules/catalog/catalog.repository.ts'
 import { CatalogService } from '#server/modules/catalog/catalog.service.ts'
+import { DiscoveryService, PrismaDiscoveryRepository } from '#server/modules/discovery'
+import { InventoryService, PrismaInventoryRepository } from '#server/modules/inventory'
 import { PrismaPaymentRepository } from '#server/modules/payment/payment.repository.ts'
 import { PaymentService } from '#server/modules/payment/payment.service.ts'
 import { CommissionService } from '#server/modules/commission'
@@ -38,6 +40,7 @@ import { ReturnService } from '#server/modules/return/return.service.ts'
 import { PrismaRecommendationRepository, RecommendationService } from '#server/modules/recommendation'
 import { PrismaSearchRepository } from '#server/modules/search/search.repository.ts'
 import { SearchService } from '#server/modules/search/search.service.ts'
+import { PrismaTrackingRepository, TrackingService } from '#server/modules/tracking'
 import { PrismaSellerDashboardRepository } from '#server/modules/seller/seller-dashboard.repository.ts'
 import { SellerDashboardService } from '#server/modules/seller/seller-dashboard.service.ts'
 import { PrismaSellerShopRepository, SellerShopService } from '#server/modules/seller-shop'
@@ -47,6 +50,8 @@ import { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
 import { PrismaReviewRepository } from '#server/modules/review/review.repository.ts'
 import { ReviewService } from '#server/modules/review/review.service.ts'
 import { PrismaShopReviewRepository, ShopReviewService } from '#server/modules/shop-review'
+import { PrismaProductQuestionRepository, ProductQuestionService } from '#server/modules/product-question'
+import { PrismaProductAnalyticsRepository, ProductAnalyticsService } from '#server/modules/product-analytics'
 import { PrismaUserRepository } from '#server/modules/user/user.repository.ts'
 import { UserService } from '#server/modules/user/user.service.ts'
 import { PrismaUploadRepository } from '#server/modules/upload/upload.repository.ts'
@@ -59,6 +64,8 @@ import { createCoreCommerceEventHandlers } from '#server/modules/events'
 import { createFraudEventHandlers, FraudService, getFraudRuleConfigFromEnv, PrismaFraudRepository } from '#server/modules/fraud'
 import { BullMqQueueProducer, getQueueConfigFromEnv, OptionalQueueProducer, type QueueProducer } from '#server/modules/queue'
 import { AuditLogService, PrismaAuditLogRepository } from '#server/modules/audit-log'
+import { ContentModerationService, PrismaContentModerationRepository } from '#server/modules/content-moderation'
+import { createPhoneOtpProvider, PhoneOtpService, PrismaPhoneOtpRepository } from '#server/modules/auth'
 import { ActiveShopResolver, OwnershipGuards, PrismaOwnershipGuardRepository, SecurityService } from '#server/modules/security'
 import { CacheInvalidation, CacheService, createRedisCacheClient, getCacheConfigFromEnv } from '#server/modules/cache'
 import {
@@ -87,13 +94,16 @@ export interface ServiceContainer {
   chatService: ChatService
   cacheInvalidation: CacheInvalidation
   cacheService: CacheService
+  contentModerationService: ContentModerationService
   checkoutService: CheckoutService
   commissionService: CommissionService
   catalogService: CatalogService
+  discoveryService: DiscoveryService
   eventBus: EventBus
   eventHandlerRegistry: EventHandlerRegistry
   eventPublisherService: EventPublisherService
   fraudService: FraudService
+  inventoryService: InventoryService
   jobService: JobService
   notificationService: NotificationService
   realtimeService: RealtimeService
@@ -102,6 +112,9 @@ export interface ServiceContainer {
   orderService: OrderService
   paymentService: PaymentService
   payoutService: PayoutService
+  phoneOtpService: PhoneOtpService
+  productQuestionService: ProductQuestionService
+  productAnalyticsService: ProductAnalyticsService
   promotionService: PromotionService
   refundService: RefundService
   recommendationService: RecommendationService
@@ -117,6 +130,7 @@ export interface ServiceContainer {
   sellerOnboardingService: SellerOnboardingService
   shipmentService: ShipmentService
   shoppingAssistantService: ShoppingAssistantService
+  trackingService: TrackingService
   uploadService: UploadService
   userService: UserService
   walletService: WalletService
@@ -146,14 +160,18 @@ export function createContainer(): ServiceContainer {
 
   const auditLogRepo = new PrismaAuditLogRepository(appContext, prisma)
   const auditLogService = new AuditLogService(appContext, auditLogRepo)
+  const contentModerationRepo = new PrismaContentModerationRepository(appContext, prisma)
+  const contentModerationService = new ContentModerationService(appContext, contentModerationRepo, auditLogService)
   const fraudRepo = new PrismaFraudRepository(appContext, prisma)
   const fraudService = new FraudService(appContext, fraudRepo, fraudRuleConfig, auditLogService)
   const adminRepo = new PrismaAdminRepository(appContext, prisma)
   const adminService = new AdminService(appContext, adminRepo, auditLogService)
   const affiliateRepo = new PrismaAffiliateRepository(appContext, prisma)
   const affiliateService = new AffiliateService(appContext, affiliateRepo)
+  const trackingRepo = new PrismaTrackingRepository(appContext, prisma)
+  const trackingService = new TrackingService(appContext, trackingRepo)
   const cartRepo = new PrismaCartRepository(appContext, prisma)
-  const cartService = new CartService(appContext, cartRepo)
+  const cartService = new CartService(appContext, cartRepo, trackingService)
   const realtimeRepo = new PrismaRealtimeRepository(appContext, prisma)
   const realtimeService = new RealtimeService(appContext, realtimeRepo, new InMemoryRealtimeAdapter())
   const promotionRepo = new PrismaPromotionRepository(appContext, prisma)
@@ -168,7 +186,10 @@ export function createContainer(): ServiceContainer {
   const chatRepo = new PrismaChatRepository(appContext, prisma)
   const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
-  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver)
+  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver, auditLogService)
+  const discoveryRepo = new PrismaDiscoveryRepository(appContext, prisma)
+  const inventoryRepo = new PrismaInventoryRepository(appContext, prisma)
+  const inventoryService = new InventoryService(appContext, inventoryRepo, activeShopResolver)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
   const orderService = new OrderService(appContext, orderRepo, activeShopResolver)
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)
@@ -184,16 +205,23 @@ export function createContainer(): ServiceContainer {
   const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation, eventPublisherService, affiliateService)
   const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
   const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService, activeShopResolver)
+  const phoneOtpRepo = new PrismaPhoneOtpRepository(appContext, prisma)
+  const phoneOtpService = new PhoneOtpService(appContext, phoneOtpRepo, createPhoneOtpProvider())
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
   const returnService = new ReturnService(appContext, returnRepo, activeShopResolver)
   const refundRepo = new PrismaRefundRepository(appContext, prisma)
   const refundService = new RefundService(appContext, refundRepo, eventPublisherService)
   const recommendationRepo = new PrismaRecommendationRepository(appContext, prisma)
   const recommendationService = new RecommendationService(appContext, recommendationRepo, cacheService)
+  const discoveryService = new DiscoveryService(appContext, discoveryRepo, catalogService, recommendationService, promotionService, trackingService)
   const reviewRepo = new PrismaReviewRepository(appContext, prisma)
   const reviewService = new ReviewService(appContext, reviewRepo)
   const shopReviewRepo = new PrismaShopReviewRepository(appContext, prisma)
   const shopReviewService = new ShopReviewService(appContext, shopReviewRepo, cacheInvalidation)
+  const productQuestionRepo = new PrismaProductQuestionRepository(appContext, prisma)
+  const productQuestionService = new ProductQuestionService(appContext, productQuestionRepo, ownershipGuards)
+  const productAnalyticsRepo = new PrismaProductAnalyticsRepository(appContext, prisma)
+  const productAnalyticsService = new ProductAnalyticsService(appContext, productAnalyticsRepo, activeShopResolver)
   const searchRepo = new PrismaSearchRepository(appContext, prisma)
   const searchService = new SearchService(appContext, searchRepo, cacheService)
   const embeddingService = new EmbeddingService(appContext, aiSearchConfig)
@@ -249,13 +277,16 @@ export function createContainer(): ServiceContainer {
     chatService,
     cacheInvalidation,
     cacheService,
+    contentModerationService,
     checkoutService,
     commissionService,
     catalogService,
+    discoveryService,
     eventBus,
     eventHandlerRegistry,
     eventPublisherService,
     fraudService,
+    inventoryService,
     jobService,
     notificationService,
     realtimeService,
@@ -264,6 +295,9 @@ export function createContainer(): ServiceContainer {
     orderService,
     paymentService,
     payoutService,
+    phoneOtpService,
+    productQuestionService,
+    productAnalyticsService,
     promotionService,
     refundService,
     recommendationService,
@@ -279,6 +313,7 @@ export function createContainer(): ServiceContainer {
     sellerOnboardingService,
     shipmentService,
     shoppingAssistantService,
+    trackingService,
     uploadService,
     userService,
     walletService,

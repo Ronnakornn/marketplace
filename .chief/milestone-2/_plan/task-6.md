@@ -1,61 +1,38 @@
-# task-6: Implement backend document-level KYC verification and approval gate
+# task-6: Configure Better Auth Google/Facebook providers and safe provider availability
 
-## Goal
+## Objective
 
-Implement backend support for per-document KYC review decisions and enforce required-document approval gate before application-level approval.
+Enable Google and Facebook provider configuration through Better Auth while exposing only safe provider availability to frontend code.
 
 ## Scope
 
-- Extend seller KYC document data model and repository contracts with document review metadata.
-- Implement admin API for per-document review action:
-  - `PATCH /api/admin/seller-applications/:applicationId/documents/:documentId/review`
-- Enforce approval gate in existing application review path:
-  - block `decision=APPROVED` when required documents are not all approved
-  - return deterministic error `SELLER_DOCUMENTS_NOT_APPROVED` with unresolved required documents
-- Reset document review metadata to pending state on submit and resubmit.
+- Configure Better Auth social providers for:
+  - Google
+  - Facebook
+- Read provider credentials from server environment variables:
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+  - `FACEBOOK_CLIENT_ID`
+  - `FACEBOOK_CLIENT_SECRET`
+- Ensure incomplete provider credentials disable that provider without breaking email/password auth.
+- Add a safe provider availability mechanism for frontend use when needed.
 
-## Relation to Existing Specs
+## Constraints
 
-- Extends [task-2](.chief/milestone-2/_plan/task-2.md):
-  - task-2 delivered onboarding lifecycle and profile/multi-shop API behavior.
-  - this task adds document-level admin verification and approval-gate rules inside that lifecycle.
-- Does not replace [task-2](.chief/milestone-2/_plan/task-2.md); it narrows and hardens KYC review behavior.
-
-## Affected Areas
-
-- Prisma schema and generated outputs:
-  - `prisma/schema.prisma`
-  - `generated/client/**` (regenerated)
-  - `generated/prismabox/**` (regenerated)
-- Seller onboarding backend module:
-  - `server/modules/seller-onboarding/seller-onboarding.repository.ts`
-  - `server/modules/seller-onboarding/seller-onboarding.service.ts`
-  - `server/modules/seller-onboarding/seller-onboarding.routes.ts`
-  - `server/modules/seller-onboarding/seller-onboarding.errors.ts`
-- API contracts/docs if endpoint set changes:
-  - `docs/06-backend/api-contracts.md`
+- Do not expose provider secrets to frontend responses or client bundles.
+- Do not hardcode development provider credentials.
+- Do not implement custom OAuth callback handling if Better Auth can own the provider flow.
+- Do not add providers beyond Google and Facebook.
 
 ## Implementation Notes
 
-- Keep existing application-level decision endpoint backward compatible.
-- New document review endpoint must be admin-only via auth macro.
-- Reject document decision must require non-empty rejection reason.
-- Approval gate must compute required document set by current business type:
-  - INDIVIDUAL: ID_CARD, BANK_BOOK, TAX_DOCUMENT
-  - COMPANY: BUSINESS_CERTIFICATE, BANK_BOOK, TAX_DOCUMENT
-- Submit/resubmit reset must clear document review decision and audit metadata transactionally with application submit.
-- Keep sensitive KYC values masked/encrypted; never expose decrypted values in responses.
+- Prefer centralizing provider availability checks near the auth configuration.
+- If a first-party endpoint is added, it should return booleans only, such as `google` and `facebook`.
+- Keep email/password auth available regardless of social provider configuration.
+- Review Better Auth provider configuration requirements before implementation.
 
 ## Verification
 
-- Add/update focused backend tests for:
-  - document review decision transitions and validation
-  - admin-only authorization on document review endpoint
-  - approval gate blocking and `SELLER_DOCUMENTS_NOT_APPROVED` metadata payload
-  - submit/resubmit reset to pending behavior
-- Run:
-  - `bunx prisma format`
-  - `bunx prisma validate`
-  - `bun run db:generate`
-  - `bunx tsc --noEmit`
-  - focused seller-onboarding test suite
+- Add focused tests for provider availability with complete and incomplete env configuration where practical.
+- Run affected auth tests.
+- Run `bunx tsc --noEmit`.

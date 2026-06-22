@@ -1,4 +1,4 @@
-import type { Address, FavoriteProduct, PrismaClient, Product, ProductVariant, Shop, ShopFollow, User } from '#generated/client/client.ts'
+import type { Account, Address, FavoriteProduct, Inventory, PrismaClient, Product, ProductImage, ProductVariant, Shop, ShopFollow, User, Verification } from '#generated/client/client.ts'
 import type { Role, UserStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -10,7 +10,7 @@ export type AdminUserListItem = Pick<
 
 export type UserProfile = Pick<
   User,
-  'id' | 'name' | 'email' | 'role' | 'status' | 'emailVerified' | 'image' | 'createdAt' | 'updatedAt'
+  'id' | 'name' | 'email' | 'role' | 'status' | 'emailVerified' | 'phone' | 'phoneVerified' | 'image' | 'createdAt' | 'updatedAt'
 >
 
 export interface UpdateAdminUserData {
@@ -23,13 +23,22 @@ export interface UpdateAdminUserData {
 export interface UpdateCurrentUserData {
   name?: string
   image?: string | null
+  phone?: string | null
+  phoneVerified?: boolean
+}
+
+export interface CreateVerificationData {
+  identifier: string
+  value: string
+  expiresAt: Date
 }
 
 export type BuyerAddress = Address
 export type FavoriteProductRecord = FavoriteProduct & {
   product: Product & {
-    shop: Pick<Shop, 'id' | 'name' | 'slug'>
-    variants: ProductVariant[]
+    shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
+    images: Pick<ProductImage, 'url' | 'sortOrder' | 'isPrimary'>[]
+    variants: Array<ProductVariant & { inventory: Inventory | null }>
   }
 }
 export type ShopFollowRecord = ShopFollow & {
@@ -55,9 +64,17 @@ export interface IUserRepository {
   findManyForAdmin(): Promise<AdminUserListItem[]>
   findById(id: string): Promise<User | null>
   findByEmail(email: string): Promise<User | null>
+  findByPhone(phone: string): Promise<User | null>
   countAdmins(excludeUserId?: string): Promise<number>
   updateUser(id: string, data: UpdateAdminUserData): Promise<User>
   updateCurrentUser(id: string, data: UpdateCurrentUserData): Promise<UserProfile>
+  markEmailVerified(userId: string): Promise<User>
+  createVerification(data: CreateVerificationData): Promise<Verification>
+  findVerification(identifier: string, value: string): Promise<Verification | null>
+  deleteVerificationsByIdentifier(identifier: string): Promise<void>
+  deleteVerification(id: string): Promise<void>
+  findCredentialAccount(userId: string): Promise<Account | null>
+  updateCredentialPassword(accountId: string, passwordHash: string): Promise<Account>
   delete(id: string): Promise<User>
   promoteByEmails(emails: string[]): Promise<number>
   listAddresses(userId: string): Promise<BuyerAddress[]>
@@ -112,11 +129,18 @@ export class PrismaUserRepository implements IUserRepository {
     return this.prisma.user.findUnique({ where: { email } })
   }
 
+  findByPhone(phone: string): Promise<User | null> {
+    this.logger.debug('PrismaUserRepository.findByPhone')
+    return this.prisma.user.findUnique({ where: { phone } })
+  }
+
   countAdmins(excludeUserId?: string): Promise<number> {
     this.logger.debug('PrismaUserRepository.countAdmins', { excludeUserId })
     return this.prisma.user.count({
       where: {
         role: 'ADMIN',
+        status: 'ACTIVE',
+        emailVerified: true,
         ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
       },
     })
@@ -142,10 +166,59 @@ export class PrismaUserRepository implements IUserRepository {
         role: true,
         status: true,
         emailVerified: true,
+        phone: true,
+        phoneVerified: true,
         image: true,
         createdAt: true,
         updatedAt: true,
       },
+    })
+  }
+
+  markEmailVerified(userId: string): Promise<User> {
+    this.logger.info('PrismaUserRepository.markEmailVerified', { userId })
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified: true },
+    })
+  }
+
+  createVerification(data: CreateVerificationData): Promise<Verification> {
+    this.logger.info('PrismaUserRepository.createVerification', { identifier: data.identifier, expiresAt: data.expiresAt })
+    return this.prisma.verification.create({ data })
+  }
+
+  findVerification(identifier: string, value: string): Promise<Verification | null> {
+    this.logger.debug('PrismaUserRepository.findVerification', { identifier })
+    return this.prisma.verification.findFirst({ where: { identifier, value } })
+  }
+
+  async deleteVerificationsByIdentifier(identifier: string): Promise<void> {
+    this.logger.info('PrismaUserRepository.deleteVerificationsByIdentifier', { identifier })
+    await this.prisma.verification.deleteMany({ where: { identifier } })
+  }
+
+  async deleteVerification(id: string): Promise<void> {
+    this.logger.info('PrismaUserRepository.deleteVerification', { id })
+    await this.prisma.verification.delete({ where: { id } })
+  }
+
+  findCredentialAccount(userId: string): Promise<Account | null> {
+    this.logger.debug('PrismaUserRepository.findCredentialAccount', { userId })
+    return this.prisma.account.findFirst({
+      where: {
+        userId,
+        providerId: 'credential',
+        password: { not: null },
+      },
+    })
+  }
+
+  updateCredentialPassword(accountId: string, passwordHash: string): Promise<Account> {
+    this.logger.info('PrismaUserRepository.updateCredentialPassword', { accountId })
+    return this.prisma.account.update({
+      where: { id: accountId },
+      data: { password: passwordHash },
     })
   }
 
@@ -245,8 +318,9 @@ export class PrismaUserRepository implements IUserRepository {
       include: {
         product: {
           include: {
-            shop: { select: { id: true, name: true, slug: true } },
-            variants: { where: { status: 'ACTIVE' }, orderBy: { createdAt: 'asc' } },
+            shop: { select: { id: true, name: true, slug: true, status: true } },
+            images: { select: { url: true, sortOrder: true, isPrimary: true }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }], take: 3 },
+            variants: { where: { status: 'ACTIVE' }, include: { inventory: true }, orderBy: { createdAt: 'asc' } },
           },
         },
       },

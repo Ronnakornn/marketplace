@@ -1,0 +1,1748 @@
+[frontend] $ next dev --port 3000
+[backend] $ bun run --watch server/index.ts
+[frontend] ▲ Next.js 16.2.6 (Turbopack)
+[frontend] - Local:         http://localhost:3000
+[frontend] - Network:       http://192.168.1.103:3000
+[frontend] - Environments: .env.local
+[frontend] ✓ Ready in 838ms
+[frontend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] [2026-06-14 14:38:49.454 +0700] [32mINFO[39m: [36mAPI server running[39m
+[backend]     [35mport[39m: 3001
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[frontend]  GET /th 200 in 1762ms (next.js: 1118ms, proxy.ts: 6ms, generate-params: 882ms, application-code: 638ms)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[frontend]  GET /th/search?q=shirt 200 in 920ms (next.js: 634ms, proxy.ts: 6ms, generate-params: 578ms, application-code: 280ms)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] [2026-06-14 14:39:18.280 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "840b4096-b2f1-42db-b65f-b3203eb1ce68"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/auth/get-session"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 27.66
+[backend] [2026-06-14 14:39:19.093 +0700] [33mWARN[39m: [36mCache get failed[39m
+[backend]     [35mcode[39m: "CACHE_CONNECTION_FAILED"
+[backend]     [35mkey[39m: "ecommerce:search:suggestions:15a670b5f9885c1d15a10ce6"
+[backend]     [35mmessage[39m: ""
+[backend] [2026-06-14 14:39:19.093 +0700] [33mWARN[39m: [36mCache get failed[39m
+[backend]     [35mcode[39m: "CACHE_CONNECTION_FAILED"
+[backend]     [35mkey[39m: "ecommerce:category:list:th"
+[backend]     [35mmessage[39m: ""
+[backend] [2026-06-14 14:39:19.094 +0700] [33mWARN[39m: [36mCache get failed[39m
+[backend]     [35mcode[39m: "CACHE_CONNECTION_FAILED"
+[backend]     [35mkey[39m: "ecommerce:search:products:952d1202f04d3640766b14fd"
+[backend]     [35mmessage[39m: "Connection is closed."
+[backend] [2026-06-14 14:39:19.572 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "fcac5565-e73a-4c07-989c-7ef93cd21655"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1268.52
+[backend] [2026-06-14 14:39:19.572 +0700] [33mWARN[39m: [36mSlow HTTP request[39m
+[backend]     [35mrequestId[39m: "fcac5565-e73a-4c07-989c-7ef93cd21655"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1268.52
+[backend] [2026-06-14 14:39:19.576 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "7c90b40b-1c92-4382-a985-e8a1e21b7694"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1270.53
+[backend] [2026-06-14 14:39:19.577 +0700] [33mWARN[39m: [36mSlow HTTP request[39m
+[backend]     [35mrequestId[39m: "7c90b40b-1c92-4382-a985-e8a1e21b7694"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1270.53
+[backend] [2026-06-14 14:39:19.593 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "592c7a03-19e3-4b60-8f40-96d0b7815bc9"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1293.01
+[backend] [2026-06-14 14:39:19.593 +0700] [33mWARN[39m: [36mSlow HTTP request[39m
+[backend]     [35mrequestId[39m: "592c7a03-19e3-4b60-8f40-96d0b7815bc9"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1293.01
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] [2026-06-14 14:39:19.713 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "6b159b75-5a97-474a-9d4c-26c4d9a55e37"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1420.51
+[backend] [2026-06-14 14:39:19.713 +0700] [33mWARN[39m: [36mSlow HTTP request[39m
+[backend]     [35mrequestId[39m: "6b159b75-5a97-474a-9d4c-26c4d9a55e37"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1420.51
+[backend] [2026-06-14 14:39:19.810 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "e630933b-3b05-499f-82dc-ab23aee9e4d3"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 21.55
+[frontend] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[frontend] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[backend] [2026-06-14 14:39:20.307 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "0f0281d3-7176-422e-8b58-5a2ec0dbe7f1"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 31.82
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED ::1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "::1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 1173 |   afterConnect(status, self._handle, req, readable, writable);
+[backend] 1174 | }
+[backend] 1175 | function createConnectionError(req, status) {
+[backend] 1176 |   let details;
+[backend] 1177 |   if (req.localAddress && req.localPort)
+[backend] 1178 |   let ex = new ExceptionWithHostPort(status, "connect", req.address, req.port);
+[backend]                   ^
+[backend] error: connect ECONNREFUSED 127.0.0.1:6379
+[backend]    errno: -4078,
+[backend]  syscall: "connect",
+[backend]     port: 6379,
+[backend]  address: "127.0.0.1",
+[backend]     code: "ECONNREFUSED"
+[backend] 
+[backend]       at createConnectionError (node:net:1178:12)
+[backend]       at afterConnectMultiple (node:net:1167:35)
+[backend]       at connectError (node:net:352:48)
+[backend] 
+[backend] It is highly recommended to use a minimum Redis version of 6.2.0
+[backend]              Current: 5.0.14.1
+[frontend]  GET /th/search?q=shirt 200 in 180ms (next.js: 14ms, proxy.ts: 8ms, generate-params: 6ms, application-code: 157ms)
+[backend] [2026-06-14 14:39:27.830 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "becd969c-4979-4093-a295-d92c1c58e63c"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/auth/get-session"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 2.74
+[backend] [2026-06-14 14:39:27.886 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "e1387690-c486-4157-b84e-adbf46b093aa"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 6.02
+[backend] [2026-06-14 14:39:27.891 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "cb24c5cc-d33a-4fe5-84ce-7accc1266b2a"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 9.79
+[backend] [2026-06-14 14:39:27.906 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "f6551fe0-963a-415f-aebc-70f89ed00690"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 27.29
+[backend] [2026-06-14 14:39:28.079 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "fea0d925-dbc7-45c8-8020-e66a63c27ecc"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 203.5
+[backend] [2026-06-14 14:39:28.122 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "e7a9dd83-81a6-427d-af62-25b5ab9f3fca"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 4.25
+[frontend] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[frontend] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[backend] [2026-06-14 14:39:28.634 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "21ba326c-5925-45ce-bb1d-59529ad6f22f"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 4.36
+[frontend]  GET /th/search?q=shirt&brandId=brand-does-not-exist&minPrice=999999 200 in 135ms (next.js: 13ms, proxy.ts: 6ms, generate-params: 8ms, application-code: 116ms)
+[backend] [2026-06-14 14:39:37.087 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "0725b97e-45c4-4d9c-bb41-ccf9654ccd98"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/auth/get-session"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 11.28
+[backend] [2026-06-14 14:39:37.124 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "1d694785-2900-4672-8d89-b82b28cbca73"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 8.25
+[backend] [2026-06-14 14:39:37.138 +0700] [31mERROR[39m: [36mUnhandled error[39m
+[backend]     [35mcode[39m: "VALIDATION"
+[backend]     [35mmessage[39m: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend]     [35mstack[39m: "Error: {\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}\n    at handle (file:///D:/GitHub/marketplace/node_modules/elysia/dist/compose.mjs:12:94)\n    at map (file:///D:/GitHub/marketplace/node_modules/elysia/dist/adapter/bun/compose.mjs:8:67)"
+[backend] [2026-06-14 14:39:37.139 +0700] [31mERROR[39m: [36mHTTP request failed[39m
+[backend]     [35mrequestId[39m: "d4da5f30-3353-410c-8830-88ddf15a550e"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mdurationMs[39m: 3.53
+[backend]     error: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend] [2026-06-14 14:39:37.145 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "f386fd29-5799-44ef-a449-c23dd5771cd8"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 5.49
+[backend] [2026-06-14 14:39:37.146 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "d37b6839-cbf2-46e9-9202-5d47fc407655"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 2.75
+[backend] [2026-06-14 14:39:37.149 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "a787f25c-061d-43f8-ab96-3e434a2af2a6"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 6.13
+[backend] [2026-06-14 14:39:38.170 +0700] [31mERROR[39m: [36mUnhandled error[39m
+[backend]     [35mcode[39m: "VALIDATION"
+[backend]     [35mmessage[39m: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend]     [35mstack[39m: "Error: {\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}\n    at handle (file:///D:/GitHub/marketplace/node_modules/elysia/dist/compose.mjs:12:94)\n    at map (file:///D:/GitHub/marketplace/node_modules/elysia/dist/adapter/bun/compose.mjs:8:67)"
+[backend] [2026-06-14 14:39:38.171 +0700] [31mERROR[39m: [36mHTTP request failed[39m
+[backend]     [35mrequestId[39m: "5533cf89-e396-455c-89b2-53a5d5deff08"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mdurationMs[39m: 0.31
+[backend]     error: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[frontend]  GET /th/search?q=shirt&brandId=brand-does-not-exist&minPrice=999999 200 in 156ms (next.js: 13ms, proxy.ts: 6ms, generate-params: 6ms, application-code: 137ms)
+[backend] [2026-06-14 14:39:46.500 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "4f0e77d8-0f31-4c64-9e64-260cecab4424"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/auth/get-session"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.49
+[backend] [2026-06-14 14:39:46.551 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "e4fac51b-4e2c-4cdb-bc44-5d201b93f5ff"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 5.31
+[backend] [2026-06-14 14:39:46.570 +0700] [31mERROR[39m: [36mUnhandled error[39m
+[backend]     [35mcode[39m: "VALIDATION"
+[backend]     [35mmessage[39m: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend]     [35mstack[39m: "Error: {\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}\n    at handle (file:///D:/GitHub/marketplace/node_modules/elysia/dist/compose.mjs:12:94)\n    at map (file:///D:/GitHub/marketplace/node_modules/elysia/dist/adapter/bun/compose.mjs:8:67)"
+[backend] [2026-06-14 14:39:46.570 +0700] [31mERROR[39m: [36mHTTP request failed[39m
+[backend]     [35mrequestId[39m: "9a179c03-7431-499f-bd27-dcdd3bed15b1"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mdurationMs[39m: 0.44
+[backend]     error: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend] [2026-06-14 14:39:46.576 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "f365ec74-58e3-41f3-b76e-71176316d2ba"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 3.07
+[backend] [2026-06-14 14:39:46.577 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "9b019a6d-6b17-49bd-a255-cdf3e029586e"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 5.49
+[backend] [2026-06-14 14:39:46.592 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "401e11f9-1fd8-43e3-b6f1-52926035f815"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 21.97
+[backend] [2026-06-14 14:39:47.604 +0700] [31mERROR[39m: [36mUnhandled error[39m
+[backend]     [35mcode[39m: "VALIDATION"
+[backend]     [35mmessage[39m: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend]     [35mstack[39m: "Error: {\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}\n    at handle (file:///D:/GitHub/marketplace/node_modules/elysia/dist/compose.mjs:12:94)\n    at map (file:///D:/GitHub/marketplace/node_modules/elysia/dist/adapter/bun/compose.mjs:8:67)"
+[backend] [2026-06-14 14:39:47.604 +0700] [31mERROR[39m: [36mHTTP request failed[39m
+[backend]     [35mrequestId[39m: "9fab2745-b9e7-4635-965d-dce89525a0e0"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mdurationMs[39m: 0.33
+[backend]     error: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend] [2026-06-14 14:40:39.035 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "1180e620-c60f-4989-aa39-838ed5cd5429"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 65.7
+[backend] [2026-06-14 14:40:39.064 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "b10264c2-f3c7-4405-9eb3-62cb4f5d9788"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 65.37
+[backend] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[backend]       at <anonymous> (internal:util/deprecate:11:28)
+[backend]       at deprecated (internal:util/deprecate:20:29)
+[backend]       at query (D:\GitHub\marketplace\node_modules\pg\lib\client.js:691:7)
+[backend]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[backend]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[backend]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44665)
+[backend]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44632)
+[backend]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:45787)
+[backend]       at map (1:11)
+[backend]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:45736)
+[backend] 
+[backend] [2026-06-14 14:40:39.168 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "5aaded25-ad53-4eff-95b0-c6b733e98c80"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 171.72
+[frontend]  GET /th/search?q=shirt&brandId=brand-does-not-exist&minPrice=999999 200 in 854ms (next.js: 192ms, proxy.ts: 9ms, generate-params: 11ms, application-code: 653ms)
+[backend] [2026-06-14 20:38:27.059 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "1a349d13-b7ce-4320-acaf-900de0b75980"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/auth/get-session"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 17.29
+[backend] [2026-06-14 20:38:27.091 +0700] [31mERROR[39m: [36mUnhandled error[39m
+[backend]     [35mcode[39m: "VALIDATION"
+[backend]     [35mmessage[39m: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend]     [35mstack[39m: "Error: {\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}\n    at handle (file:///D:/GitHub/marketplace/node_modules/elysia/dist/compose.mjs:12:94)\n    at map (file:///D:/GitHub/marketplace/node_modules/elysia/dist/adapter/bun/compose.mjs:8:67)"
+[backend] [2026-06-14 20:38:27.091 +0700] [31mERROR[39m: [36mHTTP request failed[39m
+[backend]     [35mrequestId[39m: "ecab38ec-f0fc-4dac-b2c4-032d97741f93"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mdurationMs[39m: 2.53
+[backend]     error: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend] [2026-06-14 20:38:27.182 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "ed10c7cb-b5fe-4b67-8e97-08f20d44c912"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 86.92
+[backend] [2026-06-14 20:38:27.184 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "3cf10eea-e4e8-4782-b235-aca3e0a04254"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 86.61
+[backend] [2026-06-14 20:38:27.200 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "4eab625b-3725-4812-98a6-cd44f90f9069"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 108.81
+[backend] [2026-06-14 20:38:27.247 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "8bff4753-aa74-4382-add5-b4b5852bfc07"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 175.79
+[backend] [2026-06-14 20:38:28.115 +0700] [31mERROR[39m: [36mUnhandled error[39m
+[backend]     [35mcode[39m: "VALIDATION"
+[backend]     [35mmessage[39m: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend]     [35mstack[39m: "Error: {\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}\n    at handle (file:///D:/GitHub/marketplace/node_modules/elysia/dist/compose.mjs:12:94)\n    at map (file:///D:/GitHub/marketplace/node_modules/elysia/dist/adapter/bun/compose.mjs:8:67)"
+[backend] [2026-06-14 20:38:28.115 +0700] [31mERROR[39m: [36mHTTP request failed[39m
+[backend]     [35mrequestId[39m: "ef00bc9d-d900-483c-8ac3-44a928bf9769"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mdurationMs[39m: 0.51
+[backend]     error: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[frontend]  GET /th/search?q=shirt&brandId=brand-does-not-exist&minPrice=999999 200 in 206ms (next.js: 37ms, proxy.ts: 7ms, generate-params: 12ms, application-code: 162ms)
+[backend] [2026-06-14 20:38:36.718 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "fd10a5ac-80cc-488b-a354-972ecf9a2d28"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/auth/get-session"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.85
+[backend] [2026-06-14 20:38:36.754 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "3b7a1fab-f844-4abc-80ee-32433e6a4424"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 2.87
+[backend] [2026-06-14 20:38:36.771 +0700] [31mERROR[39m: [36mUnhandled error[39m
+[backend]     [35mcode[39m: "VALIDATION"
+[backend]     [35mmessage[39m: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend]     [35mstack[39m: "Error: {\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}\n    at handle (file:///D:/GitHub/marketplace/node_modules/elysia/dist/compose.mjs:12:94)\n    at map (file:///D:/GitHub/marketplace/node_modules/elysia/dist/adapter/bun/compose.mjs:8:67)"
+[backend] [2026-06-14 20:38:36.771 +0700] [31mERROR[39m: [36mHTTP request failed[39m
+[backend]     [35mrequestId[39m: "fc0f22c7-7cd0-4400-a2f5-2a79de3e04db"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mdurationMs[39m: 0.42
+[backend]     error: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend] [2026-06-14 20:38:36.774 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "a6ce3ff4-a3cc-4781-994e-8f101f49cea5"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 2.66
+[backend] [2026-06-14 20:38:36.774 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "2cd74465-f8aa-4f21-8fc3-36f262819cdf"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 2.09
+[backend] [2026-06-14 20:38:36.781 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "e16030ff-6680-4c54-bfba-a63297fcc630"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 8.35
+[backend] [2026-06-14 20:38:37.802 +0700] [31mERROR[39m: [36mUnhandled error[39m
+[backend]     [35mcode[39m: "VALIDATION"
+[backend]     [35mmessage[39m: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[backend]     [35mstack[39m: "Error: {\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}\n    at handle (file:///D:/GitHub/marketplace/node_modules/elysia/dist/compose.mjs:12:94)\n    at map (file:///D:/GitHub/marketplace/node_modules/elysia/dist/adapter/bun/compose.mjs:8:67)"
+[backend] [2026-06-14 20:38:37.803 +0700] [31mERROR[39m: [36mHTTP request failed[39m
+[backend]     [35mrequestId[39m: "ad1ebd02-e997-4bb4-874a-a25b600b932e"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mdurationMs[39m: 0.35
+[backend]     error: "{\n  \"type\": \"validation\",\n  \"on\": \"query\",\n  \"property\": \"/brandId\",\n  \"message\": \"Expected string to match 'uuid' format\",\n  \"summary\": \"Property 'brandId' should be uuid\",\n  \"expected\": {},\n  \"found\": {\n    \"q\": \"shirt\",\n    \"brandId\": \"brand-does-not-exist\",\n    \"minPrice\": \"999999\",\n    \"sort\": \"newest\",\n    \"page\": \"1\",\n    \"limit\": \"40\",\n    \"locale\": \"th\"\n  },\n  \"errors\": [\n    {\n      \"type\": 50,\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      },\n      \"path\": \"/brandId\",\n      \"value\": \"brand-does-not-exist\",\n      \"message\": \"Expected string to match 'uuid' format\",\n      \"errors\": [],\n      \"summary\": \"Property 'brandId' should be uuid\"\n    }\n  ]\n}"
+[frontend]  GET /th/search?q=shirt&categoryId=fashion&minPrice=1290&maxPrice=1490 200 in 198ms (next.js: 28ms, proxy.ts: 7ms, generate-params: 15ms, application-code: 163ms)
+[backend] [2026-06-14 20:38:46.130 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "f769a3f0-19b7-46a0-ba6d-b04be5176ffa"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/auth/get-session"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.78
+[backend] [2026-06-14 20:38:46.165 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "0ca6e9c0-9a9b-46d5-878d-ca82c3f46d16"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 4.01
+[backend] [2026-06-14 20:38:46.188 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "b25deaa9-9337-4ed3-9b82-005e053555b2"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 2.02
+[backend] [2026-06-14 20:38:46.188 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "bfb348ce-d0dd-4c1f-aa75-99870c4c7b9c"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.76
+[backend] [2026-06-14 20:38:46.214 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "87da8f2b-acb7-484f-aa4b-83ddba7524c4"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 27.81
+[backend] [2026-06-14 20:38:46.398 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "44926028-5c83-44e4-ba58-476b755a1de0"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 213.54
+[backend] [2026-06-14 20:38:46.455 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "1a233b4c-2811-421b-9cc3-32c56d8132eb"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 2.49
+[backend] [2026-06-14 20:38:46.463 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "f4f7ca0c-9986-4332-be2e-51e0924dd992"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 9.12
+[frontend] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[frontend] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[backend] [2026-06-14 20:38:46.992 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "96c78d76-3ea5-4714-aa45-c2b562cb5e8d"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 24.05
+[frontend]  GET /th/search?q=shirt&categoryId=fashion&minPrice=1290&maxPrice=1490 200 in 166ms (next.js: 15ms, proxy.ts: 5ms, generate-params: 8ms, application-code: 145ms)
+[backend] [2026-06-14 20:38:55.587 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "c7ed2ba1-7811-4bd0-88ec-40f6f9e181fa"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/auth/get-session"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.52
+[backend] [2026-06-14 20:38:55.623 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "bb792600-5339-467c-bd05-500fe94c75e1"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.9
+[backend] [2026-06-14 20:38:55.637 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "cb840584-a565-4648-8532-d849f9abfae0"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/products"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 2.25
+[backend] [2026-06-14 20:38:55.637 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "36db4ff7-c3c7-401e-995c-4b545742be55"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/search/suggestions"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.51
+[backend] [2026-06-14 20:38:55.638 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "0b9d4782-bcb3-4189-9cb3-ab0cf4bbf856"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/categories"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.3
+[backend] [2026-06-14 20:38:55.643 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "ea4982df-b020-43fc-941e-bd33fb078d2c"
+[backend]     [35mmethod[39m: "GET"
+[backend]     [35mpath[39m: "/api/brands"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 6.4
+[backend] [2026-06-14 20:38:55.682 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "82e4a250-94ec-4ab0-a7a9-8cbfce2300c4"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 2.23
+[backend] [2026-06-14 20:38:55.683 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "86ad4b1c-879a-4d25-8ba9-1fb67cd08be5"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 1.66
+[frontend] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[frontend] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[backend] [2026-06-14 20:38:56.195 +0700] [32mINFO[39m: [36mHTTP request completed[39m
+[backend]     [35mrequestId[39m: "caa5f224-7825-4879-9a3d-181257d94f0d"
+[backend]     [35mmethod[39m: "POST"
+[backend]     [35mpath[39m: "/api/discovery/track"
+[backend]     [35mstatusCode[39m: 200
+[backend]     [35mdurationMs[39m: 4.79
+[frontend] error: script "dev:frontend" exited with code 255

@@ -25,6 +25,12 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum PhoneOtpPurpose {
+  PHONE_LOGIN
+  PHONE_SIGNUP
+  PHONE_LINK
+}
+
 enum ShopStatus {
   PENDING
   ACTIVE
@@ -171,8 +177,19 @@ enum SellerKycDocumentReviewStatus {
 
 enum ProductStatus {
   DRAFT
+  PENDING_REVIEW
   ACTIVE
+  REJECTED
+  SUSPENDED
   ARCHIVED
+}
+
+enum CategoryAttributeValueType {
+  TEXT
+  NUMBER
+  BOOLEAN
+  SELECT
+  MULTI_SELECT
 }
 
 enum ProductDuplicateStatus {
@@ -216,6 +233,15 @@ enum ReservationStatus {
   COMMITTED
   RELEASED
   EXPIRED
+}
+
+enum InventoryMovementType {
+  ADJUSTMENT
+  RESERVATION_CREATED
+  RESERVATION_RELEASED
+  RESERVATION_COMMITTED
+  SALE_COMMITTED
+  RETURN_RESTOCK
 }
 
 enum OrderStatus {
@@ -335,6 +361,10 @@ enum AuditAction {
   SHIPMENT_STATUS_CHANGED
   REFUND_STATUS_CHANGED
   RETURN_STATUS_CHANGED
+  REVIEW_STATUS_CHANGED
+  REVIEW_REPORT_STATUS_CHANGED
+  PRODUCT_QUESTION_STATUS_CHANGED
+  PRODUCT_ANSWER_STATUS_CHANGED
   FRAUD_CASE_REVIEWED
   FRAUD_CASE_RESOLVED
   ADMIN_LOGIN
@@ -422,6 +452,8 @@ model User {
   role          Role       @default(USER)
   status        UserStatus @default(ACTIVE)
   emailVerified Boolean    @default(false)
+  phone         String?    @unique @db.VarChar(32)
+  phoneVerified Boolean    @default(false)
   image         String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -483,11 +515,13 @@ model User {
   reportExportJobs                ReportExportJob[]
   searchQueryLogs                 SearchQueryLog[]
   productViewLogs                 ProductViewLog[]
+  productAddToCartLogs            ProductAddToCartLog[]
   shopViewLogs                    ShopViewLog[]
   moderationCasesCreated          ModerationCase[]         @relation("ModerationCaseCreatedBy")
   moderationCasesAssigned         ModerationCase[]         @relation("ModerationCaseAssignedTo")
   moderationActions               ModerationAction[]
   webhookEvents                   WebhookEvent[]           @relation("WebhookEventProcessedBy")
+  inventoryMovements              InventoryMovement[]      @relation("InventoryMovementActor")
 }
 
 model Address {
@@ -574,6 +608,26 @@ model Verification {
   updatedAt  DateTime? @updatedAt
 }
 
+model PhoneOtpChallenge {
+  id                String          @id @default(uuid()) @db.Uuid
+  phone             String          @db.VarChar(32)
+  purpose           PhoneOtpPurpose
+  otpHash           String
+  attempts          Int             @default(0)
+  maxAttempts       Int             @default(5)
+  resendAvailableAt DateTime
+  expiresAt         DateTime
+  consumedAt        DateTime?
+  revokedAt         DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([phone])
+  @@index([purpose])
+  @@index([expiresAt])
+  @@index([phone, purpose, consumedAt, revokedAt, expiresAt])
+}
+
 model Shop {
   id                 String     @id @default(uuid()) @db.Uuid
   ownerId            String     @db.Uuid
@@ -633,6 +687,7 @@ model Shop {
   productQuestions        ProductQuestion[]
   viewLogs                ShopViewLog[]
   productViewLogs         ProductViewLog[]
+  productAddToCartLogs    ProductAddToCartLog[]
 
   @@index([ownerId])
   @@index([sellerProfileId])
@@ -765,6 +820,7 @@ model SellerKycDocument {
 
 model Category {
   id        String   @id @default(uuid()) @db.Uuid
+  parentId  String?  @db.Uuid
   name      String
   nameTh    String?
   nameEn    String?
@@ -774,9 +830,41 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  products Product[]
+  parent               Category?                     @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children             Category[]                    @relation("CategoryTree")
+  products             Product[]
+  attributeDefinitions CategoryAttributeDefinition[]
 
+  @@index([parentId, isActive, sortOrder])
   @@index([isActive, sortOrder])
+}
+
+model CategoryAttributeDefinition {
+  id            String                     @id @default(uuid()) @db.Uuid
+  categoryId    String                     @db.Uuid
+  attributeKey  String
+  displayName   String
+  displayNameTh String?
+  displayNameEn String?
+  valueType     CategoryAttributeValueType
+  isRequired    Boolean                    @default(false)
+  isFilterable  Boolean                    @default(false)
+  unit          String?
+  allowedValues Json?
+  sortOrder     Int                        @default(0)
+  isActive      Boolean                    @default(true)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, attributeKey])
+  @@index([categoryId, isActive, sortOrder])
+  @@index([categoryId, sortOrder])
+  @@index([categoryId, isRequired])
+  @@index([categoryId, isFilterable])
+  @@index([categoryId, isActive, isRequired])
+  @@index([categoryId, isActive, isFilterable, sortOrder])
 }
 
 model Brand {
@@ -848,8 +936,10 @@ model Product {
   flashSaleItems              FlashSaleItem[]
   productQuestions            ProductQuestion[]
   viewLogs                    ProductViewLog[]
+  addToCartLogs               ProductAddToCartLog[]
   favorites                   FavoriteProduct[]
   variants                    ProductVariant[]
+  options                     ProductOption[]
   images                      ProductImage[]
   video                       ProductVideo?
   highlights                  ProductHighlight[]
@@ -874,6 +964,56 @@ model Product {
   @@index([duplicateStatus])
   @@index([duplicateOfProductId])
   @@index([deletedAt])
+}
+
+model ProductOption {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  name      String
+  nameTh    String?
+  nameEn    String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values  ProductOptionValue[]
+
+  @@unique([productId, name])
+  @@index([productId, sortOrder])
+}
+
+model ProductOptionValue {
+  id          String   @id @default(uuid()) @db.Uuid
+  optionId    String   @db.Uuid
+  value       String
+  valueTh     String?
+  valueEn     String?
+  displayType String   @default("TEXT")
+  colorHex    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  option       ProductOption               @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  variantLinks ProductVariantOptionValue[]
+
+  @@unique([optionId, value])
+  @@index([optionId, sortOrder])
+}
+
+model ProductVariantOptionValue {
+  id            String   @id @default(uuid()) @db.Uuid
+  variantId     String   @db.Uuid
+  optionValueId String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  variant     ProductVariant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValue ProductOptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, optionValueId])
+  @@index([variantId])
+  @@index([optionValueId])
 }
 
 model ProductHighlight {
@@ -1176,29 +1316,34 @@ model ProductDuplicateReview {
 }
 
 model ProductVariant {
-  id          String        @id @default(uuid()) @db.Uuid
-  productId   String        @db.Uuid
-  sku         String
-  title       String
-  titleTh     String?
-  titleEn     String?
-  price       BigInt
-  currency    String        @default("THB")
-  status      VariantStatus @default(ACTIVE)
-  weightGrams Int?
-  lengthMm    Int?
-  widthMm     Int?
-  heightMm    Int?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                   String        @id @default(uuid()) @db.Uuid
+  productId            String        @db.Uuid
+  sku                  String
+  title                String
+  titleTh              String?
+  titleEn              String?
+  price                BigInt
+  currency             String        @default("THB")
+  status               VariantStatus @default(ACTIVE)
+  optionCombinationKey String?
+  weightGrams          Int?
+  lengthMm             Int?
+  widthMm              Int?
+  heightMm             Int?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
-  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product        Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems      CartItem[]
   inventory      Inventory?
+  movements      InventoryMovement[]
+  optionValues   ProductVariantOptionValue[]
   orderItems     OrderItem[]
   flashSaleItems FlashSaleItem[]
+  addToCartLogs  ProductAddToCartLog[]
 
   @@unique([productId, sku])
+  @@unique([productId, optionCombinationKey])
   @@index([productId, status])
 }
 
@@ -1213,6 +1358,7 @@ model Inventory {
 
   variant      ProductVariant         @relation(fields: [variantId], references: [id], onDelete: Cascade)
   reservations InventoryReservation[]
+  movements    InventoryMovement[]
 }
 
 model Cart {
@@ -1290,6 +1436,34 @@ model InventoryReservation {
   @@index([orderId])
   @@index([inventoryId, status])
   @@index([status, expiresAt])
+}
+
+model InventoryMovement {
+  id                     String                @id @default(uuid()) @db.Uuid
+  inventoryId            String                @db.Uuid
+  variantId              String                @db.Uuid
+  type                   InventoryMovementType
+  quantityDelta          Int
+  quantityOnHandBefore   Int
+  quantityOnHandAfter    Int
+  quantityReservedBefore Int
+  quantityReservedAfter  Int
+  actorUserId            String?               @db.Uuid
+  reason                 String?
+  referenceType          String?
+  referenceId            String?               @db.Uuid
+  metadata               Json?
+  createdAt              DateTime              @default(now())
+
+  inventory Inventory      @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  actor     User?          @relation("InventoryMovementActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([inventoryId, createdAt])
+  @@index([variantId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([type, createdAt])
+  @@index([referenceType, referenceId])
 }
 
 model Order {
@@ -2646,6 +2820,31 @@ model ProductViewLog {
   user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([productId, createdAt])
+  @@index([shopId, createdAt])
+  @@index([userId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([createdAt])
+}
+
+model ProductAddToCartLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  variantId String   @db.Uuid
+  shopId    String   @db.Uuid
+  userId    String?  @db.Uuid
+  sessionId String?
+  quantity  Int
+  source    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  product Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  shop    Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user    User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@index([variantId, createdAt])
   @@index([shopId, createdAt])
   @@index([userId, createdAt])
   @@index([sessionId, createdAt])

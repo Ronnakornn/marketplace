@@ -93,6 +93,9 @@ export interface BuyerProfile {
   email: string;
   role: string;
   status: string;
+  emailVerified: boolean;
+  phone: string | null;
+  phoneVerified: boolean;
   image?: string | null;
 }
 
@@ -121,7 +124,16 @@ export interface BuyerFavoriteProduct {
   title: string;
   price: number;
   currency: string;
-  shop: { id: string; name: string; slug: string };
+  status: string;
+  imageUrls: string[];
+  shop: { id: string; name: string; slug: string; status: string };
+  purchaseVariant: {
+    id: string;
+    title: string;
+    stock: number;
+    currency: string;
+    price: number;
+  } | null;
   createdAt: string;
 }
 
@@ -206,17 +218,29 @@ export async function fetchFavoriteProducts(): Promise<BuyerFavoriteProduct[]> {
   return rawItems.map((item) => {
     const record = toRecord(item);
     const shop = toRecord(record.shop);
+    const purchaseVariant = toRecord(record.purchaseVariant);
+    const purchaseVariantId = readString(purchaseVariant.id);
     return {
       id: readString(record.id),
       productId: readString(record.productId),
       title: readString(record.title, "Product"),
       price: readNumber(record.price),
       currency: readString(record.currency, defaultCurrency),
+      status: readString(record.status, "ACTIVE"),
+      imageUrls: readArray(record.imageUrls).map((image) => readString(image)).filter(Boolean),
       shop: {
         id: readString(shop.id),
         name: readString(shop.name, "Shop"),
         slug: readString(shop.slug),
+        status: readString(shop.status, "ACTIVE"),
       },
+      purchaseVariant: purchaseVariantId ? {
+        id: purchaseVariantId,
+        title: readString(purchaseVariant.title, "Default"),
+        stock: readNumber(purchaseVariant.stock),
+        currency: readString(purchaseVariant.currency, readString(record.currency, defaultCurrency)),
+        price: readNumber(purchaseVariant.price, readNumber(record.price)),
+      } : null,
       createdAt: readString(record.createdAt, new Date().toISOString()),
     };
   });
@@ -390,8 +414,43 @@ export async function fetchProfile(): Promise<BuyerProfile> {
     email: readString(response.email),
     role: readString(response.role, "USER"),
     status: readString(response.status, "ACTIVE"),
+    emailVerified: Boolean(response.emailVerified),
+    phone: optionalString(response.phone),
+    phoneVerified: Boolean(response.phoneVerified),
     image: optionalString(response.image),
   };
+}
+
+export async function updateProfile(input: { name?: string; image?: string | null; phone?: string | null }): Promise<BuyerProfile> {
+  const response = toRecord(await apiFetch("/api/me", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  }));
+  return {
+    id: readString(response.id),
+    name: readString(response.name, "Buyer"),
+    email: readString(response.email),
+    role: readString(response.role, "USER"),
+    status: readString(response.status, "ACTIVE"),
+    emailVerified: Boolean(response.emailVerified),
+    phone: optionalString(response.phone),
+    phoneVerified: Boolean(response.phoneVerified),
+    image: optionalString(response.image),
+  };
+}
+
+export async function requestProfilePhoneOtp(phone: string): Promise<void> {
+  await apiFetch("/api/me/phone/request-otp", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export async function verifyProfilePhoneOtp(input: { phone: string; otp: string }): Promise<void> {
+  await apiFetch("/api/me/phone/verify-otp", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export async function fetchSellerApplicationSummary(): Promise<SellerApplicationSummary> {

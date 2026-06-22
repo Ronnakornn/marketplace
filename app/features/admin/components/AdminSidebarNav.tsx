@@ -15,6 +15,7 @@ import {
   PanelLeftCloseIcon,
   MenuIcon,
   PackageSearchIcon,
+  MessageSquareWarningIcon,
   RotateCcwIcon,
   SettingsIcon,
   ShieldCheckIcon,
@@ -74,6 +75,12 @@ const ADMIN_NAV_ITEMS = [
     href: "/admin/products",
     icon: PackageSearchIcon,
     match: (pathname: string) => pathname.startsWith("/admin/products") || pathname.startsWith("/admin/catalog"),
+  },
+  {
+    title: "Content Moderation",
+    href: "/admin/content-moderation",
+    icon: MessageSquareWarningIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/content-moderation"),
   },
   {
     title: "Orders",

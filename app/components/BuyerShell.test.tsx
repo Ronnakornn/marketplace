@@ -11,7 +11,7 @@ import { BuyerTopBar } from "./BuyerShell";
 let pathname = "/en/seller/products";
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
+  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean }) => (
     <a href={href} {...props}>{children}</a>
   ),
 }));

@@ -1,4 +1,4 @@
-import crypto from 'node:crypto'
+import { v4 as uuidv4 } from 'uuid'
 import type { UploadUsage } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -188,7 +188,7 @@ export class UploadService {
     const now = new Date()
     const year = String(now.getUTCFullYear())
     const month = String(now.getUTCMonth() + 1).padStart(2, '0')
-    const fileId = crypto.randomUUID()
+    const fileId = uuidv4()
     return `uploads/${usage}/${userId}/${year}/${month}/${fileId}-${safeFileName}`
   }
 

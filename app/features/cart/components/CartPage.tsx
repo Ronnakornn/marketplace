@@ -37,7 +37,7 @@ export function CartPage() {
         {cartQuery.isError ? <BuyerErrorState message={cartQuery.error.message} onRetry={() => void cartQuery.refetch()} /> : null}
         {cartQuery.isSuccess && itemCount === 0 ? <BuyerEmptyState title={t("cart.emptyTitle")} description={t("cart.emptyDescription")} /> : null}
         {cart ? cart.shops.map((shop) => (
-          <section key={shop.shopId} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <section key={shop.shopId} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
               <h2 className="font-bold text-slate-950">{shop.shopName}</h2>
               <Badge variant="outline" className="rounded-full border-orange-200 bg-orange-50 text-orange-700">{formatMoney(shop.subtotal, cart.currency)}</Badge>
@@ -47,7 +47,7 @@ export function CartPage() {
                 <div key={item.id} className="grid gap-3 p-4 sm:grid-cols-[1fr_auto]">
                   <div>
                     <Link href={localePath(`/products/${item.productId}`)} className="font-semibold text-slate-950 hover:text-orange-600">{item.title}</Link>
-                    <p className="mt-1 text-sm text-slate-500">{item.variantTitle}</p>
+                    <p className="mt-1 text-sm text-slate-700">{item.variantTitle}</p>
                     <p className="mt-2 font-bold text-orange-600">{formatMoney(item.unitPrice, item.currency)}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -73,7 +73,7 @@ export function CartPage() {
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)] md:bottom-0">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-slate-500">{t("cart.subtotal")}</p>
+              <p className="text-xs font-medium text-slate-700">{t("cart.subtotal")}</p>
               <p className="text-lg font-bold text-slate-950">{formatMoney(cart.subtotal, cart.currency)}</p>
             </div>
             <Button asChild className="h-12 min-w-36 rounded-2xl bg-orange-600 hover:bg-orange-700"><Link href={localePath("/checkout")}>{t("cart.checkout")}</Link></Button>

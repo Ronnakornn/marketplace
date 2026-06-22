@@ -93,10 +93,17 @@ Configure `.env`:
 DATABASE_URL="postgresql://postgres:password@localhost:5432/sming?schema=public"
 BETTER_AUTH_SECRET="your-secret-key-here"
 BETTER_AUTH_URL="http://localhost:3000"
+BETTER_AUTH_TRUSTED_ORIGINS="http://localhost:3000"
+ALLOW_INSECURE_HTTP="false"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_ALLOWED_DEV_ORIGINS="localhost:3000,127.0.0.1:3000"
 API_BASE_URL="http://localhost:3001"
 ADMIN_EMAILS="admin@example.com"
 PAYMENT_WEBHOOK_SECRET="your-payment-webhook-secret-at-least-32-chars"
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+FACEBOOK_CLIENT_ID=""
+FACEBOOK_CLIENT_SECRET=""
 ```
 
 ### 3. Set Up Database
@@ -153,10 +160,39 @@ bun run test             # Run Vitest
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:password@localhost:5432/sming?schema=public` |
 | `BETTER_AUTH_SECRET` | Auth secret (min 32 chars in production) | - |
 | `BETTER_AUTH_URL` | Public app URL used by Better Auth | `http://localhost:3000` |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated browser origins allowed to post to Better Auth endpoints | `BETTER_AUTH_URL` / `NEXT_PUBLIC_APP_URL` |
+| `ALLOW_INSECURE_HTTP` | Allows `http://` public app/auth URLs in production for IP-only deployments; use only until HTTPS is available | `false` |
 | `NEXT_PUBLIC_APP_URL` | Browser-facing frontend URL | `http://localhost:3000` |
+| `NEXT_ALLOWED_DEV_ORIGINS` | Comma-separated hosts allowed to access Next.js dev resources such as HMR | `localhost:3000,127.0.0.1:3000` |
 | `API_BASE_URL` | Internal API target used by Next.js rewrites | `http://localhost:3001` |
 | `ADMIN_EMAILS` | Comma-separated emails to promote via seed script | `admin@example.com` |
+| `PHONE_OTP_ENABLED` | Enables phone OTP delivery; set `false` to disable phone OTP without requiring provider credentials | `true` |
+| `PHONE_OTP_PROVIDER` | Phone OTP delivery provider: `deterministic-dev` for local/demo OTPs or `http` for an HTTPS SMS gateway adapter | `deterministic-dev` |
+| `ALLOW_DETERMINISTIC_OTP` | Allows `deterministic-dev` phone OTP in production; use only for demo/staging deployments | `false` |
+| `PHONE_OTP_HTTP_URL` | HTTPS endpoint for the generic HTTP SMS gateway adapter | - |
+| `PHONE_OTP_HTTP_BEARER_TOKEN` | Optional bearer token for the HTTP SMS gateway adapter | - |
+| `PHONE_OTP_HTTP_TIMEOUT_MS` | Timeout for the HTTP SMS gateway adapter | `5000` |
+| `RATE_LIMIT_ENABLED` | Enables API rate limiting by route category | `true` |
+| `RATE_LIMIT_WINDOW_SECONDS` | Rate limit window length in seconds | `60` |
+| `RATE_LIMIT_MAX_REQUESTS` | Public API request limit per client IP per window | `600` |
+| `RATE_LIMIT_AUTH_MAX_REQUESTS` | Auth route request limit per client IP per window | `120` |
+| `RATE_LIMIT_CHECKOUT_MAX_REQUESTS` | Checkout/payment route request limit per client IP per window | `180` |
+| `RATE_LIMIT_ADMIN_MAX_REQUESTS` | Admin route request limit per client IP per window | `300` |
+| `REQUEST_BODY_LIMIT_BYTES` | Maximum accepted request body size | `1048576` |
+| `REDIS_URL` | Redis connection URL for cache and optional queues | `redis://localhost:6379` |
+| `CACHE_ENABLED` | Enables Redis-backed application cache when `REDIS_URL` is configured | `true` |
+| `CACHE_DEFAULT_TTL_SECONDS` | Default cache TTL in seconds | `300` |
+| `CACHE_PRODUCT_TTL_SECONDS` | Product/category cache TTL in seconds | `600` |
+| `CACHE_SEARCH_TTL_SECONDS` | Search cache TTL in seconds | `120` |
+| `CACHE_SELLER_DASHBOARD_TTL_SECONDS` | Seller dashboard cache TTL in seconds | `60` |
+| `CACHE_KEY_PREFIX` | Prefix for Redis cache keys | `ecommerce` |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID; Google login is enabled only when paired with `GOOGLE_CLIENT_SECRET` | - |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret; never expose to browser code | - |
+| `FACEBOOK_CLIENT_ID` | Facebook App ID; Facebook login is enabled only when paired with `FACEBOOK_CLIENT_SECRET` | - |
+| `FACEBOOK_CLIENT_SECRET` | Facebook App Secret; never expose to browser code | - |
 | `NODE_ENV` | Environment (`development` / `production`) | `development` |
+
+Google and Facebook callback URLs must also be configured in the provider consoles for the active `BETTER_AUTH_URL` host, for example `/api/auth/callback/google` and `/api/auth/callback/facebook`. Real OAuth callback validation requires provider console setup and is outside local deterministic tests.
 
 ## Key Patterns
 
@@ -199,6 +235,16 @@ NODE_ENV="production"
 DATABASE_URL="postgresql://postgres:password@localhost:5432/sming?schema=public"
 BETTER_AUTH_SECRET="secure-production-secret-at-least-32-chars"
 BETTER_AUTH_URL="https://yourdomain.com"
+BETTER_AUTH_TRUSTED_ORIGINS="https://yourdomain.com"
+```
+
+For an IP-only HTTP deployment, set these values and restart both frontend and API processes:
+
+```env
+ALLOW_INSECURE_HTTP="true"
+BETTER_AUTH_URL="http://165.245.191.63"
+BETTER_AUTH_TRUSTED_ORIGINS="http://165.245.191.63"
+NEXT_PUBLIC_APP_URL="http://165.245.191.63"
 ```
 
 ## AI Agent Setup

@@ -1,46 +1,47 @@
-# task-2: Implement onboarding, profile, and multi-shop APIs
+# task-2: Implement Auth v1 backend verification, password, profile, and guard behavior
 
-## Goal
+## Objective
 
-Implement seller onboarding hardening and shop profile plus multi-shop context management in backend modules with strict ownership and auth boundaries.
+Implement backend Auth v1 behavior for verified identity, OTP purpose separation, password flows, profile phone updates, and auth guard enforcement.
 
 ## Scope
 
-- Extend seller onboarding flows on top of existing lifecycle:
-  - draft save
-  - submit
-  - status read behavior
-  - resubmission behavior after rejection
-- Implement seller-facing shop profile and settings read/update for owned shops.
-- Implement owned shop listing and active shop context support for multi-shop users.
-- Keep admin-only moderation/status controls separated from seller self-management.
+- Extend auth/user services and repositories rather than creating a parallel auth module.
+- Add backend behavior for:
+  - resend email verification OTP
+  - verify email OTP
+  - request password reset OTP
+  - complete password reset
+  - logged-in password change
+  - profile phone update
+- Ensure OTP records are purpose-scoped:
+  - `EMAIL_VERIFICATION`
+  - `PASSWORD_RESET`
+- Update auth guards or add verified-user guard behavior so verified-only protected flows reject unverified users.
+- Keep admin routes protected by `withRole: 'ADMIN'`.
 
-## Affected Areas
+## Constraints
 
-- `server/modules/seller-onboarding/**`
-- seller and security helpers for active shop resolution:
-  - `server/modules/seller/**`
-  - `server/modules/security/**`
-- app context and dependency wiring if new services/repositories are introduced:
-  - `server/context/app-context.ts`
-- related tests under seller and onboarding modules
+- Never expose OTP values, password hashes, provider tokens, or sensitive auth internals in API responses.
+- Password reset request responses must not reveal whether an email exists.
+- Do not use inline duplicated authorization when an auth macro should express the rule.
+- Do not trust client-provided role, status, or verification state.
 
 ## Implementation Notes
 
-- Use auth macros (`withAuth`, `withRole`) consistently; do not duplicate inline auth logic.
-- Keep seller authorization based on owned active shops, not a platform SELLER role.
-- Enforce ownership checks in service/repository boundaries.
-- Keep response contracts backward compatible where endpoints already exist.
-- Ensure API validation uses TypeBox and generated prismabox composition patterns.
+- Prefer Better Auth APIs for password credential operations when available.
+- If custom verification records are needed, use the existing Better Auth-compatible `Verification` model where practical and encode purpose explicitly.
+- Add small utility functions for phone normalization and OTP purpose parsing only if they remove meaningful duplication.
+- Keep services responsible for business rules and repositories responsible for database access.
 
 ## Verification
 
-- Add or update focused tests for:
-  - onboarding draft submit and status transitions
-  - rejection and resubmission behavior
-  - owner-only shop profile updates
-  - cross-shop access rejection
-  - multi-shop context selection
-- Run:
-  - `bunx tsc --noEmit`
-  - focused seller-onboarding and seller/security test suites
+- Add backend tests for:
+  - OTP purpose separation
+  - OTP expiry
+  - OTP consumption/idempotency
+  - email verification success
+  - password reset success
+  - logged-in password change requiring current password
+  - phone normalization and uniqueness
+  - unverified-user guard behavior

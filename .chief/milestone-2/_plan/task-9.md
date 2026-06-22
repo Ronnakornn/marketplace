@@ -1,49 +1,41 @@
-# task-9: Define shared seller-readiness helper and centralized rejection contract
+# task-9: Verify social login extension with focused tests, typecheck, and documentation updates
 
-## Goal
+## Objective
 
-Define one shared seller-readiness gate contract that can be reused by frontend and backend, including deterministic rejection codes and redirect metadata.
+Verify the Google/Facebook social login extension against its contracts and document the required environment configuration.
 
 ## Scope
 
-- Introduce a shared seller-readiness decision helper for onboarding vs operational access states.
-- Standardize readiness outcomes from seller state inputs:
-  - has active shop
-  - latest seller application status
-- Define centralized rejection payload mapping for operational API denial:
-  - `SELLER_ONBOARDING_REQUIRED`
-  - `SELLER_SHOP_INACTIVE`
-  - deterministic `redirectPath`
-- Keep contract additive and backward compatible where legacy codes still exist during rollout.
+- Run final focused verification for social login work:
+  - provider configuration tests
+  - trusted email/account-linking tests where implemented locally
+  - social login UI tests
+  - redirect sanitization tests
+  - affected auth/user/admin regression tests as needed
+- Run `bunx tsc --noEmit`.
+- Update environment documentation where env vars are listed.
+- Document manual real-provider validation requirements.
+- Confirm out-of-scope items remain unimplemented:
+  - profile link/unlink UI
+  - phone login
+  - phone verification
+  - providers beyond Google/Facebook
+  - RBAC expansion
 
-## Relation to Existing Specs
+## Constraints
 
-- Extends [task-2](.chief/milestone-2/_plan/task-2.md) and [task-6](.chief/milestone-2/_plan/task-6.md) by turning onboarding/shop-readiness rules into reusable gate logic.
-- Prepares implementation baseline for [task-10](.chief/milestone-2/_plan/task-10.md) and [task-11](.chief/milestone-2/_plan/task-11.md).
-
-## Affected Areas
-
-- Backend shared security module:
-  - `server/modules/security/active-shop.ts`
-  - `server/modules/security/security.errors.ts`
-  - `server/modules/security/index.ts`
-  - new shared readiness helper file(s) under `server/modules/security/**`
-- Frontend seller access helpers (for contract parity):
-  - `app/lib/seller-access.ts`
+- Do not require real Google/Facebook credentials in automated local tests.
+- Do not broaden docs beyond changed social auth behavior.
+- Do not manually edit generated files.
 
 ## Implementation Notes
 
-- Do not introduce `withRole: 'SELLER'` checks.
-- Keep logic identity + ownership + active-shop based.
-- Readiness contract must map status classes consistently:
-  - onboarding-required group -> `/seller/register`
-  - waiting-review/activation group -> `/seller/status`
-  - active-shop-ready group -> operational access allowed
-- Ensure helper output is deterministic and easy to assert in tests.
+- Add a concise task report under `.chief/milestone-2/_report/task-9/` or equivalent milestone report location.
+- If real OAuth callback testing cannot run locally, record it as a residual risk/manual rollout checklist.
+- Include the exact commands run and their results.
 
 ## Verification
 
-- Add focused unit tests for readiness decision matrix and error metadata mapping under security module tests.
-- Run:
-  - `bunx tsc --noEmit`
-  - focused security/readiness test suite
+- `bunx tsc --noEmit`
+- Focused Vitest suites for changed auth and frontend social login behavior.
+- Documentation check for new env vars and provider callback setup notes.

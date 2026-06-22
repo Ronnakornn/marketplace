@@ -1,8 +1,10 @@
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { authPlugin } from "#server/modules/auth";
+import { createPhoneOtpRoutes } from "#server/modules/auth";
 import { createContainer } from "#server/context/app-context";
 import { createAuditLogRoutes } from "#server/modules/audit-log";
+import { createContentModerationRoutes } from "#server/modules/content-moderation";
 import { getSecurityConfigFromEnv } from "#server/modules/security";
 import { createSecurityPlugin } from "#server/plugins/security.plugin";
 import { getObservabilityConfigFromEnv, createObservabilityRoutes } from "#server/modules/observability";
@@ -15,7 +17,9 @@ import { createCartRoutes } from "#server/modules/cart";
 import { createChatRoutes } from "#server/modules/chat";
 import { createCheckoutRoutes } from "#server/modules/checkout";
 import { createCatalogRoutes } from "#server/modules/catalog";
+import { createDiscoveryRoutes } from "#server/modules/discovery";
 import { createFraudRoutes } from "#server/modules/fraud";
+import { createInventoryRoutes } from "#server/modules/inventory";
 import { createNotificationRoutes } from "#server/modules/notification";
 import { createOrderRoutes } from "#server/modules/order";
 import { createPaymentRoutes } from "#server/modules/payment";
@@ -27,11 +31,14 @@ import { createRealtimeRoutes } from "#server/modules/realtime";
 import { createReturnRoutes } from "#server/modules/return";
 import { createReviewRoutes } from "#server/modules/review";
 import { createShopReviewRoutes } from "#server/modules/shop-review";
+import { createProductQuestionRoutes } from "#server/modules/product-question";
+import { createProductAnalyticsRoutes } from "#server/modules/product-analytics";
 import { createSearchRoutes } from "#server/modules/search";
 import { createSellerDashboardRoutes } from "#server/modules/seller";
 import { createSellerShopRoutes } from "#server/modules/seller-shop";
 import { createSellerOnboardingRoutes } from "#server/modules/seller-onboarding";
 import { createShipmentRoutes } from "#server/modules/shipment";
+import { createTrackingRoutes } from "#server/modules/tracking";
 import { createUploadRoutes } from "#server/modules/upload";
 import { createUserRoutes } from "#server/modules/user";
 import { createWalletRoutes } from "#server/modules/wallet";
@@ -77,6 +84,7 @@ const baseApp = new Elysia()
         { name: "Checkout", description: "Checkout creation, totals, and reservations" },
         { name: "Chat", description: "Buyer and shop messaging" },
         { name: "Fraud", description: "Fraud detection and review workflows" },
+        { name: "Inventory", description: "Seller stock and inventory movement workflows" },
         { name: "Notification", description: "User notifications" },
         { name: "Observability", description: "Health, readiness, and metrics" },
         { name: "Order", description: "Orders and order lifecycle" },
@@ -86,7 +94,11 @@ const baseApp = new Elysia()
         { name: "Refund", description: "Refund workflows" },
         { name: "Return", description: "Return request workflows" },
         { name: "Review", description: "Product review workflows" },
+        { name: "Product Q&A", description: "Product questions and seller answers" },
+        { name: "Product Analytics", description: "Seller product analytics" },
         { name: "Search", description: "Marketplace search" },
+        { name: "Discovery", description: "Homepage discovery and merchandising composition" },
+        { name: "Tracking", description: "Lightweight discovery event tracking" },
         { name: "Seller", description: "Seller dashboard and shop operations" },
         { name: "Shipment", description: "Shop-based fulfillment and shipments" },
         { name: "Upload", description: "Upload and storage workflows" },
@@ -105,8 +117,14 @@ const baseApp = new Elysia()
   // --- Better Auth handler + auth macro ---
   .use(authPlugin)
 
+  // --- Phone OTP auth routes ---
+  .use(createPhoneOtpRoutes(container))
+
   // --- Audit log admin routes ---
   .use(createAuditLogRoutes(container))
+
+  // --- Admin content moderation routes ---
+  .use(createContentModerationRoutes(container))
 
   // --- Affiliate tracking and commission routes ---
   .use(createAffiliateRoutes(container))
@@ -117,11 +135,23 @@ const baseApp = new Elysia()
   // --- Shop review routes ---
   .use(createShopReviewRoutes(container))
 
+  // --- Product Q&A routes ---
+  .use(createProductQuestionRoutes(container))
+
+  // --- Seller product analytics routes ---
+  .use(createProductAnalyticsRoutes(container))
+
   // --- Catalog routes ---
   .use(createCatalogRoutes(container))
 
   // --- Search routes ---
   .use(createSearchRoutes(container))
+
+  // --- Discovery homepage composition routes ---
+  .use(createDiscoveryRoutes(container))
+
+  // --- Lightweight discovery tracking routes ---
+  .use(createTrackingRoutes(container))
 
   // --- AI-assisted product discovery routes ---
   .use(createAiSearchRoutes(container))
@@ -137,6 +167,9 @@ const baseApp = new Elysia()
 
   // --- Checkout routes ---
   .use(createCheckoutRoutes(container))
+
+  // --- Inventory routes ---
+  .use(createInventoryRoutes(container))
 
   // --- Promotion routes ---
   .use(createPromotionRoutes(container))

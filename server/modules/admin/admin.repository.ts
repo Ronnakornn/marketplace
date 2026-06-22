@@ -510,6 +510,8 @@ export class PrismaAdminRepository implements IAdminRepository {
     return this.prisma.user.count({
       where: {
         role: 'ADMIN',
+        status: 'ACTIVE',
+        emailVerified: true,
         ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
       },
     })

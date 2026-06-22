@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Role } from '#generated/client/enums.ts'
+import type { TrackingService } from '#server/modules/tracking'
 import type { ICartRepository } from './cart.repository.ts'
 import { CartService } from './cart.service.ts'
 
@@ -32,6 +33,12 @@ function createRepoMock(): ICartRepository {
     updateItemQuantity: vi.fn(),
     deleteItem: vi.fn(),
     clearActiveCart: vi.fn(),
+  }
+}
+
+function createTrackingServiceMock(): Pick<TrackingService, 'recordProductAddToCart'> {
+  return {
+    recordProductAddToCart: vi.fn().mockResolvedValue({ ok: true }),
   }
 }
 
@@ -184,6 +191,78 @@ describe('CartService', () => {
       unitPrice: 1590,
       currency: 'USD',
     })
+  })
+
+  it('records add-to-cart analytics after a successful add', async () => {
+    const repo = createRepoMock()
+    const trackingService = createTrackingServiceMock()
+    const cart = createCart()
+    const variant = createVariant({ price: 1590 })
+    vi.mocked(repo.findOrCreateActiveCart)
+      .mockResolvedValueOnce(cart)
+      .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 2, unitPrice: 1590, variant })] }))
+    vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
+    vi.mocked(repo.createItem).mockResolvedValue(createItem({ quantity: 2, unitPrice: 1590, variant }))
+    const service = new CartService(createAppContext(), repo, trackingService as TrackingService)
+
+    await service.addItem(createActor(), {
+      variantId: variant.id,
+      quantity: 2,
+      sessionId: 'anon-session',
+      source: 'product_detail',
+    })
+
+    expect(trackingService.recordProductAddToCart).toHaveBeenCalledWith({
+      productId: variant.product.id,
+      variantId: variant.id,
+      shopId: variant.product.shop.id,
+      userId: 'user-1',
+      sessionId: 'anon-session',
+      quantity: 2,
+      source: 'product_detail',
+    })
+  })
+
+  it('does not record add-to-cart analytics when cart add validation fails', async () => {
+    const repo = createRepoMock()
+    const trackingService = createTrackingServiceMock()
+    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart())
+    vi.mocked(repo.findVariantForCart).mockResolvedValue(createVariant({ quantityOnHand: 1, quantityReserved: 0 }))
+    const service = new CartService(createAppContext(), repo, trackingService as TrackingService)
+
+    await expect(service.addItem(createActor(), {
+      variantId: '33333333-3333-4333-8333-333333333333',
+      quantity: 2,
+    })).rejects.toMatchObject({ code: 'CART_STOCK_UNAVAILABLE' })
+
+    expect(trackingService.recordProductAddToCart).not.toHaveBeenCalled()
+  })
+
+  it('keeps add-to-cart successful when analytics write fails', async () => {
+    const repo = createRepoMock()
+    const appContext = createAppContext()
+    const trackingService = createTrackingServiceMock()
+    vi.mocked(trackingService.recordProductAddToCart).mockRejectedValue(new Error('analytics unavailable'))
+    const cart = createCart()
+    const variant = createVariant()
+    vi.mocked(repo.findOrCreateActiveCart)
+      .mockResolvedValueOnce(cart)
+      .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 1, variant })] }))
+    vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
+    vi.mocked(repo.createItem).mockResolvedValue(createItem({ quantity: 1, variant }))
+    const service = new CartService(appContext, repo, trackingService as TrackingService)
+
+    await expect(service.addItem(createActor(), { variantId: variant.id, quantity: 1 })).resolves.toMatchObject({
+      id: cart.id,
+    })
+
+    expect(appContext.logger.warn).toHaveBeenCalledWith('CartService.addItem analytics write failed', expect.objectContaining({
+      actorId: 'user-1',
+      productId: variant.product.id,
+      variantId: variant.id,
+      shopId: variant.product.shop.id,
+      error: expect.any(Error),
+    }))
   })
 
   it('increases quantity when the variant already exists in cart', async () => {

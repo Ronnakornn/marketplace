@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-19T18:36:28.649Z",
+  "exceptions": [
+    "test files and fixtures are excluded by filename",
+    "import paths, dynamic imports, and module specifiers are excluded",
+    "CSS class names and style-only attributes are excluded",
+    "URLs, route templates, and query keys are excluded",
+    "analytics event names and machine identifiers are excluded",
+    "enum/status raw values and API normalizer fallback data are excluded when they are not JSX-visible literals",
+    "product, shop, order, address, notification, chat, review, and other user/API-provided data is not translated by this audit"
+  ],
+  "findings": [
+    "hardcoded-english|app/features/buyer/components/DealsPage.tsx|32|2-digit",
+    "hardcoded-english|app/features/buyer/components/OrderReviewPage.tsx|59|${value} ${t(\"buyer.rating\")}",
+    "hardcoded-english|app/features/chat/components/ChatPages.tsx|102|chat:${roomId}",
+    "hardcoded-english|app/features/chat/components/ChatPages.tsx|28|seller:${shopId}:chats",
+    "hardcoded-english|app/features/marketplace/components/MarketplaceHome.tsx|403|${Math.min(92, 42 + product.soldCount * 4)}%",
+    "hardcoded-english|app/features/marketplace/components/MarketplaceHome.tsx|489|${props.source}-${product.id}-${index}",
+    "hardcoded-english|app/features/marketplace/components/MarketplaceHome.tsx|558|/shops/${shop.slug || shop.id}",
+    "hardcoded-english|app/features/order/components/OrderTrackingPage.tsx|34|${shipment.id}-${index}",
+    "hardcoded-english|app/features/product/components/ProductCard.tsx|88|product-card-action-error-${product.id}",
+    "hardcoded-english|app/features/product/components/ProductDetailPage.tsx|466|${image}-${index}",
+    "hardcoded-english|app/features/product/components/ProductDetailPage.tsx|544|${option.id}-${value.id}-hint",
+    "hardcoded-english|app/features/product/components/ProductDetailPage.tsx|680|${attribute.key}-${attribute.name}",
+    "hardcoded-english|app/features/product/components/ProductListingPage.tsx|165|free shipping",
+    "hardcoded-english|app/features/product/components/ProductListingPage.tsx|852|${t(\"product.category\")}: ${categories.find((category) => category.slug === params.categoryId)?.name ?? params.categoryId}",
+    "hardcoded-english|app/features/product/components/ProductListingPage.tsx|857|${t(\"product.priceRange\")}: ${params.minPrice ?? \"0\"} - ${params.maxPrice ?? \"*\"}",
+    "hardcoded-english|app/features/product/components/ProductListingPage.tsx|860|${t(\"product.rating\")}: ${params.rating}+",
+    "hardcoded-english|app/i18n/client.tsx|53|useI18n must be used inside I18nProvider"
+  ]
+}

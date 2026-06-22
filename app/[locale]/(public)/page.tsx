@@ -4,14 +4,16 @@ import {
   HomeAuthenticatedSection,
   HomeGuestSection,
 } from "#/features/home";
+import { createTranslator } from "#/i18n/server";
 import { getServerSession } from "#/lib/auth-server";
 import { getSiteName, publicPageMetadata, safeDescription, websiteJsonLd } from "#/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  const t = createTranslator(locale);
   return publicPageMetadata({
     title: getSiteName(),
-    description: safeDescription(undefined, "Shop active products, trusted sellers, and marketplace deals."),
+    description: safeDescription(undefined, t("seo.homeDescription")),
     path: "/",
     locale,
   });

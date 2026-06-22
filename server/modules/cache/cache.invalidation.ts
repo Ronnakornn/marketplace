@@ -13,6 +13,19 @@ export class CacheInvalidation {
     return deleted.reduce((total, count) => total + count, 0)
   }
 
+  async invalidateCatalogDiscoveryAndSearch(): Promise<number> {
+    const prefix = this.prefix()
+    const deleted = await Promise.all([
+      this.cache.deleteByPattern(`${prefix}:category:list:*`),
+      this.cache.deleteByPattern(`${prefix}:product:list:*`),
+      this.cache.deleteByPattern(`${prefix}:search:products:*`),
+      this.cache.deleteByPattern(`${prefix}:search:suggestions:*`),
+      this.cache.deleteByPattern(`${prefix}:ai-search:products:*`),
+      this.cache.deleteByPattern(`${prefix}:recommendations:*`),
+    ])
+    return deleted.reduce((total, count) => total + count, 0)
+  }
+
   async invalidateProduct(productId: string): Promise<number> {
     const prefix = this.prefix()
     const deleted = await Promise.all([

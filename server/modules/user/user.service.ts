@@ -1,4 +1,6 @@
 import type { Role, UserStatus } from '#generated/client/enums.ts'
+import { randomInt } from 'node:crypto'
+import { hashPassword, verifyPassword } from 'better-auth/crypto'
 import { isAPIError } from 'better-auth/api'
 import type { AppContext } from '#server/context/app-context.ts'
 import { auth } from '#server/lib/auth.ts'
@@ -22,7 +24,13 @@ export interface UpdateAdminUserData {
 export interface UpdateCurrentUserData {
   name?: string
   image?: string | null
+  phone?: string | null
+  phoneVerified?: boolean
 }
+
+export type VerificationPurpose = 'EMAIL_VERIFICATION' | 'PASSWORD_RESET'
+
+const OTP_TTL_MS = 15 * 60 * 1000
 
 export interface AddressInput {
   recipientName?: string
@@ -42,7 +50,16 @@ export interface FavoriteProductResponse {
   title: string
   price: number
   currency: string
-  shop: { id: string; name: string; slug: string }
+  status: string
+  imageUrls: string[]
+  shop: { id: string; name: string; slug: string; status: string }
+  purchaseVariant: {
+    id: string
+    title: string
+    stock: number
+    currency: string
+    price: number
+  } | null
   createdAt: Date
 }
 
@@ -98,11 +115,88 @@ export class UserService {
       updateData.image = data.image
     }
 
+    if (data.phone !== undefined) {
+      const phone = this.normalizePhone(data.phone)
+      if (phone) {
+        const duplicateUser = await this.repo.findByPhone(phone)
+        if (duplicateUser && duplicateUser.id !== userId) {
+          throw new UserServiceError('Phone is already in use', 409)
+        }
+      }
+      updateData.phone = phone
+      updateData.phoneVerified = false
+    }
+
     if (Object.keys(updateData).length === 0) {
       throw new UserServiceError('At least one profile field is required', 400)
     }
 
     return this.repo.updateCurrentUser(userId, updateData)
+  }
+
+  async resendEmailVerification(userId: string): Promise<{ success: true }> {
+    this.logger.info('UserService.resendEmailVerification', { userId })
+    const user = await this.repo.findById(userId)
+    if (!user) throw new UserServiceError('User not found', 404)
+    if (user.emailVerified) return { success: true }
+
+    await this.createOtp('EMAIL_VERIFICATION', user.email)
+    return { success: true }
+  }
+
+  async verifyEmailOtp(email: string, otp: string): Promise<{ success: true }> {
+    const normalizedEmail = this.normalizeEmail(email)
+    this.logger.info('UserService.verifyEmailOtp', { email: normalizedEmail })
+    const user = await this.repo.findByEmail(normalizedEmail)
+    if (!user) throw new UserServiceError('Invalid or expired verification code', 400)
+
+    const verification = await this.findValidOtp('EMAIL_VERIFICATION', normalizedEmail, otp)
+    await this.repo.markEmailVerified(user.id)
+    await this.repo.deleteVerification(verification.id)
+    return { success: true }
+  }
+
+  async requestPasswordResetOtp(email: string): Promise<{ success: true }> {
+    const normalizedEmail = this.normalizeEmail(email)
+    this.logger.info('UserService.requestPasswordResetOtp', { email: normalizedEmail })
+    const user = await this.repo.findByEmail(normalizedEmail)
+    if (user) {
+      await this.createOtp('PASSWORD_RESET', normalizedEmail)
+    }
+    return { success: true }
+  }
+
+  async completePasswordReset(email: string, otp: string, newPassword: string): Promise<{ success: true }> {
+    const normalizedEmail = this.normalizeEmail(email)
+    this.logger.info('UserService.completePasswordReset', { email: normalizedEmail })
+    this.assertPassword(newPassword)
+
+    const user = await this.repo.findByEmail(normalizedEmail)
+    if (!user) throw new UserServiceError('Invalid or expired reset code', 400)
+
+    const verification = await this.findValidOtp('PASSWORD_RESET', normalizedEmail, otp)
+    const account = await this.repo.findCredentialAccount(user.id)
+    if (!account) throw new UserServiceError('Password credential not found', 400)
+
+    await this.repo.updateCredentialPassword(account.id, await hashPassword(newPassword))
+    await this.repo.deleteVerification(verification.id)
+    return { success: true }
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ success: true }> {
+    this.logger.info('UserService.changePassword', { userId })
+    this.assertPassword(newPassword)
+    const user = await this.repo.findById(userId)
+    if (!user) throw new UserServiceError('User not found', 404)
+    if (!user.emailVerified) throw new UserServiceError('Email verification required', 403)
+
+    const account = await this.repo.findCredentialAccount(userId)
+    if (!account?.password) throw new UserServiceError('Password credential not found', 400)
+    const validCurrentPassword = await verifyPassword({ hash: account.password, password: currentPassword })
+    if (!validCurrentPassword) throw new UserServiceError('Current password is invalid', 400)
+
+    await this.repo.updateCredentialPassword(account.id, await hashPassword(newPassword))
+    return { success: true }
   }
 
   listAddresses(userId: string): Promise<BuyerAddress[]> {
@@ -335,6 +429,55 @@ export class UserService {
     }
   }
 
+  private async createOtp(purpose: VerificationPurpose, email: string): Promise<void> {
+    const identifier = this.verificationIdentifier(purpose, email)
+    await this.repo.deleteVerificationsByIdentifier(identifier)
+    await this.repo.createVerification({
+      identifier,
+      value: this.generateOtp(),
+      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    })
+  }
+
+  private async findValidOtp(purpose: VerificationPurpose, email: string, otp: string) {
+    const verification = await this.repo.findVerification(this.verificationIdentifier(purpose, email), otp.trim())
+    if (!verification || verification.expiresAt <= new Date()) {
+      throw new UserServiceError(`Invalid or expired ${purpose === 'EMAIL_VERIFICATION' ? 'verification' : 'reset'} code`, 400)
+    }
+    return verification
+  }
+
+  private verificationIdentifier(purpose: VerificationPurpose, email: string): string {
+    return `${purpose}:${email}`
+  }
+
+  private generateOtp(): string {
+    return randomInt(0, 1_000_000).toString().padStart(6, '0')
+  }
+
+  private normalizeEmail(email: string): string {
+    const normalized = email.trim().toLowerCase()
+    if (!normalized) throw new UserServiceError('Email is required', 400)
+    return normalized
+  }
+
+  private normalizePhone(phone: string | null): string | null {
+    const trimmed = phone?.trim()
+    if (!trimmed) return null
+    const hasLeadingPlus = trimmed.startsWith('+')
+    const digits = trimmed.replace(/\D/g, '')
+    if (digits.length < 8 || digits.length > 15) {
+      throw new UserServiceError('Phone is invalid', 400)
+    }
+    return `${hasLeadingPlus ? '+' : ''}${digits}`
+  }
+
+  private assertPassword(password: string): void {
+    if (!password || password.length < 8) {
+      throw new UserServiceError('Password must be at least 8 characters', 400)
+    }
+  }
+
   private async assertAddressOwner(userId: string, addressId: string): Promise<void> {
     const address = await this.repo.findAddress(userId, addressId)
     if (!address) {
@@ -405,6 +548,8 @@ export class UserService {
       role: user.role,
       status: user.status,
       emailVerified: user.emailVerified,
+      phone: user.phone,
+      phoneVerified: user.phoneVerified,
       image: user.image,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -412,14 +557,32 @@ export class UserService {
   }
 
   private toFavoriteProduct(favorite: FavoriteProductRecord): FavoriteProductResponse {
-    const variant = favorite.product.variants[0]
+    const variants = favorite.product.variants.map((variant) => ({
+      variant,
+      stock: Math.max(0, (variant.inventory?.quantityOnHand ?? 0) - (variant.inventory?.quantityReserved ?? 0)),
+    }))
+    const firstVariant = variants[0]
+    const purchaseVariant = favorite.product.status === 'ACTIVE' && favorite.product.shop.status === 'ACTIVE'
+      ? variants.find((item) => item.stock > 0)
+      : undefined
+    const displayVariant = purchaseVariant ?? firstVariant
+
     return {
       id: favorite.id,
       productId: favorite.productId,
       title: favorite.product.title,
-      price: Number(variant?.price) ?? 0,
-      currency: variant?.currency ?? 'USD',
+      price: displayVariant ? Number(displayVariant.variant.price) : 0,
+      currency: displayVariant?.variant.currency ?? 'USD',
+      status: favorite.product.status,
+      imageUrls: favorite.product.images.map((image) => image.url),
       shop: favorite.product.shop,
+      purchaseVariant: purchaseVariant ? {
+        id: purchaseVariant.variant.id,
+        title: purchaseVariant.variant.title,
+        stock: purchaseVariant.stock,
+        currency: purchaseVariant.variant.currency,
+        price: Number(purchaseVariant.variant.price),
+      } : null,
       createdAt: favorite.createdAt,
     }
   }

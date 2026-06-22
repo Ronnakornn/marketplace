@@ -8,6 +8,10 @@ vi.mock("./auth.ts", () => ({
   auth: {
     handler: () => new Response(null, { status: 404 }),
   },
+  getSocialProviderAvailability: vi.fn(() => ({
+    google: true,
+    facebook: false,
+  })),
 }));
 
 vi.mock("./auth.context.ts", () => ({
@@ -31,6 +35,9 @@ function createApp() {
     .get("/private", ({ authContext }: any) => ({ id: authContext!.user.id }), {
       withAuth: true,
     })
+    .get("/verified", ({ authContext }: any) => ({ id: authContext!.user.id }), {
+      withVerifiedAuth: true,
+    })
     .get("/admin", ({ authContext }: any) => ({ role: authContext!.user.role }), {
       withRole: "ADMIN",
     })
@@ -45,7 +52,7 @@ function createApp() {
     });
 }
 
-function mockUser(role: "USER" | "ADMIN", status: "ACTIVE" | "SUSPENDED" = "ACTIVE") {
+function mockUser(role: "USER" | "ADMIN", status: "ACTIVE" | "SUSPENDED" = "ACTIVE", emailVerified = true) {
   return {
     user: {
       id: `${role.toLowerCase()}-1`,
@@ -53,6 +60,7 @@ function mockUser(role: "USER" | "ADMIN", status: "ACTIVE" | "SUSPENDED" = "ACTI
       name: role,
       role,
       status,
+      emailVerified,
     },
   };
 }
@@ -71,10 +79,22 @@ describe("authPlugin", () => {
   });
 
   it("allows authenticated access", async () => {
-    vi.mocked(getAuthContext).mockResolvedValue(mockUser("USER"));
+    vi.mocked(getAuthContext).mockResolvedValue(mockUser("USER", "ACTIVE", false));
     const response = await createApp().handle(new Request("http://localhost/private"));
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ id: "user-1" });
+  });
+
+  it("blocks verified-only routes for unverified users", async () => {
+    vi.mocked(getAuthContext).mockResolvedValue(mockUser("USER", "ACTIVE", false));
+    const response = await createApp().handle(new Request("http://localhost/verified"));
+    expect(response.status).toBe(403);
+  });
+
+  it("allows verified-only routes for verified users", async () => {
+    vi.mocked(getAuthContext).mockResolvedValue(mockUser("USER"));
+    const response = await createApp().handle(new Request("http://localhost/verified"));
+    expect(response.status).toBe(200);
   });
 
   it("protects admin-only routes", async () => {
@@ -87,6 +107,18 @@ describe("authPlugin", () => {
     vi.mocked(getAuthContext).mockResolvedValue(mockUser("ADMIN"));
     const response = await createApp().handle(new Request("http://localhost/admin"));
     expect(response.status).toBe(200);
+  });
+
+  it("blocks admin-only routes for unverified admins", async () => {
+    vi.mocked(getAuthContext).mockResolvedValue(mockUser("ADMIN", "ACTIVE", false));
+    const response = await createApp().handle(new Request("http://localhost/admin"));
+    expect(response.status).toBe(403);
+  });
+
+  it("blocks suspended users", async () => {
+    vi.mocked(getAuthContext).mockResolvedValue(mockUser("USER", "SUSPENDED"));
+    const response = await createApp().handle(new Request("http://localhost/private"));
+    expect(response.status).toBe(403);
   });
 
   it("protects role-specific routes", async () => {
@@ -190,5 +222,14 @@ describe("authPlugin", () => {
     expect(onboardingResponse.status).toBe(200);
     await expect(onboardingResponse.json()).resolves.toEqual({ id: "user-1" });
     expect(operationalResponse.status).toBe(403);
+  });
+
+  it("exposes only social provider availability booleans", async () => {
+    const response = await createApp().handle(new Request("http://localhost/api/auth/provider-availability"));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      google: true,
+      facebook: false,
+    });
   });
 });

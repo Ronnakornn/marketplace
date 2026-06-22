@@ -56,18 +56,18 @@ export function CheckoutPage() {
           <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
               <CheckoutBlock icon={<MapPinIcon className="size-5" />} title={t("checkout.address")}>
-                {addressesQuery.isLoading ? <p className="text-sm text-slate-500">{t("checkout.loadingAddresses")}</p> : null}
+                {addressesQuery.isLoading ? <p className="text-sm text-slate-700">{t("checkout.loadingAddresses")}</p> : null}
                 {addressesQuery.data?.length ? (
                   <RadioGroup value={addressId} onValueChange={setSelectedAddressId} className="space-y-2">
                     {addressesQuery.data.map((address) => (
                       <label key={address.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-2xl border border-slate-200 p-3 has-[[data-state=checked]]:border-orange-200 has-[[data-state=checked]]:bg-orange-50">
                         <span>
-                          <span className="font-semibold">{address.recipientName}</span>
+                          <span className="font-semibold text-slate-950">{address.recipientName}</span>
                           {address.isDefault ? <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-700">{t("common.default")}</span> : null}
-                          <span className="mt-1 block text-sm text-slate-600">
+                          <span className="mt-1 block text-sm text-slate-700">
                             {[address.line1, address.line2, address.city, address.region, address.postalCode, address.country].filter(Boolean).join(", ")}
                           </span>
-                          {address.phone ? <span className="mt-1 block text-xs text-slate-500">{address.phone}</span> : null}
+                          {address.phone ? <span className="mt-1 block text-xs font-medium text-slate-600">{address.phone}</span> : null}
                         </span>
                         <RadioGroupItem value={address.id} />
                       </label>
@@ -76,7 +76,7 @@ export function CheckoutPage() {
                 ) : (
                   <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50 p-3">
                     <p className="font-semibold text-slate-950">{t("checkout.noAddressTitle")}</p>
-                    <p className="mt-1 text-sm text-slate-600">{t("checkout.noAddressDescription")}</p>
+                    <p className="mt-1 text-sm text-slate-700">{t("checkout.noAddressDescription")}</p>
                   </div>
                 )}
                 <Button asChild variant="outline" className="mt-3 rounded-full">
@@ -107,13 +107,13 @@ export function CheckoutPage() {
                 </RadioGroup>
               </CheckoutBlock>
             </div>
-            <aside className="h-fit rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-lg font-bold">{t("checkout.summary")}</h2>
               <div className="mt-4 space-y-3">
                 {cartQuery.data.shops.map((shop) => (
                   <div key={shop.shopId} className="flex justify-between gap-3 text-sm">
-                    <span className="text-slate-600">{shop.shopName}</span>
-                    <span className="font-semibold">{formatMoney(shop.subtotal, cartQuery.data.currency)}</span>
+                    <span className="text-slate-700">{shop.shopName}</span>
+                    <span className="font-semibold text-slate-950">{formatMoney(shop.subtotal, cartQuery.data.currency)}</span>
                   </div>
                 ))}
                 <div className="border-t border-slate-200 pt-3">
@@ -150,7 +150,7 @@ export function CheckoutPage() {
 
 function CheckoutBlock({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center gap-2 font-bold text-slate-950">{icon}{title}</div>
       {children}
     </section>

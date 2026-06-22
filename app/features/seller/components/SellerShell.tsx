@@ -3,108 +3,35 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  BanknoteIcon,
+  BellIcon,
+  BoxesIcon,
+  ChartNoAxesCombinedIcon,
+  ClipboardListIcon,
+  LayoutDashboardIcon,
+  MegaphoneIcon,
+  MessageCircleIcon,
+  PackageCheckIcon,
+  RotateCcwIcon,
+  StoreIcon,
+} from "lucide-react";
 import { stripLocale } from "#/i18n/config";
 import { useLocalePath } from "#/i18n/navigation";
 import { cn } from "#/lib/utils";
 import { getSellerRouteKind } from "#/lib/seller-access";
 
-function DashboardIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <rect x="3" y="3" width="8" height="8" rx="1" />
-      <rect x="13" y="3" width="8" height="5" rx="1" />
-      <rect x="13" y="10" width="8" height="11" rx="1" />
-      <rect x="3" y="13" width="8" height="8" rx="1" />
-    </svg>
-  );
-}
-
-function ProductsIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <path d="M3 8l9-5 9 5-9 5-9-5z" />
-      <path d="M3 8v8l9 5 9-5V8" />
-      <path d="M12 13v8" />
-    </svg>
-  );
-}
-
-function InventoryIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <rect x="4" y="4" width="16" height="16" rx="2" />
-      <path d="M8 9h8M8 13h8M8 17h5" />
-    </svg>
-  );
-}
-
-function OrdersIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <path d="M3 7h18" />
-      <path d="M7 3v4M17 3v4" />
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M9 13l2 2 4-4" />
-    </svg>
-  );
-}
-
-function ReturnsIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <path d="M3 12a9 9 0 1 0 3-6.7" />
-      <path d="M3 4v5h5" />
-    </svg>
-  );
-}
-
-function PromotionsIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <path d="M3 11l18-8v18l-18-8z" />
-      <path d="M11 13v7" />
-    </svg>
-  );
-}
-
-function FinanceIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="M3 10h18" />
-      <path d="M7 15h3" />
-    </svg>
-  );
-}
-
-function NotificationsIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <path d="M6 8a6 6 0 1 1 12 0v4l2 3H4l2-3V8z" />
-      <path d="M10 18a2 2 0 0 0 4 0" />
-    </svg>
-  );
-}
-
-function SellerManageIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
-      <path d="M3 10l9-6 9 6" />
-      <path d="M5 10v9h14v-9" />
-      <path d="M9 19v-5h6v5" />
-    </svg>
-  );
-}
-
 const navItems = [
-  { href: "/seller", label: "Dashboard", icon: DashboardIcon },
-  { href: "/seller/products", label: "Products", icon: ProductsIcon },
-  { href: "/seller/inventory", label: "Inventory", icon: InventoryIcon },
-  { href: "/seller/orders", label: "Orders", icon: OrdersIcon },
-  { href: "/seller/returns", label: "Returns", icon: ReturnsIcon },
-  { href: "/seller/promotions", label: "Promotions", icon: PromotionsIcon },
-  { href: "/seller/finance", label: "Finance", icon: FinanceIcon },
-  { href: "/seller/notifications", label: "Notifications", icon: NotificationsIcon },
+  { href: "/seller", label: "Dashboard", icon: LayoutDashboardIcon },
+  { href: "/seller/products", label: "Products", icon: BoxesIcon },
+  { href: "/seller/analytics/products", label: "Product Analytics", icon: ChartNoAxesCombinedIcon },
+  { href: "/seller/inventory", label: "Inventory", icon: ClipboardListIcon },
+  { href: "/seller/orders", label: "Orders", icon: PackageCheckIcon },
+  { href: "/seller/returns", label: "Returns", icon: RotateCcwIcon },
+  { href: "/seller/promotions", label: "Promotions", icon: MegaphoneIcon },
+  { href: "/seller/finance", label: "Finance", icon: BanknoteIcon },
+  { href: "/seller/chat", label: "Chat", icon: MessageCircleIcon },
+  { href: "/seller/notifications", label: "Notifications", icon: BellIcon },
 ] as const;
 
 interface SellerShellProps {
@@ -150,7 +77,7 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
         <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-slate-200 bg-white md:flex md:flex-col">
           <Link href={createSellerHref("/seller")} prefetch={false} className="flex items-center gap-3 border-b border-slate-200 px-5 py-5 no-underline">
             <span className="flex size-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
-              <SellerManageIcon className="size-5" />
+              <StoreIcon className="size-5" />
             </span>
             <span>
               <span className="block text-sm font-semibold text-slate-950">Seller Manage</span>

@@ -1,40 +1,34 @@
-# task-1: Align seller and shop schema contracts
+# task-1: Extend auth schema and generated contracts for phone identity and verification state
 
-## Goal
+## Objective
 
-Align existing seller and shop schema usage with milestone-2 contracts for onboarding, profile management, shop reviews, dashboard insights, and staff foundation before feature implementation starts.
+Add the schema foundation Auth v1 needs for normalized phone identity while preserving Better Auth compatibility.
 
 ## Scope
 
-- Review current Prisma models and enums used by:
-  - SellerApplication and SellerProfile
-  - Shop and ShopSetting
-  - ShopRating and related review moderation models
-  - ShopStaff and ShopStaffPermission
-- Add or adjust schema fields and indexes only where milestone-2 contracts require them.
-- Keep backward compatibility for existing modules that already use these models.
-- Regenerate Prisma client and prismabox outputs after schema changes.
+- Update `prisma/schema.prisma` only through Prisma-managed schema changes.
+- Extend `User` with:
+  - nullable `phone`
+  - `phoneVerified` defaulting to false
+- Add a uniqueness constraint for `phone` when present using the best Prisma/PostgreSQL-compatible approach available in the project.
+- Ensure generated Prisma and Prismabox outputs can represent the new fields.
+- Review Better Auth user additional fields so auth session/user context can safely expose only intended profile fields.
 
-## Affected Areas
+## Constraints
 
-- `prisma/schema.prisma`
-- `generated/client/**` (regenerated)
-- `generated/prismabox/**` (regenerated)
-- docs if schema-level behavior contract needs explicit update
+- Do not make phone login available.
+- Do not make phone verification available.
+- Do not allow `phoneVerified` to be writable by user profile update payloads.
+- Do not manually edit generated files.
 
 ## Implementation Notes
 
-- Follow implementation order from AGENTS.md: schema first.
-- Do not manually edit generated files.
-- Preserve existing review/product domain behavior while extending shop review usage.
-- Keep migration changes minimal and targeted to milestone-2 requirements.
-- Ensure model changes do not break existing milestone-1 seller/product functionality.
+- Use an E.164-compatible normalized phone representation for persistence.
+- Keep `phone` nullable so existing users do not need backfilled phone data.
+- If Prisma cannot express partial uniqueness directly in the current setup, document the chosen migration/index approach before implementation.
 
 ## Verification
 
-- Run:
-  - `bunx prisma format`
-  - `bunx prisma validate`
-  - `bun run db:generate`
-  - `bunx tsc --noEmit`
-- Add or update focused tests that cover schema-dependent invariants introduced by this task.
+- Run `bun run db:generate`.
+- Run Prisma validation/format commands used by the repo where applicable.
+- Add or update focused schema-adjacent tests if existing test helpers cover generated user schemas.

@@ -1,11 +1,16 @@
+"use client";
+
 import { BuyerLoadingGrid } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Skeleton } from "#/components/ui/skeleton";
+import { useTranslations } from "#/i18n/client";
 
 export default function SearchLoading() {
+  const t = useTranslations();
+
   return (
     <>
-      <BuyerTopBar title="Search" />
+      <BuyerTopBar title={t("common.search")} />
       <div className="mx-auto grid max-w-6xl gap-4 px-3 pb-28 pt-4 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="hidden space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:block">
           <Skeleton className="h-5 w-32" />

@@ -14,7 +14,7 @@ const redisInstances: Array<{
 }> = []
 
 vi.mock('ioredis', () => ({
-  default: vi.fn().mockImplementation(() => {
+  default: vi.fn().mockImplementation(function RedisMock() {
     const instance = {
       status: 'wait',
       connect: vi.fn(async () => {

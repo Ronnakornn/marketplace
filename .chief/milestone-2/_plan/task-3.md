@@ -1,40 +1,43 @@
-# task-3: Implement shop rating and review lifecycle
+# task-3: Integrate Auth v1 frontend flows for verification, password reset/change, and profile phone updates
 
-## Goal
+## Objective
 
-Deliver shop-level rating and review write/read flows with moderation-first publication and reliable aggregate updates.
+Expose the Auth v1 backend capabilities through focused Next.js App Router pages and auth/profile feature UI.
 
 ## Scope
 
-- Add shop review create flow for eligible buyers tied to valid shop order context.
-- Add shop review listing and rating summary read flows.
-- Add or extend admin moderation actions for pending shop reviews.
-- Ensure only approved reviews affect public visibility and aggregate summaries.
-- Keep product review behavior stable and backward compatible.
+- Extend existing auth feature UI for:
+  - verification required state
+  - resend verification OTP
+  - verify email OTP
+  - forgot password
+  - reset password
+  - change password
+- Extend current profile UI to support phone updates.
+- Keep login/signup flows on Better Auth client helpers where appropriate.
+- Use same-origin `/api/*` for first-party backend calls.
 
-## Affected Areas
+## Constraints
 
-- `server/modules/review/**` and related repository contracts
-- any shop aggregate update paths touching Shop rating fields
-- admin moderation routes/services if shop review moderation endpoints are introduced or extended
-- review-related tests across buyer and admin boundaries
+- Do not implement phone login.
+- Do not implement phone verification UI.
+- Do not implement social login UI.
+- Do not manually duplicate backend DTOs in frontend code.
+- Failed mutations should preserve user-entered form data where practical.
 
 ## Implementation Notes
 
-- Reuse existing review models and status semantics where possible.
-- Enforce duplicate prevention and ownership checks at backend layer.
-- Aggregate updates for `Shop.ratingAverage` and `Shop.ratingCount` must be transaction-safe.
-- Keep public read logic moderation-aware (approved only).
-- Do not trust client-provided aggregate values.
+- Keep auth feature code under `app/features/auth/`.
+- Keep profile/user feature code under the existing user/admin profile structure where appropriate.
+- Verification-required UX should give users a clear path to resend and submit OTP.
+- Reset password UX should avoid revealing whether an email exists.
+- Use existing project UI patterns and keep forms accessible with labels, visible errors, and usable loading states.
 
 ## Verification
 
-- Add or update focused tests for:
-  - review eligibility checks
-  - duplicate prevention
-  - pending-to-approved publication flow
-  - aggregate correctness after moderation transitions
-  - auth boundaries for buyer vs admin actions
-- Run:
-  - `bunx tsc --noEmit`
-  - focused review and admin review-moderation test suites
+- Add focused frontend tests where practical for:
+  - verification required state
+  - OTP submission errors
+  - password reset/change form validation
+  - phone profile update error handling
+- Verify desktop and mobile layouts for new auth/profile screens if UI changes are substantial.

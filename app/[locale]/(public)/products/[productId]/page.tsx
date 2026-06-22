@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { JsonLd } from "#/components/JsonLd";
 import { ProductDetailPage } from "#/features/product";
-import { productJsonLd, publicPageMetadata, requirePublicProductSeo } from "#/lib/seo";
+import { breadcrumbJsonLd, productJsonLd, publicPageMetadata, requirePublicProductSeo } from "#/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; productId: string }> }): Promise<Metadata> {
   const { locale, productId } = await params;
@@ -23,6 +23,11 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
   return (
     <>
       <JsonLd data={productJsonLd(product)} />
+      <JsonLd data={breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        ...(product.category ? [{ name: product.category.name, path: `/categories/${product.category.slug}` }] : []),
+        { name: product.title, path: product.urlPath },
+      ])} />
       <ProductDetailPage productId={productId} />
     </>
   );

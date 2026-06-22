@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type {
@@ -48,7 +49,7 @@ export class EventPublisherService {
       : input.occurredAt ?? new Date().toISOString()
 
     return this.sanitizeEvent({
-      eventId: crypto.randomUUID(),
+      eventId: uuidv4(),
       eventName: input.eventName,
       aggregateType: input.aggregateType,
       aggregateId: input.aggregateId,
