@@ -29,7 +29,7 @@ export function ProfilePage() {
         {profileQuery.isError ? <BuyerErrorState message={profileQuery.error.message} onRetry={() => void profileQuery.refetch()} /> : null}
         {profileQuery.data ? (
           <>
-            <section className="rounded-lg border border-slate-200 bg-white p-5">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-4">
                 <Avatar className="size-16">
                   <AvatarImage src={profileQuery.data.image ?? undefined} alt={profileQuery.data.name} />
@@ -37,12 +37,12 @@ export function ProfilePage() {
                 </Avatar>
                 <div className="min-w-0">
                   <h1 className="truncate text-xl font-bold text-slate-950">{profileQuery.data.name}</h1>
-                  <p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><MailIcon className="size-4" />{profileQuery.data.email}</p>
-                  <p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><PhoneIcon className="size-4" />{profileQuery.data.phone ?? t("buyer.noPhoneAdded")}</p>
+                  <p className="mt-1 flex items-center gap-1 text-sm font-medium text-slate-700"><MailIcon className="size-4 text-slate-500" />{profileQuery.data.email}</p>
+                  <p className="mt-1 flex items-center gap-1 text-sm font-medium text-slate-700"><PhoneIcon className="size-4 text-slate-500" />{profileQuery.data.phone ?? t("buyer.noPhoneAdded")}</p>
                   <div className="mt-2 flex gap-2">
                     <Badge className="rounded-md bg-orange-600">{profileQuery.data.role}</Badge>
-                    <Badge variant="outline" className="rounded-md">{profileQuery.data.status}</Badge>
-                    <Badge variant="outline" className="rounded-md">{profileQuery.data.emailVerified ? t("buyer.emailVerified") : t("buyer.emailUnverified")}</Badge>
+                    <Badge variant="outline" className="rounded-md border-slate-300 text-slate-800">{profileQuery.data.status}</Badge>
+                    <Badge variant="outline" className="rounded-md border-slate-300 text-slate-800">{profileQuery.data.emailVerified ? t("buyer.emailVerified") : t("buyer.emailUnverified")}</Badge>
                   </div>
                 </div>
               </div>
@@ -50,17 +50,17 @@ export function ProfilePage() {
 
             <ProfileIdentityForm profile={profileQuery.data} />
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4">
-              <h2 className="font-bold">{t("buyer.buyerShortcuts")}</h2>
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="font-bold text-slate-950">{t("buyer.buyerShortcuts")}</h2>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/orders")}><PackageIcon className="size-4" />{t("buyer.myOrders")}</Link></Button>
-                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/chat")}><MessageCircleIcon className="size-4" />{t("buyer.buyerChat")}</Link></Button>
-                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/account/addresses")}><MapPinIcon className="size-4" />{t("buyer.addresses")}</Link></Button>
-                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/wishlist")}><HeartIcon className="size-4" />{t("buyer.wishlist")}</Link></Button>
-                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/vouchers")}><TicketIcon className="size-4" />{t("buyer.vouchers")}</Link></Button>
-                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/affiliates")}><LinkIcon className="size-4" />{t("buyer.affiliates")}</Link></Button>
-                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/followed-shops")}><StoreIcon className="size-4" />{t("buyer.followedShops")}</Link></Button>
-                <Button asChild variant="outline" className="justify-start"><Link href={localePath("/notifications")}><BellIcon className="size-4" />{t("buyer.notifications")}</Link></Button>
+                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/orders")}><PackageIcon className="size-4 text-orange-600" />{t("buyer.myOrders")}</Link></Button>
+                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/chat")}><MessageCircleIcon className="size-4 text-orange-600" />{t("buyer.buyerChat")}</Link></Button>
+                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/account/addresses")}><MapPinIcon className="size-4 text-orange-600" />{t("buyer.addresses")}</Link></Button>
+                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/wishlist")}><HeartIcon className="size-4 text-orange-600" />{t("buyer.wishlist")}</Link></Button>
+                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/vouchers")}><TicketIcon className="size-4 text-orange-600" />{t("buyer.vouchers")}</Link></Button>
+                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/affiliates")}><LinkIcon className="size-4 text-orange-600" />{t("buyer.affiliates")}</Link></Button>
+                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/followed-shops")}><StoreIcon className="size-4 text-orange-600" />{t("buyer.followedShops")}</Link></Button>
+                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/notifications")}><BellIcon className="size-4 text-orange-600" />{t("buyer.notifications")}</Link></Button>
               </div>
             </section>
 
@@ -72,21 +72,21 @@ export function ProfilePage() {
               shop={sellerApplicationQuery.data?.shop ?? null}
             />
 
-            <section className="rounded-lg border border-slate-200 bg-white p-4">
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="font-bold">{t("buyer.shippingAddress")}</h2>
-                  {addressesQuery.isLoading ? <p className="mt-1 text-sm text-slate-500">{t("buyer.loadingSavedAddresses")}</p> : null}
+                  {addressesQuery.isLoading ? <p className="mt-1 text-sm text-slate-700">{t("buyer.loadingSavedAddresses")}</p> : null}
                   {defaultAddress ? (
                     <>
                       <p className="mt-2 font-semibold text-slate-950">{defaultAddress.recipientName}</p>
-                      <p className="mt-1 text-sm text-slate-600">
+                      <p className="mt-1 text-sm text-slate-700">
                         {[defaultAddress.line1, defaultAddress.line2, defaultAddress.city, defaultAddress.region, defaultAddress.postalCode, defaultAddress.country].filter(Boolean).join(", ")}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">{t("buyer.savedAddressCount").replace("{count}", String(addressesQuery.data?.length ?? 0))}</p>
+                      <p className="mt-1 text-xs font-medium text-slate-600">{t("buyer.savedAddressCount").replace("{count}", String(addressesQuery.data?.length ?? 0))}</p>
                     </>
                   ) : !addressesQuery.isLoading ? (
-                    <p className="mt-1 text-sm text-slate-500">{t("buyer.noSavedAddress")}</p>
+                    <p className="mt-1 text-sm text-slate-700">{t("buyer.noSavedAddress")}</p>
                   ) : null}
                 </div>
                 <Button asChild className="shrink-0 rounded-full bg-orange-600 hover:bg-orange-700">
@@ -173,10 +173,10 @@ function ProfileIdentityForm({
   const phoneChanged = phone.trim() !== (profile.phone ?? "");
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-col gap-1">
         <h2 className="font-bold text-slate-950">{t("buyer.profileDetails")}</h2>
-        <p className="text-sm text-slate-500">{t("buyer.phoneVerificationHelp")}</p>
+        <p className="text-sm text-slate-700">{t("buyer.phoneVerificationHelp")}</p>
       </div>
       {message ? <p className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
       {mutation.error ? <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{mutation.error.message}</p> : null}
@@ -210,7 +210,7 @@ function ProfileIdentityForm({
             placeholder="+66812345678"
             inputMode="tel"
           />
-          <p className="mt-1 text-xs text-slate-500">{profile.phoneVerified ? t("buyer.phoneVerified") : t("buyer.phoneNotVerified")}</p>
+          <p className="mt-1 text-xs font-medium text-slate-600">{profile.phoneVerified ? t("buyer.phoneVerified") : t("buyer.phoneNotVerified")}</p>
         </div>
         <Button type="submit" disabled={requestPhoneMutation.isPending || !phone.trim() || (!phoneChanged && profile.phoneVerified)} variant="outline" className="rounded-full">
           {requestPhoneMutation.isPending ? t("buyer.sendingPhoneCode") : t("buyer.sendPhoneCode")}
@@ -291,14 +291,14 @@ function SellerAccountStatusCard({
       : t("buyer.startSelling");
 
   return (
-    <section className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
+    <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-bold text-slate-950">{title}</h2>
             <Badge className="rounded-md bg-emerald-700">{status.replaceAll("_", " ")}</Badge>
           </div>
-          {isLoading ? <p className="mt-2 text-sm text-slate-600">{t("buyer.loadingSellerStatus")}</p> : null}
+          {isLoading ? <p className="mt-2 text-sm text-slate-700">{t("buyer.loadingSellerStatus")}</p> : null}
           {error ? (
             <div className="mt-2 space-y-2">
               <p className="text-sm text-red-700">{error.message}</p>
@@ -307,13 +307,13 @@ function SellerAccountStatusCard({
           ) : (
             <p className="mt-2 text-sm text-slate-700">{description}</p>
           )}
-          {application?.shopName ? <p className="mt-2 text-xs font-medium text-slate-500">{application.shopName} / {application.shopSlug}</p> : null}
+          {application?.shopName ? <p className="mt-2 text-xs font-semibold text-slate-700">{application.shopName} / {application.shopSlug}</p> : null}
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <Button asChild className="rounded-full bg-emerald-700 hover:bg-emerald-800">
             <Link href={localePath(primaryHref)}><StoreIcon className="size-4" />{primaryLabel}</Link>
           </Button>
-          <Button asChild variant="outline" className="rounded-full bg-white/70">
+          <Button asChild variant="outline" className="rounded-full border-emerald-300 bg-white text-slate-900 hover:bg-emerald-50">
             <Link href={localePath("/seller/chat")}><MessageCircleIcon className="size-4" />{t("buyer.sellerChat")}</Link>
           </Button>
         </div>
