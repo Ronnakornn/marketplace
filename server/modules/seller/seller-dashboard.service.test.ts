@@ -42,6 +42,9 @@ function createRepoMock(): ISellerDashboardRepository {
     countProductsByStatus: vi.fn(),
     findLowStockVariants: vi.fn(),
     findRecentOrders: vi.fn(),
+    countShopReviewsByStatus: vi.fn(),
+    aggregatePublishedShopReviews: vi.fn(),
+    findRecentShopReviews: vi.fn(),
   }
 }
 
@@ -171,6 +174,33 @@ function createLowStockVariant(overrides: Partial<{
   }
 }
 
+function createShopReview(overrides: Partial<{
+  id: string
+  shopId: string
+  status: 'PENDING' | 'PUBLISHED' | 'REJECTED' | 'HIDDEN'
+  rating: number
+}> = {}): any {
+  return {
+    id: overrides.id ?? 'review-1',
+    shopId: overrides.shopId ?? 'shop-1',
+    rating: overrides.rating ?? 5,
+    body: 'Fast shipping and good packaging',
+    status: overrides.status ?? 'PUBLISHED',
+    moderatedAt: null,
+    moderationReason: null,
+    createdAt: now,
+    user: {
+      id: 'buyer-1',
+      name: 'Buyer One',
+    },
+    shop: {
+      id: overrides.shopId ?? 'shop-1',
+      name: 'Shop One',
+      slug: 'shop-one',
+    },
+  }
+}
+
 let repo: ISellerDashboardRepository
 let service: SellerDashboardService
 
@@ -188,6 +218,9 @@ function setup() {
   vi.mocked(repo.countProductsByStatus).mockImplementation(async (_shopIds, active) => active ? 3 : 2)
   vi.mocked(repo.findLowStockVariants).mockResolvedValue([createLowStockVariant()])
   vi.mocked(repo.findRecentOrders).mockResolvedValue([createRecentOrder()])
+  vi.mocked(repo.aggregatePublishedShopReviews).mockResolvedValue({ _avg: { rating: 4.5 }, _count: { id: 8 } })
+  vi.mocked(repo.countShopReviewsByStatus).mockResolvedValue(2)
+  vi.mocked(repo.findRecentShopReviews).mockResolvedValue([createShopReview()])
 }
 
 describe('SellerDashboardService', () => {
@@ -204,6 +237,7 @@ describe('SellerDashboardService', () => {
       sales: { totalSalesCents: 1000 },
       orders: { pendingPack: 1, shipped: 1, delivered: 1, cancelled: 1 },
       products: { active: 3, inactive: 2, lowStock: 1 },
+      shopInsights: { averageRating: 4.5, publishedReviewCount: 8, pendingReviewCount: 2 },
     })
   })
 
@@ -220,6 +254,28 @@ describe('SellerDashboardService', () => {
 
     expect(repo.findSalesOrderItems).toHaveBeenCalledTimes(2)
     expect(repo.findSalesOrderItems).toHaveBeenLastCalledWith(['shop-2'])
+  })
+
+  it('scopes dashboard reads to requested owned shop', async () => {
+    vi.mocked(repo.findSellerShops).mockResolvedValue([
+      { id: 'shop-1', name: 'Shop One', slug: 'shop-one' },
+      { id: 'shop-2', name: 'Shop Two', slug: 'shop-two' },
+    ])
+
+    await service.getDashboard(createActor(), 10, 'shop-2')
+
+    expect(repo.findSalesOrderItems).toHaveBeenCalledWith(['shop-2'])
+    expect(repo.findRecentOrders).toHaveBeenCalledWith(['shop-2'], 10)
+  })
+
+  it('rejects dashboard reads for unowned shop scope', async () => {
+    vi.mocked(repo.findSellerShops).mockResolvedValue([
+      { id: 'shop-1', name: 'Shop One', slug: 'shop-one' },
+    ])
+
+    await expect(service.getDashboard(createActor(), 10, 'shop-2')).rejects.toMatchObject({
+      code: 'DASHBOARD_FORBIDDEN',
+    })
   })
 
   it('fails when a user has no active shop', async () => {
@@ -289,5 +345,27 @@ describe('SellerDashboardService', () => {
 
     expect(result.products).toEqual({ active: 0, inactive: 0, lowStock: 0 })
     expect(result.lowStockItems).toEqual([])
+  })
+
+  it('returns bounded shop review insights and passes scope filters to repository', async () => {
+    const result = await service.getShopReviews(createActor(), {
+      limit: 5,
+      status: 'PUBLISHED',
+      shopId: 'shop-1',
+    })
+
+    expect(repo.findRecentShopReviews).toHaveBeenCalledWith(['shop-1'], 5, ['PUBLISHED'])
+    expect(result[0]).toMatchObject({
+      reviewId: 'review-1',
+      shopId: 'shop-1',
+      buyerName: 'Buyer One',
+      status: 'PUBLISHED',
+    })
+  })
+
+  it('rejects invalid review query limits', async () => {
+    await expect(service.getShopReviews(createActor(), { limit: 26 })).rejects.toMatchObject({
+      code: 'DASHBOARD_FORBIDDEN',
+    })
   })
 })

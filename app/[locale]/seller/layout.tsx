@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { SellerShell } from "#/features/seller";
+import { SellerShell } from "#/features/seller/components/SellerShell";
 import { getSellerAccess } from "#/lib/auth-server";
 import { privatePageMetadata } from "#/lib/seo";
 

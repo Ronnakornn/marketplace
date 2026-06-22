@@ -33,8 +33,6 @@ vi.mock("#/i18n/client", () => ({
     "common.searchSubmit": "Search",
     "common.signIn": "Sign in",
     "common.signOut": "Sign out",
-    "common.startSelling": "Start selling",
-    "common.sellerChat": "Seller chat",
   })[key] ?? key,
 }));
 
@@ -53,10 +51,6 @@ vi.mock("#/lib/auth-client", () => ({
 vi.mock("#/features/buyer/api", () => ({
   fetchCart: vi.fn(async () => ({ shops: [{ items: [{ quantity: 2 }] }] })),
   fetchNotifications: vi.fn(async () => []),
-}));
-
-vi.mock("#/features/chat/api", () => ({
-  fetchChatRooms: vi.fn(async () => []),
 }));
 
 vi.mock("#/components/LanguageSwitcher", () => ({
@@ -80,7 +74,7 @@ afterEach(() => {
 });
 
 describe("buyer shell smoke", () => {
-  it("keeps buyer cart and checkout entry visible for active sellers", async () => {
+  it("keeps buyer cart and start selling entry visible for active sellers", async () => {
     renderWithClient(<BuyerTopBar title="Seller Products" />);
 
     await waitFor(() => {
@@ -88,7 +82,7 @@ describe("buyer shell smoke", () => {
     });
 
     expect(document.body.textContent).toContain("Cart");
-    expect(document.querySelector('a[href="/en/chat"]')).toBeTruthy();
+    expect(document.querySelector('a[href="/en/chat"]')).toBeNull();
     expect(document.querySelector('a[href="/en/seller/register"]')).toBeTruthy();
   });
 });

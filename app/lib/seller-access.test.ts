@@ -10,14 +10,25 @@ describe("seller access routing", () => {
     expect(getSellerRedirectPath("/seller/register", access)).toBeNull();
   });
 
-  it("sends submitted rejected cancelled and approved-without-shop applications to status", () => {
-    for (const status of ["SUBMITTED", "REJECTED", "CANCELLED", "APPROVED"] as const) {
+  it("sends submitted and approved-without-shop applications to status", () => {
+    for (const status of ["SUBMITTED", "APPROVED"] as const) {
       const access = { hasActiveShop: false, application: { status } };
 
       expect(getRequiredSellerPath(access)).toBe("/seller/status");
       expect(getSellerRedirectPath("/seller/register", access)).toBe("/seller/status");
       expect(getSellerRedirectPath("/seller/products", access)).toBe("/seller/status");
       expect(getSellerRedirectPath("/seller/status", access)).toBeNull();
+    }
+  });
+
+  it("sends rejected and cancelled applications back to registration", () => {
+    for (const status of ["REJECTED", "CANCELLED"] as const) {
+      const access = { hasActiveShop: false, application: { status } };
+
+      expect(getRequiredSellerPath(access)).toBe("/seller/register");
+      expect(getSellerRedirectPath("/seller/status", access)).toBe("/seller/register");
+      expect(getSellerRedirectPath("/seller/products", access)).toBe("/seller/register");
+      expect(getSellerRedirectPath("/seller/register", access)).toBeNull();
     }
   });
 
@@ -40,6 +51,7 @@ describe("seller access routing", () => {
 
   it("classifies seller route kinds", () => {
     expect(getSellerRouteKind("/seller/register")).toBe("register");
+    expect(getSellerRouteKind("/seller/register/account")).toBe("register");
     expect(getSellerRouteKind("/seller/status")).toBe("status");
     expect(getSellerRouteKind("/seller")).toBe("operational");
   });

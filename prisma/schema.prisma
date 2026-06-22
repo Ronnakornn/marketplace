@@ -169,6 +169,12 @@ enum SellerKycDocumentSide {
   EXTRA
 }
 
+enum SellerKycDocumentReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum ProductStatus {
   DRAFT
   PENDING_REVIEW
@@ -474,6 +480,7 @@ model User {
   sellerApplications              SellerApplication[]
   approvedShops                   Shop[]                   @relation("ShopApprovedBy")
   reviewedSellerApplications      SellerApplication[]      @relation("SellerApplicationReviewedBy")
+  reviewedSellerKycDocuments      SellerKycDocument[]      @relation("SellerKycDocumentReviewedBy")
   invitedShopStaffMemberships     ShopStaff[]              @relation("ShopStaffInvitedBy")
   requestedSellerPayouts          SellerPayout[]           @relation("SellerPayoutRequestedBy")
   approvedSellerPayouts           SellerPayout[]           @relation("SellerPayoutApprovedBy")
@@ -481,6 +488,7 @@ model User {
   paidSellerPayouts               SellerPayout[]           @relation("SellerPayoutPaidBy")
   shopStaffMemberships            ShopStaff[]
   shopRatings                     ShopRating[]
+  moderatedShopRatings            ShopRating[]             @relation("ShopRatingModeratedBy")
   shopActivityLogs                ShopActivityLog[]
   reportedProductDuplicateReviews ProductDuplicateReview[] @relation("ProductDuplicateReportedBy")
   reviewedProductDuplicateReviews ProductDuplicateReview[] @relation("ProductDuplicateReviewedBy")
@@ -788,19 +796,26 @@ model SellerApplication {
 }
 
 model SellerKycDocument {
-  id            String                @id @default(uuid()) @db.Uuid
-  applicationId String                @db.Uuid
-  uploadId      String                @unique @db.Uuid
-  documentType  SellerKycDocumentType
-  side          SellerKycDocumentSide @default(FRONT)
-  sortOrder     Int                   @default(0)
-  createdAt     DateTime              @default(now())
+  id              String                        @id @default(uuid()) @db.Uuid
+  applicationId   String                        @db.Uuid
+  uploadId        String                        @unique @db.Uuid
+  documentType    SellerKycDocumentType
+  side            SellerKycDocumentSide         @default(FRONT)
+  sortOrder       Int                           @default(0)
+  reviewStatus    SellerKycDocumentReviewStatus @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedById    String?                       @db.Uuid
+  rejectionReason String?
+  createdAt       DateTime                      @default(now())
 
   application SellerApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   upload      Upload            @relation(fields: [uploadId], references: [id], onDelete: Restrict)
+  reviewedBy  User?             @relation("SellerKycDocumentReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@unique([applicationId, documentType, side])
   @@index([applicationId, documentType])
+  @@index([applicationId, reviewStatus])
+  @@index([reviewedById])
 }
 
 model Category {
@@ -1159,26 +1174,33 @@ model ShopStaffPermission {
 }
 
 model ShopRating {
-  id          String       @id @default(uuid()) @db.Uuid
-  shopId      String       @db.Uuid
-  userId      String       @db.Uuid
-  shopOrderId String       @db.Uuid
-  rating      Int
-  body        String?
-  status      ReviewStatus @default(PENDING)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id               String       @id @default(uuid()) @db.Uuid
+  shopId           String       @db.Uuid
+  userId           String       @db.Uuid
+  shopOrderId      String       @db.Uuid
+  rating           Int
+  body             String?
+  status           ReviewStatus @default(PENDING)
+  moderatedAt      DateTime?
+  moderatedById    String?      @db.Uuid
+  moderationReason String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shop      Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  shopOrder ShopOrder      @relation(fields: [shopOrderId, shopId], references: [id, shopId], onDelete: Cascade)
-  media     ReviewMedia[]
-  reports   ReviewReport[]
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop        Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopOrder   ShopOrder      @relation(fields: [shopOrderId, shopId], references: [id, shopId], onDelete: Cascade)
+  moderatedBy User?          @relation("ShopRatingModeratedBy", fields: [moderatedById], references: [id], onDelete: SetNull)
+  media       ReviewMedia[]
+  reports     ReviewReport[]
 
   @@unique([shopId, userId, shopOrderId])
   @@index([shopId, status, createdAt])
+  @@index([shopId, status, updatedAt])
   @@index([userId, createdAt])
   @@index([shopOrderId])
+  @@index([status, moderatedAt])
+  @@index([moderatedById])
 }
 
 model ShopSetting {

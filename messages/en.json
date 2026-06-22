@@ -614,6 +614,17 @@
     "shop": "Shop",
     "shopOwner": "Shop owner",
     "status": "Status",
+    "sellerApplications": {
+      "approveDocument": "Approve document",
+      "rejectDocument": "Reject document",
+      "documentReviewSaved": "Document review saved.",
+      "operationFailed": "Operation failed.",
+      "unresolvedRequiredDocuments": "Required documents still need approval:",
+      "rejectDocumentTitle": "Reject seller document",
+      "rejectDocumentDescription": "Provide a reason for this document.",
+      "rejectDocumentPlaceholder": "Explain what must be corrected on this document.",
+      "rejectionReasonRequired": "Rejection reason is required."
+    },
     "toggleSidebar": "Toggle Sidebar",
     "user": "User",
     "variantDataTable": "Variant Data Table",
@@ -635,7 +646,82 @@
     "dashboard": "Seller dashboard",
     "verifiedMarketplaceShop": "Verified marketplace shop",
     "activeItemsCount": "{count} active items",
-    "fastChatAvailable": "Fast chat available"
+    "fastChatAvailable": "Fast chat available",
+    "manage": {
+      "dashboardTitle": "Dashboard",
+      "dashboardDescription": "Track paid shipment work, low stock, reviews, and shop operations.",
+      "cards": {
+        "todaySales": "Today sales",
+        "monthSales": "Month sales",
+        "pendingPack": "Pending pack",
+        "lowStock": "Low stock"
+      },
+      "lowStockTitle": "Low stock alerts",
+      "recentOrdersTitle": "Recent orders",
+      "availableLabel": "available",
+      "restock": "Restock",
+      "itemsLabel": "items",
+      "loadingAlerts": "Loading alerts...",
+      "noLowStock": "No low stock variants.",
+      "loadingOrders": "Loading orders...",
+      "noRecentOrders": "No recent orders.",
+      "shopInsightsTitle": "Shop insights",
+      "avgRating": "Average rating",
+      "publishedReviews": "Published reviews",
+      "pendingModeration": "Pending moderation",
+      "recentShopReviewsTitle": "Recent shop reviews",
+      "loadingReviews": "Loading reviews...",
+      "reviewsLoadError": "Unable to load reviews.",
+      "noReviewsYet": "No shop reviews yet.",
+      "noReviewComment": "No comment",
+      "reviewModerationReason": "Moderation reason",
+      "noModerationReason": "No reason provided",
+      "reviewStatus": {
+        "pending": "Pending",
+        "published": "Published",
+        "rejected": "Rejected",
+        "hidden": "Hidden"
+      },
+      "profileAndStaffTitle": "Shop profile and staff",
+      "noShopContext": "No active shop selected.",
+      "loadingShopProfile": "Loading shop profile...",
+      "shopProfileLoadError": "Unable to load shop profile or settings.",
+      "shopProfileLabel": "Shop profile",
+      "shopSettingsLabel": "Shop settings",
+      "enableVacation": "Enable vacation mode",
+      "disableVacation": "Disable vacation mode",
+      "enableChat": "Enable chat",
+      "disableChat": "Disable chat",
+      "shopSettingsSaved": "Shop settings updated.",
+      "shopSettingsFailed": "Unable to update shop settings.",
+      "staffTitle": "Staff management",
+      "staffDescription": "Invitation and role APIs are in foundation phase. Use this area to monitor upcoming staff rollout.",
+      "staffStatus": {
+        "owner": "Owner access active",
+        "comingSoon": "Staff workflows coming soon"
+      },
+      "retry": "Retry"
+    },
+    "kyc": {
+      "required": "Required",
+      "optional": "Optional",
+      "uploading": "Uploading...",
+      "uploadId": "Upload ID:",
+      "reviewLabel": "Review:",
+      "rejectionReason": "Reason:",
+      "requiredBeforeSubmit": "This document is required before submit.",
+      "reviewStatus": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "documentType": {
+        "idCard": "ID card",
+        "businessCertificate": "Business certificate",
+        "bankBook": "Bank book",
+        "taxDocument": "Tax document"
+      }
+    }
   },
   "ui": {
     "close": "Close",

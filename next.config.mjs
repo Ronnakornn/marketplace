@@ -66,15 +66,15 @@ const nextConfig = {
             source: '/_next/static/:path*',
             headers: [{ key: 'Cache-Control', value: staticAssetCacheControl }],
           },
+          {
+            source: '/:path*.:ext(js|css|woff|woff2|ttf|otf|ico|png|jpg|jpeg|gif|webp|avif|svg)',
+            headers: [{ key: 'Cache-Control', value: staticAssetCacheControl }],
+          },
         ]
       : []
 
     return [
       ...productionStaticHeaders,
-      {
-        source: '/:path*.:ext(js|css|woff|woff2|ttf|otf|ico|png|jpg|jpeg|gif|webp|avif|svg)',
-        headers: [{ key: 'Cache-Control', value: staticAssetCacheControl }],
-      },
       {
         source: '/uploads/:path*',
         headers: [{ key: 'Cache-Control', value: publicImageCacheControl }],

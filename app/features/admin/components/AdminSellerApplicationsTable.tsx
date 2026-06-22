@@ -16,13 +16,29 @@ import { Button } from "#/components/ui/button";
 import { CardContent } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
+import { useTranslations } from "#/i18n/client";
 import { AdminDataShell } from "./AdminDataShell";
 import { AdminStatusBadge } from "./AdminStatusBadge";
 import {
   type AdminSellerApplication,
   useAdminSellerApplicationsList,
   useReviewSellerApplication,
+  useReviewSellerApplicationDocument,
 } from "../hooks/useAdminOperations";
+
+interface ParsedApiError {
+  code?: string;
+  message?: string;
+  details?: Record<string, unknown>;
+}
+
+interface DocumentRejectTarget {
+  applicationId: string;
+  shopName: string;
+  documentId: string;
+  documentType: string;
+  documentSide: string | null | undefined;
+}
 
 function formatDate(value: string | Date | null | undefined) {
   if (!value) return "Not set";
@@ -35,13 +51,44 @@ function formatFileSize(bytes: number | null | undefined) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function readErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
+function readApiError(error: unknown): ParsedApiError | null {
   if (error && typeof error === "object") {
-    const record = error as { value?: { error?: { message?: string } }; error?: { message?: string }; message?: string };
-    return record.value?.error?.message ?? record.error?.message ?? record.message ?? "Operation failed.";
+    const record = error as {
+      value?: { error?: ParsedApiError };
+      error?: ParsedApiError;
+      code?: string;
+      message?: string;
+      details?: Record<string, unknown>;
+    };
+
+    if (record.value?.error) return record.value.error;
+    if (record.error) return record.error;
+    if (record.code || record.message || record.details) {
+      return {
+        code: record.code,
+        message: record.message,
+        details: record.details,
+      };
+    }
   }
-  return "Operation failed.";
+  if (error instanceof Error) return { message: error.message };
+  return null;
+}
+
+function readErrorMessage(error: unknown, fallback = "Operation failed.") {
+  return readApiError(error)?.message ?? fallback;
+}
+
+function readUnresolvedDocumentTypes(error: unknown): string[] {
+  const payload = readApiError(error);
+  if (!payload || payload.code !== "SELLER_DOCUMENTS_NOT_APPROVED") return [];
+
+  const unresolved = (payload.details as { unresolved?: Array<{ documentType?: unknown }> } | undefined)?.unresolved;
+  if (!Array.isArray(unresolved)) return [];
+
+  return unresolved
+    .map((item) => item?.documentType)
+    .filter((value): value is string => typeof value === "string");
 }
 
 function textMatch(application: AdminSellerApplication, query: string) {
@@ -68,17 +115,43 @@ function DetailLine({ label, value }: { label: string; value: string | null | un
 }
 
 export function AdminSellerApplicationsTable() {
+  const t = useTranslations();
   const [search, setSearch] = useState("");
   const [rejectTarget, setRejectTarget] = useState<AdminSellerApplication | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectDocumentTarget, setRejectDocumentTarget] = useState<DocumentRejectTarget | null>(null);
+  const [documentRejectionReason, setDocumentRejectionReason] = useState("");
   const query = useAdminSellerApplicationsList("SUBMITTED");
   const review = useReviewSellerApplication();
+  const reviewDocument = useReviewSellerApplicationDocument();
   const rows = useMemo(() => (query.data ?? []).filter((application) => textMatch(application, search)), [query.data, search]);
   const rejectionReasonError = rejectTarget && rejectionReason.trim().length === 0;
+  const documentRejectionReasonError = rejectDocumentTarget && documentRejectionReason.trim().length === 0;
+  const unresolvedRequiredDocuments = useMemo(() => readUnresolvedDocumentTypes(review.error), [review.error]);
+  const isMutating = review.isPending || reviewDocument.isPending;
 
   function closeRejectDialog() {
     setRejectTarget(null);
     setRejectionReason("");
+  }
+
+  function closeRejectDocumentDialog() {
+    setRejectDocumentTarget(null);
+    setDocumentRejectionReason("");
+  }
+
+  function documentTypeLabel(documentType: string) {
+    if (documentType === "ID_CARD") return t("seller.kyc.documentType.idCard");
+    if (documentType === "BUSINESS_CERTIFICATE") return t("seller.kyc.documentType.businessCertificate");
+    if (documentType === "BANK_BOOK") return t("seller.kyc.documentType.bankBook");
+    if (documentType === "TAX_DOCUMENT") return t("seller.kyc.documentType.taxDocument");
+    return documentType;
+  }
+
+  function documentReviewStatusLabel(status: string | null | undefined) {
+    if (status === "APPROVED") return t("seller.kyc.reviewStatus.approved");
+    if (status === "REJECTED") return t("seller.kyc.reviewStatus.rejected");
+    return t("seller.kyc.reviewStatus.pending");
   }
 
   return (
@@ -157,10 +230,56 @@ export function AdminSellerApplicationsTable() {
                       <div key={document.id} className="rounded-md border border-white/10 bg-white/5 p-2">
                         <p className="flex items-center gap-2 font-medium text-slate-200">
                           <FileTextIcon className="size-3.5 text-cyan-300" />
-                          {document.documentType} / {document.side}
+                          {documentTypeLabel(document.documentType)} / {document.side}
                         </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <AdminStatusBadge status={document.reviewStatus ?? "PENDING"} />
+                          <p className="text-slate-500">
+                            {t("seller.kyc.reviewLabel")} {documentReviewStatusLabel(document.reviewStatus)}
+                          </p>
+                        </div>
                         <p className="mt-1 truncate text-slate-500">{document.fileName} / {document.contentType} / {formatFileSize(document.fileSize)}</p>
                         <p className="text-slate-500">Upload {document.uploadId} / {document.status} / {formatDate(document.completedAt)}</p>
+                        {document.reviewStatus === "REJECTED" && document.rejectionReason ? (
+                          <p className="mt-1 rounded border border-red-400/30 bg-red-500/10 px-2 py-1 text-red-200">
+                            {t("seller.kyc.rejectionReason")} {document.rejectionReason}
+                          </p>
+                        ) : null}
+                        <div className="mt-2 flex flex-wrap justify-end gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={isMutating}
+                            className="bg-cyan-300 text-slate-950 hover:bg-cyan-200"
+                            onClick={() => reviewDocument.mutate({
+                              applicationId: application.id,
+                              documentId: document.id,
+                              decision: "APPROVED",
+                            })}
+                          >
+                            <CheckIcon className="size-4" />
+                            {t("admin.sellerApplications.approveDocument")}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={isMutating}
+                            className="border-red-400/30 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100"
+                            onClick={() => {
+                              setRejectDocumentTarget({
+                                applicationId: application.id,
+                                shopName: application.shopName,
+                                documentId: document.id,
+                                documentType: document.documentType,
+                                documentSide: document.side,
+                              });
+                            }}
+                          >
+                            <XIcon className="size-4" />
+                            {t("admin.sellerApplications.rejectDocument")}
+                          </Button>
+                        </div>
                       </div>
                     )) : <p className="text-slate-500">No documents attached.</p>}
                   </div>
@@ -170,7 +289,7 @@ export function AdminSellerApplicationsTable() {
                     <Button
                       type="button"
                       size="sm"
-                      disabled={review.isPending}
+                      disabled={isMutating}
                       className="bg-emerald-400 text-slate-950 hover:bg-emerald-300"
                       onClick={() => review.mutate({ id: application.id, decision: "APPROVED" })}
                     >
@@ -180,7 +299,7 @@ export function AdminSellerApplicationsTable() {
                     <Button
                       type="button"
                       size="sm"
-                      disabled={review.isPending}
+                      disabled={isMutating}
                       variant="outline"
                       className="border-red-400/30 bg-red-500/10 text-red-200 hover:bg-red-500/20 hover:text-red-100"
                       onClick={() => setRejectTarget(application)}
@@ -201,7 +320,19 @@ export function AdminSellerApplicationsTable() {
           </TableBody>
         </Table>
         {review.isSuccess ? <p className="px-5 py-3 text-sm text-emerald-300">Seller application review saved.</p> : null}
-        {review.error ? <p className="px-5 py-3 text-sm text-red-300">{readErrorMessage(review.error)}</p> : null}
+        {reviewDocument.isSuccess ? <p className="px-5 py-3 text-sm text-emerald-300">{t("admin.sellerApplications.documentReviewSaved")}</p> : null}
+        {review.error ? <p className="px-5 py-3 text-sm text-red-300">{readErrorMessage(review.error, t("admin.sellerApplications.operationFailed"))}</p> : null}
+        {reviewDocument.error ? <p className="px-5 py-3 text-sm text-red-300">{readErrorMessage(reviewDocument.error, t("admin.sellerApplications.operationFailed"))}</p> : null}
+        {unresolvedRequiredDocuments.length ? (
+          <div className="mx-5 mb-4 rounded border border-amber-300/40 bg-amber-100/10 px-3 py-2 text-sm text-amber-100">
+            <p className="font-semibold">{t("admin.sellerApplications.unresolvedRequiredDocuments")}</p>
+            <ul className="mt-1 list-disc pl-5">
+              {Array.from(new Set(unresolvedRequiredDocuments)).map((documentType) => (
+                <li key={documentType}>{documentTypeLabel(documentType)}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </CardContent>
       <AlertDialog open={Boolean(rejectTarget)} onOpenChange={(open) => { if (!open) closeRejectDialog(); }}>
         <AlertDialogContent>
@@ -226,7 +357,7 @@ export function AdminSellerApplicationsTable() {
               <Button
                 type="button"
                 variant="destructive"
-                disabled={!rejectTarget || rejectionReason.trim().length === 0 || review.isPending}
+                disabled={!rejectTarget || rejectionReason.trim().length === 0 || isMutating}
                 onClick={() => {
                   if (!rejectTarget) return;
                   review.mutate(
@@ -236,6 +367,51 @@ export function AdminSellerApplicationsTable() {
                 }}
               >
                 Reject
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={Boolean(rejectDocumentTarget)} onOpenChange={(open) => { if (!open) closeRejectDocumentDialog(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("admin.sellerApplications.rejectDocumentTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("admin.sellerApplications.rejectDocumentDescription")} {rejectDocumentTarget?.shopName} ({rejectDocumentTarget ? documentTypeLabel(rejectDocumentTarget.documentType) : "-"} / {rejectDocumentTarget?.documentSide}).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Textarea
+              value={documentRejectionReason}
+              onChange={(event) => setDocumentRejectionReason(event.target.value)}
+              placeholder={t("admin.sellerApplications.rejectDocumentPlaceholder")}
+              className="min-h-28"
+            />
+            {documentRejectionReasonError ? (
+              <p className="text-sm font-medium text-red-600">{t("admin.sellerApplications.rejectionReasonRequired")}</p>
+            ) : null}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("admin.cancel")}</AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={!rejectDocumentTarget || documentRejectionReason.trim().length === 0 || isMutating}
+                onClick={() => {
+                  if (!rejectDocumentTarget) return;
+                  reviewDocument.mutate(
+                    {
+                      applicationId: rejectDocumentTarget.applicationId,
+                      documentId: rejectDocumentTarget.documentId,
+                      decision: "REJECTED",
+                      rejectionReason: documentRejectionReason.trim(),
+                    },
+                    { onSuccess: closeRejectDocumentDialog },
+                  );
+                }}
+              >
+                {t("admin.sellerApplications.rejectDocument")}
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>

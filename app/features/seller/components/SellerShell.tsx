@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BanknoteIcon,
   BellIcon,
@@ -42,16 +42,40 @@ interface SellerShellProps {
 }
 
 export function SellerShell({ activeShop, activeShops, children, user }: SellerShellProps) {
-  const pathname = stripLocale(usePathname());
+  const router = useRouter();
+  const rawPathname = usePathname();
+  const searchParams = useSearchParams();
+  const pathname = stripLocale(rawPathname);
   const localePath = useLocalePath();
   const routeKind = getSellerRouteKind(pathname);
   const showOperationalNavigation = routeKind === "operational";
+  const selectedShopParam = searchParams.get("shopId");
+  const selectedShopId = activeShops.some((shop) => shop.id === selectedShopParam)
+    ? (selectedShopParam ?? "")
+    : activeShop?.id ?? activeShops[0]?.id ?? "";
+  const selectedShopQuery = selectedShopId ? `shopId=${encodeURIComponent(selectedShopId)}` : "";
+
+  function createSellerHref(href: string) {
+    const base = localePath(href);
+    return selectedShopQuery ? `${base}?${selectedShopQuery}` : base;
+  }
+
+  function handleShopSelection(nextShopId: string) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (nextShopId === activeShop?.id) {
+      nextParams.delete("shopId");
+    } else {
+      nextParams.set("shopId", nextShopId);
+    }
+    const query = nextParams.toString();
+    router.push(query ? `${rawPathname}?${query}` : rawPathname);
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-950">
       {showOperationalNavigation ? (
         <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-slate-200 bg-white md:flex md:flex-col">
-          <Link href={localePath("/seller")} prefetch={false} className="flex items-center gap-3 border-b border-slate-200 px-5 py-5 no-underline">
+          <Link href={createSellerHref("/seller")} prefetch={false} className="flex items-center gap-3 border-b border-slate-200 px-5 py-5 no-underline">
             <span className="flex size-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
               <StoreIcon className="size-5" />
             </span>
@@ -64,7 +88,11 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
             <div className="border-b border-slate-200 px-3 py-3">
               <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Active shop
-                <select className="mt-2 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm normal-case tracking-normal text-slate-700">
+                <select
+                  value={selectedShopId}
+                  onChange={(event) => handleShopSelection(event.target.value)}
+                  className="mt-2 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm normal-case tracking-normal text-slate-700"
+                >
                   {activeShops.map((shop) => (
                     <option key={shop.id} value={shop.id}>{shop.name}</option>
                   ))}
@@ -78,7 +106,7 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
               return (
                 <Link
                   key={item.href}
-                  href={localePath(item.href)}
+                  href={createSellerHref(item.href)}
                   prefetch={false}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium no-underline",
@@ -102,7 +130,7 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden">
             <div className="flex items-center gap-2 overflow-x-auto">
               {navItems.map((item) => (
-                <Link key={item.href} href={localePath(item.href)} prefetch={false} className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 no-underline">
+                <Link key={item.href} href={createSellerHref(item.href)} prefetch={false} className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 no-underline">
                   <item.icon className="size-3.5" />
                   {item.label}
                 </Link>

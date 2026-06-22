@@ -51,8 +51,18 @@ const ReviewBodySchema = t.Object({
   rejectionReason: t.Optional(t.String()),
 })
 
+const DocumentReviewBodySchema = t.Object({
+  decision: t.Union([t.Literal('APPROVED'), t.Literal('REJECTED')]),
+  rejectionReason: t.Optional(t.String()),
+})
+
 const IdParamsSchema = t.Object({
   applicationId: t.String({ format: 'uuid' }),
+})
+
+const DocumentReviewParamsSchema = t.Object({
+  applicationId: t.String({ format: 'uuid' }),
+  documentId: t.String({ format: 'uuid' }),
 })
 
 const ListQuerySchema = t.Object({
@@ -112,5 +122,11 @@ export function createSellerOnboardingRoutes(container: ServiceContainer) {
       withRole: 'ADMIN',
       params: IdParamsSchema,
       body: ReviewBodySchema,
+    })
+    .patch('/api/admin/seller-applications/:applicationId/documents/:documentId/review', ({ authContext, params, body }: any) =>
+      container.sellerOnboardingService.reviewDocument(actor(authContext), params.applicationId, params.documentId, body), {
+      withRole: 'ADMIN',
+      params: DocumentReviewParamsSchema,
+      body: DocumentReviewBodySchema,
     })
 }

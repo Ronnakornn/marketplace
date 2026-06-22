@@ -30,10 +30,12 @@ import { createRecommendationRoutes } from "#server/modules/recommendation";
 import { createRealtimeRoutes } from "#server/modules/realtime";
 import { createReturnRoutes } from "#server/modules/return";
 import { createReviewRoutes } from "#server/modules/review";
+import { createShopReviewRoutes } from "#server/modules/shop-review";
 import { createProductQuestionRoutes } from "#server/modules/product-question";
 import { createProductAnalyticsRoutes } from "#server/modules/product-analytics";
 import { createSearchRoutes } from "#server/modules/search";
 import { createSellerDashboardRoutes } from "#server/modules/seller";
+import { createSellerShopRoutes } from "#server/modules/seller-shop";
 import { createSellerOnboardingRoutes } from "#server/modules/seller-onboarding";
 import { createShipmentRoutes } from "#server/modules/shipment";
 import { createTrackingRoutes } from "#server/modules/tracking";
@@ -130,6 +132,9 @@ const baseApp = new Elysia()
   // --- Review routes ---
   .use(createReviewRoutes(container))
 
+  // --- Shop review routes ---
+  .use(createShopReviewRoutes(container))
+
   // --- Product Q&A routes ---
   .use(createProductQuestionRoutes(container))
 
@@ -199,6 +204,9 @@ const baseApp = new Elysia()
 
   // --- Seller dashboard routes ---
   .use(createSellerDashboardRoutes(container))
+
+  // --- Seller shop profile and settings routes ---
+  .use(createSellerShopRoutes(container))
 
   // --- Seller onboarding routes ---
   .use(createSellerOnboardingRoutes(container))

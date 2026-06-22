@@ -99,6 +99,10 @@ const ProductVariantParamsSchema = t.Object({
   variantId: t.String({ format: 'uuid' }),
 })
 
+const VariantParamsSchema = t.Object({
+  variantId: t.String({ format: 'uuid' }),
+})
+
 const ProductImageParamsSchema = t.Object({
   productId: t.String({ format: 'uuid' }),
   imageId: t.String({ format: 'uuid' }),
@@ -309,6 +313,12 @@ const UpdateVariantBodySchema = t.Partial(t.Composite([
   }),
 ]))
 
+const UpdateInventoryBodySchema = t.Partial(t.Object({
+  quantityOnHand: t.Number({ minimum: 0 }),
+  reorderLevel: t.Number({ minimum: 0 }),
+  reason: t.Optional(t.String()),
+}))
+
 export function createCatalogRoutes(container: ServiceContainer) {
   const app = new Elysia()
     .use(authPlugin)
@@ -438,6 +448,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
     })
     .get('/api/seller/brands', () => container.catalogService.listActiveBrands(), {
       withAuth: true,
+      withSellerOperational: true,
       response: t.Array(BrandResponseSchema),
     })
     .get('/api/products', listPublicProducts, {
@@ -513,6 +524,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
         limit: query.limit,
       }), {
       withAuth: true,
+      withSellerOperational: true,
       query: SellerListQuerySchema,
     })
     .get('/api/seller/products/:productId', ({ authContext, params }: any) =>
@@ -612,34 +624,40 @@ export function createCatalogRoutes(container: ServiceContainer) {
     .post('/api/seller/products', ({ authContext, body }: any) =>
       container.catalogService.createProduct(authContext.user, body), {
       withAuth: true,
+      withSellerOperational: true,
       body: CreateProductBodySchema,
     })
     .patch('/api/seller/products/:productId', ({ authContext, params, body }: any) =>
       container.catalogService.updateProduct(authContext.user, params.productId, body), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductParamsSchema,
       body: UpdateProductBodySchema,
     })
     .delete('/api/seller/products/:productId', ({ authContext, params }: any) =>
       container.catalogService.archiveProduct(authContext.user, params.productId), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductParamsSchema,
     })
     .post('/api/seller/products/:productId/images', ({ authContext, params, body }: any) =>
       container.catalogService.createProductImage(authContext.user, params.productId, body), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductParamsSchema,
       body: ProductImageBodySchema,
     })
     .patch('/api/seller/products/:productId/images/:imageId', ({ authContext, params, body }: any) =>
       container.catalogService.updateProductImage(authContext.user, params.productId, params.imageId, body), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductImageParamsSchema,
       body: UpdateProductImageBodySchema,
     })
     .delete('/api/seller/products/:productId/images/:imageId', ({ authContext, params }: any) =>
       container.catalogService.deleteProductImage(authContext.user, params.productId, params.imageId), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductImageParamsSchema,
     })
     .put('/api/seller/products/:productId/images/order', ({ authContext, params, body }: any) =>
@@ -651,12 +669,14 @@ export function createCatalogRoutes(container: ServiceContainer) {
     .post('/api/seller/products/:productId/video', ({ authContext, params, body }: any) =>
       container.catalogService.upsertProductVideo(authContext.user, params.productId, body), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductParamsSchema,
       body: ProductVideoBodySchema,
     })
     .delete('/api/seller/products/:productId/video', ({ authContext, params }: any) =>
       container.catalogService.deleteProductVideo(authContext.user, params.productId), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductParamsSchema,
     })
     .put('/api/seller/products/:productId/options', ({ authContext, params, body }: any) =>
@@ -668,19 +688,29 @@ export function createCatalogRoutes(container: ServiceContainer) {
     .post('/api/seller/products/:productId/variants', ({ authContext, params, body }: any) =>
       container.catalogService.createVariant(authContext.user, params.productId, body), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductParamsSchema,
       body: CreateVariantBodySchema,
     })
     .patch('/api/seller/products/:productId/variants/:variantId', ({ authContext, params, body }: any) =>
       container.catalogService.updateVariant(authContext.user, params.productId, params.variantId, body), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductVariantParamsSchema,
       body: UpdateVariantBodySchema,
     })
     .delete('/api/seller/products/:productId/variants/:variantId', ({ authContext, params }: any) =>
       container.catalogService.deleteVariant(authContext.user, params.productId, params.variantId), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductVariantParamsSchema,
+    })
+    .patch('/api/seller/variants/:variantId/inventory', ({ authContext, params, body }: any) =>
+      container.catalogService.updateSellerInventory(authContext.user, params.variantId, body), {
+      withAuth: true,
+      withSellerOperational: true,
+      params: VariantParamsSchema,
+      body: UpdateInventoryBodySchema,
     })
 }
 

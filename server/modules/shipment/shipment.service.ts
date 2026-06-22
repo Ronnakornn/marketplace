@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { ShipmentStatus } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { CacheInvalidation } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ActiveShopResolver } from '#server/modules/security'
 import type { WalletService } from '#server/modules/wallet'
@@ -99,6 +100,7 @@ export class ShipmentService {
     private repo: IShipmentRepository,
     private walletService?: WalletService,
     private eventPublisher?: EventPublisherService,
+    private cacheInvalidation?: CacheInvalidation,
     private activeShopResolver?: ActiveShopResolver,
   ) {
     this.logger = appContext.logger
@@ -168,7 +170,7 @@ export class ShipmentService {
   async packSellerShipment(actor: ShipmentActor, shipmentId: string): Promise<ShipmentResponse> {
     this.logger.info('ShipmentService.packSellerShipment', { actorId: actor.id, shipmentId })
 
-    return this.repo.transaction(async (txRepo) => {
+    const response = await this.repo.transaction(async (txRepo) => {
       const shipment = await this.findSellerShipment(txRepo, actor.id, shipmentId)
       this.assertTransition(shipment.status, 'PACKED')
 
@@ -187,6 +189,8 @@ export class ShipmentService {
       })
       return response
     })
+    await this.cacheInvalidation?.invalidateSellerDashboard(response.shopId)
+    return response
   }
 
   async shipSellerShipment(actor: ShipmentActor, shipmentId: string, input: ShipShipmentInput): Promise<ShipmentResponse> {
@@ -196,7 +200,7 @@ export class ShipmentService {
     if (!trackingNo) throw new ShipmentServiceError('Tracking number is required when shipping', 400, 'TRACKING_REQUIRED')
     this.logger.info('ShipmentService.shipSellerShipment', { actorId: actor.id, shipmentId, carrier })
 
-    return this.repo.transaction(async (txRepo) => {
+    const response = await this.repo.transaction(async (txRepo) => {
       const shipment = await this.findSellerShipment(txRepo, actor.id, shipmentId)
       this.assertTransition(shipment.status, 'SHIPPED')
 
@@ -207,6 +211,8 @@ export class ShipmentService {
       }
       return this.toSellerShipmentResponse(updated)
     })
+    await this.cacheInvalidation?.invalidateSellerDashboard(response.shopId)
+    return response
   }
 
   async deliverSellerShipment(actor: ShipmentActor, shipmentId: string): Promise<ShipmentResponse> {
@@ -229,6 +235,7 @@ export class ShipmentService {
       orderId: response.orderId,
       shopId: response.shopId,
     })
+    await this.cacheInvalidation?.invalidateSellerDashboard(response.shopId)
     return response
   }
 

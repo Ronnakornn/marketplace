@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAuthContext } from '#server/modules/auth/auth.context.ts'
+import { prisma } from '#server/lib/prisma.ts'
 import { CatalogServiceError } from './catalog.errors.ts'
 import { createCatalogRoutes } from './catalog.routes.ts'
 
@@ -12,6 +13,17 @@ vi.mock('#server/modules/auth/auth.ts', () => ({
 
 vi.mock('#server/modules/auth/auth.context.ts', () => ({
   getAuthContext: vi.fn(),
+}))
+
+vi.mock('#server/lib/prisma.ts', () => ({
+  prisma: {
+    shop: {
+      count: vi.fn(),
+    },
+    sellerApplication: {
+      findFirst: vi.fn(),
+    },
+  },
 }))
 
 function createCategory(overrides: Record<string, unknown> = {}) {
@@ -127,6 +139,8 @@ function mockAuthContext(overrides: Record<string, unknown> = {}) {
 describe('catalog admin category routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(prisma.shop.count).mockResolvedValue(1)
+    vi.mocked(prisma.sellerApplication.findFirst).mockResolvedValue({ status: 'APPROVED' } as any)
   })
 
   it('rejects unauthenticated and non-admin category mutations', async () => {

@@ -21,6 +21,7 @@ export function createCacheKeys(prefix: string): CacheKeyBuilder {
     searchSuggestions: (query) => `${normalizedPrefix}:search:suggestions:${stableHash(query)}`,
     aiSearch: (query) => `${normalizedPrefix}:ai-search:products:${stableHash(query)}`,
     sellerDashboard: (shopId) => `${normalizedPrefix}:seller:${shopId}:dashboard`,
+    sellerDashboardInsights: (shopId, query) => `${normalizedPrefix}:seller:${shopId}:dashboard:insights:${stableHash(query)}`,
     recommendations: (kind, query) => `${normalizedPrefix}:recommendations:${kind}:${stableHash(query)}`,
   }
 }

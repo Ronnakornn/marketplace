@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { StoreIcon } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import ThemeToggle from "./ThemeToggle";
 import { useTranslations } from "#/i18n/client";
@@ -59,14 +58,6 @@ export default function Header() {
                       {t("common.admin")}
                     </Link>
                   )}
-                  <Link
-                    href={localePath("/seller/register")}
-                    prefetch={false}
-                    className="inline-flex items-center gap-1 rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-3 py-1.5 text-xs font-semibold text-[var(--lagoon-deep)] no-underline transition hover:bg-[rgba(79,184,178,0.24)]"
-                  >
-                    <StoreIcon className="size-3.5" />
-                    Start selling
-                  </Link>
                   <span className="hidden text-sm text-[var(--sea-ink-soft)] sm:inline">
                     {session.user.name}
                   </span>

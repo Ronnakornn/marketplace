@@ -147,6 +147,27 @@ describe('CacheService', () => {
       .not.toBe(keys.searchSuggestions({ locale: 'th', q: 'phone', limit: 10 }))
     expect(keys.sellerDashboard('shop-1')).toBe('v1:seller:shop-1:dashboard')
     expect(keys.sellerDashboard('shop-1')).not.toBe(keys.sellerDashboard('shop-2'))
+    expect(keys.sellerDashboardInsights('shop-1', { kind: 'reviews', limit: 10 }))
+      .not.toBe(keys.sellerDashboardInsights('shop-1', { kind: 'reviews', limit: 20 }))
+    expect(keys.sellerDashboardInsights('shop-1', { kind: 'reviews', limit: 10 }))
+      .not.toBe(keys.sellerDashboardInsights('shop-2', { kind: 'reviews', limit: 10 }))
+  })
+
+  it('seller dashboard invalidation clears dashboard and insights cache keys for a shop', async () => {
+    const service = new CacheService(createAppContext(), createConfig(), createClient())
+    const invalidation = new CacheInvalidation(service)
+
+    await service.set(service.keys.sellerDashboard('shop-1'), { ok: true })
+    await service.set(service.keys.sellerDashboardInsights('shop-1', { kind: 'reviews', limit: 5 }), { items: [] })
+    await service.set(service.keys.sellerDashboardInsights('shop-1', { kind: 'reviews', limit: 10 }), { items: [] })
+    await service.set(service.keys.sellerDashboardInsights('shop-2', { kind: 'reviews', limit: 5 }), { items: [] })
+
+    await invalidation.invalidateSellerDashboard('shop-1')
+
+    await expect(service.get(service.keys.sellerDashboard('shop-1'))).resolves.toBeNull()
+    await expect(service.get(service.keys.sellerDashboardInsights('shop-1', { kind: 'reviews', limit: 5 }))).resolves.toBeNull()
+    await expect(service.get(service.keys.sellerDashboardInsights('shop-1', { kind: 'reviews', limit: 10 }))).resolves.toBeNull()
+    await expect(service.get(service.keys.sellerDashboardInsights('shop-2', { kind: 'reviews', limit: 5 }))).resolves.toEqual({ items: [] })
   })
 
   it('product update invalidates related cache keys', async () => {

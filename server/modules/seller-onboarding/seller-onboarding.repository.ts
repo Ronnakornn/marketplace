@@ -13,6 +13,7 @@ import type {
   SellerBusinessType,
   SellerKycDocumentSide,
   SellerKycDocumentType,
+  SellerKycDocumentReviewStatus,
   SellerVerificationStatus,
 } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -56,6 +57,13 @@ export interface SellerKycDocumentInput {
   sortOrder?: number
 }
 
+export interface SellerKycDocumentReviewInput {
+  reviewStatus: Exclude<SellerKycDocumentReviewStatus, 'PENDING'>
+  reviewedAt: Date
+  reviewedById: string
+  rejectionReason: string | null
+}
+
 export type SellerApplicationRecord = SellerApplication & {
   user: Pick<User, 'id' | 'name' | 'email' | 'status'>
   sellerProfile: Pick<SellerProfile, 'id' | 'userId' | 'businessType' | 'verificationStatus' | 'legalName' | 'displayName' | 'contactEmail' | 'contactPhone'> | null
@@ -78,6 +86,7 @@ export interface ISellerOnboardingRepository {
   upsertDraft(userId: string, input: SellerApplicationWriteInput, documents?: SellerKycDocumentInput[]): Promise<SellerApplicationRecord>
   submitApplication(userId: string, input: SellerApplicationWriteInput, documents: SellerKycDocumentInput[]): Promise<SellerApplicationRecord>
   listApplications(filters: SellerApplicationListFilters): Promise<SellerApplicationRecord[]>
+  reviewDocument(applicationId: string, documentId: string, input: SellerKycDocumentReviewInput): Promise<SellerApplicationRecord | null>
   approveApplication(applicationId: string, reviewerId: string): Promise<SellerApplicationRecord>
   rejectApplication(applicationId: string, reviewerId: string, rejectionReason: string): Promise<SellerApplicationRecord>
 }
@@ -308,6 +317,31 @@ export class PrismaSellerOnboardingRepository implements ISellerOnboardingReposi
     })
   }
 
+  async reviewDocument(applicationId: string, documentId: string, input: SellerKycDocumentReviewInput): Promise<SellerApplicationRecord | null> {
+    this.logger.info('PrismaSellerOnboardingRepository.reviewDocument', {
+      applicationId,
+      documentId,
+      reviewStatus: input.reviewStatus,
+      reviewedById: input.reviewedById,
+    })
+
+    const updated = await this.prisma.sellerKycDocument.updateMany({
+      where: {
+        id: documentId,
+        applicationId,
+      },
+      data: {
+        reviewStatus: input.reviewStatus,
+        reviewedAt: input.reviewedAt,
+        reviewedById: input.reviewedById,
+        rejectionReason: input.rejectionReason,
+      },
+    })
+
+    if (updated.count === 0) return null
+    return this.findApplicationById(applicationId)
+  }
+
   async approveApplication(applicationId: string, reviewerId: string): Promise<SellerApplicationRecord> {
     this.logger.info('PrismaSellerOnboardingRepository.approveApplication', { applicationId, reviewerId })
     await this.prisma.$transaction(async (tx) => {
@@ -487,6 +521,10 @@ export class PrismaSellerOnboardingRepository implements ISellerOnboardingReposi
         documentType: document.documentType,
         side: document.side ?? 'FRONT',
         sortOrder: document.sortOrder ?? 0,
+        reviewStatus: 'PENDING',
+        reviewedAt: null,
+        reviewedById: null,
+        rejectionReason: null,
       })),
     })
   }

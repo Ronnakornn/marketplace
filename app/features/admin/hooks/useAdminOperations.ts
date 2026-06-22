@@ -616,6 +616,36 @@ export function useReviewSellerApplication() {
   });
 }
 
+export function useReviewSellerApplicationDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      applicationId,
+      documentId,
+      decision,
+      rejectionReason,
+    }: {
+      applicationId: string;
+      documentId: string;
+      decision: "APPROVED" | "REJECTED";
+      rejectionReason?: string;
+    }) => {
+      const { data, error } = await api.api.admin["seller-applications"]({ applicationId }).documents({ documentId }).review.patch({
+        decision,
+        rejectionReason,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin"] }),
+        queryClient.invalidateQueries({ queryKey: ["seller", "application"] }),
+      ]);
+    },
+  });
+}
+
 export function useCreateAdminBrand() {
   const queryClient = useQueryClient();
   return useMutation({

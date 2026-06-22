@@ -2,9 +2,11 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AlertTriangleIcon, ArchiveIcon, BanknoteIcon, EditIcon, PackageCheckIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "#/i18n/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,15 +59,20 @@ import {
   useSellerCategories,
   useSellerCoupons,
   useSellerDashboard,
+  useSellerDashboardReviews,
   useSellerInventory,
   useSellerPayouts,
   useSellerProducts,
   useSellerReturns,
+  useSellerShopList,
+  useSellerShopProfile,
+  useSellerShopSettings,
   useSellerShipments,
   useSellerTransactions,
   useSellerWallet,
   useShipShipment,
   useArchiveSellerProduct,
+  useUpdateSellerShopSettings,
   useUpdateSellerProduct,
   useUpdateSellerCoupon,
   useUpdateSellerInventory,
@@ -295,28 +302,66 @@ function EmptyState({ message }: { message: string }) {
 }
 
 export function SellerDashboardPage() {
-  const query = useSellerDashboard();
-  const dashboard = query.data;
+  const t = useTranslations();
+  const searchParams = useSearchParams();
+  const selectedShopId = searchParams.get("shopId") || undefined;
+  const dashboardQuery = useSellerDashboard(selectedShopId);
+  const reviewsQuery = useSellerDashboardReviews({ shopId: selectedShopId, limit: 5 });
+  const shopListQuery = useSellerShopList();
+  const resolvedShopId = selectedShopId ?? shopListQuery.data?.activeShopId ?? shopListQuery.data?.shops[0]?.id;
+  const profileQuery = useSellerShopProfile(resolvedShopId);
+  const settingsQuery = useSellerShopSettings(resolvedShopId);
+  const updateShopSettings = useUpdateSellerShopSettings();
+  const dashboard = dashboardQuery.data;
 
-  if (query.error) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
+  if (dashboardQuery.error) return <ErrorState error={dashboardQuery.error} retry={() => void dashboardQuery.refetch()} />;
 
   const cards = [
-    { label: "Today sales", value: formatMoney(dashboard?.sales.todaySalesCents), icon: BanknoteIcon },
-    { label: "Month sales", value: formatMoney(dashboard?.sales.thisMonthSalesCents), icon: BanknoteIcon },
-    { label: "Pending pack", value: String(dashboard?.orders.pendingPack ?? 0), icon: PackageCheckIcon },
-    { label: "Low stock", value: String(dashboard?.products.lowStock ?? 0), icon: AlertTriangleIcon },
+    { label: t("seller.manage.cards.todaySales"), value: formatMoney(dashboard?.sales.todaySalesCents), icon: BanknoteIcon },
+    { label: t("seller.manage.cards.monthSales"), value: formatMoney(dashboard?.sales.thisMonthSalesCents), icon: BanknoteIcon },
+    { label: t("seller.manage.cards.pendingPack"), value: String(dashboard?.orders.pendingPack ?? 0), icon: PackageCheckIcon },
+    { label: t("seller.manage.cards.lowStock"), value: String(dashboard?.products.lowStock ?? 0), icon: AlertTriangleIcon },
   ];
+
+  function formatReviewStatus(status: string) {
+    if (status === "PENDING") return t("seller.manage.reviewStatus.pending");
+    if (status === "PUBLISHED") return t("seller.manage.reviewStatus.published");
+    if (status === "REJECTED") return t("seller.manage.reviewStatus.rejected");
+    if (status === "HIDDEN") return t("seller.manage.reviewStatus.hidden");
+    return status;
+  }
+
+  function retryShopSurface() {
+    void profileQuery.refetch();
+    void settingsQuery.refetch();
+  }
+
+  function toggleShopSetting(setting: "vacationMode" | "chatEnabled") {
+    if (!resolvedShopId || !settingsQuery.data) return;
+    const nextValue = !settingsQuery.data[setting];
+    updateShopSettings.mutate({
+      shopId: resolvedShopId,
+      [setting]: nextValue,
+    }, {
+      onSuccess: () => {
+        toast.success(t("seller.manage.shopSettingsSaved"));
+      },
+      onError: () => {
+        toast.error(t("seller.manage.shopSettingsFailed"));
+      },
+    });
+  }
 
   return (
     <>
-      <SellerPageHeader title="Dashboard" description="Track paid shipment work, low stock, sales, and recent shop activity." />
+      <SellerPageHeader title={t("seller.manage.dashboardTitle")} description={t("seller.manage.dashboardDescription")} />
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <Card key={card.label} className="rounded-lg border-slate-200 bg-white">
             <CardContent className="flex items-start justify-between gap-3 pt-6">
               <div>
                 <p className="text-sm text-slate-500">{card.label}</p>
-                <p className="mt-2 text-2xl font-semibold">{query.isLoading ? "..." : card.value}</p>
+                <p className="mt-2 text-2xl font-semibold">{dashboardQuery.isLoading ? "..." : card.value}</p>
               </div>
               <card.icon className="size-5 text-emerald-600" />
             </CardContent>
@@ -325,25 +370,146 @@ export function SellerDashboardPage() {
       </section>
       <section className="grid gap-4 lg:grid-cols-2">
         <Card className="rounded-lg border-slate-200 bg-white">
-          <CardHeader><CardTitle>Low stock alerts</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("seller.manage.lowStockTitle")}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {dashboard?.lowStockItems.length ? dashboard.lowStockItems.slice(0, 6).map((item) => (
               <div key={item.variantId} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-3">
-                <div><p className="text-sm font-medium">{item.productTitle}</p><p className="text-xs text-slate-500">{item.sku} · available {item.availableQuantity}</p></div>
-                <Link href="/seller/inventory" className="text-sm font-semibold text-emerald-700 no-underline">Restock</Link>
+                <div>
+                  <p className="text-sm font-medium">{item.productTitle}</p>
+                  <p className="text-xs text-slate-500">{item.sku} · {t("seller.manage.availableLabel")} {item.availableQuantity}</p>
+                </div>
+                <Link href="/seller/inventory" className="text-sm font-semibold text-emerald-700 no-underline">{t("seller.manage.restock")}</Link>
               </div>
-            )) : <EmptyState message={query.isLoading ? "Loading alerts..." : "No low stock variants."} />}
+            )) : <EmptyState message={dashboardQuery.isLoading ? t("seller.manage.loadingAlerts") : t("seller.manage.noLowStock")} />}
           </CardContent>
         </Card>
         <Card className="rounded-lg border-slate-200 bg-white">
-          <CardHeader><CardTitle>Recent orders</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t("seller.manage.recentOrdersTitle")}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {dashboard?.recentOrders.length ? dashboard.recentOrders.slice(0, 6).map((order) => (
               <div key={order.orderId} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-3">
-                <div><p className="text-sm font-medium">{order.orderNo}</p><p className="text-xs text-slate-500">{order.items.length} items · {formatMoney(order.totalCents)}</p></div>
+                <div>
+                  <p className="text-sm font-medium">{order.orderNo}</p>
+                  <p className="text-xs text-slate-500">{order.items.length} {t("seller.manage.itemsLabel")} · {formatMoney(order.totalCents)}</p>
+                </div>
                 <StatusPill value={order.status} />
               </div>
-            )) : <EmptyState message={query.isLoading ? "Loading orders..." : "No recent orders."} />}
+            )) : <EmptyState message={dashboardQuery.isLoading ? t("seller.manage.loadingOrders") : t("seller.manage.noRecentOrders")} />}
+          </CardContent>
+        </Card>
+      </section>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card className="rounded-lg border-slate-200 bg-white">
+          <CardHeader>
+            <CardTitle>{t("seller.manage.shopInsightsTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-slate-200 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("seller.manage.avgRating")}</p>
+                <p className="mt-1 text-lg font-semibold text-slate-950">{Number(dashboard?.shopInsights.averageRating ?? 0).toFixed(2)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("seller.manage.publishedReviews")}</p>
+                <p className="mt-1 text-lg font-semibold text-slate-950">{dashboard?.shopInsights.publishedReviewCount ?? 0}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("seller.manage.pendingModeration")}</p>
+                <p className="mt-1 text-lg font-semibold text-slate-950">{dashboard?.shopInsights.pendingReviewCount ?? 0}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-slate-800">{t("seller.manage.recentShopReviewsTitle")}</p>
+              {reviewsQuery.isLoading ? <EmptyState message={t("seller.manage.loadingReviews")} /> : null}
+              {reviewsQuery.error ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                  <p className="text-sm text-red-700">{t("seller.manage.reviewsLoadError")}</p>
+                  <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => void reviewsQuery.refetch()}>
+                    {t("seller.manage.retry")}
+                  </Button>
+                </div>
+              ) : null}
+              {!reviewsQuery.isLoading && !reviewsQuery.error && !reviewsQuery.data?.length ? (
+                <EmptyState message={t("seller.manage.noReviewsYet")} />
+              ) : null}
+              {reviewsQuery.data?.map((review) => (
+                <div key={review.reviewId} className="rounded-lg border border-slate-200 px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-slate-900">{review.shopName}</p>
+                    <StatusPill value={formatReviewStatus(review.status)} />
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">{review.buyerName} · {review.rating}/5</p>
+                  <p className="mt-2 text-sm text-slate-700">{review.comment || t("seller.manage.noReviewComment")}</p>
+                  {review.status === "REJECTED" || review.status === "HIDDEN" ? (
+                    <p className="mt-2 text-xs font-medium text-amber-700">{t("seller.manage.reviewModerationReason")}: {review.moderationReason || t("seller.manage.noModerationReason")}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-lg border-slate-200 bg-white">
+          <CardHeader>
+            <CardTitle>{t("seller.manage.profileAndStaffTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!resolvedShopId ? <EmptyState message={t("seller.manage.noShopContext")} /> : null}
+            {resolvedShopId && (profileQuery.isLoading || settingsQuery.isLoading) ? (
+              <EmptyState message={t("seller.manage.loadingShopProfile")} />
+            ) : null}
+            {resolvedShopId && (profileQuery.error || settingsQuery.error) ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                <p className="text-sm text-red-700">{t("seller.manage.shopProfileLoadError")}</p>
+                <Button type="button" size="sm" variant="outline" className="mt-2" onClick={retryShopSurface}>
+                  {t("seller.manage.retry")}
+                </Button>
+              </div>
+            ) : null}
+            {resolvedShopId && profileQuery.data && settingsQuery.data ? (
+              <>
+                <div className="rounded-lg border border-slate-200 px-3 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("seller.manage.shopProfileLabel")}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-950">{profileQuery.data.name}</p>
+                  <p className="mt-1 text-xs text-slate-500">{profileQuery.data.slug} · {profileQuery.data.contactEmail}</p>
+                  <p className="mt-1 text-xs text-slate-500">{profileQuery.data.contactPhone}</p>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 px-3 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("seller.manage.shopSettingsLabel")}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={updateShopSettings.isPending}
+                      onClick={() => toggleShopSetting("vacationMode")}
+                    >
+                      {settingsQuery.data.vacationMode ? t("seller.manage.disableVacation") : t("seller.manage.enableVacation")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={updateShopSettings.isPending}
+                      onClick={() => toggleShopSetting("chatEnabled")}
+                    >
+                      {settingsQuery.data.chatEnabled ? t("seller.manage.disableChat") : t("seller.manage.enableChat")}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3">
+                  <p className="text-sm font-semibold text-slate-900">{t("seller.manage.staffTitle")}</p>
+                  <p className="mt-1 text-xs text-slate-600">{t("seller.manage.staffDescription")}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <StatusPill value={t("seller.manage.staffStatus.owner") as string} />
+                    <StatusPill value={t("seller.manage.staffStatus.comingSoon") as string} />
+                  </div>
+                </div>
+              </>
+            ) : null}
           </CardContent>
         </Card>
       </section>

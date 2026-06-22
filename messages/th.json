@@ -620,7 +620,18 @@
     "variantLoadError": "ไม่สามารถโหลดสินค้าเพื่อแก้ไขได้",
     "variantTableDescription": "จัดการขนาด สี SKU และราคาของตัวเลือกสินค้า",
     "variants": "ตัวเลือกสินค้า",
-    "you": "คุณ"
+    "you": "คุณ",
+    "sellerApplications": {
+      "approveDocument": "Approve document",
+      "rejectDocument": "Reject document",
+      "documentReviewSaved": "Document review saved.",
+      "operationFailed": "Operation failed.",
+      "unresolvedRequiredDocuments": "Required documents still need approval:",
+      "rejectDocumentTitle": "Reject seller document",
+      "rejectDocumentDescription": "Provide a reason for this document.",
+      "rejectDocumentPlaceholder": "Explain what must be corrected on this document.",
+      "rejectionReasonRequired": "Rejection reason is required."
+    }
   },
   "seo": {
     "homeDescription": "เลือกซื้อสินค้าพร้อมขาย ร้านค้าที่เชื่อถือได้ และดีลในมาร์เก็ตเพลส",
@@ -635,7 +646,82 @@
     "dashboard": "แดชบอร์ดผู้ขาย",
     "verifiedMarketplaceShop": "ร้านค้ามาร์เก็ตเพลสที่ยืนยันแล้ว",
     "activeItemsCount": "{count} รายการพร้อมขาย",
-    "fastChatAvailable": "พร้อมแชทอย่างรวดเร็ว"
+    "fastChatAvailable": "พร้อมแชทอย่างรวดเร็ว",
+    "manage": {
+      "dashboardTitle": "แดชบอร์ด",
+      "dashboardDescription": "ติดตามงานจัดส่งที่ชำระเงินแล้ว สต็อกต่ำ รีวิว และการดำเนินงานร้านค้า",
+      "cards": {
+        "todaySales": "ยอดขายวันนี้",
+        "monthSales": "ยอดขายเดือนนี้",
+        "pendingPack": "รอแพ็ก",
+        "lowStock": "สต็อกต่ำ"
+      },
+      "lowStockTitle": "แจ้งเตือนสต็อกต่ำ",
+      "recentOrdersTitle": "คำสั่งซื้อล่าสุด",
+      "availableLabel": "พร้อมขาย",
+      "restock": "เติมสต็อก",
+      "itemsLabel": "รายการ",
+      "loadingAlerts": "กำลังโหลดแจ้งเตือน...",
+      "noLowStock": "ไม่มีตัวเลือกสินค้าที่สต็อกต่ำ",
+      "loadingOrders": "กำลังโหลดคำสั่งซื้อ...",
+      "noRecentOrders": "ไม่มีคำสั่งซื้อล่าสุด",
+      "shopInsightsTitle": "ข้อมูลเชิงลึกร้านค้า",
+      "avgRating": "คะแนนเฉลี่ย",
+      "publishedReviews": "รีวิวที่เผยแพร่",
+      "pendingModeration": "รอตรวจสอบ",
+      "recentShopReviewsTitle": "รีวิวร้านค้าล่าสุด",
+      "loadingReviews": "กำลังโหลดรีวิว...",
+      "reviewsLoadError": "โหลดรีวิวไม่สำเร็จ",
+      "noReviewsYet": "ยังไม่มีรีวิวร้านค้า",
+      "noReviewComment": "ไม่มีความคิดเห็น",
+      "reviewModerationReason": "เหตุผลการตรวจสอบ",
+      "noModerationReason": "ไม่ได้ระบุเหตุผล",
+      "reviewStatus": {
+        "pending": "รอตรวจสอบ",
+        "published": "เผยแพร่แล้ว",
+        "rejected": "ถูกปฏิเสธ",
+        "hidden": "ซ่อนแล้ว"
+      },
+      "profileAndStaffTitle": "โปรไฟล์ร้านค้าและทีมงาน",
+      "noShopContext": "ยังไม่ได้เลือกร้านที่ใช้งาน",
+      "loadingShopProfile": "กำลังโหลดโปรไฟล์ร้านค้า...",
+      "shopProfileLoadError": "โหลดโปรไฟล์ร้านค้าหรือการตั้งค่าไม่สำเร็จ",
+      "shopProfileLabel": "โปรไฟล์ร้านค้า",
+      "shopSettingsLabel": "การตั้งค่าร้านค้า",
+      "enableVacation": "เปิดโหมดพักร้าน",
+      "disableVacation": "ปิดโหมดพักร้าน",
+      "enableChat": "เปิดแชท",
+      "disableChat": "ปิดแชท",
+      "shopSettingsSaved": "อัปเดตการตั้งค่าร้านค้าแล้ว",
+      "shopSettingsFailed": "อัปเดตการตั้งค่าร้านค้าไม่สำเร็จ",
+      "staffTitle": "จัดการทีมงาน",
+      "staffDescription": "API เชิญทีมงานและกำหนดบทบาทยังอยู่ในช่วงวางรากฐาน ใช้พื้นที่นี้เพื่อติดตามการเปิดใช้ทีมงาน",
+      "staffStatus": {
+        "owner": "สิทธิ์เจ้าของเปิดใช้งาน",
+        "comingSoon": "เวิร์กโฟลว์ทีมงานกำลังมา"
+      },
+      "retry": "ลองอีกครั้ง"
+    },
+    "kyc": {
+      "required": "Required",
+      "optional": "Optional",
+      "uploading": "Uploading...",
+      "uploadId": "Upload ID:",
+      "reviewLabel": "Review:",
+      "rejectionReason": "Reason:",
+      "requiredBeforeSubmit": "This document is required before submit.",
+      "reviewStatus": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "documentType": {
+        "idCard": "ID card",
+        "businessCertificate": "Business certificate",
+        "bankBook": "Bank book",
+        "taxDocument": "Tax document"
+      }
+    }
   },
   "ui": {
     "close": "ปิด",

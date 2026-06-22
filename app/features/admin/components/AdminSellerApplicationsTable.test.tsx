@@ -8,6 +8,44 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminSellerApplicationsTable } from "./AdminSellerApplicationsTable";
 
 const mutate = vi.fn();
+const mutateDocument = vi.fn();
+const reviewState: { isPending: boolean; isSuccess: boolean; error: unknown } = {
+  isPending: false,
+  isSuccess: false,
+  error: null,
+};
+const reviewDocumentState: { isPending: boolean; isSuccess: boolean; error: unknown } = {
+  isPending: false,
+  isSuccess: false,
+  error: null,
+};
+
+vi.mock("#/i18n/client", () => ({
+  useTranslations: () => (key: string) => {
+    const labels: Record<string, string> = {
+      "admin.sellerApplications.approveDocument": "Approve document",
+      "admin.sellerApplications.rejectDocument": "Reject document",
+      "admin.sellerApplications.documentReviewSaved": "Document review saved.",
+      "admin.sellerApplications.operationFailed": "Operation failed.",
+      "admin.sellerApplications.unresolvedRequiredDocuments": "Required documents still need approval:",
+      "admin.sellerApplications.rejectDocumentTitle": "Reject seller document",
+      "admin.sellerApplications.rejectDocumentDescription": "Provide a reason for this document.",
+      "admin.sellerApplications.rejectDocumentPlaceholder": "Explain what must be corrected on this document.",
+      "admin.sellerApplications.rejectionReasonRequired": "Rejection reason is required.",
+      "admin.cancel": "Cancel",
+      "seller.kyc.documentType.idCard": "ID card",
+      "seller.kyc.documentType.businessCertificate": "Business certificate",
+      "seller.kyc.documentType.bankBook": "Bank book",
+      "seller.kyc.documentType.taxDocument": "Tax document",
+      "seller.kyc.reviewStatus.approved": "Approved",
+      "seller.kyc.reviewStatus.rejected": "Rejected",
+      "seller.kyc.reviewStatus.pending": "Pending",
+      "seller.kyc.reviewLabel": "Review:",
+      "seller.kyc.rejectionReason": "Rejection reason:",
+    };
+    return labels[key] ?? key;
+  },
+}));
 
 vi.mock("#/components/ui/alert-dialog", () => ({
   AlertDialog: ({ children, open }: { children: ReactNode; open?: boolean }) => (open ? <>{children}</> : null),
@@ -90,6 +128,8 @@ vi.mock("../hooks/useAdminOperations", () => ({
             id: "doc_1",
             documentType: "ID_CARD",
             side: "FRONT",
+            reviewStatus: "PENDING",
+            rejectionReason: null,
             uploadId: "upload_1",
             fileName: "id-card.png",
             contentType: "image/png",
@@ -106,15 +146,28 @@ vi.mock("../hooks/useAdminOperations", () => ({
   }),
   useReviewSellerApplication: () => ({
     mutate,
-    isPending: false,
-    isSuccess: false,
-    error: null,
+    isPending: reviewState.isPending,
+    isSuccess: reviewState.isSuccess,
+    error: reviewState.error,
+  }),
+  useReviewSellerApplicationDocument: () => ({
+    mutate: mutateDocument,
+    isPending: reviewDocumentState.isPending,
+    isSuccess: reviewDocumentState.isSuccess,
+    error: reviewDocumentState.error,
   }),
 }));
 
 afterEach(() => {
   cleanup();
   mutate.mockClear();
+  mutateDocument.mockClear();
+  reviewState.isPending = false;
+  reviewState.isSuccess = false;
+  reviewState.error = null;
+  reviewDocumentState.isPending = false;
+  reviewDocumentState.isSuccess = false;
+  reviewDocumentState.error = null;
 });
 
 describe("admin seller application queue smoke", () => {
@@ -125,7 +178,7 @@ describe("admin seller application queue smoke", () => {
     expect(screen.getByText("KYC & Payout")).toBeTruthy();
     expect(screen.getByText("Pickup & Documents")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: /approve/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Approve$/i }));
 
     expect(mutate).toHaveBeenCalledWith({ id: "app_1", decision: "APPROVED" });
   });
@@ -133,10 +186,10 @@ describe("admin seller application queue smoke", () => {
   it("requires a rejection reason before rejecting", async () => {
     render(<AdminSellerApplicationsTable />);
 
-    fireEvent.click(screen.getAllByRole("button", { name: /reject/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /^Reject$/i }));
 
     const reason = await screen.findByPlaceholderText("Explain what must be corrected before resubmission.");
-    const rejectButtons = screen.getAllByRole("button", { name: /reject/i });
+    const rejectButtons = screen.getAllByRole("button", { name: /^Reject$/i });
     const dialogRejectButton = rejectButtons[rejectButtons.length - 1];
 
     expect(dialogRejectButton).toHaveProperty("disabled", true);
@@ -152,5 +205,59 @@ describe("admin seller application queue smoke", () => {
       { id: "app_1", decision: "REJECTED", rejectionReason: "Upload a clearer bank book image." },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
+  });
+
+  it("approves and rejects an individual document", async () => {
+    render(<AdminSellerApplicationsTable />);
+
+    fireEvent.click(screen.getByRole("button", { name: /approve document/i }));
+    expect(mutateDocument).toHaveBeenCalledWith({
+      applicationId: "app_1",
+      documentId: "doc_1",
+      decision: "APPROVED",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /reject document/i }));
+    const reason = await screen.findByPlaceholderText("Explain what must be corrected on this document.");
+    const rejectButtons = screen.getAllByRole("button", { name: /reject document/i });
+    const dialogRejectButton = rejectButtons[rejectButtons.length - 1];
+
+    expect(dialogRejectButton).toHaveProperty("disabled", true);
+    fireEvent.change(reason, { target: { value: "Image is blurry" } });
+
+    await waitFor(() => {
+      expect(dialogRejectButton).toHaveProperty("disabled", false);
+    });
+
+    fireEvent.click(dialogRejectButton);
+
+    expect(mutateDocument).toHaveBeenCalledWith(
+      {
+        applicationId: "app_1",
+        documentId: "doc_1",
+        decision: "REJECTED",
+        rejectionReason: "Image is blurry",
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it("shows unresolved required document types when approval is blocked", () => {
+    reviewState.error = {
+      value: {
+        error: {
+          code: "SELLER_DOCUMENTS_NOT_APPROVED",
+          message: "Required KYC documents are not approved",
+          details: {
+            unresolved: [{ documentType: "BANK_BOOK" }],
+          },
+        },
+      },
+    };
+
+    render(<AdminSellerApplicationsTable />);
+
+    expect(screen.getByText("Required documents still need approval:")).toBeTruthy();
+    expect(screen.getByText("Bank book")).toBeTruthy();
   });
 });
