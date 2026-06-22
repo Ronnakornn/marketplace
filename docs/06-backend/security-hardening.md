@@ -26,12 +26,14 @@ server/modules/security/
 ```env
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_WINDOW_SECONDS=60
-RATE_LIMIT_MAX_REQUESTS=100
-RATE_LIMIT_AUTH_MAX_REQUESTS=20
-RATE_LIMIT_CHECKOUT_MAX_REQUESTS=10
-RATE_LIMIT_ADMIN_MAX_REQUESTS=20
+RATE_LIMIT_MAX_REQUESTS=600
+RATE_LIMIT_AUTH_MAX_REQUESTS=120
+RATE_LIMIT_CHECKOUT_MAX_REQUESTS=180
+RATE_LIMIT_ADMIN_MAX_REQUESTS=300
 REQUEST_BODY_LIMIT_BYTES=1048576
 ```
+
+These defaults are intended for small production/demo deployments behind a reverse proxy. Keep rate limiting enabled and tune the values per traffic profile instead of removing the control entirely.
 
 ## Rules
 

@@ -172,6 +172,20 @@ bun run test             # Run Vitest
 | `PHONE_OTP_HTTP_URL` | HTTPS endpoint for the generic HTTP SMS gateway adapter | - |
 | `PHONE_OTP_HTTP_BEARER_TOKEN` | Optional bearer token for the HTTP SMS gateway adapter | - |
 | `PHONE_OTP_HTTP_TIMEOUT_MS` | Timeout for the HTTP SMS gateway adapter | `5000` |
+| `RATE_LIMIT_ENABLED` | Enables API rate limiting by route category | `true` |
+| `RATE_LIMIT_WINDOW_SECONDS` | Rate limit window length in seconds | `60` |
+| `RATE_LIMIT_MAX_REQUESTS` | Public API request limit per client IP per window | `600` |
+| `RATE_LIMIT_AUTH_MAX_REQUESTS` | Auth route request limit per client IP per window | `120` |
+| `RATE_LIMIT_CHECKOUT_MAX_REQUESTS` | Checkout/payment route request limit per client IP per window | `180` |
+| `RATE_LIMIT_ADMIN_MAX_REQUESTS` | Admin route request limit per client IP per window | `300` |
+| `REQUEST_BODY_LIMIT_BYTES` | Maximum accepted request body size | `1048576` |
+| `REDIS_URL` | Redis connection URL for cache and optional queues | `redis://localhost:6379` |
+| `CACHE_ENABLED` | Enables Redis-backed application cache when `REDIS_URL` is configured | `true` |
+| `CACHE_DEFAULT_TTL_SECONDS` | Default cache TTL in seconds | `300` |
+| `CACHE_PRODUCT_TTL_SECONDS` | Product/category cache TTL in seconds | `600` |
+| `CACHE_SEARCH_TTL_SECONDS` | Search cache TTL in seconds | `120` |
+| `CACHE_SELLER_DASHBOARD_TTL_SECONDS` | Seller dashboard cache TTL in seconds | `60` |
+| `CACHE_KEY_PREFIX` | Prefix for Redis cache keys | `ecommerce` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID; Google login is enabled only when paired with `GOOGLE_CLIENT_SECRET` | - |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret; never expose to browser code | - |
 | `FACEBOOK_CLIENT_ID` | Facebook App ID; Facebook login is enabled only when paired with `FACEBOOK_CLIENT_SECRET` | - |
