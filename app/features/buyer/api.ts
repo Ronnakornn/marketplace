@@ -189,7 +189,7 @@ export interface CheckoutResult {
   orderNo: string;
   paymentStatus: string;
   totalCents: number;
-  paymentUrl?: string;
+  paymentUrl: string;
 }
 
 export async function fetchCoupons(locale?: string): Promise<BuyerCoupon[]> {
@@ -330,7 +330,7 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
     orderNo: readString(response.orderNo),
     paymentStatus: readString(response.paymentStatus, "pending"),
     totalCents: readNumber(response.totalCents),
-    paymentUrl: optionalString(response.paymentUrl) ?? undefined,
+    paymentUrl: readString(response.paymentUrl),
   };
 }
 

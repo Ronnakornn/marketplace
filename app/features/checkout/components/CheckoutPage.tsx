@@ -139,7 +139,7 @@ export function CheckoutPage() {
           {checkoutMutation.isError ? <p className="mx-auto mt-2 max-w-5xl text-sm text-red-600">{checkoutMutation.error.message}</p> : null}
           {checkoutMutation.isSuccess ? (
             <p className="mx-auto mt-2 max-w-5xl text-sm text-emerald-700">
-              {t("checkout.orderCreated").replace("{orderNo}", checkoutMutation.data.orderNo)} <Link className="font-semibold underline" href={localePath(`/payment/return?orderId=${checkoutMutation.data.orderId}`)}>{t("checkout.viewPaymentStatus")}</Link>
+              {t("checkout.orderCreated").replace("{orderNo}", checkoutMutation.data.orderNo)} <Link className="font-semibold underline" href={checkoutMutation.data.paymentUrl}>{t("checkout.viewPaymentStatus")}</Link>
             </p>
           ) : null}
         </div>

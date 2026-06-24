@@ -17,7 +17,7 @@ const CheckoutResponseSchema = t.Object({
   orderNo: t.String(),
   paymentId: t.String(),
   paymentStatus: t.Literal('pending'),
-  paymentUrl: t.Optional(t.String()),
+  paymentUrl: t.String(),
   totalCents: t.Number(),
 })
 

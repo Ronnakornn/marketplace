@@ -239,6 +239,7 @@ describe('CheckoutService', () => {
       orderId: '13131313-1313-4131-8131-131313131313',
       paymentId: '14141414-1414-4141-8141-141414141414',
       paymentStatus: 'pending',
+      paymentUrl: '/th/payment/mock/14141414-1414-4141-8141-141414141414',
       totalCents: 2660,
     })
     expect(repo.transaction).toHaveBeenCalledOnce()
@@ -261,6 +262,19 @@ describe('CheckoutService', () => {
         currency: 'USD',
       },
     }))
+  })
+
+  it('uses request locale when generating the mock payment URL', async () => {
+    const service = await setupSuccess()
+
+    const result = await service.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      paymentMethod: 'stripe',
+      locale: 'en',
+    })
+
+    expect(result.paymentUrl).toBe('/en/payment/mock/14141414-1414-4141-8141-141414141414')
   })
 
   it('uses current trusted variant price for order item snapshots instead of cart captured price', async () => {

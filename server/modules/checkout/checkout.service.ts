@@ -15,6 +15,8 @@ import type {
 
 const FLAT_SHIPPING_CENTS = 500
 const CHECKOUT_RESERVATION_MINUTES = 15
+const DEFAULT_CHECKOUT_LOCALE = 'th'
+const SUPPORTED_CHECKOUT_LOCALES = new Set(['th', 'en'])
 
 export interface CheckoutActor {
   id: string
@@ -35,7 +37,7 @@ export interface CheckoutResponse {
   orderNo: string
   paymentId: string
   paymentStatus: 'pending'
-  paymentUrl?: string
+  paymentUrl: string
   totalCents: number
 }
 
@@ -100,6 +102,7 @@ export class CheckoutService {
         orderNo: result.order.orderNumber,
         paymentId: result.payment.id,
         paymentStatus: 'pending',
+        paymentUrl: this.createPaymentUrl(result.payment.id, data.locale),
         totalCents: totals.grandTotal,
       }
     })
@@ -212,6 +215,11 @@ export class CheckoutService {
     const timestamp = Date.now().toString(36).toUpperCase()
     const random = uuidv4().slice(0, 8).toUpperCase()
     return `ORD-${timestamp}-${random}`
+  }
+
+  private createPaymentUrl(paymentId: string, locale?: string): string {
+    const resolvedLocale = locale && SUPPORTED_CHECKOUT_LOCALES.has(locale) ? locale : DEFAULT_CHECKOUT_LOCALE
+    return `/${resolvedLocale}/payment/mock/${paymentId}`
   }
 
   private async createPendingOrder(

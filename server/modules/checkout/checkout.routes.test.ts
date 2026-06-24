@@ -21,6 +21,7 @@ function createContainer() {
         orderNo: 'ORD-TEST',
         paymentId: 'payment-1',
         paymentStatus: 'pending',
+        paymentUrl: '/th/payment/mock/payment-1',
         totalCents: 2900,
       }),
     },
@@ -79,6 +80,9 @@ describe('checkout routes', () => {
     }))
 
     expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      paymentUrl: '/th/payment/mock/payment-1',
+    })
     expect(container.checkoutService.createCheckout).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'user-1', role: 'USER' }),
       validBody,
