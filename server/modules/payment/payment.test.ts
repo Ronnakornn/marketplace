@@ -193,6 +193,113 @@ describe('PaymentService', () => {
     expect(repo.releaseReservations).not.toHaveBeenCalled()
   })
 
+  it('creates mock paid events from trusted server payment facts', async () => {
+    const service = await setup()
+
+    const result = await service.handleMockPaymentEvent({
+      id: 'user-1',
+      email: 'buyer@example.com',
+      name: 'Buyer',
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    }, baseBody.paymentId, { eventType: 'payment.paid' })
+
+    expect(result).toEqual({ ok: true, code: 'PAYMENT_PAID' })
+    expect(repo.createWebhookEvent).toHaveBeenCalledWith({
+      provider: 'mock',
+      providerRef: `mock:${baseBody.paymentId}:payment.paid`,
+      eventType: 'payment.paid',
+      paymentId: baseBody.paymentId,
+      orderId: baseBody.orderId,
+      amount: 2900,
+    })
+    expect(repo.markPaymentSucceeded).toHaveBeenCalledWith(baseBody.paymentId, expect.any(Date))
+    expect(repo.markOrderPaid).toHaveBeenCalledWith(baseBody.orderId)
+  })
+
+  it('creates mock failed events through the webhook transition path', async () => {
+    const service = await setup()
+
+    const result = await service.handleMockPaymentEvent({
+      id: 'user-1',
+      email: 'buyer@example.com',
+      name: 'Buyer',
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    }, baseBody.paymentId, { eventType: 'payment.failed' })
+
+    expect(result).toEqual({ ok: true, code: 'PAYMENT_FAILED' })
+    expect(repo.createWebhookEvent).toHaveBeenCalledWith(expect.objectContaining({
+      providerRef: `mock:${baseBody.paymentId}:payment.failed`,
+      eventType: 'payment.failed',
+      orderId: baseBody.orderId,
+      amount: 2900,
+    }))
+    expect(repo.markPaymentFailed).toHaveBeenCalledWith(baseBody.paymentId)
+    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId)
+  })
+
+  it('keeps duplicate mock events idempotent', async () => {
+    const service = await setup()
+    vi.mocked(repo.findWebhookEvent).mockResolvedValue({ id: 'event-1' } as never)
+
+    const result = await service.handleMockPaymentEvent({
+      id: 'user-1',
+      email: 'buyer@example.com',
+      name: 'Buyer',
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    }, baseBody.paymentId, { eventType: 'payment.paid' })
+
+    expect(result).toEqual({ ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' })
+    expect(repo.markPaymentSucceeded).not.toHaveBeenCalled()
+    expect(repo.markOrderPaid).not.toHaveBeenCalled()
+  })
+
+  it('rejects mock events for admins and other buyers', async () => {
+    const service = await setup()
+
+    await expect(service.handleMockPaymentEvent({
+      id: 'admin-1',
+      email: 'admin@example.com',
+      name: 'Admin',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      emailVerified: true,
+    }, baseBody.paymentId, { eventType: 'payment.paid' })).rejects.toMatchObject({
+      code: 'PAYMENT_FORBIDDEN',
+    })
+
+    await expect(service.handleMockPaymentEvent({
+      id: 'user-2',
+      email: 'other@example.com',
+      name: 'Other Buyer',
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    }, baseBody.paymentId, { eventType: 'payment.paid' })).rejects.toMatchObject({
+      code: 'PAYMENT_FORBIDDEN',
+    })
+  })
+
+  it('rejects mock events that conflict with terminal payment state', async () => {
+    const service = await setup(createPayment('SUCCEEDED'))
+
+    await expect(service.handleMockPaymentEvent({
+      id: 'user-1',
+      email: 'buyer@example.com',
+      name: 'Buyer',
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    }, baseBody.paymentId, { eventType: 'payment.failed' })).rejects.toMatchObject({
+      code: 'PAYMENT_STATE_CONFLICT',
+    })
+  })
+
   it('returns success for duplicate providerRef without duplicate effects', async () => {
     const service = await setup()
     vi.mocked(repo.findWebhookEvent).mockResolvedValue({ id: 'event-1' } as never)

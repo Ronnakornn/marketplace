@@ -17,6 +17,11 @@ export const PaymentWebhookResponseSchema = t.Object({
   code: t.String(),
 })
 
+export const MockPaymentEventBodySchema = t.Object({
+  eventType: t.Union([t.Literal('payment.paid'), t.Literal('payment.failed')]),
+})
+
 export type PaymentWebhookEventType = typeof PaymentWebhookEventTypes[number]
 export type PaymentWebhookBody = Static<typeof PaymentWebhookBodySchema>
 export type PaymentWebhookResponse = Static<typeof PaymentWebhookResponseSchema>
+export type MockPaymentEventBody = Static<typeof MockPaymentEventBodySchema>
