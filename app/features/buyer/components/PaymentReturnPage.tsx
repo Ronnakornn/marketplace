@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircleIcon, CheckCircle2Icon, ClockIcon, XCircleIcon } from "lucide-react";
 import { BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
@@ -11,21 +12,27 @@ import { fetchOrder, formatMoney } from "#/features/buyer/api";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
+const PAYMENT_POLL_INTERVAL_MS = 2_000;
+const PAYMENT_POLL_TIMEOUT_MS = 45_000;
+
 export function PaymentReturnPage({ orderId }: { orderId?: string }) {
   const localePath = useLocalePath();
   const t = useTranslations();
+  const pollingDeadline = useMemo(() => Date.now() + PAYMENT_POLL_TIMEOUT_MS, [orderId]);
   const orderQuery = useQuery({
     queryKey: ["buyer-order", orderId],
     queryFn: () => fetchOrder(orderId ?? ""),
     enabled: Boolean(orderId),
     refetchInterval: (query) => {
       const status = query.state.data?.paymentStatus.toLowerCase();
-      return status === "pending" || status === "requires_action" ? 5000 : false;
+      if (status !== "pending" && status !== "requires_action") return false;
+
+      const remainingWait = pollingDeadline - Date.now();
+      return remainingWait > 0 ? Math.min(PAYMENT_POLL_INTERVAL_MS, remainingWait) : false;
     },
   });
-  const status = orderQuery.data?.paymentStatus.toLowerCase() ?? "pending";
-  const copy = paymentCopy(status, t);
-  const StatusIcon = copy.Icon;
+  const copy = orderQuery.data ? paymentCopy(orderQuery.data.paymentStatus.toLowerCase(), t) : null;
+  const StatusIcon = copy?.Icon;
 
   return (
     <>
@@ -36,7 +43,7 @@ export function PaymentReturnPage({ orderId }: { orderId?: string }) {
         ) : null}
         {orderQuery.isLoading ? <BuyerLoadingList /> : null}
         {orderQuery.isError ? <BuyerErrorState message={orderQuery.error.message} onRetry={() => void orderQuery.refetch()} /> : null}
-        {orderId ? (
+        {orderQuery.data && copy && StatusIcon ? (
           <Alert className={copy.className}>
             <StatusIcon className="size-5" />
             <AlertTitle>{copy.title}</AlertTitle>
