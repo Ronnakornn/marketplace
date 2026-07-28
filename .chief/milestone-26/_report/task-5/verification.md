@@ -85,17 +85,17 @@ The narrow fix:
 
 Regression tests cover the live successful detail response shape, checkout-created `card` compatibility, `cod` rejection, the structured GET error response, nested Eden Error values, and stable fallback copy.
 
-Final manual browser acceptance remains pending for a Chief rerun after this fix. The following scenarios are **not yet claimed as passed end to end**:
+## Final browser acceptance
 
-- Confirm the mock payment page now renders the returned order/payment context.
-- Simulate success and visually confirm payment return plus order detail show succeeded/paid.
-- Simulate failure and visually confirm the return page shows failure without an unsupported retry action.
-- Open the return page before event processing and visually confirm it remains pending.
+Chief reran the complete buyer flow in the local browser after both fixes. Result: PASS.
 
-The focused automated tests cover both integration defects and each underlying handoff/event/status behavior except the remaining integrated visual journey and cross-page browser consistency.
+- Checkout created `ORD-MS4JJDWD-414B368D` and exposed the localized payment URL `/en/payment/mock/cac7b7ba-e151-4214-86a9-6cf2f4b4977a`.
+- The mock payment page rendered order number, amount `THB 8.50`, status `PENDING`, and both payment actions.
+- Visiting `/en/payment/return?orderId=ef1daae1-2db9-4326-8f0c-04e84d0c2ede` before event processing stayed `PENDING`; opening the return page did not mark payment successful.
+- Simulating success redirected to the return page with `SUCCEEDED`; order detail showed `PAID` and `SUCCEEDED` consistently.
+- A separate order, `ORD-MS4JSATF-87EDC33A`, exercised failure. The mock action redirected to a return page showing `FAILED` without a retry action; order detail showed `CANCELED` and `FAILED` consistently.
 
 ## Residual risks and follow-up
 
-- A Chief/tester browser rerun is still required for the four scenarios above, beginning with payment context rendering on the mock page; checkout handoff itself has passed.
-- Redis should be started or cache disabled for a clean local browser session; its absence produced noisy connection errors during startup.
-- Redis unavailability was observed during both local setup and the failing checkout but is unrelated to the reproduced `BigInt` arithmetic defect.
+- Redis should be started or cache disabled for a clean local browser session; its absence produced noisy connection errors during startup but did not block the verified payment flow.
+- The browser pass created two local test orders and one local buyer account for acceptance verification.
