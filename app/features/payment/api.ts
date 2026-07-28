@@ -17,15 +17,23 @@ export async function createBuyerMockPaymentEvent(paymentId: string, eventType: 
 }
 
 function toApiError(error: unknown): Error {
-  if (error instanceof Error) return error;
-  if (error && typeof error === "object") {
-    const value = "value" in error ? error.value : error;
-    if (value && typeof value === "object") {
-      const errorBody = "error" in value ? value.error : value;
-      if (errorBody && typeof errorBody === "object" && "message" in errorBody && typeof errorBody.message === "string") {
-        return new Error(errorBody.message);
-      }
+  return new Error(readApiErrorMessage(error) ?? "Payment request failed");
+}
+
+function readApiErrorMessage(value: unknown, depth = 0): string | null {
+  if (depth > 5) return null;
+  if (typeof value === "string") {
+    const message = value.trim();
+    return message && message !== "[object Object]" ? message : null;
+  }
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  for (const key of ["value", "error", "body", "data", "message"] as const) {
+    if (key in record) {
+      const message = readApiErrorMessage(record[key], depth + 1);
+      if (message) return message;
     }
   }
-  return new Error("Payment request failed");
+  return null;
 }

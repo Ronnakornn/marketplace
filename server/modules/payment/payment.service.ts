@@ -15,6 +15,8 @@ import type {
   PaymentWebhookResponse,
 } from './payment.types.ts'
 
+const MOCK_COMPATIBLE_PAYMENT_PROVIDERS = new Set(['mock', 'card'])
+
 const VALID_EVENTS = new Set(['payment.paid', 'payment.failed', 'payment.expired'])
 
 export class PaymentService {
@@ -159,7 +161,7 @@ export class PaymentService {
 
     const payment = await this.repo.findPayment(paymentId)
     if (!payment) throw new PaymentServiceError('Payment not found', 404, 'PAYMENT_NOT_FOUND')
-    if (payment.provider !== 'mock') {
+    if (!MOCK_COMPATIBLE_PAYMENT_PROVIDERS.has(payment.provider)) {
       throw new PaymentServiceError('Only mock payments are available here', 400, 'INVALID_WEBHOOK_EVENT')
     }
     if (payment.order.userId !== actor.id) {

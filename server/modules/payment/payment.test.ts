@@ -240,6 +240,45 @@ describe('PaymentService', () => {
     })
   })
 
+  it('supports checkout-created card payments through the mock payment flow', async () => {
+    const service = await setup(createPayment('PENDING', { provider: 'card' }))
+    const actor = {
+      id: 'user-1',
+      email: 'buyer@example.com',
+      name: 'Buyer',
+      role: 'USER' as const,
+      status: 'ACTIVE' as const,
+      emailVerified: true,
+    }
+
+    await expect(service.getBuyerMockPaymentDetail(actor, baseBody.paymentId)).resolves.toMatchObject({
+      id: baseBody.paymentId,
+      status: 'PENDING',
+    })
+    await expect(service.handleMockPaymentEvent(actor, baseBody.paymentId, {
+      eventType: 'payment.paid',
+    })).resolves.toEqual({ ok: true, code: 'PAYMENT_PAID' })
+    expect(repo.createWebhookEvent).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'mock',
+      paymentId: baseBody.paymentId,
+    }))
+  })
+
+  it('keeps non-card payment providers outside the mock payment flow', async () => {
+    const service = await setup(createPayment('PENDING', { provider: 'cod' }))
+
+    await expect(service.getBuyerMockPaymentDetail({
+      id: 'user-1',
+      email: 'buyer@example.com',
+      name: 'Buyer',
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    }, baseBody.paymentId)).rejects.toMatchObject({
+      code: 'INVALID_WEBHOOK_EVENT',
+    })
+  })
+
   it('does not expose mock payment detail to another buyer', async () => {
     const service = await setup()
 

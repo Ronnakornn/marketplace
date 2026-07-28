@@ -98,6 +98,27 @@ describe('payment routes', () => {
     )
   })
 
+  it('returns structured payment detail errors for Eden clients', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext() as any)
+    vi.mocked(container.paymentService.getBuyerMockPaymentDetail).mockRejectedValueOnce(
+      new PaymentServiceError('Only mock payments are available here', 400, 'INVALID_WEBHOOK_EVENT'),
+    )
+
+    const response = await createApp(container).handle(
+      new Request(`http://localhost/api/payments/mock/${paymentId}`),
+    )
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: 'INVALID_WEBHOOK_EVENT',
+        message: 'Only mock payments are available here',
+        details: {},
+      },
+    })
+  })
+
   it('requires authentication for mock payment events', async () => {
     vi.mocked(getAuthContext).mockResolvedValue(null)
 
