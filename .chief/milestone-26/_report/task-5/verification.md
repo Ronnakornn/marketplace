@@ -16,14 +16,15 @@ Verified milestone commits:
 Command:
 
 ```text
-bunx vitest run app/features/checkout/components/CheckoutPage.test.tsx app/features/payment/components/MockPaymentPage.test.tsx app/features/buyer/components/PaymentReturnPage.test.tsx server/modules/checkout/checkout.routes.test.ts server/modules/checkout/checkout.service.test.ts server/modules/payment/payment.routes.test.ts server/modules/payment/payment.test.ts server/modules/payment/payment.webhook-signature.test.ts server/modules/order/order.service.test.ts
+bunx vitest run app/features/checkout/components/CheckoutPage.test.tsx app/features/payment/components/MockPaymentPage.test.tsx app/features/buyer/components/PaymentReturnPage.test.tsx server/modules/checkout/checkout.routes.test.ts server/modules/checkout/checkout.service.test.ts server/modules/checkout/checkout.repository.test.ts server/modules/payment/payment.routes.test.ts server/modules/payment/payment.test.ts server/modules/payment/payment.webhook-signature.test.ts server/modules/order/order.service.test.ts
 ```
 
-Result: PASS — 9 test files passed, 52 tests passed, 0 failed (Vitest 4.1.8; 3.51 seconds).
+Result: PASS — 10 test files passed, 53 tests passed, 0 failed (Vitest 4.1.8; 5.68 seconds).
 
 Covered evidence includes:
 
 - Checkout returns and uses the server-provided localized `paymentUrl` while preserving checkout validation, trusted pricing, reservation input, and transaction rollback behavior.
+- The checkout repository converts runtime numeric Prisma prices back to `BigInt` before writing order-item unit and line-total snapshots.
 - Mock payment routes require authentication, reject admin misuse and unsupported event types, and resolve buyer-owned payment details.
 - Mock paid and failed events use trusted server payment facts and the webhook transition path; ownership, idempotency, invalid transitions, reservation release, and order paid/canceled effects are covered.
 - Payment webhook signature validation remains covered.
@@ -35,7 +36,7 @@ Covered evidence includes:
 
 Command: `bunx tsc --noEmit`
 
-Result: PASS — exit code 0, no diagnostics (7.72 seconds).
+Result: PASS — exit code 0, no diagnostics.
 
 ### Whitespace/error check
 
@@ -53,17 +54,29 @@ The standard `bun run dev` command was started successfully:
 - `GET http://localhost:3001/api/health` returned HTTP 200 with API and database status `ok`.
 - Redis was not running locally; the backend repeatedly logged `ECONNREFUSED` for `127.0.0.1:6379` / `::1:6379`. This did not prevent frontend or API/database readiness, but it is an environment limitation for cache-backed behavior.
 
-Manual browser acceptance was not executed because the builder-agent execution boundary prohibits browser/manual integration flows. Therefore the following scenarios are **not claimed as manually passed**:
+## Browser-discovered checkout defect and fix
+
+A subsequent Chief browser pass used a fresh local buyer account with a saved address and an in-stock Home Organization Planner cart item. `POST /api/checkout` reached `CheckoutService.createCheckout` and `PrismaCheckoutRepository.createPendingOrder`, then returned `CHECKOUT_FAILED` before payment handoff.
+
+Read-only local diagnostics reproduced the underlying error:
+
+- The global Prisma result extension serializes database `BigInt` values to JavaScript numbers.
+- A current active cart item returned both `CartItem.unitPrice` and `ProductVariant.price` with runtime type `number`.
+- The checkout repository multiplied that numeric variant price by `BigInt(quantity)`, producing `TypeError: Invalid mix of BigInt and other type in multiplication.`
+
+The narrow fix normalizes `item.variant.price` with `BigInt(...)` once, then uses that value for both the order-item `unitPrice` snapshot and `lineTotal` calculation. A new repository regression test supplies the same runtime numeric price shape and verifies `1200n` unit price plus `2400n` line total for quantity two.
+
+Final manual browser acceptance remains pending for a Chief rerun after this fix. The following scenarios are **not yet claimed as passed end to end**:
 
 - Complete checkout and follow `paymentUrl` to the localized mock payment page.
 - Simulate success and visually confirm payment return plus order detail show succeeded/paid.
 - Simulate failure and visually confirm the return page shows failure without an unsupported retry action.
 - Open the return page before event processing and visually confirm it remains pending.
 
-The focused automated tests above cover each underlying handoff/event/status behavior except the final integrated visual journey and cross-page browser consistency.
+The focused automated tests cover the repository mismatch and each underlying handoff/event/status behavior except the final integrated visual journey and cross-page browser consistency.
 
 ## Residual risks and follow-up
 
-- A tester-agent/manual browser pass is still required for the four end-to-end scenarios above, especially order-detail consistency and absence of a failed-payment retry CTA.
+- A Chief/tester browser rerun is still required for the four end-to-end scenarios above, beginning with confirmation that checkout now reaches the mock payment page.
 - Redis should be started or cache disabled for a clean local browser session; its absence produced noisy connection errors during startup.
-- No production code was changed during verification.
+- Redis unavailability was observed during both local setup and the failing checkout but is unrelated to the reproduced `BigInt` arithmetic defect.

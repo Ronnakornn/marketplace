@@ -243,29 +243,33 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         shippingPostalCode: input.address.postalCode,
         shippingCountry: input.address.country,
         items: {
-          create: input.items.map((item) => ({
-            shopId: item.variant.product.shop.id,
-            variantId: item.variantId,
-            productTitle: localizedText(locale, {
-              th: item.variant.product.titleTh,
-              en: item.variant.product.titleEn,
-              fallback: item.variant.product.title,
-            }) ?? item.variant.product.title,
-            productSlug: item.variant.product.slug,
-            variantTitle: localizedText(locale, {
-              th: item.variant.titleTh,
-              en: item.variant.titleEn,
-              fallback: item.variant.title,
-            }) ?? item.variant.title,
-            variantSku: item.variant.sku,
-            shopName: item.variant.product.shop.name,
-            shopSlug: item.variant.product.shop.slug,
-            quantity: item.quantity,
-            unitPrice: item.variant.price,
-            lineTotal: item.variant.price * BigInt(item.quantity),
-            currency: item.variant.currency,
-            fulfillmentStatus: 'PENDING',
-          })),
+          create: input.items.map((item) => {
+            const unitPrice = BigInt(item.variant.price)
+
+            return {
+              shopId: item.variant.product.shop.id,
+              variantId: item.variantId,
+              productTitle: localizedText(locale, {
+                th: item.variant.product.titleTh,
+                en: item.variant.product.titleEn,
+                fallback: item.variant.product.title,
+              }) ?? item.variant.product.title,
+              productSlug: item.variant.product.slug,
+              variantTitle: localizedText(locale, {
+                th: item.variant.titleTh,
+                en: item.variant.titleEn,
+                fallback: item.variant.title,
+              }) ?? item.variant.title,
+              variantSku: item.variant.sku,
+              shopName: item.variant.product.shop.name,
+              shopSlug: item.variant.product.shop.slug,
+              quantity: item.quantity,
+              unitPrice,
+              lineTotal: unitPrice * BigInt(item.quantity),
+              currency: item.variant.currency,
+              fulfillmentStatus: 'PENDING',
+            }
+          }),
         },
       },
     })
