@@ -2,7 +2,12 @@ import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
 import { PaymentServiceError } from './payment.errors.ts'
-import { MockPaymentEventBodySchema, PaymentWebhookBodySchema, PaymentWebhookResponseSchema } from './payment.types.ts'
+import {
+  BuyerMockPaymentDetailSchema,
+  MockPaymentEventBodySchema,
+  PaymentWebhookBodySchema,
+  PaymentWebhookResponseSchema,
+} from './payment.types.ts'
 import { getPaymentWebhookSecretFromEnv, verifyPaymentWebhookSignature } from './payment.webhook-signature.ts'
 
 const PaymentParamsSchema = t.Object({
@@ -39,6 +44,12 @@ export function createPaymentRoutes(container: ServiceContainer) {
     })
     .post('/api/payment/webhook', handleWebhook, webhookOptions)
     .post('/api/payments/webhook', handleWebhook, webhookOptions)
+    .get('/api/payments/mock/:paymentId', ({ authContext, params }: any) =>
+      container.paymentService.getBuyerMockPaymentDetail(authContext!.user, params.paymentId), {
+      withAuth: true,
+      params: PaymentParamsSchema,
+      response: BuyerMockPaymentDetailSchema,
+    })
     .post('/api/payments/mock/:paymentId/events', ({ authContext, params, body }: any) =>
       container.paymentService.handleMockPaymentEvent(authContext!.user, params.paymentId, body), {
       withAuth: true,

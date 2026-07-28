@@ -46,6 +46,14 @@ function createContainer() {
     paymentService: {
       handleWebhook: vi.fn(),
       handleMockPaymentEvent: vi.fn(async () => ({ ok: true, code: 'PAYMENT_PAID' })),
+      getBuyerMockPaymentDetail: vi.fn(async () => ({
+        id: paymentId,
+        orderId: '13131313-1313-4131-8131-131313131313',
+        orderNo: 'ORD-TEST',
+        amountCents: 2900,
+        currency: 'THB',
+        status: 'PENDING',
+      })),
     },
   } as any
 }
@@ -57,6 +65,37 @@ function createApp(container = createContainer()) {
 describe('payment routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('requires authentication for buyer mock payment detail', async () => {
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+
+    const response = await createApp().handle(
+      new Request(`http://localhost/api/payments/mock/${paymentId}`),
+    )
+
+    expect(response.status).toBe(401)
+  })
+
+  it('returns buyer-owned mock payment detail from the payment service', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext() as any)
+
+    const response = await createApp(container).handle(
+      new Request(`http://localhost/api/payments/mock/${paymentId}`),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      id: paymentId,
+      orderNo: 'ORD-TEST',
+      amountCents: 2900,
+      status: 'PENDING',
+    })
+    expect(container.paymentService.getBuyerMockPaymentDetail).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'user-1', role: 'USER' }),
+      paymentId,
+    )
   })
 
   it('requires authentication for mock payment events', async () => {

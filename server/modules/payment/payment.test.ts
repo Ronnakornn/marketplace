@@ -218,6 +218,43 @@ describe('PaymentService', () => {
     expect(repo.markOrderPaid).toHaveBeenCalledWith(baseBody.orderId)
   })
 
+  it('returns buyer-owned display details for a mock payment', async () => {
+    const service = await setup()
+
+    const result = await service.getBuyerMockPaymentDetail({
+      id: 'user-1',
+      email: 'buyer@example.com',
+      name: 'Buyer',
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    }, baseBody.paymentId)
+
+    expect(result).toEqual({
+      id: baseBody.paymentId,
+      orderId: baseBody.orderId,
+      orderNo: 'ORD-TEST',
+      amountCents: 2900,
+      currency: 'USD',
+      status: 'PENDING',
+    })
+  })
+
+  it('does not expose mock payment detail to another buyer', async () => {
+    const service = await setup()
+
+    await expect(service.getBuyerMockPaymentDetail({
+      id: 'user-2',
+      email: 'other@example.com',
+      name: 'Other Buyer',
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    }, baseBody.paymentId)).rejects.toMatchObject({
+      code: 'PAYMENT_FORBIDDEN',
+    })
+  })
+
   it('creates mock failed events through the webhook transition path', async () => {
     const service = await setup()
 

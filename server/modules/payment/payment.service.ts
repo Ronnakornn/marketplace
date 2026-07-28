@@ -8,7 +8,12 @@ import type { ShipmentService } from '#server/modules/shipment/shipment.service.
 import type { AffiliateService } from '#server/modules/affiliate'
 import { PaymentServiceError } from './payment.errors.ts'
 import type { IPaymentRepository, PaymentWithOrder, ReleaseReservationInput } from './payment.repository.ts'
-import type { MockPaymentEventBody, PaymentWebhookBody, PaymentWebhookResponse } from './payment.types.ts'
+import type {
+  BuyerMockPaymentDetail,
+  MockPaymentEventBody,
+  PaymentWebhookBody,
+  PaymentWebhookResponse,
+} from './payment.types.ts'
 
 const VALID_EVENTS = new Set(['payment.paid', 'payment.failed', 'payment.expired'])
 
@@ -31,18 +36,7 @@ export class PaymentService {
     paymentId: string,
     input: MockPaymentEventBody,
   ): Promise<PaymentWebhookResponse> {
-    if (actor.role !== 'USER') {
-      throw new PaymentServiceError('Only buyers can trigger mock payment events', 403, 'PAYMENT_FORBIDDEN')
-    }
-
-    const payment = await this.repo.findPayment(paymentId)
-    if (!payment) throw new PaymentServiceError('Payment not found', 404, 'PAYMENT_NOT_FOUND')
-    if (payment.provider !== 'mock') {
-      throw new PaymentServiceError('Only mock payments can receive mock events', 400, 'INVALID_WEBHOOK_EVENT')
-    }
-    if (payment.order.userId !== actor.id) {
-      throw new PaymentServiceError('Payment does not belong to authenticated buyer', 403, 'PAYMENT_FORBIDDEN')
-    }
+    const payment = await this.getOwnedMockPayment(actor, paymentId)
 
     return this.handleWebhook({
       provider: 'mock',
@@ -52,6 +46,19 @@ export class PaymentService {
       orderId: payment.orderId,
       amount: Number(payment.amount),
     })
+  }
+
+  async getBuyerMockPaymentDetail(actor: SessionUser, paymentId: string): Promise<BuyerMockPaymentDetail> {
+    const payment = await this.getOwnedMockPayment(actor, paymentId)
+
+    return {
+      id: payment.id,
+      orderId: payment.orderId,
+      orderNo: payment.order.orderNumber,
+      amountCents: Number(payment.amount),
+      currency: payment.currency,
+      status: payment.status,
+    }
   }
 
   async handleWebhook(input: PaymentWebhookBody): Promise<PaymentWebhookResponse> {
@@ -143,6 +150,23 @@ export class PaymentService {
     if (!input.providerRef.trim()) {
       throw new PaymentServiceError('Provider reference is required', 400, 'INVALID_WEBHOOK_EVENT')
     }
+  }
+
+  private async getOwnedMockPayment(actor: SessionUser, paymentId: string): Promise<PaymentWithOrder> {
+    if (actor.role !== 'USER') {
+      throw new PaymentServiceError('Only buyers can access mock payments', 403, 'PAYMENT_FORBIDDEN')
+    }
+
+    const payment = await this.repo.findPayment(paymentId)
+    if (!payment) throw new PaymentServiceError('Payment not found', 404, 'PAYMENT_NOT_FOUND')
+    if (payment.provider !== 'mock') {
+      throw new PaymentServiceError('Only mock payments are available here', 400, 'INVALID_WEBHOOK_EVENT')
+    }
+    if (payment.order.userId !== actor.id) {
+      throw new PaymentServiceError('Payment does not belong to authenticated buyer', 403, 'PAYMENT_FORBIDDEN')
+    }
+
+    return payment
   }
 
   private createMockProviderRef(paymentId: string, eventType: MockPaymentEventBody['eventType']): string {
