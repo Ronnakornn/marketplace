@@ -119,13 +119,13 @@ export class PaymentService {
 
       if (input.eventType === 'payment.failed') {
         await txRepo.markPaymentFailed(payment.id)
-        await txRepo.markOrderCanceled(order.id)
+        await txRepo.markOrderCanceled(order.id, 'FAILED')
         await this.invalidateOrderAffectedCaches(payment)
         return { ok: true, code: 'PAYMENT_FAILED' }
       }
 
       await txRepo.markPaymentExpired(payment.id)
-      await txRepo.markOrderCanceled(order.id)
+      await txRepo.markOrderCanceled(order.id, 'CANCELED')
       await this.invalidateOrderAffectedCaches(payment)
       return { ok: true, code: 'PAYMENT_EXPIRED' }
     })

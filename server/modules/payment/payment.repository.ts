@@ -43,6 +43,9 @@ export interface ReleaseReservationInput {
   quantity: number
 }
 
+/** The Payment statuses that cancel an Order: a rejected payment vs a lapsed one. */
+export type CanceledPaymentStatus = 'FAILED' | 'CANCELED'
+
 export interface IPaymentRepository extends IShipmentCreationRepository, IAffiliateRepository {
   transaction<T>(callback: (repo: IPaymentRepository) => Promise<T>): Promise<T>
   findPayment(paymentId: string): Promise<PaymentWithOrder | null>
@@ -53,7 +56,11 @@ export interface IPaymentRepository extends IShipmentCreationRepository, IAffili
   markPaymentFailed(paymentId: string): Promise<Payment>
   markPaymentExpired(paymentId: string): Promise<Payment>
   markOrderPaid(orderId: string): Promise<Order>
-  markOrderCanceled(orderId: string): Promise<Order>
+  /**
+   * `paymentStatus` must be the status the Payment row itself was just given —
+   * `Order.paymentStatus` is a denormalized copy of it and the two must agree.
+   */
+  markOrderCanceled(orderId: string, paymentStatus: CanceledPaymentStatus): Promise<Order>
   releaseReservations(reservations: ReleaseReservationInput[]): Promise<void>
 }
 
@@ -385,10 +392,10 @@ export class PrismaPaymentRepository implements IPaymentRepository {
     })
   }
 
-  markOrderCanceled(orderId: string): Promise<Order> {
+  markOrderCanceled(orderId: string, paymentStatus: CanceledPaymentStatus): Promise<Order> {
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { status: 'CANCELED', paymentStatus: 'FAILED' },
+      data: { status: 'CANCELED', paymentStatus },
     })
   }
 

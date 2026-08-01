@@ -314,7 +314,7 @@ describe('PaymentService', () => {
       amount: 2900,
     }))
     expect(repo.markPaymentFailed).toHaveBeenCalledWith(baseBody.paymentId)
-    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId)
+    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'FAILED')
   })
 
   it('keeps duplicate mock events idempotent', async () => {
@@ -436,7 +436,7 @@ describe('PaymentService', () => {
     ]
     expect(repo.releaseReservations).toHaveBeenCalledWith(expectedReservations)
     expect(repo.markPaymentFailed).toHaveBeenCalledWith(baseBody.paymentId)
-    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId)
+    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'FAILED')
   })
 
   it('releases reserved stock and marks expired payment and order canceled', async () => {
@@ -447,7 +447,22 @@ describe('PaymentService', () => {
     expect(result).toEqual({ ok: true, code: 'PAYMENT_EXPIRED' })
     expect(repo.releaseReservations).toHaveBeenCalledOnce()
     expect(repo.markPaymentExpired).toHaveBeenCalledWith(baseBody.paymentId)
-    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId)
+    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'CANCELED')
+  })
+
+  it("stamps the order's payment status to match the payment row for both cancel causes", async () => {
+    // Order.paymentStatus is a denormalized copy of Payment.status. An expired
+    // payment becomes CANCELED and a failed one becomes FAILED, so the copy has
+    // to follow the cause rather than being hardcoded to one of them.
+    const expiredService = await setup()
+    await expiredService.handleWebhook({ ...baseBody, eventType: 'payment.expired' })
+    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'CANCELED')
+
+    vi.clearAllMocks()
+
+    const failedService = await setup()
+    await failedService.handleWebhook({ ...baseBody, eventType: 'payment.failed' })
+    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'FAILED')
   })
 
   it('rejects invalid event type and conflicting terminal transitions', async () => {
