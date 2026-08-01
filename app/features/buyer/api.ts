@@ -192,6 +192,25 @@ export interface CheckoutResult {
   paymentUrl: string;
 }
 
+export interface CheckoutQuoteInput {
+  cartId: string;
+  couponCode?: string;
+}
+
+export type CheckoutCouponOutcome =
+  | { code: string; applied: true }
+  | { code: string; applied: false; reason: string };
+
+export interface CheckoutQuote {
+  subtotal: number;
+  discountTotal: number;
+  shippingTotal: number;
+  taxTotal: number;
+  grandTotal: number;
+  currency: string;
+  coupon: CheckoutCouponOutcome | null;
+}
+
 export async function fetchCoupons(locale?: string): Promise<BuyerCoupon[]> {
   const response = await apiFetch(`/api/coupons${toQuery({ locale })}`);
   const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
@@ -331,6 +350,28 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
     paymentStatus: readString(response.paymentStatus, "pending"),
     totalCents: readNumber(response.totalCents),
     paymentUrl: readString(response.paymentUrl),
+  };
+}
+
+export async function quoteCheckout(input: CheckoutQuoteInput): Promise<CheckoutQuote> {
+  const response = await apiFetch("/api/checkout/quote", {
+    method: "POST",
+    body: JSON.stringify(input),
+  }) as Record<string, unknown>;
+  const couponRecord = response.coupon && typeof response.coupon === "object" ? response.coupon as Record<string, unknown> : null;
+  const coupon: CheckoutCouponOutcome | null = couponRecord
+    ? (couponRecord.applied
+      ? { code: readString(couponRecord.code), applied: true }
+      : { code: readString(couponRecord.code), applied: false, reason: readString(couponRecord.reason) })
+    : null;
+  return {
+    subtotal: readNumber(response.subtotal),
+    discountTotal: readNumber(response.discountTotal),
+    shippingTotal: readNumber(response.shippingTotal),
+    taxTotal: readNumber(response.taxTotal),
+    grandTotal: readNumber(response.grandTotal),
+    currency: readString(response.currency, defaultCurrency),
+    coupon,
   };
 }
 
