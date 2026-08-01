@@ -1,5 +1,8 @@
 import { OrderListPage } from "#/features/order";
+import { requireUser } from "#/lib/auth-server";
 
-export default function OrdersRoutePage() {
+export default async function OrdersRoutePage() {
+  await requireUser();
+
   return <OrderListPage />;
 }

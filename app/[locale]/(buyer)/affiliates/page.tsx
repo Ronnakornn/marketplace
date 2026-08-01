@@ -1,12 +1,8 @@
-"use client";
+import { CreatorDashboardPage } from "#/features/affiliate";
+import { requireUser } from "#/lib/auth-server";
 
-import dynamic from "next/dynamic";
+export default async function AffiliatesRoutePage() {
+  await requireUser();
 
-const CreatorDashboardPage = dynamic(
-  () => import("#/features/affiliate").then((mod) => mod.CreatorDashboardPage),
-  { ssr: false }
-);
-
-export default function AffiliatesRoutePage() {
   return <CreatorDashboardPage />;
 }
