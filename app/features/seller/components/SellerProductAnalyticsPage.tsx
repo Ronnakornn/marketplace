@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
 import { SellerPageHeader } from "./SellerShell";
+import { useTranslations } from "#/i18n/client";
 import {
   type SellerProductAnalyticsFilters,
   type SellerProductAnalyticsProductMetric,
@@ -25,6 +26,7 @@ const rangeOptions: Array<{ value: SellerProductAnalyticsRange; label: string }>
 ];
 
 export function SellerProductAnalyticsPage() {
+  const t = useTranslations();
   const [filters, setFilters] = useState<SellerProductAnalyticsFilters>({ range: "30d", sort: "revenue", page: 1, limit: 20 });
   const validationError = validateSellerProductAnalyticsRange(filters);
   const query = useSellerProductAnalytics(filters);
@@ -48,33 +50,33 @@ export function SellerProductAnalyticsPage() {
 
   return (
     <>
-      <SellerPageHeader title="Product Analytics" description="Measure product demand, SKU sales, and conversion signals across seller-owned catalog items." />
+      <SellerPageHeader title={t("seller.analytics.title")} description={t("seller.analytics.description")} />
 
       <Card className="rounded-lg border-slate-200 bg-white">
         <CardContent className="grid gap-4 pt-6 lg:grid-cols-[1fr_auto] lg:items-end">
           <div className="space-y-3">
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Analytics date range">
+            <div className="flex flex-wrap gap-2" role="group" aria-label={t("seller.analytics.dateRange")}>
               {rangeOptions.map((option) => (
                 <Button key={option.value} type="button" variant={filters.range === option.value ? "default" : "outline"} onClick={() => setRange(option.value)}>
-                  {option.label}
+                  {option.value === "7d" ? t("seller.analytics.days7") : option.value === "30d" ? t("seller.analytics.days30") : option.value === "90d" ? t("seller.analytics.days90") : t("seller.analytics.custom")}
                 </Button>
               ))}
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl">
               <label className="space-y-1 text-sm font-medium text-slate-700">
-                Start date
+                {t("seller.analytics.startDate")}
                 <Input type="date" value={filters.from ?? ""} onChange={(event) => setCustomDate("from", event.target.value)} />
               </label>
               <label className="space-y-1 text-sm font-medium text-slate-700">
-                End date
+                {t("seller.analytics.endDate")}
                 <Input type="date" value={filters.to ?? ""} onChange={(event) => setCustomDate("to", event.target.value)} />
               </label>
             </div>
             {validationError ? <p className="text-sm font-medium text-red-700">{validationError}</p> : null}
           </div>
           <form action={submitSearch} className="flex min-w-0 gap-2">
-            <Input name="q" aria-label="Search product analytics" placeholder="Search product" defaultValue={filters.q ?? ""} />
-            <Button type="submit" variant="outline"><SearchIcon className="size-4" />Search</Button>
+            <Input name="q" aria-label={t("seller.analytics.searchAnalytics")} placeholder={t("seller.analytics.searchProduct")} defaultValue={filters.q ?? ""} />
+            <Button type="submit" variant="outline"><SearchIcon className="size-4" />{t("seller.analytics.search")}</Button>
           </form>
         </CardContent>
       </Card>
@@ -82,12 +84,12 @@ export function SellerProductAnalyticsPage() {
       {query.error ? <AnalyticsErrorState error={query.error} retry={() => void query.refetch()} /> : null}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        <KpiCard label="Views" value={formatNumber(summary?.views)} loading={query.isLoading} />
-        <KpiCard label="Add to cart" value={formatNumber(summary?.addToCart)} loading={query.isLoading} />
-        <KpiCard label="Orders" value={formatNumber(summary?.orders)} loading={query.isLoading} />
-        <KpiCard label="Units sold" value={formatNumber(summary?.unitsSold)} loading={query.isLoading} />
-        <KpiCard label="Revenue" value={formatMoney(summary?.revenue, summary?.currency)} loading={query.isLoading} />
-        <KpiCard label="Conversion" value={formatRate(summary?.conversionRate)} loading={query.isLoading} />
+        <KpiCard label={t("seller.analytics.views")} value={formatNumber(summary?.views)} loading={query.isLoading} />
+        <KpiCard label={t("seller.analytics.addToCart")} value={formatNumber(summary?.addToCart)} loading={query.isLoading} />
+        <KpiCard label={t("seller.analytics.orders")} value={formatNumber(summary?.orders)} loading={query.isLoading} />
+        <KpiCard label={t("seller.analytics.unitsSold")} value={formatNumber(summary?.unitsSold)} loading={query.isLoading} />
+        <KpiCard label={t("seller.analytics.revenue")} value={formatMoney(summary?.revenue, summary?.currency)} loading={query.isLoading} />
+        <KpiCard label={t("seller.analytics.conversion")} value={formatRate(summary?.conversionRate)} loading={query.isLoading} />
       </section>
 
       {isEmpty ? <EmptyState message="No product analytics were recorded for this date range." /> : null}
@@ -95,8 +97,8 @@ export function SellerProductAnalyticsPage() {
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
         <Card className="rounded-lg border-slate-200 bg-white">
           <CardHeader className="flex flex-row items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-base"><BarChart3Icon className="size-4 text-emerald-600" />Daily trend</CardTitle>
-            {query.isLoading ? <span className="text-sm text-slate-500">Loading chart...</span> : null}
+            <CardTitle className="flex items-center gap-2 text-base"><BarChart3Icon className="size-4 text-emerald-600" />{t("seller.analytics.dailyTrend")}</CardTitle>
+            {query.isLoading ? <span className="text-sm text-slate-500">{t("seller.analytics.loadingChart")}</span> : null}
           </CardHeader>
           <CardContent>
             {data?.daily.length ? (
@@ -109,7 +111,7 @@ export function SellerProductAnalyticsPage() {
                         <TrendBar label={`${item.date} add to cart`} value={item.addToCart} max={maxTrendValue} className="bg-emerald-600" />
                         <TrendBar label={`${item.date} orders`} value={item.orders} max={maxTrendValue} className="bg-amber-500" />
                       </div>
-                      <span className="w-16 truncate text-center text-[11px] text-slate-500">{item.date.slice(5)}</span>
+                      <span className="w-16 truncate text-center text-[11px] text-slate-500">{formatTrendDate(item.date)}</span>
                     </div>
                   ))}
                 </div>
@@ -119,7 +121,7 @@ export function SellerProductAnalyticsPage() {
         </Card>
 
         <Card className="rounded-lg border-slate-200 bg-white">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ShoppingCartIcon className="size-4 text-emerald-600" />Top SKUs</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ShoppingCartIcon className="size-4 text-emerald-600" />{t("seller.analytics.topSkus")}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {(summary?.topSkus?.length ? summary.topSkus : data?.skus ?? []).length ? (summary?.topSkus?.length ? summary.topSkus : data?.skus ?? []).map((sku) => (
               <SkuRow key={sku.variantId} sku={sku} />
@@ -130,19 +132,13 @@ export function SellerProductAnalyticsPage() {
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="overflow-hidden rounded-lg border-slate-200 bg-white">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><BoxesIcon className="size-4 text-emerald-600" />Product performance</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><BoxesIcon className="size-4 text-emerald-600" />{t("seller.analytics.performance")}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-64 px-4">Product</TableHead>
-                    <TableHead>Views</TableHead>
-                    <TableHead>Add to cart</TableHead>
-                    <TableHead>Orders</TableHead>
-                    <TableHead>Units</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Conversion</TableHead>
+                    <TableHead className="min-w-64 px-4">{t("seller.analytics.product")}</TableHead><TableHead>{t("seller.analytics.views")}</TableHead><TableHead>{t("seller.analytics.addToCart")}</TableHead><TableHead>{t("seller.analytics.orders")}</TableHead><TableHead>{t("seller.analytics.units")}</TableHead><TableHead>{t("seller.analytics.revenue")}</TableHead><TableHead>{t("seller.analytics.conversion")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -156,7 +152,7 @@ export function SellerProductAnalyticsPage() {
         </Card>
 
         <Card className="rounded-lg border-slate-200 bg-white">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><TrendingDownIcon className="size-4 text-amber-600" />Low-performing products</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><TrendingDownIcon className="size-4 text-amber-600" />{t("seller.analytics.lowPerforming")}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {summary?.lowPerformingProducts?.length ? summary.lowPerformingProducts.map((product) => (
               <div key={product.productId} className="rounded-md border border-slate-200 p-3">
@@ -248,4 +244,10 @@ function formatMoney(cents: number | null | undefined, currency: string | null |
 
 function formatRate(value: number | null | undefined) {
   return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value ?? 0)}%`;
+}
+
+function formatTrendDate(value: unknown) {
+  if (typeof value === "string") return value.slice(5);
+  if (value instanceof Date) return value.toISOString().slice(5);
+  return String(value ?? "").slice(5);
 }

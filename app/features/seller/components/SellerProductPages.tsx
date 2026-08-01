@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, BarChart3Icon, EditIcon, PlusIcon, SaveIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "#/i18n/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -638,7 +639,12 @@ function formatMoney(cents: number | bigint | undefined, currency = "USD") {
 }
 
 function StatusPill({ value }: { value: string }) {
-  return <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{value.replaceAll("_", " ")}</span>;
+  const t = useTranslations();
+  const labels: Record<string, string> = {
+    DRAFT: t("seller.products.statusDraft"), PENDING_REVIEW: t("seller.products.statusPendingReview"), ACTIVE: t("seller.manage.status.active"),
+    REJECTED: t("seller.manage.status.rejected"), SUSPENDED: t("seller.products.suspended"), ARCHIVED: t("seller.products.archivedStatus"),
+  };
+  return <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{labels[value] ?? value.replaceAll("_", " ")}</span>;
 }
 
 function ErrorState({ error, retry }: { error: unknown; retry: () => void }) {
@@ -711,14 +717,15 @@ function getVariantPriceContext(product: SellerProduct) {
   return min === max ? formatMoney(min, currency) : `${formatMoney(min, currency)} - ${formatMoney(max, currency)}`;
 }
 
-function getVariantStockContext(product: SellerProduct) {
+function getVariantStockContext(product: SellerProduct, labels?: { noStock: string; available: string }) {
   const variants = product.variants ?? [];
-  if (!variants.length) return "No stock";
+  if (!variants.length) return labels?.noStock ?? "No stock";
   const available = variants.reduce((total, variant) => total + ((variant.inventory?.quantityOnHand ?? 0) - (variant.inventory?.quantityReserved ?? 0)), 0);
-  return `${available} available`;
+  return `${available} ${labels?.available ?? "available"}`;
 }
 
 export function SellerProductsPage() {
+  const t = useTranslations();
   const [status, setStatus] = useState<"" | ProductStatus>("");
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState<string | undefined>();
@@ -731,17 +738,17 @@ export function SellerProductsPage() {
     if (!archiveTarget) return;
     archiveProduct.mutate(archiveTarget.id, {
       onSuccess: () => {
-        toast.success("Product archived.");
+        toast.success(t("seller.products.archived"));
         setArchiveTarget(null);
       },
-      onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Product could not be archived."),
+        onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("seller.products.archiveError")),
     });
   }
 
   const columns = useMemo<ColumnDef<SellerProduct>[]>(() => [
     {
       accessorKey: "title",
-      header: "Product",
+      header: t("seller.products.product"),
       cell: ({ row }) => (
         <div className="min-w-52">
           <p className="font-medium text-slate-950">{row.original.title}</p>
@@ -750,31 +757,31 @@ export function SellerProductsPage() {
         </div>
       ),
     },
-    { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusPill value={row.original.status} /> },
+    { accessorKey: "status", header: t("seller.products.status"), cell: ({ row }) => <StatusPill value={row.original.status} /> },
     {
       id: "assets",
-      header: "Assets",
-      cell: ({ row }) => <div className="text-sm"><p>{row.original.images?.length ?? 0} images</p><p className="text-xs text-slate-500">{row.original.variants.length} variants</p></div>,
+      header: t("seller.products.assets"),
+      cell: ({ row }) => <div className="text-sm"><p>{row.original.images?.length ?? 0} {t("seller.products.images")}</p><p className="text-xs text-slate-500">{row.original.variants.length} {t("seller.products.variants")}</p></div>,
     },
     {
       id: "priceStock",
-      header: "Price / stock",
-      cell: ({ row }) => <div className="min-w-36 text-sm"><p>{getVariantPriceContext(row.original)}</p><p className="text-xs text-slate-500">{getVariantStockContext(row.original)}</p></div>,
+      header: t("seller.products.priceStock"),
+      cell: ({ row }) => <div className="min-w-36 text-sm"><p>{getVariantPriceContext(row.original)}</p><p className="text-xs text-slate-500">{getVariantStockContext(row.original, { noStock: t("seller.products.noStock"), available: t("seller.products.available") })}</p></div>,
     },
     {
       id: "actions",
-      header: () => <span className="sr-only">Actions</span>,
+      header: () => <span className="sr-only">{t("seller.products.actions")}</span>,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
           <Button asChild variant="outline" size="sm" aria-label={`Edit ${row.original.title}`}>
             <Link href={`/seller/products/${row.original.id}`}>
               <EditIcon className="size-4" />
-              <span className="sr-only">Edit</span>
+              <span className="sr-only">{t("seller.products.edit")}</span>
             </Link>
           </Button>
           <Button type="button" variant="outline" size="sm" aria-label={`Archive ${row.original.title}`} onClick={() => setArchiveTarget(row.original)} disabled={row.original.status === "ARCHIVED"}>
             <ArchiveIcon className="size-4" />
-            <span className="sr-only">Archive</span>
+            <span className="sr-only">{t("seller.products.archive")}</span>
           </Button>
         </div>
       ),
@@ -783,7 +790,7 @@ export function SellerProductsPage() {
 
   return (
     <>
-      <SellerPageHeader title="Products" description="Create products, monitor catalog status, and prepare variants for your shop." />
+      <SellerPageHeader title={t("seller.products.title")} description={t("seller.products.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
       <SellerProductQuestionsPanel products={products} />
       <Card className="rounded-lg border-slate-200 bg-white">
@@ -792,18 +799,18 @@ export function SellerProductsPage() {
             columns={columns}
             data={products}
             isLoading={query.isLoading}
-            loadingMessage="Loading products..."
-            emptyMessage="No products found."
+            loadingMessage={t("seller.products.loading")}
+            emptyMessage={t("seller.products.empty")}
             pageSize={10}
             className="overflow-x-auto"
             renderToolbar={() => (
               <>
                 <div className="flex w-full flex-col gap-3 sm:flex-row">
-                  <Input value={q} onChange={(event) => { setQ(event.target.value); setCursor(undefined); }} placeholder="Search products" aria-label="Search products" className="sm:max-w-sm" />
+                  <Input value={q} onChange={(event) => { setQ(event.target.value); setCursor(undefined); }} placeholder={t("seller.products.search")} aria-label={t("seller.products.search")} className="sm:max-w-sm" />
                   <Select value={status || "ALL"} onValueChange={(value) => { setStatus(value === "ALL" ? "" : value as ProductStatus); setCursor(undefined); }}>
                     <SelectTrigger className="sm:w-48" aria-label="Filter by product status"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ALL">All statuses</SelectItem>
+                      <SelectItem value="ALL">{t("seller.products.allStatuses")}</SelectItem>
                       <SelectItem value="DRAFT">Draft</SelectItem>
                       <SelectItem value="PENDING_REVIEW">Pending review</SelectItem>
                       <SelectItem value="ACTIVE">Active</SelectItem>
@@ -816,13 +823,13 @@ export function SellerProductsPage() {
                 <Button asChild className="w-full sm:w-auto">
                   <Link href="/seller/analytics/products">
                     <BarChart3Icon className="size-4" />
-                    Product analytics
+                    {t("seller.products.analytics")}
                   </Link>
                 </Button>
                 <Button asChild>
                   <Link href="/seller/products/new">
                     <PlusIcon className="size-4" />
-                    Create product
+                    {t("seller.products.create")}
                   </Link>
                 </Button>
               </>
@@ -830,7 +837,7 @@ export function SellerProductsPage() {
           />
           {query.data?.meta.nextCursor ? (
             <div className="mt-4 flex justify-end">
-              <Button type="button" variant="outline" onClick={() => setCursor(query.data.meta.nextCursor ?? undefined)}>Load next page</Button>
+              <Button type="button" variant="outline" onClick={() => setCursor(query.data.meta.nextCursor ?? undefined)}>{t("seller.products.nextPage")}</Button>
             </div>
           ) : null}
         </CardContent>
@@ -838,15 +845,15 @@ export function SellerProductsPage() {
       <AlertDialog open={Boolean(archiveTarget)} onOpenChange={(open) => { if (!open) setArchiveTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Archive product</AlertDialogTitle>
+            <AlertDialogTitle>{t("seller.products.archiveTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Archive {archiveTarget?.title ?? "this product"}? Archived products stay in history but are removed from active seller management flows.
+              {t("seller.products.archiveDescription").replace("{title}", archiveTarget?.title ?? t("seller.products.thisProduct"))}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={archiveProduct.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={archiveProduct.isPending}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" disabled={archiveProduct.isPending} onClick={confirmArchiveProduct}>
-              {archiveProduct.isPending ? "Archiving..." : "Archive product"}
+              {archiveProduct.isPending ? t("seller.products.archiving") : t("seller.products.archiveTitle")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -856,17 +863,18 @@ export function SellerProductsPage() {
 }
 
 function SellerProductQuestionsPanel({ products }: { products: SellerProduct[] }) {
+  const t = useTranslations();
   const activeProducts = products.filter((product) => product.status === "ACTIVE").slice(0, 6);
 
   if (!activeProducts.length) {
     return (
       <Card className="mb-4 rounded-lg border-slate-200 bg-white">
         <CardHeader>
-          <CardTitle>Product questions</CardTitle>
-          <p className="text-sm text-slate-500">Unanswered buyer questions for active products appear here.</p>
+          <CardTitle>{t("seller.products.questionsTitle")}</CardTitle>
+          <p className="text-sm text-slate-500">{t("seller.products.questionsActiveDescription")}</p>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-500">No active products to check for questions.</p>
+          <p className="text-sm text-slate-500">{t("seller.products.noActiveQuestions")}</p>
         </CardContent>
       </Card>
     );
@@ -875,8 +883,8 @@ function SellerProductQuestionsPanel({ products }: { products: SellerProduct[] }
   return (
     <Card className="mb-4 rounded-lg border-slate-200 bg-white">
       <CardHeader>
-        <CardTitle>Product questions</CardTitle>
-        <p className="text-sm text-slate-500">Answer unanswered buyer questions for products in this list.</p>
+        <CardTitle>{t("seller.products.questionsTitle")}</CardTitle>
+        <p className="text-sm text-slate-500">{t("seller.products.questionsDescription")}</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {activeProducts.map((product) => (
@@ -888,11 +896,12 @@ function SellerProductQuestionsPanel({ products }: { products: SellerProduct[] }
 }
 
 function SellerProductQuestionList({ product }: { product: SellerProduct }) {
+  const t = useTranslations();
   const query = useSellerProductQuestions(product.id);
   const unanswered = (query.data ?? []).filter((question) => question.answers.length === 0);
 
   if (query.isLoading) {
-    return <p className="text-sm text-slate-500">Loading questions for {product.title}...</p>;
+    return <p className="text-sm text-slate-500">{t("seller.products.loadingQuestions").replace("{title}", product.title)}</p>;
   }
 
   if (query.error) {
@@ -900,7 +909,7 @@ function SellerProductQuestionList({ product }: { product: SellerProduct }) {
       <div className="rounded-md border border-red-100 bg-red-50 p-3">
         <p className="text-sm font-medium text-red-700">{product.title}</p>
         <p className="text-sm text-red-600">{query.error.message}</p>
-        <Button type="button" variant="outline" size="sm" onClick={() => void query.refetch()}>Retry</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => void query.refetch()}>{t("seller.products.retry")}</Button>
       </div>
     );
   }
@@ -909,7 +918,7 @@ function SellerProductQuestionList({ product }: { product: SellerProduct }) {
     return (
       <div className="rounded-md border border-slate-200 p-3">
         <p className="text-sm font-medium text-slate-900">{product.title}</p>
-        <p className="text-sm text-slate-500">No unanswered questions.</p>
+        <p className="text-sm text-slate-500">{t("seller.products.noUnanswered")}</p>
       </div>
     );
   }
@@ -925,6 +934,7 @@ function SellerProductQuestionList({ product }: { product: SellerProduct }) {
 }
 
 function SellerProductQuestionAnswerForm({ productId, question }: { productId: string; question: BuyerProductQuestion }) {
+  const t = useTranslations();
   const answerQuestion = useAnswerSellerProductQuestion();
   const [answer, setAnswer] = useState("");
   const trimmed = answer.trim();
@@ -934,29 +944,29 @@ function SellerProductQuestionAnswerForm({ productId, question }: { productId: s
     if (!trimmed) return;
     answerQuestion.mutate({ productId, questionId: question.id, answer: trimmed }, {
       onSuccess: () => setAnswer(""),
-      onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Answer could not be submitted."),
+      onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t("seller.products.answerError")),
     });
   }
 
   return (
     <form className="space-y-2 rounded-md bg-slate-50 p-3" onSubmit={submitAnswer}>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-normal text-slate-500">Buyer question</p>
+        <p className="text-xs font-semibold uppercase tracking-normal text-slate-500">{t("seller.products.buyerQuestion")}</p>
         <p className="mt-1 text-sm text-slate-900">{question.question}</p>
       </div>
-      <Field label={`Answer question from ${question.user.name}`} htmlFor={`answer-${question.id}`}>
+      <Field label={`${t("seller.products.answerFrom")} ${question.user.name}`} htmlFor={`answer-${question.id}`}>
         <Textarea
           id={`answer-${question.id}`}
           value={answer}
           onChange={(event) => setAnswer(event.target.value)}
           disabled={answerQuestion.isPending}
-          placeholder="Write a clear answer for buyers."
+          placeholder={t("seller.products.answerPlaceholder")}
         />
       </Field>
       {answerQuestion.error ? <p className="text-sm text-red-600">{answerQuestion.error.message}</p> : null}
-      {answerQuestion.isSuccess && !answerQuestion.error ? <p className="text-sm text-green-700">Answer submitted.</p> : null}
+      {answerQuestion.isSuccess && !answerQuestion.error ? <p className="text-sm text-green-700">{t("seller.products.answerSubmitted")}</p> : null}
       <Button type="submit" disabled={!trimmed || answerQuestion.isPending}>
-        {answerQuestion.isPending ? "Submitting..." : "Submit answer"}
+        {answerQuestion.isPending ? t("seller.products.submitting") : t("seller.products.submitAnswer")}
       </Button>
     </form>
   );
@@ -1025,6 +1035,7 @@ export function SellerProductEditPage({ productId }: { productId: string }) {
 }
 
 function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; productId?: string }) {
+  const t = useTranslations();
   const router = useRouter();
   const productsQuery = useSellerProducts({ limit: 50 });
   const productQuery = useSellerProduct(mode === "edit" ? productId : undefined);
@@ -1535,7 +1546,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   if (mode === "edit" && (productQuery.error || productsQuery.error)) {
     return (
       <>
-        <SellerPageHeader title="Edit product" description="Update listing details and prepare product setup sections." />
+        <SellerPageHeader title={t("seller.editor.editTitle")} description={t("seller.editor.editDescription")} />
         <ErrorState error={productQuery.error ?? productsQuery.error} retry={() => { void productQuery.refetch(); void productsQuery.refetch(); }} />
       </>
     );
@@ -1544,8 +1555,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   if (mode === "edit" && (productQuery.isLoading || productsQuery.isLoading)) {
     return (
       <>
-        <SellerPageHeader title="Edit product" description="Update listing details and prepare product setup sections." />
-        <Card><CardContent className="pt-6 text-sm text-slate-500">Loading product...</CardContent></Card>
+        <SellerPageHeader title={t("seller.editor.editTitle")} description={t("seller.editor.editDescription")} />
+        <Card><CardContent className="pt-6 text-sm text-slate-500">{t("seller.editor.loading")}</CardContent></Card>
       </>
     );
   }
@@ -1553,15 +1564,15 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   if (mode === "edit" && !product) {
     return (
       <>
-        <SellerPageHeader title="Edit product" description="Update listing details and prepare product setup sections." />
-        <Card><CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-600">Product could not be found or you do not have access to it.</p><Button type="button" variant="outline" onClick={() => { void productQuery.refetch(); void productsQuery.refetch(); }}>Retry</Button></CardContent></Card>
+        <SellerPageHeader title={t("seller.editor.editTitle")} description={t("seller.editor.editDescription")} />
+        <Card><CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-600">{t("seller.editor.notFound")}</p><Button type="button" variant="outline" onClick={() => { void productQuery.refetch(); void productsQuery.refetch(); }}>{t("seller.editor.retry")}</Button></CardContent></Card>
       </>
     );
   }
 
   return (
     <>
-      <SellerPageHeader title="Product Studio" description="Edit draft content, catalog setup, media, variants, inventory, and review readiness from one workspace." />
+      <SellerPageHeader title={t("seller.editor.studioTitle")} description={t("seller.editor.studioDescription")} />
       <ProductStudioHeader
         productTitle={form.title || workingProduct?.title || "Untitled product draft"}
         productStatus={form.status}
@@ -1572,7 +1583,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
         onCancel={cancel}
       />
       <ProductStudioNav />
-      <form id="seller-product-studio-form" className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]" onSubmit={submitProduct}>
+      <form id="seller-product-studio-form" className="flex flex-col gap-4" onSubmit={submitProduct}>
         <div className="space-y-4">
           <ProductSection id="basics" title="Basics" description="Core listing identity, buyer-facing copy, SEO, brand, condition, warranty, and origin.">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1589,9 +1600,9 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Brand" htmlFor="product-brand">
                 <Select value={form.brandId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, brandId: value === "NONE" ? "" : value }))}>
-                  <SelectTrigger id="product-brand" aria-label="Brand"><SelectValue placeholder="Select brand" /></SelectTrigger>
+                  <SelectTrigger id="product-brand" aria-label={t("seller.products.labels.brand" as never)}><SelectValue placeholder={t("seller.products.editorActions.selectBrand" as never)} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NONE">No brand</SelectItem>
+                    <SelectItem value="NONE">{t("seller.products.editorActions.noBrand" as never)}</SelectItem>
                     {(brandsQuery.data ?? []).map((brand) => <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -1609,9 +1620,9 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Category" htmlFor="product-category">
                 <Select value={form.categoryId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, categoryId: value === "NONE" ? "" : value }))}>
-                  <SelectTrigger id="product-category" aria-label="Category"><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectTrigger id="product-category" aria-label={t("seller.products.labels.category" as never)}><SelectValue placeholder={t("seller.products.editorActions.selectCategory" as never)} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NONE">No category</SelectItem>
+                    <SelectItem value="NONE">{t("seller.products.editorActions.noCategory" as never)}</SelectItem>
                     {(categoriesQuery.data ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -1620,23 +1631,23 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                 <Select value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as ProductStatus }))}>
                   <SelectTrigger id="product-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                    <SelectItem value="PENDING_REVIEW">Pending review</SelectItem>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
-                    <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                    <SelectItem value="ARCHIVED">Archived</SelectItem>
+                    <SelectItem value="DRAFT">{t("seller.products.statusDraft" as never)}</SelectItem>
+                    <SelectItem value="PENDING_REVIEW">{t("seller.products.statusPendingReview" as never)}</SelectItem>
+                    <SelectItem value="ACTIVE">{t("seller.manage.status.active")}</SelectItem>
+                    <SelectItem value="REJECTED">{t("seller.manage.status.rejected")}</SelectItem>
+                    <SelectItem value="SUSPENDED">{t("seller.products.suspended")}</SelectItem>
+                    <SelectItem value="ARCHIVED">{t("seller.products.archivedStatus")}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
             </div>
-            {!form.categoryId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Choose a category before submitting for review.</p> : null}
-            {form.categoryId && (categoriesQuery.isLoading || categorySpecsQuery.isLoading) ? <p className="text-sm text-slate-500">Loading category specs...</p> : null}
+            {!form.categoryId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.editorActions.chooseCategory" as never)}</p> : null}
+            {form.categoryId && (categoriesQuery.isLoading || categorySpecsQuery.isLoading) ? <p className="text-sm text-slate-500">{t("seller.products.editorActions.loadingSpecs" as never)}</p> : null}
             {requiredSpecs.length ? (
               <div className="space-y-3 rounded-lg border border-slate-200 p-3">
                 <div>
-                  <p className="text-sm font-semibold text-slate-950">Required specs</p>
-                  <p className="text-xs text-slate-500">These values are required by the selected category before review submission.</p>
+                  <p className="text-sm font-semibold text-slate-950">{t("seller.products.editorActions.requiredSpecs" as never)}</p>
+                  <p className="text-xs text-slate-500">{t("seller.products.editorActions.requiredSpecsHelp" as never)}</p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {requiredSpecs.map((spec) => {
@@ -1659,8 +1670,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
             ) : null}
             <div className="space-y-3 rounded-lg border border-slate-200 p-3">
               <div>
-                <p className="text-sm font-semibold text-slate-950">Optional specs</p>
-                <p className="text-xs text-slate-500">Optional and filterable attributes improve search and buyer comparison.</p>
+                <p className="text-sm font-semibold text-slate-950">{t("seller.products.editorActions.optionalSpecs" as never)}</p>
+                <p className="text-xs text-slate-500">{t("seller.products.editorActions.optionalSpecsHelp" as never)}</p>
               </div>
               {optionalSpecs.length ? (
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -1678,16 +1689,16 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                     );
                   })}
                 </div>
-              ) : <p className="text-sm text-slate-500">No category-specific optional specs are available for this category.</p>}
+              ) : <p className="text-sm text-slate-500">{t("seller.products.editorActions.noOptionalSpecs" as never)}</p>}
             </div>
             <Field label="Additional specifications" htmlFor="product-attributes"><Textarea id="product-attributes" value={getAdditionalAttributesText(form, categorySpecs)} onChange={(event) => setForm((current) => updateAdditionalAttributesText(current, categorySpecs, event.target.value))} rows={3} placeholder="care|Care instructions|Machine wash cold" /></Field>
             <Field label="Highlights" htmlFor="product-highlights"><Textarea id="product-highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder="One highlight per line" /></Field>
           </ProductSection>
         </div>
-        <aside className="space-y-4">
+        <div className="space-y-4">
           <ProductSection id="media" title="Media" description="Upload up to 10 images and one MP4/WebM video after the product has a draft record.">
-            {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before uploading media.</p> : null}
-            {!hasPrimaryImage ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Readiness warning: choose one primary product image before submitting for review.</p> : null}
+            {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.editorActions.saveDraftMedia" as never)}</p> : null}
+            {!hasPrimaryImage ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.editorActions.readinessWarning" as never)}</p> : null}
             <div
               className={`rounded-lg border border-dashed p-4 text-sm ${isDraggingImages ? "border-slate-900 bg-slate-50 text-slate-900" : "border-slate-300 bg-white text-slate-600"}`}
               onDragOver={(event) => handleImageDrag(event, true)}
@@ -1697,21 +1708,21 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               Drag product images here, or use the upload button.
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <input ref={imageInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={addImageFiles} aria-label="Upload product images" />
+              <input ref={imageInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={addImageFiles} aria-label={t("seller.products.editorActions.uploadImages" as never)} />
               <Button type="button" variant="outline" onClick={() => imageInputRef.current?.click()}>
                 <UploadIcon className="size-4" />
                 Add images
               </Button>
-              <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" className="sr-only" onChange={addVideoFile} aria-label="Upload product video" />
+              <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" className="sr-only" onChange={addVideoFile} aria-label={t("seller.products.editorActions.uploadVideo" as never)} />
               <Button type="button" variant="outline" onClick={() => videoInputRef.current?.click()}>
                 <UploadIcon className="size-4" />
                 Add video
               </Button>
             </div>
-            <p className="text-xs text-slate-500">{images.length}/{MAX_PRODUCT_IMAGES} images. Video limit: one MP4 or WebM up to 25MB.</p>
+            <p className="text-xs text-slate-500">{t("seller.products.mediaCount" as never).replace("{count}", String(images.length)).replace("{max}", String(MAX_PRODUCT_IMAGES))}</p>
             {mediaError ? <p className="text-sm text-red-600">{mediaError}</p> : null}
             {images.some((image) => image.status === "existing") ? (
-              <Button type="button" variant="outline" onClick={saveImageOrder} disabled={isSaving}>Save image order</Button>
+              <Button type="button" variant="outline" onClick={saveImageOrder} disabled={isSaving}>{t("seller.products.editorActions.saveImageOrder" as never)}</Button>
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               {images.map((image, imageIndex) => (
@@ -1719,9 +1730,9 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   <img src={image.url} alt={image.altText || "Product image preview"} className="aspect-square w-full rounded-md object-cover" />
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className={`rounded-full px-2 py-1 font-semibold ${image.status === "error" ? "bg-red-100 text-red-700" : image.status === "uploading" ? "bg-blue-100 text-blue-700" : image.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                      {image.status === "existing" ? "Completed" : image.status}
+                      {image.status === "existing" ? t("seller.products.completed" as never) : image.status}
                     </span>
-                    {image.isPrimary ? <span className="rounded-full bg-slate-900 px-2 py-1 font-semibold text-white">Primary</span> : null}
+                    {image.isPrimary ? <span className="rounded-full bg-slate-900 px-2 py-1 font-semibold text-white">{t("seller.products.primary" as never)}</span> : null}
                   </div>
                   <Field label="Alt text" htmlFor={`image-alt-${image.id}`}>
                     <Input id={`image-alt-${image.id}`} value={image.altText} onChange={(event) => updateImageDraft(image.id, { altText: event.target.value })} />
@@ -1749,29 +1760,29 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               <div className="space-y-3 rounded-lg border border-slate-200 p-3">
                 <p className="text-sm font-medium text-slate-900">{video.fileName ?? "Product video"}</p>
                 <p className="text-xs text-slate-500">{video.contentType ?? "video"} {video.fileSize ? `- ${(video.fileSize / 1024 / 1024).toFixed(1)}MB` : ""}</p>
-                {video.url && video.contentType && PRODUCT_VIDEO_TYPES.includes(video.contentType) ? <video src={video.url} controls className="aspect-video w-full rounded-md bg-slate-100" /> : <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Video preview is unavailable for this file type.</p>}
+                {video.url && video.contentType && PRODUCT_VIDEO_TYPES.includes(video.contentType) ? <video src={video.url} controls className="aspect-video w-full rounded-md bg-slate-100" /> : <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.videoPreviewUnavailable" as never)}</p>}
                 <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${video.status === "error" ? "bg-red-100 text-red-700" : video.status === "uploading" ? "bg-blue-100 text-blue-700" : video.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                  {video.status === "existing" ? "Completed" : video.status}
+                  {video.status === "existing" ? t("seller.products.completed" as never) : video.status}
                 </span>
                 {video.error ? <p className="text-sm text-red-600">{video.error}</p> : null}
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={saveVideo} disabled={isSaving || video.status === "existing"}>{video.status === "uploading" ? "Uploading..." : video.status === "error" ? "Retry video" : "Save video"}</Button>
-                  <Button type="button" variant="outline" onClick={removeVideo}>Remove video</Button>
+                  <Button type="button" variant="outline" onClick={removeVideo}>{t("seller.products.editorActions.removeVideo" as never)}</Button>
                 </div>
               </div>
             ) : null}
-            {!video ? <p className="rounded-lg border border-slate-200 p-3 text-sm text-slate-500">No product video attached.</p> : null}
+            {!video ? <p className="rounded-lg border border-slate-200 p-3 text-sm text-slate-500">{t("seller.products.editorActions.noVideo" as never)}</p> : null}
           </ProductSection>
           <ProductSection id="variants" title="Variants" description="Define option axes, option values, and sellable variant rows.">
-            {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before editing variant options.</p> : null}
+            {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.editorActions.saveDraftMedia" as never)}</p> : null}
             {optionError ? <p className="text-sm text-red-600">{optionError}</p> : null}
             {duplicateCombinationError ? <p className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={addOption} disabled={options.length >= 2}><PlusIcon className="size-4" />Add option</Button>
-              <Button type="button" variant="outline" onClick={saveOptions} disabled={isSaving}>Save options</Button>
-              <Button type="button" variant="outline" onClick={generateVariantsFromOptions} disabled={!generatedCombinationCount}>Generate rows</Button>
+              <Button type="button" variant="outline" onClick={addOption} disabled={options.length >= 2}><PlusIcon className="size-4" />{t("seller.products.editorActions.addOption" as never)}</Button>
+              <Button type="button" variant="outline" onClick={saveOptions} disabled={isSaving}>{t("seller.products.editorActions.saveOptions" as never)}</Button>
+              <Button type="button" variant="outline" onClick={generateVariantsFromOptions} disabled={!generatedCombinationCount}>{t("seller.products.editorActions.generateRows" as never)}</Button>
             </div>
-            <p className="text-xs text-slate-500">Up to two axes. Current option values can generate {generatedCombinationCount} combination row(s).</p>
+            <p className="text-xs text-slate-500">{t("seller.products.axesHelp" as never).replace("{count}", String(generatedCombinationCount))}</p>
             <div className="space-y-3">
               {options.length ? options.map((option, optionIndex) => (
                 <div key={option.id} className="space-y-3 rounded-lg border border-slate-200 p-3">
@@ -1796,10 +1807,10 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   </div>
                   <Button type="button" variant="outline" onClick={() => addOptionValue(optionIndex)}>Add value</Button>
                 </div>
-              )) : <p className="text-sm text-slate-500">No structured options yet. Add options such as color or size when this product has variants.</p>}
+              )) : <p className="text-sm text-slate-500">{t("seller.products.noStructuredOptions" as never)}</p>}
             </div>
           </ProductSection>
-          <ProductSection title="Variant rows" description="Create, edit, delete, price, dimensions, and stock setup per sellable option combination.">
+          <ProductSection title={t("seller.products.variantRowsTitle" as never)} description={t("seller.products.variantRowsDescription" as never)}>
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before adding variants.</p> : null}
             {variantError ? <p className="text-sm text-red-600">{variantError}</p> : null}
             <div className="grid gap-2 rounded-lg border border-slate-200 p-3 sm:grid-cols-[1fr_1fr_1fr_auto_auto_auto]">
@@ -1818,7 +1829,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("stock")}>Apply stock</Button></div>
               <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("status")}>Apply status</Button></div>
             </div>
-            <Button type="button" variant="outline" onClick={addVariant}><PlusIcon className="size-4" />Add variant</Button>
+            <Button type="button" variant="outline" onClick={addVariant}><PlusIcon className="size-4" />{t("seller.products.editorActions.addVariant" as never)}</Button>
             <div className="space-y-3">
               {variants.map((variant, index) => {
                 const rowErrors = getVariantRowErrors(variant, index, duplicateSkuIndexes, duplicateCombinationIndexes);
@@ -1828,8 +1839,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="min-w-0 text-sm font-semibold text-slate-900">{getVariantCombinationLabel(variant, options)}</p>
                     <div className="flex flex-wrap gap-2 text-xs">
-                      {variant.status === "INACTIVE" ? <span className="rounded-full bg-slate-200 px-2 py-1 font-semibold text-slate-700">Inactive</span> : null}
-                      {available <= 0 ? <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-800">Out of stock</span> : null}
+                      {variant.status === "INACTIVE" ? <span className="rounded-full bg-slate-200 px-2 py-1 font-semibold text-slate-700">{t("seller.products.editorActions.inactive" as never)}</span> : null}
+                      {available <= 0 ? <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-800">{t("seller.products.editorActions.outOfStock" as never)}</span> : null}
                     </div>
                   </div>
                   {rowErrors.length ? <p className="text-sm text-red-700">{rowErrors.join(" ")}</p> : null}
@@ -1893,8 +1904,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                     <Field label="Height mm" htmlFor={`variant-height-${index}`}><Input id={`variant-height-${index}`} type="number" min="0" value={variant.heightMm} onChange={(event) => updateVariantDraft(index, { heightMm: event.target.value })} /></Field>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={() => saveVariant(variant, index)} disabled={isSaving}>Save variant</Button>
-                    <Button type="button" variant="outline" onClick={() => deleteVariantDraft(variant, index)}>Delete variant</Button>
+                    <Button type="button" variant="outline" onClick={() => saveVariant(variant, index)} disabled={isSaving}>{t("seller.products.editorActions.saveVariant" as never)}</Button>
+                    <Button type="button" variant="outline" onClick={() => deleteVariantDraft(variant, index)}>{t("seller.products.editorActions.deleteVariant" as never)}</Button>
                   </div>
                 </div>
               );})}
@@ -1916,8 +1927,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                           <p className="text-xs text-slate-500">{variant.sku || "No SKU"}</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          {lowStock ? <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Low stock</span> : <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">Stock ok</span>}
-                          {variant.id ? <Link href={`/seller/inventory?variantId=${variant.id}`} className="text-xs font-semibold text-slate-700 underline">Movement history</Link> : <span className="text-xs text-slate-500">Save variant for movements</span>}
+                          {lowStock ? <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">{t("seller.products.editorActions.lowStock" as never)}</span> : <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">{t("seller.products.editorActions.stockOk" as never)}</span>}
+                          {variant.id ? <Link href={`/seller/inventory?variantId=${variant.id}`} className="text-xs font-semibold text-slate-700 underline">{t("seller.products.editorActions.movementHistory" as never)}</Link> : <span className="text-xs text-slate-500">{t("seller.products.editorActions.saveVariantMovements" as never)}</span>}
                         </div>
                       </div>
                       <div className="mt-3 grid gap-2 sm:grid-cols-4">
@@ -1948,16 +1959,16 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                 })}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">Inventory appears after at least one variant is added.</p>
+              <p className="text-sm text-slate-500">{t("seller.products.editorActions.noInventory" as never)}</p>
             )}
           </ProductSection>
           <ProductSection id="review" title="Review" description="Drafts can save early; review submission needs catalog, media, and sellable variant setup.">
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm font-medium text-slate-900">Moderation status: {workingProduct?.status?.replaceAll("_", " ") ?? "Draft not saved"}</p>
-              {moderationReason ? <p className="mt-1 text-sm text-red-700">Reason: {moderationReason}</p> : null}
+              <p className="text-sm font-medium text-slate-900">{t("seller.products.reviewModerationStatus" as never)}: {workingProduct?.status?.replaceAll("_", " ") ?? t("seller.products.thisProduct")}</p>
+              {moderationReason ? <p className="mt-1 text-sm text-red-700">{t("seller.products.reviewReason" as never)}: {moderationReason}</p> : null}
             </div>
             <div className="space-y-2 rounded-md border border-slate-200 p-3">
-              <p className="text-sm font-semibold text-slate-950">Readiness checklist</p>
+              <p className="text-sm font-semibold text-slate-950">{t("seller.products.reviewChecklist" as never)}</p>
               <ul className="space-y-2">
                 {readinessChecks.map((check) => (
                   <li key={check.id} className="flex items-start gap-2 text-sm">
@@ -1971,24 +1982,24 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
             </div>
             {readinessMissing.length ? (
               <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
-                <p className="text-sm font-medium text-amber-900">Submit review is blocked.</p>
-                <p className="mt-1 text-sm text-amber-800">Missing: {readinessMissing.join(", ")}.</p>
+                <p className="text-sm font-medium text-amber-900">{t("seller.products.reviewBlocked" as never)}</p>
+                <p className="mt-1 text-sm text-amber-800">{t("seller.products.reviewMissing" as never).replace("{items}", readinessMissing.join(", "))}</p>
               </div>
             ) : (
-              <p className="text-sm text-green-700">This product has the visible setup needed for active publishing. Backend validation remains final.</p>
+              <p className="text-sm text-green-700">{t("seller.products.reviewSetupReady" as never)}</p>
             )}
             {duplicateCombinationError ? <p className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
             <Button type="button" variant="outline" onClick={submitForReview} disabled={isSaving || readinessMissing.length > 0 || Boolean(duplicateCombinationError) || form.status === "PENDING_REVIEW"}>
               <SendIcon className="size-4" />
-              {submitReview.isPending ? "Submitting..." : "Submit for review"}
+              {submitReview.isPending ? t("seller.products.submitting") : t("seller.products.submitForReview" as never)}
             </Button>
           </ProductSection>
           {formError ? <p id="product-form-error" className="text-sm text-red-600">{formError}</p> : null}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end xl:flex-col-reverse">
-            <Button type="button" variant="outline" onClick={cancel}>Cancel</Button>
-            <Button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Save product"}</Button>
+            <Button type="button" variant="outline" onClick={cancel}>{t("common.cancel")}</Button>
+            <Button type="submit" disabled={isSaving}>{isSaving ? t("seller.products.editorActions.uploading" as never) : t("seller.products.editorActions.saveProduct" as never)}</Button>
           </div>
-        </aside>
+        </div>
       </form>
     </>
   );
@@ -2011,6 +2022,7 @@ function ProductStudioHeader({
   onSubmitReview: () => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations();
   return (
     <div className="sticky top-0 z-20 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -2019,17 +2031,17 @@ function ProductStudioHeader({
             <h2 className="truncate text-lg font-semibold text-slate-950">{productTitle}</h2>
             <StatusPill value={productStatus} />
           </div>
-          <p className="mt-1 text-sm text-slate-500">Save state: {saveState}</p>
+          <p className="mt-1 text-sm text-slate-500">{t("seller.editor.saveState")}: {saveState}</p>
         </div>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>{t("common.cancel")}</Button>
           <Button form="seller-product-studio-form" type="submit" disabled={isSaving}>
             <SaveIcon className="size-4" />
-            {isSaving ? "Saving..." : "Save draft"}
+            {isSaving ? t("seller.editor.saving") : t("seller.editor.saveDraft")}
           </Button>
           <Button type="button" variant="outline" onClick={onSubmitReview} disabled={isSaving || !canSubmitReview}>
             <SendIcon className="size-4" />
-            Submit review
+            {t("seller.editor.submitReview")}
           </Button>
         </div>
       </div>
@@ -2038,12 +2050,13 @@ function ProductStudioHeader({
 }
 
 function ProductStudioNav() {
+  const t = useTranslations();
   return (
-    <nav aria-label="Product Studio sections" className="overflow-x-auto border-b border-slate-200 pb-2">
+    <nav aria-label={t("seller.editor.sections")} className="overflow-x-auto border-b border-slate-200 pb-2">
       <div className="flex min-w-max gap-2">
         {PRODUCT_STUDIO_SECTIONS.map((section) => (
           <a key={section.id} href={`#${section.id}`} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-            {section.label}
+            {t(`seller.editor.section.${section.id}` as never)}
           </a>
         ))}
       </div>
@@ -2052,11 +2065,14 @@ function ProductStudioNav() {
 }
 
 function ProductSection({ id, title, description, children }: { id?: ProductStudioSectionId; title: string; description: string; children: ReactNode }) {
+  const t = useTranslations();
+  const sectionTitle = id ? t(`seller.editor.section.${id}` as never) : title;
+  const sectionDescription = id ? t(`seller.editor.sectionDescription.${id}` as never) : description;
   return (
     <Card id={id} className="scroll-mt-32 rounded-lg border-slate-200 bg-white">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <p className="text-sm text-slate-500">{description}</p>
+        <CardTitle>{sectionTitle}</CardTitle>
+        <p className="text-sm text-slate-500">{sectionDescription}</p>
       </CardHeader>
       <CardContent className="space-y-4">{children}</CardContent>
     </Card>
@@ -2064,9 +2080,11 @@ function ProductSection({ id, title, description, children }: { id?: ProductStud
 }
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
+  const t = useTranslations();
+  const keyByLabel: Record<string, string> = { Title:"title",Slug:"slug",Description:"description","Thai title":"thaiTitle","English title":"englishTitle","Thai description":"thaiDescription","English description":"englishDescription",Brand:"brand","SEO title":"seoTitle","SEO description":"seoDescription",Condition:"condition","Warranty info":"warranty","Country of origin":"origin",Category:"category",Status:"status","Additional specifications":"additionalSpecs",Highlights:"highlights","Alt text":"altText",Order:"order","Option name":"optionName","Thai name":"thaiName","Bulk price":"bulkPrice","Bulk stock":"bulkStock","Bulk status":"bulkStatus",SKU:"sku","Variant title":"variantTitle","Thai variant title":"thaiVariantTitle","English variant title":"englishVariantTitle",Price:"price",Currency:"currency","Variant status":"variantStatus","Quantity on hand":"quantityOnHand","Reorder level":"reorderLevel","Quantity reserved":"quantityReserved","Available stock":"availableStock","Weight grams":"weightGrams","Length mm":"lengthMm","Width mm":"widthMm","Height mm":"heightMm" };
   return (
     <div className="space-y-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
+      <Label htmlFor={htmlFor}>{keyByLabel[label] ? t(`seller.products.labels.${keyByLabel[label]}` as never) : label}</Label>
       {children}
     </div>
   );

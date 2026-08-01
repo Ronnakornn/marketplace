@@ -18,20 +18,21 @@ import {
 } from "lucide-react";
 import { stripLocale } from "#/i18n/config";
 import { useLocalePath } from "#/i18n/navigation";
+import { useTranslations } from "#/i18n/client";
 import { cn } from "#/lib/utils";
 import { getSellerRouteKind } from "#/lib/seller-access";
 
 const navItems = [
-  { href: "/seller", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/seller/products", label: "Products", icon: BoxesIcon },
-  { href: "/seller/analytics/products", label: "Product Analytics", icon: ChartNoAxesCombinedIcon },
-  { href: "/seller/inventory", label: "Inventory", icon: ClipboardListIcon },
-  { href: "/seller/orders", label: "Orders", icon: PackageCheckIcon },
-  { href: "/seller/returns", label: "Returns", icon: RotateCcwIcon },
-  { href: "/seller/promotions", label: "Promotions", icon: MegaphoneIcon },
-  { href: "/seller/finance", label: "Finance", icon: BanknoteIcon },
-  { href: "/seller/chat", label: "Chat", icon: MessageCircleIcon },
-  { href: "/seller/notifications", label: "Notifications", icon: BellIcon },
+  { href: "/seller", labelKey: "seller.nav.dashboard", icon: LayoutDashboardIcon },
+  { href: "/seller/products", labelKey: "seller.nav.products", icon: BoxesIcon },
+  { href: "/seller/analytics/products", labelKey: "seller.nav.productAnalytics", icon: ChartNoAxesCombinedIcon },
+  { href: "/seller/inventory", labelKey: "seller.nav.inventory", icon: ClipboardListIcon },
+  { href: "/seller/orders", labelKey: "seller.nav.orders", icon: PackageCheckIcon },
+  { href: "/seller/returns", labelKey: "seller.nav.returns", icon: RotateCcwIcon },
+  { href: "/seller/promotions", labelKey: "seller.nav.promotions", icon: MegaphoneIcon },
+  { href: "/seller/finance", labelKey: "seller.nav.finance", icon: BanknoteIcon },
+  { href: "/seller/chat", labelKey: "seller.nav.chat", icon: MessageCircleIcon },
+  { href: "/seller/notifications", labelKey: "seller.nav.notifications", icon: BellIcon },
 ] as const;
 
 interface SellerShellProps {
@@ -42,6 +43,7 @@ interface SellerShellProps {
 }
 
 export function SellerShell({ activeShop, activeShops, children, user }: SellerShellProps) {
+  const t = useTranslations();
   const router = useRouter();
   const rawPathname = usePathname();
   const searchParams = useSearchParams();
@@ -87,7 +89,7 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
           {activeShops.length > 1 ? (
             <div className="border-b border-slate-200 px-3 py-3">
               <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Active shop
+                {t("seller.nav.activeShop")}
                 <select
                   value={selectedShopId}
                   onChange={(event) => handleShopSelection(event.target.value)}
@@ -114,7 +116,7 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
                   )}
                 >
                   <item.icon className="size-4" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               );
             })}
@@ -132,7 +134,7 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
               {navItems.map((item) => (
                 <Link key={item.href} href={createSellerHref(item.href)} prefetch={false} className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 no-underline">
                   <item.icon className="size-3.5" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               ))}
             </div>
@@ -147,9 +149,11 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
 }
 
 export function SellerPageHeader({ title, description }: { title: string; description: string }) {
+  const t = useTranslations();
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white px-5 py-5 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Seller manage</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{t("seller.nav.manage")}</p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{title}</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate-600">{description}</p>
     </section>

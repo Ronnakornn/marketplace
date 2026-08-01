@@ -283,7 +283,25 @@ function formatDate(value: string | Date | null | undefined) {
 }
 
 function StatusPill({ value }: { value: string }) {
-  return <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{value.replaceAll("_", " ")}</span>;
+  const t = useTranslations();
+  const statusLabels: Record<string, string> = {
+    ACTIVE: t("seller.manage.status.active"),
+    INACTIVE: t("seller.manage.status.inactive"),
+    PENDING: t("seller.manage.status.pending"),
+    PENDING_PAYMENT: t("seller.manage.status.pendingPayment"),
+    PENDING_PACK: t("seller.manage.status.pendingPack"),
+    PACKED: t("seller.manage.status.packed"),
+    SHIPPED: t("seller.manage.status.shipped"),
+    DELIVERED: t("seller.manage.status.delivered"),
+    PAID: t("seller.manage.status.paid"),
+    REQUESTED: t("seller.manage.status.requested"),
+    APPROVED: t("seller.manage.status.approved"),
+    REJECTED: t("seller.manage.status.rejected"),
+    COMPLETED: t("seller.manage.status.completed"),
+    CANCELLED: t("seller.manage.status.cancelled"),
+  };
+  const normalizedValue = value.toUpperCase().replaceAll("-", "_");
+  return <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{statusLabels[normalizedValue] ?? value.replaceAll("_", " ")}</span>;
 }
 
 function ErrorState({ error, retry }: { error: unknown; retry: () => void }) {
@@ -1308,6 +1326,7 @@ export function SellerProductsLegacyPage() {
 }
 
 export function SellerInventoryPage() {
+  const t = useTranslations();
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const query = useSellerInventory();
   const updateInventory = useUpdateSellerInventory();
@@ -1323,18 +1342,18 @@ export function SellerInventoryPage() {
 
   return (
     <>
-      <SellerPageHeader title="Inventory" description="Manage stock without touching reserved inventory." />
+      <SellerPageHeader title={t("seller.manage.pages.inventory.title")} description={t("seller.manage.pages.inventory.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
       <Card className="rounded-lg border-slate-200 bg-white">
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
             <input type="checkbox" checked={lowStockOnly} onChange={(event) => setLowStockOnly(event.target.checked)} />
-            Low-stock only
+            {t("seller.manage.pages.inventory.lowStockOnly")}
           </label>
-          {updateInventory.isPending ? <p className="text-sm text-slate-500">Saving inventory...</p> : null}
+          {updateInventory.isPending ? <p className="text-sm text-slate-500">{t("seller.manage.pages.inventory.saving")}</p> : null}
         </CardContent>
       </Card>
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">Variant</TableHead><TableHead>On hand</TableHead><TableHead>Reserved</TableHead><TableHead>Available</TableHead><TableHead>Reorder</TableHead><TableHead className="text-right">Update</TableHead></TableRow></TableHeader><TableBody>
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">{t("seller.manage.pages.inventory.variant")}</TableHead><TableHead>{t("seller.manage.pages.inventory.onHand")}</TableHead><TableHead>{t("seller.manage.pages.inventory.reserved")}</TableHead><TableHead>{t("seller.manage.pages.inventory.available")}</TableHead><TableHead>{t("seller.manage.pages.inventory.reorder")}</TableHead><TableHead className="text-right">{t("seller.manage.pages.inventory.update")}</TableHead></TableRow></TableHeader><TableBody>
         {variants.length ? variants.map((row: any) => {
           const variant = row.variant ?? row;
           const product = row.product ?? variant.product ?? { title: row.productTitle ?? "Product" };
@@ -1350,16 +1369,17 @@ export function SellerInventoryPage() {
               <TableCell><Input aria-label={`Reserved stock ${variant.sku}`} value={quantityReserved} readOnly className="w-20" /></TableCell>
               <TableCell className={available <= reorderLevel ? "font-semibold text-red-600" : ""}>{available}</TableCell>
               <TableCell>{reorderLevel}</TableCell>
-              <TableCell><form className="flex justify-end gap-2" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); updateInventory.mutate({ variantId: variant.id, quantityOnHand: Number(formData.get("quantityOnHand")), reorderLevel: Number(formData.get("reorderLevel")) }); }}><Input name="quantityOnHand" type="number" min={0} defaultValue={quantityOnHand} className="w-24" /><Input name="reorderLevel" type="number" min={0} defaultValue={reorderLevel} className="w-24" /><Button type="submit" size="sm" disabled={updateInventory.isPending}>Save</Button></form></TableCell>
+              <TableCell><form className="flex justify-end gap-2" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); updateInventory.mutate({ variantId: variant.id, quantityOnHand: Number(formData.get("quantityOnHand")), reorderLevel: Number(formData.get("reorderLevel")) }); }}><Input name="quantityOnHand" type="number" min={0} defaultValue={quantityOnHand} className="w-24" /><Input name="reorderLevel" type="number" min={0} defaultValue={reorderLevel} className="w-24" /><Button type="submit" size="sm" disabled={updateInventory.isPending}>{t("seller.manage.pages.inventory.save")}</Button></form></TableCell>
             </TableRow>
           );
-        }) : <TableRow><TableCell colSpan={6} className="h-28 text-center text-slate-500">{query.isLoading ? "Loading inventory..." : "No variants found."}</TableCell></TableRow>}
+        }) : <TableRow><TableCell colSpan={6} className="h-28 text-center text-slate-500">{query.isLoading ? t("seller.manage.pages.inventory.loading") : t("seller.manage.pages.inventory.empty")}</TableCell></TableRow>}
       </TableBody></Table></CardContent></Card>
     </>
   );
 }
 
 export function SellerOrdersPage() {
+  const t = useTranslations();
   const query = useSellerShipments();
   const pack = usePackShipment();
   const ship = useShipShipment();
@@ -1368,7 +1388,7 @@ export function SellerOrdersPage() {
 
   return (
     <>
-      <SellerPageHeader title="Orders & Shipments" description="Process paid marketplace work by shipment, not by whole buyer order." />
+      <SellerPageHeader title={t("seller.manage.pages.orders.title")} description={t("seller.manage.pages.orders.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
       <div className="grid gap-4">
         {rows.length ? rows.map((shipment: SellerShipment) => (
@@ -1376,35 +1396,37 @@ export function SellerOrdersPage() {
             <CardContent className="grid gap-4 pt-6 lg:grid-cols-[1fr_auto]">
               <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{shipment.orderNo}</h3><StatusPill value={shipment.status} /></div><p className="mt-1 text-sm text-slate-500">{shipment.shippingAddress.name} · {shipment.items.length} item(s)</p><p className="mt-2 text-sm text-slate-700">{shipment.items.map((item) => `${item.productTitle} x${item.quantity}`).join(", ")}</p></div>
               <div className="flex flex-col gap-2 lg:min-w-96">
-                <Button type="button" variant="outline" disabled={pack.isPending || shipment.status !== "pending_pack"} onClick={() => pack.mutate(shipment.id)}>Mark packed</Button>
-                <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); ship.mutate({ shipmentId: shipment.id, carrier: String(data.get("carrier") ?? ""), trackingNo: String(data.get("trackingNo") ?? "") }); }}><Input name="carrier" placeholder="Carrier" defaultValue={shipment.carrier ?? ""} /><Input name="trackingNo" placeholder="Tracking" defaultValue={shipment.trackingNumber ?? ""} /><Button type="submit" disabled={ship.isPending || shipment.status !== "packed"}>Ship</Button></form>
-                <Button type="button" variant="outline" disabled={deliver.isPending || shipment.status !== "shipped"} onClick={() => deliver.mutate(shipment.id)}>Mark delivered</Button>
+                <Button type="button" variant="outline" disabled={pack.isPending || shipment.status !== "pending_pack"} onClick={() => pack.mutate(shipment.id)}>{t("seller.manage.pages.orders.markPacked")}</Button>
+                <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); ship.mutate({ shipmentId: shipment.id, carrier: String(data.get("carrier") ?? ""), trackingNo: String(data.get("trackingNo") ?? "") }); }}><Input name="carrier" placeholder={t("seller.manage.pages.orders.carrier")} defaultValue={shipment.carrier ?? ""} /><Input name="trackingNo" placeholder={t("seller.manage.pages.orders.tracking")} defaultValue={shipment.trackingNumber ?? ""} /><Button type="submit" disabled={ship.isPending || shipment.status !== "packed"}>{t("seller.manage.pages.orders.ship")}</Button></form>
+                <Button type="button" variant="outline" disabled={deliver.isPending || shipment.status !== "shipped"} onClick={() => deliver.mutate(shipment.id)}>{t("seller.manage.pages.orders.markDelivered")}</Button>
               </div>
             </CardContent>
           </Card>
-        )) : <EmptyState message={query.isLoading ? "Loading shipments..." : "No shipments need processing."} />}
+        )) : <EmptyState message={query.isLoading ? t("seller.manage.pages.orders.loading") : t("seller.manage.pages.orders.empty")} />}
       </div>
     </>
   );
 }
 
 export function SellerReturnsPage() {
+  const t = useTranslations();
   const query = useSellerReturns();
   const approve = useApproveReturn();
   const reject = useRejectReturn();
   const rows = query.data ?? [];
   return (
     <>
-      <SellerPageHeader title="Returns" description="Approve or reject return requests for items sold by your shop." />
+      <SellerPageHeader title={t("seller.manage.pages.returns.title")} description={t("seller.manage.pages.returns.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">Return</TableHead><TableHead>Items</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((item: SellerReturn) => <TableRow key={item.id}><TableCell className="px-4"><p className="font-medium">{item.reason ?? "Return request"}</p><p className="text-xs text-slate-500">{formatDate(item.createdAt)}</p></TableCell><TableCell>{item.items.map((row) => `${row.productTitle} x${row.quantity}`).join(", ")}</TableCell><TableCell><StatusPill value={item.status} /></TableCell><TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={approve.isPending || item.status !== "requested"} onClick={() => approve.mutate(item.id)}>Approve</Button><Button size="sm" variant="destructive" disabled={reject.isPending || item.status !== "requested"} onClick={() => reject.mutate(item.id)}>Reject</Button></div></TableCell></TableRow>) : <TableRow><TableCell colSpan={4} className="h-28 text-center text-slate-500">{query.isLoading ? "Loading returns..." : "No returns found."}</TableCell></TableRow>}
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">{t("seller.manage.pages.returns.return")}</TableHead><TableHead>{t("seller.manage.pages.returns.items")}</TableHead><TableHead>{t("seller.manage.pages.returns.status")}</TableHead><TableHead className="text-right">{t("seller.manage.pages.returns.actions")}</TableHead></TableRow></TableHeader><TableBody>
+        {rows.length ? rows.map((item: SellerReturn) => <TableRow key={item.id}><TableCell className="px-4"><p className="font-medium">{item.reason ?? t("seller.manage.pages.returns.request")}</p><p className="text-xs text-slate-500">{formatDate(item.createdAt)}</p></TableCell><TableCell>{item.items.map((row) => `${row.productTitle} x${row.quantity}`).join(", ")}</TableCell><TableCell><StatusPill value={item.status} /></TableCell><TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={approve.isPending || item.status !== "requested"} onClick={() => approve.mutate(item.id)}>{t("seller.manage.pages.returns.approve")}</Button><Button size="sm" variant="destructive" disabled={reject.isPending || item.status !== "requested"} onClick={() => reject.mutate(item.id)}>{t("seller.manage.pages.returns.reject")}</Button></div></TableCell></TableRow>) : <TableRow><TableCell colSpan={4} className="h-28 text-center text-slate-500">{query.isLoading ? t("seller.manage.pages.returns.loading") : t("seller.manage.pages.returns.empty")}</TableCell></TableRow>}
       </TableBody></Table></CardContent></Card>
     </>
   );
 }
 
 export function SellerPromotionsPage() {
+  const t = useTranslations();
   const query = useSellerCoupons();
   const createCoupon = useCreateSellerCoupon();
   const updateCoupon = useUpdateSellerCoupon();
@@ -1412,31 +1434,32 @@ export function SellerPromotionsPage() {
   const rows = query.data ?? [];
   return (
     <>
-      <SellerPageHeader title="Promotions" description="Create and manage shop-scoped coupons." />
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6"><form className="grid gap-3 md:grid-cols-[1fr_160px_160px_160px_auto]" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); createCoupon.mutate({ code: String(data.get("code") ?? ""), titleEn: String(data.get("title") ?? ""), discountType: String(data.get("discountType")) as "fixed" | "percent", discountValueCents: Math.round(Number(data.get("amount") || 0) * 100), discountPercentBps: Math.round(Number(data.get("percent") || 0) * 100), isActive: true }); }}><Input name="code" placeholder="Code" required /><Input name="title" placeholder="Title" /><Select name="discountType" defaultValue="fixed"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="fixed">Fixed</SelectItem><SelectItem value="percent">Percent</SelectItem></SelectContent></Select><Input name="amount" placeholder="Amount" /><Button type="submit" disabled={createCoupon.isPending}>Create</Button></form></CardContent></Card>
+      <SellerPageHeader title={t("seller.manage.pages.promotions.title")} description={t("seller.manage.pages.promotions.description")} />
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6"><form className="grid gap-3 md:grid-cols-[1fr_160px_160px_160px_auto]" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); createCoupon.mutate({ code: String(data.get("code") ?? ""), titleEn: String(data.get("title") ?? ""), discountType: String(data.get("discountType")) as "fixed" | "percent", discountValueCents: Math.round(Number(data.get("amount") || 0) * 100), discountPercentBps: Math.round(Number(data.get("percent") || 0) * 100), isActive: true }); }}><Input name="code" placeholder={t("seller.manage.pages.promotions.code")} required /><Input name="title" placeholder={t("seller.manage.pages.promotions.titleField")} /><Select name="discountType" defaultValue="fixed"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="fixed">{t("seller.manage.pages.promotions.fixed")}</SelectItem><SelectItem value="percent">{t("seller.manage.pages.promotions.percent")}</SelectItem></SelectContent></Select><Input name="amount" placeholder={t("seller.manage.pages.promotions.amount")} /><Button type="submit" disabled={createCoupon.isPending}>{t("seller.manage.pages.promotions.create")}</Button></form></CardContent></Card>
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">Coupon</TableHead><TableHead>Discount</TableHead><TableHead>Active</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((coupon: SellerCoupon) => <TableRow key={coupon.id}><TableCell className="px-4"><p className="font-medium">{coupon.code}</p><p className="text-xs text-slate-500">{coupon.titleEn ?? coupon.titleTh ?? "Untitled"}</p></TableCell><TableCell>{coupon.discountType}</TableCell><TableCell>{coupon.isActive ? "Active" : "Inactive"}</TableCell><TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={updateCoupon.isPending} onClick={() => updateCoupon.mutate({ couponId: coupon.id, isActive: !coupon.isActive })}>{coupon.isActive ? "Disable" : "Enable"}</Button><Button size="sm" variant="destructive" disabled={deleteCoupon.isPending} onClick={() => deleteCoupon.mutate(coupon.id)}>Delete</Button></div></TableCell></TableRow>) : <TableRow><TableCell colSpan={4} className="h-28 text-center text-slate-500">{query.isLoading ? "Loading coupons..." : "No coupons found."}</TableCell></TableRow>}
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">{t("seller.manage.pages.promotions.coupon")}</TableHead><TableHead>{t("seller.manage.pages.promotions.discount")}</TableHead><TableHead>{t("seller.manage.pages.promotions.active")}</TableHead><TableHead className="text-right">{t("seller.manage.pages.promotions.actions")}</TableHead></TableRow></TableHeader><TableBody>
+        {rows.length ? rows.map((coupon: SellerCoupon) => <TableRow key={coupon.id}><TableCell className="px-4"><p className="font-medium">{coupon.code}</p><p className="text-xs text-slate-500">{coupon.titleEn ?? coupon.titleTh ?? t("seller.manage.pages.promotions.untitled")}</p></TableCell><TableCell>{coupon.discountType}</TableCell><TableCell>{coupon.isActive ? t("seller.manage.status.active") : t("seller.manage.status.inactive")}</TableCell><TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={updateCoupon.isPending} onClick={() => updateCoupon.mutate({ couponId: coupon.id, isActive: !coupon.isActive })}>{coupon.isActive ? t("seller.manage.pages.promotions.disable") : t("seller.manage.pages.promotions.enable")}</Button><Button size="sm" variant="destructive" disabled={deleteCoupon.isPending} onClick={() => deleteCoupon.mutate(coupon.id)}>{t("seller.manage.pages.promotions.delete")}</Button></div></TableCell></TableRow>) : <TableRow><TableCell colSpan={4} className="h-28 text-center text-slate-500">{query.isLoading ? t("seller.manage.pages.promotions.loading") : t("seller.manage.pages.promotions.empty")}</TableCell></TableRow>}
       </TableBody></Table></CardContent></Card>
     </>
   );
 }
 
 export function SellerFinancePage() {
+  const t = useTranslations();
   const wallet = useSellerWallet();
   const transactions = useSellerTransactions();
   const payouts = useSellerPayouts();
   const createPayout = useCreateSellerPayout();
   return (
     <>
-      <SellerPageHeader title="Finance" description="Review wallet balance, ledger entries, and payout requests." />
+      <SellerPageHeader title={t("seller.manage.pages.finance.title")} description={t("seller.manage.pages.finance.description")} />
       <section className="grid gap-4 md:grid-cols-3">
-        <Card className="rounded-lg border-slate-200 bg-white md:col-span-1"><CardContent className="pt-6"><p className="text-sm text-slate-500">Available balance</p><p className="mt-2 text-3xl font-semibold">{formatMoney(wallet.data?.availableBalanceCents, wallet.data?.currency)}</p><p className="mt-1 text-sm text-slate-500">{wallet.data?.shopName ?? "Seller shop"}</p></CardContent></Card>
-        <Card className="rounded-lg border-slate-200 bg-white md:col-span-2"><CardHeader><CardTitle>Request payout</CardTitle></CardHeader><CardContent><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); createPayout.mutate(Math.round(Number(data.get("amount") || 0) * 100)); }}><Input name="amount" placeholder="Amount" type="number" min="1" step="0.01" /><Button type="submit" disabled={createPayout.isPending}>Request</Button></form></CardContent></Card>
+        <Card className="rounded-lg border-slate-200 bg-white md:col-span-1"><CardContent className="pt-6"><p className="text-sm text-slate-500">{t("seller.manage.pages.finance.available")}</p><p className="mt-2 text-3xl font-semibold">{formatMoney(wallet.data?.availableBalanceCents, wallet.data?.currency)}</p><p className="mt-1 text-sm text-slate-500">{wallet.data?.shopName ?? t("seller.manage.pages.finance.shop")}</p></CardContent></Card>
+        <Card className="rounded-lg border-slate-200 bg-white md:col-span-2"><CardHeader><CardTitle>{t("seller.manage.pages.finance.requestPayout")}</CardTitle></CardHeader><CardContent><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); createPayout.mutate(Math.round(Number(data.get("amount") || 0) * 100)); }}><Input name="amount" placeholder={t("seller.manage.pages.finance.amount")} type="number" min="1" step="0.01" /><Button type="submit" disabled={createPayout.isPending}>{t("seller.manage.pages.finance.request")}</Button></form></CardContent></Card>
       </section>
       <section className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>Transactions</CardTitle></CardHeader><CardContent className="space-y-2">{transactions.data?.items.length ? transactions.data.items.map((item) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{item.type}</p><p className="text-xs text-slate-500">{item.description ?? formatDate(item.createdAt)}</p></div><p className={item.amount < 0 ? "text-red-600" : "text-emerald-700"}>{formatMoney(item.amount, item.currency)}</p></div>) : <EmptyState message={transactions.isLoading ? "Loading transactions..." : "No transactions found."} />}</CardContent></Card>
-        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>Payout history</CardTitle></CardHeader><CardContent className="space-y-2">{payouts.data?.length ? payouts.data.map((item: SellerPayout) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{formatMoney(item.amount, item.currency)}</p><p className="text-xs text-slate-500">{formatDate(item.requestedAt)}</p></div><StatusPill value={item.status} /></div>) : <EmptyState message={payouts.isLoading ? "Loading payouts..." : "No payouts found."} />}</CardContent></Card>
+        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>{t("seller.manage.pages.finance.transactions")}</CardTitle></CardHeader><CardContent className="space-y-2">{transactions.data?.items.length ? transactions.data.items.map((item) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{item.type}</p><p className="text-xs text-slate-500">{item.description ?? formatDate(item.createdAt)}</p></div><p className={item.amount < 0 ? "text-red-600" : "text-emerald-700"}>{formatMoney(item.amount, item.currency)}</p></div>) : <EmptyState message={transactions.isLoading ? t("seller.manage.pages.finance.loadingTransactions") : t("seller.manage.pages.finance.emptyTransactions")} />}</CardContent></Card>
+        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>{t("seller.manage.pages.finance.payoutHistory")}</CardTitle></CardHeader><CardContent className="space-y-2">{payouts.data?.length ? payouts.data.map((item: SellerPayout) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{formatMoney(item.amount, item.currency)}</p><p className="text-xs text-slate-500">{formatDate(item.requestedAt)}</p></div><StatusPill value={item.status} /></div>) : <EmptyState message={payouts.isLoading ? t("seller.manage.pages.finance.loadingPayouts") : t("seller.manage.pages.finance.emptyPayouts")} />}</CardContent></Card>
       </section>
     </>
   );

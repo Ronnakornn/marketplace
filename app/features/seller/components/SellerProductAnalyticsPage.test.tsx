@@ -98,6 +98,48 @@ vi.mock("#/i18n/navigation", () => ({
   useLocalePath: () => (path: string) => path,
 }));
 
+vi.mock("#/i18n/client", () => ({
+  useTranslations: () => (key: string) => ({
+    "seller.nav.dashboard": "Dashboard",
+    "seller.nav.products": "Products",
+    "seller.nav.productAnalytics": "Product Analytics",
+    "seller.nav.inventory": "Inventory",
+    "seller.nav.orders": "Orders",
+    "seller.nav.returns": "Returns",
+    "seller.nav.promotions": "Promotions",
+    "seller.nav.finance": "Finance",
+    "seller.nav.chat": "Chat",
+    "seller.nav.notifications": "Notifications",
+    "seller.nav.activeShop": "Active shop",
+    "seller.nav.manage": "Seller manage",
+    "seller.analytics.title": "Product Analytics",
+    "seller.analytics.description": "Measure product demand, SKU sales, and conversion signals across seller-owned catalog items.",
+    "seller.analytics.dateRange": "Analytics date range",
+    "seller.analytics.startDate": "Start date",
+    "seller.analytics.endDate": "End date",
+    "seller.analytics.searchAnalytics": "Search product analytics",
+    "seller.analytics.searchProduct": "Search product",
+    "seller.analytics.search": "Search",
+    "seller.analytics.days7": "7 days",
+    "seller.analytics.days30": "30 days",
+    "seller.analytics.days90": "90 days",
+    "seller.analytics.custom": "Custom",
+    "seller.analytics.views": "Views",
+    "seller.analytics.addToCart": "Add to cart",
+    "seller.analytics.orders": "Orders",
+    "seller.analytics.unitsSold": "Units sold",
+    "seller.analytics.units": "Units",
+    "seller.analytics.revenue": "Revenue",
+    "seller.analytics.conversion": "Conversion",
+    "seller.analytics.dailyTrend": "Daily trend",
+    "seller.analytics.loadingChart": "Loading chart...",
+    "seller.analytics.topSkus": "Top SKUs",
+    "seller.analytics.performance": "Product performance",
+    "seller.analytics.product": "Product",
+    "seller.analytics.lowPerforming": "Low-performing products",
+  }[key] ?? key),
+}));
+
 vi.mock("#/components/ui/button", () => ({
   Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode; variant?: string }) => <button {...props}>{children}</button>,
 }));
@@ -163,6 +205,19 @@ describe("Seller product analytics page", () => {
     expect(screen.getByText("Cotton Shirt")).toBeTruthy();
     expect(screen.getByText("SHIRT-1")).toBeTruthy();
     expect(screen.getByText("Slow Hat")).toBeTruthy();
+  });
+
+  it("renders the daily trend when the API returns a Date value", () => {
+    analyticsState = makeState({
+      data: {
+        ...analyticsData,
+        daily: [{ ...analyticsData.daily[0]!, date: new Date("2026-06-01T00:00:00.000Z") }],
+      },
+    });
+
+    render(<SellerProductAnalyticsPage />);
+
+    expect(screen.getByText("06-01T00:00:00.000Z")).toBeTruthy();
   });
 
   it("changes date range input and passes filters to the hook", () => {

@@ -16,19 +16,27 @@ import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
 import { cn } from "#/lib/utils";
 
-type ChatAudience = "buyer";
+type ChatAudience = "buyer" | "seller";
 
-export function ChatInboxPage({ audience: _audience }: { audience: ChatAudience }) {
+export function ChatInboxPage({ audience, shopId }: { audience: ChatAudience; shopId?: string }) {
   const t = useTranslations();
   const localePath = useLocalePath();
   const roomsQuery = useQuery({ queryKey: ["chat-rooms"], queryFn: fetchChatRooms });
-  const sellerChannels = useMemo(() => [], []);
+  const sellerChannels = useMemo(
+    () => audience === "seller" && shopId ? [["seller", shopId, "chats"].join(":")] : [],
+    [audience, shopId],
+  );
+  const rooms = useMemo(
+    () => roomsQuery.data?.filter((room) => audience !== "seller" || !shopId || room.shop.id === shopId),
+    [audience, roomsQuery.data, shopId],
+  );
+  const inboxTitle = audience === "seller" ? t("chat.sellerInbox") : t("chat.inbox");
 
   useChatRealtime(sellerChannels);
 
   return (
     <>
-      <BuyerTopBar title={t("chat.inbox")} />
+      {audience === "buyer" ? <BuyerTopBar title={inboxTitle} /> : null}
       <main className="mx-auto max-w-5xl space-y-4 px-3 py-4">
         <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-3">
@@ -36,7 +44,7 @@ export function ChatInboxPage({ audience: _audience }: { audience: ChatAudience 
               <MessageCircleIcon className="size-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-950">{t("chat.inbox")}</h1>
+              <h1 className="text-xl font-bold text-slate-950">{inboxTitle}</h1>
               <p className="text-sm text-slate-500">{t("chat.messages")}</p>
             </div>
           </div>
@@ -44,16 +52,17 @@ export function ChatInboxPage({ audience: _audience }: { audience: ChatAudience 
 
         {roomsQuery.isLoading ? <BuyerLoadingList /> : null}
         {roomsQuery.isError ? <BuyerErrorState message={roomsQuery.error.message} onRetry={() => void roomsQuery.refetch()} /> : null}
-        {roomsQuery.data?.length === 0 ? (
+        {rooms?.length === 0 ? (
           <BuyerEmptyState title={t("chat.emptyInbox")} description={t("chat.emptyInboxDescription")} />
         ) : null}
-        {roomsQuery.data?.length ? (
+        {rooms?.length ? (
           <div className="space-y-3">
-            {roomsQuery.data.map((room) => (
+            {rooms.map((room) => (
               <ChatRoomListItem
                 key={room.roomId}
                 room={room}
-                href={localePath(`/chat/${room.roomId}`)}
+                audience={audience}
+                href={chatThreadHref(localePath, audience, room.roomId, shopId)}
               />
             ))}
           </div>
@@ -63,7 +72,7 @@ export function ChatInboxPage({ audience: _audience }: { audience: ChatAudience 
   );
 }
 
-export function ChatThreadPage({ roomId, audience: _audience }: { roomId: string; audience: ChatAudience }) {
+export function ChatThreadPage({ roomId, audience, shopId }: { roomId: string; audience: ChatAudience; shopId?: string }) {
   const t = useTranslations();
   const localePath = useLocalePath();
   const queryClient = useQueryClient();
@@ -94,7 +103,7 @@ export function ChatThreadPage({ roomId, audience: _audience }: { roomId: string
     },
   });
 
-  useChatRealtime([`chat:${roomId}`]);
+  useChatRealtime([["chat", roomId].join(":")]);
 
   useEffect(() => {
     if (
@@ -148,20 +157,21 @@ export function ChatThreadPage({ roomId, audience: _audience }: { roomId: string
   }
 
   const room = roomQuery.data;
+  const roomTitle = room ? getRoomTitle(room, audience) : t("chat.messages");
 
   return (
     <>
-      <BuyerTopBar title={room ? getRoomTitle(room) : t("chat.messages")} />
+      {audience === "buyer" ? <BuyerTopBar title={roomTitle} /> : null}
       <main className="mx-auto flex max-w-5xl flex-col gap-4 px-3 py-4">
         <Button variant="outline" className="w-fit rounded-full" asChild>
-          <Link href={localePath("/chat")}>{t("chat.backToInbox")}</Link>
+          <Link href={chatInboxHref(localePath, audience, shopId)}>{t("chat.backToInbox")}</Link>
         </Button>
 
         {roomQuery.isLoading ? <BuyerLoadingList /> : null}
         {roomQuery.isError ? <BuyerErrorState message={roomQuery.error.message} onRetry={() => void roomQuery.refetch()} /> : null}
         {room ? (
           <>
-            <ChatContextCard room={room} />
+            <ChatContextCard room={room} audience={audience} />
             <section className="min-h-[420px] rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
               {room.messages?.length ? (
                 <div className="flex flex-col gap-3">
@@ -209,10 +219,10 @@ export function ChatThreadPage({ roomId, audience: _audience }: { roomId: string
   );
 }
 
-function ChatRoomListItem({ room, href }: { room: ChatRoom; href: string }) {
+function ChatRoomListItem({ room, href, audience }: { room: ChatRoom; href: string; audience: ChatAudience }) {
   const t = useTranslations();
   const formatters = useFormatters();
-  const title = getRoomTitle(room);
+  const title = getRoomTitle(room, audience);
   const preview = room.lastMessage?.body ?? t("chat.emptyThread");
 
   return (
@@ -238,12 +248,15 @@ function ChatRoomListItem({ room, href }: { room: ChatRoom; href: string }) {
   );
 }
 
-function ChatContextCard({ room }: { room: ChatRoom }) {
+function ChatContextCard({ room, audience }: { room: ChatRoom; audience: ChatAudience }) {
   const t = useTranslations();
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className="rounded-full">{t("chat.seller")}: {getRoomTitle(room)}</Badge>
+        <Badge variant="outline" className="rounded-full">
+          {audience === "seller" ? t("chat.buyer") : t("chat.seller")}: {getRoomTitle(room, audience)}
+        </Badge>
+        {audience === "seller" ? <Badge variant="outline" className="rounded-full">{room.shop.name}</Badge> : null}
         {room.product ? <Badge variant="outline" className="rounded-full">{room.product.title}</Badge> : null}
         {room.order ? <Badge variant="outline" className="rounded-full">{room.order.orderNumber}</Badge> : null}
       </div>
@@ -251,6 +264,21 @@ function ChatContextCard({ room }: { room: ChatRoom }) {
   );
 }
 
-function getRoomTitle(room: ChatRoom): string {
-  return room.shop.name;
+function getRoomTitle(room: ChatRoom, audience: ChatAudience): string {
+  return audience === "seller" ? room.buyer.name : room.shop.name;
+}
+
+function chatInboxHref(localePath: (pathname: string) => string, audience: ChatAudience, shopId?: string): string {
+  const base = localePath(audience === "seller" ? "/seller/chat" : "/chat");
+  return audience === "seller" && shopId ? `${base}?shopId=${encodeURIComponent(shopId)}` : base;
+}
+
+function chatThreadHref(
+  localePath: (pathname: string) => string,
+  audience: ChatAudience,
+  roomId: string,
+  shopId?: string,
+): string {
+  const base = localePath(audience === "seller" ? `/seller/chat/${roomId}` : `/chat/${roomId}`);
+  return audience === "seller" && shopId ? `${base}?shopId=${encodeURIComponent(shopId)}` : base;
 }

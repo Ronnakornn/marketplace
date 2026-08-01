@@ -26,6 +26,23 @@ vi.mock("#/i18n/navigation", () => ({
   useLocalePath: () => (nextPath: string) => `/en${nextPath}`,
 }));
 
+vi.mock("#/i18n/client", () => ({
+  useTranslations: () => (key: string) => ({
+    "seller.nav.dashboard": "Dashboard",
+    "seller.nav.products": "Products",
+    "seller.nav.productAnalytics": "Product Analytics",
+    "seller.nav.inventory": "Inventory",
+    "seller.nav.orders": "Orders",
+    "seller.nav.returns": "Returns",
+    "seller.nav.promotions": "Promotions",
+    "seller.nav.finance": "Finance",
+    "seller.nav.chat": "Chat",
+    "seller.nav.notifications": "Notifications",
+    "seller.nav.activeShop": "Active shop",
+    "seller.nav.manage": "Seller manage",
+  }[key] ?? key),
+}));
+
 describe("SellerShell", () => {
   beforeEach(() => {
     pathname = "/en/seller";
