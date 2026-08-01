@@ -7,7 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import type { InputHTMLAttributes, LabelHTMLAttributes, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CheckoutPage } from "./CheckoutPage";
-import { createCheckout, fetchAddresses, fetchCart } from "#/features/buyer/api";
+import { createCheckout, fetchAddresses, fetchCart, quoteCheckout } from "#/features/buyer/api";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
@@ -44,6 +44,10 @@ vi.mock("#/components/ui/radio-group", () => ({
   RadioGroupItem: ({ value, id }: { value: string; id?: string }) => <input id={id} type="radio" value={value} readOnly />,
 }));
 
+vi.mock("#/components/ui/skeleton", () => ({
+  Skeleton: () => <div data-testid="quote-skeleton" />,
+}));
+
 vi.mock("#/i18n/client", () => ({
   useLocale: () => "en",
   useTranslations: () => (key: string) => {
@@ -52,7 +56,19 @@ vi.mock("#/i18n/client", () => ({
       "checkout.cardGateway": "Card gateway",
       "checkout.cashOnDelivery": "Cash on delivery",
       "checkout.coupon": "Coupon",
+      "checkout.couponApply": "Apply",
+      "checkout.couponApplied": "Coupon applied: {code}",
       "checkout.couponCode": "Coupon code",
+      "checkout.couponReasonExpired": "This coupon has expired.",
+      "checkout.couponReasonInactive": "This coupon is not active.",
+      "checkout.couponReasonInvalid": "This coupon code is invalid.",
+      "checkout.couponReasonMinOrderNotMet": "Your order doesn't meet the minimum for this coupon.",
+      "checkout.couponReasonNotFound": "This coupon code doesn't exist.",
+      "checkout.couponReasonNotStarted": "This coupon isn't available yet.",
+      "checkout.couponReasonUsageLimitReached": "This coupon has reached its usage limit.",
+      "checkout.couponReasonUserLimitReached": "You've already used this coupon the maximum number of times.",
+      "checkout.couponRemove": "Remove",
+      "checkout.discount": "Discount",
       "checkout.emptyDescription": "Your cart is empty.",
       "checkout.emptyTitle": "Empty cart",
       "checkout.loadingAddresses": "Loading addresses",
@@ -62,6 +78,8 @@ vi.mock("#/i18n/client", () => ({
       "checkout.orderCreated": "Order {orderNo} created.",
       "checkout.paymentMethod": "Payment method",
       "checkout.placeOrder": "Place order",
+      "checkout.quoteError": "Could not load the total.",
+      "checkout.shipping": "Shipping",
       "checkout.shippingMethod": "Shipping method",
       "checkout.standardDelivery": "Standard delivery",
       "checkout.summary": "Summary",
@@ -69,6 +87,7 @@ vi.mock("#/i18n/client", () => ({
       "checkout.total": "Total",
       "checkout.viewPaymentStatus": "Continue to payment",
       "common.default": "Default",
+      "state.retry": "Try again",
     };
     return translations[key] ?? key;
   },
@@ -82,6 +101,7 @@ vi.mock("#/features/buyer/api", () => ({
   createCheckout: vi.fn(),
   fetchAddresses: vi.fn(),
   fetchCart: vi.fn(),
+  quoteCheckout: vi.fn(),
   formatMoney: (cents: number) => `THB ${(cents / 100).toFixed(2)}`,
 }));
 
@@ -141,6 +161,15 @@ describe("CheckoutPage", () => {
       paymentUrl: "/en/payment/mock/payment-1",
       totalCents: 1700,
     });
+    vi.mocked(quoteCheckout).mockResolvedValue({
+      subtotal: 1200,
+      discountTotal: 0,
+      shippingTotal: 500,
+      taxTotal: 0,
+      grandTotal: 1700,
+      currency: "THB",
+      coupon: null,
+    });
   });
 
   afterEach(() => {
@@ -151,7 +180,9 @@ describe("CheckoutPage", () => {
   it("uses the server-provided payment URL after checkout succeeds", async () => {
     renderCheckoutPage();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Place order" }));
+    const placeOrderButton = await screen.findByRole("button", { name: "Place order" }) as HTMLButtonElement;
+    await waitFor(() => expect(placeOrderButton.disabled).toBe(false));
+    fireEvent.click(placeOrderButton);
 
     await waitFor(() => expect(createCheckout).toHaveBeenCalledWith(expect.objectContaining({
       cartId: "cart-1",
