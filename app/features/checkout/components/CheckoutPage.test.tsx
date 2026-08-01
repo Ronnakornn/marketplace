@@ -192,4 +192,140 @@ describe("CheckoutPage", () => {
     const paymentLink = await screen.findByRole("link", { name: "Continue to payment" });
     expect(paymentLink.getAttribute("href")).toBe("/en/payment/mock/payment-1");
   });
+
+  it("disables place order and shows no final amount while the quote is loading", async () => {
+    let resolveQuote: (value: Awaited<ReturnType<typeof quoteCheckout>>) => void = () => {};
+    vi.mocked(quoteCheckout).mockImplementation(() => new Promise((resolve) => {
+      resolveQuote = resolve;
+    }));
+
+    renderCheckoutPage();
+
+    const placeOrderButton = await screen.findByRole("button", { name: "Place order" }) as HTMLButtonElement;
+    expect(placeOrderButton.disabled).toBe(true);
+    expect(screen.getAllByTestId("quote-skeleton").length).toBeGreaterThan(0);
+    expect(screen.queryByText("THB 17.00")).toBeNull();
+
+    resolveQuote({ subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null });
+    await waitFor(() => expect(placeOrderButton.disabled).toBe(false));
+  });
+
+  it("disables place order and shows a retryable error affordance when the quote fails", async () => {
+    vi.mocked(quoteCheckout).mockRejectedValueOnce(new Error("Quote request failed"));
+    vi.mocked(quoteCheckout).mockResolvedValueOnce({
+      subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null,
+    });
+
+    renderCheckoutPage();
+
+    const placeOrderButton = await screen.findByRole("button", { name: "Place order" }) as HTMLButtonElement;
+    await waitFor(() => expect(screen.getAllByText("Could not load the total.").length).toBeGreaterThan(0));
+    expect(placeOrderButton.disabled).toBe(true);
+
+    const [retryButton] = screen.getAllByRole("button", { name: "Try again" });
+    fireEvent.click(retryButton);
+
+    await waitFor(() => expect(placeOrderButton.disabled).toBe(false));
+    expect(quoteCheckout).toHaveBeenCalledTimes(2);
+  });
+
+  it("never shows cart.subtotal as the total when the quote fails", async () => {
+    // Two shops so cart.subtotal (2000) differs from either shop's own subtotal
+    // (1200 and 800) -- if the screen ever fell back to displaying cart.subtotal
+    // as the total, this figure would be unambiguous evidence of it.
+    vi.mocked(fetchCart).mockResolvedValue({
+      id: "cart-1",
+      shops: [
+        {
+          shopId: "shop-1",
+          shopName: "Demo Shop",
+          items: [{ id: "item-1", variantId: "variant-1", productId: "product-1", title: "Demo Product", variantTitle: "Default", quantity: 1, unitPrice: 1200, currency: "THB" }],
+          subtotal: 1200,
+        },
+        {
+          shopId: "shop-2",
+          shopName: "Second Shop",
+          items: [{ id: "item-2", variantId: "variant-2", productId: "product-2", title: "Other Product", variantTitle: "Default", quantity: 1, unitPrice: 800, currency: "THB" }],
+          subtotal: 800,
+        },
+      ],
+      subtotal: 2000,
+      currency: "THB",
+    });
+    vi.mocked(quoteCheckout).mockRejectedValue(new Error("Quote request failed"));
+
+    renderCheckoutPage();
+
+    await screen.findByRole("button", { name: "Place order" });
+    await waitFor(() => expect(screen.getAllByText("Could not load the total.").length).toBeGreaterThan(0));
+    expect(screen.queryByText("THB 20.00")).toBeNull();
+  });
+
+  it("sends the applied coupon code, not a typed-but-unapplied code, to createCheckout", async () => {
+    vi.mocked(quoteCheckout).mockImplementation(({ couponCode }) => Promise.resolve({
+      subtotal: 1200,
+      discountTotal: couponCode === "SAVE10" ? 100 : 0,
+      shippingTotal: 500,
+      taxTotal: 0,
+      grandTotal: couponCode === "SAVE10" ? 1600 : 1700,
+      currency: "THB",
+      coupon: couponCode ? { code: couponCode, applied: true } : null,
+    }));
+
+    renderCheckoutPage();
+
+    const couponInput = await screen.findByPlaceholderText("Coupon code");
+    fireEvent.change(couponInput, { target: { value: "SAVE10" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
+    await screen.findByText("Coupon applied: SAVE10");
+
+    fireEvent.change(couponInput, { target: { value: "UNAPPLIEDCODE" } });
+
+    const placeOrderButton = await screen.findByRole("button", { name: "Place order" }) as HTMLButtonElement;
+    await waitFor(() => expect(placeOrderButton.disabled).toBe(false));
+    fireEvent.click(placeOrderButton);
+
+    await waitFor(() => expect(createCheckout).toHaveBeenCalledWith(expect.objectContaining({
+      couponCode: "SAVE10",
+    })));
+  });
+
+  it("renders discount and shipping rows from the quote response", async () => {
+    vi.mocked(quoteCheckout).mockResolvedValue({
+      subtotal: 1200,
+      discountTotal: 300,
+      shippingTotal: 500,
+      taxTotal: 0,
+      grandTotal: 1400,
+      currency: "THB",
+      coupon: { code: "SAVE10", applied: true },
+    });
+
+    renderCheckoutPage();
+
+    await waitFor(() => expect(screen.getByText("Discount")).toBeTruthy());
+    expect(screen.getByText("-THB 3.00")).toBeTruthy();
+    expect(screen.getByText("Shipping")).toBeTruthy();
+    expect(screen.getByText("THB 5.00")).toBeTruthy();
+  });
+
+  it("keeps the summary and place-order button usable when the coupon is unusable", async () => {
+    vi.mocked(quoteCheckout).mockResolvedValue({
+      subtotal: 1200,
+      discountTotal: 0,
+      shippingTotal: 500,
+      taxTotal: 0,
+      grandTotal: 1700,
+      currency: "THB",
+      coupon: { code: "EXPIRED10", applied: false, reason: "COUPON_EXPIRED" },
+    });
+
+    renderCheckoutPage();
+
+    const placeOrderButton = await screen.findByRole("button", { name: "Place order" }) as HTMLButtonElement;
+    await waitFor(() => expect(placeOrderButton.disabled).toBe(false));
+    expect(screen.getByText("This coupon has expired.")).toBeTruthy();
+    expect(screen.getByText("Summary")).toBeTruthy();
+  });
 });
