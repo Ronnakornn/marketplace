@@ -371,6 +371,97 @@ describe('CheckoutService', () => {
     })).rejects.toMatchObject({ code: 'INVALID_COUPON', details: { reason: 'COUPON_NOT_FOUND' } })
   })
 
+  it('quotes the same grand total that checkout charges when no coupon is supplied', async () => {
+    const quoteService = await setupSuccess()
+    const quote = await quoteService.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    })
+
+    const checkoutService = await setupSuccess()
+    const checkout = await checkoutService.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      paymentMethod: 'stripe',
+    })
+
+    expect(quote.grandTotal).toBe(checkout.totalCents)
+    expect(quote.coupon).toBeNull()
+  })
+
+  it('quotes the same grand total that checkout charges with a valid coupon', async () => {
+    const quoteService = await setupSuccess({ couponDiscountCents: 240 })
+    const quote = await quoteService.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      couponCode: 'SAVE10',
+    })
+
+    const checkoutService = await setupSuccess({ couponDiscountCents: 240 })
+    const checkout = await checkoutService.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      couponCode: 'SAVE10',
+      paymentMethod: 'stripe',
+    })
+
+    expect(quote.grandTotal).toBe(checkout.totalCents)
+    expect(quote.coupon).toMatchObject({ code: 'SAVE10', applied: true })
+  })
+
+  it('includes shipping in the quoted grand total', async () => {
+    const service = await setupSuccess()
+    const quote = await service.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    })
+
+    expect(quote.shippingTotal).toBeGreaterThan(0)
+    expect(quote.grandTotal).toBeGreaterThan(quote.subtotal - quote.discountTotal)
+  })
+
+  it('does not fail the quote when the coupon is unusable', async () => {
+    const service = await setupSuccess({
+      couponError: new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND'),
+    })
+
+    const quote = await service.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      couponCode: 'NOPE',
+    })
+
+    expect(quote.coupon).toMatchObject({ code: 'NOPE', applied: false, reason: 'COUPON_NOT_FOUND' })
+    expect(quote.discountTotal).toBe(0)
+  })
+
+  it('still fails order creation for the same unusable coupon that a quote tolerates', async () => {
+    const service = await setupSuccess({
+      couponError: new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND'),
+    })
+
+    await expect(service.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      couponCode: 'NOPE',
+      paymentMethod: 'stripe',
+    })).rejects.toMatchObject({ code: 'INVALID_COUPON' })
+  })
+
+  it('quotes without writing anything', async () => {
+    const service = await setupSuccess()
+    await service.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    })
+
+    expect(repo.createPendingOrder).not.toHaveBeenCalled()
+    expect(repo.transaction).not.toHaveBeenCalled()
+  })
+
+  it('rejects quoting a cart that belongs to another buyer', async () => {
+    const service = await setupSuccess({ cart: createCart({ userId: 'other-user' }) })
+
+    await expect(service.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    })).rejects.toMatchObject({ code: 'CART_NOT_FOUND' })
+  })
+
   it('rejects admins and rolls back through repository transaction failures', async () => {
     const service = await setupSuccess()
     await expect(service.createCheckout(createActor('ADMIN'), {
