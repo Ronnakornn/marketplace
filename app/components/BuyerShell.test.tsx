@@ -82,7 +82,7 @@ describe("buyer shell smoke", () => {
     });
 
     expect(document.body.textContent).toContain("Cart");
-    expect(document.querySelector('a[href="/en/chat"]')).toBeNull();
+    expect(document.querySelector('a[href="/en/chat"]')).toBeTruthy();
     expect(document.querySelector('a[href="/en/seller/register"]')).toBeTruthy();
   });
 });

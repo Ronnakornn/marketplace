@@ -90,6 +90,8 @@ vi.mock("next/link", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => pathname,
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("#/i18n/navigation", () => ({
@@ -215,6 +217,6 @@ describe("Seller navigation", () => {
       </SellerShell>,
     );
 
-    expect(screen.getAllByRole("link", { name: /product analytics/i }).some((link) => link.getAttribute("href") === "/seller/analytics/products")).toBe(true);
+    expect(screen.getAllByRole("link", { name: /product analytics/i }).some((link) => link.getAttribute("href") === "/seller/analytics/products?shopId=shop_1")).toBe(true);
   });
 });

@@ -7,8 +7,8 @@ describe('shop rating schema contract', () => {
     const schema = readFileSync(join(process.cwd(), 'prisma/schema.prisma'), 'utf8')
 
     expect(schema).toContain('model ShopRating {')
-    expect(schema).toContain('moderatedAt DateTime?')
-    expect(schema).toContain('moderatedById String?')
+    expect(schema).toContain('moderatedAt      DateTime?')
+    expect(schema).toContain('moderatedById    String?      @db.Uuid')
     expect(schema).toContain('moderationReason String?')
     expect(schema).toContain('@relation("ShopRatingModeratedBy", fields: [moderatedById], references: [id], onDelete: SetNull)')
     expect(schema).toContain('@@index([status, moderatedAt])')
@@ -18,6 +18,6 @@ describe('shop rating schema contract', () => {
   it('keeps reverse moderation relation on user model', () => {
     const schema = readFileSync(join(process.cwd(), 'prisma/schema.prisma'), 'utf8')
 
-    expect(schema).toContain('moderatedShopRatings            ShopRating[]            @relation("ShopRatingModeratedBy")')
+    expect(schema).toContain('moderatedShopRatings            ShopRating[]             @relation("ShopRatingModeratedBy")')
   })
 })
