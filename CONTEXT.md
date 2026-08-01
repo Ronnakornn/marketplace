@@ -8,7 +8,8 @@ details, no specs, no decisions. Decisions belong in `docs/adr/`.
 ### Checkout Quote
 
 An estimate of the amount payable for one [[Cart]] at a point in time.
-Comprises subtotal, discount, shipping, tax, and grand total.
+Comprises subtotal, discount, shipping, tax, and grand total. Produced by the
+server, never by the client — see ADR-0001.
 
 A Quote is **not a promise**. The amount actually charged when an Order is
 created may differ if conditions change in between — a coupon reaching its
