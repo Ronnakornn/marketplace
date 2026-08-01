@@ -21,6 +21,26 @@ const CheckoutResponseSchema = t.Object({
   totalCents: t.Number(),
 })
 
+const QuoteCheckoutBodySchema = t.Object({
+  cartId: t.String({ format: 'uuid' }),
+  couponCode: t.Optional(t.String({ minLength: 1 })),
+})
+
+const CouponOutcomeSchema = t.Union([
+  t.Object({ code: t.String(), applied: t.Literal(true) }),
+  t.Object({ code: t.String(), applied: t.Literal(false), reason: t.String() }),
+])
+
+const CheckoutQuoteResponseSchema = t.Object({
+  subtotal: t.Number(),
+  discountTotal: t.Number(),
+  shippingTotal: t.Number(),
+  taxTotal: t.Number(),
+  grandTotal: t.Number(),
+  currency: t.String(),
+  coupon: t.Union([CouponOutcomeSchema, t.Null()]),
+})
+
 export function createCheckoutRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
@@ -40,5 +60,11 @@ export function createCheckoutRoutes(container: ServiceContainer) {
       withAuth: true,
       body: CreateCheckoutBodySchema,
       response: CheckoutResponseSchema,
+    })
+    .post('/api/checkout/quote', ({ authContext, body }: any) =>
+      container.checkoutService.quoteCheckout(authContext!.user, body), {
+      withAuth: true,
+      body: QuoteCheckoutBodySchema,
+      response: CheckoutQuoteResponseSchema,
     })
 }

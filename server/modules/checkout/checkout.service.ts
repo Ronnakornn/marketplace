@@ -32,6 +32,11 @@ export interface CreateCheckoutData {
   locale?: string
 }
 
+export interface QuoteCheckoutData {
+  cartId: string
+  couponCode?: string
+}
+
 export interface CheckoutResponse {
   orderId: string
   orderNo: string
@@ -39,6 +44,20 @@ export interface CheckoutResponse {
   paymentStatus: 'pending'
   paymentUrl: string
   totalCents: number
+}
+
+export type CouponOutcome =
+  | { code: string; applied: true }
+  | { code: string; applied: false; reason: string }
+
+export interface CheckoutQuote {
+  subtotal: number
+  discountTotal: number
+  shippingTotal: number
+  taxTotal: number
+  grandTotal: number
+  currency: string
+  coupon: CouponOutcome | null
 }
 
 interface CalculatedTotals {
@@ -106,6 +125,44 @@ export class CheckoutService {
         totalCents: totals.grandTotal,
       }
     })
+  }
+
+  async quoteCheckout(actor: CheckoutActor, data: QuoteCheckoutData): Promise<CheckoutQuote> {
+    this.assertBuyer(actor)
+    if (!data.cartId) throw new CheckoutServiceError('Cart id is required', 400, 'CHECKOUT_CART_REQUIRED')
+    this.logger.info('CheckoutService.quoteCheckout', { actorId: actor.id, cartId: data.cartId })
+
+    const cart = await this.repo.findCartForCheckout(data.cartId)
+    this.assertCart(actor, cart)
+
+    const baseTotals = this.calculateTotals(cart.items)
+    let coupon: CouponOutcome | null = null
+    let discountCents = 0
+
+    if (data.couponCode) {
+      try {
+        const couponValidation = await this.validateCouponForCheckout(this.repo, actor.id, data.couponCode, baseTotals.subtotal)
+        discountCents = couponValidation.discount
+        coupon = { code: couponValidation.couponCode, applied: true }
+      } catch (error) {
+        if (error instanceof CheckoutServiceError && error.code === 'INVALID_COUPON') {
+          coupon = {
+            code: (error.details?.couponCode as string | undefined) ?? data.couponCode.trim().toUpperCase(),
+            applied: false,
+            reason: (error.details?.reason as string | undefined) ?? 'INVALID_COUPON',
+          }
+        } else {
+          throw error
+        }
+      }
+    }
+
+    const totals = this.calculateTotals(cart.items, discountCents)
+
+    return {
+      ...totals,
+      coupon,
+    }
   }
 
   private assertBuyer(actor: CheckoutActor): void {

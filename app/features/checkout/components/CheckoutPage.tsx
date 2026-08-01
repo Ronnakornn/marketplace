@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CreditCardIcon, MapPinIcon, TicketIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
@@ -11,12 +11,26 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
-import { createCheckout, fetchAddresses, fetchCart, formatMoney } from "#/features/buyer/api";
+import { Skeleton } from "#/components/ui/skeleton";
+import { createCheckout, fetchAddresses, fetchCart, formatMoney, quoteCheckout } from "#/features/buyer/api";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
+const COUPON_REASON_KEYS = {
+  COUPON_NOT_FOUND: "checkout.couponReasonNotFound",
+  COUPON_FORBIDDEN: "checkout.couponReasonInvalid",
+  COUPON_INACTIVE: "checkout.couponReasonInactive",
+  COUPON_NOT_STARTED: "checkout.couponReasonNotStarted",
+  COUPON_EXPIRED: "checkout.couponReasonExpired",
+  COUPON_MIN_ORDER_NOT_MET: "checkout.couponReasonMinOrderNotMet",
+  COUPON_USAGE_LIMIT_REACHED: "checkout.couponReasonUsageLimitReached",
+  COUPON_USER_LIMIT_REACHED: "checkout.couponReasonUserLimitReached",
+  INVALID_COUPON: "checkout.couponReasonInvalid",
+} as const;
+
 export function CheckoutPage() {
-  const [couponCode, setCouponCode] = useState("");
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const localePath = useLocalePath();
@@ -26,6 +40,13 @@ export function CheckoutPage() {
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
   const defaultAddress = addressesQuery.data?.find((address) => address.isDefault) ?? addressesQuery.data?.[0];
   const addressId = selectedAddressId || defaultAddress?.id || "";
+  const itemCount = cartQuery.data?.shops.reduce((sum, shop) => sum + shop.items.length, 0) ?? 0;
+  const cartId = cartQuery.data?.id ?? null;
+  const quoteQuery = useQuery({
+    queryKey: ["checkout-quote", cartId, cartQuery.data?.subtotal, appliedCoupon, locale],
+    queryFn: () => quoteCheckout({ cartId: cartId as string, couponCode: appliedCoupon ?? undefined }),
+    enabled: Boolean(cartId) && itemCount > 0,
+  });
   const checkoutMutation = useMutation({
     mutationFn: () => {
       if (!cartQuery.data?.id) throw new Error(t("checkout.emptyTitle"));
@@ -33,15 +54,39 @@ export function CheckoutPage() {
       return createCheckout({
         cartId: cartQuery.data.id,
         addressId,
-        couponCode: couponCode || undefined,
+        couponCode: appliedCoupon || undefined,
         paymentMethod,
         shippingMethod: "standard",
         locale,
       });
     },
   });
-  const total = useMemo(() => cartQuery.data?.subtotal ?? 0, [cartQuery.data?.subtotal]);
-  const itemCount = cartQuery.data?.shops.reduce((sum, shop) => sum + shop.items.length, 0) ?? 0;
+  const handleApplyCoupon = () => {
+    const trimmed = couponInput.trim();
+    if (!trimmed) return;
+    setAppliedCoupon(trimmed);
+  };
+  const handleClearCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+  };
+  const canPlaceOrder = Boolean(addressId) && quoteQuery.isSuccess && !quoteQuery.isLoading;
+
+  const renderQuoteTotal = () => {
+    if (quoteQuery.isLoading) return <Skeleton className="h-6 w-24" />;
+    if (quoteQuery.isError) {
+      return (
+        <span className="flex items-center gap-2 text-sm font-normal text-red-600">
+          {t("checkout.quoteError")}
+          <Button type="button" variant="outline" size="sm" onClick={() => void quoteQuery.refetch()}>
+            {t("state.retry")}
+          </Button>
+        </span>
+      );
+    }
+    if (!quoteQuery.data) return null;
+    return <span>{formatMoney(quoteQuery.data.grandTotal, quoteQuery.data.currency)}</span>;
+  };
 
   return (
     <>
@@ -92,7 +137,25 @@ export function CheckoutPage() {
                 </RadioGroup>
               </CheckoutBlock>
               <CheckoutBlock icon={<TicketIcon className="size-5" />} title={t("checkout.coupon")}>
-                <Input value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder={t("checkout.couponCode")} />
+                <div className="flex gap-2">
+                  <Input value={couponInput} onChange={(event) => setCouponInput(event.target.value)} placeholder={t("checkout.couponCode")} />
+                  <Button type="button" variant="outline" className="rounded-full" disabled={!couponInput.trim()} onClick={handleApplyCoupon}>
+                    {t("checkout.couponApply")}
+                  </Button>
+                </div>
+                {appliedCoupon ? (
+                  <div className="mt-2 flex items-center justify-between gap-2 text-sm">
+                    <span className="font-medium text-emerald-700">{t("checkout.couponApplied").replace("{code}", appliedCoupon)}</span>
+                    <Button type="button" variant="ghost" size="sm" onClick={handleClearCoupon}>
+                      {t("checkout.couponRemove")}
+                    </Button>
+                  </div>
+                ) : null}
+                {quoteQuery.data?.coupon && quoteQuery.data.coupon.applied === false ? (
+                  <p className="mt-2 text-sm text-red-600">
+                    {t(COUPON_REASON_KEYS[quoteQuery.data.coupon.reason as keyof typeof COUPON_REASON_KEYS] ?? "checkout.couponReasonInvalid")}
+                  </p>
+                ) : null}
               </CheckoutBlock>
               <CheckoutBlock icon={<CreditCardIcon className="size-5" />} title={t("checkout.paymentMethod")}>
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -116,10 +179,22 @@ export function CheckoutPage() {
                     <span className="font-semibold text-slate-950">{formatMoney(shop.subtotal, cartQuery.data.currency)}</span>
                   </div>
                 ))}
+                {quoteQuery.data && quoteQuery.data.discountTotal > 0 ? (
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span className="text-slate-700">{t("checkout.discount")}</span>
+                    <span className="font-semibold text-emerald-700">-{formatMoney(quoteQuery.data.discountTotal, quoteQuery.data.currency)}</span>
+                  </div>
+                ) : null}
+                {quoteQuery.data ? (
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span className="text-slate-700">{t("checkout.shipping")}</span>
+                    <span className="font-semibold text-slate-950">{formatMoney(quoteQuery.data.shippingTotal, quoteQuery.data.currency)}</span>
+                  </div>
+                ) : null}
                 <div className="border-t border-slate-200 pt-3">
                   <div className="flex justify-between text-lg font-bold">
                     <span>{t("checkout.total")}</span>
-                    <span>{formatMoney(total, cartQuery.data.currency)}</span>
+                    {renderQuoteTotal()}
                   </div>
                 </div>
               </div>
@@ -131,8 +206,8 @@ export function CheckoutPage() {
       {cartQuery.data && itemCount > 0 ? (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-            <p className="text-lg font-bold">{formatMoney(total, cartQuery.data.currency)}</p>
-            <Button className="h-12 min-w-40 rounded-2xl bg-orange-600 hover:bg-orange-700" disabled={checkoutMutation.isPending || !addressId} onClick={() => checkoutMutation.mutate()}>
+            <div className="text-lg font-bold">{renderQuoteTotal()}</div>
+            <Button className="h-12 min-w-40 rounded-2xl bg-orange-600 hover:bg-orange-700" disabled={checkoutMutation.isPending || !canPlaceOrder} onClick={() => checkoutMutation.mutate()}>
               {t("checkout.placeOrder")}
             </Button>
           </div>
