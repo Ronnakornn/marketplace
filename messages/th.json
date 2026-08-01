@@ -360,7 +360,8 @@
     "summary": "สรุป",
     "title": "ชำระเงิน",
     "total": "ยอดรวม",
-    "viewPaymentStatus": "ดูสถานะการชำระเงิน"
+    "viewPaymentStatus": "ดูสถานะการชำระเงิน",
+    "couponNotApplied": "ยังไม่ได้ใช้คูปอง: {code}"
   },
   "order": {
     "all": "ทั้งหมด",

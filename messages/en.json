@@ -234,8 +234,8 @@
     "filterDescription": "Refine results without leaving this page.",
     "freeShippingFilter": "free shipping",
     "sortFilter": "Sort: {value}",
-    "brandFilter": "Brand: {value}"
-    ,"discountPercentOff": "{percent}% off",
+    "brandFilter": "Brand: {value}",
+    "discountPercentOff": "{percent}% off",
     "addToWishlistWithTitle": "Add {title} to wishlist",
     "removeFromWishlist": "Remove {title} from wishlist",
     "removeFromWishlistShort": "Remove from wishlist",
@@ -360,7 +360,8 @@
     "summary": "Summary",
     "title": "Checkout",
     "total": "Total",
-    "viewPaymentStatus": "View payment status"
+    "viewPaymentStatus": "View payment status",
+    "couponNotApplied": "Coupon not applied: {code}"
   },
   "order": {
     "all": "All",
@@ -523,8 +524,8 @@
     "viewFavorite": "View {title}",
     "removeFavorite": "Remove {title} from wishlist",
     "readyToShip": "Ready to ship",
-    "unavailableToShip": "Currently unavailable"
-    ,"onlyLeft": "Only {count} left",
+    "unavailableToShip": "Currently unavailable",
+    "onlyLeft": "Only {count} left",
     "emailVerified": "Email verified",
     "buyerChat": "Buyer chat",
     "profileDetails": "Profile details",

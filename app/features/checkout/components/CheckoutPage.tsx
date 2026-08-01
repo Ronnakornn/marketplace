@@ -71,6 +71,7 @@ export function CheckoutPage() {
     setCouponInput("");
   };
   const canPlaceOrder = Boolean(addressId) && quoteQuery.isSuccess && !quoteQuery.isLoading;
+  const couponRejected = quoteQuery.data?.coupon?.applied === false;
 
   const renderQuoteTotal = () => {
     if (quoteQuery.isLoading) return <Skeleton className="h-6 w-24" />;
@@ -145,7 +146,9 @@ export function CheckoutPage() {
                 </div>
                 {appliedCoupon ? (
                   <div className="mt-2 flex items-center justify-between gap-2 text-sm">
-                    <span className="font-medium text-emerald-700">{t("checkout.couponApplied").replace("{code}", appliedCoupon)}</span>
+                    <span className={couponRejected ? "font-medium text-slate-700" : "font-medium text-emerald-700"}>
+                      {t(couponRejected ? "checkout.couponNotApplied" : "checkout.couponApplied").replace("{code}", appliedCoupon)}
+                    </span>
                     <Button type="button" variant="ghost" size="sm" onClick={handleClearCoupon}>
                       {t("checkout.couponRemove")}
                     </Button>
