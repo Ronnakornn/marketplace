@@ -45,7 +45,7 @@ export function BuyerPageShell({ children }: { children: ReactNode }) {
 }
 
 export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searchQuery?: string }) {
-  const { data: session } = useSession();
+  const { data: session, isPending: isSessionPending } = useSession();
   const router = useRouter();
   const t = useTranslations();
   const locale = useLocale();
@@ -164,6 +164,11 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
               <span className="sr-only">{t("common.logout")}</span>
             </button>
           </>
+        ) : isSessionPending ? (
+          // The session resolves client-side, so it is null during SSR and until
+          // hydration settles. Rendering the signed-out controls here would flash
+          // "sign in" at buyers who are already signed in.
+          <div className="h-10 w-32 shrink-0 animate-pulse rounded-full bg-slate-100" />
         ) : (
             <div className="flex items-center gap-2">
               <Link

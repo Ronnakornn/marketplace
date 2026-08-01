@@ -9,6 +9,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { BuyerTopBar } from "./BuyerShell";
 
 let pathname = "/en/seller/products";
+const signedInSession = {
+  data: { user: { id: "user_1", role: "USER", name: "Active Seller" } },
+  isPending: false,
+};
+let sessionState: { data: unknown; isPending: boolean } = signedInSession;
 
 vi.mock("next/link", () => ({
   default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean }) => (
@@ -42,10 +47,7 @@ vi.mock("#/i18n/navigation", () => ({
 
 vi.mock("#/lib/auth-client", () => ({
   signOut: vi.fn(),
-  useSession: () => ({
-    data: { user: { id: "user_1", role: "USER", name: "Active Seller" } },
-    isPending: false,
-  }),
+  useSession: () => sessionState,
 }));
 
 vi.mock("#/features/buyer/api", () => ({
@@ -70,6 +72,7 @@ function renderWithClient(ui: ReactNode) {
 
 afterEach(() => {
   pathname = "/en/seller/products";
+  sessionState = signedInSession;
   vi.clearAllMocks();
 });
 
@@ -84,5 +87,32 @@ describe("buyer shell smoke", () => {
     expect(document.body.textContent).toContain("Cart");
     expect(document.querySelector('a[href="/en/chat"]')).toBeTruthy();
     expect(document.querySelector('a[href="/en/seller/register"]')).toBeTruthy();
+  });
+
+  it("does not offer sign in while the session is still resolving", async () => {
+    sessionState = { data: null, isPending: true };
+
+    renderWithClient(<BuyerTopBar title="Seller Products" />);
+
+    await waitFor(() => {
+      expect(document.querySelector("header")).toBeTruthy();
+    });
+
+    // A pending session is not a signed-out session — showing these would flash
+    // "sign in" at buyers who are already signed in.
+    expect(document.querySelector('a[href="/en/login"]')).toBeNull();
+    expect(document.querySelector('a[href="/en/signup"]')).toBeNull();
+  });
+
+  it("offers sign in once the session resolves as signed out", async () => {
+    sessionState = { data: null, isPending: false };
+
+    renderWithClient(<BuyerTopBar title="Seller Products" />);
+
+    await waitFor(() => {
+      expect(document.querySelector('a[href="/en/login"]')).toBeTruthy();
+    });
+
+    expect(document.querySelector('a[href="/en/signup"]')).toBeTruthy();
   });
 });
