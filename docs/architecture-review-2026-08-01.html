@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 5 5; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+      .hatch {
+        background-image: repeating-linear-gradient(45deg, #fecaca 0, #fecaca 2px, transparent 2px, transparent 7px);
+      }
+      .mermaid { font-size: 13px; }
+      .lbl { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-14 space-y-14">
+
+      <!-- ══════════════ HEADER ══════════════ -->
+      <header class="space-y-6">
+        <div class="flex items-baseline justify-between border-b border-slate-300 pb-4">
+          <h1 class="font-serif text-4xl tracking-tight">Architecture review</h1>
+          <p class="font-mono text-xs text-slate-500">marketplace · develop · 2026-08-01</p>
+        </div>
+
+        <div class="flex flex-wrap gap-x-8 gap-y-3 text-xs text-slate-600">
+          <span class="flex items-center gap-2"><span class="inline-block w-6 h-4 border border-slate-500 bg-white"></span> module</span>
+          <span class="flex items-center gap-2"><svg width="26" height="6"><line x1="0" y1="3" x2="26" y2="3" stroke="#475569" stroke-width="2" class="seam"/></svg> seam</span>
+          <span class="flex items-center gap-2"><svg width="26" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="#dc2626" stroke-width="2"/><path d="M20 1 L26 4 L20 7 Z" fill="#dc2626"/></svg> leakage</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-6 h-4 deep"></span> deep module</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-6 h-4 hatch border border-red-300"></span> duplicated derivation</span>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 bg-white p-5 text-sm space-y-2">
+          <p class="lbl text-slate-500">Scope</p>
+          <p class="text-slate-700">Churn over the last 80 commits concentrates in two slices: <span class="font-mono text-xs bg-stone-100 px-1">app/features/product</span> + <span class="font-mono text-xs bg-stone-100 px-1">server/modules/catalog</span> (milestones 13–23), and the commerce transaction slice — cart, checkout, order, payment, shipment (milestones 15, 25, 26). Both are reviewed below.</p>
+          <p class="text-slate-700">No <span class="font-mono text-xs bg-stone-100 px-1">CONTEXT.md</span> and no <span class="font-mono text-xs bg-stone-100 px-1">docs/adr/</span> exist, so no decision is being re-litigated here — but domain terms are used as the Prisma schema and <span class="font-mono text-xs bg-stone-100 px-1">docs/03-state-machines/</span> name them: <em>Cart, Checkout, Order, Payment, Shipment, Product</em>.</p>
+        </div>
+
+        <nav class="text-sm">
+          <p class="lbl text-slate-500 mb-2">Candidates</p>
+          <ol class="space-y-1 text-slate-700">
+            <li><a class="hover:underline" href="#c1"><span class="font-mono text-xs text-slate-400">01</span> &nbsp;A single buyer Product read model</a> <span class="text-emerald-700 text-xs">Strong</span></li>
+            <li><a class="hover:underline" href="#c2"><span class="font-mono text-xs text-slate-400">02</span> &nbsp;Deepen Product presentation into one module</a> <span class="text-emerald-700 text-xs">Strong</span></li>
+            <li><a class="hover:underline" href="#c3"><span class="font-mono text-xs text-slate-400">03</span> &nbsp;An Order lifecycle module that owns transitions</a> <span class="text-emerald-700 text-xs">Strong</span></li>
+            <li><a class="hover:underline" href="#c4"><span class="font-mono text-xs text-slate-400">04</span> &nbsp;A Money module at the Prisma seam</a> <span class="text-emerald-700 text-xs">Strong</span></li>
+            <li><a class="hover:underline" href="#c5"><span class="font-mono text-xs text-slate-400">05</span> &nbsp;A PaymentProvider seam</a> <span class="text-amber-700 text-xs">Worth exploring</span></li>
+            <li><a class="hover:underline" href="#c6"><span class="font-mono text-xs text-slate-400">06</span> &nbsp;Collapse the catalog listing-query interface</a> <span class="text-amber-700 text-xs">Worth exploring</span></li>
+            <li><a class="hover:underline" href="#c7"><span class="font-mono text-xs text-slate-400">07</span> &nbsp;Delete the pass-through repositories</a> <span class="text-slate-500 text-xs">Speculative</span></li>
+          </ol>
+        </nav>
+      </header>
+
+      <!-- ══════════════ CANDIDATES ══════════════ -->
+      <section id="candidates" class="space-y-16">
+
+        <!-- ─────────── 01 ─────────── -->
+        <article id="c1" class="space-y-5">
+          <div class="flex items-start justify-between gap-6">
+            <h2 class="font-serif text-2xl">01 · A single buyer Product read model</h2>
+            <div class="flex gap-2 shrink-0 pt-1">
+              <span class="rounded-full bg-emerald-100 text-emerald-800 text-xs px-3 py-1">Strong</span>
+              <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">in-process</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-slate-600 space-y-0.5">
+            <p>app/features/product/queries.ts:1015-1366 <span class="text-slate-400">— 350 lines of untyped coercion</span></p>
+            <p>server/modules/catalog/catalog.service.ts:1435 <span class="text-slate-400">— preparePublicProduct</span></p>
+            <p>server/modules/search/search.service.ts:319-399 <span class="text-slate-400">— a second Product shape</span></p>
+            <p>server/modules/catalog/catalog.repository.ts:788-799 <span class="text-slate-400">— data + items, same array</span></p>
+            <p>app/lib/seo.ts:120-197 <span class="text-slate-400">— a third read of the same Product</span></p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-500 mb-3">Before</p>
+              <pre class="mermaid">
+flowchart TD
+  CAT["catalog module<br/>{id, images[].url,<br/>variants[].inventory}"]
+  SRC["search module<br/>{productId, coverImage,<br/>variants[].stock}"]
+  SEO["lib/seo.ts<br/>direct Prisma read"]
+  N["queries.ts normalizer<br/>350 lines · Record&lt;string,unknown&gt;<br/>re-derives price/stock/discount/badges"]
+  UI["ProductCard · DetailPage · ListingPage"]
+  CAT -.->|eden types discarded| N
+  SRC -.->|eden types discarded| N
+  N --> UI
+  SEO --> UI
+  classDef leak stroke:#dc2626,stroke-width:2px,fill:#fef2f2;
+  classDef ok fill:#f8fafc;
+  class N,SEO leak
+  class CAT,SRC,UI ok
+              </pre>
+            </div>
+            <div class="rounded-lg border-2 border-slate-800 bg-white p-4">
+              <p class="lbl text-slate-500 mb-3">After</p>
+              <pre class="mermaid">
+flowchart TD
+  RM["<b>Product read model</b><br/>one shape · one place<br/>price · stock · discount · badges"]
+  CAT["catalog module"]
+  SRC["search module"]
+  SEO["lib/seo.ts"]
+  UI["ProductCard · DetailPage · ListingPage"]
+  CAT --> RM
+  SRC --> RM
+  RM --> UI
+  RM --> SEO
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  classDef ok fill:#f8fafc;
+  class RM deep
+  class CAT,SRC,SEO,UI ok
+              </pre>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <div><p class="lbl text-slate-500">Problem</p><p class="text-slate-700">Two modules emit two shapes for the same Product, so the browser pays for reconciliation: 350 lines of hand-rolled <span class="font-mono text-xs">toRecord/readString/readNumber</span> sitting on top of a type-safe Eden client that already knew the types.</p></div>
+              <div><p class="lbl text-slate-500">Solution</p><p class="text-slate-700">Agree one buyer-facing Product shape on the server; catalog and search both emit it. The normalizer's interface shrinks to a typed mapper — or disappears.</p></div>
+              <div><p class="lbl text-slate-500">Deletion test</p><p class="text-slate-700">Delete the normalizer today and the coercion reappears at every call site — it earns its keep. Delete it <em>after</em> the shapes agree and nothing reappears. That gap is the opportunity.</p></div>
+            </div>
+            <div>
+              <p class="lbl text-slate-500 mb-2">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li>· Leverage: Eden types reach the components</li>
+                <li>· Locality: one Product shape, one place</li>
+                <li>· Stock formula stops appearing 4×</li>
+                <li>· Kills the <span class="font-mono text-xs">data ?? items</span> sniffing (4 sites)</li>
+                <li>· Interface shrinks; ~350 lines absorbed</li>
+                <li>· Tests stop needing a second normalizer</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="rounded border-l-4 border-red-400 bg-red-50 p-3 text-sm text-slate-700">
+            <span class="lbl text-red-700">Evidence</span> — <span class="font-mono text-xs">ProductBuyerStates.test.tsx:171-190</span> mocks <span class="font-mono text-xs">#/features/product/queries</span> wholesale and <em>reimplements</em> the normalizers inside the test. 1,473 lines of tests, and not one exercises the real reconciliation. The duplication is structurally invisible to the suite.
+          </div>
+        </article>
+
+        <!-- ─────────── 02 ─────────── -->
+        <article id="c2" class="space-y-5">
+          <div class="flex items-start justify-between gap-6">
+            <h2 class="font-serif text-2xl">02 · Deepen Product presentation into one module</h2>
+            <div class="flex gap-2 shrink-0 pt-1">
+              <span class="rounded-full bg-emerald-100 text-emerald-800 text-xs px-3 py-1">Strong</span>
+              <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">in-process</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-slate-600 space-y-0.5">
+            <p>app/features/product/components/ProductCard.tsx:28,63-72,164</p>
+            <p>app/features/product/components/ProductDetailPage.tsx:344-361,517</p>
+            <p>app/features/product/components/ProductListingPage.tsx:165-166,721-737</p>
+            <p>app/lib/seo.ts:161-180 · server/modules/search/search.service.ts:391-399</p>
+          </div>
+
+          <!-- hand-built mass diagram -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-500 mb-4">Before — derivation smeared across 5 places</p>
+              <div class="space-y-2">
+                <div class="grid grid-cols-5 gap-1 text-center">
+                  <div class="lbl text-slate-400 col-span-5 text-left mb-1">badge vocabularies</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">'new'<br/>'best_seller'</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">"New"<br/>"Low Stock"</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">"Hot"<br/>"Options"</div>
+                  <div class="border border-slate-200 rounded py-2 text-[10px] text-slate-400">substring<br/>match</div>
+                  <div class="border border-slate-200 rounded py-2 text-[10px] text-slate-400">—</div>
+                </div>
+                <div class="grid grid-cols-5 gap-1 text-center">
+                  <div class="lbl text-slate-400 col-span-5 text-left mb-1">stock / availability</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">onHand<br/>−reserved</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">onHand<br/>−reserved</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">stock&nbsp;&lt;=&nbsp;0</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">stock&nbsp;&lt;&nbsp;1</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">schema.org<br/>InStock</div>
+                </div>
+                <div class="grid grid-cols-5 gap-1 text-center">
+                  <div class="lbl text-slate-400 col-span-5 text-left mb-1">price range / discount</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">max&gt;min</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">!variant<br/>&amp;&amp; max&gt;min</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">i18n %off</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">"% off"<br/>hardcoded</div>
+                  <div class="hatch border border-red-300 rounded py-2 text-[10px]">badge<br/>string</div>
+                </div>
+                <div class="grid grid-cols-5 gap-1 text-center pt-1">
+                  <div class="lbl text-slate-500 text-[9px]">search</div>
+                  <div class="lbl text-slate-500 text-[9px]">queries</div>
+                  <div class="lbl text-slate-500 text-[9px]">Card</div>
+                  <div class="lbl text-slate-500 text-[9px]">Detail</div>
+                  <div class="lbl text-slate-500 text-[9px]">seo</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border-2 border-slate-800 bg-white p-5 flex flex-col">
+              <p class="lbl text-slate-500 mb-4">After — one deep module, five thin callers</p>
+              <div class="deep rounded-lg text-white p-4 space-y-2">
+                <p class="lbl text-slate-300">Product presentation</p>
+                <p class="text-xs text-slate-100 font-mono">deriveProductDisplay(product) → { priceLabel, discount, availability, badges[] }</p>
+                <div class="border-t border-slate-600 pt-2 grid grid-cols-2 gap-1 text-[10px] text-slate-400">
+                  <span>· price range rule</span><span>· badge vocabulary</span>
+                  <span>· discount rule</span><span>· availability rule</span>
+                  <span>· strike-through base</span><span>· sort keys</span>
+                </div>
+              </div>
+              <svg class="my-2" height="34" width="100%"><line x1="50%" y1="0" x2="10%" y2="30" stroke="#475569" stroke-width="1.5"/><line x1="50%" y1="0" x2="30%" y2="30" stroke="#475569" stroke-width="1.5"/><line x1="50%" y1="0" x2="50%" y2="30" stroke="#475569" stroke-width="1.5"/><line x1="50%" y1="0" x2="70%" y2="30" stroke="#475569" stroke-width="1.5"/><line x1="50%" y1="0" x2="90%" y2="30" stroke="#475569" stroke-width="1.5"/></svg>
+              <div class="grid grid-cols-5 gap-1 text-center">
+                <div class="border border-slate-300 rounded py-2 text-[9px] text-slate-500">search</div>
+                <div class="border border-slate-300 rounded py-2 text-[9px] text-slate-500">queries</div>
+                <div class="border border-slate-300 rounded py-2 text-[9px] text-slate-500">Card</div>
+                <div class="border border-slate-300 rounded py-2 text-[9px] text-slate-500">Detail</div>
+                <div class="border border-slate-300 rounded py-2 text-[9px] text-slate-500">seo</div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-3">Interface: one call. Implementation absorbs every rule.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <div><p class="lbl text-slate-500">Problem</p><p class="text-slate-700">Three badge vocabularies for one concept, and the listing filters on them by lowercased substring — <span class="font-mono text-xs">'best_seller'</span> from the server can never match the client's <span class="font-mono text-xs">"free shipping"</span> predicate. "Hot" is <span class="font-mono text-xs">soldCount &gt;= 20</span> on the card, <span class="font-mono text-xs">&gt;= 100</span> on the server.</p></div>
+              <div><p class="lbl text-slate-500">Solution</p><p class="text-slate-700">One module derives display state from a Product. Components render what it returns; nobody re-derives.</p></div>
+            </div>
+            <div>
+              <p class="lbl text-slate-500 mb-2">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li>· Badge filters actually match badges</li>
+                <li>· Locality: one threshold, not three</li>
+                <li>· Testable without rendering React</li>
+                <li>· Fixes the untranslated <span class="font-mono text-xs">"% off"</span></li>
+                <li>· <span class="font-mono text-xs">extractErrorText</span> dedupes (3 copies)</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ─────────── 03 ─────────── -->
+        <article id="c3" class="space-y-5">
+          <div class="flex items-start justify-between gap-6">
+            <h2 class="font-serif text-2xl">03 · An Order lifecycle module that owns transitions</h2>
+            <div class="flex gap-2 shrink-0 pt-1">
+              <span class="rounded-full bg-emerald-100 text-emerald-800 text-xs px-3 py-1">Strong</span>
+              <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">in-process</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-slate-600 space-y-0.5">
+            <p>server/modules/payment/payment.repository.ts:363-402 <span class="text-slate-400">— writes Payment + Order + Shipment + reservation status</span></p>
+            <p>server/modules/jobs/job.repository.ts:114-133 <span class="text-slate-400">— second cancel path</span></p>
+            <p>server/modules/shipment/shipment.service.ts:180,210,227 <span class="text-slate-400">— drives Order status</span></p>
+            <p>server/modules/checkout/checkout.repository.ts:173-300 <span class="text-slate-400">— 6 initial statuses</span></p>
+            <p>app/features/payment/components/MockPaymentPage.tsx:17 <span class="text-slate-400">— terminal set, duplicated client-side</span></p>
+          </div>
+
+          <!-- cross-section -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-500 mb-4">Before — transitions written at 4 altitudes</p>
+              <div class="space-y-1.5 text-xs">
+                <div class="border-l-4 border-red-400 bg-red-50 pl-3 py-2 flex justify-between"><span>client — <span class="font-mono text-[10px]">terminalPaymentStatuses</span></span><span class="text-slate-400">2 sites</span></div>
+                <div class="border-l-4 border-red-400 bg-red-50 pl-3 py-2 flex justify-between"><span>routes / services — <span class="font-mono text-[10px]">assertTransition</span> ×3, no Order guard</span><span class="text-slate-400">~40 reads</span></div>
+                <div class="border-l-4 border-red-400 bg-red-50 pl-3 py-2 flex justify-between"><span>repositories — status literals in write methods</span><span class="text-slate-400">19 writes</span></div>
+                <div class="border-l-4 border-red-400 bg-red-50 pl-3 py-2 flex justify-between"><span>jobs — <span class="font-mono text-[10px]">markOrderCanceled</span> (divergent)</span><span class="text-slate-400">3 writes</span></div>
+                <div class="border-l-4 border-slate-300 bg-slate-50 pl-3 py-2 text-slate-500">docs/03-state-machines/ — prose only, not executable</div>
+              </div>
+              <div class="mt-4 rounded bg-red-50 border border-red-200 p-3 text-[11px] text-slate-700">
+                <span class="font-mono">payment.repository.ts:391</span> writes <span class="font-mono">paymentStatus: 'FAILED'</span>.<br/>
+                <span class="font-mono">job.repository.ts:120</span> writes <span class="font-mono">paymentStatus: 'CANCELED'</span>.<br/>
+                Same conceptual transition. Two results. Neither tested against the other.
+              </div>
+            </div>
+
+            <div class="rounded-lg border-2 border-slate-800 bg-white p-5">
+              <p class="lbl text-slate-500 mb-4">After — one seam, one guard</p>
+              <pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> PENDING_PAYMENT
+  PENDING_PAYMENT --> PAID: payment.paid
+  PENDING_PAYMENT --> CANCELED: payment.failed<br/>payment.expired
+  PAID --> PROCESSING: shipment.packed
+  PROCESSING --> SHIPPED: shipment.shipped
+  SHIPPED --> DELIVERED: all delivered
+              </pre>
+              <div class="mt-3 deep rounded text-white p-3 text-[11px] font-mono">
+                transition(order, event) → next | ConflictError
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">Payment, shipment, and the expiry job all call the same interface. The status pair (<span class="font-mono">status</span> + <span class="font-mono">paymentStatus</span>) moves together, by construction.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <div><p class="lbl text-slate-500">Problem</p><p class="text-slate-700"><span class="font-mono text-xs">OrderStatus</span> has no guard anywhere. <span class="font-mono text-xs">Order</span> carries two status columns that must be kept in sync by hand at 19 write sites, and the cancel path exists twice with divergent results.</p></div>
+              <div><p class="lbl text-slate-500">Solution</p><p class="text-slate-700">One Order lifecycle module owning legal transitions. Repositories stop choosing statuses; they persist what the module returns.</p></div>
+              <div><p class="lbl text-slate-500">Note</p><p class="text-slate-700">Payment and Shipment already have guards (<span class="font-mono text-xs">payment.service.ts:194</span>, <span class="font-mono text-xs">shipment.service.ts:175</span>) and are the best-tested code in the repo. This extends a pattern that already works here.</p></div>
+            </div>
+            <div>
+              <p class="lbl text-slate-500 mb-2">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li>· One place to test every transition</li>
+                <li>· Cancel path stops diverging</li>
+                <li>· <span class="font-mono text-xs">status</span>/<span class="font-mono text-xs">paymentStatus</span> can't drift</li>
+                <li>· Locality: the doc becomes executable</li>
+                <li>· Casing convention settled at one seam</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="rounded border-l-4 border-amber-400 bg-amber-50 p-3 text-sm text-slate-700">
+            <span class="lbl text-amber-700">Also fixes</span> — the API emits status in two casings from one slice: <span class="font-mono text-xs">payment.types.ts:24</span> uppercase, <span class="font-mono text-xs">order.service.ts:262</span> lowercased. <span class="font-mono text-xs">PaymentReturnPage.tsx:27</span> calls <span class="font-mono text-xs">.toLowerCase()</span> defensively; <span class="font-mono text-xs">MockPaymentPage.tsx:17</span> compares uppercase.
+          </div>
+        </article>
+
+        <!-- ─────────── 04 ─────────── -->
+        <article id="c4" class="space-y-5">
+          <div class="flex items-start justify-between gap-6">
+            <h2 class="font-serif text-2xl">04 · A Money module at the Prisma seam</h2>
+            <div class="flex gap-2 shrink-0 pt-1">
+              <span class="rounded-full bg-emerald-100 text-emerald-800 text-xs px-3 py-1">Strong</span>
+              <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">local-substitutable</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-slate-600 space-y-0.5">
+            <p>server/lib/prisma.ts:14-30 <span class="text-slate-400">— $allOperations coerces bigint → Number</span></p>
+            <p>server/modules/checkout/checkout.repository.ts:247 <span class="text-slate-400">— the point fix (commit b6379fa)</span></p>
+            <p>order.service.ts:330 · cart.service.ts:276 · promotion.service.ts:283 <span class="text-slate-400">— toMoneyNumber ×3</span></p>
+            <p>app/features/buyer/api.ts:630 + 7 more <span class="text-slate-400">— formatMoney implemented 6×</span></p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-500 mb-4">Before — the type lies at the seam</p>
+              <div class="space-y-0">
+                <div class="border border-slate-300 rounded-t px-3 py-2 text-xs bg-slate-50">Postgres — <span class="font-mono">BigInt</span> minor units</div>
+                <div class="h-4 flex justify-center"><svg width="2" height="16"><line x1="1" y1="0" x2="1" y2="16" stroke="#475569" stroke-width="2"/></svg></div>
+                <div class="border-2 border-red-400 bg-red-50 rounded px-3 py-3 text-xs">
+                  <p class="font-mono text-[11px]">prisma.ts $allOperations</p>
+                  <p class="text-slate-600 mt-1">JSON round-trip → <span class="font-mono">Number</span></p>
+                  <p class="text-red-700 mt-1 text-[11px]">types say <span class="font-mono">bigint</span> · runtime is <span class="font-mono">number</span></p>
+                </div>
+                <div class="h-4 flex justify-center"><svg width="2" height="16"><line x1="1" y1="0" x2="1" y2="16" stroke="#dc2626" stroke-width="2"/></svg></div>
+                <div class="grid grid-cols-3 gap-1">
+                  <div class="hatch border border-red-300 rounded px-2 py-2 text-[10px] text-center">toMoneyNumber<br/>×3</div>
+                  <div class="hatch border border-red-300 rounded px-2 py-2 text-[10px] text-center">Number(...)<br/>ad-hoc ×9</div>
+                  <div class="hatch border border-red-300 rounded px-2 py-2 text-[10px] text-center">BigInt(...)<br/>re-cast ×1</div>
+                </div>
+                <div class="h-4 flex justify-center"><svg width="2" height="16"><line x1="1" y1="0" x2="1" y2="16" stroke="#dc2626" stroke-width="2"/></svg></div>
+                <div class="grid grid-cols-2 gap-1">
+                  <div class="hatch border border-red-300 rounded px-2 py-2 text-[10px] text-center">subtotal computed<br/>4×, 4 formulas</div>
+                  <div class="hatch border border-red-300 rounded px-2 py-2 text-[10px] text-center">formatMoney<br/>6 implementations</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border-2 border-slate-800 bg-white p-5">
+              <p class="lbl text-slate-500 mb-4">After — one representation, one crossing</p>
+              <div class="space-y-0">
+                <div class="border border-slate-300 rounded px-3 py-2 text-xs bg-slate-50">Postgres — <span class="font-mono">BigInt</span> minor units</div>
+                <div class="h-4 flex justify-center"><svg width="2" height="16"><line x1="1" y1="0" x2="1" y2="16" stroke="#475569" stroke-width="2" class="seam"/></svg></div>
+                <div class="deep rounded text-white px-3 py-4 space-y-2">
+                  <p class="lbl text-slate-300">Money</p>
+                  <p class="font-mono text-[11px] text-slate-100">Money.from(dbValue) · add · times · minus · clamp · format(locale)</p>
+                  <div class="border-t border-slate-600 pt-2 text-[10px] text-slate-400 grid grid-cols-2 gap-1">
+                    <span>· bigint ↔ number</span><span>· minor-unit invariant</span>
+                    <span>· subtotal arithmetic</span><span>· currency + locale</span>
+                  </div>
+                </div>
+                <div class="h-4 flex justify-center"><svg width="2" height="16"><line x1="1" y1="0" x2="1" y2="16" stroke="#475569" stroke-width="2"/></svg></div>
+                <div class="border border-slate-300 rounded px-3 py-2 text-xs text-center text-slate-600">every service · every component</div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-4">Two adapters justify the seam: the <span class="font-mono">bigint</span> Prisma edge and the formatted display edge.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <div><p class="lbl text-slate-500">Problem</p><p class="text-slate-700">A global Prisma extension makes the declared type disagree with the runtime value. That divergence shipped a live buyer-facing <span class="font-mono text-xs">CHECKOUT_FAILED</span> ("Invalid mix of BigInt and other type"), and is now defended by a single 115-line repository test at one call site.</p></div>
+              <div><p class="lbl text-slate-500">Solution</p><p class="text-slate-700">One Money module owns the crossing and the arithmetic. Services never see a raw <span class="font-mono text-xs">bigint | number</span> again.</p></div>
+              <div><p class="lbl text-slate-500">Deletion test</p><p class="text-slate-700">Yes — concentrates. Every <span class="font-mono text-xs">toMoneyNumber</span>, every <span class="font-mono text-xs">/100</span>, every subtotal reduce collapses into it.</p></div>
+            </div>
+            <div>
+              <p class="lbl text-slate-500 mb-2">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li>· The type stops lying at the seam</li>
+                <li>· Leverage: one interface, ~20 call sites</li>
+                <li>· <span class="font-mono text-xs">formatMoney</span> stops ignoring its currency arg</li>
+                <li>· Displayed total matches charged total</li>
+                <li>· Locality: money bugs land in one module</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="rounded border-l-4 border-red-400 bg-red-50 p-3 text-sm text-slate-700">
+            <span class="lbl text-red-700">Live divergence</span> — <span class="font-mono text-xs">CheckoutPage.tsx:122</span> shows <span class="font-mono text-xs">cart.subtotal</span> as "Total" while <span class="font-mono text-xs">checkout.service.ts:170</span> adds <span class="font-mono text-xs">FLAT_SHIPPING_CENTS = 500</span>. The buyer is quoted one number and charged another.
+          </div>
+        </article>
+
+        <!-- ─────────── 05 ─────────── -->
+        <article id="c5" class="space-y-5">
+          <div class="flex items-start justify-between gap-6">
+            <h2 class="font-serif text-2xl">05 · A PaymentProvider seam</h2>
+            <div class="flex gap-2 shrink-0 pt-1">
+              <span class="rounded-full bg-amber-100 text-amber-800 text-xs px-3 py-1">Worth exploring</span>
+              <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">ports &amp; adapters</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-slate-600 space-y-0.5">
+            <p>server/modules/payment/payment.service.ts:18,44,146,164,175 <span class="text-slate-400">— 'mock' welded in</span></p>
+            <p>server/modules/checkout/checkout.service.ts:220-223 <span class="text-slate-400">— mock URL built in checkout</span></p>
+            <p>server/modules/checkout/checkout.repository.ts:290-291 <span class="text-slate-400">— providerIntentId faked</span></p>
+            <p>server/modules/payment/payment.routes.ts:47,53 <span class="text-slate-400">— /api/payments/mock/...</span></p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-500 mb-3">Before — mock welded to entry and exit</p>
+              <pre class="mermaid">
+flowchart TD
+  CO["checkout.service<br/>createPaymentUrl → /payment/mock/"]
+  CR["checkout.repository<br/>providerIntentId = 'pending_'+n"]
+  RT["/api/payments/mock/:id/events"]
+  PS["payment.service<br/>provider !== 'mock' → throw"]
+  CORE["<b>handleWebhook</b><br/>dedupe · idempotency · guard<br/>order paid · shipments · commission"]
+  CO --> RT
+  CR --> RT
+  RT --> PS
+  PS --> CORE
+  classDef leak stroke:#dc2626,stroke-width:2px,fill:#fef2f2;
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class CO,CR,RT,PS leak
+  class CORE deep
+              </pre>
+            </div>
+            <div class="rounded-lg border-2 border-slate-800 bg-white p-4">
+              <p class="lbl text-slate-500 mb-3">After — two adapters, one port</p>
+              <pre class="mermaid">
+flowchart TD
+  MOCK["MockProvider<br/>adapter"]
+  REAL["RealProvider<br/>adapter"]
+  PORT["PaymentProvider port<br/>createIntent · redirectUrl<br/>verify · toEvent"]
+  CORE["<b>handleWebhook</b><br/>already provider-agnostic"]
+  MOCK --> PORT
+  REAL --> PORT
+  PORT --> CORE
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  classDef port fill:#ecfdf5,stroke:#059669,stroke-width:2px;
+  class CORE deep
+  class PORT port
+              </pre>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <div><p class="lbl text-slate-500">Problem</p><p class="text-slate-700">The transition core is already provider-agnostic, but seven sites across two modules hardcode <span class="font-mono text-xs">'mock'</span> — including the checkout module building a mock URL path. <span class="font-mono text-xs">Payment.provider</span> stores a buyer-chosen string (<span class="font-mono text-xs">"card"</span>, <span class="font-mono text-xs">"cod"</span>), so it isn't a provider identity at all.</p></div>
+              <div><p class="lbl text-slate-500">Solution</p><p class="text-slate-700">One port: create intent, produce redirect URL, verify signature, map provider events to the internal <span class="font-mono text-xs">payment.paid|failed|expired</span> vocabulary.</p></div>
+              <div><p class="lbl text-slate-500">Why only "worth exploring"</p><p class="text-slate-700">One adapter means a hypothetical seam. Do this when the second provider is actually being added — not before. The evidence <em>for</em> doing it soon: <span class="font-mono text-xs">'cod'</span> is already a second path that silently falls out of the flow.</p></div>
+            </div>
+            <div>
+              <p class="lbl text-slate-500 mb-2">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li>· Checkout stops knowing about mock</li>
+                <li>· Two adapters make the seam real</li>
+                <li>· Per-provider webhook secrets</li>
+                <li>· <span class="font-mono text-xs">'cod'</span> gets a home</li>
+                <li>· Core stays untouched when adding a provider</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ─────────── 06 ─────────── -->
+        <article id="c6" class="space-y-5">
+          <div class="flex items-start justify-between gap-6">
+            <h2 class="font-serif text-2xl">06 · Collapse the catalog listing-query interface</h2>
+            <div class="flex gap-2 shrink-0 pt-1">
+              <span class="rounded-full bg-amber-100 text-amber-800 text-xs px-3 py-1">Worth exploring</span>
+              <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">in-process</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-slate-600 space-y-0.5">
+            <p>server/modules/catalog/catalog.routes.ts:337,457,483,511,540 <span class="text-slate-400">— same 11-field block, 5×</span></p>
+            <p>server/modules/search/search.routes.ts:5-21 vs search.service.ts:15-31 <span class="text-slate-400">— same 15 fields, declared twice</span></p>
+          </div>
+
+          <!-- mass diagram -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-500 mb-4">Before — shallow: interface ≈ implementation</p>
+              <div class="flex items-end justify-center gap-6 h-56">
+                <div class="text-center">
+                  <div class="w-24 bg-red-200 border border-red-400 rounded-t" style="height:150px"></div>
+                  <div class="w-24 bg-slate-200 border border-slate-400 rounded-b" style="height:34px"></div>
+                  <p class="lbl text-slate-500 mt-2">catalog.routes</p>
+                  <p class="text-[10px] text-slate-400">320 schema lines<br/>+ 5× arg renaming</p>
+                </div>
+                <div class="text-center">
+                  <div class="w-24 bg-red-200 border border-red-400 rounded-t" style="height:44px"></div>
+                  <div class="w-24 bg-slate-200 border border-slate-400 rounded-b" style="height:10px"></div>
+                  <p class="lbl text-slate-500 mt-2">search.routes</p>
+                  <p class="text-[10px] text-slate-400">50 lines<br/>near-empty adapter</p>
+                </div>
+              </div>
+              <div class="flex justify-center gap-6 text-[10px] text-slate-500 mt-1">
+                <span class="flex items-center gap-1"><span class="w-3 h-3 bg-red-200 border border-red-400 inline-block"></span> interface</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 bg-slate-200 border border-slate-400 inline-block"></span> implementation</span>
+              </div>
+            </div>
+
+            <div class="rounded-lg border-2 border-slate-800 bg-white p-5">
+              <p class="lbl text-slate-500 mb-4">After — deep: one listing-query interface</p>
+              <div class="flex items-end justify-center h-56">
+                <div class="text-center">
+                  <div class="w-32 bg-emerald-200 border border-emerald-500 rounded-t" style="height:30px"></div>
+                  <div class="w-32 deep rounded-b flex items-center justify-center text-white text-[10px] px-2" style="height:154px">one parsed<br/>ListingQuery<br/>shared by 5 routes<br/>+ search</div>
+                  <p class="lbl text-slate-500 mt-2">catalog listing</p>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-3 text-center">Schema, arg names, and the service input become one declaration.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <div><p class="lbl text-slate-500">Problem</p><p class="text-slate-700">The 11-field mapping is copy-pasted five times — including the no-op <span class="font-mono text-xs">minPrice: query.minPrice ?? query.minPrice</span> reproduced verbatim in every copy. Every handler is typed <span class="font-mono text-xs">({ query }: any)</span>, so the Eden client types degrade at exactly the routes the buyer UI depends on.</p></div>
+              <div><p class="lbl text-slate-500">Solution</p><p class="text-slate-700">One listing-query module: TypeBox schema and service input derived from a single declaration, parsed once.</p></div>
+            </div>
+            <div>
+              <p class="lbl text-slate-500 mb-2">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li>· Removes <span class="font-mono text-xs">: any</span> from ~50 handlers</li>
+                <li>· Schema and input can't drift</li>
+                <li>· Feeds candidate 01 with real types</li>
+                <li>· Locality: one place to add a filter</li>
+                <li>· <span class="font-mono text-xs">catalog.routes.ts</span> drops well below 726</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ─────────── 07 ─────────── -->
+        <article id="c7" class="space-y-5">
+          <div class="flex items-start justify-between gap-6">
+            <h2 class="font-serif text-2xl">07 · Delete the pass-through repositories</h2>
+            <div class="flex gap-2 shrink-0 pt-1">
+              <span class="rounded-full bg-slate-200 text-slate-700 text-xs px-3 py-1">Speculative</span>
+              <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">mock</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-slate-600 space-y-0.5">
+            <p>server/modules/order/order.repository.ts <span class="text-slate-400">— 117 lines, 5 bare Prisma calls, no tests</span></p>
+            <p>server/modules/refund/refund.repository.ts <span class="text-slate-400">— 55 lines, 3 bare Prisma calls</span></p>
+            <p>server/modules/payment/payment.repository.ts:109-297 <span class="text-slate-400">— affiliate repository re-implemented inside payment</span></p>
+            <p>server/modules/catalog/catalog.service.ts:303,527,559 <span class="text-slate-400">— log + forward</span></p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+              <p class="lbl text-slate-500 mb-4">Before — depth by inheritance</p>
+              <pre class="mermaid">
+flowchart LR
+  PS["payment.service"] --> PR["IPaymentRepository<br/>extends IShipmentCreationRepository,<br/>IAffiliateRepository"]
+  PR --> DUP["affiliate queries<br/>duplicated<br/>lines 173-260"]
+  AR["affiliate.repository<br/>lines 175-275"] -.same queries.-> DUP
+  classDef leak stroke:#dc2626,stroke-width:2px,fill:#fef2f2;
+  class PR,DUP leak
+              </pre>
+            </div>
+            <div class="rounded-lg border-2 border-slate-800 bg-white p-5">
+              <p class="lbl text-slate-500 mb-4">After — a transaction seam, not interface inheritance</p>
+              <pre class="mermaid">
+flowchart LR
+  PS["payment.service"] --> TX["withTransaction(tx)"]
+  TX --> P["payment repo"]
+  TX --> A["affiliate repo"]
+  TX --> S["shipment repo"]
+  classDef port fill:#ecfdf5,stroke:#059669,stroke-width:2px;
+  class TX port
+              </pre>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+              <div><p class="lbl text-slate-500">Problem</p><p class="text-slate-700">Cross-module transaction participation is paid for with wholesale interface inheritance — 180 lines of the affiliate repository re-implemented inside the payment module. Elsewhere, <span class="font-mono text-xs">PrismaOrderRepository</span> and <span class="font-mono text-xs">PrismaRefundRepository</span> add a log line and nothing else.</p></div>
+              <div><p class="lbl text-slate-500">Deletion test</p><p class="text-slate-700">Mixed — that's why this is speculative. <span class="font-mono text-xs">order.repository</span> genuinely just moves complexity. But the repository seam is what makes <span class="font-mono text-xs">catalog.service.test.ts</span> (1,746 lines) testable, so it earns its keep where behavior exists. Don't delete the pattern; delete the instances with no behavior behind them.</p></div>
+            </div>
+            <div>
+              <p class="lbl text-slate-500 mb-2">Wins</p>
+              <ul class="space-y-1.5 text-slate-700">
+                <li>· ~180 duplicated query lines go</li>
+                <li>· Transaction seam stops widening interfaces</li>
+                <li>· Fewer modules with no test surface</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ══════════════ TOP RECOMMENDATION ══════════════ -->
+      <section id="top-recommendation">
+        <div class="rounded-xl border-2 border-slate-800 bg-white p-8 space-y-4">
+          <p class="lbl text-slate-500">Top recommendation</p>
+          <h2 class="font-serif text-3xl"><a href="#c4" class="hover:underline">04 · A Money module at the Prisma seam</a></h2>
+          <p class="text-slate-700 max-w-3xl">It's the only candidate where the current shape has already reached a buyer: the declared <span class="font-mono text-xs">bigint</span> and the runtime <span class="font-mono text-xs">number</span> disagree, that produced a live <span class="font-mono text-xs">CHECKOUT_FAILED</span>, and the fix is a point normalization at one call site while ~20 others still carry ad-hoc coercion. It has the clearest deletion test, two genuine adapters, and the smallest interface of anything here.</p>
+          <p class="text-slate-600 text-sm max-w-3xl">Then <a href="#c1" class="underline">01</a> — agreeing one Product shape is what makes <a href="#c2" class="underline">02</a> and <a href="#c6" class="underline">06</a> cheap, and it's the largest single block of code that would simply disappear.</p>
+        </div>
+      </section>
+
+      <footer class="text-xs text-slate-400 border-t border-slate-200 pt-6">
+        Generated for D:\GitHub\marketplace · vocabulary: module · interface · implementation · depth · seam · adapter · leverage · locality
+      </footer>
+
+    </main>
+  </body>
+</html>
