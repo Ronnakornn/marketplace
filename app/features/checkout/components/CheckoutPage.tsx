@@ -206,7 +206,7 @@ export function CheckoutPage() {
       {cartQuery.data && itemCount > 0 ? (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
-            <p className="text-lg font-bold">{renderQuoteTotal()}</p>
+            <div className="text-lg font-bold">{renderQuoteTotal()}</div>
             <Button className="h-12 min-w-40 rounded-2xl bg-orange-600 hover:bg-orange-700" disabled={checkoutMutation.isPending || !canPlaceOrder} onClick={() => checkoutMutation.mutate()}>
               {t("checkout.placeOrder")}
             </Button>
