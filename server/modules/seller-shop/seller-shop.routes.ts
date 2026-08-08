@@ -3,11 +3,23 @@ import { ShopPlainInputUpdate } from '#generated/prismabox/Shop.ts'
 import { ShopSettingPlainInputUpdate } from '#generated/prismabox/ShopSetting.ts'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
+import { getAuthContext } from '#server/modules/auth/auth.context.ts'
 import { SellerShopServiceError } from './seller-shop.errors.ts'
 
 const ShopParamsSchema = t.Object({
   shopId: t.String({ format: 'uuid' }),
 })
+
+export const StorefrontParamsSchema = t.Object({ shopId: t.String({ minLength: 2, maxLength: 120, pattern: '^[a-zA-Z0-9-]+$' }) }, { additionalProperties: false })
+export const StorefrontQuerySchema = t.Object({ locale: t.Union([t.Literal('th'), t.Literal('en')]) }, { additionalProperties: false })
+export const StorefrontResponseSchema = t.Object({
+  id: t.String(), name: t.String(), slug: t.String(), description: t.Nullable(t.String()),
+  logoUrl: t.Nullable(t.String()), coverUrl: t.Nullable(t.String()), ratingAverage: t.Number(),
+  ratingCount: t.Integer(), followerCount: t.Integer(), productCount: t.Integer(), chatEnabled: t.Boolean(),
+  shippingPolicy: t.Nullable(t.String()), returnPolicy: t.Nullable(t.String()),
+  updatedAt: t.Date(),
+  viewer: t.Object({ isOwner: t.Boolean() }, { additionalProperties: false }),
+}, { additionalProperties: false })
 
 const OptionalLocalizedTextSchema = t.Optional(t.Union([t.String({ maxLength: 5000 }), t.Null()]))
 
@@ -58,6 +70,15 @@ export function createSellerShopRoutes(container: ServiceContainer) {
           },
         })
       }
+    })
+    .get('/api/shops/:shopId/storefront', async ({ params, query, request }: any) => {
+      const authContext = await getAuthContext(request.headers)
+      const { metaTitle: _metaTitle, metaDescription: _metaDescription, ...profile } = await container.sellerShopService.getPublicStorefront(params.shopId, query.locale, authContext?.user.id)
+      return profile
+    }, {
+      params: StorefrontParamsSchema,
+      query: StorefrontQuerySchema,
+      response: StorefrontResponseSchema,
     })
     .get('/api/seller/shops', ({ authContext }: any) =>
       container.sellerShopService.listOwnedShops(actor(authContext)), {

@@ -8,6 +8,8 @@ import {
   productJsonLd,
   publicPageMetadata,
   resolveSeoImage,
+  resolvePublicSeoImage,
+  safeTitle,
   safeDescription,
   storeJsonLd,
   websiteJsonLd,
@@ -182,6 +184,11 @@ describe("SEO helpers", () => {
   it("trims long or missing descriptions safely", () => {
     expect(safeDescription(null, "Fallback description.")).toBe("Fallback description.");
     expect(safeDescription("x".repeat(200))).toHaveLength(160);
+  });
+
+  it("bounds titles and rejects secret social images before falling back", () => {
+    expect(safeTitle("x".repeat(80), "Fallback")).toHaveLength(60);
+    expect(resolvePublicSeoImage("https://bucket.test/cover?X-Amz-Signature=secret", "/logo.jpg")).toBe(absoluteUrl("/logo.jpg"));
   });
 
   it("formats BigInt product price for JSON-LD offers", () => {

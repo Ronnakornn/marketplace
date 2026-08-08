@@ -29,4 +29,17 @@ describe('PrismaSellerShopRepository localized storefront fields', () => {
       select: expect.objectContaining({ shippingPolicyTh: true, returnPolicyEn: true }),
     }))
   })
+
+  it.each([
+    ['22222222-2222-4222-8222-222222222222', { id: '22222222-2222-4222-8222-222222222222' }],
+    ['demo-shop', { slug: 'demo-shop' }],
+  ])('resolves active public storefront %s without private fields', async (identifier, identity) => {
+    const findFirst = vi.fn().mockResolvedValue(null)
+    const repo = new PrismaSellerShopRepository(appContext, { shop: { findFirst } } as never)
+    await repo.findPublicStorefront(identifier)
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { ...identity, status: 'ACTIVE', deletedAt: null },
+      select: expect.not.objectContaining({ contactEmail: true, contactPhone: true }),
+    }))
+  })
 })

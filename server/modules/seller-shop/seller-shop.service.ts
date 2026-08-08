@@ -78,6 +78,29 @@ export interface SellerShopSettingsResponse {
   updatedAt: Date
 }
 
+export interface PublicStorefrontProfile {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  logoUrl: string | null
+  coverUrl: string | null
+  ratingAverage: number
+  ratingCount: number
+  followerCount: number
+  productCount: number
+  chatEnabled: boolean
+  shippingPolicy: string | null
+  returnPolicy: string | null
+  updatedAt: Date
+  viewer: { isOwner: boolean }
+}
+
+export type PublicStorefrontReadModel = PublicStorefrontProfile & {
+  metaTitle: string | null
+  metaDescription: string | null
+}
+
 export class SellerShopService {
   private logger: ILogger
 
@@ -105,6 +128,24 @@ export class SellerShopService {
       shops: sorted.map((shop) => this.toListItem(shop)),
       activeShopId: sorted.find((shop) => shop.status === 'ACTIVE')?.id ?? null,
       maxShopCount: sellerProfile?.maxShopCount ?? null,
+    }
+  }
+
+  async getPublicStorefront(identifier: string, locale: 'th' | 'en', viewerId?: string): Promise<PublicStorefrontReadModel> {
+    const shop = await this.repo.findPublicStorefront(identifier)
+    if (!shop) throw new SellerShopServiceError('Shop not found', 404, 'SHOP_NOT_FOUND')
+    const settings = shop.settings
+    return {
+      id: shop.id, name: shop.name, slug: shop.slug,
+      description: resolveLocalizedSellerText(locale, { base: shop.description, th: shop.descriptionTh, en: shop.descriptionEn }),
+      logoUrl: shop.logoUrl, coverUrl: shop.coverUrl,
+      ratingAverage: Number(shop.ratingAverage), ratingCount: shop.ratingCount,
+      followerCount: shop.followerCount, productCount: shop.productCount,
+      chatEnabled: settings?.chatEnabled ?? true,
+      shippingPolicy: resolveLocalizedSellerText(locale, { base: settings?.shippingPolicy ?? null, th: settings?.shippingPolicyTh ?? null, en: settings?.shippingPolicyEn ?? null }),
+      returnPolicy: resolveLocalizedSellerText(locale, { base: settings?.returnPolicy ?? null, th: settings?.returnPolicyTh ?? null, en: settings?.returnPolicyEn ?? null }),
+      metaTitle: shop.metaTitle, metaDescription: shop.metaDescription, updatedAt: shop.updatedAt,
+      viewer: { isOwner: viewerId === shop.ownerId },
     }
   }
 

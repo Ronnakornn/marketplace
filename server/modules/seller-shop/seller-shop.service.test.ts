@@ -73,6 +73,7 @@ function createRepo(): ISellerShopRepository {
     updateShopProfile: vi.fn(async (_shopId, input) => createShop({ ...input })),
     findShopSettings: vi.fn(async () => createSettings()),
     upsertShopSettings: vi.fn(async (_shopId, input) => createSettings({ ...input })),
+    findPublicStorefront: vi.fn(async () => null),
   }
 }
 
@@ -172,5 +173,28 @@ describe('resolveLocalizedSellerText', () => {
     expect(resolveLocalizedSellerText('en', values)).toBe('English')
     expect(resolveLocalizedSellerText('en', { ...values, en: ' ' })).toBe('Base')
     expect(resolveLocalizedSellerText('en', { ...values, en: null, base: null })).toBe('ไทย')
+  })
+})
+
+describe('public storefront profile', () => {
+  it('localizes safe fields, uses real metrics, and derives owner mode', async () => {
+    const repo = createRepo()
+    vi.mocked(repo.findPublicStorefront).mockResolvedValue({
+      id: 'shop-1', ownerId: 'seller-1', name: 'Shop', slug: 'shop', description: 'Base', descriptionTh: 'ไทย', descriptionEn: 'English',
+      logoUrl: null, coverUrl: null, ratingAverage: 4.5 as never, ratingCount: 12, followerCount: 34, productCount: 56,
+      metaTitle: null, metaDescription: null, updatedAt: new Date(),
+      settings: { chatEnabled: false, shippingPolicy: 'Base ship', shippingPolicyTh: null, shippingPolicyEn: 'Ship', returnPolicy: null, returnPolicyTh: 'คืน', returnPolicyEn: null },
+    })
+    const result = await new SellerShopService(createAppContext(), repo).getPublicStorefront('shop', 'th', 'seller-1')
+    expect(result).toMatchObject({ description: 'ไทย', ratingAverage: 4.5, ratingCount: 12, followerCount: 34, productCount: 56, chatEnabled: false, shippingPolicy: 'Base ship', returnPolicy: 'คืน', viewer: { isOwner: true } })
+    expect(result).not.toHaveProperty('ownerId')
+    expect(result).not.toHaveProperty('contactEmail')
+  })
+
+  it('returns the same not-found response for inactive or missing shops', async () => {
+    const repo = createRepo()
+    vi.mocked(repo.findPublicStorefront).mockResolvedValue(null)
+    await expect(new SellerShopService(createAppContext(), repo).getPublicStorefront('hidden-shop', 'en'))
+      .rejects.toMatchObject({ status: 404, code: 'SHOP_NOT_FOUND' })
   })
 })

@@ -811,6 +811,14 @@
     "variants": "Variants",
     "you": "You"
   },
+  "storefront": {
+    "products": "products",
+    "reviews": "reviews",
+    "followers": "followers",
+    "chatAvailable": "Chat available",
+    "manageShop": "Manage shop",
+    "logoAlt": "{shop} logo"
+  },
   "seo": {
     "homeDescription": "Shop active products, trusted sellers, and marketplace deals.",
     "dealsDescription": "Flash sale products, vouchers, and marketplace deals.",

@@ -4,6 +4,12 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
 export type SellerProfileRecord = Pick<SellerProfile, 'id' | 'userId' | 'maxShopCount'>
 
+export type PublicStorefrontRecord = Pick<Shop,
+  'id' | 'ownerId' | 'name' | 'slug' | 'description' | 'descriptionTh' | 'descriptionEn' |
+  'logoUrl' | 'coverUrl' | 'ratingAverage' | 'ratingCount' | 'followerCount' | 'productCount' |
+  'metaTitle' | 'metaDescription' | 'updatedAt'
+> & { settings: Pick<ShopSetting, 'chatEnabled' | 'shippingPolicy' | 'shippingPolicyTh' | 'shippingPolicyEn' | 'returnPolicy' | 'returnPolicyTh' | 'returnPolicyEn'> | null }
+
 export type SellerOwnedShopRecord = Pick<
   Shop,
   | 'id'
@@ -80,6 +86,7 @@ export interface ISellerShopRepository {
   updateShopProfile(shopId: string, input: SellerShopProfileUpdateInput): Promise<SellerOwnedShopRecord>
   findShopSettings(shopId: string): Promise<SellerShopSettingRecord | null>
   upsertShopSettings(shopId: string, input: SellerShopSettingUpdateInput): Promise<SellerShopSettingRecord>
+  findPublicStorefront(identifier: string): Promise<PublicStorefrontRecord | null>
 }
 
 const ownedShopSelect = {
@@ -194,6 +201,28 @@ export class PrismaSellerShopRepository implements ISellerShopRepository {
       create: { shopId, ...input },
       update: input,
       select: shopSettingSelect,
+    })
+  }
+
+  findPublicStorefront(identifier: string): Promise<PublicStorefrontRecord | null> {
+    this.logger.debug('PrismaSellerShopRepository.findPublicStorefront', { identifier })
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)
+    return this.prisma.shop.findFirst({
+      where: {
+        ...(isUuid ? { id: identifier } : { slug: identifier }),
+        status: 'ACTIVE',
+        deletedAt: null,
+      },
+      select: {
+        id: true, ownerId: true, name: true, slug: true,
+        description: true, descriptionTh: true, descriptionEn: true,
+        logoUrl: true, coverUrl: true, ratingAverage: true, ratingCount: true,
+        followerCount: true, productCount: true, metaTitle: true, metaDescription: true, updatedAt: true,
+        settings: { select: {
+          chatEnabled: true, shippingPolicy: true, shippingPolicyTh: true, shippingPolicyEn: true,
+          returnPolicy: true, returnPolicyTh: true, returnPolicyEn: true,
+        } },
+      },
     })
   }
 }

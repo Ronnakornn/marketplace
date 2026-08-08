@@ -5,6 +5,7 @@ export type SellerShopErrorCode =
   | 'SHOP_SLUG_EXISTS'
   | 'SHOP_PROFILE_INVALID'
   | 'SHOP_SETTINGS_INVALID'
+  | 'SHOP_NOT_FOUND'
 
 export class SellerShopServiceError extends Error {
   constructor(

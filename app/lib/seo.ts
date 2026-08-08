@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { locales, resolveLocale, type Locale, withLocale } from "#/i18n/config";
+import { isSecretStorageUrl } from "#/lib/assets";
 
 const DEFAULT_SITE_URL = "http://localhost:3000";
 const DEFAULT_SITE_NAME = "Marketplace";
@@ -26,6 +27,16 @@ export function resolveSeoImage(image?: string | null): string {
   if (!image) return absoluteUrl(FALLBACK_IMAGE_PATH);
   if (image.startsWith("http://") || image.startsWith("https://")) return image;
   return absoluteUrl(image.startsWith("/") ? image : `/${image}`);
+}
+
+export function resolvePublicSeoImage(...images: Array<string | null | undefined>): string {
+  const image = images.find((candidate) => candidate && !isSecretStorageUrl(candidate) && (/^https?:\/\//.test(candidate) || candidate.startsWith("/")));
+  return resolveSeoImage(image);
+}
+
+export function safeTitle(value: string, fallback: string): string {
+  const title = value.replace(/\s+/g, " ").trim() || fallback;
+  return title.slice(0, 60).trim();
 }
 
 export function safeDescription(value?: string | null, fallback = DEFAULT_DESCRIPTION): string {
@@ -218,50 +229,6 @@ export async function requirePublicCategorySeo(categoryId: string) {
   return category;
 }
 
-export async function getPublicShopSeo(shopId: string) {
-  const { prisma } = await import("#server/lib/prisma.ts");
-  return prisma.shop.findFirst({
-    where: {
-      OR: [
-        ...(UUID_PATTERN.test(shopId) ? [{ id: shopId }] : []),
-        { slug: shopId },
-      ],
-      status: "ACTIVE",
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      updatedAt: true,
-      products: {
-        where: { status: "ACTIVE" },
-        orderBy: { updatedAt: "desc" },
-        take: 12,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          variants: {
-            where: { status: "ACTIVE" },
-            orderBy: { createdAt: "asc" },
-            take: 1,
-            select: {
-              price: true,
-              currency: true,
-            },
-          },
-        },
-      },
-    },
-  });
-}
-
-export async function requirePublicShopSeo(shopId: string) {
-  const shop = await getPublicShopSeo(shopId);
-  if (!shop) notFound();
-  return shop;
-}
-
 export async function getSitemapEntries() {
   const { prisma } = await import("#server/lib/prisma.ts");
   const [products, categories, shops] = await Promise.all([
@@ -348,13 +315,13 @@ export function websiteJsonLd() {
   };
 }
 
-export function storeJsonLd(shop: Awaited<ReturnType<typeof requirePublicShopSeo>>) {
+export function storeJsonLd(shop: { id?: string; name: string; slug: string; logoUrl?: string | null; coverUrl?: string | null; updatedAt?: Date; products?: unknown[] }, locale: Locale = "th") {
   return {
     "@context": "https://schema.org",
     "@type": "Store",
     name: shop.name,
-    url: absoluteUrl(withLocale(`/shops/${shop.id}`, "th")),
-    image: resolveSeoImage(),
+    url: absoluteUrl(withLocale(`/shops/${shop.slug}`, locale)),
+    image: resolvePublicSeoImage(shop.coverUrl, shop.logoUrl),
   };
 }
 

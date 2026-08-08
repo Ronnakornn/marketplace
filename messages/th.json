@@ -798,6 +798,14 @@
     "catalogEdit": { "title": "ชื่อสินค้า", "description": "รายละเอียด", "titleTh": "ชื่อสินค้า (ภาษาไทย)", "titleEn": "ชื่อสินค้า (ภาษาอังกฤษ)", "descriptionTh": "รายละเอียด (ภาษาไทย)", "descriptionEn": "รายละเอียด (ภาษาอังกฤษ)", "createVariant": "สร้างตัวเลือกสินค้า", "editVariant": "แก้ไขตัวเลือกสินค้า", "deleteVariant": "ลบตัวเลือกสินค้า", "priceCents": "ราคา (หน่วยย่อย)", "currency": "สกุลเงิน", "saveVariant": "บันทึกตัวเลือกสินค้า", "productSummary": "สรุปสินค้า", "fromPrice": "ราคาเริ่มต้น", "totalStock": "สต็อกรวม", "stock": "สต็อก", "none": "ไม่มี", "notAvailable": "ไม่มีข้อมูล", "activeDescription": "แสดงในรายการสินค้าและหน้ารายละเอียดสาธารณะ", "archivedDescription": "ซ่อนจากหน้าร้านและเก็บไว้เป็นประวัติ", "draftDescription": "ฉบับร่างที่แก้ไขได้และซ่อนจากผู้ซื้อ", "backToCatalog": "กลับไปยังแค็ตตาล็อก", "catalog": "แค็ตตาล็อก", "editProduct": "แก้ไขสินค้า", "workspaceDescription": "ปรับเนื้อหา สถานะเผยแพร่ ราคาตัวเลือก และการแสดงสต็อกของสินค้าในพื้นที่เดียว", "saveChanges": "บันทึกการเปลี่ยนแปลง", "productContent": "เนื้อหาสินค้า", "contentDescription": "แก้ไขเนื้อหาที่ผู้ซื้อเห็น โดยราคายังคงมาจากตัวเลือกสินค้า", "productSaved": "บันทึกสินค้าแล้ว", "saveFailed": "บันทึกสินค้าไม่สำเร็จ", "variantDeleted": "ลบตัวเลือกสินค้าแล้ว", "deleteVariantFailed": "ลบตัวเลือกสินค้าไม่สำเร็จ", "savedSuccessfully": "บันทึกสำเร็จ" },
     "profile": { "eyebrow": "ข้อมูลประจำตัว", "title": "โปรไฟล์ผู้ดูแล", "description": "ตรวจสอบรายละเอียดบัญชีและเซสชันของผู้ดูแลที่กำลังใช้งาน", "userId": "รหัสผู้ใช้", "accountCreated": "สร้างบัญชีเมื่อ", "accountUpdated": "อัปเดตบัญชีเมื่อ", "sessionCreated": "สร้างเซสชันเมื่อ", "sessionExpires": "เซสชันหมดอายุ", "notAvailable": "ไม่มีข้อมูล", "readOnly": "หน้านี้เป็นแบบอ่านอย่างเดียว การแก้ไขบัญชีจัดการจากส่วนอื่นของระบบ" }
   },
+  "storefront": {
+    "products": "สินค้า",
+    "reviews": "รีวิว",
+    "followers": "ผู้ติดตาม",
+    "chatAvailable": "พร้อมแชท",
+    "manageShop": "จัดการร้านค้า",
+    "logoAlt": "โลโก้ร้าน {shop}"
+  },
   "seo": {
     "homeDescription": "เลือกซื้อสินค้าพร้อมขาย ร้านค้าที่เชื่อถือได้ และดีลในมาร์เก็ตเพลส",
     "dealsDescription": "สินค้าแฟลชเซล คูปอง และดีลจากมาร์เก็ตเพลส",
