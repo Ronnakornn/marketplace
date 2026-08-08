@@ -43,25 +43,24 @@ export interface ReleaseReservationInput {
   quantity: number
 }
 
-/** The Payment statuses that cancel an Order: a rejected payment vs a lapsed one. */
-export type CanceledPaymentStatus = 'FAILED' | 'CANCELED'
+export interface PaymentStateTransitionInput {
+  paymentId: string
+  orderId: string
+  eventType: 'payment.paid' | 'payment.failed' | 'payment.expired'
+  reservations: ReleaseReservationInput[]
+  occurredAt: Date
+}
 
-export interface IPaymentRepository extends IShipmentCreationRepository, IAffiliateRepository {
-  transaction<T>(callback: (repo: IPaymentRepository) => Promise<T>): Promise<T>
+export type PaymentTransactionRepository = IPaymentRepository & IShipmentCreationRepository & IAffiliateRepository
+
+export interface IPaymentRepository {
+  transaction<T>(callback: (repo: PaymentTransactionRepository) => Promise<T>): Promise<T>
   findPayment(paymentId: string): Promise<PaymentWithOrder | null>
   findOrder(orderId: string): Promise<Order | null>
   findWebhookEvent(providerRef: string): Promise<PaymentEvent | null>
   createWebhookEvent(input: PaymentWebhookBody): Promise<PaymentEvent>
-  markPaymentSucceeded(paymentId: string, paidAt: Date): Promise<Payment>
-  markPaymentFailed(paymentId: string): Promise<Payment>
-  markPaymentExpired(paymentId: string): Promise<Payment>
-  markOrderPaid(orderId: string): Promise<Order>
-  /**
-   * `paymentStatus` must be the status the Payment row itself was just given —
-   * `Order.paymentStatus` is a denormalized copy of it and the two must agree.
-   */
-  markOrderCanceled(orderId: string, paymentStatus: CanceledPaymentStatus): Promise<Order>
-  releaseReservations(reservations: ReleaseReservationInput[]): Promise<void>
+  /** Keeps Payment.status and the denormalized Order.paymentStatus in sync. */
+  applyPaymentStateTransition(input: PaymentStateTransitionInput): Promise<void>
 }
 
 const paymentInclude = {
@@ -77,7 +76,7 @@ const paymentInclude = {
   },
 } as const
 
-export class PrismaPaymentRepository implements IPaymentRepository {
+export class PrismaPaymentRepository implements PaymentTransactionRepository {
   private logger: ILogger
 
   constructor(
@@ -87,7 +86,7 @@ export class PrismaPaymentRepository implements IPaymentRepository {
     this.logger = appContext.logger
   }
 
-  transaction<T>(callback: (repo: IPaymentRepository) => Promise<T>): Promise<T> {
+  transaction<T>(callback: (repo: PaymentTransactionRepository) => Promise<T>): Promise<T> {
     const client = this.prisma as PrismaClient
     if (typeof client.$transaction !== 'function') {
       return callback(this)
@@ -364,43 +363,20 @@ export class PrismaPaymentRepository implements IPaymentRepository {
     })
   }
 
-  markPaymentSucceeded(paymentId: string, paidAt: Date): Promise<Payment> {
-    return this.prisma.payment.update({
-      where: { id: paymentId },
-      data: { status: 'SUCCEEDED', paidAt },
-    })
-  }
+  async applyPaymentStateTransition(input: PaymentStateTransitionInput): Promise<void> {
+    if (input.eventType === 'payment.paid') {
+      await this.prisma.payment.update({
+        where: { id: input.paymentId },
+        data: { status: 'SUCCEEDED', paidAt: input.occurredAt },
+      })
+      await this.prisma.order.update({
+        where: { id: input.orderId },
+        data: { status: 'PAID', paymentStatus: 'SUCCEEDED' },
+      })
+      return
+    }
 
-  markPaymentFailed(paymentId: string): Promise<Payment> {
-    return this.prisma.payment.update({
-      where: { id: paymentId },
-      data: { status: 'FAILED' },
-    })
-  }
-
-  markPaymentExpired(paymentId: string): Promise<Payment> {
-    return this.prisma.payment.update({
-      where: { id: paymentId },
-      data: { status: 'CANCELED' },
-    })
-  }
-
-  markOrderPaid(orderId: string): Promise<Order> {
-    return this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: 'PAID', paymentStatus: 'SUCCEEDED' },
-    })
-  }
-
-  markOrderCanceled(orderId: string, paymentStatus: CanceledPaymentStatus): Promise<Order> {
-    return this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: 'CANCELED', paymentStatus },
-    })
-  }
-
-  async releaseReservations(reservations: ReleaseReservationInput[]): Promise<void> {
-    for (const reservation of reservations) {
+    for (const reservation of input.reservations) {
       const updateResult = await this.prisma.inventoryReservation.updateMany({
         where: {
           id: reservation.reservationId,
@@ -420,5 +396,15 @@ export class PrismaPaymentRepository implements IPaymentRepository {
         },
       })
     }
+
+    const paymentStatus = input.eventType === 'payment.failed' ? 'FAILED' : 'CANCELED'
+    await this.prisma.payment.update({
+      where: { id: input.paymentId },
+      data: { status: paymentStatus },
+    })
+    await this.prisma.order.update({
+      where: { id: input.orderId },
+      data: { status: 'CANCELED', paymentStatus },
+    })
   }
 }

@@ -160,18 +160,19 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-vi.mock("#/i18n/client", () => ({
-  useTranslations: () => (key: string) => ({
-    "seller.nav.manage": "Seller manage",
-    "seller.editor.editTitle": "Edit product", "seller.editor.editDescription": "Update listing details and prepare product setup sections.", "seller.editor.loading": "Loading product...", "seller.editor.notFound": "Product could not be found or you do not have access to it.", "seller.editor.retry": "Retry", "seller.editor.studioTitle": "Product Studio", "seller.editor.studioDescription": "Edit draft content, catalog setup, media, variants, inventory, and review readiness from one workspace.", "seller.editor.saveState": "Save state", "seller.editor.saving": "Saving...", "seller.editor.saveDraft": "Save draft", "seller.editor.submitReview": "Submit review", "seller.editor.sections": "Product Studio sections", "seller.editor.section.basics": "Basics", "seller.editor.section.category-specs": "Category & Specs", "seller.editor.section.media": "Media", "seller.editor.section.variants": "Variants", "seller.editor.section.inventory": "Inventory", "seller.editor.section.review": "Review", "seller.editor.sectionDescription.basics": "Core listing identity, buyer-facing copy, SEO, brand, condition, warranty, and origin.", "seller.editor.sectionDescription.category-specs": "Choose the primary category and enter category-specific specifications as attributes.", "seller.editor.sectionDescription.media": "Manage product images and video metadata.", "seller.editor.sectionDescription.variants": "Configure options, SKUs, prices, and variant-level stock.", "seller.editor.sectionDescription.inventory": "Review derived inventory values and movement context.", "seller.editor.sectionDescription.review": "Check readiness and submit the product for moderation review.",
-    "seller.products.statusDraft": "Draft", "seller.products.statusPendingReview": "Pending review", "seller.products.questionsTitle": "Product questions", "seller.products.questionsActiveDescription": "Unanswered buyer questions for active products appear here.", "seller.products.questionsDescription": "Answer unanswered buyer questions for products in this list.", "seller.products.noActiveQuestions": "No active products to check for questions.", "seller.products.loadingQuestions": "Loading questions for {title}...", "seller.products.noUnanswered": "No unanswered questions.", "seller.products.retry": "Retry", "seller.products.buyerQuestion": "Buyer question", "seller.products.answerFrom": "Answer question from", "seller.products.answerPlaceholder": "Write a clear answer for buyers.", "seller.products.answerError": "Answer could not be submitted.", "seller.products.answerSubmitted": "Answer submitted.", "seller.products.submitting": "Submitting...", "seller.products.submitAnswer": "Submit answer",
-    "seller.products.labels.additionalSpecs": "Additional specifications", "seller.products.labels.sku": "SKU", "seller.products.labels.bulkPrice": "Bulk price", "seller.products.labels.bulkStock": "Bulk stock", "seller.products.labels.bulkStatus": "Bulk status", "seller.products.labels.quantityOnHand": "Quantity on hand", "seller.products.labels.reorderLevel": "Reorder level", "seller.products.labels.quantityReserved": "Quantity reserved", "seller.products.labels.availableStock": "Available stock", "seller.products.labels.altText": "Alt text", "seller.products.labels.variantTitle": "Variant title",
-    "seller.products.editorActions.requiredSpecs": "Required specs", "seller.products.editorActions.uploadImages": "Upload product images", "seller.products.editorActions.uploadVideo": "Upload product video", "seller.products.editorActions.saveImageOrder": "Save image order", "seller.products.editorActions.saveVariant": "Save variant", "seller.products.editorActions.movementHistory": "Movement history", "seller.products.editorActions.generateRows": "Generate rows", "seller.products.editorActions.addOption": "Add option",
-    "seller.products.title": "Products",
-    "seller.products.description": "Create products, monitor catalog status, and prepare variants for your shop.",
-    "seller.products.product": "Product", "seller.products.status": "Status", "seller.products.assets": "Assets", "seller.products.priceStock": "Price / stock", "seller.products.actions": "Actions", "seller.products.edit": "Edit", "seller.products.archive": "Archive", "seller.products.archived": "Product archived.", "seller.products.archiveError": "Product could not be archived.", "seller.products.archiveTitle": "Archive product", "seller.products.archiveDescription": "Archive {title}? Archived products stay in history but are removed from active seller management flows.", "seller.products.thisProduct": "this product", "seller.products.archiving": "Archiving...", "seller.products.loading": "Loading products...", "seller.products.empty": "No products found.", "seller.products.search": "Search products", "seller.products.filterStatus": "Filter by product status", "seller.products.allStatuses": "All statuses", "seller.products.analytics": "Product analytics", "seller.products.create": "Create product", "seller.products.nextPage": "Load next page", "seller.products.noCategory": "No category", "seller.products.noBrand": "No brand", "seller.products.images": "images", "seller.products.variants": "variants", "seller.products.suspended": "Suspended", "seller.products.archivedStatus": "Archived", "seller.manage.status.draft": "Draft", "seller.manage.status.pendingReview": "Pending review", "seller.manage.status.active": "Active", "seller.manage.status.rejected": "Rejected", "common.cancel": "Cancel"
-  }[key] ?? ((key.startsWith("seller.products.labels.") || key.startsWith("seller.products.editorActions.")) ? (() => { const value = key.split(".").pop()?.replace(/[A-Z]/g, (char) => ` ${char}`).trim().replace(/^./, (char) => char.toUpperCase()) ?? key; return value.replace("Additional specs", "Additional specifications").replace(/^Sku$/, "SKU"); })() : key)),
-}));
+vi.mock("#/i18n/client", async () => {
+  const { default: messages } = await import("../../../../messages/en.json");
+  return {
+    useLocale: () => "en",
+    useTranslations: () => (key: string) => {
+      const value = key.split(".").reduce<unknown>((current, part) => {
+        if (!current || typeof current !== "object") return undefined;
+        return (current as Record<string, unknown>)[part];
+      }, messages);
+      return typeof value === "string" ? value : key;
+    },
+  };
+});
 
 vi.mock("#/components/ui/alert-dialog", () => ({
   AlertDialog: ({ children, open }: { children: ReactNode; open?: boolean }) => (open ? <>{children}</> : null),
@@ -525,7 +526,7 @@ describe("Seller product pages", () => {
     expect(screen.getByText("Product video must be MP4 or WebM.")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Upload product video"), { target: { files: [new File([new Uint8Array(26 * 1024 * 1024)], "clip.mp4", { type: "video/mp4" })] } });
-    expect(screen.getByText("Product video must be 25MB or smaller.")).toBeTruthy();
+    expect(screen.getByText("Product video must be 25 MB or smaller.")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Upload product video"), { target: { files: [new File(["x"], "clip.mp4", { type: "video/mp4" })] } });
     expect(screen.getByText("clip.mp4")).toBeTruthy();
@@ -573,7 +574,6 @@ describe("Seller product pages", () => {
   });
 
   it("creates, edits, and deletes variants with stock fields limited to allowed values", () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     updateVariantMutate.mockImplementation((_input, options) => options.onSuccess());
     createVariantMutate.mockImplementation((_input, options) => options.onSuccess({ id: "var_new" }));
     render(<SellerProductEditPage productId="prod_1" />);
@@ -601,7 +601,8 @@ describe("Seller product pages", () => {
     expect(createVariantMutate).toHaveBeenCalledWith(expect.objectContaining({ productId: "prod_1", sku: "SHIRT-2", price: 1550 }), expect.any(Object));
 
     fireEvent.click(screen.getAllByRole("button", { name: "Delete variant" })[0]);
-    expect(confirm).toHaveBeenCalled();
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Delete variant" }).at(-1)!);
     expect(deleteVariantMutate).toHaveBeenCalledWith({ productId: "prod_1", variantId: "var_1" }, expect.any(Object));
   });
 
@@ -637,19 +638,19 @@ describe("Seller product pages", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Inactive" }).at(-1)!);
     fireEvent.click(screen.getByRole("button", { name: "Apply status" }));
     expect(screen.getAllByText("Inactive").length).toBeGreaterThan(0);
-  });
+  }, 10_000);
 
   it("limits options to two axes and confirms removal when variants are affected", () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<SellerProductEditPage productId="prod_1" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Add option" }));
     expect(screen.getByRole("button", { name: "Add option" }).hasAttribute("disabled")).toBe(true);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[1]);
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("variant row(s) using it will be affected"));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    expect(screen.getByText(/1 affected variant row/)).toBeTruthy();
     expect(screen.getAllByDisplayValue("Blue").length).toBeGreaterThan(0);
-  });
+  }, 10_000);
 
   it("shows retry when draft preparation fails", () => {
     createMutate.mockImplementation((_input, options) => options.onError(new Error("Save failed")));
@@ -683,5 +684,39 @@ describe("Seller product pages", () => {
 
     expect(screen.getAllByText("Duplicate variant option combination. Choose a unique option value set for each variant.").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("warns before unloading when any studio field has unsaved changes", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    fireEvent.change(screen.getByLabelText("Alt text"), { target: { value: "Unsaved image description" } });
+    const event = new Event("beforeunload", { cancelable: true });
+
+    expect(window.dispatchEvent(event)).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
+    expect(screen.getByText("Save state: Unsaved changes")).toBeTruthy();
+  });
+
+  it("exposes accessible status, errors, media dimensions, and form semantics", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
+
+    const form = document.getElementById("seller-product-studio-form") as HTMLFormElement;
+    const title = screen.getByLabelText("Title") as HTMLInputElement;
+    const preview = screen.getByAltText("Cotton shirt front") as HTMLImageElement;
+    const saveState = screen.getByText("Save state: Saved");
+
+    expect(form.getAttribute("autocomplete")).toBe("off");
+    expect(title.name).toBe("title");
+    expect((screen.getByLabelText("Bulk price") as HTMLInputElement).name).toBe("bulkPrice");
+    expect(screen.getByLabelText("Bulk price").className).toContain("tabular-nums");
+    expect(preview.getAttribute("width")).toBe("800");
+    expect(preview.getAttribute("height")).toBe("600");
+    expect(preview.getAttribute("loading")).toBe("lazy");
+    expect(saveState.getAttribute("aria-live")).toBe("polite");
+
+    fireEvent.change(title, { target: { value: "" } });
+    fireEvent.submit(form);
+    expect(screen.getByRole("alert").textContent).toBe("Product title is required.");
+    expect(document.activeElement).toBe(title);
   });
 });

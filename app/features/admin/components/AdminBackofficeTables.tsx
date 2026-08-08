@@ -6,6 +6,7 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
+import { useTranslations } from "#/i18n/client";
 import { AdminDataShell } from "./AdminDataShell";
 import { AdminStatusAction } from "./AdminStatusAction";
 import { AdminStatusBadge } from "./AdminStatusBadge";
@@ -48,16 +49,17 @@ function textMatch(values: Array<unknown>, query: string) {
 }
 
 function FilterSelect(props: { value: string; onChange: (value: string) => void; placeholder: string; options: readonly string[] }) {
+  const t = useTranslations();
   return (
     <Select value={props.value || "ALL"} onValueChange={(value) => props.onChange(value === "ALL" ? "" : value)}>
       <SelectTrigger className="h-10 w-full border-white/10 bg-slate-950/60 text-slate-100 md:w-44">
         <SelectValue placeholder={props.placeholder} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="ALL">All {props.placeholder.toLowerCase()}</SelectItem>
+        <SelectItem value="ALL">{t("admin.common.allStatuses")}</SelectItem>
         {props.options.map((option) => (
           <SelectItem key={option} value={option}>
-            {option.replaceAll("_", " ")}
+            {t(`admin.statuses.${option}`) === `admin.statuses.${option}` ? option.replaceAll("_", " ") : t(`admin.statuses.${option}`)}
           </SelectItem>
         ))}
       </SelectContent>
@@ -76,6 +78,7 @@ function EmptyRow({ colSpan }: { colSpan: number }) {
 }
 
 export function AdminReturnsTable() {
+  const t = useTranslations();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
@@ -86,10 +89,10 @@ export function AdminReturnsTable() {
   ), [query.data, search]);
 
   return (
-    <AdminDataShell title="Returns" description="Review return requests and resolve escalated return states." icon={Undo2Icon} search={search} searchPlaceholder="Search returns" onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder="Statuses" options={RETURN_STATUSES} />}>
+    <AdminDataShell title={t("admin.pages.returns.title")} description={t("admin.pages.returns.description")} icon={Undo2Icon} search={search} searchPlaceholder={t("admin.search.returns")} onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder={t("admin.filters.statuses")} options={RETURN_STATUSES} />}>
       <CardContent className="p-0">
         <Table>
-          <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Return</TableHead><TableHead className="text-slate-300">Buyer</TableHead><TableHead className="text-slate-300">Items</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-right text-slate-300">Action</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">{t("admin.refund")}</TableHead><TableHead className="text-slate-300">{t("admin.common.buyer")}</TableHead><TableHead className="text-slate-300">{t("admin.common.items")}</TableHead><TableHead className="text-slate-300">{t("admin.status")}</TableHead><TableHead className="text-right text-slate-300">{t("admin.action")}</TableHead></TableRow></TableHeader>
           <TableBody>
             {rows.length ? rows.map((item: AdminReturn) => (
               <TableRow key={item.id} className="border-white/8 hover:bg-white/4">
@@ -109,6 +112,7 @@ export function AdminReturnsTable() {
 }
 
 export function AdminPayoutsTable() {
+  const t = useTranslations();
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const query = useAdminPayoutsList({ status });
@@ -120,10 +124,10 @@ export function AdminPayoutsTable() {
   ), [query.data, search]);
 
   return (
-    <AdminDataShell title="Payouts & Commissions" description="Approve seller payouts and monitor commission settlement pressure." icon={BanknoteIcon} search={search} searchPlaceholder="Search payouts" onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={setStatus} placeholder="Statuses" options={PAYOUT_STATUSES} />}>
+    <AdminDataShell title={t("admin.pages.payouts.title")} description={t("admin.pages.payouts.description")} icon={BanknoteIcon} search={search} searchPlaceholder={t("admin.search.payouts")} onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={setStatus} placeholder={t("admin.filters.statuses")} options={PAYOUT_STATUSES} />}>
       <CardContent className="p-0">
         <Table>
-          <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Shop</TableHead><TableHead className="text-slate-300">Amount</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-slate-300">Requested</TableHead><TableHead className="text-right text-slate-300">Actions</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">{t("admin.shop")}</TableHead><TableHead className="text-slate-300">{t("admin.amount")}</TableHead><TableHead className="text-slate-300">{t("admin.status")}</TableHead><TableHead className="text-slate-300">{t("admin.created")}</TableHead><TableHead className="text-right text-slate-300">{t("admin.actions")}</TableHead></TableRow></TableHeader>
           <TableBody>
             {rows.length ? rows.map((item: AdminPayout) => (
               <TableRow key={item.id} className="border-white/8 hover:bg-white/4">
@@ -131,7 +135,7 @@ export function AdminPayoutsTable() {
                 <TableCell className="text-sm font-semibold text-slate-100">{formatMoney(item.amount, item.currency)}</TableCell>
                 <TableCell><AdminStatusBadge status={item.status} /></TableCell>
                 <TableCell className="text-sm text-slate-300">{formatDate(item.requestedAt)}</TableCell>
-                <TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={approve.isPending || item.status !== "requested"} onClick={() => approve.mutate(item.id)}>Approve</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={markPaid.isPending || item.status !== "approved"} onClick={() => markPaid.mutate(item.id)}>Paid</Button><Button size="sm" variant="destructive" disabled={reject.isPending || (item.status !== "requested" && item.status !== "approved")} onClick={() => reject.mutate({ id: item.id, reason: "Rejected from admin console" })}>Reject</Button></div></TableCell>
+                <TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={approve.isPending || item.status !== "requested"} onClick={() => approve.mutate(item.id)}>{t("admin.ui.approve")}</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={markPaid.isPending || item.status !== "approved"} onClick={() => markPaid.mutate(item.id)}>{t("admin.ui.paid")}</Button><Button size="sm" variant="destructive" disabled={reject.isPending || (item.status !== "requested" && item.status !== "approved")} onClick={() => reject.mutate({ id: item.id, reason: "Rejected from admin console" })}>{t("admin.ui.reject")}</Button></div></TableCell>
               </TableRow>
             )) : <EmptyRow colSpan={5} />}
           </TableBody>
@@ -142,6 +146,7 @@ export function AdminPayoutsTable() {
 }
 
 export function AdminFraudCasesTable() {
+  const t = useTranslations();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [riskLevel, setRiskLevel] = useState("");
@@ -154,10 +159,10 @@ export function AdminFraudCasesTable() {
   ), [query.data, search]);
 
   return (
-    <AdminDataShell title="Fraud Cases" description="Review risk cases created by fraud rules across orders, refunds, affiliates, and coupons." icon={ShieldAlertIcon} search={search} searchPlaceholder="Search cases" onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<><FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder="Statuses" options={FRAUD_STATUSES} /><FilterSelect value={riskLevel} onChange={(value) => { setRiskLevel(value); setPage(1); }} placeholder="Risk" options={RISK_LEVELS} /></>}>
+    <AdminDataShell title={t("admin.pages.fraud.title")} description={t("admin.pages.fraud.description")} icon={ShieldAlertIcon} search={search} searchPlaceholder={t("admin.search.cases")} onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<><FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder={t("admin.filters.statuses")} options={FRAUD_STATUSES} /><FilterSelect value={riskLevel} onChange={(value) => { setRiskLevel(value); setPage(1); }} placeholder={t("admin.filters.risk")} options={RISK_LEVELS} /></>}>
       <CardContent className="p-0">
         <Table>
-          <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Case</TableHead><TableHead className="text-slate-300">Risk</TableHead><TableHead className="text-slate-300">Reason</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-right text-slate-300">Actions</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">{t("admin.entity")}</TableHead><TableHead className="text-slate-300">{t("admin.status")}</TableHead><TableHead className="text-slate-300">{t("admin.reason")}</TableHead><TableHead className="text-slate-300">{t("admin.status")}</TableHead><TableHead className="text-right text-slate-300">{t("admin.actions")}</TableHead></TableRow></TableHeader>
           <TableBody>
             {rows.length ? rows.map((item: AdminFraudCase) => (
               <TableRow key={item.id} className="border-white/8 hover:bg-white/4">
@@ -165,7 +170,7 @@ export function AdminFraudCasesTable() {
                 <TableCell><p className="text-sm font-semibold text-slate-100">{item.riskScore}</p><AdminStatusBadge status={item.riskLevel} /></TableCell>
                 <TableCell className="max-w-md text-sm text-slate-300">{item.reasons.join(", ") || "No reason"}</TableCell>
                 <TableCell><AdminStatusBadge status={item.status} /></TableCell>
-                <TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={review.isPending || item.status !== "OPEN"} onClick={() => review.mutate(item.id)}>Review</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={resolve.isPending || item.status === "RESOLVED" || item.status === "DISMISSED"} onClick={() => resolve.mutate({ id: item.id, status: "RESOLVED" })}>Resolve</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={resolve.isPending || item.status === "RESOLVED" || item.status === "DISMISSED"} onClick={() => resolve.mutate({ id: item.id, status: "DISMISSED" })}>Dismiss</Button></div></TableCell>
+                <TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={review.isPending || item.status !== "OPEN"} onClick={() => review.mutate(item.id)}>{t("admin.ui.review")}</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={resolve.isPending || item.status === "RESOLVED" || item.status === "DISMISSED"} onClick={() => resolve.mutate({ id: item.id, status: "RESOLVED" })}>{t("admin.ui.resolve")}</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={resolve.isPending || item.status === "RESOLVED" || item.status === "DISMISSED"} onClick={() => resolve.mutate({ id: item.id, status: "DISMISSED" })}>{t("admin.ui.dismiss")}</Button></div></TableCell>
               </TableRow>
             )) : <EmptyRow colSpan={5} />}
           </TableBody>
@@ -177,19 +182,20 @@ export function AdminFraudCasesTable() {
 }
 
 export function AdminReportsOverview() {
+  const t = useTranslations();
   const query = useAdminReports();
   const report = query.data;
   const cards = [
-    { label: "Gross paid sales", value: formatMoney(report?.sales.grossCents), detail: `${report?.sales.paidOrderCount ?? 0} paid orders` },
-    { label: "Average order", value: formatMoney(report?.sales.averageOrderValueCents), detail: "Paid orders only" },
-    { label: "Refund exposure", value: formatMoney(report?.refunds.totalCents), detail: `${report?.refunds.pending ?? 0} pending` },
-    { label: "Requested payouts", value: formatMoney(report?.payouts.requestedCents), detail: `${report?.payouts.requested ?? 0} requests` },
-    { label: "Approved commissions", value: formatMoney(report?.commissions.approvedCents), detail: `${formatMoney(report?.commissions.pendingCents)} pending` },
-    { label: "Active products", value: String(report?.marketplace.activeProducts ?? 0), detail: `${report?.marketplace.products ?? 0} total products` },
+    { label: t("admin.reports.grossPaidSales"), value: formatMoney(report?.sales.grossCents), detail: t("admin.reports.paidOrders").replace("{count}", String(report?.sales.paidOrderCount ?? 0)) },
+    { label: t("admin.reports.averageOrder"), value: formatMoney(report?.sales.averageOrderValueCents), detail: t("admin.reports.paidOrdersOnly") },
+    { label: t("admin.reports.refundExposure"), value: formatMoney(report?.refunds.totalCents), detail: t("admin.reports.pendingCount").replace("{count}", String(report?.refunds.pending ?? 0)) },
+    { label: t("admin.reports.requestedPayouts"), value: formatMoney(report?.payouts.requestedCents), detail: t("admin.reports.requestCount").replace("{count}", String(report?.payouts.requested ?? 0)) },
+    { label: t("admin.reports.approvedCommissions"), value: formatMoney(report?.commissions.approvedCents), detail: t("admin.reports.pendingAmount").replace("{amount}", formatMoney(report?.commissions.pendingCents)) },
+    { label: t("admin.reports.activeProducts"), value: String(report?.marketplace.activeProducts ?? 0), detail: t("admin.reports.totalProducts").replace("{count}", String(report?.marketplace.products ?? 0)) },
   ];
 
   return (
-    <AdminDataShell title="Reports" description="Derived marketplace metrics from trusted backend state." icon={BarChart3Icon} search="" searchPlaceholder="Reports" onSearchChange={() => undefined} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={null}>
+    <AdminDataShell title={t("admin.pages.reports.title")} description={t("admin.pages.reports.description")} icon={BarChart3Icon} search="" searchPlaceholder={t("admin.pages.reports.title")} onSearchChange={() => undefined} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={null}>
       <CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
         {cards.map((card) => (
           <Card key={card.label} className="rounded-lg border-white/10 bg-slate-950/45">

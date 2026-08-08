@@ -26,3 +26,8 @@ whole operation.
 A buyer's collection of items awaiting purchase. A Cart knows its items and
 their prices. It does not know about coupons or shipping — the same Cart
 yields different amounts under different [[Checkout Quote]]s.
+
+### Checkout Selection
+
+The subset of Cart Items a buyer explicitly chooses to purchase in one
+Checkout. Items outside a Checkout Selection remain in the Cart.

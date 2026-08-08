@@ -22,3 +22,6 @@ tsconfig.tsbuildinfo
 .devserver.log
 .codex-*.log
 /public/uploads
+graphify-out
+playwright-report
+test-results

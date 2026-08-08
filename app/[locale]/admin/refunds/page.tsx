@@ -3,7 +3,7 @@ import { AdminPageIntro, AdminRefundsTable, AdminSpaceCat } from "#/features/adm
 export default function AdminRefundsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <AdminPageIntro eyebrow="Payments" title="Refunds" description="Review refund status and move requests through the supported workflow.">
+      <AdminPageIntro eyebrow="admin.pages.refunds.eyebrow" title="admin.pages.refunds.title" description="admin.pages.refunds.description">
         <AdminSpaceCat mode="dashboard" />
       </AdminPageIntro>
       <AdminRefundsTable />

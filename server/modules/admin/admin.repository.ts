@@ -168,7 +168,7 @@ export interface IAdminRepository {
   listProducts(filters: { status?: ProductStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminProductRecord>>
   findProductById(productId: string): Promise<AdminProductRecord | null>
   updateProductStatus(productId: string, status: ProductStatus): Promise<AdminProductRecord>
-  listOrders(filters: { status?: OrderStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminOrderRecord>>
+  listOrders(filters: { status?: OrderStatus; shopId?: string }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminOrderRecord>>
   findOrderById(orderId: string): Promise<AdminOrderRecord | null>
   listRefunds(filters: { status?: RefundStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminRefundRecord>>
   findRefundById(refundId: string): Promise<AdminRefundRecord | null>
@@ -682,8 +682,11 @@ export class PrismaAdminRepository implements IAdminRepository {
     return this.prisma.product.update({ where: { id: productId }, data: { status }, include: productInclude })
   }
 
-  listOrders(filters: { status?: OrderStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminOrderRecord>> {
-    const where: Prisma.OrderWhereInput = filters.status ? { status: filters.status } : {}
+  listOrders(filters: { status?: OrderStatus; shopId?: string }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminOrderRecord>> {
+    const where: Prisma.OrderWhereInput = {
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.shopId ? { items: { some: { shopId: filters.shopId } } } : {}),
+    }
     return this.paginate(
       this.prisma.order.findMany({ where, include: orderInclude, orderBy: { createdAt: 'desc' }, ...this.toSkipTake(pagination) }),
       this.prisma.order.count({ where }),

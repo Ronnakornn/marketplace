@@ -5,7 +5,13 @@ import type { ReactNode } from "react";
 import * as React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import enMessages from "../../../../messages/en.json";
+import { I18nProvider } from "#/i18n/client";
 import { AdminCategorySpecsManager } from "./AdminCategorySpecsManager";
+
+function renderPage() {
+  return render(<I18nProvider locale="en" messages={enMessages} fallbackMessages={enMessages}><AdminCategorySpecsManager /></I18nProvider>);
+}
 
 const mutateAsync = vi.fn();
 const updateCategory = vi.fn();
@@ -92,7 +98,7 @@ afterEach(() => {
 
 describe("AdminCategorySpecsManager", () => {
   it("renders admin categories, inactive states, and editable mutation controls", () => {
-    render(<AdminCategorySpecsManager />);
+    renderPage();
 
     expect(screen.getAllByText("Fashion").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Electronics").length).toBeGreaterThan(0);
@@ -113,14 +119,14 @@ describe("AdminCategorySpecsManager", () => {
       },
     };
 
-    render(<AdminCategorySpecsManager />);
+    renderPage();
 
     expect(screen.queryByText("[object Object]")).toBeNull();
     expect(screen.getByText(/Category specs endpoint failed/i)).toBeTruthy();
   });
 
   it("submits category updates and active state changes", async () => {
-    render(<AdminCategorySpecsManager />);
+    renderPage();
 
     fireEvent.change(screen.getByLabelText("Category name"), { target: { value: "Fashion Updated" } });
     fireEvent.click(screen.getByRole("button", { name: /save category/i }));
@@ -132,7 +138,7 @@ describe("AdminCategorySpecsManager", () => {
   });
 
   it("edits specs and deactivates inactive-aware spec rows", async () => {
-    render(<AdminCategorySpecsManager />);
+    renderPage();
 
     fireEvent.click(screen.getAllByRole("button", { name: /edit/i })[0]);
     fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Color family" } });

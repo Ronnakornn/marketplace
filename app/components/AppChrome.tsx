@@ -36,6 +36,7 @@ export default function AppChrome({ children }: AppChromeProps) {
     (route) => pathWithoutLocale === route || pathWithoutLocale.startsWith(`${route}/`),
   );
   const isMarketplaceHome = pathWithoutLocale === "/";
+  const isShopRoute = pathWithoutLocale === "/shops" || pathWithoutLocale.startsWith("/shops/");
   const isBuyerRoute = [
     "/account",
     "/affiliates",
@@ -54,7 +55,7 @@ export default function AppChrome({ children }: AppChromeProps) {
     "/wishlist",
   ].some((route) => pathWithoutLocale === route || pathWithoutLocale.startsWith(`${route}/`));
 
-  if (isAdminRoute || isSellerRoute || isAuthRoute || isMarketplaceHome || isBuyerRoute) {
+  if (isAdminRoute || isSellerRoute || isAuthRoute || isMarketplaceHome || isShopRoute || isBuyerRoute) {
     return <>{children}</>;
   }
 

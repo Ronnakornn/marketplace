@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Skeleton } from "#/components/ui/skeleton";
 import { useAdminDashboard } from "../hooks/useAdminOperations";
 import { AdminPageIntro } from "./AdminPageIntro";
+import { useTranslations } from "#/i18n/client";
 
 interface AdminDashboardOverviewProps {
   userName: string;
@@ -26,59 +27,59 @@ interface AdminDashboardOverviewProps {
 
 const quickLinks = [
   {
-    title: "Manage users",
-    description: "Review roles and account access.",
+    title: "manageUsers",
+    description: "manageUsersDescription",
     href: "/admin/users",
     icon: UsersIcon,
   },
   {
-    title: "Moderate products",
-    description: "Approve or archive marketplace listings.",
+    title: "moderateProducts",
+    description: "moderateProductsDescription",
     href: "/admin/products",
     icon: PackageSearchIcon,
   },
   {
-    title: "Monitor orders",
-    description: "Inspect order and fulfillment status.",
+    title: "monitorOrders",
+    description: "monitorOrdersDescription",
     href: "/admin/orders",
     icon: ReceiptTextIcon,
   },
   {
-    title: "Resolve returns",
-    description: "Review return and refund escalations.",
+    title: "resolveReturns",
+    description: "resolveReturnsDescription",
     href: "/admin/returns",
     icon: Undo2Icon,
   },
   {
-    title: "Approve payouts",
-    description: "Move seller payouts through finance review.",
+    title: "approvePayouts",
+    description: "approvePayoutsDescription",
     href: "/admin/payouts",
     icon: BanknoteIcon,
   },
   {
-    title: "Review fraud",
-    description: "Triage open marketplace risk cases.",
+    title: "reviewFraud",
+    description: "reviewFraudDescription",
     href: "/admin/fraud",
     icon: ShieldAlertIcon,
   },
 ] as const;
 
 const summaryCards = [
-  { key: "users", title: "Users", icon: UsersIcon },
-  { key: "shops", title: "Shops", icon: Building2Icon },
-  { key: "products", title: "Products", icon: PackageSearchIcon },
-  { key: "orders", title: "Orders", icon: ReceiptTextIcon },
-  { key: "refunds", title: "Pending refunds", icon: RotateCcwIcon },
+  { key: "users", title: "users", icon: UsersIcon },
+  { key: "shops", title: "shops", icon: Building2Icon },
+  { key: "products", title: "products", icon: PackageSearchIcon },
+  { key: "orders", title: "orders", icon: ReceiptTextIcon },
+  { key: "refunds", title: "pendingRefunds", icon: RotateCcwIcon },
 ] as const;
 
 const exceptionCards = [
-  { key: "pendingPayments", title: "Pending payments", href: "/admin/orders", icon: ReceiptTextIcon },
-  { key: "failedPayments", title: "Failed payments", href: "/admin/orders", icon: ReceiptTextIcon },
-  { key: "delayedShipments", title: "Delayed shipments", href: "/admin/orders", icon: PackageSearchIcon },
-  { key: "returnEscalations", title: "Return escalations", href: "/admin/returns", icon: Undo2Icon },
-  { key: "refundEscalations", title: "Refund escalations", href: "/admin/refunds", icon: RotateCcwIcon },
-  { key: "payoutApprovals", title: "Payout approvals", href: "/admin/payouts", icon: BanknoteIcon },
-  { key: "fraudOpen", title: "Open fraud cases", href: "/admin/fraud", icon: ShieldAlertIcon },
+  { key: "pendingPayments", title: "pendingPayments", href: "/admin/orders", icon: ReceiptTextIcon },
+  { key: "failedPayments", title: "failedPayments", href: "/admin/orders", icon: ReceiptTextIcon },
+  { key: "delayedShipments", title: "delayedShipments", href: "/admin/orders", icon: PackageSearchIcon },
+  { key: "returnEscalations", title: "returnEscalations", href: "/admin/returns", icon: Undo2Icon },
+  { key: "refundEscalations", title: "refundEscalations", href: "/admin/refunds", icon: RotateCcwIcon },
+  { key: "payoutApprovals", title: "payoutApprovals", href: "/admin/payouts", icon: BanknoteIcon },
+  { key: "fraudOpen", title: "openFraudCases", href: "/admin/fraud", icon: ShieldAlertIcon },
 ] as const;
 
 function AdminDashboardLinkSkeleton() {
@@ -97,15 +98,16 @@ export function AdminDashboardOverview({
   userName,
   heroVisual,
 }: AdminDashboardOverviewProps) {
+  const t = useTranslations();
   const { data: dashboard, isLoading, error } = useAdminDashboard();
   const prefersReducedMotion = useReducedMotion();
 
   return (
     <div className="flex flex-col gap-6">
       <AdminPageIntro
-        eyebrow="Operations"
-        title={`Welcome back, ${userName}`}
-        description="Prioritize marketplace exceptions before reviewing aggregate totals."
+        eyebrow={t("admin.overview.eyebrow")}
+        title={t("admin.overview.welcome").replace("{name}", userName)}
+        description={t("admin.overview.description")}
       >
         {heroVisual}
       </AdminPageIntro>
@@ -123,7 +125,7 @@ export function AdminDashboardOverview({
               <Link href={item.href} className="admin-panel block rounded-lg border border-white/10 bg-white/5 px-4 py-4 no-underline">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-slate-300">{item.title}</p>
+                    <p className="text-sm font-medium text-slate-300">{t(`admin.overview.${item.title}` as Parameters<typeof t>[0])}</p>
                     {isLoading ? <Skeleton className="mt-3 h-8 w-16 bg-white/12" /> : <p className="mt-2 text-3xl font-semibold text-white">{value}</p>}
                   </div>
                   <item.icon className="size-5 text-cyan-200" />
@@ -148,7 +150,7 @@ export function AdminDashboardOverview({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-white">
                     <item.icon className="size-5" />
-                    {item.title}
+                    {t(`admin.overview.${item.title}` as Parameters<typeof t>[0])}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -158,7 +160,7 @@ export function AdminDashboardOverview({
                     <>
                       <p className="text-3xl font-bold text-white">{value ?? 0}</p>
                       <p className="mt-2 text-sm text-slate-300">
-                        {error ? "Unable to load total." : "Marketplace total."}
+                        {error ? t("admin.overview.unableToLoad") : t("admin.overview.marketplaceTotal")}
                       </p>
                     </>
                   )}
@@ -192,12 +194,12 @@ export function AdminDashboardOverview({
                   <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-cyan-300/12 text-cyan-200">
                     <item.icon className="size-5" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white">{item.title}</h3>
+                  <h3 className="text-lg font-semibold text-white">{t(`admin.overview.${item.title}` as Parameters<typeof t>[0])}</h3>
                   <p className="mt-2 text-sm text-slate-300">
-                    {item.description}
+                    {t(`admin.overview.${item.description}` as Parameters<typeof t>[0])}
                   </p>
                   <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-cyan-200 transition group-hover:translate-x-1">
-                    Open
+                    {t("admin.common.open")}
                     <ArrowRightIcon className="size-4" />
                   </span>
                 </Link>

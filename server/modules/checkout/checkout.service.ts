@@ -25,6 +25,7 @@ export interface CheckoutActor {
 
 export interface CreateCheckoutData {
   cartId: string
+  cartItemIds?: string[]
   addressId: string
   couponCode?: string
   paymentMethod: string
@@ -34,6 +35,7 @@ export interface CreateCheckoutData {
 
 export interface QuoteCheckoutData {
   cartId: string
+  cartItemIds?: string[]
   couponCode?: string
 }
 
@@ -89,15 +91,16 @@ export class CheckoutService {
     return this.repo.transaction(async (txRepo) => {
       const cart = await txRepo.findCartForCheckout(data.cartId)
       this.assertCart(actor, cart)
+      const items = this.selectCartItems(cart.items, data.cartItemIds)
       const address = await txRepo.findAddressForUser(data.addressId, actor.id)
       if (!address) throw new CheckoutServiceError('Address not found', 404, 'ADDRESS_NOT_FOUND')
 
-      this.validateItems(cart!.items)
-      const baseTotals = this.calculateTotals(cart!.items)
+      this.validateItems(items)
+      const baseTotals = this.calculateTotals(items)
       const couponValidation = data.couponCode
         ? await this.validateCouponForCheckout(txRepo, actor.id, data.couponCode, baseTotals.subtotal)
         : null
-      const totals = this.calculateTotals(cart!.items, couponValidation?.discount ?? 0)
+      const totals = this.calculateTotals(items, couponValidation?.discount ?? 0)
       const orderNumber = this.createOrderNumber()
       const checkoutExpiresAt = new Date(Date.now() + CHECKOUT_RESERVATION_MINUTES * 60 * 1000)
 
@@ -108,7 +111,7 @@ export class CheckoutService {
           checkoutExpiresAt,
           address,
           totals,
-          items: cart!.items,
+          items,
           paymentMethod: data.paymentMethod.trim(),
           locale: data.locale,
           coupon: couponValidation ? { id: couponValidation.couponId } : null,
@@ -134,8 +137,9 @@ export class CheckoutService {
 
     const cart = await this.repo.findCartForCheckout(data.cartId)
     this.assertCart(actor, cart)
+    const items = this.selectCartItems(cart.items, data.cartItemIds)
 
-    const baseTotals = this.calculateTotals(cart.items)
+    const baseTotals = this.calculateTotals(items)
     let coupon: CouponOutcome | null = null
     let discountCents = 0
 
@@ -157,7 +161,7 @@ export class CheckoutService {
       }
     }
 
-    const totals = this.calculateTotals(cart.items, discountCents)
+    const totals = this.calculateTotals(items, discountCents)
 
     return {
       ...totals,
@@ -215,6 +219,20 @@ export class CheckoutService {
         })
       }
     }
+  }
+
+  private selectCartItems(cartItems: CheckoutCartItem[], cartItemIds?: string[]): CheckoutCartItem[] {
+    if (!cartItemIds) return cartItems
+    if (!cartItemIds.length) throw new CheckoutServiceError('Select at least one cart item', 400, 'CART_ITEMS_REQUIRED')
+    const selectedIds = new Set(cartItemIds)
+    if (selectedIds.size !== cartItemIds.length) {
+      throw new CheckoutServiceError('Duplicate cart item selection', 400, 'CART_ITEM_SELECTION_INVALID')
+    }
+    const items = cartItems.filter((item) => selectedIds.has(item.id))
+    if (items.length !== selectedIds.size) {
+      throw new CheckoutServiceError('Selected cart item not found', 404, 'CART_ITEM_NOT_FOUND')
+    }
+    return items
   }
 
   private calculateTotals(items: CheckoutCartItem[], discountCents = 0): CalculatedTotals {

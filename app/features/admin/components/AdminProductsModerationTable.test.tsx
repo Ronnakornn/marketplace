@@ -5,7 +5,13 @@ import type { ReactNode } from "react";
 import * as React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import enMessages from "../../../../messages/en.json";
+import { I18nProvider } from "#/i18n/client";
 import { AdminProductsModerationTable } from "./AdminOperationsTables";
+
+function renderPage() {
+  return render(<I18nProvider locale="en" messages={enMessages} fallbackMessages={enMessages}><AdminProductsModerationTable /></I18nProvider>);
+}
 
 const approveMutate = vi.fn();
 const rejectMutate = vi.fn();
@@ -126,7 +132,7 @@ afterEach(() => {
 
 describe("AdminProductsModerationTable", () => {
   it("requires a reject reason before submitting moderation action", async () => {
-    render(<AdminProductsModerationTable />);
+    renderPage();
 
     expect(screen.getByText("Cotton Shirt")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Detail" }).getAttribute("href")).toBe("/admin/products/prod_1");
@@ -149,7 +155,7 @@ describe("AdminProductsModerationTable", () => {
   });
 
   it("requires a suspend reason before submitting moderation action", async () => {
-    render(<AdminProductsModerationTable />);
+    renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "Suspend" }));
 

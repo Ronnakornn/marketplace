@@ -29,6 +29,7 @@ import {
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { Checkbox } from "#/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -39,6 +40,9 @@ import {
   DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Input } from "#/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "#/components/ui/native-select";
+import { useTranslations } from "#/i18n/client";
+import { AdminStatusBadge } from "#/features/admin/components/AdminStatusBadge";
 import { Skeleton } from "#/components/ui/skeleton";
 import {
   Table,
@@ -73,17 +77,6 @@ function formatMoney(cents: number | bigint, currency: string) {
     style: "currency",
     currency,
   }).format(Number(cents) / 100);
-}
-
-function statusTone(status: CatalogProduct["status"]) {
-  switch (status) {
-    case "ACTIVE":
-      return "border-emerald-300/30 bg-emerald-300/12 text-emerald-100";
-    case "ARCHIVED":
-      return "border-slate-300/25 bg-white/8 text-slate-300";
-    default:
-      return "border-amber-300/30 bg-amber-300/12 text-amber-100";
-  }
 }
 
 function lowestVariantPrice(product: CatalogProduct) {
@@ -127,6 +120,7 @@ function SummaryCard(props: {
 }
 
 export function AdminCatalogManager() {
+  const t = useTranslations();
   const { data: products = [], isLoading, error, refetch } = useAdminCatalogProducts();
   const [query, setQuery] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -145,7 +139,7 @@ export function AdminCatalogManager() {
           className="-ml-3 h-8 px-3 text-slate-300 hover:bg-white/10 hover:text-white"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Product
+          {t("admin.product")}
         </Button>
       ),
       cell: ({ row }) => (
@@ -166,7 +160,7 @@ export function AdminCatalogManager() {
     {
       accessorFn: (row) => row.shop.name,
       id: "shop",
-      header: "Shop",
+      header: t("admin.shop"),
       cell: ({ row }) => (
         <>
           <p className="text-sm text-slate-200">{row.original.shop.name}</p>
@@ -176,24 +170,22 @@ export function AdminCatalogManager() {
     },
     {
       id: "price",
-      header: "Price",
+      header: t("admin.common.price"),
       cell: ({ row }) => {
         const price = lowestVariantPrice(row.original);
-        return price ? formatMoney(price.price, price.currency) : "No variants";
+        return price ? formatMoney(price.price, price.currency) : t("admin.variants");
       },
     },
     {
       accessorKey: "status",
-      header: "Status",
+      header: t("admin.status"),
       cell: ({ row }) => (
-        <Badge variant="outline" className={statusTone(row.original.status)}>
-          {row.original.status}
-        </Badge>
+        <AdminStatusBadge status={row.original.status} />
       ),
     },
     {
       id: "variants",
-      header: "Variants",
+      header: t("admin.variants"),
       cell: ({ row }) => row.original.variants.length,
     },
     {
@@ -205,26 +197,26 @@ export function AdminCatalogManager() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="ml-auto size-8 text-slate-300 hover:bg-white/10 hover:text-white">
               <MoreHorizontalIcon className="size-4" />
-              <span className="sr-only">Open actions</span>
+              <span className="sr-only">{t("admin.openActions")}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{t("admin.actions")}</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link href={`/admin/catalog/${row.original.id}`}>
                 <ArrowUpRightIcon className="size-4" />
-                Edit product
+                {t("admin.common.editProduct")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.original.id)}>
-              Copy product ID
+              {t("admin.common.copyProductId")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
     },
-  ], []);
+  ], [t]);
   const table = useReactTable({
     data: products,
     columns,
@@ -255,7 +247,7 @@ export function AdminCatalogManager() {
     return (
       <Card className="border-red-500/30 bg-red-500/10">
         <CardContent className="flex flex-col gap-3 p-6">
-          <p className="text-sm text-red-200">Unable to load catalog products.</p>
+          <p className="text-sm text-red-200">{t("admin.catalogLoadError")}</p>
           <Button
             variant="outline"
             size="sm"
@@ -263,7 +255,7 @@ export function AdminCatalogManager() {
             onClick={() => void refetch()}
           >
             <RefreshCwIcon className="size-4" />
-            Retry
+            {t("admin.common.retry")}
           </Button>
         </CardContent>
       </Card>
@@ -274,9 +266,9 @@ export function AdminCatalogManager() {
     <div className="space-y-5">
       <AdminBrandManager />
       <section className="grid gap-4 md:grid-cols-3">
-        <SummaryCard title="Active products" value={String(activeCount)} detail="Visible to buyers" icon={CheckCircle2Icon} />
-        <SummaryCard title="Draft products" value={String(draftCount)} detail="Not visible in storefront" icon={Clock3Icon} />
-        <SummaryCard title="Archived products" value={String(archivedCount)} detail="Hidden from public feeds" icon={XCircleIcon} />
+        <SummaryCard title={t("admin.catalogManager.activeProducts")} value={String(activeCount)} detail={t("admin.catalogManager.activeDetail")} icon={CheckCircle2Icon} />
+        <SummaryCard title={t("admin.catalogManager.draftProducts")} value={String(draftCount)} detail={t("admin.catalogManager.draftDetail")} icon={Clock3Icon} />
+        <SummaryCard title={t("admin.catalogManager.archivedProducts")} value={String(archivedCount)} detail={t("admin.catalogManager.archivedDetail")} icon={XCircleIcon} />
       </section>
 
       <Card className="admin-panel overflow-hidden rounded-xl border-white/10 bg-white/5 py-0">
@@ -285,10 +277,10 @@ export function AdminCatalogManager() {
             <div>
               <CardTitle className="flex items-center gap-2 text-white">
                 <PackageSearchIcon className="size-5 text-cyan-200" />
-                Catalog Operations
+                {t("admin.pages.catalog.title")}
               </CardTitle>
               <p className="mt-2 text-sm text-slate-400">
-                Review marketplace products and open a dedicated edit workspace for content changes.
+                {t("admin.pages.catalog.description")}
               </p>
             </div>
             <div className="relative w-full max-w-sm">
@@ -296,7 +288,7 @@ export function AdminCatalogManager() {
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search products, slug, or shop"
+                placeholder={t("admin.common.searchProducts")}
                 className="border-white/10 bg-slate-950/60 pl-9 text-slate-100 placeholder:text-slate-500"
               />
             </div>
@@ -304,7 +296,7 @@ export function AdminCatalogManager() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white">
                   <Columns3Icon className="size-4" />
-                  Columns
+                  {t("admin.common.columns")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -355,7 +347,7 @@ export function AdminCatalogManager() {
               ) : (
                 <TableRow className="border-white/8 hover:bg-transparent">
                   <TableCell colSpan={6} className="h-32 text-center text-slate-400">
-                    No products match the current search.
+                    {t("admin.common.noProductsMatch")}
                   </TableCell>
                 </TableRow>
               )}
@@ -365,7 +357,7 @@ export function AdminCatalogManager() {
       </Card>
       <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-400">
-          Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length} products
+          {t("admin.common.showingRecords").replace("{visible}", String(table.getRowModel().rows.length)).replace("{total}", String(table.getFilteredRowModel().rows.length))}
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -375,7 +367,7 @@ export function AdminCatalogManager() {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            {t("admin.common.previous")}
           </Button>
           <span className="min-w-20 text-center text-sm text-slate-300">
             {table.getState().pagination.pageIndex + 1} / {table.getPageCount() || 1}
@@ -387,7 +379,7 @@ export function AdminCatalogManager() {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            {t("admin.common.next")}
           </Button>
         </div>
       </div>
@@ -396,6 +388,7 @@ export function AdminCatalogManager() {
 }
 
 function AdminBrandManager() {
+  const t = useTranslations();
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [activeFilter, setActiveFilter] = useState<"" | boolean>("");
@@ -453,58 +446,58 @@ function AdminBrandManager() {
           <div>
             <CardTitle className="flex items-center gap-2 text-white">
               <BoxesIcon className="size-5 text-cyan-200" />
-              Brand Management
+              {t("admin.brandManager.title")}
             </CardTitle>
-            <p className="mt-2 text-sm text-slate-400">Create and maintain global brand master data for seller selection and buyer filters.</p>
+            <p className="mt-2 text-sm text-slate-400">{t("admin.brandManager.description")}</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Input value={q} onChange={(event) => { setQ(event.target.value); setPage(1); }} placeholder="Search brands" className="border-white/10 bg-slate-950/60 text-slate-100 placeholder:text-slate-500" />
-            <select value={activeFilter === "" ? "ALL" : String(activeFilter)} onChange={(event) => { setActiveFilter(event.target.value === "ALL" ? "" : event.target.value === "true"); setPage(1); }} className="h-10 rounded-md border border-white/10 bg-slate-950/60 px-3 text-sm text-slate-100">
-              <option value="ALL">All statuses</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
+            <Input value={q} onChange={(event) => { setQ(event.target.value); setPage(1); }} placeholder={t("admin.brandManager.search")} className="border-white/10 bg-slate-950/60 text-slate-100 placeholder:text-slate-500" />
+            <NativeSelect value={activeFilter === "" ? "ALL" : String(activeFilter)} onChange={(event) => { setActiveFilter(event.target.value === "ALL" ? "" : event.target.value === "true"); setPage(1); }} className="h-10">
+              <NativeSelectOption value="ALL">{t("admin.common.allStatuses")}</NativeSelectOption>
+              <NativeSelectOption value="true">{t("admin.common.active")}</NativeSelectOption>
+              <NativeSelectOption value="false">{t("admin.common.inactive")}</NativeSelectOption>
+            </NativeSelect>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 p-5">
         <form onSubmit={submitBrand} className="grid gap-3 rounded-lg border border-white/10 bg-slate-950/50 p-4 lg:grid-cols-4">
-          <BrandInput id="brand-name" label="Name" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} required />
-          <BrandInput id="brand-slug" label="Slug" value={form.slug} onChange={(value) => setForm((current) => ({ ...current, slug: value }))} placeholder="auto-from-name" />
-          <BrandInput id="brand-code" label="Code" value={form.code} onChange={(value) => setForm((current) => ({ ...current, code: value }))} />
-          <BrandInput id="brand-country" label="Country" value={form.countryCode} onChange={(value) => setForm((current) => ({ ...current, countryCode: value }))} placeholder="TH" />
-          <BrandInput id="brand-logo" label="Logo URL" value={form.logoUrl} onChange={(value) => setForm((current) => ({ ...current, logoUrl: value }))} />
-          <BrandInput id="brand-website" label="Website URL" value={form.websiteUrl} onChange={(value) => setForm((current) => ({ ...current, websiteUrl: value }))} />
-          <BrandInput id="brand-sort" label="Sort order" value={form.sortOrder} onChange={(value) => setForm((current) => ({ ...current, sortOrder: value }))} type="number" />
-          <label className="flex items-end gap-2 pb-2 text-sm text-slate-300">
-            <input type="checkbox" checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} className="size-4 accent-cyan-300" />
-            Featured
-          </label>
+          <BrandInput id="brand-name" label={t("admin.brandManager.name")} value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} required />
+          <BrandInput id="brand-slug" label={t("admin.categoryManager.slug")} value={form.slug} onChange={(value) => setForm((current) => ({ ...current, slug: value }))} placeholder="auto-from-name" />
+          <BrandInput id="brand-code" label={t("admin.brandManager.code")} value={form.code} onChange={(value) => setForm((current) => ({ ...current, code: value }))} />
+          <BrandInput id="brand-country" label={t("admin.ui.country")} value={form.countryCode} onChange={(value) => setForm((current) => ({ ...current, countryCode: value }))} placeholder="TH" />
+          <BrandInput id="brand-logo" label={t("admin.brandManager.logoUrl")} value={form.logoUrl} onChange={(value) => setForm((current) => ({ ...current, logoUrl: value }))} />
+          <BrandInput id="brand-website" label={t("admin.brandManager.websiteUrl")} value={form.websiteUrl} onChange={(value) => setForm((current) => ({ ...current, websiteUrl: value }))} />
+          <BrandInput id="brand-sort" label={t("admin.categoryManager.sortOrder")} value={form.sortOrder} onChange={(value) => setForm((current) => ({ ...current, sortOrder: value }))} type="number" />
+          <div className="flex items-end gap-2 pb-2 text-sm text-slate-300">
+            <Checkbox id="brand-featured" checked={form.isFeatured} onCheckedChange={(checked) => setForm((current) => ({ ...current, isFeatured: checked === true }))} />
+            <label htmlFor="brand-featured">{t("admin.brandManager.featured")}</label>
+          </div>
           <div className="flex gap-2 lg:col-span-4">
-            <Button type="submit" disabled={isMutating} className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">{editingBrand ? "Save brand" : "Create brand"}</Button>
-            {editingBrand ? <Button type="button" variant="outline" className="border-white/12 bg-white/5 text-slate-100" onClick={resetForm}>Cancel</Button> : null}
+            <Button type="submit" disabled={isMutating} className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">{editingBrand ? t("admin.brandManager.save") : t("admin.brandManager.create")}</Button>
+            {editingBrand ? <Button type="button" variant="outline" className="border-white/12 bg-white/5 text-slate-100" onClick={resetForm}>{t("admin.ui.cancel")}</Button> : null}
           </div>
         </form>
         <div className="overflow-hidden rounded-lg border border-white/10">
           <Table>
-            <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">Brand</TableHead><TableHead className="text-slate-300">Country</TableHead><TableHead className="text-slate-300">Status</TableHead><TableHead className="text-right text-slate-300">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">{t("admin.ui.brand")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.country")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.status")}</TableHead><TableHead className="text-right text-slate-300">{t("admin.ui.actions")}</TableHead></TableRow></TableHeader>
             <TableBody>
               {rows.length ? rows.map((brand: AdminBrand) => (
                 <TableRow key={brand.id} className="border-white/8 hover:bg-white/4">
                   <TableCell className="px-5 py-4"><p className="font-medium text-white">{brand.name}</p><p className="text-xs text-slate-500">{brand.slug}{brand.code ? ` · ${brand.code}` : ""}</p></TableCell>
-                  <TableCell className="text-sm text-slate-300">{brand.countryCode ?? "Not set"}</TableCell>
-                  <TableCell><Badge variant="outline" className={brand.isActive ? "border-emerald-300/30 bg-emerald-300/12 text-emerald-100" : "border-slate-300/25 bg-white/8 text-slate-300"}>{brand.isActive ? "Active" : "Inactive"}</Badge></TableCell>
-                  <TableCell><div className="flex justify-end gap-2"><Button type="button" size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={() => startEdit(brand)}>Edit</Button><Button type="button" size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={toggleActive.isPending} onClick={() => toggleActive.mutate({ id: brand.id, isActive: !brand.isActive })}>{brand.isActive ? "Deactivate" : "Reactivate"}</Button></div></TableCell>
+                  <TableCell className="text-sm text-slate-300">{brand.countryCode ?? t("admin.brandManager.notSet")}</TableCell>
+                  <TableCell><Badge variant="outline" className={brand.isActive ? "border-emerald-300/30 bg-emerald-300/12 text-emerald-100" : "border-slate-300/25 bg-white/8 text-slate-300"}>{brand.isActive ? t("admin.common.active") : t("admin.common.inactive")}</Badge></TableCell>
+                  <TableCell><div className="flex justify-end gap-2"><Button type="button" size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={() => startEdit(brand)}>{t("admin.ui.edit")}</Button><Button type="button" size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={toggleActive.isPending} onClick={() => toggleActive.mutate({ id: brand.id, isActive: !brand.isActive })}>{brand.isActive ? t("admin.ui.deactivate") : t("admin.ui.reactivate")}</Button></div></TableCell>
                 </TableRow>
-              )) : <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={4} className="h-24 text-center text-slate-400">{query.isLoading ? "Loading brands..." : "No brands match the current filters."}</TableCell></TableRow>}
+              )) : <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={4} className="h-24 text-center text-slate-400">{query.isLoading ? t("admin.brandManager.loading") : t("admin.brandManager.empty")}</TableCell></TableRow>}
             </TableBody>
           </Table>
         </div>
         <div className="flex items-center justify-between text-sm text-slate-400">
-          <span>{query.data?.pagination.total ?? rows.length} brands</span>
+          <span>{t("admin.brandManager.count").replace("{count}", String(query.data?.pagination.total ?? rows.length))}</span>
           <div className="flex gap-2">
-            <Button type="button" size="sm" variant="outline" className="border-white/12 bg-white/5 text-slate-100" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>Previous</Button>
-            <Button type="button" size="sm" variant="outline" className="border-white/12 bg-white/5 text-slate-100" disabled={page >= (query.data?.pagination.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>Next</Button>
+            <Button type="button" size="sm" variant="outline" className="border-white/12 bg-white/5 text-slate-100" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>{t("admin.common.previous")}</Button>
+            <Button type="button" size="sm" variant="outline" className="border-white/12 bg-white/5 text-slate-100" disabled={page >= (query.data?.pagination.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>{t("admin.common.next")}</Button>
           </div>
         </div>
       </CardContent>

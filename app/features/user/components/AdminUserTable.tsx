@@ -1,17 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import {
-  ArrowUpDownIcon,
   PencilIcon,
   PlusIcon,
   RefreshCwIcon,
@@ -20,7 +11,9 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { Badge } from "#/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { DataTable } from "#/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +23,9 @@ import {
   DialogTitle,
 } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "#/components/ui/native-select";
 import { Skeleton } from "#/components/ui/skeleton";
+import { useTranslations } from "#/i18n/client";
 import {
   Table,
   TableBody,
@@ -101,42 +96,42 @@ function AdminUsersTableSkeleton() {
       </CardHeader>
       <CardContent className="px-0">
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/6">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-white/10 bg-white/6">
                 {Array.from({ length: 5 }).map((_, index) => (
-                  <th key={index} className="px-6 py-3">
+                  <TableHead key={index} className="px-6 py-3">
                     <Skeleton className="h-4 w-20 bg-white/10" />
-                  </th>
+                  </TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {Array.from({ length: 3 }).map((_, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-white/8 last:border-b-0">
-                  <td className="px-6 py-4">
+                <TableRow key={rowIndex} className="border-b border-white/8 last:border-b-0">
+                  <TableCell className="px-6 py-4">
                     <Skeleton className="h-5 w-28 bg-white/12" />
                     <Skeleton className="mt-2 h-3 w-10 bg-white/8" />
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <Skeleton className="h-5 w-44 bg-white/10" />
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <Skeleton className="h-7 w-16 rounded-full bg-cyan-300/12" />
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <Skeleton className="h-5 w-24 bg-white/10" />
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="flex justify-end gap-2">
                       <Skeleton className="h-9 w-20 rounded-lg bg-cyan-300/12" />
                       <Skeleton className="h-9 w-20 rounded-lg bg-red-500/16" />
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </CardContent>
     </Card>
@@ -151,41 +146,22 @@ function getRoleBadgeClass(role: AppRole | string) {
   return "border border-white/10 bg-white/6 text-slate-300";
 }
 
-function getGroupCopy(group: UserGroup) {
+function getGroupCopy(group: UserGroup, t: ReturnType<typeof useTranslations>) {
   if (group === "customers") {
     return {
-      title: "Customers",
-      description: "Buyer accounts that browse, checkout, review, and request returns.",
-      empty: "No customer users found.",
+      title: t("admin.userManagement.customers"),
+      description: t("admin.userManagement.customersDescription"),
+      empty: t("admin.userManagement.noCustomers"),
       icon: UsersIcon,
     };
   }
 
   return {
-    title: "System users",
-    description: "Admin accounts that manage the marketplace and protected operations.",
-    empty: "No system users found.",
+    title: t("admin.userManagement.systemUsers"),
+    description: t("admin.userManagement.systemUsersDescription"),
+    empty: t("admin.userManagement.noSystemUsers"),
     icon: ShieldIcon,
   };
-}
-
-function SortableHeader(props: {
-  label: string;
-  column: { toggleSorting: (desc?: boolean) => void; getIsSorted: () => false | "asc" | "desc" };
-}) {
-  const { label, column } = props;
-
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      className="-ml-3 h-8 px-3 text-slate-300 hover:bg-white/8 hover:text-white"
-      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-    >
-      {label}
-      <ArrowUpDownIcon className="ml-2 size-3.5" />
-    </Button>
-  );
 }
 
 function UserDataTable(props: {
@@ -195,14 +171,12 @@ function UserDataTable(props: {
   onEdit: (userId: string) => void;
   onDelete: (userId: string) => void;
 }) {
+  const t = useTranslations();
   const { data, currentUserId, emptyMessage, onEdit, onDelete } = props;
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
-
   const columns: ColumnDef<AdminUser>[] = [
     {
       accessorKey: "name",
-      header: ({ column }) => <SortableHeader label="Name" column={column} />,
+      header: t("admin.userManagement.name"),
       cell: ({ row }) => {
         const user = row.original;
         const isSelf = user.id === currentUserId;
@@ -211,7 +185,7 @@ function UserDataTable(props: {
           <div>
             <div className="font-medium text-slate-100">{user.name}</div>
             {isSelf ? (
-              <div className="mt-1 text-xs text-slate-400">You</div>
+              <div className="mt-1 text-xs text-slate-400">{t("admin.userManagement.you")}</div>
             ) : null}
           </div>
         );
@@ -219,14 +193,14 @@ function UserDataTable(props: {
     },
     {
       accessorKey: "email",
-      header: ({ column }) => <SortableHeader label="Email" column={column} />,
+      header: t("admin.userManagement.email"),
       cell: ({ row }) => (
         <span className="text-slate-300">{row.original.email}</span>
       ),
     },
     {
       accessorKey: "role",
-      header: "Role",
+      header: t("admin.role"),
       cell: ({ row }) => (
         <span
           className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getRoleBadgeClass(row.original.role)}`}
@@ -237,7 +211,7 @@ function UserDataTable(props: {
     },
     {
       accessorKey: "createdAt",
-      header: ({ column }) => <SortableHeader label="Created" column={column} />,
+      header: t("admin.userManagement.created"),
       cell: ({ row }) => (
         <span className="text-slate-300">
           {new Date(row.original.createdAt).toLocaleDateString()}
@@ -246,7 +220,7 @@ function UserDataTable(props: {
     },
     {
       id: "actions",
-      header: () => <div className="text-right">Actions</div>,
+      header: () => <div className="text-right">{t("admin.userManagement.actions")}</div>,
       cell: ({ row }) => {
         const user = row.original;
         const isSelf = user.id === currentUserId;
@@ -260,7 +234,7 @@ function UserDataTable(props: {
               onClick={() => onEdit(user.id)}
             >
               <PencilIcon className="size-3.5" />
-              Edit
+              {t("admin.userManagement.edit")}
             </Button>
             <Button
               variant="destructive"
@@ -270,7 +244,7 @@ function UserDataTable(props: {
               onClick={() => onDelete(user.id)}
             >
               <Trash2Icon className="size-3.5" />
-              Delete
+              {t("admin.userManagement.delete")}
             </Button>
           </div>
         );
@@ -278,102 +252,26 @@ function UserDataTable(props: {
     },
   ];
 
-  const table = useReactTable({
-    data,
-    columns,
-    state: {
-      sorting,
-      globalFilter,
-    },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  });
-
   return (
     <div className="px-6 py-5">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          value={globalFilter}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          placeholder="Filter users..."
-          className="h-9 max-w-sm border-white/10 bg-slate-900/80 text-slate-100 placeholder:text-slate-500"
-        />
-        <p className="text-sm text-slate-400">
-          {table.getFilteredRowModel().rows.length} result(s)
-        </p>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-white/10">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                className="border-white/10 bg-white/6 hover:bg-white/6"
-              >
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="px-4 py-3 text-slate-300">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="border-white/8 hover:bg-white/4"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-4 py-4">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow className="border-white/8 hover:bg-transparent">
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-28 text-center text-slate-300"
-                >
-                  {emptyMessage}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex items-center justify-end gap-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
-      </div>
+      <DataTable
+        columns={columns}
+        data={data}
+        emptyMessage={emptyMessage}
+        renderToolbar={(table) => (
+          <>
+            <Input
+              value={(table.getState().globalFilter as string | undefined) ?? ""}
+              onChange={(event) => table.setGlobalFilter(event.target.value)}
+              placeholder={t("admin.userManagement.filter")}
+              className="h-9 max-w-sm"
+            />
+            <p className="text-sm text-muted-foreground">
+              {t("admin.userManagement.results").replace("{count}", String(table.getFilteredRowModel().rows.length))}
+            </p>
+          </>
+        )}
+      />
     </div>
   );
 }
@@ -392,6 +290,7 @@ function UserDialogForm(props: {
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: UserFormState) => Promise<void>;
 }) {
+  const t = useTranslations();
   const {
     mode,
     open,
@@ -439,7 +338,7 @@ function UserDialogForm(props: {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-200" htmlFor={`${mode}-name`}>
-              Name
+              {t("admin.userManagement.name")}
             </label>
             <Input
               id={`${mode}-name`}
@@ -454,7 +353,7 @@ function UserDialogForm(props: {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-200" htmlFor={`${mode}-email`}>
-              Email
+              {t("admin.userManagement.email")}
             </label>
             <Input
               id={`${mode}-email`}
@@ -471,7 +370,7 @@ function UserDialogForm(props: {
           {mode === "create" && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-200" htmlFor="create-password">
-                Password
+                {t("admin.userManagement.password")}
               </label>
               <Input
                 id="create-password"
@@ -489,19 +388,19 @@ function UserDialogForm(props: {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-200" htmlFor={`${mode}-role`}>
-              Role
+              {t("admin.role")}
             </label>
-            <select
+            <NativeSelect
               id={`${mode}-role`}
               value={form.role}
               onChange={(event) =>
                 setForm((current) => ({ ...current, role: event.target.value as AppRole }))
               }
-              className="flex h-9 w-full rounded-md border border-white/10 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-300/20"
+              className="w-full"
             >
-              <option value={ROLES.USER} disabled={disableUserRoleOption}>USER</option>
-              <option value={ROLES.ADMIN}>ADMIN</option>
-            </select>
+              <NativeSelectOption value={ROLES.USER} disabled={disableUserRoleOption}>USER</NativeSelectOption>
+              <NativeSelectOption value={ROLES.ADMIN}>ADMIN</NativeSelectOption>
+            </NativeSelect>
             {roleHint ? (
               <p className="text-xs text-slate-400">{roleHint}</p>
             ) : null}
@@ -515,14 +414,14 @@ function UserDialogForm(props: {
               onClick={() => onOpenChange(false)}
               disabled={pending}
             >
-              Cancel
+              {t("admin.common.cancel")}
             </Button>
             <Button
               type="submit"
               className="bg-[linear-gradient(90deg,rgba(34,211,238,0.9),rgba(168,85,247,0.9))] text-slate-950 hover:opacity-95"
               disabled={pending}
             >
-              {pending ? "Saving..." : submitLabel}
+              {pending ? t("admin.userManagement.saving") : submitLabel}
             </Button>
           </DialogFooter>
         </form>
@@ -532,6 +431,7 @@ function UserDialogForm(props: {
 }
 
 export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
+  const t = useTranslations();
   const {
     data: users = [],
     isLoading,
@@ -555,7 +455,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
   const customerUsers = users.filter((user) => !isSystemRole(user.role));
   const systemUsers = users.filter((user) => isSystemRole(user.role));
   const visibleUsers = activeGroup === "customers" ? customerUsers : systemUsers;
-  const activeGroupCopy = getGroupCopy(activeGroup);
+  const activeGroupCopy = getGroupCopy(activeGroup, t);
   const ActiveGroupIcon = activeGroupCopy.icon;
 
   if (isLoading) {
@@ -567,7 +467,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
       <Card className="border-red-500/30 bg-red-500/10">
         <CardContent className="pt-6">
           <p className="text-sm text-red-200">
-            {getErrorMessage(error, "Failed to load users")}
+            {getErrorMessage(error, t("admin.userManagement.loadFailed"))}
           </p>
           <Button
             variant="outline"
@@ -576,7 +476,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
             onClick={() => void refetch()}
           >
             <RefreshCwIcon className="size-3.5" />
-            Retry
+            {t("admin.common.retry")}
           </Button>
         </CardContent>
       </Card>
@@ -592,10 +492,10 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
               <div>
                 <CardTitle className="flex items-center gap-2 text-white">
                   <UsersIcon className="size-5 text-cyan-200" />
-                  User Management
+                  {t("admin.userManagement.title")}
                 </CardTitle>
                 <p className="mt-2 text-sm text-slate-300">
-                  Separate customer accounts from admin system users.
+                  {t("admin.userManagement.description")}
                 </p>
               </div>
               <Button
@@ -607,20 +507,20 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
                 }}
               >
                 <PlusIcon className="size-4" />
-                Create User
+                {t("admin.userManagement.createUser")}
               </Button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {([
                 {
                   key: "customers",
-                  title: "Customers",
+                  title: t("admin.userManagement.customers"),
                   count: customerUsers.length,
                   icon: UsersIcon,
                 },
                 {
                   key: "system",
-                  title: "System users",
+                  title: t("admin.userManagement.systemUsers"),
                   count: systemUsers.length,
                   icon: ShieldIcon,
                 },
@@ -629,11 +529,12 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
                 const isActive = activeGroup === item.key;
 
                 return (
-                  <button
+                  <Button
                     key={item.key}
                     type="button"
                     onClick={() => setActiveGroup(item.key)}
-                    className={`rounded-xl border px-4 py-3 text-left transition ${
+                    variant="outline"
+                    className={`h-auto justify-start rounded-xl px-4 py-3 text-left transition ${
                       isActive
                         ? "border-cyan-300/35 bg-cyan-300/12 text-white"
                         : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/8 hover:text-white"
@@ -644,11 +545,11 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
                         <Icon className="size-4" />
                         {item.title}
                       </span>
-                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">
+                      <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">
                         {item.count}
-                      </span>
+                      </Badge>
                     </span>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -687,9 +588,9 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
       <UserDialogForm
         mode="create"
         open={isCreateOpen}
-        title="Create user"
-        description="Create an account that can sign in immediately."
-        submitLabel="Create"
+        title={t("admin.userManagement.createTitle")}
+        description={t("admin.userManagement.createDescription")}
+        submitLabel={t("admin.userManagement.createUser")}
         initialValues={EMPTY_CREATE_FORM}
         pending={createUser.isPending}
         errorMessage={createError}
@@ -703,7 +604,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
             await createUser.mutateAsync(values);
             setIsCreateOpen(false);
           } catch (submitError) {
-            setCreateError(getErrorMessage(submitError, "Failed to create user"));
+            setCreateError(getErrorMessage(submitError, t("admin.userManagement.createFailed")));
           }
         }}
       />
@@ -711,9 +612,9 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
       <UserDialogForm
         mode="edit"
         open={editingUser !== null}
-        title="Edit user"
-        description="Update the profile and role for this account."
-        submitLabel="Save changes"
+        title={t("admin.userManagement.editTitle")}
+        description={t("admin.userManagement.editDescription")}
+        submitLabel={t("admin.userManagement.saveChanges")}
         initialValues={{
           name: editingUser?.name ?? "",
           email: editingUser?.email ?? "",
@@ -723,7 +624,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
         disableUserRoleOption={editingUser?.id === currentUserId && editingUser.role === ROLES.ADMIN}
         roleHint={
           editingUser?.id === currentUserId && editingUser.role === ROLES.ADMIN
-            ? "Your admin access cannot be removed from this screen."
+            ? t("admin.userManagement.selfRoleHint")
             : null
         }
         pending={updateUser.isPending}
@@ -746,7 +647,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
             });
             setEditingUserId(null);
           } catch (submitError) {
-            setUpdateError(getErrorMessage(submitError, "Failed to update user"));
+            setUpdateError(getErrorMessage(submitError, t("admin.userManagement.updateFailed")));
           }
         }}
       />
@@ -762,9 +663,9 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
       >
         <DialogContent className="border border-white/12 bg-slate-950/95 text-slate-100 shadow-[0_24px_80px_rgba(2,6,23,0.8)]">
           <DialogHeader>
-            <DialogTitle>Delete user</DialogTitle>
+            <DialogTitle>{t("admin.userManagement.deleteTitle")}</DialogTitle>
             <DialogDescription className="text-slate-400">
-              This permanently deletes the account and related data.
+              {t("admin.userManagement.deleteDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -777,7 +678,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
           <div className="rounded-lg border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-100">
             {deletingUser ? (
               <>
-                Delete <span className="font-semibold">{deletingUser.email}</span>?
+                {t("admin.userManagement.deleteConfirm").replace("{email}", deletingUser.email)}
               </>
             ) : null}
           </div>
@@ -793,7 +694,7 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
               }}
               disabled={deleteUser.isPending}
             >
-              Cancel
+              {t("admin.common.cancel")}
             </Button>
             <Button
               type="button"
@@ -809,11 +710,11 @@ export function AdminUserTable({ currentUserId }: AdminUserTableProps) {
                     setDeleteError(null);
                   })
                   .catch((submitError) => {
-                    setDeleteError(getErrorMessage(submitError, "Failed to delete user"));
+                    setDeleteError(getErrorMessage(submitError, t("admin.userManagement.deleteFailed")));
                   });
               }}
             >
-              {deleteUser.isPending ? "Deleting..." : "Delete"}
+              {deleteUser.isPending ? t("admin.userManagement.deleting") : t("admin.userManagement.delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

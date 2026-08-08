@@ -10,6 +10,8 @@ const RoomParamsSchema = t.Object({
 const PaginationQuerySchema = t.Object({
   page: t.Optional(t.Numeric()),
   limit: t.Optional(t.Numeric()),
+  scope: t.Optional(t.Union([t.Literal('buyer'), t.Literal('seller')])),
+  shopId: t.Optional(t.String({ minLength: 1 })),
 })
 
 const CreateChatRoomSchema = t.Object({
@@ -22,6 +24,7 @@ const SendMessageSchema = t.Object({
   messageType: t.Union([t.Literal('text'), t.Literal('image')]),
   body: t.Optional(t.String()),
   attachments: t.Optional(t.Array(t.String())),
+  scope: t.Optional(t.Union([t.Literal('buyer'), t.Literal('seller')])),
 })
 
 function chatActor(authContext: any) {
@@ -42,8 +45,8 @@ export function createChatRoutes(container: ServiceContainer) {
         })
       }
     })
-    .get('/api/chats', ({ authContext }: any) =>
-      container.chatService.listRooms(chatActor(authContext)), {
+    .get('/api/chats', ({ authContext, query }: any) =>
+      container.chatService.listRooms(chatActor(authContext), query.scope, query.shopId), {
       withAuth: true,
     })
     .get('/api/chats/:roomId', ({ authContext, params, query }: any) =>
@@ -63,9 +66,10 @@ export function createChatRoutes(container: ServiceContainer) {
       params: RoomParamsSchema,
       body: SendMessageSchema,
     })
-    .patch('/api/chats/:roomId/read', ({ authContext, params }: any) =>
-      container.chatService.markRead(chatActor(authContext), params.roomId), {
+    .patch('/api/chats/:roomId/read', ({ authContext, params, query }: any) =>
+      container.chatService.markRead(chatActor(authContext), params.roomId, query.scope), {
       withAuth: true,
       params: RoomParamsSchema,
+      query: PaginationQuerySchema,
     })
 }

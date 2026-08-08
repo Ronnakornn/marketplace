@@ -5,7 +5,13 @@ import type { ReactNode } from "react";
 import * as React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import enMessages from "../../../../messages/en.json";
+import { I18nProvider } from "#/i18n/client";
 import { AdminContentModerationQueues } from "./AdminContentModerationQueues";
+
+function renderPage() {
+  return render(<I18nProvider locale="en" messages={enMessages} fallbackMessages={enMessages}><AdminContentModerationQueues /></I18nProvider>);
+}
 
 const updateReviewMutate = vi.fn();
 const updateReportMutate = vi.fn();
@@ -163,7 +169,7 @@ afterEach(() => {
 
 describe("AdminContentModerationQueues", () => {
   it("renders all moderation queues with content context", () => {
-    render(<AdminContentModerationQueues />);
+    renderPage();
 
     expect(screen.getByRole("heading", { name: "Content Moderation" })).toBeTruthy();
     expect(screen.getAllByText("Damaged item arrived.").length).toBeGreaterThan(0);
@@ -174,9 +180,9 @@ describe("AdminContentModerationQueues", () => {
   });
 
   it("requires a note before hiding a review and submits mutation with the note", async () => {
-    render(<AdminContentModerationQueues />);
+    renderPage();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "HIDDEN" })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: "Hidden" })[0]!);
 
     const confirm = screen.getByRole("button", { name: "Confirm" });
     expect(confirm).toHaveProperty("disabled", true);

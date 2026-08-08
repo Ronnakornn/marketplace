@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "#/components/ui/select";
+import { useTranslations } from "#/i18n/client";
 
 export function AdminStatusAction(props: {
   label: string;
@@ -29,6 +30,7 @@ export function AdminStatusAction(props: {
   isPending: boolean;
   onConfirm: (status: string) => void;
 }) {
+  const t = useTranslations();
   const [nextStatus, setNextStatus] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -46,12 +48,12 @@ export function AdminStatusAction(props: {
           disabled={props.disabled || props.isPending}
         >
           <SelectTrigger className="h-9 w-36 border-white/10 bg-slate-950/60 text-slate-100">
-            <SelectValue placeholder="Update" />
+            <SelectValue placeholder={t("admin.common.update")} />
           </SelectTrigger>
           <SelectContent>
             {selectable.map((status) => (
               <SelectItem key={status} value={status}>
-                {status.replaceAll("_", " ")}
+                {t(`admin.statuses.${status}` as Parameters<typeof t>[0]) === `admin.statuses.${status}` ? status.replaceAll("_", " ") : t(`admin.statuses.${status}` as Parameters<typeof t>[0])}
               </SelectItem>
             ))}
           </SelectContent>
@@ -61,13 +63,13 @@ export function AdminStatusAction(props: {
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm status change</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.confirmStatusChange")}</AlertDialogTitle>
             <AlertDialogDescription>
               Change {props.label} from {props.currentStatus.replaceAll("_", " ")} to {nextStatus.replaceAll("_", " ")}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setNextStatus("")}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setNextStatus("")}>{t("admin.common.cancel")}</AlertDialogCancel>
             <AlertDialogAction asChild>
               <Button
                 onClick={() => {
@@ -77,7 +79,7 @@ export function AdminStatusAction(props: {
                 }}
                 disabled={!nextStatus || props.isPending}
               >
-                Confirm
+                {t("admin.common.confirm")}
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>

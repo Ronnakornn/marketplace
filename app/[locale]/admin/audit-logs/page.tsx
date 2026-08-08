@@ -4,7 +4,7 @@ import { AuditLogsTable } from "#/features/audit-log";
 export default function AdminAuditLogsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <AdminPageIntro eyebrow="Governance" title="Audit Logs" description="Read-only administrative event history for sensitive marketplace changes.">
+      <AdminPageIntro eyebrow="admin.pages.auditLogs.eyebrow" title="admin.pages.auditLogs.title" description="admin.pages.auditLogs.description">
         <AdminSpaceCat mode="dashboard" />
       </AdminPageIntro>
       <AuditLogsTable />

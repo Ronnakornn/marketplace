@@ -59,7 +59,7 @@ export function useI18n() {
 export function useTranslations() {
   const { messages, fallbackMessages } = useI18n();
 
-  return function t(key: TranslationKey): string {
+  return function t(key: TranslationKey | string): string {
     return readPath(messages, key) ?? readPath(fallbackMessages, key) ?? key;
   };
 }

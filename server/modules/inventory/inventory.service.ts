@@ -8,6 +8,7 @@ import type {
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
+import { SecurityError } from '#server/modules/security/security.errors.ts'
 import { InventoryServiceError } from './inventory.errors.ts'
 import type {
   IInventoryRepository,
@@ -242,7 +243,14 @@ export class InventoryService {
     const variant = await this.repo.findVariantForSeller(variantId)
     if (!variant) throw new InventoryServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
     if (this.activeShopResolver) {
-      await this.activeShopResolver.requireActiveShop(actor.id, variant.product.shopId)
+      try {
+        await this.activeShopResolver.requireActiveShop(actor.id, variant.product.shopId)
+      } catch (error) {
+        if (error instanceof SecurityError) {
+          throw new InventoryServiceError(error.message, error.status, error.code, error.details)
+        }
+        throw error
+      }
       return
     }
     throw new InventoryServiceError('Seller shop access required', 403, 'SELLER_SHOP_NOT_ACTIVE')

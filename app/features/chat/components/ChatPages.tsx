@@ -21,7 +21,7 @@ type ChatAudience = "buyer" | "seller";
 export function ChatInboxPage({ audience, shopId }: { audience: ChatAudience; shopId?: string }) {
   const t = useTranslations();
   const localePath = useLocalePath();
-  const roomsQuery = useQuery({ queryKey: ["chat-rooms"], queryFn: fetchChatRooms });
+  const roomsQuery = useQuery({ queryKey: ["chat-rooms", audience, shopId], queryFn: () => fetchChatRooms(audience, shopId) });
   const sellerChannels = useMemo(
     () => audience === "seller" && shopId ? [["seller", shopId, "chats"].join(":")] : [],
     [audience, shopId],
@@ -82,24 +82,24 @@ export function ChatThreadPage({ roomId, audience, shopId }: { roomId: string; a
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [body, setBody] = useState("");
   const roomQuery = useQuery({
-    queryKey: ["chat-room", roomId],
-    queryFn: () => fetchChatRoom(roomId),
+    queryKey: ["chat-room", roomId, audience],
+    queryFn: () => fetchChatRoom(roomId, 1, 30, audience),
   });
   const sendMutation = useMutation({
-    mutationFn: (messageBody: string) => sendChatMessage(roomId, messageBody),
+    mutationFn: (messageBody: string) => sendChatMessage(roomId, messageBody, audience),
     onSuccess: async () => {
       setBody("");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["chat-room", roomId] }),
-        queryClient.invalidateQueries({ queryKey: ["chat-rooms"] }),
+        queryClient.invalidateQueries({ queryKey: ["chat-rooms", audience] }),
       ]);
       scrollToMessagesEnd("smooth");
     },
   });
   const readMutation = useMutation({
-    mutationFn: () => markChatRead(roomId),
+    mutationFn: () => markChatRead(roomId, audience),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["chat-rooms"] });
+      await queryClient.invalidateQueries({ queryKey: ["chat-rooms", audience] });
     },
   });
 

@@ -1,19 +1,24 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   CommandIcon,
+  BellIcon,
   BanknoteIcon,
   BarChart3Icon,
   Building2Icon,
   FileClockIcon,
   LinkIcon,
   LayoutDashboardIcon,
+  ChevronUpIcon,
+  CreditCardIcon,
+  LogOutIcon,
   PanelLeftCloseIcon,
   MenuIcon,
+  MoonIcon,
   PackageSearchIcon,
   MessageSquareWarningIcon,
   RotateCcwIcon,
@@ -21,8 +26,22 @@ import {
   ShieldCheckIcon,
   ShieldAlertIcon,
   ShoppingBagIcon,
+  SunIcon,
   Undo2Icon,
 } from "lucide-react";
+import { Button } from "#/components/ui/button";
+import { Avatar, AvatarFallback } from "#/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
+import { useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
+import { signOut } from "#/lib/auth-client";
 import {
   Sidebar,
   SidebarContent,
@@ -53,85 +72,85 @@ interface AdminSidebarNavProps {
 
 const ADMIN_NAV_ITEMS = [
   {
-    title: "Dashboard",
+    title: "admin.nav.dashboard",
     href: "/admin/dashboard",
     icon: LayoutDashboardIcon,
     match: (pathname: string) => pathname === "/admin" || pathname === "/admin/dashboard",
   },
   {
-    title: "Users",
+    title: "admin.nav.users",
     href: "/admin/users",
     icon: ShieldCheckIcon,
     match: (pathname: string) => pathname.startsWith("/admin/users"),
   },
   {
-    title: "Shops",
+    title: "admin.nav.shops",
     href: "/admin/shops",
     icon: Building2Icon,
     match: (pathname: string) => pathname.startsWith("/admin/shops"),
   },
   {
-    title: "Products",
+    title: "admin.nav.products",
     href: "/admin/products",
     icon: PackageSearchIcon,
     match: (pathname: string) => pathname.startsWith("/admin/products") || pathname.startsWith("/admin/catalog"),
   },
   {
-    title: "Content Moderation",
+    title: "admin.nav.contentModeration",
     href: "/admin/content-moderation",
     icon: MessageSquareWarningIcon,
     match: (pathname: string) => pathname.startsWith("/admin/content-moderation"),
   },
   {
-    title: "Orders",
+    title: "admin.nav.orders",
     href: "/admin/orders",
     icon: ShoppingBagIcon,
     match: (pathname: string) => pathname.startsWith("/admin/orders"),
   },
   {
-    title: "Refunds",
+    title: "admin.nav.refunds",
     href: "/admin/refunds",
     icon: RotateCcwIcon,
     match: (pathname: string) => pathname.startsWith("/admin/refunds"),
   },
   {
-    title: "Returns",
+    title: "admin.nav.returns",
     href: "/admin/returns",
     icon: Undo2Icon,
     match: (pathname: string) => pathname.startsWith("/admin/returns"),
   },
   {
-    title: "Payouts",
+    title: "admin.nav.payouts",
     href: "/admin/payouts",
     icon: BanknoteIcon,
     match: (pathname: string) => pathname.startsWith("/admin/payouts") || pathname.startsWith("/admin/commissions"),
   },
   {
-    title: "Affiliates",
+    title: "admin.nav.affiliates",
     href: "/admin/affiliates",
     icon: LinkIcon,
     match: (pathname: string) => pathname.startsWith("/admin/affiliates"),
   },
   {
-    title: "Fraud",
+    title: "admin.nav.fraud",
     href: "/admin/fraud",
     icon: ShieldAlertIcon,
     match: (pathname: string) => pathname.startsWith("/admin/fraud"),
   },
   {
-    title: "Audit Logs",
+    title: "admin.nav.auditLogs",
     href: "/admin/audit-logs",
     icon: FileClockIcon,
     match: (pathname: string) => pathname.startsWith("/admin/audit-logs"),
   },
   {
-    title: "Reports",
+    title: "admin.nav.reports",
     href: "/admin/reports",
     icon: BarChart3Icon,
     match: (pathname: string) => pathname.startsWith("/admin/reports"),
   },
   {
-    title: "Settings",
+    title: "admin.nav.settings",
     href: "/admin/settings",
     icon: SettingsIcon,
     match: (pathname: string) => pathname.startsWith("/admin/settings") || pathname.startsWith("/admin/profile"),
@@ -140,7 +159,7 @@ const ADMIN_NAV_ITEMS = [
 
 function getPageTitle(pathname: string) {
   return (
-    ADMIN_NAV_ITEMS.find((item) => item.match(pathname))?.title ?? "Admin"
+    ADMIN_NAV_ITEMS.find((item) => item.match(pathname))?.title ?? "admin.brand"
   );
 }
 
@@ -148,29 +167,48 @@ export function AdminSidebarNav({
   user,
   children,
 }: AdminSidebarNavProps) {
+  const t = useTranslations();
+  const router = useRouter();
+  const localePath = useLocalePath();
   const pathname = usePathname();
   const prefersReducedMotion = useReducedMotion();
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    setTheme(window.localStorage.getItem("admin-theme") === "dark" ? "dark" : "light");
+  }, []);
+
+  function toggleTheme() {
+    const nextTheme = theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+    window.localStorage.setItem("admin-theme", nextTheme);
+  }
+
+  async function handleSignOut() {
+    await signOut();
+    router.push(localePath("/login"));
+  }
 
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider defaultOpen data-admin-theme={theme}>
       <Sidebar
         variant="inset"
         collapsible="icon"
-        className="border-r-0 bg-transparent md:p-3"
+        className="border-r bg-sidebar md:p-2"
       >
         <SidebarHeader className="px-3 py-4">
           <Link
             href="/admin"
-            className="admin-panel flex items-center gap-3 rounded-2xl px-3 py-3 no-underline"
+            className="flex items-center gap-3 rounded-lg px-3 py-3 no-underline"
           >
-            <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-300/12 text-cyan-200">
+            <div className="flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <ShieldCheckIcon className="size-5" />
             </div>
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-              <p className="text-sm font-semibold text-white">
-                Galaxy Control
+              <p className="text-sm font-semibold text-foreground">
+                {t("admin.brand")}
               </p>
-              <p className="truncate text-xs text-slate-300">
+              <p className="truncate text-xs text-muted-foreground">
                 {user.email}
               </p>
             </div>
@@ -179,7 +217,7 @@ export function AdminSidebarNav({
 
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupLabel>{t("admin.navigation")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {ADMIN_NAV_ITEMS.map((item) => (
@@ -187,7 +225,7 @@ export function AdminSidebarNav({
                     {item.match(pathname) ? (
                       <motion.span
                         layoutId="admin-nav-active"
-                        className="absolute inset-y-1 left-0 w-1 rounded-full bg-[linear-gradient(180deg,rgba(103,232,249,1),rgba(168,85,247,0.95))] shadow-[0_0_18px_rgba(103,232,249,0.8)]"
+                        className="absolute inset-y-1 left-0 w-1 rounded-full bg-primary"
                         transition={
                           prefersReducedMotion
                             ? undefined
@@ -198,12 +236,12 @@ export function AdminSidebarNav({
                     <SidebarMenuButton
                       asChild
                       isActive={item.match(pathname)}
-                      tooltip={item.title}
-                      className="rounded-xl text-slate-300 hover:bg-white/6 hover:text-white data-[active=true]:bg-[linear-gradient(90deg,rgba(34,211,238,0.18),rgba(168,85,247,0.12))] data-[active=true]:text-cyan-100 data-[active=true]:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_26px_rgba(34,211,238,0.08)]"
+                      tooltip={t(item.title)}
+                      className="rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
                     >
                       <Link href={item.href}>
                         <item.icon className="size-4" />
-                        <span>{item.title}</span>
+                        <span>{t(item.title)}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -215,15 +253,35 @@ export function AdminSidebarNav({
 
         <SidebarSeparator />
 
-        <SidebarFooter className="p-3">
-          <div className="admin-panel rounded-2xl px-3 py-3 group-data-[collapsible=icon]:hidden">
-            <p className="text-sm font-semibold text-white">
-              {user.name}
-            </p>
-            <p className="truncate text-xs text-slate-300">
-              {user.role ?? "ADMIN"}
-            </p>
-          </div>
+        <SidebarFooter className="space-y-2 p-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton size="lg" tooltip={`${user.name} · ${user.email}`} className="h-auto min-h-12 border border-sidebar-border bg-sidebar px-2 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent">
+                <Avatar className="size-8 rounded-lg"><AvatarFallback className="rounded-lg bg-primary/15 text-primary">{user.name.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar>
+                <span className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden"><span className="block truncate text-sm font-semibold">{user.name}</span><span className="block truncate text-xs text-muted-foreground">{user.email}</span></span>
+                <ChevronUpIcon className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="end" sideOffset={8} className="w-60">
+              <DropdownMenuLabel className="font-normal"><p className="truncate text-sm font-semibold">{user.name}</p><p className="truncate text-xs text-muted-foreground">{user.email}</p></DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild><Link href={localePath("/admin/profile")}><ShieldCheckIcon />{t("common.account")}</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href={localePath("/admin/payouts")}><CreditCardIcon />{t("common.billing")}</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href={localePath("/admin/settings")}><BellIcon />{t("common.notifications")}</Link></DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => void handleSignOut()}><LogOutIcon />{t("common.logout")}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-start group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+            onClick={toggleTheme}
+            aria-label={theme === "light" ? t("admin.common.darkMode") : t("admin.common.lightMode")}
+          >
+            {theme === "light" ? <MoonIcon className="size-4" /> : <SunIcon className="size-4" />}
+            <span className="group-data-[collapsible=icon]:hidden">{theme === "light" ? t("admin.common.darkMode") : t("admin.common.lightMode")}</span>
+          </Button>
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
@@ -231,19 +289,19 @@ export function AdminSidebarNav({
       <SidebarInset className="min-w-0 bg-transparent">
         <div className="relative flex min-h-screen w-full min-w-0 flex-col px-4 pb-8 pt-6 md:px-6">
           <div className="mb-5 flex items-center justify-between md:hidden">
-            <SidebarTrigger className="h-10 w-10 rounded-full border border-white/12 bg-slate-950/70 text-slate-100 backdrop-blur-md">
+            <SidebarTrigger className="h-10 w-10 rounded-md border bg-background text-foreground">
               <MenuIcon className="size-4" />
-              <span className="sr-only">Open admin navigation</span>
+              <span className="sr-only">{t("admin.openAdminNavigation")}</span>
             </SidebarTrigger>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 backdrop-blur-sm">
-              <CommandIcon className="size-3.5 text-cyan-200" />
-              {getPageTitle(pathname)}
+            <div className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-xs text-muted-foreground">
+              <CommandIcon className="size-3.5" />
+              {t(getPageTitle(pathname))}
             </div>
           </div>
           <div className="mb-5 hidden md:flex">
-            <SidebarTrigger className="h-10 rounded-full border border-white/12 bg-slate-950/60 px-4 text-slate-100 backdrop-blur-md hover:bg-white/10">
+            <SidebarTrigger className="h-10 rounded-md border bg-background px-4 text-foreground hover:bg-accent">
               <PanelLeftCloseIcon className="size-4" />
-              <span>Toggle Sidebar</span>
+              <span>{t("admin.toggleSidebar")}</span>
             </SidebarTrigger>
           </div>
           <AnimatePresence mode="wait" initial={false}>

@@ -3,7 +3,7 @@ import { AdminOrdersMonitoringTable, AdminPageIntro, AdminSpaceCat } from "#/fea
 export default function AdminOrdersPage() {
   return (
     <div className="flex flex-col gap-6">
-      <AdminPageIntro eyebrow="Order Control" title="Orders" description="Monitor order payment and fulfillment state across vendors.">
+      <AdminPageIntro eyebrow="admin.pages.orders.eyebrow" title="admin.pages.orders.title" description="admin.pages.orders.description">
         <AdminSpaceCat mode="dashboard" />
       </AdminPageIntro>
       <AdminOrdersMonitoringTable />

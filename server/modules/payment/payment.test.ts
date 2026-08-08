@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PaymentStatus } from '#generated/client/enums.ts'
-import type { IPaymentRepository, PaymentWithOrder, ReleaseReservationInput } from './payment.repository.ts'
+import type { PaymentTransactionRepository, PaymentWithOrder, ReleaseReservationInput } from './payment.repository.ts'
 import { PaymentService } from './payment.service.ts'
 import type { PaymentWebhookBody } from './payment.types.ts'
 
@@ -23,7 +23,7 @@ function createAppContext() {
   }
 }
 
-function createRepoMock(): IPaymentRepository {
+function createRepoMock(): PaymentTransactionRepository {
   return {
     transaction: vi.fn(async (callback) => callback(repo)),
     findPayment: vi.fn(),
@@ -52,16 +52,11 @@ function createRepoMock(): IPaymentRepository {
     createShipment: vi.fn(),
     findWebhookEvent: vi.fn(),
     createWebhookEvent: vi.fn(),
-    markPaymentSucceeded: vi.fn(),
-    markPaymentFailed: vi.fn(),
-    markPaymentExpired: vi.fn(),
-    markOrderPaid: vi.fn(),
-    markOrderCanceled: vi.fn(),
-    releaseReservations: vi.fn(),
+    applyPaymentStateTransition: vi.fn(),
   }
 }
 
-let repo: IPaymentRepository
+let repo: PaymentTransactionRepository
 
 const baseBody: PaymentWebhookBody = {
   provider: 'mock',
@@ -166,11 +161,7 @@ async function setup(payment: PaymentWithOrder | null = createPayment()) {
   vi.mocked(repo.findOrder).mockResolvedValue(payment?.order ?? null)
   vi.mocked(repo.findWebhookEvent).mockResolvedValue(null)
   vi.mocked(repo.createWebhookEvent).mockResolvedValue({} as never)
-  vi.mocked(repo.markPaymentSucceeded).mockResolvedValue({} as never)
-  vi.mocked(repo.markPaymentFailed).mockResolvedValue({} as never)
-  vi.mocked(repo.markPaymentExpired).mockResolvedValue({} as never)
-  vi.mocked(repo.markOrderPaid).mockResolvedValue({} as never)
-  vi.mocked(repo.markOrderCanceled).mockResolvedValue({} as never)
+  vi.mocked(repo.applyPaymentStateTransition).mockResolvedValue()
   return new PaymentService(createAppContext(), repo, {
     createShipmentsForPaidOrderWithRepo: vi.fn().mockResolvedValue([]),
   } as never)
@@ -188,9 +179,13 @@ describe('PaymentService', () => {
 
     expect(result).toEqual({ ok: true, code: 'PAYMENT_PAID' })
     expect(repo.createWebhookEvent).toHaveBeenCalledWith(baseBody)
-    expect(repo.markPaymentSucceeded).toHaveBeenCalledWith(baseBody.paymentId, expect.any(Date))
-    expect(repo.markOrderPaid).toHaveBeenCalledWith(baseBody.orderId)
-    expect(repo.releaseReservations).not.toHaveBeenCalled()
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith({
+      paymentId: baseBody.paymentId,
+      orderId: baseBody.orderId,
+      eventType: 'payment.paid',
+      reservations: [],
+      occurredAt: expect.any(Date),
+    })
   })
 
   it('creates mock paid events from trusted server payment facts', async () => {
@@ -214,8 +209,11 @@ describe('PaymentService', () => {
       orderId: baseBody.orderId,
       amount: 2900,
     })
-    expect(repo.markPaymentSucceeded).toHaveBeenCalledWith(baseBody.paymentId, expect.any(Date))
-    expect(repo.markOrderPaid).toHaveBeenCalledWith(baseBody.orderId)
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith(expect.objectContaining({
+      paymentId: baseBody.paymentId,
+      orderId: baseBody.orderId,
+      eventType: 'payment.paid',
+    }))
   })
 
   it('returns buyer-owned display details for a mock payment', async () => {
@@ -313,8 +311,11 @@ describe('PaymentService', () => {
       orderId: baseBody.orderId,
       amount: 2900,
     }))
-    expect(repo.markPaymentFailed).toHaveBeenCalledWith(baseBody.paymentId)
-    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'FAILED')
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith(expect.objectContaining({
+      paymentId: baseBody.paymentId,
+      orderId: baseBody.orderId,
+      eventType: 'payment.failed',
+    }))
   })
 
   it('keeps duplicate mock events idempotent', async () => {
@@ -331,8 +332,7 @@ describe('PaymentService', () => {
     }, baseBody.paymentId, { eventType: 'payment.paid' })
 
     expect(result).toEqual({ ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' })
-    expect(repo.markPaymentSucceeded).not.toHaveBeenCalled()
-    expect(repo.markOrderPaid).not.toHaveBeenCalled()
+    expect(repo.applyPaymentStateTransition).not.toHaveBeenCalled()
   })
 
   it('rejects mock events for admins and other buyers', async () => {
@@ -384,8 +384,7 @@ describe('PaymentService', () => {
 
     expect(result).toEqual({ ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' })
     expect(repo.createWebhookEvent).not.toHaveBeenCalled()
-    expect(repo.markPaymentSucceeded).not.toHaveBeenCalled()
-    expect(repo.markOrderPaid).not.toHaveBeenCalled()
+    expect(repo.applyPaymentStateTransition).not.toHaveBeenCalled()
   })
 
   it('returns success when payment is already paid without changing data again', async () => {
@@ -395,8 +394,7 @@ describe('PaymentService', () => {
 
     expect(result).toEqual({ ok: true, code: 'PAYMENT_ALREADY_PAID' })
     expect(repo.createWebhookEvent).toHaveBeenCalled()
-    expect(repo.markPaymentSucceeded).not.toHaveBeenCalled()
-    expect(repo.markOrderPaid).not.toHaveBeenCalled()
+    expect(repo.applyPaymentStateTransition).not.toHaveBeenCalled()
   })
 
   it('fails amount mismatch and unknown payment', async () => {
@@ -434,9 +432,13 @@ describe('PaymentService', () => {
         quantity: 2,
       },
     ]
-    expect(repo.releaseReservations).toHaveBeenCalledWith(expectedReservations)
-    expect(repo.markPaymentFailed).toHaveBeenCalledWith(baseBody.paymentId)
-    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'FAILED')
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith({
+      paymentId: baseBody.paymentId,
+      orderId: baseBody.orderId,
+      eventType: 'payment.failed',
+      reservations: expectedReservations,
+      occurredAt: expect.any(Date),
+    })
   })
 
   it('releases reserved stock and marks expired payment and order canceled', async () => {
@@ -445,9 +447,11 @@ describe('PaymentService', () => {
     const result = await service.handleWebhook({ ...baseBody, eventType: 'payment.expired' })
 
     expect(result).toEqual({ ok: true, code: 'PAYMENT_EXPIRED' })
-    expect(repo.releaseReservations).toHaveBeenCalledOnce()
-    expect(repo.markPaymentExpired).toHaveBeenCalledWith(baseBody.paymentId)
-    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'CANCELED')
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith(expect.objectContaining({
+      paymentId: baseBody.paymentId,
+      orderId: baseBody.orderId,
+      eventType: 'payment.expired',
+    }))
   })
 
   it("stamps the order's payment status to match the payment row for both cancel causes", async () => {
@@ -456,13 +460,17 @@ describe('PaymentService', () => {
     // to follow the cause rather than being hardcoded to one of them.
     const expiredService = await setup()
     await expiredService.handleWebhook({ ...baseBody, eventType: 'payment.expired' })
-    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'CANCELED')
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'payment.expired',
+    }))
 
     vi.clearAllMocks()
 
     const failedService = await setup()
     await failedService.handleWebhook({ ...baseBody, eventType: 'payment.failed' })
-    expect(repo.markOrderCanceled).toHaveBeenCalledWith(baseBody.orderId, 'FAILED')
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'payment.failed',
+    }))
   })
 
   it('rejects invalid event type and conflicting terminal transitions', async () => {
@@ -478,10 +486,9 @@ describe('PaymentService', () => {
 
   it('lets repository transaction rollback failures bubble without later updates', async () => {
     const service = await setup()
-    vi.mocked(repo.releaseReservations).mockRejectedValue(new Error('rollback marker'))
+    vi.mocked(repo.applyPaymentStateTransition).mockRejectedValue(new Error('rollback marker'))
 
     await expect(service.handleWebhook({ ...baseBody, eventType: 'payment.failed' })).rejects.toThrow('rollback marker')
-    expect(repo.markPaymentFailed).not.toHaveBeenCalled()
-    expect(repo.markOrderCanceled).not.toHaveBeenCalled()
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledOnce()
   })
 })

@@ -53,6 +53,7 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
   const pathname = usePathname();
   const isSellerRoute = pathname.includes("/seller/");
   const notificationHref = isSellerRoute ? "/seller/notifications" : "/notifications";
+  const notificationScope = isSellerRoute ? "seller" : "all";
   const canUseBuyerCart = Boolean(session && session.user.role !== "ADMIN");
   const canUseChat = Boolean(session && session.user.role !== "ADMIN");
   const chatHref = "/chat";
@@ -64,13 +65,13 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
   });
   const chatRoomsQuery = useQuery({
     queryKey: ["chat-rooms", session?.user.role],
-    queryFn: fetchChatRooms,
+    queryFn: () => fetchChatRooms("buyer"),
     enabled: canUseChat,
     refetchInterval: 30_000,
   });
   const notificationsQuery = useQuery({
-    queryKey: ["buyer-notifications"],
-    queryFn: fetchNotifications,
+    queryKey: ["notifications", notificationScope],
+    queryFn: () => fetchNotifications(notificationScope),
     enabled: Boolean(session),
     refetchInterval: 30_000,
   });

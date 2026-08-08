@@ -5,5 +5,5 @@ export default async function SellerNotificationsPage({ params }: { params: Prom
   const { locale } = await params;
   await enforceSellerRoute("/seller/notifications", locale);
 
-  return <NotificationsPage />;
+  return <NotificationsPage showTopBar={false} scope="seller" />;
 }

@@ -34,7 +34,7 @@ export function createTranslator(locale: string | undefined) {
   const primary = messages[resolvedLocale];
   const fallback = messages[fallbackLocale];
 
-  return function t(key: TranslationKey): string {
+  return function t(key: TranslationKey | string): string {
     return readPath(primary, key) ?? readPath(fallback, key) ?? key;
   };
 }

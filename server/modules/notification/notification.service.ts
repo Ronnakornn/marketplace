@@ -11,6 +11,8 @@ export interface NotificationActor {
   role: Role
 }
 
+export type NotificationScope = 'all' | 'seller'
+
 export interface NotificationResponse {
   id: string
   type: string
@@ -32,14 +34,22 @@ export class NotificationService {
     this.logger = appContext.logger
   }
 
-  async listNotifications(actor: NotificationActor): Promise<NotificationResponse[]> {
+  async listNotifications(actor: NotificationActor, scope: NotificationScope = 'all'): Promise<NotificationResponse[]> {
     this.assertAuthenticated(actor)
     const notifications = await this.repo.findNotificationsForUser(actor.id)
-    return notifications.map((notification) => this.toResponse(notification))
+    return notifications
+      .filter((notification) => scope === 'all' || isSellerNotification(notification.type, notification.data))
+      .map((notification) => this.toResponse(notification))
   }
 
-  async getUnreadCount(actor: NotificationActor): Promise<{ unreadCount: number }> {
+  async getUnreadCount(actor: NotificationActor, scope: NotificationScope = 'all'): Promise<{ unreadCount: number }> {
     this.assertAuthenticated(actor)
+    if (scope === 'seller') {
+      const notifications = await this.repo.findNotificationsForUser(actor.id)
+      return {
+        unreadCount: notifications.filter((notification) => !notification.readAt && isSellerNotification(notification.type, notification.data)).length,
+      }
+    }
     return {
       unreadCount: await this.repo.countUnreadForUser(actor.id),
     }
@@ -157,8 +167,17 @@ export class NotificationService {
     return this.markAsRead(notificationId, actor.id)
   }
 
-  async markAllNotificationsAsRead(actor: NotificationActor): Promise<{ updatedCount: number }> {
+  async markAllNotificationsAsRead(actor: NotificationActor, scope: NotificationScope = 'all'): Promise<{ updatedCount: number }> {
     this.assertAuthenticated(actor)
+    if (scope === 'seller') {
+      const notifications = await this.repo.findNotificationsForUser(actor.id)
+      const unreadSellerNotifications = notifications.filter((notification) => !notification.readAt && isSellerNotification(notification.type, notification.data))
+      const readAt = new Date()
+      await Promise.all(unreadSellerNotifications.map((notification) => this.repo.markAsRead(notification.id, readAt)))
+      const result = { updatedCount: unreadSellerNotifications.length }
+      this.realtimeService?.publish('notification.read', `user:${actor.id}:notifications`, result)
+      return result
+    }
     return this.markAllAsRead(actor.id)
   }
 
@@ -203,4 +222,14 @@ export class NotificationService {
   private isObjectData(data: unknown): data is NotificationData {
     return Boolean(data) && typeof data === 'object' && !Array.isArray(data)
   }
+}
+
+function isSellerNotification(type: string, data: unknown): boolean {
+  if (type.toLowerCase() === 'payout_paid') return true
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false
+  const record = data as Record<string, unknown>
+  if (record.audience === 'seller') return true
+  // Older seller order_paid notifications were created without an audience marker;
+  // buyer notifications include orderNo, while seller notifications do not.
+  return type.toLowerCase() === 'order_paid' && typeof record.orderNo !== 'string'
 }

@@ -10,6 +10,7 @@ import { AdminDataShell } from "#/features/admin/components/AdminDataShell";
 import { AdminStatusBadge } from "#/features/admin/components/AdminStatusBadge";
 import { AdminTablePagination } from "#/features/admin/components/AdminTablePagination";
 import { PAGE_SIZE } from "#/features/admin/hooks/useAdminOperations";
+import { useTranslations } from "#/i18n/client";
 import { type AuditLog, useAuditLogs } from "../hooks/useAuditLogs";
 
 const ACTIONS = [
@@ -35,6 +36,7 @@ function textMatch(values: Array<unknown>, query: string) {
 }
 
 export function AuditLogsTable() {
+  const t = useTranslations();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [actorUserId, setActorUserId] = useState("");
@@ -53,8 +55,8 @@ export function AuditLogsTable() {
 
   return (
     <AdminDataShell
-      title="Audit Logs"
-      description="Read-only trail of administrator actions and sensitive status changes."
+      title={t("admin.pages.auditLogs.title")}
+      description={t("admin.pages.auditLogs.description")}
       icon={FileClockIcon}
       search={search}
       searchPlaceholder="Search visible logs"
@@ -70,9 +72,9 @@ export function AuditLogsTable() {
           <Input type="date" value={from} onChange={(event) => resetPage(setFrom)(event.target.value)} className="border-white/10 bg-slate-950/60 text-slate-100" />
           <Input type="date" value={to} onChange={(event) => resetPage(setTo)(event.target.value)} className="border-white/10 bg-slate-950/60 text-slate-100" />
           <Select value={action || "ALL"} onValueChange={(value) => resetPage(setAction)(value === "ALL" ? "" : value)}>
-            <SelectTrigger className="border-white/10 bg-slate-950/60 text-slate-100"><SelectValue placeholder="Action" /></SelectTrigger>
+            <SelectTrigger className="border-white/10 bg-slate-950/60 text-slate-100"><SelectValue placeholder={t("admin.ui.action")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All actions</SelectItem>
+              <SelectItem value="ALL">{t("admin.ui.allActions")}</SelectItem>
               {ACTIONS.map((item) => <SelectItem key={item} value={item}>{item.replaceAll("_", " ")}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -83,10 +85,10 @@ export function AuditLogsTable() {
         <Table>
           <TableHeader>
             <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
-              <TableHead className="px-5 text-slate-300">Action</TableHead>
-              <TableHead className="text-slate-300">Actor</TableHead>
-              <TableHead className="text-slate-300">Entity</TableHead>
-              <TableHead className="text-slate-300">Created</TableHead>
+              <TableHead className="px-5 text-slate-300">{t("admin.ui.action")}</TableHead>
+              <TableHead className="text-slate-300">{t("admin.actor")}</TableHead>
+              <TableHead className="text-slate-300">{t("admin.ui.entity")}</TableHead>
+              <TableHead className="text-slate-300">{t("admin.ui.created")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -98,7 +100,7 @@ export function AuditLogsTable() {
                 <TableCell className="text-sm text-slate-300">{formatDate(log.createdAt)}</TableCell>
               </TableRow>
             )) : (
-              <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={4} className="h-32 text-center text-slate-400">No audit logs match the current filters.</TableCell></TableRow>
+              <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={4} className="h-32 text-center text-slate-400">{t("admin.auditEmpty")}</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

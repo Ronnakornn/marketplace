@@ -1,6 +1,7 @@
 import type { Role } from '#generated/client/enums.ts'
 
 export type ChatMessageKind = 'text' | 'image'
+export type ChatAudience = 'buyer' | 'seller'
 
 export interface ChatActor {
   id: string
@@ -17,11 +18,14 @@ export interface SendChatMessageInput {
   messageType: ChatMessageKind
   body?: string
   attachments?: string[]
+  scope?: ChatAudience
 }
 
 export interface ChatPaginationInput {
   page?: number | string
   limit?: number | string
+  scope?: ChatAudience
+  shopId?: string
 }
 
 export interface NormalizedChatPagination {

@@ -182,6 +182,23 @@ describe('ChatService', () => {
     expect(repo.listBuyerRooms).toHaveBeenCalledWith('seller-2')
   })
 
+  it('keeps seller-scoped inboxes separate from buyer rooms', async () => {
+    const repo = createRepo({
+      listBuyerRooms: vi.fn().mockResolvedValue([createRoom({ id: 'buyer-room' })]),
+      listSellerRooms: vi.fn().mockResolvedValue([
+        createRoom({ id: 'seller-room', shopId: 'shop-1' }),
+        createRoom({ id: 'other-shop-room', shopId: 'shop-2' }),
+      ]),
+    })
+    const service = new ChatService(appContext, repo)
+
+    const result = await service.listRooms(seller('seller-1'), 'seller', 'shop-1')
+
+    expect(repo.listBuyerRooms).not.toHaveBeenCalled()
+    expect(repo.listSellerRooms).toHaveBeenCalledWith('seller-1')
+    expect(result.map((room) => room.roomId)).toEqual(['seller-room'])
+  })
+
   it('blocks a buyer from reading another buyer room', async () => {
     const repo = createRepo({ findRoomById: vi.fn().mockResolvedValue(createRoom({ buyerId: 'buyer-2' })) })
     const service = new ChatService(appContext, repo)

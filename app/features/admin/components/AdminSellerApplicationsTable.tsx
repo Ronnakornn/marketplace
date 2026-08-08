@@ -157,10 +157,10 @@ export function AdminSellerApplicationsTable() {
   return (
     <AdminDataShell
       title="Seller Application Queue"
-      description="Review submitted seller KYC, pickup, and payout details before activating shops."
+      description={t("admin.sellerApplications.description")}
       icon={ClipboardCheckIcon}
       search={search}
-      searchPlaceholder="Search applications"
+      searchPlaceholder={t("admin.search.applications")}
       onSearchChange={setSearch}
       isLoading={query.isLoading}
       error={query.error}
@@ -171,11 +171,11 @@ export function AdminSellerApplicationsTable() {
         <Table>
           <TableHeader>
             <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
-              <TableHead className="px-5 text-slate-300">Applicant</TableHead>
-              <TableHead className="text-slate-300">Shop Profile</TableHead>
-              <TableHead className="text-slate-300">KYC & Payout</TableHead>
-              <TableHead className="text-slate-300">Pickup & Documents</TableHead>
-              <TableHead className="text-right text-slate-300">Review</TableHead>
+              <TableHead className="px-5 text-slate-300">{t("admin.ui.applicant")}</TableHead>
+              <TableHead className="text-slate-300">{t("admin.ui.shopProfile")}</TableHead>
+              <TableHead className="text-slate-300">{t("admin.ui.kycPayout")}</TableHead>
+              <TableHead className="text-slate-300">{t("admin.ui.pickupDocuments")}</TableHead>
+              <TableHead className="text-right text-slate-300">{t("admin.ui.review")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -281,7 +281,7 @@ export function AdminSellerApplicationsTable() {
                           </Button>
                         </div>
                       </div>
-                    )) : <p className="text-slate-500">No documents attached.</p>}
+                    )) : <p className="text-slate-500">{t("admin.ui.noDocuments")}</p>}
                   </div>
                 </TableCell>
                 <TableCell className="align-top">
@@ -319,7 +319,7 @@ export function AdminSellerApplicationsTable() {
             )}
           </TableBody>
         </Table>
-        {review.isSuccess ? <p className="px-5 py-3 text-sm text-emerald-300">Seller application review saved.</p> : null}
+        {review.isSuccess ? <p className="px-5 py-3 text-sm text-emerald-300">{t("admin.sellerApplications.applicationReviewSaved")}</p> : null}
         {reviewDocument.isSuccess ? <p className="px-5 py-3 text-sm text-emerald-300">{t("admin.sellerApplications.documentReviewSaved")}</p> : null}
         {review.error ? <p className="px-5 py-3 text-sm text-red-300">{readErrorMessage(review.error, t("admin.sellerApplications.operationFailed"))}</p> : null}
         {reviewDocument.error ? <p className="px-5 py-3 text-sm text-red-300">{readErrorMessage(reviewDocument.error, t("admin.sellerApplications.operationFailed"))}</p> : null}
@@ -337,7 +337,7 @@ export function AdminSellerApplicationsTable() {
       <AlertDialog open={Boolean(rejectTarget)} onOpenChange={(open) => { if (!open) closeRejectDialog(); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reject seller application</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.sellerApplications.rejectApplicationTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               Provide a reason for {rejectTarget?.shopName}. The seller will see this message on their status page.
             </AlertDialogDescription>
@@ -349,10 +349,10 @@ export function AdminSellerApplicationsTable() {
               placeholder="Explain what must be corrected before resubmission."
               className="min-h-28"
             />
-            {rejectionReasonError ? <p className="text-sm font-medium text-red-600">Rejection reason is required.</p> : null}
+            {rejectionReasonError ? <p className="text-sm font-medium text-red-600">{t("admin.sellerApplications.rejectionReasonRequired")}</p> : null}
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("admin.ui.cancel")}</AlertDialogCancel>
             <AlertDialogAction asChild>
               <Button
                 type="button"

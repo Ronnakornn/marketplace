@@ -194,7 +194,7 @@ export function createAdminRoutes(container: ServiceContainer) {
     )
     .get('/api/admin/orders', ({ authContext, query }: any) => container.adminService.listOrders(adminActor(authContext), query), {
       withRole: 'ADMIN',
-      query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()) })]),
+      query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()), shopId: t.Optional(t.String()) })]),
     })
     .get(
       '/api/admin/orders/:orderId',

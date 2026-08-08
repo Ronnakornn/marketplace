@@ -60,6 +60,7 @@ export interface AdminListByStatusInput {
   page?: number | string
   limit?: number | string
   status?: string
+  shopId?: string
 }
 
 export interface AdminListBrandsInput {
@@ -420,7 +421,7 @@ export class AdminService {
     this.assertAdmin(actor)
     const pagination = this.normalizePagination(input)
     const status = input.status === undefined ? undefined : this.parseEnum<OrderStatus>(input.status, ORDER_STATUSES)
-    return this.toListResponse(await this.repository.listOrders({ status }, pagination), pagination)
+    return this.toListResponse(await this.repository.listOrders({ status, shopId: input.shopId }, pagination), pagination)
   }
 
   async getOrder(actor: AdminActor, orderId: string): Promise<AdminOrderRecord> {

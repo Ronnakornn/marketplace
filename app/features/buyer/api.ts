@@ -13,6 +13,7 @@ export interface BuyerCart {
       productId: string;
       title: string;
       variantTitle: string;
+      imageUrl?: string | null;
       quantity: number;
       unitPrice: number;
       currency: string;
@@ -83,6 +84,7 @@ export interface BuyerNotification {
   type: string;
   title: string;
   body: string | null;
+  data: Record<string, unknown> | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -150,6 +152,7 @@ export interface BuyerFollowedShop {
 
 export interface CheckoutInput {
   cartId: string;
+  cartItemIds: string[];
   addressId: string;
   couponCode?: string;
   paymentMethod: string;
@@ -194,6 +197,7 @@ export interface CheckoutResult {
 
 export interface CheckoutQuoteInput {
   cartId: string;
+  cartItemIds: string[];
   couponCode?: string;
 }
 
@@ -431,8 +435,8 @@ export async function fetchOrderTracking(orderId: string): Promise<BuyerOrder> {
   return normalizeOrder(await apiFetch(`/api/orders/${orderId}/tracking`));
 }
 
-export async function fetchNotifications(): Promise<BuyerNotification[]> {
-  const response = await apiFetch("/api/notifications");
+export async function fetchNotifications(scope: "all" | "seller" = "all"): Promise<BuyerNotification[]> {
+  const response = await apiFetch(`/api/notifications${scope === "seller" ? "?scope=seller" : ""}`);
   const rawItems = Array.isArray(response) ? response : readArray((response as Record<string, unknown>)?.items);
   return rawItems.map((item) => {
     const record = toRecord(item);
@@ -441,6 +445,7 @@ export async function fetchNotifications(): Promise<BuyerNotification[]> {
       type: readString(record.type, "notification"),
       title: readString(record.title, "Notification"),
       body: optionalString(record.body),
+      data: record.data && typeof record.data === "object" && !Array.isArray(record.data) ? record.data as Record<string, unknown> : null,
       readAt: optionalString(record.readAt),
       createdAt: readString(record.createdAt, new Date().toISOString()),
     };
@@ -552,6 +557,7 @@ function normalizeCart(input: unknown): BuyerCart {
         productId: readString(product.id),
         title: readString(product.title, readString(item.productTitle, "Product")),
         variantTitle: readString(variant.title, readString(item.variantTitle, "Default")),
+        imageUrl: optionalString(product.imageUrl),
         quantity: readNumber(item.quantity, 1),
         unitPrice: readNumber(item.unitPrice, readNumber(variant.price)),
         currency: readString(item.currency, readString(variant.currency, defaultCurrency)),

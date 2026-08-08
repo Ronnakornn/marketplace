@@ -48,6 +48,7 @@ export interface AdminListFilters {
   role?: string;
   status?: string;
   q?: string;
+  shopId?: string;
 }
 
 export interface AdminShopMutationInput {
@@ -83,6 +84,7 @@ function cleanQuery(filters: AdminListFilters) {
       role: filters.role || undefined,
       status: filters.status || undefined,
       q: filters.q || undefined,
+      shopId: filters.shopId || undefined,
     }).filter(([, value]) => value !== undefined),
   );
 }

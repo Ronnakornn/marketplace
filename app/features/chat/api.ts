@@ -54,13 +54,19 @@ export interface CreateChatRoomInput {
   orderId?: string;
 }
 
-export async function fetchChatRooms(): Promise<ChatRoom[]> {
-  const response = await chatFetch("/api/chats");
+export type ChatAudience = "buyer" | "seller";
+
+export async function fetchChatRooms(audience?: ChatAudience, shopId?: string): Promise<ChatRoom[]> {
+  const query = new URLSearchParams();
+  if (audience) query.set("scope", audience);
+  if (shopId) query.set("shopId", shopId);
+  const response = await chatFetch(`/api/chats${query.size ? `?${query}` : ""}`);
   return readArray(response).map(normalizeRoom);
 }
 
-export async function fetchChatRoom(roomId: string, page = 1, limit = 30): Promise<ChatRoom> {
+export async function fetchChatRoom(roomId: string, page = 1, limit = 30, audience?: ChatAudience): Promise<ChatRoom> {
   const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (audience) query.set("scope", audience);
   return normalizeRoom(await chatFetch(`/api/chats/${roomId}?${query}`));
 }
 
@@ -71,15 +77,16 @@ export async function createChatRoom(input: CreateChatRoomInput): Promise<ChatRo
   }));
 }
 
-export async function sendChatMessage(roomId: string, body: string): Promise<ChatRoom> {
+export async function sendChatMessage(roomId: string, body: string, audience?: ChatAudience): Promise<ChatRoom> {
   return normalizeRoom(await chatFetch(`/api/chats/${roomId}/messages`, {
     method: "POST",
-    body: JSON.stringify({ messageType: "text", body }),
+    body: JSON.stringify({ messageType: "text", body, ...(audience ? { scope: audience } : {}) }),
   }));
 }
 
-export async function markChatRead(roomId: string): Promise<ChatRoom> {
-  return normalizeRoom(await chatFetch(`/api/chats/${roomId}/read`, {
+export async function markChatRead(roomId: string, audience?: ChatAudience): Promise<ChatRoom> {
+  const query = audience ? `?scope=${encodeURIComponent(audience)}` : "";
+  return normalizeRoom(await chatFetch(`/api/chats/${roomId}/read${query}`, {
     method: "PATCH",
   }));
 }

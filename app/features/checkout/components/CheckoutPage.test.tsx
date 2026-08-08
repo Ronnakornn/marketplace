@@ -133,6 +133,7 @@ describe("CheckoutPage", () => {
           productId: "product-1",
           title: "Demo Product",
           variantTitle: "Default",
+          imageUrl: "https://example.com/product.jpg",
           quantity: 1,
           unitPrice: 1200,
           currency: "THB",
@@ -191,6 +192,14 @@ describe("CheckoutPage", () => {
     })));
     const paymentLink = await screen.findByRole("link", { name: "Continue to payment" });
     expect(paymentLink.getAttribute("href")).toBe("/en/payment/mock/payment-1");
+  });
+
+  it("shows selected product details in the order summary", async () => {
+    renderCheckoutPage();
+
+    expect((await screen.findByRole("img", { name: "Demo Product" })).getAttribute("src")).toBe("https://example.com/product.jpg");
+    expect(screen.getAllByText("Default")).toHaveLength(2);
+    expect(screen.getByText("×1")).toBeTruthy();
   });
 
   it("disables place order and shows no final amount while the quote is loading", async () => {

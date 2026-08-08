@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "#/lib/auth-client";
+import { useTranslations } from "#/i18n/client";
 import { resolveNextPath } from "../redirect";
-import { PhoneAuthPanel } from "./PhoneAuthPanel";
 import { SocialSignInButtons } from "./SocialSignInButtons";
 
 export function LoginForm({ nextPath }: { nextPath?: string | null }) {
+  const t = useTranslations();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,30 +24,28 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
     try {
       const result = await signIn.email({ email, password });
       if (result.error) {
-        setError(result.error.message ?? "Sign in failed");
+        setError(result.error.message ?? t("auth.signInFailed"));
       } else {
         router.push(resolveNextPath(nextPath ?? null));
       }
     } catch {
-      setError("An unexpected error occurred");
+      setError(t("auth.unexpectedError"));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="page-wrap flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
-      <div className="island-shell w-full max-w-md rounded-2xl p-8">
+    <div className="page-wrap auth-page flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
+      <div className="island-shell auth-card w-full max-w-md rounded-2xl p-8">
         <h1 className="mb-2 text-2xl font-bold text-[var(--sea-ink)]">
-          Sign in
+          {t("auth.loginTitle")}
         </h1>
         <p className="mb-6 text-sm text-[var(--sea-ink-soft)]">
-          Welcome back. Enter your credentials to continue.
+          {t("auth.loginSubtitle")}
         </p>
 
         <SocialSignInButtons nextPath={nextPath} />
-        <PhoneAuthPanel nextPath={nextPath} mode="login" />
-
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -59,7 +58,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
               htmlFor="email"
               className="mb-1.5 block text-sm font-medium text-[var(--sea-ink)]"
             >
-              Email
+              {t("auth.email")}
             </label>
             <input
               id="email"
@@ -67,7 +66,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t("auth.emailPlaceholder")}
               className="w-full rounded-xl border border-[var(--line)] bg-[var(--bg)] px-4 py-2.5 text-sm text-[var(--sea-ink)] placeholder-[var(--sea-ink-soft)] outline-none focus:border-[var(--lagoon-deep)] focus:ring-2 focus:ring-[rgba(79,184,178,0.2)]"
             />
           </div>
@@ -77,7 +76,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
               htmlFor="password"
               className="mb-1.5 block text-sm font-medium text-[var(--sea-ink)]"
             >
-              Password
+              {t("auth.password")}
             </label>
             <input
               id="password"
@@ -95,7 +94,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
             disabled={loading}
             className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? t("auth.signingIn") : t("auth.signIn")}
           </button>
         </form>
 
@@ -104,23 +103,23 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
             href="/forgot-password"
             className="font-medium text-[var(--lagoon-deep)] hover:underline"
           >
-            Forgot password?
+            {t("auth.forgotPassword")}
           </Link>
           <Link
             href="/verify-email"
             className="font-medium text-[var(--lagoon-deep)] hover:underline"
           >
-            Verify email
+            {t("auth.verifyEmail")}
           </Link>
         </div>
 
         <p className="mt-5 text-center text-sm text-[var(--sea-ink-soft)]">
-          Don&apos;t have an account?{" "}
+          {t("auth.noAccount")} {" "}
           <Link
             href="/signup"
             className="font-medium text-[var(--lagoon-deep)] hover:underline"
           >
-            Sign up
+            {t("auth.signUp")}
           </Link>
         </p>
       </div>

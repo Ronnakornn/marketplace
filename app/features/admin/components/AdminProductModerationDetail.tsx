@@ -19,6 +19,7 @@ import {
   useSuspendCatalogProduct,
 } from "../hooks/useAdminOperations";
 import { AdminStatusBadge } from "./AdminStatusBadge";
+import { useTranslations } from "#/i18n/client";
 
 interface AdminProductModerationDetailProps {
   productId: string;
@@ -100,6 +101,7 @@ function Metric(props: { label: string; value: string }) {
 }
 
 export function AdminProductModerationDetail({ productId }: AdminProductModerationDetailProps) {
+  const t = useTranslations();
   const { data: productData, isLoading, error, refetch } = useAdminCatalogProductDetail(productId);
   const approve = useApproveCatalogProduct();
   const reject = useRejectCatalogProduct();
@@ -128,11 +130,11 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
     return (
       <Card className="border-red-500/30 bg-red-500/10">
         <CardContent className="space-y-3 p-6">
-          <p className="text-sm text-red-200">Unable to load product moderation detail.</p>
+          <p className="text-sm text-red-200">{t("admin.productModeration.loadError")}</p>
           <div className="flex gap-2">
-            <Button variant="outline" className="border-white/12 bg-white/5 text-slate-100" onClick={() => void refetch()}>Retry</Button>
+            <Button variant="outline" className="border-white/12 bg-white/5 text-slate-100" onClick={() => void refetch()}>{t("admin.common.retry")}</Button>
             <Button asChild variant="outline" className="border-white/12 bg-white/5 text-slate-100">
-              <Link href="/admin/products">Back to queue</Link>
+              <Link href="/admin/products">{t("admin.ui.backToQueue")}</Link>
             </Button>
           </div>
         </CardContent>
@@ -174,8 +176,8 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
           </div>
           <div className="flex flex-wrap gap-2 xl:justify-end">
             <Button variant="outline" className="border-emerald-400/30 bg-emerald-500/10 text-emerald-100" disabled={isMutating || product.status !== "PENDING_REVIEW"} onClick={() => approve.mutate(product.id, { onSuccess: () => setMessage(`${product.title} approved.`) })}>{approve.isPending ? "Approving..." : "Approve"}</Button>
-            <Button variant="outline" className="border-amber-400/30 bg-amber-500/10 text-amber-100" disabled={isMutating || product.status !== "PENDING_REVIEW"} onClick={() => setReasonAction("reject")}>Reject</Button>
-            <Button variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isMutating || product.status === "SUSPENDED"} onClick={() => setReasonAction("suspend")}>Suspend</Button>
+            <Button variant="outline" className="border-amber-400/30 bg-amber-500/10 text-amber-100" disabled={isMutating || product.status !== "PENDING_REVIEW"} onClick={() => setReasonAction("reject")}>{t("admin.ui.reject")}</Button>
+            <Button variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isMutating || product.status === "SUSPENDED"} onClick={() => setReasonAction("suspend")}>{t("admin.ui.suspend")}</Button>
             <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setMessage(`${product.title} restored.`) })}>
               <RotateCcwIcon className="size-4" />
               {restore.isPending ? "Restoring..." : "Restore"}
@@ -199,10 +201,10 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
                 className="min-h-28 border-white/10 bg-slate-950/60 text-slate-100 placeholder:text-slate-600"
                 aria-invalid={reason.trim().length === 0}
               />
-              {reason.trim().length === 0 ? <p className="text-sm font-medium text-red-200">Reason is required before submitting.</p> : null}
+              {reason.trim().length === 0 ? <p className="text-sm font-medium text-red-200">{t("admin.ui.reasonRequired")}</p> : null}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating} onClick={() => { setReasonAction(null); setReason(""); }}>Cancel</Button>
+              <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating} onClick={() => { setReasonAction(null); setReason(""); }}>{t("admin.ui.cancel")}</Button>
               <Button variant={reasonAction === "suspend" ? "destructive" : "default"} disabled={isMutating || reason.trim().length === 0} onClick={submitReasonAction}>{isMutating ? "Submitting..." : reasonAction === "reject" ? "Reject product" : "Suspend product"}</Button>
             </div>
           </div>
@@ -220,10 +222,10 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
                 {product.images.slice(0, 6).map((image) => (
                   <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-slate-950/70">
                     <img src={image.url} alt={image.altText ?? product.title} className="size-full object-cover" />
-                    {image.isPrimary ? <Badge className="absolute left-2 top-2">Primary</Badge> : null}
+                    {image.isPrimary ? <Badge className="absolute left-2 top-2">{t("admin.ui.primary")}</Badge> : null}
                   </div>
                 ))}
-                {!product.images.length ? <p className="col-span-full text-sm text-slate-400">No product media uploaded.</p> : null}
+                {!product.images.length ? <p className="col-span-full text-sm text-slate-400">{t("admin.ui.noMedia")}</p> : null}
               </div>
             </div>
           </DetailPanel>
@@ -237,16 +239,16 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
             </div>
             <div className="mt-4 overflow-hidden rounded-lg border border-white/10">
               <Table>
-                <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-4 text-slate-300">Spec</TableHead><TableHead className="text-slate-300">Value</TableHead><TableHead className="text-slate-300">Signal</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-4 text-slate-300">{t("admin.ui.spec")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.value")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.signal")}</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {product.attributes.length ? product.attributes.map((attribute) => (
                     <TableRow key={attribute.id} className="border-white/8 hover:bg-white/4">
                       <TableCell className="px-4 py-3"><p className="font-medium text-white">{attribute.displayName}</p><p className="text-xs text-slate-500">{attribute.attributeKey}</p></TableCell>
                       <TableCell className="text-sm text-slate-300">{attribute.value}</TableCell>
-                      <TableCell>{attribute.isFilterable ? <Badge variant="outline">Filterable</Badge> : <span className="text-xs text-slate-500">Display only</span>}</TableCell>
+                      <TableCell>{attribute.isFilterable ? <Badge variant="outline">{t("admin.ui.filterable")}</Badge> : <span className="text-xs text-slate-500">{t("admin.ui.displayOnly")}</span>}</TableCell>
                     </TableRow>
                   )) : (
-                    <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={3} className="h-24 text-center text-slate-400">No category specs submitted.</TableCell></TableRow>
+                    <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={3} className="h-24 text-center text-slate-400">{t("admin.ui.noSpecs")}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -261,7 +263,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
             </div>
             <div className="overflow-hidden rounded-lg border border-white/10">
               <Table>
-                <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-4 text-slate-300">Variant</TableHead><TableHead className="text-slate-300">SKU</TableHead><TableHead className="text-slate-300">Price</TableHead><TableHead className="text-slate-300">Inventory</TableHead><TableHead className="text-slate-300">Status</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-4 text-slate-300">{t("admin.ui.variant")}</TableHead><TableHead className="text-slate-300">SKU</TableHead><TableHead className="text-slate-300">{t("admin.ui.price")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.inventory")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.status")}</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {product.variants.length ? product.variants.map((variant) => (
                     <TableRow key={variant.id} className="border-white/8 hover:bg-white/4">
@@ -272,7 +274,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
                       <TableCell><AdminStatusBadge status={variant.status} /></TableCell>
                     </TableRow>
                   )) : (
-                    <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={5} className="h-24 text-center text-slate-400">No variants configured.</TableCell></TableRow>
+                    <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={5} className="h-24 text-center text-slate-400">{t("admin.ui.noVariants")}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -324,7 +326,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-slate-400">No moderation case or audit signal is available for this product yet.</p>
+              <p className="text-sm text-slate-400">{t("admin.ui.noModeration")}</p>
             )}
           </DetailPanel>
         </div>

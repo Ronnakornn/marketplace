@@ -239,6 +239,24 @@ describe('ProductAnalyticsService', () => {
     ])
   })
 
+  it('accepts serialized timestamp strings from the Prisma response adapter', async () => {
+    vi.mocked(repo.findProductViewLogs).mockResolvedValue([
+      { productId: PRODUCT_ID, createdAt: '2026-06-02T10:00:00.000Z' },
+    ])
+    vi.mocked(repo.findProductAddToCartLogs).mockResolvedValue([])
+    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([])
+
+    const result = await service.getDaily(createActor(), {
+      range: 'custom',
+      from: '2026-06-02',
+      to: '2026-06-02',
+    })
+
+    expect(result.items).toEqual([
+      expect.objectContaining({ date: '2026-06-02', views: 1 }),
+    ])
+  })
+
   it('keeps another seller product data out through active shop scoping', async () => {
     vi.mocked(activeShopResolver.resolveActiveShops).mockResolvedValue([{ id: OTHER_SHOP_ID, ownerId: 'seller-2', status: 'ACTIVE' }])
 

@@ -46,6 +46,7 @@ function mockAuth(role: 'USER' | 'ADMIN' = 'USER') {
 
 const validBody = {
   cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  cartItemIds: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'],
   addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   couponCode: 'SAVE10',
   paymentMethod: 'stripe',

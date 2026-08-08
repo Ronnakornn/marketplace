@@ -4,9 +4,9 @@ export default function AdminContentModerationPage() {
   return (
     <div className="space-y-6">
       <AdminPageIntro
-        eyebrow="Moderation"
-        title="Content Moderation"
-        description="Review customer reviews, review reports, product questions, and answers before they affect public marketplace trust."
+        eyebrow="admin.pages.contentModeration.eyebrow"
+        title="admin.pages.contentModeration.title"
+        description="admin.pages.contentModeration.description"
       >
         <AdminSpaceCat mode="dashboard" />
       </AdminPageIntro>

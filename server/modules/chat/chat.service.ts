@@ -28,20 +28,22 @@ export class ChatService {
     this.logger = appContext.logger
   }
 
-  async listRooms(actor: ChatActor): Promise<ChatRoomResponse[]> {
+  async listRooms(actor: ChatActor, scope?: 'buyer' | 'seller', shopId?: string): Promise<ChatRoomResponse[]> {
     this.assertSupportedRole(actor.role)
     const [buyerRooms, sellerRooms] = await Promise.all([
-      this.repo.listBuyerRooms(actor.id),
-      this.repo.listSellerRooms(actor.id),
+      scope === 'seller' ? Promise.resolve([]) : this.repo.listBuyerRooms(actor.id),
+      scope === 'buyer' ? Promise.resolve([]) : this.repo.listSellerRooms(actor.id),
     ])
     const roomsById = new Map([...buyerRooms, ...sellerRooms].map((room) => [room.id, room]))
-    const rooms = [...roomsById.values()].sort((a, b) => this.toTime(b.updatedAt) - this.toTime(a.updatedAt))
+    const rooms = [...roomsById.values()]
+      .filter((room) => !shopId || room.shopId === shopId)
+      .sort((a, b) => this.toTime(b.updatedAt) - this.toTime(a.updatedAt))
     return Promise.all(rooms.map((room) => this.toRoomResponse(room, actor)))
   }
 
   async getRoom(actor: ChatActor, roomId: string, input: ChatPaginationInput = {}): Promise<ChatRoomResponse> {
     this.assertSupportedRole(actor.role)
-    const room = await this.findAccessibleRoom(actor, roomId)
+    const room = await this.findAccessibleRoom(actor, roomId, input.scope)
     const pagination = this.normalizePagination(input)
     const messagePage = await this.repo.listMessages(room.id, pagination)
     return this.toRoomResponse(room, actor, messagePage.items, {
@@ -77,7 +79,7 @@ export class ChatService {
 
   async sendMessage(actor: ChatActor, roomId: string, input: SendChatMessageInput): Promise<ChatRoomResponse> {
     this.assertSupportedRole(actor.role)
-    const room = await this.findAccessibleRoom(actor, roomId)
+    const room = await this.findAccessibleRoom(actor, roomId, input.scope)
     const normalized = this.normalizeMessageInput(input)
     const message = await this.repo.createMessage({
       roomId: room.id,
@@ -94,9 +96,9 @@ export class ChatService {
     return response
   }
 
-  async markRead(actor: ChatActor, roomId: string): Promise<ChatRoomResponse> {
+  async markRead(actor: ChatActor, roomId: string, scope?: 'buyer' | 'seller'): Promise<ChatRoomResponse> {
     this.assertSupportedRole(actor.role)
-    const room = await this.findAccessibleRoom(actor, roomId)
+    const room = await this.findAccessibleRoom(actor, roomId, scope)
     const readAt = new Date()
     const updated = this.isSellerParticipant(actor, room)
       ? await this.repo.markSellerRead(room.id, readAt)
@@ -127,11 +129,11 @@ export class ChatService {
     }
   }
 
-  private async findAccessibleRoom(actor: ChatActor, roomId: string): Promise<ChatRoomRecord> {
+  private async findAccessibleRoom(actor: ChatActor, roomId: string, scope?: 'buyer' | 'seller'): Promise<ChatRoomRecord> {
     const room = await this.repo.findRoomById(roomId)
     if (!room) throw new ChatServiceError('Chat room not found', 404, 'CHAT_ROOM_NOT_FOUND')
-    if (room.buyerId === actor.id) return room
-    if (this.isSellerParticipant(actor, room)) return room
+    if (scope !== 'seller' && room.buyerId === actor.id) return room
+    if (scope !== 'buyer' && this.isSellerParticipant(actor, room)) return room
     throw new ChatServiceError('Chat access forbidden', 403, 'CHAT_FORBIDDEN')
   }
 

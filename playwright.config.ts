@@ -1,0 +1,55 @@
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./e2e",
+  fullyParallel: false,
+  forbidOnly: Boolean(process.env.CI),
+  retries: process.env.CI ? 2 : 0,
+  workers: 1,
+  reporter: [
+    ["list"],
+    ["html", { open: "never" }],
+  ],
+  use: {
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+  },
+  projects: [
+    {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
+      name: "chromium",
+      testIgnore: /auth\.setup\.ts/,
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], storageState: "test-results/.auth/seller.json" },
+    },
+    {
+      name: "firefox",
+      testMatch: /seller-routes\.spec\.ts/,
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Firefox"], storageState: "test-results/.auth/seller.json" },
+    },
+    {
+      name: "webkit",
+      testMatch: /seller-routes\.spec\.ts/,
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Safari"], storageState: "test-results/.auth/seller.json" },
+    },
+    {
+      name: "mobile-chromium",
+      testMatch: /seller-routes\.spec\.ts/,
+      dependencies: ["setup"],
+      use: { ...devices["Pixel 7"], storageState: "test-results/.auth/seller.json" },
+    },
+  ],
+  webServer: {
+    command: "bun run dev",
+    url: "http://localhost:3000/api/health",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
+});

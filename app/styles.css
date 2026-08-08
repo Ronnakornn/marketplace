@@ -115,7 +115,7 @@
   --sea-ink: #d7ece8;
   --sea-ink-soft: #afcdc8;
   --lagoon: #60d7cf;
-  --lagoon-deep: #8de5db;
+  --lagoon-deep: #115e59;
   --palm: #6ec89a;
   --sand: #0f1a1e;
   --foam: #101d22;
@@ -138,7 +138,7 @@
     --sea-ink: #d7ece8;
     --sea-ink-soft: #afcdc8;
     --lagoon: #60d7cf;
-    --lagoon-deep: #8de5db;
+    --lagoon-deep: #115e59;
     --palm: #6ec89a;
     --sand: #0f1a1e;
     --foam: #101d22;
@@ -208,14 +208,14 @@ body::after {
   mask-image: radial-gradient(circle at 50% 30%, black, transparent 78%);
 }
 
-a {
+a:not([class]) {
   color: var(--lagoon-deep);
   text-decoration-color: rgba(50, 143, 151, 0.4);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
 
-a:hover {
+a:not([class]):hover {
   color: #246f76;
 }
 
@@ -240,6 +240,121 @@ pre code {
   width: min(1080px, calc(100% - 2rem));
   margin-inline: auto;
 }
+
+.auth-page {
+  width: 100%;
+  max-width: none;
+  background: #fff7ed;
+}
+
+.island-shell.auth-card {
+  border-color: #fed7aa;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(154, 52, 18, 0.12);
+}
+
+.auth-card :is(h1, h2, label, button) {
+  color: #0f172a;
+}
+
+.auth-card p,
+.auth-card span {
+  color: #64748b;
+}
+
+.auth-card input {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+}
+
+.auth-card input:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px #ffedd5;
+}
+
+.auth-card form > button[type="submit"] {
+  background: #ea580c;
+  color: #fff;
+}
+
+.auth-card form > button[type="submit"]:hover {
+  background: #c2410c;
+}
+
+.auth-card a {
+  color: #ea580c;
+}
+
+.seller-shell {
+  --background: #ffffff;
+  --foreground: #431407;
+  --card: #ffffff;
+  --card-foreground: #431407;
+  --popover: #ffffff;
+  --popover-foreground: #431407;
+  --primary: #ea580c;
+  --primary-foreground: #ffffff;
+  --secondary: #ffedd5;
+  --secondary-foreground: #9a3412;
+  --muted: #fff7ed;
+  --muted-foreground: #9a3412;
+  --accent: #ffedd5;
+  --accent-foreground: #9a3412;
+  --border: #eee7e1;
+  --input: #eee7e1;
+  --ring: #fb923c;
+  background: #ffffff;
+}
+
+.seller-shell [data-slot="card"],
+.seller-shell [data-slot="dialog-content"],
+.seller-shell [data-slot="select-content"] {
+  border-color: #eee7e1;
+  background-color: #ffffff;
+}
+
+.seller-shell [data-slot="button"][data-variant="default"] {
+  background-color: #ea580c;
+  color: #ffffff;
+}
+
+.seller-shell [data-slot="button"][data-variant="default"]:hover {
+  background-color: #c2410c;
+}
+
+.seller-shell [data-slot="input"],
+.seller-shell textarea,
+.seller-shell select {
+  border-color: #eee7e1;
+  background-color: #ffffff;
+}
+
+.seller-shell .border-orange-200 {
+  border-color: #eee7e1;
+}
+
+.seller-shell [data-slot="input"]:focus-visible,
+.seller-shell textarea:focus-visible,
+.seller-shell select:focus-visible {
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.2);
+}
+
+.seller-shell .text-emerald-600,
+.seller-shell .text-emerald-700 {
+  color: #c2410c;
+}
+
+.seller-shell .bg-emerald-50 {
+  background-color: #fff7ed;
+}
+
+.seller-shell [data-slot="table-row"]:hover {
+  background-color: #fff7ed;
+}
+
+/* Auth surfaces stay light even when user selects the global dark theme. */
 
 .display-title {
   font-family: "Fraunces", Georgia, serif;
@@ -351,113 +466,314 @@ a {
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
-.admin-galaxy {
-  position: relative;
-  isolation: isolate;
-  color: #f8fbff;
-  background:
-    radial-gradient(1200px 600px at 10% 0%, rgba(34, 211, 238, 0.12), transparent 58%),
-    radial-gradient(900px 500px at 100% 18%, rgba(168, 85, 247, 0.14), transparent 52%),
-    radial-gradient(1000px 700px at 50% 100%, rgba(79, 70, 229, 0.18), transparent 58%),
-    linear-gradient(180deg, #040814 0%, #091120 38%, #0d1326 100%);
+.admin-shell {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --sidebar: hsl(0 0% 98%);
+  --sidebar-foreground: hsl(240 5.3% 26.1%);
+  --sidebar-primary: hsl(240 5.9% 10%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(240 4.8% 95.9%);
+  --sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  color: var(--foreground);
+  background: var(--background);
 }
 
-.admin-galaxy-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(circle at center, black, transparent 82%);
+.admin-shell:has([data-admin-theme="dark"]) {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(0 0% 98%);
+  --sidebar-primary-foreground: hsl(240 5.9% 10%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
-.admin-galaxy [data-slot="sidebar-wrapper"] {
+body:has(.admin-shell [data-admin-theme="dark"]) {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+}
+
+.admin-shell [data-slot="sidebar-wrapper"] {
   min-height: 100vh;
-  background: transparent;
+  background: var(--muted);
 }
 
-.admin-galaxy [data-slot="sidebar-inner"] {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(8, 13, 30, 0.9), rgba(8, 12, 24, 0.76)),
-    radial-gradient(circle at top, rgba(34, 211, 238, 0.08), transparent 35%);
-  backdrop-filter: blur(18px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 24px 60px rgba(2, 6, 23, 0.55);
+.admin-shell [data-slot="sidebar-inner"] {
+  border: 1px solid var(--sidebar-border);
+  background: var(--sidebar);
+  box-shadow: none;
 }
 
-.admin-galaxy [data-slot="sidebar-inset"] {
-  background: transparent;
+.admin-shell [data-slot="sidebar-inset"] {
+  background: var(--background);
 }
 
-.admin-panel {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(10, 15, 30, 0.66));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 24px 60px rgba(2, 6, 23, 0.48);
-  backdrop-filter: blur(18px);
+.admin-shell .admin-panel,
+.admin-shell .admin-users-scope .island-shell,
+.admin-shell .admin-users-scope .feature-card {
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  backdrop-filter: none;
 }
 
-.admin-users-scope .island-shell {
-  border-color: rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(10, 15, 30, 0.68));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    0 24px 60px rgba(2, 6, 23, 0.4);
+.admin-shell [data-slot="card"]:not([class*="border-red"]) {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
 }
 
-.admin-users-scope .feature-card {
-  border-color: rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(10, 15, 30, 0.68));
+.admin-shell [data-slot="card-header"]:has(+ [data-slot="card-content"]),
+.admin-shell [data-slot="card-header"].border-b {
+  border-color: var(--border);
 }
 
-.admin-users-scope .text-\[var\(--sea-ink\)\],
-.admin-users-scope .text-\[var\(--lagoon-deep\)\] {
-  color: #f8fbff;
+.admin-shell .text-white,
+.admin-shell .text-slate-100,
+.admin-shell .text-slate-200,
+.admin-shell .admin-users-scope .text-\[var\(--sea-ink\)\],
+.admin-shell .admin-users-scope .text-\[var\(--lagoon-deep\)\] {
+  color: var(--foreground);
 }
 
-.admin-users-scope .text-\[var\(--sea-ink-soft\)\] {
-  color: #cbd5e1;
+/* Keep administrative table labels legible against their tinted header rows. */
+.admin-shell [data-slot="table-head"] {
+  color: #fff !important;
 }
 
-.admin-users-scope .bg-\[var\(--surface\)\],
-.admin-users-scope .bg-\[var\(--surface-strong\)\] {
-  background: rgba(255, 255, 255, 0.06);
+.admin-shell .text-slate-300,
+.admin-shell .text-slate-400,
+.admin-shell .admin-users-scope .text-\[var\(--sea-ink-soft\)\] {
+  color: var(--muted-foreground);
 }
 
-.admin-users-scope .border-\[var\(--line\)\] {
-  border-color: rgba(255, 255, 255, 0.1);
+.admin-shell .bg-white\/5,
+.admin-shell .bg-white\/6,
+.admin-shell .bg-white\/8,
+.admin-shell .bg-slate-950\/30,
+.admin-shell .bg-slate-950\/40,
+.admin-shell .bg-slate-950\/50,
+.admin-shell .bg-slate-950\/60,
+.admin-shell .bg-slate-950\/70,
+.admin-shell .bg-slate-950\/80,
+.admin-shell .admin-users-scope .bg-\[var\(--surface\)\],
+.admin-shell .admin-users-scope .bg-\[var\(--surface-strong\)\] {
+  background: var(--card);
 }
 
-.admin-users-scope input,
-.admin-users-scope select {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  background: rgba(15, 23, 42, 0.76) !important;
-  color: #f8fbff !important;
+.admin-shell .border-white\/8,
+.admin-shell .border-white\/10,
+.admin-shell .border-white\/12,
+.admin-shell .admin-users-scope .border-\[var\(--line\)\] {
+  border-color: var(--border);
 }
 
-.admin-users-scope table thead tr,
-.admin-users-scope table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.04);
+.admin-shell :is(.text-cyan-100, .text-cyan-200, .text-cyan-300, .text-sky-100, .text-sky-200, .text-violet-100, .text-violet-200, .text-fuchsia-100, .text-fuchsia-200) {
+  color: var(--foreground);
 }
 
-.admin-users-scope table tbody td,
-.admin-users-scope table thead th {
-  border-color: rgba(255, 255, 255, 0.08);
+.admin-shell :is(.bg-cyan-300\/8, .bg-cyan-300\/10, .bg-cyan-300\/12, .bg-cyan-300\/14, .bg-cyan-300\/16, .bg-cyan-300\/20, .bg-cyan-300\/25, .bg-cyan-300\/30, .bg-cyan-300\/35) {
+  background: var(--muted);
 }
 
-.admin-users-scope button {
-  border-radius: 8px;
+.admin-shell :is(.border-cyan-300\/20, .border-cyan-300\/25, .border-cyan-300\/30, .border-cyan-300\/35, .border-sky-300\/30, .border-violet-300\/30, .border-fuchsia-300\/30) {
+  border-color: var(--border);
+}
+
+.admin-shell :is(.text-emerald-100, .text-emerald-200, .text-emerald-300) {
+  color: #047857;
+}
+
+.admin-shell :is(.bg-emerald-300\/10, .bg-emerald-300\/12, .bg-emerald-500\/10) {
+  background: #ecfdf5;
+}
+
+.admin-shell :is(.border-emerald-300\/25, .border-emerald-300\/30, .border-emerald-400\/30) {
+  border-color: #a7f3d0;
+}
+
+.admin-shell :is(.text-amber-100, .text-amber-200) {
+  color: #92400e;
+}
+
+.admin-shell :is(.bg-amber-300\/10, .bg-amber-300\/12, .bg-amber-500\/10) {
+  background: #fffbeb;
+}
+
+.admin-shell :is(.border-amber-300\/25, .border-amber-300\/30, .border-amber-300\/40, .border-amber-400\/30) {
+  border-color: #fde68a;
+}
+
+.admin-shell :is(.text-red-100, .text-red-200, .text-red-300) {
+  color: #b91c1c;
+}
+
+.admin-shell :is(.bg-red-500\/10, .bg-red-500\/12, .bg-red-500\/16) {
+  background: #fef2f2;
+}
+
+.admin-shell :is(.border-red-300\/20, .border-red-400\/30, .border-red-500\/30) {
+  border-color: #fecaca;
+}
+
+.admin-shell:has([data-admin-theme="dark"]) :is(.text-emerald-100, .text-emerald-200, .text-emerald-300) {
+  color: #6ee7b7;
+}
+
+.admin-shell:has([data-admin-theme="dark"]) :is(.bg-emerald-300\/10, .bg-emerald-300\/12, .bg-emerald-500\/10) {
+  background: rgb(6 78 59 / 0.55);
+}
+
+.admin-shell:has([data-admin-theme="dark"]) :is(.text-amber-100, .text-amber-200) {
+  color: #fcd34d;
+}
+
+.admin-shell:has([data-admin-theme="dark"]) :is(.bg-amber-300\/10, .bg-amber-300\/12, .bg-amber-500\/10) {
+  background: rgb(120 53 15 / 0.45);
+}
+
+.admin-shell:has([data-admin-theme="dark"]) :is(.text-red-100, .text-red-200, .text-red-300) {
+  color: #fca5a5;
+}
+
+.admin-shell:has([data-admin-theme="dark"]) :is(.bg-red-500\/10, .bg-red-500\/12, .bg-red-500\/16) {
+  background: rgb(127 29 29 / 0.45);
+}
+
+.admin-shell [data-slot="button"][data-variant="default"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: none;
+}
+
+.admin-shell [data-slot="button"][data-variant="outline"] {
+  border-color: var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.admin-shell [data-slot="button"][data-variant="outline"]:hover,
+.admin-shell [data-slot="button"][data-variant="ghost"]:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="select-content"]) {
+  border-color: var(--border);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.12);
+}
+
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) [data-slot="button"][data-variant="default"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) [data-slot="button"][data-variant="outline"] {
+  border-color: var(--border);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) :is(.text-white, .text-slate-100, .text-slate-200) {
+  color: var(--foreground);
+}
+
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) :is(.text-slate-300, .text-slate-400) {
+  color: var(--muted-foreground);
+}
+
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) :is(.bg-slate-900\/80, .bg-slate-950\/60, .bg-slate-950\/95, .bg-white\/5) {
+  background: var(--background);
+}
+
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) :is(.border-white\/10, .border-white\/12) {
+  border-color: var(--input);
+}
+
+.admin-shell .admin-users-scope input,
+.admin-shell .admin-users-scope select {
+  border-color: var(--input) !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.admin-shell .admin-users-scope table thead tr,
+.admin-shell .admin-users-scope table tbody tr:hover {
+  background: var(--muted);
+}
+
+.admin-shell .admin-users-scope table tbody td,
+.admin-shell .admin-users-scope table thead th {
+  border-color: var(--border);
+}
+
+/* Explicitly win over per-cell text-slate utilities on every admin table. */
+.admin-shell [data-slot="table-head"],
+.admin-shell table thead th {
+  color: #fff !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .admin-galaxy *,
-  .admin-galaxy *::before,
-  .admin-galaxy *::after {
+  .admin-shell *,
+  .admin-shell *::before,
+  .admin-shell *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

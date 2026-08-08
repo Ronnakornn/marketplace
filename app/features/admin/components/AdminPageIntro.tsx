@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { SparklesIcon } from "lucide-react";
+import { PanelTopIcon } from "lucide-react";
+import { useTranslations } from "#/i18n/client";
 
 interface AdminPageIntroProps {
   eyebrow: string;
@@ -9,25 +12,26 @@ interface AdminPageIntroProps {
 }
 
 export function AdminPageIntro(props: AdminPageIntroProps) {
+  const t = useTranslations();
+  const resolve = (value: string) => value.startsWith("admin.") ? t(value as Parameters<typeof t>[0]) : value;
   const { eyebrow, title, description, children } = props;
 
   return (
-    <section className="admin-panel relative overflow-hidden rounded-2xl px-5 py-6 sm:px-7 sm:py-7">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.15),transparent_34%),radial-gradient(circle_at_right,rgba(217,70,239,0.12),transparent_30%)]" />
-      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <section className="admin-panel rounded-xl px-5 py-6 sm:px-7 sm:py-7">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100/80">
-            <SparklesIcon className="size-3.5" />
-            {eyebrow}
+          <div className="mb-3 inline-flex items-center gap-2 rounded-md border bg-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <PanelTopIcon className="size-3.5" />
+            {resolve(eyebrow)}
           </div>
-          <h2 className="text-2xl font-semibold text-white sm:text-3xl">
-            {title}
+          <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+            {resolve(title)}
           </h2>
-          <p className="mt-3 max-w-xl text-sm text-slate-300 sm:text-base">
-            {description}
+          <p className="mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
+            {resolve(description)}
           </p>
         </div>
-        {children ? <div className="relative">{children}</div> : null}
+        {children ? <div>{children}</div> : null}
       </div>
     </section>
   );

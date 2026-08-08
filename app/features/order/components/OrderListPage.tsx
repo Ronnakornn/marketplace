@@ -10,6 +10,7 @@ import { Button } from "#/components/ui/button";
 import { fetchOrders, formatMoney } from "#/features/buyer/api";
 import { useFormatters, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { formatOrderStatus } from "../order-status";
 
 const orderFilters = [
   { value: "all", labelKey: "order.all" },
@@ -55,7 +56,7 @@ export function OrderListPage() {
                 <h2 className="font-bold text-slate-950">{order.orderNo}</h2>
                 <p className="text-sm text-slate-500">{formatters.date(order.createdAt)}</p>
               </div>
-              <Badge variant="secondary" className="rounded-md">{order.status}</Badge>
+              <Badge variant="secondary" className="rounded-md">{formatOrderStatus(order.status, t)}</Badge>
             </div>
             <div className="mt-3 space-y-1 text-sm text-slate-600">
               {order.items.slice(0, 2).map((item) => <p key={item.id}>{item.quantity} x {item.productTitle}</p>)}

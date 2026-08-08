@@ -27,6 +27,7 @@ export type CartItemDetail = CartItem & {
     inventory: Inventory | null
     product: LocalizedProduct & {
       shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
+      images: Array<{ url: string; isPrimary: boolean; sortOrder: number }>
     }
   }
 }
@@ -62,6 +63,10 @@ const cartInclude = {
           inventory: true,
           product: {
             include: {
+              images: {
+                select: { url: true, isPrimary: true, sortOrder: true },
+                orderBy: { isPrimary: 'desc' },
+              },
               shop: {
                 select: {
                   id: true,
@@ -87,6 +92,10 @@ const itemInclude = {
       inventory: true,
       product: {
         include: {
+          images: {
+            select: { url: true, isPrimary: true, sortOrder: true },
+            orderBy: { isPrimary: 'desc' },
+          },
           shop: {
             select: {
               id: true,
@@ -161,6 +170,10 @@ export class PrismaCartRepository implements ICartRepository {
         inventory: true,
         product: {
           include: {
+            images: {
+              select: { url: true, isPrimary: true, sortOrder: true },
+              orderBy: { isPrimary: 'desc' },
+            },
             shop: {
               select: {
                 id: true,

@@ -2,7 +2,6 @@
 
 export { AdminSidebarNav } from "./components/AdminSidebarNav";
 export { AdminDashboardOverview } from "./components/AdminDashboardOverview";
-export { AdminGalaxyScene } from "./components/AdminGalaxyScene";
 export { AdminProductModerationDetail } from "./components/AdminProductModerationDetail";
 export { AdminContentModerationQueues } from "./components/AdminContentModerationQueues";
 export { AdminSellerApplicationsTable } from "./components/AdminSellerApplicationsTable";

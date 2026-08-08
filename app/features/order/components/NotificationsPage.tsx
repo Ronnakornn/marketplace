@@ -19,15 +19,15 @@ const tabs = [
   { value: "promotion", labelKey: "notification.promos" },
 ] as const;
 
-export function NotificationsPage() {
+export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTopBar?: boolean; scope?: "all" | "seller" }) {
   const queryClient = useQueryClient();
   const t = useTranslations();
   const formatters = useFormatters();
   const [tab, setTab] = useState("all");
-  const notificationsQuery = useQuery({ queryKey: ["buyer-notifications"], queryFn: fetchNotifications });
+  const notificationsQuery = useQuery({ queryKey: ["notifications", scope], queryFn: () => fetchNotifications(scope) });
   const readAllMutation = useMutation({
-    mutationFn: () => fetch("/api/notifications/read-all", { method: "PATCH", credentials: "include" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-notifications"] }),
+    mutationFn: () => fetch(`/api/notifications/read-all${scope === "seller" ? "?scope=seller" : ""}`, { method: "PATCH", credentials: "include" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications", scope] }),
   });
   const notifications = useMemo(() => {
     const items = (notificationsQuery.data ?? []).filter((notification) => notificationTypeGroup(notification.type) !== "chat");
@@ -37,7 +37,7 @@ export function NotificationsPage() {
 
   return (
     <>
-      <BuyerTopBar title={t("buyer.notifications")} />
+      {showTopBar ? <BuyerTopBar title={t("buyer.notifications")} /> : null}
       <div className="mx-auto max-w-3xl space-y-3 px-3 py-4">
         <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
           <div className="flex gap-2 overflow-x-auto">
@@ -64,10 +64,10 @@ export function NotificationsPage() {
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600"><Icon className="size-5" /></div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
-                    <h2 className="font-semibold text-slate-950">{notification.title}</h2>
-                    <Badge variant={notification.readAt ? "outline" : "default"} className="rounded-md">{notification.type}</Badge>
+                    <h2 className="font-semibold text-slate-950">{formatNotificationTitle(notification, t, scope)}</h2>
+                    <Badge variant={notification.readAt ? "outline" : "default"} className="rounded-md">{formatNotificationType(notification.type, t, scope)}</Badge>
                   </div>
-                  {notification.body ? <p className="mt-1 text-sm text-slate-600">{notification.body}</p> : null}
+                  {formatNotificationBody(notification, t, scope) ? <p className="mt-1 text-sm text-slate-600">{formatNotificationBody(notification, t, scope)}</p> : null}
                   <p className="mt-2 text-xs text-slate-400">{formatters.date(notification.createdAt)}</p>
                 </div>
               </div>
@@ -79,9 +79,34 @@ export function NotificationsPage() {
   );
 }
 
+function formatNotificationType(type: string, t: (key: never) => string, scope: "all" | "seller"): string {
+  const normalized = type.toLowerCase();
+  if (scope === "seller" && normalized === "order_paid") return t("notification.event.sellerOrderPaid.badge" as never);
+  if (scope === "seller" && normalized === "payout_paid") return t("notification.event.sellerPayoutPaid.badge" as never);
+  if (normalized === "order_paid" && scope === "all") return t("notification.event.orderPaid.badge" as never);
+  return type;
+}
+
+function formatNotificationTitle(notification: { type: string; title: string }, t: (key: never) => string, scope: "all" | "seller"): string {
+  if (scope === "seller" && notification.type.toLowerCase() === "order_paid") return t("notification.event.sellerOrderPaid.title" as never);
+  if (scope === "seller" && notification.type.toLowerCase() === "payout_paid") return t("notification.event.sellerPayoutPaid.title" as never);
+  if (notification.type.toLowerCase() === "order_paid" && scope === "all") return t("notification.event.orderPaid.title" as never);
+  return notification.title;
+}
+
+function formatNotificationBody(notification: { type: string; body: string | null; data: Record<string, unknown> | null }, t: (key: never) => string, scope: "all" | "seller"): string | null {
+  if (scope === "seller" && notification.type.toLowerCase() === "order_paid") return t("notification.event.sellerOrderPaid.body" as never);
+  if (scope === "seller" && notification.type.toLowerCase() === "payout_paid") return t("notification.event.sellerPayoutPaid.body" as never);
+  if (notification.type.toLowerCase() !== "order_paid" || scope === "seller") return notification.body;
+  const orderNo = notification.data?.orderNo;
+  return typeof orderNo === "string"
+    ? t("notification.event.orderPaid.body" as never).replace("{orderNo}", orderNo)
+    : t("notification.event.orderPaid.bodyWithoutOrder" as never);
+}
+
 function notificationTypeGroup(type: string) {
   const value = type.toLowerCase();
-  if (value.includes("payment")) return "payment";
+  if (value.includes("payment") || value.includes("payout")) return "payment";
   if (value.includes("refund") || value.includes("return")) return "refund";
   if (value.includes("chat")) return "chat";
   if (value.includes("promo") || value.includes("coupon")) return "promotion";

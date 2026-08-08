@@ -95,6 +95,30 @@ describe('NotificationService', () => {
     })
   })
 
+  it('lists only seller notifications for the seller scope', async () => {
+    vi.mocked(repo.findNotificationsForUser).mockResolvedValue([
+      createNotification({ id: 'buyer-notification', data: { orderId: 'order-1', orderNo: 'ORD-1' } }),
+      createNotification({ id: 'seller-notification', title: 'New paid order', data: { orderId: 'order-2', audience: 'seller' } }),
+      createNotification({ id: 'payout-notification', type: 'payout_paid', data: { payoutId: 'payout-1' } }),
+    ])
+
+    const result = await service.listNotifications(createActor(), 'seller')
+
+    expect(result.map((notification) => notification.id)).toEqual(['seller-notification', 'payout-notification'])
+  })
+
+  it('marks only seller notifications as read for the seller scope', async () => {
+    vi.mocked(repo.findNotificationsForUser).mockResolvedValue([
+      createNotification({ id: 'buyer-notification', data: { orderId: 'order-1', orderNo: 'ORD-1' } }),
+      createNotification({ id: 'seller-notification', data: { orderId: 'order-2', audience: 'seller' } }),
+      createNotification({ id: 'already-read-seller', type: 'payout_paid', readAt: now, data: { payoutId: 'payout-1' } }),
+    ])
+
+    await expect(service.markAllNotificationsAsRead(createActor(), 'seller')).resolves.toEqual({ updatedCount: 1 })
+    expect(repo.markAsRead).toHaveBeenCalledTimes(1)
+    expect(repo.markAsRead).toHaveBeenCalledWith('seller-notification', expect.any(Date))
+  })
+
   it('does not let a user read another user notification', async () => {
     vi.mocked(repo.findNotificationById).mockResolvedValue(createNotification({ userId: 'other-user' }))
 

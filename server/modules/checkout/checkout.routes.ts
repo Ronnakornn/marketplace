@@ -5,6 +5,7 @@ import { CheckoutServiceError } from './checkout.errors.ts'
 
 const CreateCheckoutBodySchema = t.Object({
   cartId: t.String({ format: 'uuid' }),
+  cartItemIds: t.Array(t.String({ format: 'uuid' }), { minItems: 1 }),
   addressId: t.String({ format: 'uuid' }),
   couponCode: t.Optional(t.String({ minLength: 1 })),
   paymentMethod: t.String({ minLength: 1 }),
@@ -23,6 +24,7 @@ const CheckoutResponseSchema = t.Object({
 
 const QuoteCheckoutBodySchema = t.Object({
   cartId: t.String({ format: 'uuid' }),
+  cartItemIds: t.Array(t.String({ format: 'uuid' }), { minItems: 1 }),
   couponCode: t.Optional(t.String({ minLength: 1 })),
 })
 

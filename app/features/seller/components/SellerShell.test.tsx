@@ -40,6 +40,7 @@ vi.mock("#/i18n/client", () => ({
     "seller.nav.notifications": "Notifications",
     "seller.nav.activeShop": "Active shop",
     "seller.nav.manage": "Seller manage",
+    "seller.nav.viewShop": "View my shop",
   }[key] ?? key),
 }));
 

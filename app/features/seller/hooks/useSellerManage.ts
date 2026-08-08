@@ -739,6 +739,7 @@ export function useUpdateSellerVariantStock() {
     },
     onSuccess: async (_data, variables) => {
       await invalidateSellerProductQueries(queryClient, { productId: variables.productId });
+      await queryClient.invalidateQueries({ queryKey: sellerKey("inventory") });
     },
   });
 }

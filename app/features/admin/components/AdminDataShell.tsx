@@ -6,6 +6,7 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Skeleton } from "#/components/ui/skeleton";
+import { useTranslations } from "#/i18n/client";
 
 function readErrorStatus(error: unknown) {
   if (!error || typeof error !== "object") return null;
@@ -26,6 +27,7 @@ export function AdminDataShell(props: {
   onRetry: () => void;
   children: ReactNode;
 }) {
+  const t = useTranslations();
   if (props.isLoading) {
     return (
       <div className="grid gap-4">
@@ -41,11 +43,11 @@ export function AdminDataShell(props: {
       <Card className="border-red-500/30 bg-red-500/10">
         <CardContent className="flex flex-col gap-3 p-6">
           <p className="text-sm text-red-200">
-            {isForbidden ? `You do not have admin permission to view ${props.title.toLowerCase()}.` : `Unable to load ${props.title.toLowerCase()}.`}
+            {isForbidden ? t("state.loadErrorTitle") : t("state.loadErrorTitle")}
           </p>
           <Button variant="outline" size="sm" className="w-fit border-white/12 bg-white/5 text-slate-100" onClick={props.onRetry}>
             <RefreshCwIcon className="size-4" />
-            Retry
+            {t("admin.common.retry")}
           </Button>
         </CardContent>
       </Card>

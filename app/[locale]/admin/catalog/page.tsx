@@ -5,9 +5,9 @@ export default function AdminCatalogPage() {
   return (
     <div className="flex flex-col gap-6">
       <AdminPageIntro
-        eyebrow="Catalog"
-        title="Catalog operations"
-        description="Review product visibility, pricing coverage, and shop ownership from a production-ready catalog console."
+        eyebrow="admin.pages.catalog.eyebrow"
+        title="admin.pages.catalog.title"
+        description="admin.pages.catalog.description"
       >
         <AdminSpaceCat mode="dashboard" />
       </AdminPageIntro>

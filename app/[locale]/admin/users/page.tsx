@@ -8,9 +8,9 @@ export default async function AdminUsersPage() {
   return (
     <div className="flex flex-col gap-6">
       <AdminPageIntro
-        eyebrow="Crew Access"
-        title="Manage user accounts"
-        description="Create accounts, adjust roles, and remove access without leaving the control deck."
+        eyebrow="admin.pages.users.eyebrow"
+        title="admin.pages.users.title"
+        description="admin.pages.users.description"
       >
         <AdminSpaceCat mode="users" />
       </AdminPageIntro>

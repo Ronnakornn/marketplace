@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signUp } from "#/lib/auth-client";
-import { PhoneAuthPanel } from "./PhoneAuthPanel";
+import { useTranslations } from "#/i18n/client";
 import { SocialSignInButtons } from "./SocialSignInButtons";
 
 export function SignupForm({ nextPath }: { nextPath?: string | null }) {
+  const t = useTranslations();
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,30 +24,28 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
     try {
       const result = await signUp.email({ name, email, password });
       if (result.error) {
-        setError(result.error.message ?? "Sign up failed");
+        setError(result.error.message ?? t("auth.signUpFailed"));
       } else {
         router.push(`/verify-email?email=${encodeURIComponent(email)}`);
       }
     } catch {
-      setError("An unexpected error occurred");
+      setError(t("auth.unexpectedError"));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="page-wrap flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
-      <div className="island-shell w-full max-w-md rounded-2xl p-8">
+    <div className="page-wrap auth-page flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
+      <div className="island-shell auth-card w-full max-w-md rounded-2xl p-8">
         <h1 className="mb-2 text-2xl font-bold text-[var(--sea-ink)]">
-          Create an account
+          {t("auth.signupTitle")}
         </h1>
         <p className="mb-6 text-sm text-[var(--sea-ink-soft)]">
-          Get started by creating your account below.
+          {t("auth.signupSubtitle")}
         </p>
 
         <SocialSignInButtons nextPath={nextPath} />
-        <PhoneAuthPanel nextPath={nextPath} mode="signup" />
-
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -59,7 +58,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               htmlFor="name"
               className="mb-1.5 block text-sm font-medium text-[var(--sea-ink)]"
             >
-              Name
+              {t("auth.name")}
             </label>
             <input
               id="name"
@@ -67,7 +66,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
+              placeholder={t("auth.namePlaceholder")}
               className="w-full rounded-xl border border-[var(--line)] bg-[var(--bg)] px-4 py-2.5 text-sm text-[var(--sea-ink)] placeholder-[var(--sea-ink-soft)] outline-none focus:border-[var(--lagoon-deep)] focus:ring-2 focus:ring-[rgba(79,184,178,0.2)]"
             />
           </div>
@@ -77,7 +76,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               htmlFor="email"
               className="mb-1.5 block text-sm font-medium text-[var(--sea-ink)]"
             >
-              Email
+              {t("auth.email")}
             </label>
             <input
               id="email"
@@ -85,7 +84,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t("auth.emailPlaceholder")}
               className="w-full rounded-xl border border-[var(--line)] bg-[var(--bg)] px-4 py-2.5 text-sm text-[var(--sea-ink)] placeholder-[var(--sea-ink-soft)] outline-none focus:border-[var(--lagoon-deep)] focus:ring-2 focus:ring-[rgba(79,184,178,0.2)]"
             />
           </div>
@@ -95,7 +94,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               htmlFor="password"
               className="mb-1.5 block text-sm font-medium text-[var(--sea-ink)]"
             >
-              Password
+              {t("auth.password")}
             </label>
             <input
               id="password"
@@ -114,17 +113,17 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
             disabled={loading}
             className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? t("auth.creatingAccount") : t("auth.createAccount")}
           </button>
         </form>
 
         <p className="mt-5 text-center text-sm text-[var(--sea-ink-soft)]">
-          Already have an account?{" "}
+          {t("auth.hasAccount")} {" "}
           <Link
             href="/login"
             className="font-medium text-[var(--lagoon-deep)] hover:underline"
           >
-            Sign in
+            {t("auth.signIn")}
           </Link>
         </p>
       </div>

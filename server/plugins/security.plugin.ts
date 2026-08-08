@@ -3,6 +3,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import { SecurityError } from '#server/modules/security/security.errors.ts'
 import { SecurityService } from '#server/modules/security/security.service.ts'
 import type { SecurityConfig } from '#server/modules/security/security.config.ts'
+import { getAuthContext } from '#server/modules/auth/auth.context.ts'
 
 type RateLimitBucket = {
   count: number
@@ -19,14 +20,14 @@ export function createSecurityPlugin(appContext: AppContext, config: SecurityCon
   const securityService = new SecurityService(appContext)
 
   return new Elysia({ name: 'security' })
-    .onRequest(({ request, set }) => {
+    .onRequest(async ({ request, set }) => {
       set.headers['x-content-type-options'] = 'nosniff'
       set.headers['x-frame-options'] = 'DENY'
       set.headers['referrer-policy'] = 'no-referrer'
       set.headers['permissions-policy'] = 'camera=(), microphone=(), geolocation=()'
 
       enforceRequestSize(request, config, securityService)
-      enforceRateLimit(request, config, securityService)
+      await enforceRateLimit(request, config, securityService)
     })
     .onError(({ error, set }) => {
       const formatted = securityService.formatError(error, appContext.config.environment)
@@ -54,14 +55,14 @@ function enforceRequestSize(request: Request, config: SecurityConfig, securitySe
   }
 }
 
-function enforceRateLimit(request: Request, config: SecurityConfig, securityService: SecurityService): void {
+async function enforceRateLimit(request: Request, config: SecurityConfig, securityService: SecurityService): Promise<void> {
   if (!config.rateLimitEnabled) return
 
   const url = new URL(request.url)
-  const category = getRateLimitCategory(url.pathname)
+  const category = getRateLimitCategory(url.pathname, request.method)
   const limit = getLimitForCategory(category, config)
-  const ip = getClientIp(request)
-  const key = `${category}:${ip}`
+  const subject = await getRateLimitSubject(request, category)
+  const key = `${category}:${subject}`
   const now = Date.now()
   const existing = buckets.get(key)
   const resetAt = existing && existing.resetAt > now ? existing.resetAt : now + config.rateLimitWindowSeconds * 1000
@@ -73,7 +74,7 @@ function enforceRateLimit(request: Request, config: SecurityConfig, securityServ
     securityService.logSuspiciousActivity({
       type: 'RATE_LIMIT_EXCEEDED',
       severity: 'medium',
-      ipAddress: ip,
+      ipAddress: getClientIp(request),
       userAgent: request.headers.get('user-agent'),
       path: url.pathname,
       metadata: { category, limit },
@@ -82,18 +83,36 @@ function enforceRateLimit(request: Request, config: SecurityConfig, securityServ
   }
 }
 
-function getRateLimitCategory(pathname: string): 'auth' | 'checkout' | 'admin' | 'public' {
+type RateLimitCategory = 'auth' | 'checkout' | 'admin' | 'public' | 'sellerRead' | 'sellerWrite' | 'sellerMedia' | 'sellerReview'
+
+function getRateLimitCategory(pathname: string, method: string): RateLimitCategory {
   if (pathname.startsWith('/api/auth') || pathname.includes('/login') || pathname.includes('/signup')) return 'auth'
   if (pathname.startsWith('/api/checkout') || pathname.startsWith('/api/payment')) return 'checkout'
   if (pathname.startsWith('/api/admin')) return 'admin'
+  if (pathname.startsWith('/api/seller/products/') && pathname.endsWith('/submit-review')) return 'sellerReview'
+  if (pathname.startsWith('/api/seller/products/') && (pathname.includes('/images') || pathname.endsWith('/video')) && method !== 'GET') return 'sellerMedia'
+  if (pathname.startsWith('/api/seller/products') || pathname.startsWith('/api/seller/variants/')) {
+    return method === 'GET' ? 'sellerRead' : 'sellerWrite'
+  }
   return 'public'
 }
 
-function getLimitForCategory(category: ReturnType<typeof getRateLimitCategory>, config: SecurityConfig): number {
+function getLimitForCategory(category: RateLimitCategory, config: SecurityConfig): number {
   if (category === 'auth') return config.authMaxRequests
   if (category === 'checkout') return config.checkoutMaxRequests
   if (category === 'admin') return config.adminMaxRequests
+  if (category === 'sellerRead') return config.sellerReadMaxRequests
+  if (category === 'sellerWrite') return config.sellerWriteMaxRequests
+  if (category === 'sellerMedia') return config.sellerMediaMaxRequests
+  if (category === 'sellerReview') return config.sellerReviewMaxRequests
   return config.publicMaxRequests
+}
+
+async function getRateLimitSubject(request: Request, category: RateLimitCategory): Promise<string> {
+  if (!category.startsWith('seller')) return `ip:${getClientIp(request)}`
+
+  const authContext = await getAuthContext(request.headers)
+  return authContext ? `user:${authContext.user.id}` : `ip:${getClientIp(request)}`
 }
 
 function getClientIp(request: Request): string {

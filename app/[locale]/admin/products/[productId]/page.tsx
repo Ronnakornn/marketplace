@@ -12,9 +12,9 @@ export default async function AdminProductModerationRoute({ params }: AdminProdu
   return (
     <div className="flex flex-col gap-6">
       <AdminPageIntro
-        eyebrow="Moderation"
-        title="Product review"
-        description="Inspect product readiness, shop context, inventory, and moderation history before taking action."
+        eyebrow="admin.pages.productReview.eyebrow"
+        title="admin.pages.productReview.title"
+        description="admin.pages.productReview.description"
       />
       <AdminProductModerationDetail productId={productId} />
     </div>

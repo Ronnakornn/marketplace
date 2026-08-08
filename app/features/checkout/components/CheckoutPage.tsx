@@ -3,8 +3,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CreditCardIcon, MapPinIcon, TicketIcon, TruckIcon } from "lucide-react";
+import { CreditCardIcon, MapPinIcon, PackageCheckIcon, TicketIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Button } from "#/components/ui/button";
@@ -36,15 +37,23 @@ export function CheckoutPage() {
   const localePath = useLocalePath();
   const locale = useLocale();
   const t = useTranslations();
+  const searchParams = useSearchParams();
   const cartQuery = useQuery({ queryKey: ["buyer-cart", locale], queryFn: () => fetchCart(locale) });
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
   const defaultAddress = addressesQuery.data?.find((address) => address.isDefault) ?? addressesQuery.data?.[0];
   const addressId = selectedAddressId || defaultAddress?.id || "";
-  const itemCount = cartQuery.data?.shops.reduce((sum, shop) => sum + shop.items.length, 0) ?? 0;
+  const requestedItemIds = new Set(searchParams?.get("items")?.split(",").filter(Boolean) ?? []);
+  const hasRequestedItems = searchParams?.has("items") ?? false;
+  const selectedShops = cartQuery.data?.shops.map((shop) => {
+    const items = shop.items.filter((item) => !hasRequestedItems || requestedItemIds.has(item.id));
+    return { ...shop, items, subtotal: items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) };
+  }).filter((shop) => shop.items.length > 0) ?? [];
+  const selectedItemIds = selectedShops.flatMap((shop) => shop.items.map((item) => item.id));
+  const itemCount = selectedItemIds.length;
   const cartId = cartQuery.data?.id ?? null;
   const quoteQuery = useQuery({
-    queryKey: ["checkout-quote", cartId, cartQuery.data?.subtotal, appliedCoupon, locale],
-    queryFn: () => quoteCheckout({ cartId: cartId as string, couponCode: appliedCoupon ?? undefined }),
+    queryKey: ["checkout-quote", cartId, selectedItemIds, appliedCoupon, locale],
+    queryFn: () => quoteCheckout({ cartId: cartId as string, cartItemIds: selectedItemIds, couponCode: appliedCoupon ?? undefined }),
     enabled: Boolean(cartId) && itemCount > 0,
   });
   const checkoutMutation = useMutation({
@@ -53,6 +62,7 @@ export function CheckoutPage() {
       if (!addressId) throw new Error(t("checkout.noAddressDescription"));
       return createCheckout({
         cartId: cartQuery.data.id,
+        cartItemIds: selectedItemIds,
         addressId,
         couponCode: appliedCoupon || undefined,
         paymentMethod,
@@ -101,6 +111,35 @@ export function CheckoutPage() {
         {cartQuery.data && itemCount > 0 ? (
           <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
+              <CheckoutBlock icon={<PackageCheckIcon className="size-5" />} title={t("order.items")}>
+                <div className="space-y-3">
+                  {selectedShops.map((shop) => (
+                    <section key={shop.shopId} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                      <div className="mb-2 flex justify-between gap-3 text-sm">
+                        <span className="font-semibold text-slate-700">{shop.shopName}</span>
+                        <span className="font-semibold text-slate-950">{formatMoney(shop.subtotal, cartQuery.data.currency)}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {shop.items.map((item) => (
+                          <div key={item.id} className="flex gap-3">
+                            <div className="size-14 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                              {item.imageUrl ? <img src={item.imageUrl} alt={item.title} className="size-full object-cover" /> : <span className="flex size-full items-center justify-center text-[10px] text-slate-400">{t("cart.noImage")}</span>}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-slate-950">{item.title}</p>
+                              <p className="truncate text-xs text-slate-500">{item.variantTitle}</p>
+                              <div className="mt-1 flex justify-between gap-2 text-xs text-slate-600">
+                                <span>×{item.quantity}</span>
+                                <span className="font-semibold text-slate-950">{formatMoney(item.unitPrice * item.quantity, item.currency)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </CheckoutBlock>
               <CheckoutBlock icon={<MapPinIcon className="size-5" />} title={t("checkout.address")}>
                 {addressesQuery.isLoading ? <p className="text-sm text-slate-700">{t("checkout.loadingAddresses")}</p> : null}
                 {addressesQuery.data?.length ? (
@@ -176,7 +215,7 @@ export function CheckoutPage() {
             <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-lg font-bold">{t("checkout.summary")}</h2>
               <div className="mt-4 space-y-3">
-                {cartQuery.data.shops.map((shop) => (
+                {selectedShops.map((shop) => (
                   <div key={shop.shopId} className="flex justify-between gap-3 text-sm">
                     <span className="text-slate-700">{shop.shopName}</span>
                     <span className="font-semibold text-slate-950">{formatMoney(shop.subtotal, cartQuery.data.currency)}</span>

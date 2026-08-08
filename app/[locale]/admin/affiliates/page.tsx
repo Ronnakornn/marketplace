@@ -4,9 +4,9 @@ export default function AdminAffiliatesPage() {
   return (
     <div className="flex flex-col gap-6">
       <AdminPageIntro
-        eyebrow="Creator Network"
-        title="Manage affiliate accounts"
-        description="Review creator tracking activity and disable accounts that should not generate new attribution."
+        eyebrow="admin.pages.affiliates.eyebrow"
+        title="admin.pages.affiliates.title"
+        description="admin.pages.affiliates.description"
       >
         <AdminSpaceCat mode="users" />
       </AdminPageIntro>

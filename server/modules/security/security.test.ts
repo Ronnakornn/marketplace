@@ -1,12 +1,19 @@
 import { Elysia } from 'elysia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('#server/modules/auth/auth.context.ts', () => ({
+  getAuthContext: vi.fn(),
+}))
+
 import { createSecurityPlugin, resetSecurityRateLimitBuckets } from '#server/plugins/security.plugin.ts'
+import { getAuthContext } from '#server/modules/auth/auth.context.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import { ActiveShopResolver } from './active-shop.ts'
 import { OwnershipGuards, type OwnershipGuardRepository } from './ownership-guards.ts'
 import { SecurityError } from './security.errors.ts'
 import { SecurityService } from './security.service.ts'
 import { validateUploadInput } from './upload-validation.ts'
+import { getSecurityConfigFromEnv } from './security.config.ts'
 
 function createLogger() {
   return {
@@ -36,12 +43,20 @@ function createSecurityApp(appContext = createAppContext()) {
       authMaxRequests: 1,
       checkoutMaxRequests: 1,
       adminMaxRequests: 1,
+      sellerReadMaxRequests: 2,
+      sellerWriteMaxRequests: 2,
+      sellerMediaMaxRequests: 1,
+      sellerReviewMaxRequests: 1,
       requestBodyLimitBytes: 10,
     }))
     .get('/api/public', () => ({ ok: true }))
     .get('/api/auth/session', () => ({ ok: true }))
     .get('/api/checkout/test', () => ({ ok: true }))
     .get('/api/admin/test', () => ({ ok: true }))
+    .get('/api/seller/products', () => ({ ok: true }))
+    .post('/api/seller/products', () => ({ ok: true }))
+    .post('/api/seller/products/:productId/images', () => ({ ok: true }))
+    .post('/api/seller/products/:productId/submit-review', () => ({ ok: true }))
     .post('/api/public', () => ({ ok: true }))
     .get('/api/error', () => {
       throw new Error('internal failure token=abc123')
@@ -64,6 +79,21 @@ describe('security hardening', () => {
   beforeEach(() => {
     resetSecurityRateLimitBuckets()
     vi.clearAllMocks()
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+  })
+
+  it('uses production-safe documented defaults when rate limits are not configured', () => {
+    expect(getSecurityConfigFromEnv({})).toMatchObject({
+      rateLimitWindowSeconds: 60,
+      publicMaxRequests: 600,
+      authMaxRequests: 120,
+      checkoutMaxRequests: 180,
+      adminMaxRequests: 300,
+      sellerReadMaxRequests: 180,
+      sellerWriteMaxRequests: 30,
+      sellerMediaMaxRequests: 10,
+      sellerReviewMaxRequests: 5,
+    })
   })
 
   it('rate limit blocks excessive public requests', async () => {
@@ -103,6 +133,35 @@ describe('security hardening', () => {
     const response = await app.handle(new Request('http://localhost/api/admin/test', { headers: { 'x-forwarded-for': '4.4.4.4' } }))
 
     expect(response.status).toBe(429)
+  })
+
+  it('seller reads are limited by seller identity instead of IP address', async () => {
+    vi.mocked(getAuthContext).mockResolvedValue({ user: { id: 'seller-1' } } as never)
+    const app = createSecurityApp()
+
+    await app.handle(new Request('http://localhost/api/seller/products', { headers: { 'x-forwarded-for': '7.7.7.7' } }))
+    await app.handle(new Request('http://localhost/api/seller/products', { headers: { 'x-forwarded-for': '8.8.8.8' } }))
+    const response = await app.handle(new Request('http://localhost/api/seller/products', { headers: { 'x-forwarded-for': '9.9.9.9' } }))
+
+    expect(response.status).toBe(429)
+  })
+
+  it('seller product writes, media uploads, and review submissions use separate limits', async () => {
+    vi.mocked(getAuthContext).mockResolvedValue({ user: { id: 'seller-1' } } as never)
+    const app = createSecurityApp()
+
+    await app.handle(new Request('http://localhost/api/seller/products', { method: 'POST' }))
+    await app.handle(new Request('http://localhost/api/seller/products', { method: 'POST' }))
+    const writeResponse = await app.handle(new Request('http://localhost/api/seller/products', { method: 'POST' }))
+    expect(writeResponse.status).toBe(429)
+
+    await app.handle(new Request('http://localhost/api/seller/products/product-1/images', { method: 'POST' }))
+    const mediaResponse = await app.handle(new Request('http://localhost/api/seller/products/product-1/images', { method: 'POST' }))
+    expect(mediaResponse.status).toBe(429)
+
+    await app.handle(new Request('http://localhost/api/seller/products/product-1/submit-review', { method: 'POST' }))
+    const reviewResponse = await app.handle(new Request('http://localhost/api/seller/products/product-1/submit-review', { method: 'POST' }))
+    expect(reviewResponse.status).toBe(429)
   })
 
   it('seller ownership guard blocks wrong seller', async () => {

@@ -45,7 +45,7 @@ export interface AnalyticsCountRow {
 
 export interface AnalyticsViewLogRow {
   productId: string
-  createdAt: Date
+  createdAt: Date | string
 }
 
 export interface AnalyticsAddToCartRow {
@@ -59,11 +59,11 @@ export interface AnalyticsAddToCartLogRow {
   productId: string
   variantId: string
   quantity: number
-  createdAt: Date
+  createdAt: Date | string
 }
 
 export type AnalyticsOrderItem = Pick<OrderItem, 'id' | 'shopId' | 'variantId' | 'quantity' | 'lineTotal' | 'currency'> & {
-  order: Pick<Order, 'id' | 'createdAt' | 'currency'>
+  order: Omit<Pick<Order, 'id' | 'createdAt' | 'currency'>, 'createdAt'> & { createdAt: Date | string }
   variant: Pick<ProductVariant, 'id' | 'productId'>
 }
 

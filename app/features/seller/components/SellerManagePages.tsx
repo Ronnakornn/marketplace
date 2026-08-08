@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AlertTriangleIcon, ArchiveIcon, BanknoteIcon, EditIcon, PackageCheckIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
-import { useTranslations } from "#/i18n/client";
+import { useFormatters, useTranslations } from "#/i18n/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +31,6 @@ import {
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
 import { Textarea } from "#/components/ui/textarea";
 import { SellerPageHeader } from "./SellerShell";
 import {
@@ -81,6 +80,7 @@ import {
 } from "../hooks/useSellerManage";
 
 type ProductStatus = "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
+type SellerProductVariant = SellerProduct["variants"][number];
 
 interface ProductFormState {
   title: string;
@@ -275,6 +275,49 @@ function getVariantStockContext(product: SellerProduct) {
 
 function formatMoney(cents: number | bigint | undefined, currency = "USD") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(cents ?? 0) / 100);
+}
+
+function formatTransactionType(type: string, t: (key: string) => string) {
+  const keys: Record<string, string> = {
+    order_earning: "orderEarning",
+    commission_fee: "commissionFee",
+    payout_reserved: "payoutReserved",
+    payout_paid: "payoutPaid",
+    payout_rejected: "payoutRejected",
+    refund_adjustment: "refundAdjustment",
+    manual_adjustment: "manualAdjustment",
+  };
+  const key = keys[type.toLowerCase()];
+  return key ? t(`seller.manage.pages.finance.transactionTypes.${key}`) : type.replaceAll("_", " ");
+}
+
+function formatTransactionDescription(type: string, description: string | null | undefined, t: (key: string) => string) {
+  const keys: Record<string, string> = {
+    order_earning: "orderEarning",
+    commission_fee: "commissionFee",
+    payout_reserved: "payoutReserved",
+    payout_paid: "payoutPaid",
+    payout_rejected: "payoutRejected",
+    refund_adjustment: "refundAdjustment",
+    manual_adjustment: "manualAdjustment",
+  };
+  const key = keys[type.toLowerCase()];
+  if (!key) return description;
+  const orderNumber = description?.match(/(?:Order earning for|Platform commission for)\s+(.+)$/i)?.[1];
+  return t(`seller.manage.pages.finance.transactionDescriptions.${key}`).replace("{orderNo}", orderNumber ?? "");
+}
+
+function sellerTableLabels(t: (key: string) => string) {
+  return {
+    showing: t("common.showing"),
+    of: t("common.of"),
+    rows: t("common.rows"),
+    previous: t("common.previous"),
+    next: t("common.next"),
+    previousPage: t("common.previousPage"),
+    nextPage: t("common.nextPage"),
+    sortBy: t("common.sortBy"),
+  };
 }
 
 function formatDate(value: string | Date | null | undefined) {
@@ -536,8 +579,10 @@ export function SellerDashboardPage() {
 }
 
 export function SellerProductsLegacyPage() {
+  const t = useTranslations();
   const [status, setStatus] = useState<"" | ProductStatus>("");
   const [q, setQ] = useState("");
+  const [variantSearch, setVariantSearch] = useState("");
   const [cursor, setCursor] = useState<string | undefined>();
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
   const [editingProduct, setEditingProduct] = useState<SellerProduct | null>(null);
@@ -909,6 +954,57 @@ export function SellerProductsLegacyPage() {
     },
   ], []);
 
+  const variantColumns = useMemo<ColumnDef<SellerProductVariant>[]>(() => [
+    {
+      accessorKey: "title",
+      header: "Variant",
+      cell: ({ row }) => (
+        <div className="min-w-44">
+          <p className="font-medium text-slate-950">{row.original.title}</p>
+          <p className="text-xs text-slate-500">{row.original.sku}</p>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "price",
+      header: "Price",
+      cell: ({ row }) => formatMoney(row.original.price, row.original.currency),
+    },
+    {
+      id: "shipping",
+      header: "Shipping data",
+      cell: ({ row }) => <span className="text-sm text-slate-700">{row.original.weightGrams ?? "-"} g · {[row.original.lengthMm, row.original.widthMm, row.original.heightMm].map((value) => value ?? "-").join("x")} mm</span>,
+    },
+    {
+      id: "inventory",
+      header: "Inventory context",
+      cell: ({ row }) => {
+        const available = (row.original.inventory?.quantityOnHand ?? 0) - (row.original.inventory?.quantityReserved ?? 0);
+        return <><span className="text-sm text-slate-700">{available} available</span><span className="ml-2 text-xs text-slate-500">({row.original.inventory?.quantityReserved ?? 0} reserved)</span></>;
+      },
+    },
+    {
+      id: "actions",
+      header: () => <span className="sr-only">Actions</span>,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" aria-label={`Edit variant ${row.original.sku}`} onClick={() => {
+            const product = products.find((candidate) => candidate.variants.some((variant) => variant.id === row.original.id));
+            if (product) openEditVariantDialog(product, row.original);
+          }}>
+            <EditIcon className="size-4" /><span className="sr-only">Edit variant</span>
+          </Button>
+          <Button type="button" variant="outline" size="sm" aria-label={`Delete variant ${row.original.sku}`} onClick={() => {
+            const product = products.find((candidate) => candidate.variants.some((variant) => variant.id === row.original.id));
+            if (product) setDeleteVariantTarget({ product, variant: row.original });
+          }}>
+            <Trash2Icon className="size-4" /><span className="sr-only">Delete variant</span>
+          </Button>
+        </div>
+      ),
+    },
+  ], [products]);
+
   return (
     <>
       <SellerPageHeader title="Products" description="Create products, monitor catalog status, and prepare variants for your shop." />
@@ -923,6 +1019,7 @@ export function SellerProductsLegacyPage() {
             emptyMessage="No products found."
             pageSize={10}
             className="overflow-x-auto"
+            labels={sellerTableLabels(t)}
             renderToolbar={() => (
               <>
                 <div className="flex w-full flex-col gap-3 sm:flex-row">
@@ -983,58 +1080,27 @@ export function SellerProductsLegacyPage() {
                     Create variant
                   </Button>
                 </div>
-                <div className="mt-3 overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Variant</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Shipping data</TableHead>
-                        <TableHead>Inventory context</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {product.variants.length ? product.variants.map((variant) => {
-                        const available = (variant.inventory?.quantityOnHand ?? 0) - (variant.inventory?.quantityReserved ?? 0);
-                        return (
-                          <TableRow key={variant.id}>
-                            <TableCell>
-                              <div className="min-w-44">
-                                <p className="font-medium text-slate-950">{variant.title}</p>
-                                <p className="text-xs text-slate-500">{variant.sku}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>{formatMoney(variant.price, variant.currency)}</TableCell>
-                            <TableCell className="text-sm text-slate-700">
-                              {variant.weightGrams ?? "-"} g · {[variant.lengthMm, variant.widthMm, variant.heightMm].map((value) => value ?? "-").join("x")} mm
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-sm text-slate-700">{available} available</span>
-                              <span className="ml-2 text-xs text-slate-500">({variant.inventory?.quantityReserved ?? 0} reserved)</span>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex justify-end gap-2">
-                                <Button type="button" variant="outline" size="sm" aria-label={`Edit variant ${variant.sku}`} onClick={() => openEditVariantDialog(product, variant)}>
-                                  <EditIcon className="size-4" />
-                                  <span className="sr-only">Edit variant</span>
-                                </Button>
-                                <Button type="button" variant="outline" size="sm" aria-label={`Delete variant ${variant.sku}`} onClick={() => setDeleteVariantTarget({ product, variant })}>
-                                  <Trash2Icon className="size-4" />
-                                  <span className="sr-only">Delete variant</span>
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      }) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="h-20 text-center text-sm text-slate-500">No variants configured for this product.</TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                <DataTable
+                  columns={variantColumns}
+                  data={product.variants.filter((variant) => {
+                    const term = variantSearch.trim().toLowerCase();
+                    if (!term) return true;
+                    return `${variant.title} ${variant.sku}`.toLowerCase().includes(term);
+                  })}
+                  emptyMessage="No variants configured for this product."
+                  pageSize={10}
+                  className="overflow-x-auto"
+                  labels={sellerTableLabels(t)}
+                  renderToolbar={() => (
+                    <Input
+                      value={variantSearch}
+                      onChange={(event) => setVariantSearch(event.target.value)}
+                      placeholder="Search variants"
+                      aria-label="Search variants"
+                      className="sm:max-w-sm"
+                    />
+                  )}
+                />
               </section>
             )) : null}
           </div>
@@ -1327,125 +1393,295 @@ export function SellerProductsLegacyPage() {
 
 export function SellerInventoryPage() {
   const t = useTranslations();
-  const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [search, setSearch] = useState("");
+  const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
   const query = useSellerInventory();
   const updateInventory = useUpdateSellerInventory();
   const variants = useMemo(() => {
     const data = query.data as any;
     const rows = Array.isArray(data) ? data : (data?.items ?? data?.data ?? []);
+    const normalizedSearch = search.trim().toLowerCase();
     return rows.filter((row: any) => {
       const inventory = row.inventory ?? row;
       const available = (inventory.quantityOnHand ?? 0) - (inventory.quantityReserved ?? 0);
-      return !lowStockOnly || available <= (inventory.reorderLevel ?? 0);
+      const productTitle = row.productTitle ?? row.product?.title ?? row.variant?.product?.title ?? "";
+      const variantTitle = row.variantTitle ?? row.variant?.title ?? "";
+      const sku = row.sku ?? row.variant?.sku ?? "";
+      const matchesSearch = !normalizedSearch || `${productTitle} ${variantTitle} ${sku}`.toLowerCase().includes(normalizedSearch);
+      const matchesStock = stockFilter === "all"
+        || (stockFilter === "out" && available <= 0)
+        || (stockFilter === "low" && available > 0 && available <= (inventory.reorderLevel ?? 0));
+      return matchesSearch && matchesStock;
     });
-  }, [lowStockOnly, query.data]);
+  }, [query.data, search, stockFilter]);
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+    {
+      id: "variant",
+      header: t("seller.manage.pages.inventory.variant"),
+      cell: ({ row }) => {
+        const variant = row.original.variant ?? row.original;
+        const product = row.original.product ?? variant.product ?? { title: row.original.productTitle ?? "Product" };
+        return <><p className="font-medium">{product.title}</p><p className="text-xs text-slate-500">{row.original.sku ?? variant.sku} · {row.original.variantTitle ?? variant.title}</p></>;
+      },
+    },
+    {
+      id: "onHand",
+      header: t("seller.manage.pages.inventory.onHand"),
+      cell: ({ row }) => row.original.inventory?.quantityOnHand ?? row.original.quantityOnHand ?? 0,
+    },
+    {
+      id: "reserved",
+      header: t("seller.manage.pages.inventory.reserved"),
+      cell: ({ row }) => {
+        const variant = row.original.variant ?? row.original;
+        const inventory = row.original.inventory ?? variant.inventory ?? row.original;
+        return <Input aria-label={`Reserved stock ${row.original.sku ?? variant.sku}`} value={inventory.quantityReserved ?? 0} readOnly className="w-20" />;
+      },
+    },
+    {
+      id: "available",
+      header: t("seller.manage.pages.inventory.available"),
+      cell: ({ row }) => {
+        const inventory = row.original.inventory ?? row.original;
+        const available = (inventory.quantityOnHand ?? 0) - (inventory.quantityReserved ?? 0);
+        return <span className={available <= (inventory.reorderLevel ?? 0) ? "font-semibold text-red-600" : ""}>{available}</span>;
+      },
+    },
+    {
+      id: "reorder",
+      header: t("seller.manage.pages.inventory.reorder"),
+      cell: ({ row }) => row.original.inventory?.reorderLevel ?? row.original.reorderLevel ?? 0,
+    },
+    {
+      id: "update",
+      header: () => <span className="sr-only">{t("seller.manage.pages.inventory.update")}</span>,
+      cell: ({ row }) => {
+        const variant = row.original.variant ?? row.original;
+        const inventory = row.original.inventory ?? variant.inventory ?? row.original;
+        const quantityOnHand = inventory.quantityOnHand ?? 0;
+        const reorderLevel = inventory.reorderLevel ?? 0;
+        const variantId = row.original.variantId ?? variant.id;
+        return <form className="flex min-w-56 justify-end gap-2" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); updateInventory.mutate({ productId: row.original.productId ?? row.original.product?.id, variantId, quantityOnHand: Number(formData.get("quantityOnHand")), reorderLevel: Number(formData.get("reorderLevel")) }, { onError: (error) => toast.error(error instanceof Error ? error.message : t("seller.manage.pages.inventory.updateFailed")) }); }}><Input name="quantityOnHand" aria-label="Quantity on hand" type="number" min={0} defaultValue={quantityOnHand} className="w-24" /><Input name="reorderLevel" aria-label="Reorder level" type="number" min={0} defaultValue={reorderLevel} className="w-24" /><Button type="submit" size="sm" disabled={updateInventory.isPending}>{t("seller.manage.pages.inventory.save")}</Button></form>;
+      },
+    },
+  ], [t, updateInventory]);
 
   return (
     <>
       <SellerPageHeader title={t("seller.manage.pages.inventory.title")} description={t("seller.manage.pages.inventory.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white">
-        <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input type="checkbox" checked={lowStockOnly} onChange={(event) => setLowStockOnly(event.target.checked)} />
-            {t("seller.manage.pages.inventory.lowStockOnly")}
-          </label>
-          {updateInventory.isPending ? <p className="text-sm text-slate-500">{t("seller.manage.pages.inventory.saving")}</p> : null}
-        </CardContent>
-      </Card>
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">{t("seller.manage.pages.inventory.variant")}</TableHead><TableHead>{t("seller.manage.pages.inventory.onHand")}</TableHead><TableHead>{t("seller.manage.pages.inventory.reserved")}</TableHead><TableHead>{t("seller.manage.pages.inventory.available")}</TableHead><TableHead>{t("seller.manage.pages.inventory.reorder")}</TableHead><TableHead className="text-right">{t("seller.manage.pages.inventory.update")}</TableHead></TableRow></TableHeader><TableBody>
-        {variants.length ? variants.map((row: any) => {
-          const variant = row.variant ?? row;
-          const product = row.product ?? variant.product ?? { title: row.productTitle ?? "Product" };
-          const inventory = row.inventory ?? row;
-          const quantityOnHand = inventory.quantityOnHand ?? 0;
-          const quantityReserved = inventory.quantityReserved ?? 0;
-          const reorderLevel = inventory.reorderLevel ?? 0;
-          const available = quantityOnHand - quantityReserved;
-          return (
-            <TableRow key={variant.id}>
-              <TableCell className="px-4"><p className="font-medium">{product.title}</p><p className="text-xs text-slate-500">{variant.sku} · {variant.title}</p></TableCell>
-              <TableCell>{quantityOnHand}</TableCell>
-              <TableCell><Input aria-label={`Reserved stock ${variant.sku}`} value={quantityReserved} readOnly className="w-20" /></TableCell>
-              <TableCell className={available <= reorderLevel ? "font-semibold text-red-600" : ""}>{available}</TableCell>
-              <TableCell>{reorderLevel}</TableCell>
-              <TableCell><form className="flex justify-end gap-2" onSubmit={(event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); updateInventory.mutate({ variantId: variant.id, quantityOnHand: Number(formData.get("quantityOnHand")), reorderLevel: Number(formData.get("reorderLevel")) }); }}><Input name="quantityOnHand" type="number" min={0} defaultValue={quantityOnHand} className="w-24" /><Input name="reorderLevel" type="number" min={0} defaultValue={reorderLevel} className="w-24" /><Button type="submit" size="sm" disabled={updateInventory.isPending}>{t("seller.manage.pages.inventory.save")}</Button></form></TableCell>
-            </TableRow>
-          );
-        }) : <TableRow><TableCell colSpan={6} className="h-28 text-center text-slate-500">{query.isLoading ? t("seller.manage.pages.inventory.loading") : t("seller.manage.pages.inventory.empty")}</TableCell></TableRow>}
-      </TableBody></Table></CardContent></Card>
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6">{updateInventory.isPending ? <p className="mb-3 text-sm text-slate-500">{t("seller.manage.pages.inventory.saving")}</p> : null}<DataTable columns={columns} data={variants} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.inventory.loading")} emptyMessage={t("seller.manage.pages.inventory.empty")} pageSize={10} className="overflow-x-auto" labels={sellerTableLabels(t)} renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("seller.manage.pages.inventory.search")} aria-label={t("seller.manage.pages.inventory.search")} className="sm:max-w-sm" /><Select value={stockFilter} onValueChange={(value) => setStockFilter(value as "all" | "low" | "out")}><SelectTrigger className="sm:w-56" aria-label={t("seller.manage.pages.inventory.filterStock")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.inventory.allStock")}</SelectItem><SelectItem value="low">{t("seller.manage.pages.inventory.lowStockOnly")}</SelectItem><SelectItem value="out">{t("seller.manage.pages.inventory.outOfStock")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
     </>
   );
 }
 
 export function SellerOrdersPage() {
   const t = useTranslations();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const query = useSellerShipments();
   const pack = usePackShipment();
   const ship = useShipShipment();
   const deliver = useDeliverShipment();
   const rows = query.data ?? [];
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return rows.filter((shipment) => {
+      const haystack = `${shipment.orderNo} ${shipment.shippingAddress.name} ${shipment.items.map((item) => item.productTitle).join(" ")}`.toLowerCase();
+      return (!normalizedSearch || haystack.includes(normalizedSearch)) &&
+        (statusFilter === "all" || shipment.status.toLowerCase() === statusFilter);
+    });
+  }, [rows, search, statusFilter]);
+  const columns = useMemo<ColumnDef<SellerShipment>[]>(() => [
+    {
+      accessorKey: "orderNo",
+      header: t("seller.manage.pages.orders.order"),
+      cell: ({ row }) => <span className="font-medium">{row.original.orderNo}</span>,
+    },
+    {
+      id: "recipient",
+      header: t("seller.manage.pages.orders.recipient"),
+      cell: ({ row }) => row.original.shippingAddress.name,
+    },
+    {
+      id: "items",
+      header: t("seller.manage.pages.orders.items"),
+      cell: ({ row }) => (
+        <div className="max-w-64 space-y-0.5 text-sm">
+          {row.original.items.map((item, index) => (
+            <p key={`${item.productTitle}-${item.quantity}-${index}`}>{item.productTitle} x{item.quantity}</p>
+          ))}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: t("seller.manage.pages.orders.status"),
+      cell: ({ row }) => <StatusPill value={row.original.status} />,
+    },
+    {
+      id: "actions",
+      header: () => <span className="sr-only">{t("seller.manage.pages.orders.actions")}</span>,
+      cell: ({ row }) => {
+        const shipment = row.original;
+        return (
+          <div className="flex min-w-72 flex-wrap justify-end gap-2">
+            <Button type="button" size="sm" variant="outline" disabled={pack.isPending || shipment.status !== "pending_pack"} onClick={() => pack.mutate(shipment.id)}>
+              {t("seller.manage.pages.orders.markPacked")}
+            </Button>
+            <form className="flex min-w-72 flex-1 gap-2" onSubmit={(event) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget);
+              ship.mutate({ shipmentId: shipment.id, carrier: String(data.get("carrier") ?? ""), trackingNo: String(data.get("trackingNo") ?? "") });
+            }}>
+              <Input name="carrier" aria-label={t("seller.manage.pages.orders.carrier")} placeholder={t("seller.manage.pages.orders.carrier")} defaultValue={shipment.carrier ?? ""} />
+              <Input name="trackingNo" aria-label={t("seller.manage.pages.orders.tracking")} placeholder={t("seller.manage.pages.orders.tracking")} defaultValue={shipment.trackingNumber ?? ""} />
+              <Button type="submit" size="sm" disabled={ship.isPending || shipment.status !== "packed"}>{t("seller.manage.pages.orders.ship")}</Button>
+            </form>
+            <Button type="button" size="sm" variant="outline" disabled={deliver.isPending || shipment.status !== "shipped"} onClick={() => deliver.mutate(shipment.id)}>
+              {t("seller.manage.pages.orders.markDelivered")}
+            </Button>
+          </div>
+        );
+      },
+    },
+  ], [deliver, pack, ship, t]);
 
   return (
     <>
       <SellerPageHeader title={t("seller.manage.pages.orders.title")} description={t("seller.manage.pages.orders.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <div className="grid gap-4">
-        {rows.length ? rows.map((shipment: SellerShipment) => (
-          <Card key={shipment.id} className="rounded-lg border-slate-200 bg-white">
-            <CardContent className="grid gap-4 pt-6 lg:grid-cols-[1fr_auto]">
-              <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{shipment.orderNo}</h3><StatusPill value={shipment.status} /></div><p className="mt-1 text-sm text-slate-500">{shipment.shippingAddress.name} · {shipment.items.length} item(s)</p><p className="mt-2 text-sm text-slate-700">{shipment.items.map((item) => `${item.productTitle} x${item.quantity}`).join(", ")}</p></div>
-              <div className="flex flex-col gap-2 lg:min-w-96">
-                <Button type="button" variant="outline" disabled={pack.isPending || shipment.status !== "pending_pack"} onClick={() => pack.mutate(shipment.id)}>{t("seller.manage.pages.orders.markPacked")}</Button>
-                <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); ship.mutate({ shipmentId: shipment.id, carrier: String(data.get("carrier") ?? ""), trackingNo: String(data.get("trackingNo") ?? "") }); }}><Input name="carrier" placeholder={t("seller.manage.pages.orders.carrier")} defaultValue={shipment.carrier ?? ""} /><Input name="trackingNo" placeholder={t("seller.manage.pages.orders.tracking")} defaultValue={shipment.trackingNumber ?? ""} /><Button type="submit" disabled={ship.isPending || shipment.status !== "packed"}>{t("seller.manage.pages.orders.ship")}</Button></form>
-                <Button type="button" variant="outline" disabled={deliver.isPending || shipment.status !== "shipped"} onClick={() => deliver.mutate(shipment.id)}>{t("seller.manage.pages.orders.markDelivered")}</Button>
+      <Card className="rounded-lg border-slate-200 bg-white">
+        <CardContent className="p-0">
+          <DataTable
+            columns={columns}
+            data={filteredRows}
+            isLoading={query.isLoading}
+            loadingMessage={t("seller.manage.pages.orders.loading")}
+            emptyMessage={t("seller.manage.pages.orders.empty")}
+            pageSize={10}
+            className="overflow-x-auto"
+            labels={sellerTableLabels(t)}
+            renderToolbar={() => (
+              <div className="flex w-full flex-col gap-3 sm:flex-row">
+                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("seller.manage.pages.orders.search")} aria-label={t("seller.manage.pages.orders.search")} className="sm:max-w-sm" />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.orders.filterStatus")}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t("seller.manage.pages.orders.allStatuses")}</SelectItem>
+                    <SelectItem value="pending_pack">{t("seller.manage.status.pendingPack")}</SelectItem>
+                    <SelectItem value="packed">{t("seller.manage.status.packed")}</SelectItem>
+                    <SelectItem value="shipped">{t("seller.manage.status.shipped")}</SelectItem>
+                    <SelectItem value="delivered">{t("seller.manage.status.delivered")}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
-        )) : <EmptyState message={query.isLoading ? t("seller.manage.pages.orders.loading") : t("seller.manage.pages.orders.empty")} />}
-      </div>
+            )}
+          />
+        </CardContent>
+      </Card>
     </>
   );
 }
 
 export function SellerReturnsPage() {
   const t = useTranslations();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const query = useSellerReturns();
   const approve = useApproveReturn();
   const reject = useRejectReturn();
   const rows = query.data ?? [];
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return rows.filter((item) => {
+      const haystack = `${item.reason ?? ""} ${item.items.map((entry) => entry.productTitle).join(" ")}`.toLowerCase();
+      return (!normalizedSearch || haystack.includes(normalizedSearch)) && (statusFilter === "all" || item.status.toLowerCase() === statusFilter);
+    });
+  }, [rows, search, statusFilter]);
+  const columns = useMemo<ColumnDef<SellerReturn>[]>(() => [
+    {
+      id: "return",
+      header: t("seller.manage.pages.returns.return"),
+      cell: ({ row }) => <><p className="font-medium">{row.original.reason ?? t("seller.manage.pages.returns.request")}</p><p className="text-xs text-slate-500">{formatDate(row.original.createdAt)}</p></>,
+    },
+    {
+      id: "items",
+      header: t("seller.manage.pages.returns.items"),
+      cell: ({ row }) => row.original.items.map((item) => `${item.productTitle} x${item.quantity}`).join(", "),
+    },
+    {
+      accessorKey: "status",
+      header: t("seller.manage.pages.returns.status"),
+      cell: ({ row }) => <StatusPill value={row.original.status} />,
+    },
+    {
+      id: "actions",
+      header: () => <span className="sr-only">{t("seller.manage.pages.returns.actions")}</span>,
+      cell: ({ row }) => <div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={approve.isPending || row.original.status !== "requested"} onClick={() => approve.mutate(row.original.id)}>{t("seller.manage.pages.returns.approve")}</Button><Button size="sm" variant="destructive" disabled={reject.isPending || row.original.status !== "requested"} onClick={() => reject.mutate(row.original.id)}>{t("seller.manage.pages.returns.reject")}</Button></div>,
+    },
+  ], [approve, reject, t]);
   return (
     <>
       <SellerPageHeader title={t("seller.manage.pages.returns.title")} description={t("seller.manage.pages.returns.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">{t("seller.manage.pages.returns.return")}</TableHead><TableHead>{t("seller.manage.pages.returns.items")}</TableHead><TableHead>{t("seller.manage.pages.returns.status")}</TableHead><TableHead className="text-right">{t("seller.manage.pages.returns.actions")}</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((item: SellerReturn) => <TableRow key={item.id}><TableCell className="px-4"><p className="font-medium">{item.reason ?? t("seller.manage.pages.returns.request")}</p><p className="text-xs text-slate-500">{formatDate(item.createdAt)}</p></TableCell><TableCell>{item.items.map((row) => `${row.productTitle} x${row.quantity}`).join(", ")}</TableCell><TableCell><StatusPill value={item.status} /></TableCell><TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={approve.isPending || item.status !== "requested"} onClick={() => approve.mutate(item.id)}>{t("seller.manage.pages.returns.approve")}</Button><Button size="sm" variant="destructive" disabled={reject.isPending || item.status !== "requested"} onClick={() => reject.mutate(item.id)}>{t("seller.manage.pages.returns.reject")}</Button></div></TableCell></TableRow>) : <TableRow><TableCell colSpan={4} className="h-28 text-center text-slate-500">{query.isLoading ? t("seller.manage.pages.returns.loading") : t("seller.manage.pages.returns.empty")}</TableCell></TableRow>}
-      </TableBody></Table></CardContent></Card>
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><DataTable columns={columns} data={filteredRows} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.returns.loading")} emptyMessage={t("seller.manage.pages.returns.empty")} pageSize={10} className="overflow-x-auto" labels={sellerTableLabels(t)} renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("seller.manage.pages.returns.search")} aria-label={t("seller.manage.pages.returns.search")} className="sm:max-w-sm" /><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.returns.filterStatus")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.returns.allStatuses")}</SelectItem><SelectItem value="requested">{t("seller.manage.status.requested")}</SelectItem><SelectItem value="approved">{t("seller.manage.status.approved")}</SelectItem><SelectItem value="rejected">{t("seller.manage.status.rejected")}</SelectItem><SelectItem value="completed">{t("seller.manage.status.completed")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
     </>
   );
 }
 
 export function SellerPromotionsPage() {
   const t = useTranslations();
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
   const query = useSellerCoupons();
   const createCoupon = useCreateSellerCoupon();
   const updateCoupon = useUpdateSellerCoupon();
   const deleteCoupon = useDeleteSellerCoupon();
   const rows = query.data ?? [];
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return rows.filter((coupon) => {
+      const haystack = `${coupon.code} ${coupon.titleEn ?? ""} ${coupon.titleTh ?? ""}`.toLowerCase();
+      return (!normalizedSearch || haystack.includes(normalizedSearch))
+        && (activeFilter === "all" || (activeFilter === "active" ? coupon.isActive : !coupon.isActive));
+    });
+  }, [activeFilter, rows, search]);
+  const columns = useMemo<ColumnDef<SellerCoupon>[]>(() => [
+    {
+      id: "coupon",
+      header: t("seller.manage.pages.promotions.coupon"),
+      cell: ({ row }) => <><p className="font-medium">{row.original.code}</p><p className="text-xs text-slate-500">{row.original.titleEn ?? row.original.titleTh ?? t("seller.manage.pages.promotions.untitled")}</p></>,
+    },
+    {
+      id: "discount",
+      header: t("seller.manage.pages.promotions.discount"),
+      cell: ({ row }) => row.original.discountType,
+    },
+    {
+      id: "active",
+      header: t("seller.manage.pages.promotions.active"),
+      cell: ({ row }) => row.original.isActive ? t("seller.manage.status.active") : t("seller.manage.status.inactive"),
+    },
+    {
+      id: "actions",
+      header: () => <span className="sr-only">{t("seller.manage.pages.promotions.actions")}</span>,
+      cell: ({ row }) => <div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={updateCoupon.isPending} onClick={() => updateCoupon.mutate({ couponId: row.original.id, isActive: !row.original.isActive })}>{row.original.isActive ? t("seller.manage.pages.promotions.disable") : t("seller.manage.pages.promotions.enable")}</Button><Button size="sm" variant="destructive" disabled={deleteCoupon.isPending} onClick={() => deleteCoupon.mutate(row.original.id)}>{t("seller.manage.pages.promotions.delete")}</Button></div>,
+    },
+  ], [deleteCoupon, t, updateCoupon]);
   return (
     <>
       <SellerPageHeader title={t("seller.manage.pages.promotions.title")} description={t("seller.manage.pages.promotions.description")} />
       <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6"><form className="grid gap-3 md:grid-cols-[1fr_160px_160px_160px_auto]" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); createCoupon.mutate({ code: String(data.get("code") ?? ""), titleEn: String(data.get("title") ?? ""), discountType: String(data.get("discountType")) as "fixed" | "percent", discountValueCents: Math.round(Number(data.get("amount") || 0) * 100), discountPercentBps: Math.round(Number(data.get("percent") || 0) * 100), isActive: true }); }}><Input name="code" placeholder={t("seller.manage.pages.promotions.code")} required /><Input name="title" placeholder={t("seller.manage.pages.promotions.titleField")} /><Select name="discountType" defaultValue="fixed"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="fixed">{t("seller.manage.pages.promotions.fixed")}</SelectItem><SelectItem value="percent">{t("seller.manage.pages.promotions.percent")}</SelectItem></SelectContent></Select><Input name="amount" placeholder={t("seller.manage.pages.promotions.amount")} /><Button type="submit" disabled={createCoupon.isPending}>{t("seller.manage.pages.promotions.create")}</Button></form></CardContent></Card>
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead className="px-4">{t("seller.manage.pages.promotions.coupon")}</TableHead><TableHead>{t("seller.manage.pages.promotions.discount")}</TableHead><TableHead>{t("seller.manage.pages.promotions.active")}</TableHead><TableHead className="text-right">{t("seller.manage.pages.promotions.actions")}</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((coupon: SellerCoupon) => <TableRow key={coupon.id}><TableCell className="px-4"><p className="font-medium">{coupon.code}</p><p className="text-xs text-slate-500">{coupon.titleEn ?? coupon.titleTh ?? t("seller.manage.pages.promotions.untitled")}</p></TableCell><TableCell>{coupon.discountType}</TableCell><TableCell>{coupon.isActive ? t("seller.manage.status.active") : t("seller.manage.status.inactive")}</TableCell><TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={updateCoupon.isPending} onClick={() => updateCoupon.mutate({ couponId: coupon.id, isActive: !coupon.isActive })}>{coupon.isActive ? t("seller.manage.pages.promotions.disable") : t("seller.manage.pages.promotions.enable")}</Button><Button size="sm" variant="destructive" disabled={deleteCoupon.isPending} onClick={() => deleteCoupon.mutate(coupon.id)}>{t("seller.manage.pages.promotions.delete")}</Button></div></TableCell></TableRow>) : <TableRow><TableCell colSpan={4} className="h-28 text-center text-slate-500">{query.isLoading ? t("seller.manage.pages.promotions.loading") : t("seller.manage.pages.promotions.empty")}</TableCell></TableRow>}
-      </TableBody></Table></CardContent></Card>
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><DataTable columns={columns} data={filteredRows} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.promotions.loading")} emptyMessage={t("seller.manage.pages.promotions.empty")} pageSize={10} className="overflow-x-auto" labels={sellerTableLabels(t)} renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("seller.manage.pages.promotions.search")} aria-label={t("seller.manage.pages.promotions.search")} className="sm:max-w-sm" /><Select value={activeFilter} onValueChange={setActiveFilter}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.promotions.filterStatus")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.promotions.allStatuses")}</SelectItem><SelectItem value="active">{t("seller.manage.status.active")}</SelectItem><SelectItem value="inactive">{t("seller.manage.status.inactive")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
     </>
   );
 }
 
 export function SellerFinancePage() {
   const t = useTranslations();
+  const formatters = useFormatters();
   const wallet = useSellerWallet();
   const transactions = useSellerTransactions();
   const payouts = useSellerPayouts();
@@ -1454,12 +1690,12 @@ export function SellerFinancePage() {
     <>
       <SellerPageHeader title={t("seller.manage.pages.finance.title")} description={t("seller.manage.pages.finance.description")} />
       <section className="grid gap-4 md:grid-cols-3">
-        <Card className="rounded-lg border-slate-200 bg-white md:col-span-1"><CardContent className="pt-6"><p className="text-sm text-slate-500">{t("seller.manage.pages.finance.available")}</p><p className="mt-2 text-3xl font-semibold">{formatMoney(wallet.data?.availableBalanceCents, wallet.data?.currency)}</p><p className="mt-1 text-sm text-slate-500">{wallet.data?.shopName ?? t("seller.manage.pages.finance.shop")}</p></CardContent></Card>
+        <Card className="rounded-lg border-slate-200 bg-white md:col-span-1"><CardContent className="pt-6"><p className="text-sm text-slate-500">{t("seller.manage.pages.finance.available")}</p><p className="mt-2 text-3xl font-semibold">{formatters.currency(Number(wallet.data?.availableBalanceCents ?? 0), wallet.data?.currency)}</p><p className="mt-1 text-sm text-slate-500">{wallet.data?.shopName ?? t("seller.manage.pages.finance.shop")}</p></CardContent></Card>
         <Card className="rounded-lg border-slate-200 bg-white md:col-span-2"><CardHeader><CardTitle>{t("seller.manage.pages.finance.requestPayout")}</CardTitle></CardHeader><CardContent><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); createPayout.mutate(Math.round(Number(data.get("amount") || 0) * 100)); }}><Input name="amount" placeholder={t("seller.manage.pages.finance.amount")} type="number" min="1" step="0.01" /><Button type="submit" disabled={createPayout.isPending}>{t("seller.manage.pages.finance.request")}</Button></form></CardContent></Card>
       </section>
       <section className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>{t("seller.manage.pages.finance.transactions")}</CardTitle></CardHeader><CardContent className="space-y-2">{transactions.data?.items.length ? transactions.data.items.map((item) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{item.type}</p><p className="text-xs text-slate-500">{item.description ?? formatDate(item.createdAt)}</p></div><p className={item.amount < 0 ? "text-red-600" : "text-emerald-700"}>{formatMoney(item.amount, item.currency)}</p></div>) : <EmptyState message={transactions.isLoading ? t("seller.manage.pages.finance.loadingTransactions") : t("seller.manage.pages.finance.emptyTransactions")} />}</CardContent></Card>
-        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>{t("seller.manage.pages.finance.payoutHistory")}</CardTitle></CardHeader><CardContent className="space-y-2">{payouts.data?.length ? payouts.data.map((item: SellerPayout) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{formatMoney(item.amount, item.currency)}</p><p className="text-xs text-slate-500">{formatDate(item.requestedAt)}</p></div><StatusPill value={item.status} /></div>) : <EmptyState message={payouts.isLoading ? t("seller.manage.pages.finance.loadingPayouts") : t("seller.manage.pages.finance.emptyPayouts")} />}</CardContent></Card>
+        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>{t("seller.manage.pages.finance.transactions")}</CardTitle></CardHeader><CardContent className="space-y-2">{transactions.data?.items.length ? transactions.data.items.map((item) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{formatTransactionType(item.type, t)}</p><p className="text-xs text-slate-500">{formatTransactionDescription(item.type, item.description, t) ?? formatters.date(item.createdAt)}</p></div><p className={item.amount < 0 ? "text-red-600" : "text-emerald-700"}>{formatters.currency(item.amount, item.currency)}</p></div>) : <EmptyState message={transactions.isLoading ? t("seller.manage.pages.finance.loadingTransactions") : t("seller.manage.pages.finance.emptyTransactions")} />}</CardContent></Card>
+        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>{t("seller.manage.pages.finance.payoutHistory")}</CardTitle></CardHeader><CardContent className="space-y-2">{payouts.data?.length ? payouts.data.map((item: SellerPayout) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{formatters.currency(item.amount, item.currency)}</p><p className="text-xs text-slate-500">{formatters.date(item.requestedAt)}</p></div><StatusPill value={item.status} /></div>) : <EmptyState message={payouts.isLoading ? t("seller.manage.pages.finance.loadingPayouts") : t("seller.manage.pages.finance.emptyPayouts")} />}</CardContent></Card>
       </section>
     </>
   );

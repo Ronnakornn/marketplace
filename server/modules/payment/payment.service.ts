@@ -103,8 +103,13 @@ export class PaymentService {
       await txRepo.createWebhookEvent(input)
 
       if (input.eventType === 'payment.paid') {
-        await txRepo.markPaymentSucceeded(payment.id, new Date())
-        await txRepo.markOrderPaid(order.id)
+        await txRepo.applyPaymentStateTransition({
+          paymentId: payment.id,
+          orderId: order.id,
+          eventType: input.eventType,
+          reservations: [],
+          occurredAt: new Date(),
+        })
         await this.affiliateService?.createCommissionForPaidOrderWithRepo(txRepo, {
           orderId: order.id,
           buyerUserId: order.userId,
@@ -115,19 +120,18 @@ export class PaymentService {
       }
 
       const reservations = this.getActiveReservations(payment)
-      await txRepo.releaseReservations(reservations)
-
-      if (input.eventType === 'payment.failed') {
-        await txRepo.markPaymentFailed(payment.id)
-        await txRepo.markOrderCanceled(order.id, 'FAILED')
-        await this.invalidateOrderAffectedCaches(payment)
-        return { ok: true, code: 'PAYMENT_FAILED' }
-      }
-
-      await txRepo.markPaymentExpired(payment.id)
-      await txRepo.markOrderCanceled(order.id, 'CANCELED')
+      const eventType = input.eventType === 'payment.failed' ? 'payment.failed' : 'payment.expired'
+      await txRepo.applyPaymentStateTransition({
+        paymentId: payment.id,
+        orderId: order.id,
+        eventType,
+        reservations,
+        occurredAt: new Date(),
+      })
       await this.invalidateOrderAffectedCaches(payment)
-      return { ok: true, code: 'PAYMENT_EXPIRED' }
+      return eventType === 'payment.failed'
+        ? { ok: true, code: 'PAYMENT_FAILED' }
+        : { ok: true, code: 'PAYMENT_EXPIRED' }
     })
 
     if (response.code === 'PAYMENT_PAID') {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MapPinIcon, PlusIcon, StarIcon, Trash2Icon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
@@ -9,6 +9,8 @@ import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
+import thaiAddressData from "#/data/thai-addresses.json";
 import {
   createAddress,
   deleteAddress,
@@ -30,10 +32,41 @@ const initialForm: AddressInput = {
   isDefault: false,
 };
 
+type ThaiAddressRecord = {
+  district: string;
+  amphoe: string;
+  province: string;
+  zipcode: number | string;
+};
+
+const thaiAddresses = thaiAddressData as ThaiAddressRecord[];
+
+function uniqueSorted(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b, "th"));
+}
+
+function getPostcodes(province: string, amphoe: string, district: string) {
+  return uniqueSorted(
+    thaiAddresses
+      .filter((item) => item.province === province && item.amphoe === amphoe && item.district === district)
+      .map((item) => String(item.zipcode)),
+  );
+}
+
 export function AddressBookPage() {
   const queryClient = useQueryClient();
   const t = useTranslations();
   const [form, setForm] = useState<AddressInput>(initialForm);
+  const provinces = useMemo(() => uniqueSorted(thaiAddresses.map((item) => item.province)), []);
+  const amphoes = useMemo(
+    () => uniqueSorted(thaiAddresses.filter((item) => item.province === form.region).map((item) => item.amphoe)),
+    [form.region],
+  );
+  const subdistricts = useMemo(
+    () => uniqueSorted(thaiAddresses.filter((item) => item.province === form.region && item.amphoe === form.city).map((item) => item.district)),
+    [form.region, form.city],
+  );
+  const postcodes = useMemo(() => getPostcodes(form.region ?? "", form.city, form.line2 ?? ""), [form.region, form.city, form.line2]);
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["buyer-addresses"] });
   const createMutation = useMutation({
@@ -92,14 +125,16 @@ export function AddressBookPage() {
             <Field id="recipient-name" label={t("buyer.recipientName")} value={form.recipientName} onChange={(value) => setForm({ ...form, recipientName: value })} required />
             <Field id="phone" label={t("checkout.phone")} value={form.phone ?? ""} onChange={(value) => setForm({ ...form, phone: value })} />
             <Field id="address-line-1" label={t("buyer.addressLine1")} value={form.line1} onChange={(value) => setForm({ ...form, line1: value })} required />
-            <Field id="address-line-2" label={t("buyer.addressLine2")} value={form.line2 ?? ""} onChange={(value) => setForm({ ...form, line2: value })} />
             <div className="grid grid-cols-2 gap-2">
-              <Field id="city" label={t("buyer.city")} value={form.city} onChange={(value) => setForm({ ...form, city: value })} required />
-              <Field id="region" label={t("buyer.region")} value={form.region ?? ""} onChange={(value) => setForm({ ...form, region: value })} />
+              <AddressSelect id="province" label={t("buyer.province")} value={form.region ?? ""} options={provinces} required onChange={(value) => setForm({ ...form, region: value, city: "", line2: "", postalCode: "" })} />
+              <AddressSelect id="amphoe" label={t("buyer.amphoe")} value={form.city} options={amphoes} required disabled={!form.region} onChange={(value) => setForm({ ...form, city: value, line2: "", postalCode: "" })} />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Field id="postal-code" label={t("buyer.postalCode")} value={form.postalCode} onChange={(value) => setForm({ ...form, postalCode: value })} required />
-              <Field id="country" label={t("buyer.country")} value={form.country} onChange={(value) => setForm({ ...form, country: value })} required />
+              <AddressSelect id="subdistrict" label={t("buyer.subdistrict")} value={form.line2 ?? ""} options={subdistricts} required disabled={!form.city} onChange={(value) => {
+                const nextPostcodes = getPostcodes(form.region ?? "", form.city, value);
+                setForm({ ...form, line2: value, postalCode: nextPostcodes.length === 1 ? nextPostcodes[0] : "" });
+              }} />
+              <AddressSelect id="postal-code" label={t("buyer.postalCode")} value={form.postalCode} options={postcodes} required disabled={!form.line2} onChange={(value) => setForm({ ...form, postalCode: value })} />
             </div>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
               <Checkbox checked={form.isDefault} onCheckedChange={(checked) => setForm({ ...form, isDefault: checked === true })} />
@@ -119,8 +154,25 @@ export function AddressBookPage() {
 function Field({ id, label, value, onChange, required }: { id: string; label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
   return (
     <div className="space-y-1">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>{label}{required ? <span className="ml-0.5 text-red-500">*</span> : null}</Label>
       <Input id={id} value={value} onChange={(event) => onChange(event.target.value)} required={required} className="rounded-2xl" />
+    </div>
+  );
+}
+
+function AddressSelect({ id, label, value, options, onChange, disabled = false, required = false }: { id: string; label: string; value: string; options: string[]; onChange: (value: string) => void; disabled?: boolean; required?: boolean }) {
+  const t = useTranslations();
+  return (
+    <div className="space-y-1">
+      <Label htmlFor={id}>{label}{required ? <span className="ml-0.5 text-red-500">*</span> : null}</Label>
+      <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger id={id} aria-required={required} className="w-full rounded-xl">
+          <SelectValue placeholder={t("buyer.selectOption")} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

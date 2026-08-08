@@ -7,8 +7,9 @@ import { fetchShopFollowStatus, followShop, unfollowShop } from "#/features/buye
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
+import { cn } from "#/lib/utils";
 
-export function ShopFollowButton({ shopId }: { shopId: string }) {
+export function ShopFollowButton({ shopId, className }: { shopId: string; className?: string }) {
   const router = useRouter();
   const localePath = useLocalePath();
   const t = useTranslations();
@@ -28,7 +29,7 @@ export function ShopFollowButton({ shopId }: { shopId: string }) {
   });
 
   return (
-    <Button className="rounded-full bg-orange-600 hover:bg-orange-700" disabled={followMutation.isPending} onClick={() => {
+    <Button className={cn("rounded-full bg-orange-600 hover:bg-orange-700", className)} disabled={followMutation.isPending} onClick={() => {
       if (!session) router.push(localePath("/login"));
       else followMutation.mutate();
     }}>

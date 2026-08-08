@@ -6,13 +6,18 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BanknoteIcon,
   BellIcon,
+  ChevronUpIcon,
+  CreditCardIcon,
   BoxesIcon,
   ChartNoAxesCombinedIcon,
   ClipboardListIcon,
   LayoutDashboardIcon,
+  LogOutIcon,
   MegaphoneIcon,
   MessageCircleIcon,
   PackageCheckIcon,
+  MenuIcon,
+  PanelLeftCloseIcon,
   RotateCcwIcon,
   StoreIcon,
 } from "lucide-react";
@@ -21,6 +26,30 @@ import { useLocalePath } from "#/i18n/navigation";
 import { useTranslations } from "#/i18n/client";
 import { cn } from "#/lib/utils";
 import { getSellerRouteKind } from "#/lib/seller-access";
+import { signOut } from "#/lib/auth-client";
+import { Avatar, AvatarFallback } from "#/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+} from "#/components/ui/sidebar";
 
 const navItems = [
   { href: "/seller", labelKey: "seller.nav.dashboard", icon: LayoutDashboardIcon },
@@ -55,6 +84,7 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
   const selectedShopId = activeShops.some((shop) => shop.id === selectedShopParam)
     ? (selectedShopParam ?? "")
     : activeShop?.id ?? activeShops[0]?.id ?? "";
+  const selectedShop = activeShops.find((shop) => shop.id === selectedShopId) ?? activeShop;
   const selectedShopQuery = selectedShopId ? `shopId=${encodeURIComponent(selectedShopId)}` : "";
 
   function createSellerHref(href: string) {
@@ -73,77 +103,111 @@ export function SellerShell({ activeShop, activeShops, children, user }: SellerS
     router.push(query ? `${rawPathname}?${query}` : rawPathname);
   }
 
+  async function handleSignOut() {
+    await signOut();
+    router.push(localePath("/login"));
+  }
+
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-950">
+    <div className="seller-shell min-h-screen bg-white text-slate-950">
       {showOperationalNavigation ? (
-        <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-slate-200 bg-white md:flex md:flex-col">
-          <Link href={createSellerHref("/seller")} prefetch={false} className="flex items-center gap-3 border-b border-slate-200 px-5 py-5 no-underline">
-            <span className="flex size-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
-              <StoreIcon className="size-5" />
-            </span>
-            <span>
-              <span className="block text-sm font-semibold text-slate-950">Seller Manage</span>
-              <span className="block max-w-40 truncate text-xs text-slate-500">{activeShop?.name ?? user.email}</span>
-            </span>
-          </Link>
-          {activeShops.length > 1 ? (
-            <div className="border-b border-slate-200 px-3 py-3">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {t("seller.nav.activeShop")}
-                <select
-                  value={selectedShopId}
-                  onChange={(event) => handleShopSelection(event.target.value)}
-                  className="mt-2 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm normal-case tracking-normal text-slate-700"
-                >
-                  {activeShops.map((shop) => (
-                    <option key={shop.id} value={shop.id}>{shop.name}</option>
-                  ))}
-                </select>
-              </label>
+        <SidebarProvider defaultOpen>
+          <Sidebar collapsible="icon" className="border-r border-slate-200 bg-white">
+            <SidebarHeader className="border-b border-slate-200 px-3 py-4">
+              <Link href={createSellerHref("/seller")} prefetch={false} className="flex items-center gap-3 rounded-lg px-2 py-2 no-underline">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-orange-600 text-white">
+                  <StoreIcon className="size-5" />
+                </span>
+                <span className="min-w-0 group-data-[collapsible=icon]:hidden">
+                  <span className="block text-sm font-semibold text-slate-950">Seller Manage</span>
+                  <span className="block max-w-40 truncate text-xs text-slate-500">{activeShop?.name ?? user.email}</span>
+                </span>
+              </Link>
+              {activeShops.length > 1 ? (
+                <div className="border-t border-slate-200 px-2 pt-3 group-data-[collapsible=icon]:hidden">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t("seller.nav.activeShop")}
+                    <select
+                      value={selectedShopId}
+                      onChange={(event) => handleShopSelection(event.target.value)}
+                      className="mt-2 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm normal-case tracking-normal text-slate-700"
+                    >
+                      {activeShops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
+                    </select>
+                  </label>
+                </div>
+              ) : null}
+            </SidebarHeader>
+            <SidebarContent className="px-2 py-3">
+              <SidebarMenu>
+                {navItems.map((item) => {
+                  const active = item.href === "/seller" ? pathname === "/seller" : pathname.startsWith(item.href);
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={t(item.labelKey)}
+                        className={cn(
+                          "text-slate-600 hover:bg-orange-50 hover:text-orange-800 data-[active=true]:bg-orange-50 data-[active=true]:text-orange-800",
+                        )}
+                      >
+                        <Link href={createSellerHref(item.href)} prefetch={false}>
+                          <item.icon className="size-4 text-orange-600" />
+                          <span>{t(item.labelKey)}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarContent>
+            <SidebarSeparator />
+            <SidebarFooter className="p-3">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton size="lg" tooltip={`${user.name} · ${user.email}`} className="h-auto min-h-12 border border-slate-200 bg-white px-2 py-2 text-slate-700 hover:bg-orange-50 hover:text-orange-900 data-[state=open]:bg-orange-50 data-[state=open]:text-orange-900">
+                        <Avatar className="size-8 rounded-lg"><AvatarFallback className="rounded-lg bg-orange-100 text-orange-800">{user.name.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar>
+                        <span className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden"><span className="block truncate text-sm font-semibold">{user.name}</span><span className="block truncate text-xs text-slate-500">{user.email}</span></span>
+                        <ChevronUpIcon className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="right" align="end" sideOffset={8} className="w-60">
+                      <DropdownMenuLabel className="font-normal"><p className="truncate text-sm font-semibold">{user.name}</p><p className="truncate text-xs text-muted-foreground">{user.email}</p></DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {selectedShop ? <DropdownMenuItem asChild><Link href={localePath(`/shops/${selectedShop.slug || selectedShop.id}`)} prefetch={false}><StoreIcon />{t("seller.nav.viewShop")}</Link></DropdownMenuItem> : null}
+                      <DropdownMenuItem asChild><Link href={localePath("/profile")}><StoreIcon />{t("common.account")}</Link></DropdownMenuItem>
+                      <DropdownMenuItem asChild><Link href={createSellerHref("/seller/finance")}><CreditCardIcon />{t("common.billing")}</Link></DropdownMenuItem>
+                      <DropdownMenuItem asChild><Link href={createSellerHref("/seller/notifications")}><BellIcon />{t("common.notifications")}</Link></DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" onClick={() => void handleSignOut()}><LogOutIcon />{t("common.logout")}</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarFooter>
+            <SidebarRail />
+          </Sidebar>
+          <SidebarInset className="min-w-0 bg-white">
+            <div className="flex min-h-screen min-w-0 flex-col">
+              <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+                <SidebarTrigger className="h-9 rounded-md border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100">
+                  <PanelLeftCloseIcon className="size-4 md:hidden" />
+                  <MenuIcon className="hidden size-4 md:block" />
+                  <span className="sr-only">{t("seller.nav.toggleSidebar")}</span>
+                </SidebarTrigger>
+                <span className="text-xs font-semibold text-slate-500 md:hidden">{activeShop?.name ?? t("seller.nav.manage")}</span>
+              </div>
+              <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6">
+                {children}
+              </main>
             </div>
-          ) : null}
-          <nav className="flex-1 space-y-1 px-3 py-4">
-            {navItems.map((item) => {
-              const active = item.href === "/seller" ? pathname === "/seller" : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={createSellerHref(item.href)}
-                  prefetch={false}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium no-underline",
-                    active ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
-                  )}
-                >
-                  <item.icon className="size-4" />
-                  {t(item.labelKey)}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="border-t border-slate-200 px-5 py-4">
-            <p className="truncate text-sm font-semibold">{user.name}</p>
-            <p className="text-xs text-slate-500">{activeShop?.slug ?? user.email}</p>
-          </div>
-        </aside>
+          </SidebarInset>
+        </SidebarProvider>
       ) : null}
-      <div className={showOperationalNavigation ? "md:pl-64" : ""}>
-        {showOperationalNavigation ? (
-          <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden">
-            <div className="flex items-center gap-2 overflow-x-auto">
-              {navItems.map((item) => (
-                <Link key={item.href} href={createSellerHref(item.href)} prefetch={false} className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 no-underline">
-                  <item.icon className="size-3.5" />
-                  {t(item.labelKey)}
-                </Link>
-              ))}
-            </div>
-          </header>
-        ) : null}
-        <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-6">
-          {children}
-        </main>
-      </div>
+      {!showOperationalNavigation ? <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-6">{children}</main> : null}
     </div>
   );
 }
@@ -152,8 +216,8 @@ export function SellerPageHeader({ title, description }: { title: string; descri
   const t = useTranslations();
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white px-5 py-5 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{t("seller.nav.manage")}</p>
+    <section className="rounded-lg border border-orange-200 bg-white px-5 py-5 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">{t("seller.nav.manage")}</p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{title}</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate-600">{description}</p>
     </section>

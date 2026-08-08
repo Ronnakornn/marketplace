@@ -7,6 +7,10 @@ const NotificationParamsSchema = t.Object({
   notificationId: t.String({ format: 'uuid' }),
 })
 
+const NotificationQuerySchema = t.Object({
+  scope: t.Optional(t.Union([t.Literal('all'), t.Literal('seller')])),
+})
+
 export function createNotificationRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
@@ -21,21 +25,24 @@ export function createNotificationRoutes(container: ServiceContainer) {
         })
       }
     })
-    .get('/api/notifications', ({ authContext }: any) =>
-      container.notificationService.listNotifications(authContext!.user), {
+    .get('/api/notifications', ({ authContext, query }: any) =>
+      container.notificationService.listNotifications(authContext!.user, query.scope ?? 'all'), {
       withAuth: true,
+      query: NotificationQuerySchema,
     })
-    .get('/api/notifications/unread-count', ({ authContext }: any) =>
-      container.notificationService.getUnreadCount(authContext!.user), {
+    .get('/api/notifications/unread-count', ({ authContext, query }: any) =>
+      container.notificationService.getUnreadCount(authContext!.user, query.scope ?? 'all'), {
       withAuth: true,
+      query: NotificationQuerySchema,
     })
     .patch('/api/notifications/:notificationId/read', ({ authContext, params }: any) =>
       container.notificationService.markNotificationAsRead(authContext!.user, params.notificationId), {
       withAuth: true,
       params: NotificationParamsSchema,
     })
-    .patch('/api/notifications/read-all', ({ authContext }: any) =>
-      container.notificationService.markAllNotificationsAsRead(authContext!.user), {
+    .patch('/api/notifications/read-all', ({ authContext, query }: any) =>
+      container.notificationService.markAllNotificationsAsRead(authContext!.user, query.scope ?? 'all'), {
       withAuth: true,
+      query: NotificationQuerySchema,
     })
 }

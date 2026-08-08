@@ -13,6 +13,7 @@ import { createChatRoom } from "#/features/chat";
 import { useFormatters, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
+import { formatOrderStatus } from "../order-status";
 
 export function OrderDetailPage({ orderId }: { orderId: string }) {
   const router = useRouter();
@@ -43,10 +44,10 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                   <h1 className="text-xl font-bold text-slate-950">{orderQuery.data.orderNo}</h1>
                   <p className="text-sm text-slate-500">{formatters.date(orderQuery.data.createdAt)}</p>
                 </div>
-                <Badge className="rounded-md bg-orange-600">{orderQuery.data.status}</Badge>
+                <Badge className="rounded-md bg-orange-600">{formatOrderStatus(orderQuery.data.status, t)}</Badge>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <Info label={t("order.payment")} value={orderQuery.data.paymentStatus} />
+                <Info label={t("order.payment")} value={formatOrderStatus(orderQuery.data.paymentStatus, t)} />
                 <Info label={t("common.total")} value={formatMoney(orderQuery.data.totalCents, orderQuery.data.currency)} />
               </div>
             </section>
@@ -87,7 +88,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                         <p className="font-semibold">{shipment.shopName}</p>
                         <p className="text-sm text-slate-500">{shipment.carrier ?? t("order.carrierPending")} {shipment.trackingNumber ?? ""}</p>
                       </div>
-                      <Badge variant="outline" className="rounded-md">{shipment.status}</Badge>
+                      <Badge variant="outline" className="rounded-md">{formatOrderStatus(shipment.status, t)}</Badge>
                     </div>
                     {canUseBuyerChat ? (
                       <Button

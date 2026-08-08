@@ -43,6 +43,16 @@ interface DataTableProps<TData, TValue> {
   pageSize?: number;
   renderToolbar?: (table: TanStackTable<TData>) => React.ReactNode;
   className?: string;
+  labels?: {
+    showing?: string;
+    of?: string;
+    rows?: string;
+    previous?: string;
+    next?: string;
+    previousPage?: string;
+    nextPage?: string;
+    sortBy?: string;
+  };
 }
 
 function SortIcon({ direction }: { direction: false | "asc" | "desc" }) {
@@ -60,6 +70,7 @@ export function DataTable<TData, TValue>({
   pageSize = 10,
   renderToolbar,
   className,
+  labels,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] =
@@ -121,7 +132,7 @@ export function DataTable<TData, TValue>({
                           variant="ghost"
                           size="sm"
                           className="-ml-3 h-8 px-3"
-                          aria-label={`Sort by ${header.column.columnDef.header}`}
+                          aria-label={`${labels?.sortBy ?? "Sort by"} ${header.column.columnDef.header}`}
                           onClick={header.column.getToggleSortingHandler()}
                         >
                           {headerContent}
@@ -178,19 +189,19 @@ export function DataTable<TData, TValue>({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} of {rowCount} row(s)
+          {labels?.showing ?? "Showing"} {table.getRowModel().rows.length} {labels?.of ?? "of"} {rowCount} {labels?.rows ?? "row(s)"}
         </p>
         <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            aria-label="Previous page"
+            aria-label={labels?.previousPage ?? "Previous page"}
             onClick={() => table.previousPage()}
             disabled={isLoading || !table.getCanPreviousPage()}
           >
             <ChevronLeftIcon className="size-4" />
-            Previous
+            {labels?.previous ?? "Previous"}
           </Button>
           <span className="min-w-20 text-center text-sm text-muted-foreground">
             {table.getState().pagination.pageIndex + 1} / {pageCount}
@@ -199,11 +210,11 @@ export function DataTable<TData, TValue>({
             type="button"
             variant="outline"
             size="sm"
-            aria-label="Next page"
+            aria-label={labels?.nextPage ?? "Next page"}
             onClick={() => table.nextPage()}
             disabled={isLoading || !table.getCanNextPage()}
           >
-            Next
+            {labels?.next ?? "Next"}
             <ChevronRightIcon className="size-4" />
           </Button>
         </div>

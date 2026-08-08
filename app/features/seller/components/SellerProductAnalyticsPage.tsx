@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import type { ColumnDef } from "@tanstack/react-table";
 import { BarChart3Icon, BoxesIcon, RefreshCwIcon, SearchIcon, ShoppingCartIcon, TrendingDownIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { DataTable } from "#/components/ui/data-table";
 import { Input } from "#/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
 import { SellerPageHeader } from "./SellerShell";
 import { useTranslations } from "#/i18n/client";
 import {
@@ -35,6 +36,19 @@ export function SellerProductAnalyticsPage() {
   const isEmpty = !query.isLoading && !validationError && !summary?.views && !summary?.addToCart && !summary?.orders && !summary?.unitsSold && !summary?.revenue;
 
   const maxTrendValue = useMemo(() => Math.max(1, ...(data?.daily ?? []).map((item) => Math.max(item.views, item.addToCart, item.orders))), [data?.daily]);
+  const productColumns = useMemo<ColumnDef<SellerProductAnalyticsProductMetric>[]>(() => [
+    {
+      id: "product",
+      header: t("seller.analytics.product"),
+      cell: ({ row }) => <div className="min-w-64"><Link href={`/seller/products/${row.original.productId}`} className="font-semibold text-slate-950 no-underline">{row.original.title}</Link><p className="text-xs text-slate-500">{row.original.shop.name} / {row.original.status}</p></div>,
+    },
+    { accessorKey: "views", header: t("seller.analytics.views"), cell: ({ row }) => formatNumber(row.original.views) },
+    { accessorKey: "addToCart", header: t("seller.analytics.addToCart"), cell: ({ row }) => formatNumber(row.original.addToCart) },
+    { accessorKey: "orders", header: t("seller.analytics.orders"), cell: ({ row }) => formatNumber(row.original.orders) },
+    { accessorKey: "unitsSold", header: t("seller.analytics.units"), cell: ({ row }) => formatNumber(row.original.unitsSold) },
+    { accessorKey: "revenue", header: t("seller.analytics.revenue"), cell: ({ row }) => formatMoney(row.original.revenue, row.original.currency) },
+    { accessorKey: "conversionRate", header: t("seller.analytics.conversion"), cell: ({ row }) => formatRate(row.original.conversionRate) },
+  ], [t]);
 
   function setRange(range: SellerProductAnalyticsRange) {
     setFilters((current) => ({ ...current, range, page: 1 }));
@@ -92,7 +106,7 @@ export function SellerProductAnalyticsPage() {
         <KpiCard label={t("seller.analytics.conversion")} value={formatRate(summary?.conversionRate)} loading={query.isLoading} />
       </section>
 
-      {isEmpty ? <EmptyState message="No product analytics were recorded for this date range." /> : null}
+      {isEmpty ? <EmptyState message={t("seller.analytics.emptyRange")} /> : null}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
         <Card className="rounded-lg border-slate-200 bg-white">
@@ -116,7 +130,7 @@ export function SellerProductAnalyticsPage() {
                   ))}
                 </div>
               </div>
-            ) : <EmptyState message={query.isLoading ? "Loading daily trend..." : "No daily analytics available."} />}
+            ) : <EmptyState message={query.isLoading ? t("seller.analytics.loadingDailyTrend") : t("seller.analytics.emptyDailyTrend")} />}
           </CardContent>
         </Card>
 
@@ -125,7 +139,7 @@ export function SellerProductAnalyticsPage() {
           <CardContent className="space-y-3">
             {(summary?.topSkus?.length ? summary.topSkus : data?.skus ?? []).length ? (summary?.topSkus?.length ? summary.topSkus : data?.skus ?? []).map((sku) => (
               <SkuRow key={sku.variantId} sku={sku} />
-            )) : <EmptyState message={query.isLoading ? "Loading SKUs..." : "No SKU performance yet."} />}
+            )) : <EmptyState message={query.isLoading ? t("seller.analytics.loadingSkus") : t("seller.analytics.emptySkus")} />}
           </CardContent>
         </Card>
       </section>
@@ -134,20 +148,7 @@ export function SellerProductAnalyticsPage() {
         <Card className="overflow-hidden rounded-lg border-slate-200 bg-white">
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><BoxesIcon className="size-4 text-emerald-600" />{t("seller.analytics.performance")}</CardTitle></CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-64 px-4">{t("seller.analytics.product")}</TableHead><TableHead>{t("seller.analytics.views")}</TableHead><TableHead>{t("seller.analytics.addToCart")}</TableHead><TableHead>{t("seller.analytics.orders")}</TableHead><TableHead>{t("seller.analytics.units")}</TableHead><TableHead>{t("seller.analytics.revenue")}</TableHead><TableHead>{t("seller.analytics.conversion")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.products.length ? data.products.map((product) => <ProductMetricRow key={product.productId} product={product} />) : (
-                    <TableRow><TableCell colSpan={7} className="h-28 text-center text-slate-500">{query.isLoading ? "Loading product analytics..." : "No products found."}</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable columns={productColumns} data={data?.products ?? []} isLoading={query.isLoading} loadingMessage={t("seller.analytics.loadingProducts")} emptyMessage={t("seller.analytics.emptyProducts")} pageSize={10} className="overflow-x-auto" labels={{ showing: t("common.showing"), of: t("common.of"), rows: t("common.rows"), previous: t("common.previous"), next: t("common.next"), previousPage: t("common.previousPage"), nextPage: t("common.nextPage"), sortBy: t("common.sortBy") }} />
           </CardContent>
         </Card>
 
@@ -164,7 +165,7 @@ export function SellerProductAnalyticsPage() {
                   <Link href={`/seller/products/${product.productId}`} className="shrink-0 text-xs font-semibold text-emerald-700 no-underline">Tune</Link>
                 </div>
               </div>
-            )) : <EmptyState message={query.isLoading ? "Loading low performers..." : "No low-performing products in this range."} />}
+            )) : <EmptyState message={query.isLoading ? t("seller.analytics.loadingLowPerformers") : t("seller.analytics.emptyLowPerformers")} />}
           </CardContent>
         </Card>
       </section>
@@ -185,23 +186,6 @@ function KpiCard({ label, value, loading }: { label: string; value: string; load
 
 function TrendBar({ label, value, max, className }: { label: string; value: number; max: number; className: string }) {
   return <div role="img" aria-label={`${label}: ${value}`} className={`w-3 rounded-t ${className}`} style={{ height: `${Math.max(4, (value / max) * 100)}%` }} />;
-}
-
-function ProductMetricRow({ product }: { product: SellerProductAnalyticsProductMetric }) {
-  return (
-    <TableRow>
-      <TableCell className="px-4">
-        <Link href={`/seller/products/${product.productId}`} className="font-semibold text-slate-950 no-underline">{product.title}</Link>
-        <p className="text-xs text-slate-500">{product.shop.name} / {product.status}</p>
-      </TableCell>
-      <TableCell>{formatNumber(product.views)}</TableCell>
-      <TableCell>{formatNumber(product.addToCart)}</TableCell>
-      <TableCell>{formatNumber(product.orders)}</TableCell>
-      <TableCell>{formatNumber(product.unitsSold)}</TableCell>
-      <TableCell>{formatMoney(product.revenue, product.currency)}</TableCell>
-      <TableCell>{formatRate(product.conversionRate)}</TableCell>
-    </TableRow>
-  );
 }
 
 function SkuRow({ sku }: { sku: SellerProductAnalyticsSkuMetric }) {

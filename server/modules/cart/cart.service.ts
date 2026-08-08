@@ -47,6 +47,7 @@ export interface CartResponseItem {
     title: string
     slug: string
     status: string
+    imageUrl: string | null
   }
   variant: {
     id: string
@@ -222,6 +223,7 @@ export class CartService {
           }) ?? item.variant.product.title,
           slug: item.variant.product.slug,
           status: item.variant.product.status,
+          imageUrl: item.variant.product.images?.[0]?.url ?? null,
         },
         variant: {
           id: item.variant.id,

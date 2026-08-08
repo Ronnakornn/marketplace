@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, BarChart3Icon, EditIcon, PlusIcon, SaveIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useTranslations } from "#/i18n/client";
+import { useLocale, useTranslations } from "#/i18n/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +59,8 @@ import {
 
 type ProductStatus = "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
 type VariantStatus = "ACTIVE" | "INACTIVE";
+type Translator = ReturnType<typeof useTranslations>;
+type AppLocale = ReturnType<typeof useLocale>;
 type ProductStudioSectionId = "basics" | "category-specs" | "media" | "variants" | "inventory" | "review";
 type CategorySpecValueType = "TEXT" | "NUMBER" | "BOOLEAN" | "SELECT" | "MULTI_SELECT";
 type CategorySpecDefinition = {
@@ -91,13 +93,13 @@ const MAX_PRODUCT_IMAGES = 10;
 const MAX_PRODUCT_VIDEO_BYTES = 25 * 1024 * 1024;
 const PRODUCT_VIDEO_TYPES = ["video/mp4", "video/webm"];
 const DEFAULT_BULK_STATUS: VariantStatus = "ACTIVE";
-const PRODUCT_STUDIO_SECTIONS: Array<{ id: ProductStudioSectionId; label: string }> = [
-  { id: "basics", label: "Basics" },
-  { id: "category-specs", label: "Category & Specs" },
-  { id: "media", label: "Media" },
-  { id: "variants", label: "Variants" },
-  { id: "inventory", label: "Inventory" },
-  { id: "review", label: "Review" },
+const PRODUCT_STUDIO_SECTIONS: Array<{ id: ProductStudioSectionId }> = [
+  { id: "basics" },
+  { id: "category-specs" },
+  { id: "media" },
+  { id: "variants" },
+  { id: "inventory" },
+  { id: "review" },
 ];
 
 interface ProductFormState {
@@ -184,6 +186,53 @@ interface VariantBulkState {
   price: string;
   stock: string;
   status: VariantStatus;
+}
+
+interface ProductStudioBaseline {
+  form: ProductFormState;
+  images: ImageDraftState[];
+  video: VideoDraftState | null;
+  variants: VariantFormState[];
+  options: ProductOptionDraftState[];
+}
+
+type ProductStudioConfirmation =
+  | { type: "discard" }
+  | { type: "remove-option"; index: number; label: string; impactedCount: number }
+  | { type: "remove-option-value"; optionIndex: number; valueIndex: number; label: string; impactedCount: number }
+  | { type: "delete-variant"; variant: VariantFormState; index: number; label: string };
+
+function getProductStudioConfirmationCopy(confirmation: ProductStudioConfirmation, t: Translator) {
+  if (confirmation.type === "discard") {
+    return {
+      title: t("seller.editor.confirm.discardTitle"),
+      description: t("seller.editor.confirm.discardDescription"),
+      action: t("seller.editor.confirm.discardAction"),
+    };
+  }
+  if (confirmation.type === "remove-option") {
+    return {
+      title: t("seller.editor.confirm.removeOptionTitle"),
+      description: t("seller.editor.confirm.removeOptionDescription")
+        .replace("{name}", confirmation.label)
+        .replace("{count}", String(confirmation.impactedCount)),
+      action: t("seller.editor.confirm.removeAction"),
+    };
+  }
+  if (confirmation.type === "remove-option-value") {
+    return {
+      title: t("seller.editor.confirm.removeValueTitle"),
+      description: t("seller.editor.confirm.removeValueDescription")
+        .replace("{name}", confirmation.label)
+        .replace("{count}", String(confirmation.impactedCount)),
+      action: t("seller.editor.confirm.removeAction"),
+    };
+  }
+  return {
+    title: t("seller.editor.confirm.deleteVariantTitle"),
+    description: t("seller.editor.confirm.deleteVariantDescription").replace("{name}", confirmation.label),
+    action: t("seller.editor.confirm.deleteVariantAction"),
+  };
 }
 
 const emptyProductForm: ProductFormState = {
@@ -297,8 +346,45 @@ function serializeAttributeDrafts(attributes: ProductAttributeDraft[]) {
     .join("\n");
 }
 
-function isProductFormDirty(form: ProductFormState, initial: ProductFormState) {
-  return JSON.stringify(form) !== JSON.stringify(initial);
+function toBaselineImage(image: ImageDraftState): ImageDraftState {
+  return {
+    id: image.id,
+    url: image.url,
+    altText: image.altText,
+    sortOrder: image.sortOrder,
+    isPrimary: image.isPrimary,
+    width: image.width ?? null,
+    height: image.height ?? null,
+    status: "existing",
+  };
+}
+
+function toBaselineVideo(video: VideoDraftState | null): VideoDraftState | null {
+  if (!video) return null;
+  return {
+    id: video.id,
+    url: video.url,
+    contentType: video.contentType,
+    fileName: video.fileName,
+    fileSize: video.fileSize,
+    status: "existing",
+  };
+}
+
+function createProductStudioBaseline(
+  form: ProductFormState,
+  images: ImageDraftState[],
+  video: VideoDraftState | null,
+  variants: VariantFormState[],
+  options: ProductOptionDraftState[],
+): ProductStudioBaseline {
+  return {
+    form: { ...form },
+    images: images.map(toBaselineImage),
+    video: toBaselineVideo(video),
+    variants: variants.map((variant) => ({ ...variant, optionValueIds: [...variant.optionValueIds] })),
+    options: options.map((option) => ({ ...option, values: option.values.map((value) => ({ ...value })) })),
+  };
 }
 
 function productImagesToDrafts(product?: SellerProduct | null): ImageDraftState[] {
@@ -429,20 +515,28 @@ function normalizeSpecValueType(valueType?: string | null): CategorySpecValueTyp
   return "TEXT";
 }
 
-function getSpecDisplayName(spec: CategorySpecDefinition) {
-  return spec.displayName ?? spec.displayNameEn ?? spec.displayNameTh ?? spec.attributeKey;
+function getLocalizedText(locale: AppLocale, value?: string | null, valueTh?: string | null, valueEn?: string | null) {
+  return locale === "th"
+    ? valueTh || value || valueEn || ""
+    : valueEn || value || valueTh || "";
 }
 
-function getSpecInputLabel(spec: CategorySpecDefinition) {
-  const name = getSpecDisplayName(spec);
+function getSpecDisplayName(spec: CategorySpecDefinition, locale: AppLocale = "en") {
+  return getLocalizedText(locale, spec.displayName, spec.displayNameTh, spec.displayNameEn) || spec.attributeKey;
+}
+
+function getSpecInputLabel(spec: CategorySpecDefinition, locale: AppLocale) {
+  const name = getSpecDisplayName(spec, locale);
   return spec.unit ? `${name} (${spec.unit})` : name;
 }
 
-function getSpecHelperText(spec: CategorySpecDefinition) {
+function getSpecHelperText(spec: CategorySpecDefinition, t: Translator) {
   const valueType = normalizeSpecValueType(spec.valueType);
-  if (valueType === "NUMBER") return spec.unit ? `Enter a numeric value in ${spec.unit}.` : "Enter a numeric value.";
-  if (valueType === "BOOLEAN") return "Choose true or false.";
-  if (valueType === "MULTI_SELECT") return "Enter one or more values separated by commas.";
+  if (valueType === "NUMBER") return spec.unit
+    ? t("seller.editor.spec.numericWithUnit").replace("{unit}", spec.unit)
+    : t("seller.editor.spec.numeric");
+  if (valueType === "BOOLEAN") return t("seller.editor.spec.boolean");
+  if (valueType === "MULTI_SELECT") return t("seller.editor.spec.multiSelect");
   return "";
 }
 
@@ -463,13 +557,13 @@ function getAttributeValue(form: ProductFormState, key: string) {
   return parseAttributeDrafts(form.attributesText).find((attribute) => attribute.attributeKey === key)?.value ?? "";
 }
 
-function updateAttributeValue(form: ProductFormState, spec: CategorySpecDefinition, value: string): ProductFormState {
+function updateAttributeValue(form: ProductFormState, spec: CategorySpecDefinition, value: string, locale: AppLocale): ProductFormState {
   const attributes = parseAttributeDrafts(form.attributesText);
   const key = spec.attributeKey;
   const existingIndex = attributes.findIndex((attribute) => attribute.attributeKey === key);
   const nextAttribute = {
     attributeKey: key,
-    displayName: getSpecDisplayName(spec),
+    displayName: getSpecDisplayName(spec, locale),
     value,
     isFilterable: Boolean(spec.isFilterable),
   };
@@ -495,19 +589,19 @@ function updateAdditionalAttributesText(form: ProductFormState, specs: CategoryS
   return { ...form, attributesText: serializeAttributeDrafts([...categoryAttributes, ...additionalAttributes]) };
 }
 
-function getRequiredSpecMissing(form: ProductFormState, specs: CategorySpecDefinition[]) {
+function getRequiredSpecMissing(form: ProductFormState, specs: CategorySpecDefinition[], locale: AppLocale) {
   return specs
     .filter((spec) => spec.isRequired)
     .filter((spec) => !getAttributeValue(form, spec.attributeKey).trim())
-    .map(getSpecDisplayName);
+    .map((spec) => getSpecDisplayName(spec, locale));
 }
 
-function getReadinessChecks(form: ProductFormState, images: ImageDraftState[], variants: VariantFormState[], requiredSpecMissing: string[]): ReadinessCheck[] {
+function getReadinessChecks(form: ProductFormState, images: ImageDraftState[], variants: VariantFormState[], requiredSpecMissing: string[], t: Translator): ReadinessCheck[] {
   return [
-    { id: "category", label: "Primary category selected", passed: Boolean(form.categoryId), missingLabel: "category" },
-    { id: "required-specs", label: "Required category specs completed", passed: requiredSpecMissing.length === 0, missingLabel: requiredSpecMissing.length ? `required specs: ${requiredSpecMissing.join(", ")}` : "required category specs" },
-    { id: "primary-image", label: "Primary product image selected", passed: images.some((image) => image.isPrimary), missingLabel: "primary product image" },
-    { id: "active-priced-variant", label: "At least one active priced variant", passed: variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price || "0") > 0), missingLabel: "one active variant with price greater than zero" },
+    { id: "category", label: t("seller.editor.readiness.category"), passed: Boolean(form.categoryId), missingLabel: t("seller.editor.readiness.missingCategory") },
+    { id: "required-specs", label: t("seller.editor.readiness.requiredSpecs"), passed: requiredSpecMissing.length === 0, missingLabel: requiredSpecMissing.length ? t("seller.editor.readiness.missingRequiredSpecs").replace("{items}", requiredSpecMissing.join(", ")) : t("seller.editor.readiness.missingRequiredSpecsFallback") },
+    { id: "primary-image", label: t("seller.editor.readiness.primaryImage"), passed: images.some((image) => image.isPrimary), missingLabel: t("seller.editor.readiness.missingPrimaryImage") },
+    { id: "active-priced-variant", label: t("seller.editor.readiness.activeVariant"), passed: variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price || "0") > 0), missingLabel: t("seller.editor.readiness.missingActiveVariant") },
   ];
 }
 
@@ -519,17 +613,21 @@ function getOptionCombinationKey(variant: VariantFormState) {
   return variant.optionValueIds.filter(Boolean).sort().join("|");
 }
 
-function getVariantCombinationLabel(variant: VariantFormState, options: ProductOptionDraftState[]) {
-  const labels = options.flatMap((option) => option.values.filter((value) => variant.optionValueIds.includes(value.id)).map((value) => `${option.name || "Option"}: ${value.value || "Value"}`));
-  return labels.length ? labels.join(" / ") : "Base variant";
+function getVariantCombinationLabel(variant: VariantFormState, options: ProductOptionDraftState[], locale: AppLocale, t: Translator) {
+  const labels = options.flatMap((option) => option.values.filter((value) => variant.optionValueIds.includes(value.id)).map((value) => {
+    const optionName = getLocalizedText(locale, option.name, option.nameTh, option.nameEn) || t("seller.editor.variant.optionFallback");
+    const optionValue = getLocalizedText(locale, value.value, value.valueTh, value.valueEn) || t("seller.editor.variant.valueFallback");
+    return `${optionName}: ${optionValue}`;
+  }));
+  return labels.length ? labels.join(" / ") : t("seller.editor.variant.baseVariant");
 }
 
-function getDuplicateOptionCombinationError(variants: VariantFormState[]) {
+function getDuplicateOptionCombinationError(variants: VariantFormState[], t: Translator) {
   const seen = new Set<string>();
   for (const variant of variants) {
     const key = getOptionCombinationKey(variant);
     if (!key) continue;
-    if (seen.has(key)) return "Duplicate variant option combination. Choose a unique option value set for each variant.";
+    if (seen.has(key)) return t("seller.editor.error.duplicateCombination");
     seen.add(key);
   }
   return "";
@@ -559,13 +657,13 @@ function getDuplicateCombinationIndexes(variants: VariantFormState[]) {
   }));
 }
 
-function getVariantRowErrors(variant: VariantFormState, index: number, duplicateSkuIndexes: Set<number>, duplicateCombinationIndexes: Set<number>) {
+function getVariantRowErrors(variant: VariantFormState, index: number, duplicateSkuIndexes: Set<number>, duplicateCombinationIndexes: Set<number>, t: Translator) {
   const errors: string[] = [];
-  if (!variant.sku.trim()) errors.push("SKU is required.");
-  if (duplicateSkuIndexes.has(index)) errors.push("Duplicate SKU.");
-  if (duplicateCombinationIndexes.has(index)) errors.push("Duplicate option combination.");
-  if (Number(variant.price || "0") < 0) errors.push("Price cannot be negative.");
-  if (Number(variant.quantityOnHand || "0") < 0) errors.push("Stock cannot be negative.");
+  if (!variant.sku.trim()) errors.push(t("seller.editor.error.skuRequired"));
+  if (duplicateSkuIndexes.has(index)) errors.push(t("seller.editor.error.duplicateSku"));
+  if (duplicateCombinationIndexes.has(index)) errors.push(t("seller.editor.error.duplicateOptionCombination"));
+  if (Number(variant.price || "0") < 0) errors.push(t("seller.editor.error.priceNegative"));
+  if (Number(variant.quantityOnHand || "0") < 0) errors.push(t("seller.editor.error.stockNegative"));
   return errors;
 }
 
@@ -576,12 +674,12 @@ function buildOptionCombinations(options: ProductOptionDraftState[]) {
   return activeOptions[0].flatMap((firstId) => activeOptions[1].map((secondId) => [firstId, secondId]));
 }
 
-function buildGeneratedVariant(combination: string[], index: number, options: ProductOptionDraftState[]): VariantFormState {
+function buildGeneratedVariant(combination: string[], index: number, options: ProductOptionDraftState[], t: Translator): VariantFormState {
   const labels = options.flatMap((option) => option.values.filter((value) => combination.includes(value.id)).map((value) => value.value.trim())).filter(Boolean);
   return {
     ...emptyVariantForm,
     sku: `SKU-${index + 1}`,
-    title: labels.join(" / ") || `Variant ${index + 1}`,
+    title: labels.join(" / ") || t("seller.editor.variant.generatedName").replace("{index}", String(index + 1)),
     optionValueIds: combination,
   };
 }
@@ -648,11 +746,12 @@ function StatusPill({ value }: { value: string }) {
 }
 
 function ErrorState({ error, retry }: { error: unknown; retry: () => void }) {
+  const t = useTranslations();
   return (
     <Card className="border-red-200 bg-red-50">
       <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-red-700">{error instanceof Error ? error.message : "Failed to load seller data."}</p>
-        <Button type="button" variant="outline" onClick={retry}>Retry</Button>
+        <p role="alert" className="text-sm text-red-700">{error instanceof Error ? error.message : t("seller.editor.error.load")}</p>
+        <Button type="button" variant="outline" onClick={retry}>{t("seller.editor.retry")}</Button>
       </CardContent>
     </Card>
   );
@@ -671,38 +770,40 @@ function CategorySpecField({
   isMissing?: boolean;
   onChange: (value: string) => void;
 }) {
+  const t = useTranslations();
+  const locale = useLocale();
   const valueType = normalizeSpecValueType(spec.valueType);
   const allowedValues = getAllowedSpecValues(spec);
-  const helperText = getSpecHelperText(spec);
-  const displayName = getSpecDisplayName(spec);
-  const label = `${getSpecInputLabel(spec)}${spec.isRequired ? " *" : ""}`;
+  const helperText = getSpecHelperText(spec, t);
+  const displayName = getSpecDisplayName(spec, locale);
+  const label = `${getSpecInputLabel(spec, locale)}${spec.isRequired ? " *" : ""}`;
 
   return (
     <Field label={label} htmlFor={fieldId}>
       {valueType === "BOOLEAN" ? (
-        <Select value={value || "NONE"} onValueChange={(nextValue) => onChange(nextValue === "NONE" ? "" : nextValue)}>
-          <SelectTrigger id={fieldId} aria-label={displayName}><SelectValue placeholder="Select value" /></SelectTrigger>
+        <Select name={fieldId} value={value || "NONE"} onValueChange={(nextValue) => onChange(nextValue === "NONE" ? "" : nextValue)}>
+          <SelectTrigger id={fieldId} aria-label={displayName}><SelectValue placeholder={t("seller.editor.spec.selectValue")} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="NONE">No value</SelectItem>
-            <SelectItem value="true">True</SelectItem>
-            <SelectItem value="false">False</SelectItem>
+            <SelectItem value="NONE">{t("seller.editor.spec.noValue")}</SelectItem>
+            <SelectItem value="true">{t("seller.editor.spec.true")}</SelectItem>
+            <SelectItem value="false">{t("seller.editor.spec.false")}</SelectItem>
           </SelectContent>
         </Select>
       ) : valueType === "SELECT" && allowedValues.length ? (
-        <Select value={value || "NONE"} onValueChange={(nextValue) => onChange(nextValue === "NONE" ? "" : nextValue)}>
-          <SelectTrigger id={fieldId} aria-label={displayName}><SelectValue placeholder="Select value" /></SelectTrigger>
+        <Select name={fieldId} value={value || "NONE"} onValueChange={(nextValue) => onChange(nextValue === "NONE" ? "" : nextValue)}>
+          <SelectTrigger id={fieldId} aria-label={displayName}><SelectValue placeholder={t("seller.editor.spec.selectValue")} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="NONE">No value</SelectItem>
+            <SelectItem value="NONE">{t("seller.editor.spec.noValue")}</SelectItem>
             {allowedValues.map((allowedValue) => <SelectItem key={allowedValue} value={allowedValue}>{allowedValue}</SelectItem>)}
           </SelectContent>
         </Select>
       ) : valueType === "MULTI_SELECT" ? (
-        <Textarea id={fieldId} value={value} onChange={(event) => onChange(event.target.value)} rows={2} aria-invalid={isMissing} />
+        <Textarea id={fieldId} name={fieldId} value={value} onChange={(event) => onChange(event.target.value)} rows={2} aria-invalid={isMissing} />
       ) : (
-        <Input id={fieldId} type={valueType === "NUMBER" ? "number" : "text"} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={isMissing} />
+        <Input id={fieldId} name={fieldId} type={valueType === "NUMBER" ? "number" : "text"} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={isMissing} className={valueType === "NUMBER" ? "tabular-nums" : undefined} />
       )}
       {helperText ? <p className="text-xs text-slate-500">{helperText}</p> : null}
-      {isMissing ? <p className="text-xs text-red-600">{displayName} is required.</p> : null}
+      {isMissing ? <p role="alert" className="text-xs text-red-600">{t("seller.editor.spec.required").replace("{name}", displayName)}</p> : null}
     </Field>
   );
 }
@@ -786,7 +887,7 @@ export function SellerProductsPage() {
         </div>
       ),
     },
-  ], []);
+  ], [t]);
 
   return (
     <>
@@ -803,20 +904,30 @@ export function SellerProductsPage() {
             emptyMessage={t("seller.products.empty")}
             pageSize={10}
             className="overflow-x-auto"
+            labels={{
+              showing: t("common.showing"),
+              of: t("common.of"),
+              rows: t("common.rows"),
+              previous: t("common.previous"),
+              next: t("common.next"),
+              previousPage: t("common.previousPage"),
+              nextPage: t("common.nextPage"),
+              sortBy: t("common.sortBy"),
+            }}
             renderToolbar={() => (
               <>
                 <div className="flex w-full flex-col gap-3 sm:flex-row">
                   <Input value={q} onChange={(event) => { setQ(event.target.value); setCursor(undefined); }} placeholder={t("seller.products.search")} aria-label={t("seller.products.search")} className="sm:max-w-sm" />
                   <Select value={status || "ALL"} onValueChange={(value) => { setStatus(value === "ALL" ? "" : value as ProductStatus); setCursor(undefined); }}>
-                    <SelectTrigger className="sm:w-48" aria-label="Filter by product status"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="sm:w-48" aria-label={t("seller.products.filterStatus")}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">{t("seller.products.allStatuses")}</SelectItem>
-                      <SelectItem value="DRAFT">Draft</SelectItem>
-                      <SelectItem value="PENDING_REVIEW">Pending review</SelectItem>
-                      <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="REJECTED">Rejected</SelectItem>
-                      <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                      <SelectItem value="ARCHIVED">Archived</SelectItem>
+                      <SelectItem value="DRAFT">{t("seller.products.statusDraft")}</SelectItem>
+                      <SelectItem value="PENDING_REVIEW">{t("seller.products.statusPendingReview")}</SelectItem>
+                      <SelectItem value="ACTIVE">{t("seller.manage.status.active")}</SelectItem>
+                      <SelectItem value="REJECTED">{t("seller.manage.status.rejected")}</SelectItem>
+                      <SelectItem value="SUSPENDED">{t("seller.products.suspended")}</SelectItem>
+                      <SelectItem value="ARCHIVED">{t("seller.products.archivedStatus")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -973,6 +1084,7 @@ function SellerProductQuestionAnswerForm({ productId, question }: { productId: s
 }
 
 export function SellerProductCreatePage() {
+  const t = useTranslations();
   const router = useRouter();
   const createProduct = useCreateSellerProduct();
   const [error, setError] = useState("");
@@ -983,44 +1095,44 @@ export function SellerProductCreatePage() {
     startedRef.current = true;
     createProduct.mutate(
       {
-        title: "Untitled product draft",
+        title: t("seller.editor.untitledDraft"),
         status: "DRAFT",
       },
       {
         onSuccess: (product) => {
-          toast.success("Draft created.");
+          toast.success(t("seller.editor.success.draftCreated"));
           router.push(`/seller/products/${product.id}`);
         },
         onError: (mutationError: unknown) => {
-          setError(mutationError instanceof Error ? mutationError.message : "Product draft could not be created.");
+          setError(mutationError instanceof Error ? mutationError.message : t("seller.editor.error.draftCreate"));
         },
       },
     );
-  }, [createProduct, router]);
+  }, [createProduct, router, t]);
 
   return (
     <>
-      <SellerPageHeader title="Create product" description="Preparing a draft product before opening Product Studio." />
+      <SellerPageHeader title={t("seller.editor.createTitle")} description={t("seller.editor.createDescription")} />
       <Card className="rounded-lg border-slate-200 bg-white">
         <CardContent className="space-y-4 pt-6">
           <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-medium text-slate-950">{createProduct.isPending ? "Creating draft..." : "Draft preparation"}</p>
-            <p className="mt-1 text-sm text-slate-600">Product Studio opens after the draft record is ready.</p>
+            <p className="text-sm font-medium text-slate-950">{createProduct.isPending ? t("seller.editor.creatingDraft") : t("seller.editor.draftPreparation")}</p>
+            <p className="mt-1 text-sm text-slate-600">{t("seller.editor.draftPreparationDescription")}</p>
           </div>
           {error ? (
             <div className="flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-red-700">{error}</p>
+              <p role="alert" className="text-sm text-red-700">{error}</p>
               <Button type="button" variant="outline" onClick={() => {
                 setError("");
                 createProduct.mutate(
-                  { title: "Untitled product draft", status: "DRAFT" },
+                  { title: t("seller.editor.untitledDraft"), status: "DRAFT" },
                   {
                     onSuccess: (product) => router.push(`/seller/products/${product.id}`),
-                    onError: (mutationError: unknown) => setError(mutationError instanceof Error ? mutationError.message : "Product draft could not be created."),
+                    onError: (mutationError: unknown) => setError(mutationError instanceof Error ? mutationError.message : t("seller.editor.error.draftCreate")),
                   },
                 );
               }} disabled={createProduct.isPending}>
-                Retry
+                {t("seller.editor.retry")}
               </Button>
             </div>
           ) : null}
@@ -1034,8 +1146,19 @@ export function SellerProductEditPage({ productId }: { productId: string }) {
   return <SellerProductFormPage mode="edit" productId={productId} />;
 }
 
+function getDraftStatusLabel(status: ImageDraftState["status"] | VideoDraftState["status"], t: Translator) {
+  const labels = {
+    existing: t("seller.products.completed"),
+    pending: t("seller.editor.media.pending"),
+    uploading: t("seller.editor.media.uploading"),
+    error: t("seller.editor.media.error"),
+  };
+  return labels[status];
+}
+
 function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; productId?: string }) {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const productsQuery = useSellerProducts({ limit: 50 });
   const productQuery = useSellerProduct(mode === "edit" ? productId : undefined);
@@ -1065,6 +1188,14 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const [video, setVideo] = useState<VideoDraftState | null>(() => productVideoToDraft(product));
   const [variants, setVariants] = useState<VariantFormState[]>(() => productVariantsToForms(product));
   const [options, setOptions] = useState<ProductOptionDraftState[]>(() => productOptionsToDrafts(product));
+  const [baseline, setBaseline] = useState<ProductStudioBaseline>(() => createProductStudioBaseline(
+    initialForm,
+    productImagesToDrafts(product),
+    productVideoToDraft(product),
+    productVariantsToForms(product),
+    productOptionsToDrafts(product),
+  ));
+  const [confirmation, setConfirmation] = useState<ProductStudioConfirmation | null>(null);
   const [mediaError, setMediaError] = useState("");
   const [variantError, setVariantError] = useState("");
   const [optionError, setOptionError] = useState("");
@@ -1084,6 +1215,13 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       setVideo(productVideoToDraft(product));
       setVariants(productVariantsToForms(product));
       setOptions(productOptionsToDrafts(product));
+      setBaseline(createProductStudioBaseline(
+        initialForm,
+        productImagesToDrafts(product),
+        productVideoToDraft(product),
+        productVariantsToForms(product),
+        productOptionsToDrafts(product),
+      ));
     }
   }, [initialForm, mode, product?.id, seedProductId]);
 
@@ -1091,28 +1229,42 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const categorySpecs = useMemo(() => normalizeSpecDefinitions(selectedCategory, workingProduct, categorySpecsQuery.data), [selectedCategory, workingProduct, categorySpecsQuery.data]);
   const requiredSpecs = useMemo(() => categorySpecs.filter((spec) => spec.isRequired), [categorySpecs]);
   const optionalSpecs = useMemo(() => categorySpecs.filter((spec) => !spec.isRequired), [categorySpecs]);
-  const requiredSpecMissing = useMemo(() => getRequiredSpecMissing(form, categorySpecs), [form, categorySpecs]);
-  const readinessChecks = useMemo(() => getReadinessChecks(form, images, variants, requiredSpecMissing), [form, images, variants, requiredSpecMissing]);
+  const requiredSpecMissing = useMemo(() => getRequiredSpecMissing(form, categorySpecs, locale), [form, categorySpecs, locale]);
+  const readinessChecks = useMemo(() => getReadinessChecks(form, images, variants, requiredSpecMissing, t), [form, images, variants, requiredSpecMissing, t]);
   const readinessMissing = useMemo(() => getPublishReadiness(readinessChecks), [readinessChecks]);
-  const duplicateCombinationError = getDuplicateOptionCombinationError(variants);
+  const duplicateCombinationError = getDuplicateOptionCombinationError(variants, t);
   const duplicateSkuIndexes = useMemo(() => getDuplicateSkuIndexes(variants), [variants]);
   const duplicateCombinationIndexes = useMemo(() => getDuplicateCombinationIndexes(variants), [variants]);
   const hasPrimaryImage = images.some((image) => image.isPrimary);
   const generatedCombinationCount = buildOptionCombinations(options).length;
   const moderationReason = getLatestModerationReason(workingProduct);
-  const dirty = isProductFormDirty(form, initialForm) || images.some((image) => image.status !== "existing") || variants.some((variant) => !variant.id) || Boolean(video?.status !== "existing" && video);
+  const currentStudioSnapshot = createProductStudioBaseline(form, images, video, variants, options);
+  const dirty = JSON.stringify(currentStudioSnapshot) !== JSON.stringify(baseline);
   const isSaving = createProduct.isPending || updateProduct.isPending || createVariant.isPending || updateVariant.isPending || updateVariantStock.isPending || uploadImage.isPending || updateImage.isPending || updateImageOrder.isPending || deleteImage.isPending || uploadVideo.isPending || deleteVideo.isPending || deleteVariant.isPending || updateOptions.isPending || submitReview.isPending;
-  const saveState = isSaving ? "Saving..." : dirty ? "Unsaved changes" : "Saved";
+  const saveState = isSaving ? t("seller.editor.saving") : dirty ? t("seller.editor.unsaved") : t("seller.editor.saved");
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [dirty]);
 
   function cancel() {
-    if (dirty && !window.confirm("Discard unsaved product changes?")) return;
+    if (dirty) {
+      setConfirmation({ type: "discard" });
+      return;
+    }
     router.push("/seller/products");
   }
 
   function addOption() {
     setOptionError("");
     if (options.length >= 2) {
-      setOptionError("Variant options are limited to two axes.");
+      setOptionError(t("seller.editor.error.axesLimit"));
       return;
     }
     setOptions((current) => [...current, {
@@ -1146,7 +1298,16 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   function removeOption(index: number) {
     const option = options[index];
     const impacted = variants.filter((variant) => option.values.some((value) => variant.optionValueIds.includes(value.id)));
-    if (impacted.length && !window.confirm(`Remove ${option.name || "this option"}? ${impacted.length} variant row(s) will lose this option selection.`)) return;
+    if (impacted.length) {
+      setConfirmation({ type: "remove-option", index, label: option.name || t("seller.editor.confirm.thisOption"), impactedCount: impacted.length });
+      return;
+    }
+    performRemoveOption(index);
+  }
+
+  function performRemoveOption(index: number) {
+    const option = options[index];
+    if (!option) return;
     setOptions((current) => current.filter((_, optionIndex) => optionIndex !== index));
     setVariants((current) => current.map((variant) => ({ ...variant, optionValueIds: variant.optionValueIds.filter((id) => !option.values.some((value) => value.id === id)) })));
   }
@@ -1154,7 +1315,15 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   function removeOptionValue(optionIndex: number, valueIndex: number) {
     const value = options[optionIndex]?.values[valueIndex];
     const impacted = variants.filter((variant) => variant.optionValueIds.includes(value?.id ?? ""));
-    if (impacted.length && !window.confirm(`Remove ${value?.value || "this value"}? ${impacted.length} variant row(s) using it will be affected.`)) return;
+    if (impacted.length) {
+      setConfirmation({ type: "remove-option-value", optionIndex, valueIndex, label: value?.value || t("seller.editor.confirm.thisValue"), impactedCount: impacted.length });
+      return;
+    }
+    performRemoveOptionValue(optionIndex, valueIndex);
+  }
+
+  function performRemoveOptionValue(optionIndex: number, valueIndex: number) {
+    const value = options[optionIndex]?.values[valueIndex];
     setOptions((current) => current.map((option, index) => index === optionIndex ? {
       ...option,
       values: option.values.filter((_, currentValueIndex) => currentValueIndex !== valueIndex),
@@ -1167,27 +1336,29 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   function saveOptions() {
     setOptionError("");
     if (!workingProductId) {
-      setOptionError("Save the product as a draft before editing variant options.");
+      setOptionError(t("seller.editor.error.draftBeforeOptions"));
       return;
     }
     const input = toProductOptionsInput(options);
     if (options.length && !input.length) {
-      setOptionError("Each option needs a name and at least one value.");
+      setOptionError(t("seller.editor.error.optionRequirements"));
       return;
     }
     updateOptions.mutate({ productId: workingProductId, options: input }, {
       onSuccess: (updatedProduct: SellerProduct) => {
-        setOptions(productOptionsToDrafts(updatedProduct));
-        toast.success("Variant options saved.");
+        const savedOptions = productOptionsToDrafts(updatedProduct);
+        setOptions(savedOptions);
+        setBaseline((current) => ({ ...current, options: savedOptions }));
+        toast.success(t("seller.editor.success.optionsSaved"));
       },
-      onError: (error: unknown) => setOptionError(error instanceof Error ? error.message : "Variant options could not be saved."),
+      onError: (error: unknown) => setOptionError(error instanceof Error ? error.message : t("seller.editor.error.optionsSave")),
     });
   }
 
   function saveImageOrder() {
     setMediaError("");
     if (!workingProductId) {
-      setMediaError("Save the product as a draft before reordering media.");
+      setMediaError(t("seller.editor.error.draftBeforeReorder"));
       return;
     }
     const existingImages = images.filter((image) => image.status === "existing");
@@ -1198,9 +1369,16 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     }, {
       onSuccess: () => {
         setImages((current) => current.map((image, index) => ({ ...image, sortOrder: index })));
-        toast.success("Image order saved.");
+        setBaseline((current) => ({
+          ...current,
+          images: current.images.map((baselineImage) => {
+            const index = existingImages.findIndex((image) => image.id === baselineImage.id);
+            return index >= 0 ? { ...baselineImage, sortOrder: index, isPrimary: existingImages[index].isPrimary } : baselineImage;
+          }),
+        }));
+        toast.success(t("seller.editor.success.imageOrderSaved"));
       },
-      onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : "Image order could not be saved."),
+      onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : t("seller.editor.error.imageOrderSave")),
     });
   }
 
@@ -1219,11 +1397,11 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   function submitForReview() {
     setFormError("");
     if (!workingProductId) {
-      setFormError("Save this product as a draft before submitting for review.");
+      setFormError(t("seller.editor.error.draftBeforeReview"));
       return;
     }
     if (readinessMissing.length) {
-      setFormError(`Submit review needs ${readinessMissing.join(", ")}.`);
+      setFormError(t("seller.editor.error.reviewNeeds").replace("{items}", readinessMissing.join(", ")));
       return;
     }
     if (duplicateCombinationError) {
@@ -1231,8 +1409,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       return;
     }
     submitReview.mutate(workingProductId, {
-      onSuccess: () => toast.success("Product submitted for review."),
-      onError: (error: unknown) => setFormError(error instanceof Error ? error.message : "Product could not be submitted for review."),
+      onSuccess: () => toast.success(t("seller.editor.success.reviewSubmitted")),
+      onError: (error: unknown) => setFormError(error instanceof Error ? error.message : t("seller.editor.error.reviewSubmit")),
     });
   }
 
@@ -1240,11 +1418,12 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     event.preventDefault();
     setFormError("");
     if (!form.title.trim()) {
-      setFormError("Product title is required.");
+      setFormError(t("seller.editor.error.titleRequired"));
+      document.getElementById("product-title")?.focus();
       return;
     }
     if (form.status === "ACTIVE" && readinessMissing.length) {
-      setFormError(`Active products need ${readinessMissing.join(", ")} before publishing.`);
+      setFormError(t("seller.editor.error.activeNeeds").replace("{items}", readinessMissing.join(", ")));
       return;
     }
     if (duplicateCombinationError) {
@@ -1254,18 +1433,18 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     const input = toProductInput(form);
     const options = {
       onSuccess: (savedProduct: SellerProduct) => {
-        toast.success(mode === "edit" ? "Product updated." : "Product created.");
+        const savedForm = productToForm(savedProduct);
+        setBaseline((current) => ({ ...current, form: savedForm }));
+        toast.success(mode === "edit" ? t("seller.editor.success.productUpdated") : t("seller.editor.success.productCreated"));
         if (mode === "create") {
           setCreatedProduct(savedProduct);
           setSeedProductId(savedProduct.id);
-          setForm(productToForm(savedProduct));
-          return;
+          setForm(savedForm);
         }
-        router.push("/seller/products");
       },
       onError: (error: unknown) => {
-        setFormError(error instanceof Error ? error.message : "Product could not be saved.");
-        toast.error("Product could not be saved.");
+        setFormError(error instanceof Error ? error.message : t("seller.editor.error.productSave"));
+        toast.error(t("seller.editor.error.productSave"));
       },
     };
     if (mode === "edit" && productId) {
@@ -1284,7 +1463,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     setMediaError("");
     if (!files.length) return;
     if (images.length + files.length > MAX_PRODUCT_IMAGES) {
-      setMediaError(`Product images are limited to ${MAX_PRODUCT_IMAGES}. Remove an image before adding more.`);
+      setMediaError(t("seller.editor.error.imageLimit").replace("{max}", String(MAX_PRODUCT_IMAGES)));
       return;
     }
     setImages((current) => [
@@ -1318,15 +1497,15 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     setMediaError("");
     if (!file) return;
     if (video) {
-      setMediaError("Only one product video can be attached. Remove the current video before uploading another.");
+      setMediaError(t("seller.editor.error.videoSingle"));
       return;
     }
     if (!PRODUCT_VIDEO_TYPES.includes(file.type)) {
-      setMediaError("Product video must be MP4 or WebM.");
+      setMediaError(t("seller.editor.error.videoType"));
       return;
     }
     if (file.size > MAX_PRODUCT_VIDEO_BYTES) {
-      setMediaError("Product video must be 25MB or smaller.");
+      setMediaError(t("seller.editor.error.videoSize"));
       return;
     }
     setVideo({
@@ -1363,15 +1542,16 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
           if (image.isPrimary && next.length) return next.map((item, index) => ({ ...item, isPrimary: index === 0 }));
           return next;
         });
-        toast.success("Image removed.");
+        setBaseline((current) => ({ ...current, images: current.images.filter((item) => item.id !== image.id) }));
+        toast.success(t("seller.editor.success.imageRemoved"));
       },
-      onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : "Image could not be removed."),
+      onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : t("seller.editor.error.imageRemove")),
     });
   }
 
   function saveImage(image: ImageDraftState) {
     if (!workingProductId) {
-      setMediaError("Save the product as a draft before uploading media.");
+      setMediaError(t("seller.editor.error.draftBeforeMedia"));
       return;
     }
     updateImageDraft(image.id, { status: "uploading", error: undefined });
@@ -1379,19 +1559,31 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       updateImage.mutate({ productId: workingProductId, imageId: image.id, altText: optionalText(image.altText), sortOrder: image.sortOrder, isPrimary: image.isPrimary, width: image.width, height: image.height }, {
         onSuccess: () => {
           updateImageDraft(image.id, { status: "existing" });
-          toast.success("Image updated.");
+          setBaseline((current) => ({ ...current, images: current.images.map((item) => item.id === image.id ? toBaselineImage(image) : item) }));
+          toast.success(t("seller.editor.success.imageUpdated"));
         },
-        onError: (error: unknown) => updateImageDraft(image.id, { status: "error", error: error instanceof Error ? error.message : "Image could not be saved." }),
+        onError: (error: unknown) => updateImageDraft(image.id, { status: "error", error: error instanceof Error ? error.message : t("seller.editor.error.imageSave") }),
       });
       return;
     }
     if (!image.file) return;
     uploadImage.mutate({ productId: workingProductId, file: image.file, altText: optionalText(image.altText), sortOrder: image.sortOrder, isPrimary: image.isPrimary, width: image.width, height: image.height }, {
       onSuccess: ({ image: savedImage }: { image: SellerProductImage }) => {
-        setImages((current) => current.map((item) => item.id === image.id ? { ...item, id: savedImage.id, url: savedImage.url, status: "existing", error: undefined } : item));
-        toast.success("Image uploaded.");
+        const savedDraft: ImageDraftState = {
+          ...image,
+          id: savedImage.id,
+          url: savedImage.url,
+          width: savedImage.width ?? image.width,
+          height: savedImage.height ?? image.height,
+          status: "existing",
+          error: undefined,
+          file: undefined,
+        };
+        setImages((current) => current.map((item) => item.id === image.id ? savedDraft : item));
+        setBaseline((current) => ({ ...current, images: [...current.images, toBaselineImage(savedDraft)] }));
+        toast.success(t("seller.editor.success.imageUploaded"));
       },
-      onError: (error: unknown) => updateImageDraft(image.id, { status: "error", error: error instanceof Error ? error.message : "Image upload failed." }),
+      onError: (error: unknown) => updateImageDraft(image.id, { status: "error", error: error instanceof Error ? error.message : t("seller.editor.error.imageUpload") }),
     });
   }
 
@@ -1400,9 +1592,10 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       deleteVideo.mutate(workingProductId, {
         onSuccess: () => {
           setVideo(null);
-          toast.success("Video removed.");
+          setBaseline((current) => ({ ...current, video: null }));
+          toast.success(t("seller.editor.success.videoRemoved"));
         },
-        onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : "Video could not be removed."),
+        onError: (error: unknown) => setMediaError(error instanceof Error ? error.message : t("seller.editor.error.videoRemove")),
       });
       return;
     }
@@ -1411,24 +1604,26 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
 
   function saveVideo() {
     if (!workingProductId) {
-      setMediaError("Save the product as a draft before uploading media.");
+      setMediaError(t("seller.editor.error.draftBeforeMedia"));
       return;
     }
     if (!video?.file) return;
     setVideo((current) => current ? { ...current, status: "uploading", error: undefined } : current);
     uploadVideo.mutate({ productId: workingProductId, file: video.file, sortOrder: 0 }, {
       onSuccess: ({ video: savedVideo }: { video: SellerProductVideo }) => {
-        setVideo({
+        const savedDraft: VideoDraftState = {
           id: savedVideo.id,
           url: savedVideo.url,
           contentType: savedVideo.contentType,
           fileName: savedVideo.fileName,
           fileSize: savedVideo.fileSize,
           status: "existing",
-        });
-        toast.success("Video uploaded.");
+        };
+        setVideo(savedDraft);
+        setBaseline((current) => ({ ...current, video: toBaselineVideo(savedDraft) }));
+        toast.success(t("seller.editor.success.videoUploaded"));
       },
-      onError: (error: unknown) => setVideo((current) => current ? { ...current, status: "error", error: error instanceof Error ? error.message : "Video upload failed." } : current),
+      onError: (error: unknown) => setVideo((current) => current ? { ...current, status: "error", error: error instanceof Error ? error.message : t("seller.editor.error.videoUpload") } : current),
     });
   }
 
@@ -1439,7 +1634,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   function generateVariantsFromOptions() {
     const combinations = buildOptionCombinations(options);
     if (!combinations.length) {
-      setVariantError("Add at least one option value before generating variant rows.");
+      setVariantError(t("seller.editor.error.optionValueBeforeRows"));
       return;
     }
     setVariantError("");
@@ -1447,7 +1642,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       const existingKeys = new Set(current.map(getOptionCombinationKey).filter(Boolean));
       const nextRows = combinations
         .filter((combination) => !existingKeys.has(combination.slice().sort().join("|")))
-        .map((combination, index) => buildGeneratedVariant(combination, current.length + index, options));
+        .map((combination, index) => buildGeneratedVariant(combination, current.length + index, options, t));
       return [...current, ...nextRows];
     });
   }
@@ -1479,7 +1674,15 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   }
 
   function deleteVariantDraft(variant: VariantFormState, index: number) {
-    if (!window.confirm(`Delete variant ${variant.title || variant.sku || index + 1}?`)) return;
+    setConfirmation({
+      type: "delete-variant",
+      variant,
+      index,
+      label: getLocalizedText(locale, variant.title, variant.titleTh, variant.titleEn) || variant.sku || t("seller.editor.variant.generatedName").replace("{index}", String(index + 1)),
+    });
+  }
+
+  function performDeleteVariantDraft(variant: VariantFormState, index: number) {
     if (!variant.id || !workingProductId) {
       setVariants((current) => current.filter((_, variantIndex) => variantIndex !== index));
       return;
@@ -1487,61 +1690,96 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     deleteVariant.mutate({ productId: workingProductId, variantId: variant.id }, {
       onSuccess: () => {
         setVariants((current) => current.filter((item) => item.id !== variant.id));
-        toast.success("Variant deleted.");
+        setBaseline((current) => ({ ...current, variants: current.variants.filter((item) => item.id !== variant.id) }));
+        toast.success(t("seller.editor.success.variantDeleted"));
       },
-      onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : "Variant could not be deleted."),
+      onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : t("seller.editor.error.variantDelete")),
     });
   }
 
   function saveVariant(variant: VariantFormState, index: number) {
     setVariantError("");
     if (!workingProductId) {
-      setVariantError("Save the product as a draft before adding variants.");
+      setVariantError(t("seller.editor.error.draftBeforeVariants"));
       return;
     }
     if (!variant.sku.trim() || !variant.title.trim()) {
-      setVariantError("Variant SKU and title are required.");
+      setVariantError(t("seller.editor.error.variantRequired"));
+      document.getElementById(!variant.sku.trim() ? `variant-sku-${index}` : `variant-title-${index}`)?.focus();
       return;
     }
-    const rowErrors = getVariantRowErrors(variant, index, duplicateSkuIndexes, duplicateCombinationIndexes);
+    const rowErrors = getVariantRowErrors(variant, index, duplicateSkuIndexes, duplicateCombinationIndexes, t);
     if (rowErrors.length) {
       setVariantError(rowErrors.join(" "));
+      document.getElementById(`variant-sku-${index}`)?.focus();
       return;
     }
     if (Number(variant.price || "0") < 0 || Number(variant.quantityOnHand || "0") < 0 || Number(variant.reorderLevel || "0") < 0) {
-      setVariantError("Variant price and stock values cannot be negative.");
+      setVariantError(t("seller.editor.error.variantNegative"));
       return;
     }
     const input = toVariantInput(variant);
-    const saveStock = (variantId: string) => {
+    const saveStock = (savedVariant: VariantFormState, successMessage: string) => {
       updateVariantStock.mutate({
         productId: workingProductId,
-        variantId,
+        variantId: savedVariant.id!,
         quantityOnHand: input.quantityOnHand,
         reorderLevel: input.reorderLevel,
       }, {
-        onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : "Variant stock could not be saved."),
+        onSuccess: () => {
+          setBaseline((current) => {
+            const exists = current.variants.some((item) => item.id === savedVariant.id);
+            return {
+              ...current,
+              variants: exists
+                ? current.variants.map((item) => item.id === savedVariant.id ? { ...savedVariant, optionValueIds: [...savedVariant.optionValueIds] } : item)
+                : [...current.variants, { ...savedVariant, optionValueIds: [...savedVariant.optionValueIds] }],
+            };
+          });
+          toast.success(successMessage);
+        },
+        onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : t("seller.editor.error.variantStockSave")),
       });
     };
     if (variant.id) {
       updateVariant.mutate({ productId: workingProductId, variantId: variant.id, ...input }, {
         onSuccess: () => {
-          saveStock(variant.id!);
-          toast.success("Variant updated.");
+          saveStock({ ...variant, id: variant.id }, t("seller.editor.success.variantUpdated"));
         },
-        onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : "Variant could not be saved."),
+        onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : t("seller.editor.error.variantSave")),
       });
       return;
     }
     createVariant.mutate({ productId: workingProductId, ...input }, {
       onSuccess: (savedVariant: { id: string }) => {
+        const savedDraft = { ...variant, id: savedVariant.id };
         updateVariantDraft(index, { id: savedVariant.id });
-        saveStock(savedVariant.id);
-        toast.success("Variant created.");
+        saveStock(savedDraft, t("seller.editor.success.variantCreated"));
       },
-      onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : "Variant could not be saved."),
+      onError: (error: unknown) => setVariantError(error instanceof Error ? error.message : t("seller.editor.error.variantSave")),
     });
   }
+
+  function confirmPendingAction() {
+    if (!confirmation) return;
+    const pending = confirmation;
+    setConfirmation(null);
+    if (pending.type === "discard") {
+      router.push("/seller/products");
+      return;
+    }
+    if (pending.type === "remove-option") {
+      performRemoveOption(pending.index);
+      return;
+    }
+    if (pending.type === "remove-option-value") {
+      performRemoveOptionValue(pending.optionIndex, pending.valueIndex);
+      return;
+    }
+    performDeleteVariantDraft(pending.variant, pending.index);
+  }
+
+  const confirmationCopy = confirmation ? getProductStudioConfirmationCopy(confirmation, t) : null;
 
   if (mode === "edit" && (productQuery.error || productsQuery.error)) {
     return (
@@ -1552,7 +1790,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     );
   }
 
-  if (mode === "edit" && (productQuery.isLoading || productsQuery.isLoading)) {
+  if (mode === "edit" && !product && (productQuery.isLoading || productsQuery.isLoading)) {
     return (
       <>
         <SellerPageHeader title={t("seller.editor.editTitle")} description={t("seller.editor.editDescription")} />
@@ -1574,7 +1812,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     <>
       <SellerPageHeader title={t("seller.editor.studioTitle")} description={t("seller.editor.studioDescription")} />
       <ProductStudioHeader
-        productTitle={form.title || workingProduct?.title || "Untitled product draft"}
+        productTitle={getLocalizedText(locale, form.title, form.titleTh, form.titleEn) || workingProduct?.title || t("seller.editor.untitledDraft")}
         productStatus={form.status}
         saveState={saveState}
         isSaving={isSaving}
@@ -1583,23 +1821,23 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
         onCancel={cancel}
       />
       <ProductStudioNav />
-      <form id="seller-product-studio-form" className="flex flex-col gap-4" onSubmit={submitProduct}>
+      <form id="seller-product-studio-form" className="flex flex-col gap-4" autoComplete="off" onSubmit={submitProduct}>
         <div className="space-y-4">
-          <ProductSection id="basics" title="Basics" description="Core listing identity, buyer-facing copy, SEO, brand, condition, warranty, and origin.">
+          <ProductSection id="basics">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Title" htmlFor="product-title"><Input id="product-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required aria-describedby={formError ? "product-form-error" : undefined} /></Field>
-              <Field label="Slug" htmlFor="product-slug"><Input id="product-slug" value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="optional-slug" /></Field>
+              <Field label="Title" htmlFor="product-title"><Input id="product-title" name="title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required aria-describedby={formError ? "product-form-error" : undefined} /></Field>
+              <Field label="Slug" htmlFor="product-slug"><Input id="product-slug" name="slug" value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="optional-slug" /></Field>
             </div>
-            <Field label="Description" htmlFor="product-description"><Textarea id="product-description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={4} /></Field>
+            <Field label="Description" htmlFor="product-description"><Textarea id="product-description" name="description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={4} /></Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Thai title" htmlFor="product-title-th"><Input id="product-title-th" value={form.titleTh} onChange={(event) => setForm((current) => ({ ...current, titleTh: event.target.value }))} /></Field>
-              <Field label="English title" htmlFor="product-title-en"><Input id="product-title-en" value={form.titleEn} onChange={(event) => setForm((current) => ({ ...current, titleEn: event.target.value }))} /></Field>
-              <Field label="Thai description" htmlFor="product-description-th"><Textarea id="product-description-th" value={form.descriptionTh} onChange={(event) => setForm((current) => ({ ...current, descriptionTh: event.target.value }))} rows={3} /></Field>
-              <Field label="English description" htmlFor="product-description-en"><Textarea id="product-description-en" value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} rows={3} /></Field>
+              <Field label="Thai title" htmlFor="product-title-th"><Input id="product-title-th" name="titleTh" value={form.titleTh} onChange={(event) => setForm((current) => ({ ...current, titleTh: event.target.value }))} /></Field>
+              <Field label="English title" htmlFor="product-title-en"><Input id="product-title-en" name="titleEn" value={form.titleEn} onChange={(event) => setForm((current) => ({ ...current, titleEn: event.target.value }))} /></Field>
+              <Field label="Thai description" htmlFor="product-description-th"><Textarea id="product-description-th" name="descriptionTh" value={form.descriptionTh} onChange={(event) => setForm((current) => ({ ...current, descriptionTh: event.target.value }))} rows={3} /></Field>
+              <Field label="English description" htmlFor="product-description-en"><Textarea id="product-description-en" name="descriptionEn" value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} rows={3} /></Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Brand" htmlFor="product-brand">
-                <Select value={form.brandId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, brandId: value === "NONE" ? "" : value }))}>
+                <Select name="brandId" value={form.brandId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, brandId: value === "NONE" ? "" : value }))}>
                   <SelectTrigger id="product-brand" aria-label={t("seller.products.labels.brand" as never)}><SelectValue placeholder={t("seller.products.editorActions.selectBrand" as never)} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="NONE">{t("seller.products.editorActions.noBrand" as never)}</SelectItem>
@@ -1607,28 +1845,28 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="SEO title" htmlFor="product-meta-title"><Input id="product-meta-title" value={form.metaTitle} onChange={(event) => setForm((current) => ({ ...current, metaTitle: event.target.value }))} /></Field>
+              <Field label="SEO title" htmlFor="product-meta-title"><Input id="product-meta-title" name="metaTitle" value={form.metaTitle} onChange={(event) => setForm((current) => ({ ...current, metaTitle: event.target.value }))} /></Field>
             </div>
-            <Field label="SEO description" htmlFor="product-meta-description"><Textarea id="product-meta-description" value={form.metaDescription} onChange={(event) => setForm((current) => ({ ...current, metaDescription: event.target.value }))} rows={2} /></Field>
+            <Field label="SEO description" htmlFor="product-meta-description"><Textarea id="product-meta-description" name="metaDescription" value={form.metaDescription} onChange={(event) => setForm((current) => ({ ...current, metaDescription: event.target.value }))} rows={2} /></Field>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Condition" htmlFor="product-condition"><Input id="product-condition" value={form.condition} onChange={(event) => setForm((current) => ({ ...current, condition: event.target.value }))} placeholder="New" /></Field>
-              <Field label="Warranty info" htmlFor="product-warranty"><Input id="product-warranty" value={form.warrantyInfo} onChange={(event) => setForm((current) => ({ ...current, warrantyInfo: event.target.value }))} /></Field>
-              <Field label="Country of origin" htmlFor="product-origin"><Input id="product-origin" value={form.countryOfOrigin} onChange={(event) => setForm((current) => ({ ...current, countryOfOrigin: event.target.value }))} placeholder="TH" /></Field>
+              <Field label="Condition" htmlFor="product-condition"><Input id="product-condition" name="condition" value={form.condition} onChange={(event) => setForm((current) => ({ ...current, condition: event.target.value }))} placeholder={t("seller.editor.placeholder.condition")} /></Field>
+              <Field label="Warranty info" htmlFor="product-warranty"><Input id="product-warranty" name="warrantyInfo" value={form.warrantyInfo} onChange={(event) => setForm((current) => ({ ...current, warrantyInfo: event.target.value }))} /></Field>
+              <Field label="Country of origin" htmlFor="product-origin"><Input id="product-origin" name="countryOfOrigin" value={form.countryOfOrigin} onChange={(event) => setForm((current) => ({ ...current, countryOfOrigin: event.target.value }))} placeholder="TH" /></Field>
             </div>
           </ProductSection>
-          <ProductSection id="category-specs" title="Category & Specs" description="Choose the primary category and enter category-specific specifications as attributes.">
+          <ProductSection id="category-specs">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Category" htmlFor="product-category">
-                <Select value={form.categoryId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, categoryId: value === "NONE" ? "" : value }))}>
+                <Select name="categoryId" value={form.categoryId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, categoryId: value === "NONE" ? "" : value }))}>
                   <SelectTrigger id="product-category" aria-label={t("seller.products.labels.category" as never)}><SelectValue placeholder={t("seller.products.editorActions.selectCategory" as never)} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="NONE">{t("seller.products.editorActions.noCategory" as never)}</SelectItem>
-                    {(categoriesQuery.data ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+                    {(categoriesQuery.data ?? []).map((category) => <SelectItem key={category.id} value={category.id}>{getLocalizedText(locale, category.name, category.nameTh, category.nameEn)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
               <Field label="Status" htmlFor="product-status">
-                <Select value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as ProductStatus }))}>
+                <Select name="status" value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as ProductStatus }))}>
                   <SelectTrigger id="product-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="DRAFT">{t("seller.products.statusDraft" as never)}</SelectItem>
@@ -1661,7 +1899,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                         fieldId={fieldId}
                         value={value}
                         isMissing={isMissing}
-                        onChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue))}
+                        onChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue, locale))}
                       />
                     );
                   })}
@@ -1684,99 +1922,99 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                         spec={spec}
                         fieldId={fieldId}
                         value={value}
-                        onChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue))}
+                        onChange={(nextValue) => setForm((current) => updateAttributeValue(current, spec, nextValue, locale))}
                       />
                     );
                   })}
                 </div>
               ) : <p className="text-sm text-slate-500">{t("seller.products.editorActions.noOptionalSpecs" as never)}</p>}
             </div>
-            <Field label="Additional specifications" htmlFor="product-attributes"><Textarea id="product-attributes" value={getAdditionalAttributesText(form, categorySpecs)} onChange={(event) => setForm((current) => updateAdditionalAttributesText(current, categorySpecs, event.target.value))} rows={3} placeholder="care|Care instructions|Machine wash cold" /></Field>
-            <Field label="Highlights" htmlFor="product-highlights"><Textarea id="product-highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder="One highlight per line" /></Field>
+            <Field label="Additional specifications" htmlFor="product-attributes"><Textarea id="product-attributes" name="additionalSpecifications" value={getAdditionalAttributesText(form, categorySpecs)} onChange={(event) => setForm((current) => updateAdditionalAttributesText(current, categorySpecs, event.target.value))} rows={3} placeholder={t("seller.editor.placeholder.additionalSpecs")} /></Field>
+            <Field label="Highlights" htmlFor="product-highlights"><Textarea id="product-highlights" name="highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder={t("seller.editor.placeholder.highlights")} /></Field>
           </ProductSection>
         </div>
         <div className="space-y-4">
-          <ProductSection id="media" title="Media" description="Upload up to 10 images and one MP4/WebM video after the product has a draft record.">
+          <ProductSection id="media">
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.editorActions.saveDraftMedia" as never)}</p> : null}
             {!hasPrimaryImage ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.editorActions.readinessWarning" as never)}</p> : null}
             <div
-              className={`rounded-lg border border-dashed p-4 text-sm ${isDraggingImages ? "border-slate-900 bg-slate-50 text-slate-900" : "border-slate-300 bg-white text-slate-600"}`}
+              className={`rounded-lg border border-dashed p-4 text-sm ${isDraggingImages ? "select-none border-slate-900 bg-slate-50 text-slate-900" : "border-slate-300 bg-white text-slate-600"}`}
               onDragOver={(event) => handleImageDrag(event, true)}
               onDragLeave={(event) => handleImageDrag(event, false)}
               onDrop={handleImageDrop}
             >
-              Drag product images here, or use the upload button.
+              {t("seller.editor.media.dropImages")}
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <input ref={imageInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={addImageFiles} aria-label={t("seller.products.editorActions.uploadImages" as never)} />
+              <input ref={imageInputRef} name="productImages" type="file" accept="image/*" multiple className="sr-only" onChange={addImageFiles} aria-label={t("seller.products.editorActions.uploadImages" as never)} />
               <Button type="button" variant="outline" onClick={() => imageInputRef.current?.click()}>
                 <UploadIcon className="size-4" />
-                Add images
+                {t("seller.editor.media.addImages")}
               </Button>
-              <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" className="sr-only" onChange={addVideoFile} aria-label={t("seller.products.editorActions.uploadVideo" as never)} />
+              <input ref={videoInputRef} name="productVideo" type="file" accept="video/mp4,video/webm" className="sr-only" onChange={addVideoFile} aria-label={t("seller.products.editorActions.uploadVideo" as never)} />
               <Button type="button" variant="outline" onClick={() => videoInputRef.current?.click()}>
                 <UploadIcon className="size-4" />
-                Add video
+                {t("seller.editor.media.addVideo")}
               </Button>
             </div>
             <p className="text-xs text-slate-500">{t("seller.products.mediaCount" as never).replace("{count}", String(images.length)).replace("{max}", String(MAX_PRODUCT_IMAGES))}</p>
-            {mediaError ? <p className="text-sm text-red-600">{mediaError}</p> : null}
+            {mediaError ? <p role="alert" className="text-sm text-red-600">{mediaError}</p> : null}
             {images.some((image) => image.status === "existing") ? (
               <Button type="button" variant="outline" onClick={saveImageOrder} disabled={isSaving}>{t("seller.products.editorActions.saveImageOrder" as never)}</Button>
             ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
               {images.map((image, imageIndex) => (
                 <div key={image.id} className="space-y-3 rounded-lg border border-slate-200 p-3">
-                  <img src={image.url} alt={image.altText || "Product image preview"} className="aspect-square w-full rounded-md object-cover" />
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <img src={image.url} alt={image.altText || t("seller.editor.media.imagePreviewAlt")} width={image.width ?? 800} height={image.height ?? 800} loading="lazy" decoding="async" className="aspect-square w-full rounded-md object-cover" />
+                  <div aria-live="polite" className="flex flex-wrap items-center gap-2 text-xs">
                     <span className={`rounded-full px-2 py-1 font-semibold ${image.status === "error" ? "bg-red-100 text-red-700" : image.status === "uploading" ? "bg-blue-100 text-blue-700" : image.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                      {image.status === "existing" ? t("seller.products.completed" as never) : image.status}
+                      {getDraftStatusLabel(image.status, t)}
                     </span>
                     {image.isPrimary ? <span className="rounded-full bg-slate-900 px-2 py-1 font-semibold text-white">{t("seller.products.primary" as never)}</span> : null}
                   </div>
                   <Field label="Alt text" htmlFor={`image-alt-${image.id}`}>
-                    <Input id={`image-alt-${image.id}`} value={image.altText} onChange={(event) => updateImageDraft(image.id, { altText: event.target.value })} />
+                    <Input id={`image-alt-${image.id}`} name={`images.${imageIndex}.altText`} value={image.altText} onChange={(event) => updateImageDraft(image.id, { altText: event.target.value })} />
                   </Field>
                   <div className="grid grid-cols-2 gap-2">
                     <Field label="Order" htmlFor={`image-order-${image.id}`}>
-                      <Input id={`image-order-${image.id}`} type="number" min="0" value={image.sortOrder} onChange={(event) => updateImageDraft(image.id, { sortOrder: Number(event.target.value) })} />
+                      <Input id={`image-order-${image.id}`} name={`images.${imageIndex}.sortOrder`} type="number" min="0" value={image.sortOrder} onChange={(event) => updateImageDraft(image.id, { sortOrder: Number(event.target.value) })} className="tabular-nums" />
                     </Field>
                     <label className="flex items-end gap-2 pb-2 text-sm text-slate-700">
-                      <input type="radio" name="primary-image" checked={image.isPrimary} onChange={() => setPrimaryImage(image.id)} />
-                      Primary
+                      <input type="radio" name="primaryImage" value={image.id} checked={image.isPrimary} onChange={() => setPrimaryImage(image.id)} />
+                      {t("seller.products.primary" as never)}
                     </label>
                   </div>
-                  {image.error ? <p className="text-sm text-red-600">{image.error}</p> : null}
+                  {image.error ? <p role="alert" className="text-sm text-red-600">{image.error}</p> : null}
                   <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" aria-label={`Move image ${imageIndex + 1} up`} onClick={() => moveImage(image.id, -1)} disabled={imageIndex === 0}><ArrowUpIcon className="size-4" /></Button>
-                    <Button type="button" variant="outline" aria-label={`Move image ${imageIndex + 1} down`} onClick={() => moveImage(image.id, 1)} disabled={imageIndex === images.length - 1}><ArrowDownIcon className="size-4" /></Button>
-                    <Button type="button" variant="outline" onClick={() => saveImage(image)} disabled={isSaving}>{image.status === "uploading" ? "Uploading..." : image.status === "error" ? "Retry" : "Save image"}</Button>
-                    <Button type="button" variant="outline" aria-label={`Remove image ${image.altText || image.id}`} onClick={() => removeImage(image)}><TrashIcon className="size-4" /></Button>
+                    <Button type="button" variant="outline" aria-label={t("seller.editor.media.moveImageUp").replace("{index}", String(imageIndex + 1))} onClick={() => moveImage(image.id, -1)} disabled={imageIndex === 0}><ArrowUpIcon className="size-4" /></Button>
+                    <Button type="button" variant="outline" aria-label={t("seller.editor.media.moveImageDown").replace("{index}", String(imageIndex + 1))} onClick={() => moveImage(image.id, 1)} disabled={imageIndex === images.length - 1}><ArrowDownIcon className="size-4" /></Button>
+                    <Button type="button" variant="outline" onClick={() => saveImage(image)} disabled={isSaving}>{image.status === "uploading" ? t("seller.products.editorActions.uploading" as never) : image.status === "error" ? t("seller.editor.retry") : t("seller.products.editorActions.saveImage" as never)}</Button>
+                    <Button type="button" variant="outline" aria-label={t("seller.editor.media.removeImageLabel").replace("{name}", image.altText || image.id)} onClick={() => removeImage(image)}><TrashIcon className="size-4" /></Button>
                   </div>
                 </div>
               ))}
             </div>
             {video ? (
               <div className="space-y-3 rounded-lg border border-slate-200 p-3">
-                <p className="text-sm font-medium text-slate-900">{video.fileName ?? "Product video"}</p>
-                <p className="text-xs text-slate-500">{video.contentType ?? "video"} {video.fileSize ? `- ${(video.fileSize / 1024 / 1024).toFixed(1)}MB` : ""}</p>
-                {video.url && video.contentType && PRODUCT_VIDEO_TYPES.includes(video.contentType) ? <video src={video.url} controls className="aspect-video w-full rounded-md bg-slate-100" /> : <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.videoPreviewUnavailable" as never)}</p>}
-                <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${video.status === "error" ? "bg-red-100 text-red-700" : video.status === "uploading" ? "bg-blue-100 text-blue-700" : video.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                  {video.status === "existing" ? t("seller.products.completed" as never) : video.status}
+                <p className="text-sm font-medium text-slate-900">{video.fileName ?? t("seller.products.editorActions.productVideo" as never)}</p>
+                <p className="text-xs tabular-nums text-slate-500">{video.contentType ?? t("seller.editor.media.videoTypeFallback")} {video.fileSize ? `· ${(video.fileSize / 1024 / 1024).toFixed(1)} MB` : ""}</p>
+                {video.url && video.contentType && PRODUCT_VIDEO_TYPES.includes(video.contentType) ? <video src={video.url} controls preload="metadata" aria-label={t("seller.editor.media.videoPreviewLabel")} className="aspect-video w-full rounded-md bg-slate-100" /> : <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.videoPreviewUnavailable" as never)}</p>}
+                <span aria-live="polite" className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${video.status === "error" ? "bg-red-100 text-red-700" : video.status === "uploading" ? "bg-blue-100 text-blue-700" : video.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                  {getDraftStatusLabel(video.status, t)}
                 </span>
-                {video.error ? <p className="text-sm text-red-600">{video.error}</p> : null}
+                {video.error ? <p role="alert" className="text-sm text-red-600">{video.error}</p> : null}
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={saveVideo} disabled={isSaving || video.status === "existing"}>{video.status === "uploading" ? "Uploading..." : video.status === "error" ? "Retry video" : "Save video"}</Button>
+                  <Button type="button" variant="outline" onClick={saveVideo} disabled={isSaving || video.status === "existing"}>{video.status === "uploading" ? t("seller.products.editorActions.uploading" as never) : video.status === "error" ? t("seller.editor.media.retryVideo") : t("seller.editor.media.saveVideo")}</Button>
                   <Button type="button" variant="outline" onClick={removeVideo}>{t("seller.products.editorActions.removeVideo" as never)}</Button>
                 </div>
               </div>
             ) : null}
             {!video ? <p className="rounded-lg border border-slate-200 p-3 text-sm text-slate-500">{t("seller.products.editorActions.noVideo" as never)}</p> : null}
           </ProductSection>
-          <ProductSection id="variants" title="Variants" description="Define option axes, option values, and sellable variant rows.">
+          <ProductSection id="variants">
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.editorActions.saveDraftMedia" as never)}</p> : null}
-            {optionError ? <p className="text-sm text-red-600">{optionError}</p> : null}
-            {duplicateCombinationError ? <p className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
+            {optionError ? <p role="alert" className="text-sm text-red-600">{optionError}</p> : null}
+            {duplicateCombinationError ? <p role="alert" className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={addOption} disabled={options.length >= 2}><PlusIcon className="size-4" />{t("seller.products.editorActions.addOption" as never)}</Button>
               <Button type="button" variant="outline" onClick={saveOptions} disabled={isSaving}>{t("seller.products.editorActions.saveOptions" as never)}</Button>
@@ -1787,86 +2025,86 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               {options.length ? options.map((option, optionIndex) => (
                 <div key={option.id} className="space-y-3 rounded-lg border border-slate-200 p-3">
                   <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                    <Field label="Option name" htmlFor={`option-name-${optionIndex}`}><Input id={`option-name-${optionIndex}`} value={option.name} onChange={(event) => updateOptionDraft(optionIndex, { name: event.target.value })} placeholder="Color" /></Field>
-                    <Field label="Thai name" htmlFor={`option-name-th-${optionIndex}`}><Input id={`option-name-th-${optionIndex}`} value={option.nameTh} onChange={(event) => updateOptionDraft(optionIndex, { nameTh: event.target.value })} /></Field>
-                    <div className="flex items-end"><Button type="button" variant="outline" onClick={() => removeOption(optionIndex)}>Remove</Button></div>
+                    <Field label="Option name" htmlFor={`option-name-${optionIndex}`}><Input id={`option-name-${optionIndex}`} name={`options.${optionIndex}.name`} value={option.name} onChange={(event) => updateOptionDraft(optionIndex, { name: event.target.value })} placeholder={t("seller.editor.placeholder.optionName")} /></Field>
+                    <Field label="Thai name" htmlFor={`option-name-th-${optionIndex}`}><Input id={`option-name-th-${optionIndex}`} name={`options.${optionIndex}.nameTh`} value={option.nameTh} onChange={(event) => updateOptionDraft(optionIndex, { nameTh: event.target.value })} /></Field>
+                    <div className="flex items-end"><Button type="button" variant="outline" onClick={() => removeOption(optionIndex)}>{t("seller.products.editorActions.remove" as never)}</Button></div>
                   </div>
                   <div className="space-y-2">
                     {option.values.map((value, valueIndex) => (
                       <div key={value.id} className="grid gap-2 sm:grid-cols-[1fr_1fr_100px_auto_auto]">
-                        <Input aria-label={`Option ${optionIndex + 1} value ${valueIndex + 1}`} value={value.value} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { value: event.target.value })} placeholder="Black" />
-                        <Input aria-label={`Option ${optionIndex + 1} value ${valueIndex + 1} Thai`} value={value.valueTh} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { valueTh: event.target.value })} />
-                        <Input aria-label={`Option ${optionIndex + 1} value ${valueIndex + 1} color`} value={value.colorHex} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { colorHex: event.target.value })} placeholder="#000000" />
+                        <Input name={`options.${optionIndex}.values.${valueIndex}.value`} aria-label={t("seller.editor.variant.optionValueLabel").replace("{option}", String(optionIndex + 1)).replace("{value}", String(valueIndex + 1))} value={value.value} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { value: event.target.value })} placeholder={t("seller.editor.placeholder.optionValue")} />
+                        <Input name={`options.${optionIndex}.values.${valueIndex}.valueTh`} aria-label={t("seller.editor.variant.optionValueThaiLabel").replace("{option}", String(optionIndex + 1)).replace("{value}", String(valueIndex + 1))} value={value.valueTh} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { valueTh: event.target.value })} />
+                        <Input name={`options.${optionIndex}.values.${valueIndex}.colorHex`} aria-label={t("seller.editor.variant.optionValueColorLabel").replace("{option}", String(optionIndex + 1)).replace("{value}", String(valueIndex + 1))} value={value.colorHex} onChange={(event) => updateOptionValueDraft(optionIndex, valueIndex, { colorHex: event.target.value })} placeholder="#000000" />
                         <div className="flex gap-1">
-                          <Button type="button" variant="outline" aria-label={`Move option ${optionIndex + 1} value ${valueIndex + 1} up`} onClick={() => moveOptionValue(optionIndex, valueIndex, -1)} disabled={valueIndex === 0}><ArrowUpIcon className="size-4" /></Button>
-                          <Button type="button" variant="outline" aria-label={`Move option ${optionIndex + 1} value ${valueIndex + 1} down`} onClick={() => moveOptionValue(optionIndex, valueIndex, 1)} disabled={valueIndex === option.values.length - 1}><ArrowDownIcon className="size-4" /></Button>
+                          <Button type="button" variant="outline" aria-label={t("seller.editor.variant.moveValueUp").replace("{option}", String(optionIndex + 1)).replace("{value}", String(valueIndex + 1))} onClick={() => moveOptionValue(optionIndex, valueIndex, -1)} disabled={valueIndex === 0}><ArrowUpIcon className="size-4" /></Button>
+                          <Button type="button" variant="outline" aria-label={t("seller.editor.variant.moveValueDown").replace("{option}", String(optionIndex + 1)).replace("{value}", String(valueIndex + 1))} onClick={() => moveOptionValue(optionIndex, valueIndex, 1)} disabled={valueIndex === option.values.length - 1}><ArrowDownIcon className="size-4" /></Button>
                         </div>
-                        <Button type="button" variant="outline" onClick={() => removeOptionValue(optionIndex, valueIndex)}>Remove</Button>
+                        <Button type="button" variant="outline" onClick={() => removeOptionValue(optionIndex, valueIndex)}>{t("seller.products.editorActions.remove" as never)}</Button>
                       </div>
                     ))}
                   </div>
-                  <Button type="button" variant="outline" onClick={() => addOptionValue(optionIndex)}>Add value</Button>
+                  <Button type="button" variant="outline" onClick={() => addOptionValue(optionIndex)}>{t("seller.products.editorActions.addValue" as never)}</Button>
                 </div>
               )) : <p className="text-sm text-slate-500">{t("seller.products.noStructuredOptions" as never)}</p>}
             </div>
           </ProductSection>
           <ProductSection title={t("seller.products.variantRowsTitle" as never)} description={t("seller.products.variantRowsDescription" as never)}>
-            {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">Save this product as a draft before adding variants.</p> : null}
-            {variantError ? <p className="text-sm text-red-600">{variantError}</p> : null}
+            {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.editor.error.draftBeforeVariants")}</p> : null}
+            {variantError ? <p role="alert" className="text-sm text-red-600">{variantError}</p> : null}
             <div className="grid gap-2 rounded-lg border border-slate-200 p-3 sm:grid-cols-[1fr_1fr_1fr_auto_auto_auto]">
-              <Field label="Bulk price" htmlFor="bulk-price"><Input id="bulk-price" type="number" min="0" step="0.01" value={bulk.price} onChange={(event) => setBulk((current) => ({ ...current, price: event.target.value }))} /></Field>
-              <Field label="Bulk stock" htmlFor="bulk-stock"><Input id="bulk-stock" type="number" min="0" value={bulk.stock} onChange={(event) => setBulk((current) => ({ ...current, stock: event.target.value }))} /></Field>
+              <Field label="Bulk price" htmlFor="bulk-price"><Input id="bulk-price" name="bulkPrice" type="number" min="0" step="0.01" value={bulk.price} onChange={(event) => setBulk((current) => ({ ...current, price: event.target.value }))} className="tabular-nums" /></Field>
+              <Field label="Bulk stock" htmlFor="bulk-stock"><Input id="bulk-stock" name="bulkStock" type="number" min="0" value={bulk.stock} onChange={(event) => setBulk((current) => ({ ...current, stock: event.target.value }))} className="tabular-nums" /></Field>
               <Field label="Bulk status" htmlFor="bulk-status">
-                <Select value={bulk.status} onValueChange={(value) => setBulk((current) => ({ ...current, status: value as VariantStatus }))}>
+                <Select name="bulkStatus" value={bulk.status} onValueChange={(value) => setBulk((current) => ({ ...current, status: value as VariantStatus }))}>
                   <SelectTrigger id="bulk-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    <SelectItem value="ACTIVE">{t("seller.manage.status.active")}</SelectItem>
+                    <SelectItem value="INACTIVE">{t("seller.manage.status.inactive")}</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
-              <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("price")}>Apply price</Button></div>
-              <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("stock")}>Apply stock</Button></div>
-              <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("status")}>Apply status</Button></div>
+              <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("price")}>{t("seller.products.editorActions.applyPrice" as never)}</Button></div>
+              <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("stock")}>{t("seller.products.editorActions.applyStock" as never)}</Button></div>
+              <div className="flex items-end"><Button type="button" variant="outline" onClick={() => applyBulk("status")}>{t("seller.products.editorActions.applyStatus" as never)}</Button></div>
             </div>
             <Button type="button" variant="outline" onClick={addVariant}><PlusIcon className="size-4" />{t("seller.products.editorActions.addVariant" as never)}</Button>
             <div className="space-y-3">
               {variants.map((variant, index) => {
-                const rowErrors = getVariantRowErrors(variant, index, duplicateSkuIndexes, duplicateCombinationIndexes);
+                const rowErrors = getVariantRowErrors(variant, index, duplicateSkuIndexes, duplicateCombinationIndexes, t);
                 const available = getAvailableStock(variant);
                 return (
                 <div key={variant.id ?? index} className={`space-y-3 rounded-lg border p-3 ${rowErrors.length ? "border-red-200 bg-red-50" : variant.status === "INACTIVE" ? "border-slate-200 bg-slate-100 opacity-80" : available <= 0 ? "border-amber-200 bg-amber-50" : "border-slate-200"}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="min-w-0 text-sm font-semibold text-slate-900">{getVariantCombinationLabel(variant, options)}</p>
+                    <p className="min-w-0 text-sm font-semibold text-slate-900">{getVariantCombinationLabel(variant, options, locale, t)}</p>
                     <div className="flex flex-wrap gap-2 text-xs">
                       {variant.status === "INACTIVE" ? <span className="rounded-full bg-slate-200 px-2 py-1 font-semibold text-slate-700">{t("seller.products.editorActions.inactive" as never)}</span> : null}
                       {available <= 0 ? <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-800">{t("seller.products.editorActions.outOfStock" as never)}</span> : null}
                     </div>
                   </div>
-                  {rowErrors.length ? <p className="text-sm text-red-700">{rowErrors.join(" ")}</p> : null}
+                  {rowErrors.length ? <p role="alert" className="text-sm text-red-700">{rowErrors.join(" ")}</p> : null}
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="SKU" htmlFor={`variant-sku-${index}`}><Input id={`variant-sku-${index}`} value={variant.sku} onChange={(event) => updateVariantDraft(index, { sku: event.target.value })} /></Field>
-                    <Field label="Variant title" htmlFor={`variant-title-${index}`}><Input id={`variant-title-${index}`} value={variant.title} onChange={(event) => updateVariantDraft(index, { title: event.target.value })} /></Field>
-                    <Field label="Thai variant title" htmlFor={`variant-title-th-${index}`}><Input id={`variant-title-th-${index}`} value={variant.titleTh} onChange={(event) => updateVariantDraft(index, { titleTh: event.target.value })} /></Field>
-                    <Field label="English variant title" htmlFor={`variant-title-en-${index}`}><Input id={`variant-title-en-${index}`} value={variant.titleEn} onChange={(event) => updateVariantDraft(index, { titleEn: event.target.value })} /></Field>
-                    <Field label="Price" htmlFor={`variant-price-${index}`}><Input id={`variant-price-${index}`} type="number" min="0" step="0.01" value={variant.price} onChange={(event) => updateVariantDraft(index, { price: event.target.value })} /></Field>
-                    <Field label="Currency" htmlFor={`variant-currency-${index}`}><Input id={`variant-currency-${index}`} value={variant.currency} onChange={(event) => updateVariantDraft(index, { currency: event.target.value.toUpperCase() })} /></Field>
+                    <Field label="SKU" htmlFor={`variant-sku-${index}`}><Input id={`variant-sku-${index}`} name={`variants.${index}.sku`} value={variant.sku} onChange={(event) => updateVariantDraft(index, { sku: event.target.value })} /></Field>
+                    <Field label="Variant title" htmlFor={`variant-title-${index}`}><Input id={`variant-title-${index}`} name={`variants.${index}.title`} value={variant.title} onChange={(event) => updateVariantDraft(index, { title: event.target.value })} /></Field>
+                    <Field label="Thai variant title" htmlFor={`variant-title-th-${index}`}><Input id={`variant-title-th-${index}`} name={`variants.${index}.titleTh`} value={variant.titleTh} onChange={(event) => updateVariantDraft(index, { titleTh: event.target.value })} /></Field>
+                    <Field label="English variant title" htmlFor={`variant-title-en-${index}`}><Input id={`variant-title-en-${index}`} name={`variants.${index}.titleEn`} value={variant.titleEn} onChange={(event) => updateVariantDraft(index, { titleEn: event.target.value })} /></Field>
+                    <Field label="Price" htmlFor={`variant-price-${index}`}><Input id={`variant-price-${index}`} name={`variants.${index}.price`} type="number" min="0" step="0.01" value={variant.price} onChange={(event) => updateVariantDraft(index, { price: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label="Currency" htmlFor={`variant-currency-${index}`}><Input id={`variant-currency-${index}`} name={`variants.${index}.currency`} value={variant.currency} onChange={(event) => updateVariantDraft(index, { currency: event.target.value.toUpperCase() })} /></Field>
                     <Field label="Variant status" htmlFor={`variant-status-${index}`}>
-                      <Select value={variant.status} onValueChange={(value) => updateVariantDraft(index, { status: value as VariantStatus })}>
+                      <Select name={`variants.${index}.status`} value={variant.status} onValueChange={(value) => updateVariantDraft(index, { status: value as VariantStatus })}>
                         <SelectTrigger id={`variant-status-${index}`}><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ACTIVE">Active</SelectItem>
-                          <SelectItem value="INACTIVE">Inactive</SelectItem>
+                          <SelectItem value="ACTIVE">{t("seller.manage.status.active")}</SelectItem>
+                          <SelectItem value="INACTIVE">{t("seller.manage.status.inactive")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </Field>
                   </div>
                   {options.length ? (
                     <div className="space-y-2 rounded-md bg-slate-50 p-3">
-                      <p className="text-sm font-medium text-slate-900">Option values</p>
+                      <p className="text-sm font-medium text-slate-900">{t("seller.editor.variant.optionValues")}</p>
                       {options.map((option) => (
                         <div key={option.id} className="space-y-1">
-                          <p className="text-xs font-semibold text-slate-600">{option.name || "Option"}</p>
+                          <p className="text-xs font-semibold text-slate-600">{option.name || t("seller.editor.variant.optionFallback")}</p>
                           <div className="flex flex-wrap gap-2">
                             {option.values.map((value) => {
                               const checked = variant.optionValueIds.includes(value.id);
@@ -1874,6 +2112,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                                 <label key={value.id} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-700">
                                   <input
                                     type="checkbox"
+                                    name={`variants.${index}.optionValueIds`}
+                                    value={value.id}
                                     checked={checked}
                                     onChange={(event) => {
                                       const nextIds = event.target.checked
@@ -1882,7 +2122,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                                       updateVariantDraft(index, { optionValueIds: nextIds });
                                     }}
                                   />
-                                  {value.value || "Value"}
+                                  {value.value || t("seller.editor.variant.valueFallback")}
                                 </label>
                               );
                             })}
@@ -1892,16 +2132,16 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                     </div>
                   ) : null}
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Quantity on hand" htmlFor={`variant-on-hand-${index}`}><Input id={`variant-on-hand-${index}`} type="number" min="0" value={variant.quantityOnHand} onChange={(event) => updateVariantDraft(index, { quantityOnHand: event.target.value })} /></Field>
-                    <Field label="Reorder level" htmlFor={`variant-reorder-${index}`}><Input id={`variant-reorder-${index}`} type="number" min="0" value={variant.reorderLevel} onChange={(event) => updateVariantDraft(index, { reorderLevel: event.target.value })} /></Field>
-                    <Field label="Quantity reserved" htmlFor={`variant-reserved-${index}`}><Input id={`variant-reserved-${index}`} value={variant.quantityReserved} readOnly /></Field>
-                    <Field label="Available stock" htmlFor={`variant-available-${index}`}><Input id={`variant-available-${index}`} value={getAvailableStock(variant)} readOnly /></Field>
+                    <Field label="Quantity on hand" htmlFor={`variant-on-hand-${index}`}><Input id={`variant-on-hand-${index}`} name={`variants.${index}.quantityOnHand`} type="number" min="0" value={variant.quantityOnHand} onChange={(event) => updateVariantDraft(index, { quantityOnHand: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label="Reorder level" htmlFor={`variant-reorder-${index}`}><Input id={`variant-reorder-${index}`} name={`variants.${index}.reorderLevel`} type="number" min="0" value={variant.reorderLevel} onChange={(event) => updateVariantDraft(index, { reorderLevel: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label="Quantity reserved" htmlFor={`variant-reserved-${index}`}><Input id={`variant-reserved-${index}`} name={`variants.${index}.quantityReserved`} value={variant.quantityReserved} readOnly className="tabular-nums" /></Field>
+                    <Field label="Available stock" htmlFor={`variant-available-${index}`}><Input id={`variant-available-${index}`} name={`variants.${index}.availableStock`} value={getAvailableStock(variant)} readOnly className="tabular-nums" /></Field>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Weight grams" htmlFor={`variant-weight-${index}`}><Input id={`variant-weight-${index}`} type="number" min="0" value={variant.weightGrams} onChange={(event) => updateVariantDraft(index, { weightGrams: event.target.value })} /></Field>
-                    <Field label="Length mm" htmlFor={`variant-length-${index}`}><Input id={`variant-length-${index}`} type="number" min="0" value={variant.lengthMm} onChange={(event) => updateVariantDraft(index, { lengthMm: event.target.value })} /></Field>
-                    <Field label="Width mm" htmlFor={`variant-width-${index}`}><Input id={`variant-width-${index}`} type="number" min="0" value={variant.widthMm} onChange={(event) => updateVariantDraft(index, { widthMm: event.target.value })} /></Field>
-                    <Field label="Height mm" htmlFor={`variant-height-${index}`}><Input id={`variant-height-${index}`} type="number" min="0" value={variant.heightMm} onChange={(event) => updateVariantDraft(index, { heightMm: event.target.value })} /></Field>
+                    <Field label="Weight grams" htmlFor={`variant-weight-${index}`}><Input id={`variant-weight-${index}`} name={`variants.${index}.weightGrams`} type="number" min="0" value={variant.weightGrams} onChange={(event) => updateVariantDraft(index, { weightGrams: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label="Length mm" htmlFor={`variant-length-${index}`}><Input id={`variant-length-${index}`} name={`variants.${index}.lengthMm`} type="number" min="0" value={variant.lengthMm} onChange={(event) => updateVariantDraft(index, { lengthMm: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label="Width mm" htmlFor={`variant-width-${index}`}><Input id={`variant-width-${index}`} name={`variants.${index}.widthMm`} type="number" min="0" value={variant.widthMm} onChange={(event) => updateVariantDraft(index, { widthMm: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label="Height mm" htmlFor={`variant-height-${index}`}><Input id={`variant-height-${index}`} name={`variants.${index}.heightMm`} type="number" min="0" value={variant.heightMm} onChange={(event) => updateVariantDraft(index, { heightMm: event.target.value })} className="tabular-nums" /></Field>
                   </div>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" onClick={() => saveVariant(variant, index)} disabled={isSaving}>{t("seller.products.editorActions.saveVariant" as never)}</Button>
@@ -1911,7 +2151,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               );})}
             </div>
           </ProductSection>
-          <ProductSection id="inventory" title="Inventory" description="Review on-hand, reserved, available, reorder, and low-stock state across variants.">
+          <ProductSection id="inventory">
             {variants.length ? (
               <div className="space-y-3">
                 {variants.map((variant, index) => {
@@ -1923,8 +2163,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                     <div key={variant.id ?? `inventory-${index}`} className={`rounded-md border p-3 text-sm ${lowStock ? "border-amber-200 bg-amber-50" : "border-slate-200"}`}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="font-medium text-slate-950">{variant.title || variant.sku || `Variant ${index + 1}`}</p>
-                          <p className="text-xs text-slate-500">{variant.sku || "No SKU"}</p>
+                          <p className="font-medium text-slate-950">{getLocalizedText(locale, variant.title, variant.titleTh, variant.titleEn) || variant.sku || t("seller.editor.variant.generatedName").replace("{index}", String(index + 1))}</p>
+                          <p className="text-xs text-slate-500">{variant.sku || t("seller.editor.variant.noSku")}</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {lowStock ? <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">{t("seller.products.editorActions.lowStock" as never)}</span> : <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">{t("seller.products.editorActions.stockOk" as never)}</span>}
@@ -1933,26 +2173,26 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                       </div>
                       <div className="mt-3 grid gap-2 sm:grid-cols-4">
                         <div className="rounded-md bg-white p-2">
-                          <p className="text-xs font-semibold text-slate-500">On hand</p>
-                          <p className="text-base font-semibold text-slate-950">{quantityOnHand}</p>
+                          <p className="text-xs font-semibold text-slate-500">{t("seller.editor.inventory.onHand")}</p>
+                          <p className="text-base font-semibold tabular-nums text-slate-950">{quantityOnHand}</p>
                         </div>
                         <div className="rounded-md bg-white p-2">
-                          <p className="text-xs font-semibold text-slate-500">Reserved</p>
-                          <p className="text-base font-semibold text-slate-950">{variant.quantityReserved}</p>
-                          <p className="text-xs text-slate-500">Read-only checkout holds</p>
+                          <p className="text-xs font-semibold text-slate-500">{t("seller.editor.inventory.reserved")}</p>
+                          <p className="text-base font-semibold tabular-nums text-slate-950">{variant.quantityReserved}</p>
+                          <p className="text-xs text-slate-500">{t("seller.products.editorActions.readOnlyHolds" as never)}</p>
                         </div>
                         <div className="rounded-md bg-white p-2">
-                          <p className="text-xs font-semibold text-slate-500">Available</p>
-                          <p className="text-base font-semibold text-slate-950">{available}</p>
-                          <p className="text-xs text-slate-500">On hand minus reserved</p>
+                          <p className="text-xs font-semibold text-slate-500">{t("seller.editor.inventory.available")}</p>
+                          <p className="text-base font-semibold tabular-nums text-slate-950">{available}</p>
+                          <p className="text-xs text-slate-500">{t("seller.products.editorActions.onHandMinusReserved" as never)}</p>
                         </div>
                         <div className="rounded-md bg-white p-2">
-                          <p className="text-xs font-semibold text-slate-500">Reorder level</p>
-                          <p className="text-base font-semibold text-slate-950">{reorderLevel}</p>
+                          <p className="text-xs font-semibold text-slate-500">{t("seller.products.labels.reorderLevel" as never)}</p>
+                          <p className="text-base font-semibold tabular-nums text-slate-950">{reorderLevel}</p>
                         </div>
                       </div>
                       <div className="mt-3 rounded-md bg-white p-3 text-xs text-slate-600">
-                        Latest movement preview: seller stock updates are written to inventory history after each saved on-hand or reorder change.
+                        {t("seller.editor.inventory.movementPreview")}
                       </div>
                     </div>
                   );
@@ -1962,9 +2202,12 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               <p className="text-sm text-slate-500">{t("seller.products.editorActions.noInventory" as never)}</p>
             )}
           </ProductSection>
-          <ProductSection id="review" title="Review" description="Drafts can save early; review submission needs catalog, media, and sellable variant setup.">
+          <ProductSection id="review">
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-              <p className="text-sm font-medium text-slate-900">{t("seller.products.reviewModerationStatus" as never)}: {workingProduct?.status?.replaceAll("_", " ") ?? t("seller.products.thisProduct")}</p>
+              <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
+                <span>{t("seller.products.reviewModerationStatus" as never)}:</span>
+                {workingProduct?.status ? <StatusPill value={workingProduct.status} /> : <span>{t("seller.products.thisProduct")}</span>}
+              </div>
               {moderationReason ? <p className="mt-1 text-sm text-red-700">{t("seller.products.reviewReason" as never)}: {moderationReason}</p> : null}
             </div>
             <div className="space-y-2 rounded-md border border-slate-200 p-3">
@@ -1988,19 +2231,33 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
             ) : (
               <p className="text-sm text-green-700">{t("seller.products.reviewSetupReady" as never)}</p>
             )}
-            {duplicateCombinationError ? <p className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
+            {duplicateCombinationError ? <p role="alert" className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
             <Button type="button" variant="outline" onClick={submitForReview} disabled={isSaving || readinessMissing.length > 0 || Boolean(duplicateCombinationError) || form.status === "PENDING_REVIEW"}>
               <SendIcon className="size-4" />
               {submitReview.isPending ? t("seller.products.submitting") : t("seller.products.submitForReview" as never)}
             </Button>
           </ProductSection>
-          {formError ? <p id="product-form-error" className="text-sm text-red-600">{formError}</p> : null}
+          {formError ? <p id="product-form-error" role="alert" className="text-sm text-red-600">{formError}</p> : null}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end xl:flex-col-reverse">
             <Button type="button" variant="outline" onClick={cancel}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={isSaving}>{isSaving ? t("seller.products.editorActions.uploading" as never) : t("seller.products.editorActions.saveProduct" as never)}</Button>
           </div>
         </div>
       </form>
+      <AlertDialog open={Boolean(confirmation)} onOpenChange={(open) => { if (!open) setConfirmation(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmationCopy?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmationCopy?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSaving}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" disabled={isSaving} onClick={confirmPendingAction}>
+              {confirmationCopy?.action}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
@@ -2031,7 +2288,7 @@ function ProductStudioHeader({
             <h2 className="truncate text-lg font-semibold text-slate-950">{productTitle}</h2>
             <StatusPill value={productStatus} />
           </div>
-          <p className="mt-1 text-sm text-slate-500">{t("seller.editor.saveState")}: {saveState}</p>
+          <p aria-live="polite" aria-atomic="true" className="mt-1 text-sm text-slate-500">{t("seller.editor.saveState")}: {saveState}</p>
         </div>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>{t("common.cancel")}</Button>
@@ -2064,10 +2321,10 @@ function ProductStudioNav() {
   );
 }
 
-function ProductSection({ id, title, description, children }: { id?: ProductStudioSectionId; title: string; description: string; children: ReactNode }) {
+function ProductSection({ id, title, description, children }: { id?: ProductStudioSectionId; title?: string; description?: string; children: ReactNode }) {
   const t = useTranslations();
-  const sectionTitle = id ? t(`seller.editor.section.${id}` as never) : title;
-  const sectionDescription = id ? t(`seller.editor.sectionDescription.${id}` as never) : description;
+  const sectionTitle = id ? t(`seller.editor.section.${id}` as never) : title ?? "";
+  const sectionDescription = id ? t(`seller.editor.sectionDescription.${id}` as never) : description ?? "";
   return (
     <Card id={id} className="scroll-mt-32 rounded-lg border-slate-200 bg-white">
       <CardHeader>

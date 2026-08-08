@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { AdminGalaxyScene, AdminSidebarNav } from "#/features/admin";
+import { AdminSidebarNav } from "#/features/admin";
 import { requireAdmin } from "#/lib/auth-server";
 import { privatePageMetadata } from "#/lib/seo";
 import { Providers } from "#/providers";
@@ -16,8 +16,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <Providers>
-      <div className="admin-galaxy min-h-screen">
-        <AdminGalaxyScene />
+      <div className="admin-shell min-h-screen">
         <AdminSidebarNav
           user={{
             id: session.user.id,

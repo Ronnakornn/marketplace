@@ -99,7 +99,7 @@ export function createCoreCommerceEventHandlers(deps: CoreCommerceEventHandlerDe
             'payout_paid',
             'Payout paid',
             'Your payout has been paid.',
-            { payoutId: event.aggregateId },
+            { payoutId: event.aggregateId, audience: 'seller' },
           )
         },
       },
@@ -113,10 +113,10 @@ async function notifySellerUsers(notificationService: NotificationService | unde
   await Promise.all(sellerUserIds.map((sellerUserId) =>
     notificationService.createNotification(
       sellerUserId,
-      'order_paid',
-      'New paid order',
-      'A buyer paid for an order from your shop.',
-      { orderId: event.aggregateId },
+            'order_paid',
+            'New paid order',
+            'A buyer paid for an order from your shop.',
+            { orderId: event.aggregateId, audience: 'seller' },
     ),
   ))
 }

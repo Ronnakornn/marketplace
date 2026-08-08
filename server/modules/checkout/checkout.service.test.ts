@@ -277,6 +277,28 @@ describe('CheckoutService', () => {
     expect(result.paymentUrl).toBe('/en/payment/mock/14141414-1414-4141-8141-141414141414')
   })
 
+  it('creates an order from only the explicitly selected cart items', async () => {
+    const selected = createItem({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' })
+    const unselected = createItem({
+      id: 'abababab-abab-4bab-8bab-abababababab',
+      variantId: 'bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc',
+      price: 5000,
+    })
+    const service = await setupSuccess({ cart: createCart({ items: [selected, unselected] }) })
+
+    await service.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      cartItemIds: [selected.id],
+      addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      paymentMethod: 'stripe',
+    })
+
+    expect(repo.createPendingOrder).toHaveBeenCalledWith(expect.objectContaining({
+      items: [selected],
+      totals: expect.objectContaining({ subtotal: 2400 }),
+    }))
+  })
+
   it('uses current trusted variant price for order item snapshots instead of cart captured price', async () => {
     const service = await setupSuccess()
     await service.createCheckout(createActor(), {

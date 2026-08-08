@@ -1,4 +1,7 @@
+"use client";
+
 import { Badge } from "#/components/ui/badge";
+import { useTranslations } from "#/i18n/client";
 
 const tones: Record<string, string> = {
   ACTIVE: "border-emerald-300/30 bg-emerald-300/12 text-emerald-100",
@@ -21,10 +24,11 @@ const tones: Record<string, string> = {
 };
 
 export function AdminStatusBadge({ status }: { status?: string | null }) {
+  const t = useTranslations();
   const value = status ?? "UNKNOWN";
   return (
     <Badge variant="outline" className={tones[value] ?? "border-white/20 bg-white/8 text-slate-200"}>
-      {value.replaceAll("_", " ")}
+      {t(`admin.statuses.${value}` as Parameters<typeof t>[0]) === `admin.statuses.${value}` ? value.replaceAll("_", " ") : t(`admin.statuses.${value}` as Parameters<typeof t>[0])}
     </Badge>
   );
 }

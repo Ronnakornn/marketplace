@@ -53,6 +53,7 @@ import {
 } from "#/components/ui/table";
 import { Textarea } from "#/components/ui/textarea";
 import type { ProductStatus } from "#generated/client/enums";
+import { useTranslations } from "#/i18n/client";
 import {
   type CatalogProduct,
   type CatalogVariant,
@@ -97,14 +98,14 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-function statusDescription(status: ProductStatus) {
+function statusDescription(status: ProductStatus, t: ReturnType<typeof useTranslations>) {
   switch (status) {
     case "ACTIVE":
-      return "Visible in public product feeds and detail pages.";
+      return t("admin.catalogEdit.activeDescription");
     case "ARCHIVED":
-      return "Hidden from storefront and preserved for history.";
+      return t("admin.catalogEdit.archivedDescription");
     default:
-      return "Editable draft hidden from buyers.";
+      return t("admin.catalogEdit.draftDescription");
   }
 }
 
@@ -120,6 +121,7 @@ function statusTone(status: ProductStatus) {
 }
 
 function ProductSnapshot({ product, status }: { product: CatalogProduct; status: ProductStatus }) {
+  const t = useTranslations();
   const lowestPrice = useMemo(
     () => [...product.variants].sort((a, b) => Number(a.price) - Number(b.price))[0] ?? null,
     [product.variants],
@@ -133,9 +135,9 @@ function ProductSnapshot({ product, status }: { product: CatalogProduct; status:
           <div>
             <CardTitle className="flex items-center gap-2 text-white">
               <PackageIcon className="size-5 text-cyan-200" />
-              Product Summary
+              {t("admin.catalogEdit.productSummary")}
             </CardTitle>
-            <p className="mt-1 text-sm text-slate-400">Operational snapshot for catalog review.</p>
+            <p className="mt-1 text-sm text-slate-400">{t("admin.operationalCatalogSnapshot")}</p>
           </div>
           <Badge variant="outline" className={statusTone(status)}>
             {status}
@@ -149,21 +151,21 @@ function ProductSnapshot({ product, status }: { product: CatalogProduct; status:
               <StoreIcon className="size-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-slate-400">Shop owner</p>
+              <p className="text-sm text-slate-400">{t("admin.shopOwner")}</p>
               <p className="mt-1 truncate font-medium text-white">{product.shop.name}</p>
               <p className="truncate text-xs text-slate-500">{product.shop.slug}</p>
             </div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Metric label="Variants" value={String(product.variants.length)} />
-          <Metric label="From price" value={lowestPrice ? formatMoney(lowestPrice.price, lowestPrice.currency) : "None"} />
-          <Metric label="Total stock" value={String(totalStock)} />
-          <Metric label="Currency" value={lowestPrice?.currency ?? "N/A"} />
+          <Metric label={t("admin.ui.variants")} value={String(product.variants.length)} />
+          <Metric label={t("admin.catalogEdit.fromPrice")} value={lowestPrice ? formatMoney(lowestPrice.price, lowestPrice.currency) : t("admin.catalogEdit.none")} />
+          <Metric label={t("admin.catalogEdit.totalStock")} value={String(totalStock)} />
+          <Metric label={t("admin.catalogEdit.currency")} value={lowestPrice?.currency ?? t("admin.catalogEdit.notAvailable")} />
         </div>
         <div className="rounded-lg border border-white/10 bg-slate-950/40 p-4">
           <p className="text-sm font-medium text-white">{status}</p>
-          <p className="mt-1 text-sm text-slate-400">{statusDescription(status)}</p>
+          <p className="mt-1 text-sm text-slate-400">{statusDescription(status, t)}</p>
         </div>
       </CardContent>
     </Card>
@@ -177,6 +179,7 @@ function VariantDataTable(props: {
   onEdit: (variant: CatalogVariant) => void;
   onDelete: (variant: CatalogVariant) => Promise<void>;
 }) {
+  const t = useTranslations();
   const [sorting, setSorting] = useState<SortingState>([]);
   const columns = useMemo<ColumnDef<CatalogVariant>[]>(() => [
     {
@@ -187,7 +190,7 @@ function VariantDataTable(props: {
           className="-ml-3 h-8 px-3 text-slate-300 hover:bg-white/10 hover:text-white"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Variant
+          {t("admin.ui.variant")}
         </Button>
       ),
       cell: ({ row }) => (
@@ -218,14 +221,14 @@ function VariantDataTable(props: {
           className="-ml-3 h-8 px-3 text-slate-300 hover:bg-white/10 hover:text-white"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Price
+          {t("admin.ui.price")}
         </Button>
       ),
       cell: ({ row }) => formatMoney(row.original.price, row.original.currency),
     },
     {
       accessorKey: "currency",
-      header: "Currency",
+      header: t("admin.catalogEdit.currency"),
     },
     {
       id: "stock",
@@ -236,7 +239,7 @@ function VariantDataTable(props: {
           className="-ml-3 h-8 px-3 text-slate-300 hover:bg-white/10 hover:text-white"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Stock
+          {t("admin.catalogEdit.stock")}
         </Button>
       ),
       cell: ({ row }) => row.original.inventory?.quantityOnHand ?? 0,
@@ -250,13 +253,13 @@ function VariantDataTable(props: {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="ml-auto size-8 text-slate-300 hover:bg-white/10 hover:text-white">
               <MoreHorizontalIcon className="size-4" />
-              <span className="sr-only">Open variant actions</span>
+              <span className="sr-only">{t("admin.openVariantActions")}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{t("admin.actions")}</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => props.onEdit(row.original)}>
-              Edit variant
+              {t("admin.catalogEdit.editVariant")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -264,7 +267,7 @@ function VariantDataTable(props: {
               disabled={props.pendingDelete}
               onClick={() => void props.onDelete(row.original)}
             >
-              Delete variant
+              {t("admin.catalogEdit.deleteVariant")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -284,11 +287,11 @@ function VariantDataTable(props: {
     <Card className="admin-panel rounded-xl border-white/10 bg-white/5">
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <div>
-          <CardTitle className="text-white">Variant Data Table</CardTitle>
-          <p className="mt-1 text-sm text-slate-400">Manage size, color, SKU, and variant-level price.</p>
+          <CardTitle className="text-white">{t("admin.variantDataTable")}</CardTitle>
+          <p className="mt-1 text-sm text-slate-400">{t("admin.variantTableDescription")}</p>
         </div>
         <Button size="sm" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200" onClick={props.onCreate}>
-          Create variant
+          {t("admin.catalogEdit.createVariant")}
         </Button>
       </CardHeader>
       <CardContent className="p-0">
@@ -317,7 +320,7 @@ function VariantDataTable(props: {
             )) : (
               <TableRow className="border-white/8 hover:bg-transparent">
                 <TableCell colSpan={columns.length} className="h-28 text-center text-slate-400">
-                  No variants configured.
+                  {t("admin.ui.noVariants")}
                 </TableCell>
               </TableRow>
             )}
@@ -338,6 +341,7 @@ function VariantDialog(props: {
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: VariantFormState) => Promise<void>;
 }) {
+  const t = useTranslations();
   const { open, mode, initialValues, pending, errorMessage, onOpenChange, onSubmit } = props;
   const [form, setForm] = useState(initialValues);
 
@@ -349,7 +353,7 @@ function VariantDialog(props: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="border border-white/12 bg-slate-950/95 text-slate-100 sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{mode === "create" ? "Create variant" : "Edit variant"}</DialogTitle>
+          <DialogTitle>{mode === "create" ? t("admin.catalogEdit.createVariant") : t("admin.catalogEdit.editVariant")}</DialogTitle>
         </DialogHeader>
         <form
           className="grid gap-4"
@@ -365,16 +369,16 @@ function VariantDialog(props: {
           ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="SKU" value={form.sku} onChange={(value) => setForm((current) => ({ ...current, sku: value }))} required />
-            <Field label="Title" value={form.title} onChange={(value) => setForm((current) => ({ ...current, title: value }))} required />
-            <Field label="Price cents" type="number" value={form.price} onChange={(value) => setForm((current) => ({ ...current, price: value }))} required />
-            <Field label="Currency" value={form.currency} onChange={(value) => setForm((current) => ({ ...current, currency: value }))} required />
+            <Field label={t("admin.catalogEdit.title")} value={form.title} onChange={(value) => setForm((current) => ({ ...current, title: value }))} required />
+            <Field label={t("admin.catalogEdit.priceCents")} type="number" value={form.price} onChange={(value) => setForm((current) => ({ ...current, price: value }))} required />
+            <Field label={t("admin.catalogEdit.currency")} value={form.currency} onChange={(value) => setForm((current) => ({ ...current, currency: value }))} required />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white" onClick={() => onOpenChange(false)} disabled={pending}>
-              Cancel
+              {t("admin.ui.cancel")}
             </Button>
             <Button type="submit" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200" disabled={pending}>
-              {pending ? "Saving..." : "Save variant"}
+              {pending ? t("admin.ui.saving") : t("admin.catalogEdit.saveVariant")}
             </Button>
           </DialogFooter>
         </form>
@@ -436,6 +440,7 @@ function WorkspaceStat(props: {
 }
 
 export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
+  const t = useTranslations();
   const { data: product, isLoading, error } = useAdminCatalogProductDetail(productId);
   const updateProduct = useUpdateAdminCatalogProduct();
   const createVariant = useCreateAdminCatalogVariant();
@@ -487,11 +492,11 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
     return (
       <Card className="border-red-500/30 bg-red-500/10">
         <CardContent className="space-y-3 p-6">
-          <p className="text-sm text-red-200">Unable to load product for editing.</p>
+          <p className="text-sm text-red-200">{t("admin.variantLoadError")}</p>
           <Button asChild variant="outline" className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white">
             <Link href="/admin/catalog">
               <ArrowLeftIcon className="size-4" />
-              Back to catalog
+              {t("admin.catalogEdit.backToCatalog")}
             </Link>
           </Button>
         </CardContent>
@@ -510,21 +515,21 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
               <Link href="/admin/catalog" className="inline-flex items-center gap-1 text-cyan-100 hover:text-cyan-50">
                 <ArrowLeftIcon className="size-4" />
-                Catalog
+                {t("admin.catalogEdit.catalog")}
               </Link>
               <span>/</span>
               <span className="truncate">{product.title}</span>
             </div>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
               <h1 className="text-2xl font-semibold text-white sm:text-3xl">
-                Edit product
+                {t("admin.catalogEdit.editProduct")}
               </h1>
               <Badge variant="outline" className={statusTone(form.status)}>
                 {form.status}
               </Badge>
             </div>
             <p className="mt-2 max-w-3xl text-sm text-slate-400">
-              Update catalog content, publishing status, variant pricing, and stock visibility from one focused operations workspace.
+              {t("admin.catalogEdit.workspaceDescription")}
             </p>
             <p className="mt-3 max-w-full truncate font-mono text-xs text-slate-500">
               {product.id}
@@ -532,25 +537,25 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
           </div>
           <div className="flex flex-col-reverse gap-3 sm:flex-row xl:shrink-0">
             <Button asChild variant="outline" className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white">
-              <Link href="/admin/catalog">Cancel</Link>
+              <Link href="/admin/catalog">{t("admin.ui.cancel")}</Link>
             </Button>
             <Button form="admin-product-edit-form" type="submit" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200" disabled={updateProduct.isPending}>
               {updateProduct.isPending ? (
-                "Saving..."
+                t("admin.ui.saving")
               ) : (
                 <>
                   <SaveIcon className="size-4" />
-                  Save changes
+                  {t("admin.catalogEdit.saveChanges")}
                 </>
               )}
             </Button>
           </div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <WorkspaceStat label="Shop" value={product.shop.name} icon={StoreIcon} />
-          <WorkspaceStat label="Variants" value={String(product.variants.length)} icon={TagIcon} />
-          <WorkspaceStat label="From price" value={lowestPrice ? formatMoney(lowestPrice.price, lowestPrice.currency) : "None"} icon={CircleDollarSignIcon} />
-          <WorkspaceStat label="Total stock" value={String(totalStock)} icon={BoxesIcon} />
+          <WorkspaceStat label={t("admin.ui.shop")} value={product.shop.name} icon={StoreIcon} />
+          <WorkspaceStat label={t("admin.ui.variants")} value={String(product.variants.length)} icon={TagIcon} />
+          <WorkspaceStat label={t("admin.catalogEdit.fromPrice")} value={lowestPrice ? formatMoney(lowestPrice.price, lowestPrice.currency) : t("admin.catalogEdit.none")} icon={CircleDollarSignIcon} />
+          <WorkspaceStat label={t("admin.catalogEdit.totalStock")} value={String(totalStock)} icon={BoxesIcon} />
         </div>
       </section>
 
@@ -559,10 +564,10 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <BoxesIcon className="size-5 text-cyan-200" />
-              Product content
+              {t("admin.catalogEdit.productContent")}
             </CardTitle>
             <p className="text-sm text-slate-400">
-              Update buyer-facing catalog content. Pricing still comes from variants.
+              {t("admin.catalogEdit.contentDescription")}
             </p>
           </CardHeader>
           <CardContent>
@@ -584,15 +589,15 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                     descriptionEn: form.descriptionEn || null,
                     status: form.status,
                   });
-                  setMessage("Product saved.");
+                  setMessage(t("admin.catalogEdit.productSaved"));
                 } catch (submitError) {
-                  setMessage(getErrorMessage(submitError, "Failed to save product."));
+                  setMessage(getErrorMessage(submitError, t("admin.catalogEdit.saveFailed")));
                 }
               }}
             >
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="product-title" className="text-slate-200">Title</Label>
+                  <Label htmlFor="product-title" className="text-slate-200">{t("admin.catalogEdit.title")}</Label>
                   <Input
                     id="product-title"
                     value={form.title}
@@ -602,7 +607,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="product-slug" className="text-slate-200">Slug</Label>
+                  <Label htmlFor="product-slug" className="text-slate-200">{t("admin.categoryManager.slug")}</Label>
                   <Input
                     id="product-slug"
                     value={form.slug}
@@ -614,7 +619,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="product-description" className="text-slate-200">Description</Label>
+                <Label htmlFor="product-description" className="text-slate-200">{t("admin.catalogEdit.description")}</Label>
                 <Textarea
                   id="product-description"
                   value={form.description}
@@ -625,7 +630,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="product-title-th" className="text-slate-200">Title TH</Label>
+                  <Label htmlFor="product-title-th" className="text-slate-200">{t("admin.catalogEdit.titleTh")}</Label>
                   <Input
                     id="product-title-th"
                     value={form.titleTh}
@@ -634,7 +639,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="product-title-en" className="text-slate-200">Title EN</Label>
+                  <Label htmlFor="product-title-en" className="text-slate-200">{t("admin.catalogEdit.titleEn")}</Label>
                   <Input
                     id="product-title-en"
                     value={form.titleEn}
@@ -646,7 +651,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="product-description-th" className="text-slate-200">Description TH</Label>
+                  <Label htmlFor="product-description-th" className="text-slate-200">{t("admin.catalogEdit.descriptionTh")}</Label>
                   <Textarea
                     id="product-description-th"
                     value={form.descriptionTh}
@@ -655,7 +660,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="product-description-en" className="text-slate-200">Description EN</Label>
+                  <Label htmlFor="product-description-en" className="text-slate-200">{t("admin.catalogEdit.descriptionEn")}</Label>
                   <Textarea
                     id="product-description-en"
                     value={form.descriptionEn}
@@ -667,21 +672,21 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
 
               <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Status</Label>
+                  <Label className="text-slate-200">{t("admin.ui.status")}</Label>
                   <Select value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as ProductStatus }))}>
                     <SelectTrigger className="w-full border-white/10 bg-slate-950/60 text-slate-100">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="DRAFT">DRAFT</SelectItem>
-                      <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                      <SelectItem value="ARCHIVED">ARCHIVED</SelectItem>
+                      <SelectItem value="DRAFT">{t("admin.statuses.DRAFT")}</SelectItem>
+                      <SelectItem value="ACTIVE">{t("admin.statuses.ACTIVE")}</SelectItem>
+                      <SelectItem value="ARCHIVED">{t("admin.statuses.ARCHIVED")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="rounded-lg border border-white/10 bg-slate-950/40 p-4">
                   <p className="text-sm font-medium text-white">{form.status}</p>
-                  <p className="mt-1 text-sm text-slate-400">{statusDescription(form.status)}</p>
+                  <p className="mt-1 text-sm text-slate-400">{statusDescription(form.status, t)}</p>
                 </div>
               </div>
 
@@ -693,15 +698,15 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
 
               <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
                 <Button asChild variant="outline" className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white">
-                  <Link href="/admin/catalog">Cancel</Link>
+                  <Link href="/admin/catalog">{t("admin.ui.cancel")}</Link>
                 </Button>
                 <Button type="submit" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200" disabled={updateProduct.isPending}>
                   {updateProduct.isPending ? (
-                    "Saving..."
+                    t("admin.ui.saving")
                   ) : (
                     <>
                       <SaveIcon className="size-4" />
-                      Save changes
+                      {t("admin.catalogEdit.saveChanges")}
                     </>
                   )}
                 </Button>
@@ -733,19 +738,19 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
             try {
               setVariantError(null);
               await deleteVariant.mutateAsync({ productId: product.id, variantId: variant.id });
-              setMessage("Variant deleted.");
+              setMessage(t("admin.catalogEdit.variantDeleted"));
             } catch (deleteError) {
-              setVariantError(getErrorMessage(deleteError, "Failed to delete variant."));
+              setVariantError(getErrorMessage(deleteError, t("admin.catalogEdit.deleteVariantFailed")));
             }
           }}
         />
         {variantError ? <p className="text-sm text-red-200">{variantError}</p> : null}
       </section>
 
-      {message === "Product saved." ? (
+      {message === t("admin.catalogEdit.productSaved") ? (
         <div className="flex items-center gap-2 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
           <CheckIcon className="size-4" />
-          Saved successfully
+          {t("admin.catalogEdit.savedSuccessfully")}
         </div>
       ) : null}
 

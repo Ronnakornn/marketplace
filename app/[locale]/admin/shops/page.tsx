@@ -3,7 +3,7 @@ import { AdminPageIntro, AdminSellerApplicationsTable, AdminShopsTable, AdminSpa
 export default function AdminShopsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <AdminPageIntro eyebrow="Marketplace Operations" title="Shops" description="Review seller storefront status and ownership signals.">
+      <AdminPageIntro eyebrow="admin.pages.shops.eyebrow" title="admin.pages.shops.title" description="admin.pages.shops.description">
         <AdminSpaceCat mode="dashboard" />
       </AdminPageIntro>
       <AdminSellerApplicationsTable />
