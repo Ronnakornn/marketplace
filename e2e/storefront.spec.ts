@@ -1,11 +1,15 @@
 import { expect, test } from "@playwright/test";
-import { openStorefront, prepareStorefrontFixtures, signIn, storefrontFixture } from "./helpers/storefront";
+import { closeStorefrontFixtures, openStorefront, prepareStorefrontFixtures, signIn, storefrontFixture } from "./helpers/storefront";
 
 let shopId = "";
 let categorySlug = "";
 
 test.beforeAll(async () => {
   ({ shopId, categorySlug } = await prepareStorefrontFixtures());
+});
+
+test.afterAll(async () => {
+  await closeStorefrontFixtures();
 });
 
 test("public UUID and slug APIs resolve active shops without private fields", async ({ request }) => {
@@ -65,6 +69,7 @@ test("review summary is bounded, history expands, policies are plain text, and t
 
 test("anonymous login return, buyer follow/chat, and owner management actions are correct", async ({ browser, page }) => {
   await openStorefront(page, "en");
+  await expect(page.getByRole("link", { name: "Sign in" }).first()).toBeVisible();
   await page.getByRole("button", { name: "Follow shop" }).click();
   await expect(page).toHaveURL(/\/en\/login\?next=%2Fshops%2Furban-thread-co/);
 

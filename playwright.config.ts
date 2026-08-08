@@ -53,12 +53,22 @@ export default defineConfig({
       use: { ...devices["Pixel 7"], storageState: "test-results/.auth/seller.json" },
     },
   ],
-  webServer: {
-    command: "bun run dev",
-    url: "http://localhost:3000/api/health/ready",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    stdout: "pipe",
-    stderr: "pipe",
-  },
+  webServer: [
+    {
+      command: "bun run dev:server",
+      url: "http://localhost:3001/api/health/ready",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      stdout: "ignore",
+      stderr: "pipe",
+    },
+    {
+      command: "bun run dev:frontend",
+      url: "http://localhost:3000/favicon.ico",
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      stdout: "ignore",
+      stderr: "pipe",
+    },
+  ],
 });

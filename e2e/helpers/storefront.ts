@@ -56,6 +56,10 @@ export async function prepareStorefrontFixtures() {
   return { shopId: shop!.id, categorySlug: category!.slug };
 }
 
+export async function closeStorefrontFixtures() {
+  await prisma.$disconnect();
+}
+
 export async function signIn(page: Page, identity: { email: string; password: string }) {
   const response = await page.request.post("/api/auth/sign-in/email", { data: identity });
   expect(response.ok(), await response.text()).toBeTruthy();
