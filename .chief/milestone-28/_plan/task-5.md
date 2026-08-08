@@ -9,6 +9,13 @@ localization, responsive UI, analytics, and regression risk.
 
 - Tasks 1 through 4 must be complete.
 
+## Execution Agent
+
+- Delegate test and verification work to `tester-agent` using
+  `gpt-5.6-terra` with `medium` reasoning effort.
+- Tester reports defects and evidence; implementation fixes remain owned by the
+  builder-agent.
+
 ## Inputs
 
 - Every goal and contract in `.chief/milestone-28/`
@@ -76,4 +83,3 @@ localization, responsive UI, analytics, and regression risk.
 - `bun run audit:i18n`
 - `bun run build`
 - `bun run test:e2e`
-
