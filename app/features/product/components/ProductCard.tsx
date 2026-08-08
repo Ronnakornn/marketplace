@@ -17,11 +17,11 @@ import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
 
-export function ProductCard({ product, showShopIdentity = true }: { product: BuyerProduct; showShopIdentity?: boolean }) {
+export function ProductCard({ product, showShopIdentity = true, trackingSource = "product_card" }: { product: BuyerProduct; showShopIdentity?: boolean; trackingSource?: string }) {
   const router = useRouter();
   const localePath = useLocalePath();
   const t = useTranslations();
-  const tracking = useDiscoveryTracking("product_card");
+  const tracking = useDiscoveryTracking(trackingSource);
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const image = resolveUploadedImageUrl(product.images[0]);

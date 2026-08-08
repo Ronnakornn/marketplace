@@ -2867,6 +2867,7 @@ model ShopViewLog {
   ipHash        String?
   userAgentHash String?
   metadata      Json?
+  eventType     ShopViewEventType @default(VIEW)
   createdAt     DateTime @default(now())
 
   shop Shop  @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -2876,6 +2877,12 @@ model ShopViewLog {
   @@index([userId, createdAt])
   @@index([sessionId, createdAt])
   @@index([createdAt])
+}
+
+enum ShopViewEventType {
+  VIEW
+  FOLLOW
+  CHAT_OPEN
 }
 
 model ModerationCase {

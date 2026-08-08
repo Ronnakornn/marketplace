@@ -32,6 +32,8 @@ function createRepoMock(): ITrackingRepository {
     createProductAddToCartLog: vi.fn(),
     createSearchQueryLog: vi.fn(),
     findRecentlyViewedProducts: vi.fn(),
+    hasRecentShopEvent: vi.fn(),
+    createShopEventLog: vi.fn(),
   }
 }
 
@@ -101,6 +103,21 @@ describe('TrackingService', () => {
       sessionId: 'anon-session',
       metadata: expect.objectContaining({ eventType: 'product_viewed' }),
     }))
+  })
+
+  it('records bounded shop events and deduplicates recent shop views', async () => {
+    vi.mocked(repo.hasRecentShopEvent).mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    await service.trackEvent({}, { eventType: 'shop_viewed', shopId, sessionId: 'anon-session', source: 'storefront' })
+    await service.trackEvent({}, { eventType: 'shop_viewed', shopId, sessionId: 'anon-session', source: 'storefront' })
+    expect(repo.createShopEventLog).toHaveBeenCalledTimes(1)
+    expect(repo.createShopEventLog).toHaveBeenCalledWith({ shopId, sessionId: 'anon-session', source: 'storefront', eventType: 'VIEW' })
+  })
+
+  it('records successful follow and chat events without arbitrary metadata', async () => {
+    await service.trackEvent({ userId: '33333333-3333-4333-8333-333333333333' }, { eventType: 'shop_followed', shopId, source: 'storefront' })
+    await service.trackEvent({ userId: '33333333-3333-4333-8333-333333333333' }, { eventType: 'shop_chat_opened', shopId, source: 'storefront' })
+    expect(repo.createShopEventLog).toHaveBeenNthCalledWith(1, expect.objectContaining({ eventType: 'FOLLOW', shopId }))
+    expect(repo.createShopEventLog).toHaveBeenNthCalledWith(2, expect.objectContaining({ eventType: 'CHAT_OPEN', shopId }))
   })
 
   it('records add-to-cart events with trusted product variant and shop context', async () => {

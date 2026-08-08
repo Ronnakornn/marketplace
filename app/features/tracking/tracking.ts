@@ -16,7 +16,10 @@ export type DiscoveryTrackingEvent =
   | "category_viewed"
   | "banner_clicked"
   | "recommendation_clicked"
-  | "recently_viewed_update";
+  | "recently_viewed_update"
+  | "shop_viewed"
+  | "shop_followed"
+  | "shop_chat_opened";
 
 export interface TrackDiscoveryEventInput {
   eventType: DiscoveryTrackingEvent;

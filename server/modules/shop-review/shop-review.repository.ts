@@ -53,6 +53,11 @@ export interface ListAdminShopReviewFilters {
   limit: number
 }
 
+export interface PublishedShopReviewPage {
+  items: ShopReviewRecord[]
+  totalCount: number
+}
+
 export interface IShopReviewRepository {
   findActiveShopById(shopId: string): Promise<ActiveShopRecord | null>
   findShopOrderForRating(shopOrderId: string): Promise<ShopOrderForRatingRecord | null>
@@ -61,6 +66,7 @@ export interface IShopReviewRepository {
   createShopRating(input: CreateShopReviewRecord): Promise<ShopReviewRecord>
   moderateShopRating(shopRatingId: string, input: ModerateShopReviewRecord): Promise<ShopReviewRecord>
   listPublishedShopRatings(shopId: string, limit: number): Promise<ShopReviewRecord[]>
+  listPublishedShopRatingsPage(shopId: string, page: number, limit: number): Promise<PublishedShopReviewPage>
   listAdminShopRatings(filters: ListAdminShopReviewFilters): Promise<ShopReviewRecord[]>
   getPublishedShopRatingDistribution(shopId: string): Promise<ShopRatingDistributionRecord[]>
 }
@@ -205,9 +211,19 @@ export class PrismaShopReviewRepository implements IShopReviewRepository {
         status: 'PUBLISHED',
       },
       include: shopReviewInclude,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
     })
+  }
+
+  async listPublishedShopRatingsPage(shopId: string, page: number, limit: number): Promise<PublishedShopReviewPage> {
+    this.logger.debug('PrismaShopReviewRepository.listPublishedShopRatingsPage', { shopId, page, limit })
+    const where = { shopId, status: 'PUBLISHED' as const }
+    const [items, totalCount] = await this.prisma.$transaction([
+      this.prisma.shopRating.findMany({ where, include: shopReviewInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * limit, take: limit }),
+      this.prisma.shopRating.count({ where }),
+    ])
+    return { items, totalCount }
   }
 
   listAdminShopRatings(filters: ListAdminShopReviewFilters): Promise<ShopReviewRecord[]> {

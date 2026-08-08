@@ -4,6 +4,7 @@ import { BuyerTopBar } from '#/components/BuyerShell'
 import { JsonLd } from '#/components/JsonLd'
 import { StorefrontIdentity } from '#/features/storefront/StorefrontIdentity'
 import { StorefrontCatalog } from '#/features/storefront/StorefrontCatalog'
+import { StorefrontDetails } from '#/features/storefront/StorefrontDetails'
 import { MobileBottomNavigation } from '#/components/BuyerShell'
 import { resolveLocale } from '#/i18n/config'
 import { createTranslator } from '#/i18n/server'
@@ -47,6 +48,7 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: s
           chat: t('storefront.chatAvailable'), manage: t('storefront.manageShop'), logoAlt: t('storefront.logoAlt').replace('{shop}', shop.name),
         }} />
         <StorefrontCatalog shopId={shop.id} locale={resolvedLocale} />
+        <StorefrontDetails shop={shop} locale={resolvedLocale} />
       </main>
       <MobileBottomNavigation />
     </div>

@@ -16,6 +16,11 @@ const ListShopReviewsQuerySchema = t.Object({
   limit: t.Optional(t.Number({ minimum: 1, maximum: 100 })),
 })
 
+const ShopReviewFeedQuerySchema = t.Object({
+  page: t.Optional(t.Number({ minimum: 1 })),
+  limit: t.Optional(t.Number({ minimum: 1, maximum: 100 })),
+})
+
 const ListAdminShopReviewsQuerySchema = t.Object({
   status: t.Optional(t.Union([
     t.Literal('PENDING'),
@@ -62,6 +67,11 @@ export function createShopReviewRoutes(container: ServiceContainer) {
       container.shopReviewService.listShopReviews(params.shopId, query.limit), {
       params: ShopParamsSchema,
       query: ListShopReviewsQuerySchema,
+    })
+    .get('/api/shops/:shopId/reviews/feed', ({ params, query }: any) =>
+      container.shopReviewService.listShopReviewFeed(params.shopId, query.page, query.limit), {
+      params: ShopParamsSchema,
+      query: ShopReviewFeedQuerySchema,
     })
     .get('/api/shops/:shopId/rating-summary', ({ params }: any) =>
       container.shopReviewService.getShopRatingSummary(params.shopId), {

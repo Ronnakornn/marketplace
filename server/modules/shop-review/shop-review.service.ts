@@ -53,6 +53,19 @@ export interface ShopRatingSummaryResponse {
   distribution: Record<1 | 2 | 3 | 4 | 5, number>
 }
 
+export interface PublicShopReviewFeed {
+  items: PublicShopReviewResponse[]
+  meta: { page: number; pageSize: number; totalCount: number; hasNextPage: boolean }
+}
+
+export interface PublicShopReviewResponse {
+  id: string
+  userName: string
+  rating: number
+  comment: string | null
+  createdAt: Date
+}
+
 export class ShopReviewService {
   constructor(
     _appContext: AppContext,
@@ -64,6 +77,14 @@ export class ShopReviewService {
     await this.assertActiveShop(shopId)
     const reviews = await this.repo.listPublishedShopRatings(shopId, this.normalizeLimit(limit))
     return reviews.map((review) => this.toResponse(review))
+  }
+
+  async listShopReviewFeed(shopId: string, page = 1, limit = 10): Promise<PublicShopReviewFeed> {
+    await this.assertActiveShop(shopId)
+    if (!Number.isInteger(page) || page < 1) throw new ShopReviewServiceError('Page must be a positive integer', 400, 'SHOP_REVIEW_QUERY_INVALID')
+    const pageSize = this.normalizeLimit(limit)
+    const result = await this.repo.listPublishedShopRatingsPage(shopId, page, pageSize)
+    return { items: result.items.map((review) => ({ id: review.id, userName: review.user.name, rating: review.rating, comment: review.body, createdAt: review.createdAt })), meta: { page, pageSize, totalCount: result.totalCount, hasNextPage: page * pageSize < result.totalCount } }
   }
 
   async getShopRatingSummary(shopId: string): Promise<ShopRatingSummaryResponse> {

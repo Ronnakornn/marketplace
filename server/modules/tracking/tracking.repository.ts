@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient, Product, ProductImage, ProductVariant, Shop } from '#generated/client/client.ts'
+import type { ShopViewEventType } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -46,12 +47,22 @@ export interface RecentlyViewedInput {
   limit: number
 }
 
+export interface ShopEventLogInput {
+  shopId: string
+  userId?: string
+  sessionId?: string
+  source?: string
+  eventType: ShopViewEventType
+}
+
 export interface ITrackingRepository {
   findActiveProduct(productId: string): Promise<Pick<Product, 'id' | 'shopId'> | null>
   createProductViewLog(input: ProductViewLogInput): Promise<void>
   createProductAddToCartLog(input: ProductAddToCartLogInput): Promise<void>
   createSearchQueryLog(input: SearchQueryLogInput): Promise<void>
   findRecentlyViewedProducts(input: RecentlyViewedInput): Promise<TrackingProductRecord[]>
+  hasRecentShopEvent(input: ShopEventLogInput & { since: Date }): Promise<boolean>
+  createShopEventLog(input: ShopEventLogInput): Promise<void>
 }
 
 export class PrismaTrackingRepository implements ITrackingRepository {
@@ -143,6 +154,22 @@ export class PrismaTrackingRepository implements ITrackingRepository {
         metadata: input.metadata,
       },
     })
+  }
+
+  async hasRecentShopEvent(input: ShopEventLogInput & { since: Date }): Promise<boolean> {
+    return Boolean(await this.prisma.shopViewLog.findFirst({
+      where: {
+        shopId: input.shopId,
+        eventType: input.eventType,
+        createdAt: { gte: input.since },
+        ...(input.userId ? { userId: input.userId } : { sessionId: input.sessionId }),
+      },
+      select: { id: true },
+    }))
+  }
+
+  async createShopEventLog(input: ShopEventLogInput): Promise<void> {
+    await this.prisma.shopViewLog.create({ data: input })
   }
 
   async findRecentlyViewedProducts(input: RecentlyViewedInput): Promise<TrackingProductRecord[]> {

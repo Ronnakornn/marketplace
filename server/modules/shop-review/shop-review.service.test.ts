@@ -83,6 +83,7 @@ function createRepo(): IShopReviewRepository {
       moderatedBy: { id: 'admin-1', name: 'Admin One' },
     })),
     listPublishedShopRatings: vi.fn(async () => [createShopReview({ status: 'PUBLISHED' })]),
+    listPublishedShopRatingsPage: vi.fn(async () => ({ items: [createShopReview({ status: 'PUBLISHED' })], totalCount: 1 })),
     listAdminShopRatings: vi.fn(async () => [createShopReview()]),
     getPublishedShopRatingDistribution: vi.fn(async () => [
       { rating: 5, _count: { rating: 2 } },
@@ -102,6 +103,23 @@ describe('ShopReviewService', () => {
       invalidateSellerDashboard: vi.fn(async () => 1),
     }
     service = new ShopReviewService(createAppContext(), repo, cacheInvalidation as any)
+  })
+
+  it('returns a bounded published review feed with pagination metadata', async () => {
+    vi.mocked(repo.listPublishedShopRatingsPage).mockResolvedValue({
+      items: [createShopReview({ id: 'published-1', status: 'PUBLISHED' })],
+      totalCount: 11,
+    })
+    const result = await service.listShopReviewFeed('shop-1', 2, 10)
+    expect(repo.listPublishedShopRatingsPage).toHaveBeenCalledWith('shop-1', 2, 10)
+    expect(result).toMatchObject({ items: [{ id: 'published-1', userName: 'Buyer One', rating: 5 }], meta: { page: 2, pageSize: 10, totalCount: 11, hasNextPage: false } })
+    expect(result.items[0]).not.toHaveProperty('userId')
+    expect(result.items[0]).not.toHaveProperty('moderationReason')
+  })
+
+  it('rejects invalid review feed pages before querying', async () => {
+    await expect(service.listShopReviewFeed('shop-1', 0, 10)).rejects.toMatchObject({ code: 'SHOP_REVIEW_QUERY_INVALID' })
+    expect(repo.listPublishedShopRatingsPage).not.toHaveBeenCalled()
   })
 
   it('creates pending shop review for eligible buyer', async () => {

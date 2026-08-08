@@ -89,6 +89,7 @@ export interface IUserRepository {
   removeFavoriteProduct(userId: string, productId: string): Promise<void>
   listFollowedShops(userId: string): Promise<ShopFollowRecord[]>
   findShopFollow(userId: string, shopId: string): Promise<ShopFollow | null>
+  findShopOwner(shopId: string): Promise<Pick<Shop, 'ownerId'> | null>
   followShop(userId: string, shopId: string): Promise<ShopFollow>
   unfollowShop(userId: string, shopId: string): Promise<void>
 }
@@ -373,6 +374,10 @@ export class PrismaUserRepository implements IUserRepository {
     return this.prisma.shopFollow.findUnique({
       where: { userId_shopId: { userId, shopId } },
     })
+  }
+
+  findShopOwner(shopId: string): Promise<Pick<Shop, 'ownerId'> | null> {
+    return this.prisma.shop.findUnique({ where: { id: shopId }, select: { ownerId: true } })
   }
 
   followShop(userId: string, shopId: string): Promise<ShopFollow> {

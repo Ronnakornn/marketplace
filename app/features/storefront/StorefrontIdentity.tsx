@@ -23,7 +23,7 @@ export function StorefrontIdentity({ shop, locale, labels }: {
         {shop.viewer.isOwner ? <Link href={`/${locale}/seller?shopId=${shop.id}`} className="rounded-md bg-orange-600 px-4 py-2 text-center text-sm font-semibold text-white no-underline">{labels.manage}</Link> : null}
       </div>
       <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-700">
-        <div className="flex items-center gap-1.5"><StarIcon className="size-4 text-orange-600" aria-hidden="true" /><dt className="sr-only">{labels.reviews}</dt><dd>{shop.ratingAverage.toFixed(1)} · {shop.ratingCount} {labels.reviews}</dd></div>
+        <div className="flex items-center gap-1.5"><StarIcon className="size-4 text-orange-600" aria-hidden="true" /><dt className="sr-only">{labels.reviews}</dt><dd><Link href="#reviews" className="rounded-sm underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-600">{shop.ratingAverage.toFixed(1)} · {shop.ratingCount} {labels.reviews}</Link></dd></div>
         <div className="flex items-center gap-1.5"><UsersIcon className="size-4 text-orange-600" aria-hidden="true" /><dt className="sr-only">{labels.followers}</dt><dd>{shop.followerCount} {labels.followers}</dd></div>
         <div><dt className="sr-only">{labels.products}</dt><dd>{shop.productCount} {labels.products}</dd></div>
         {shop.chatEnabled && !shop.viewer.isOwner ? <div className="flex items-center gap-1.5"><MessageCircleIcon className="size-4 text-orange-600" aria-hidden="true" /><dt className="sr-only">{labels.chat}</dt><dd>{labels.chat}</dd></div> : null}

@@ -258,6 +258,9 @@ export class UserService {
   }
 
   async followShop(userId: string, shopId: string): Promise<{ following: true }> {
+    const shop = await this.repo.findShopOwner(shopId)
+    if (!shop) throw new UserServiceError('Shop not found', 404)
+    if (shop.ownerId === userId) throw new UserServiceError('Shop owners cannot follow their own shop', 403)
     await this.repo.followShop(userId, shopId)
     return { following: true }
   }

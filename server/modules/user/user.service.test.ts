@@ -98,6 +98,7 @@ function createRepoMock(): IUserRepository {
     removeFavoriteProduct: vi.fn(),
     listFollowedShops: vi.fn(),
     findShopFollow: vi.fn(),
+    findShopOwner: vi.fn(),
     followShop: vi.fn(),
     unfollowShop: vi.fn(),
   }
@@ -106,6 +107,14 @@ function createRepoMock(): IUserRepository {
 describe("UserService", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it("prevents a shop owner from following their own shop", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findShopOwner).mockResolvedValue({ ownerId: "owner-1" })
+    const service = new UserService(createAppContext(), repo)
+    await expect(service.followShop("owner-1", "shop-1")).rejects.toMatchObject({ message: "Shop owners cannot follow their own shop", status: 403 })
+    expect(repo.followShop).not.toHaveBeenCalled()
   })
 
   it("prevents self-demotion for the current admin", async () => {

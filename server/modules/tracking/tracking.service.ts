@@ -16,6 +16,8 @@ const PRODUCT_LOG_EVENTS = new Set<TrackingEventType>([
   'recommendation_clicked',
   'recently_viewed_update',
 ])
+const SHOP_EVENTS = { shop_viewed: 'VIEW', shop_followed: 'FOLLOW', shop_chat_opened: 'CHAT_OPEN' } as const
+const SHOP_VIEW_WINDOW_MS = 30 * 60 * 1000
 
 export type TrackingEventType =
   | 'product_viewed'
@@ -27,6 +29,9 @@ export type TrackingEventType =
   | 'banner_clicked'
   | 'recommendation_clicked'
   | 'recently_viewed_update'
+  | 'shop_viewed'
+  | 'shop_followed'
+  | 'shop_chat_opened'
 
 export interface TrackingEventInput {
   eventType: TrackingEventType
@@ -104,6 +109,11 @@ export class TrackingService {
 
     if (event.eventType === 'search_submitted' || event.eventType === 'filter_applied' || event.eventType === 'category_viewed') {
       await this.recordSearchLikeEvent(actor, event)
+      return { ok: true }
+    }
+
+    if (event.eventType in SHOP_EVENTS) {
+      await this.recordShopEvent(actor, event)
       return { ok: true }
     }
 
@@ -185,6 +195,15 @@ export class TrackingService {
       clickedEntityId: event.categoryId && this.isUuid(event.categoryId) ? event.categoryId : undefined,
       metadata: this.eventMetadata(event),
     })
+  }
+
+  private async recordShopEvent(actor: TrackingActor, event: Required<Pick<TrackingEventInput, 'eventType'>> & TrackingEventInput): Promise<void> {
+    const shopId = this.requireUuid(event.shopId, 'shopId')
+    if (!actor.userId && !event.sessionId) return
+    const eventType = SHOP_EVENTS[event.eventType as keyof typeof SHOP_EVENTS]
+    const input = { shopId, userId: actor.userId, sessionId: event.sessionId, source: event.source, eventType }
+    if (eventType === 'VIEW' && await this.repo.hasRecentShopEvent({ ...input, since: new Date(Date.now() - SHOP_VIEW_WINDOW_MS) })) return
+    await this.repo.createShopEventLog(input)
   }
 
   private normalizeEvent(input: TrackingEventInput): Required<Pick<TrackingEventInput, 'eventType'>> & TrackingEventInput {

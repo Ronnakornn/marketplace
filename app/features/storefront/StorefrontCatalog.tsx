@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#
 import { ProductCard } from "#/features/product/components/ProductCard";
 import { normalizePublicProductListing, publicShopProductsQueryOptions, type BuyerProduct } from "#/features/product/queries";
 import { useTranslations } from "#/i18n/client";
+import { trackDiscoveryEvent, useTrackVisibleProducts } from "#/features/tracking";
 
 const PAGE_SIZE = 12;
 const SORTS = ["newest", "price_asc", "price_desc"] as const;
@@ -53,6 +54,13 @@ export function StorefrontCatalog({ shopId, locale }: { shopId: string; locale: 
   const total = listing?.meta.totalCount ?? products.length;
   const initialLoading = query.isLoading && page === 1;
   const nextError = query.isError && page > 1;
+  useTrackVisibleProducts(products, "storefront");
+
+  useEffect(() => {
+    if (!listing) return;
+    if (q) trackDiscoveryEvent({ eventType: "search_submitted", shopId, query: q, resultCount: listing.meta.totalCount ?? undefined, source: "storefront" });
+    if (category) trackDiscoveryEvent({ eventType: "filter_applied", shopId, categoryId: category, filters: { category }, resultCount: listing.meta.totalCount ?? undefined, source: "storefront" });
+  }, [filterKey, listing?.meta.totalCount, shopId]);
 
   return <section aria-labelledby="storefront-catalog-title" className="space-y-5">
     <div><h2 id="storefront-catalog-title" className="text-xl font-semibold text-slate-950">{t("storefront.catalogTitle")}</h2><p className="text-sm text-slate-500">{t("storefront.resultSummary").replace("{shown}", String(products.length)).replace("{total}", String(total))}</p></div>
@@ -64,7 +72,7 @@ export function StorefrontCatalog({ shopId, locale }: { shopId: string; locale: 
     {initialLoading ? <p className="py-12 text-center text-sm text-slate-500">{t("storefront.catalogLoading")}</p> : null}
     {query.isError && page === 1 ? <div className="py-12 text-center"><p className="text-sm text-red-700">{t("storefront.catalogError")}</p><Button className="mt-3" variant="outline" onClick={() => void query.refetch()}>{t("storefront.retry")}</Button></div> : null}
     {!initialLoading && !query.isError && products.length === 0 ? <p className="rounded-lg border border-dashed border-slate-300 py-12 text-center text-sm text-slate-500">{t("storefront.catalogEmpty")}</p> : null}
-    {products.length ? <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">{products.map((product) => <ProductCard key={product.id} product={product} showShopIdentity={false} />)}</div> : null}
+    {products.length ? <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">{products.map((product) => <ProductCard key={product.id} product={product} showShopIdentity={false} trackingSource="storefront" />)}</div> : null}
     {nextError ? <div className="text-center"><p className="text-sm text-red-700">{t("storefront.nextPageError")}</p><Button className="mt-2" variant="outline" onClick={() => void query.refetch()}>{t("storefront.retry")}</Button></div> : null}
     {listing?.meta.hasNextPage && !nextError ? <div className="text-center"><Button variant="outline" disabled={query.isFetching} onClick={() => setPage((current) => current + 1)}>{query.isFetching ? t("storefront.loadingMore") : t("storefront.loadMore")}</Button></div> : null}
     {products.length > 0 && listing && !listing.meta.hasNextPage && !nextError ? <p className="text-center text-sm text-slate-500">{t("storefront.endOfResults")}</p> : null}
