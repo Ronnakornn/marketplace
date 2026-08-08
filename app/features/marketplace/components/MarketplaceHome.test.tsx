@@ -106,6 +106,7 @@ vi.mock("next/image", () => ({
 
 vi.mock("#/components/BuyerShell", () => ({
   BuyerTopBar: ({ title }: { title: string }) => <header>{title}</header>,
+  MobileBottomNavigation: () => <nav aria-label="Mobile navigation" />,
 }));
 
 vi.mock("#/components/ui/badge", () => ({
