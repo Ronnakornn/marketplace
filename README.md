@@ -151,7 +151,11 @@ bun run db:generate                              # Regenerate client after schem
 
 # Testing
 bun run test             # Run Vitest
+bun run test:e2e         # Run Playwright E2E against the configured test DB
 ```
+
+See [docs/TESTING.md](docs/TESTING.md) for focused test commands, Playwright
+projects, database safety, debugging, and CI order.
 
 ## Environment Variables
 
