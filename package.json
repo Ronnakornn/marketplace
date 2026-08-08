@@ -22,7 +22,7 @@
     "build:all": "bunx prisma generate && next build",
     "preview": "next start --port 3000",
     "test": "vitest run --exclude \"**/e2e/**\"",
-    "test:e2e": "playwright test",
+    "test:e2e": "bun run db:push && playwright test",
     "audit:i18n": "bun run scripts/i18n-audit.ts",
     "db:generate": "bunx prisma generate",
     "db:push": "bunx prisma db push",

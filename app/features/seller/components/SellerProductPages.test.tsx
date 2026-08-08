@@ -573,9 +573,8 @@ describe("Seller product pages", () => {
     );
   });
 
-  it("creates, edits, and deletes variants with stock fields limited to allowed values", () => {
+  it("edits variant stock with fields limited to allowed values", () => {
     updateVariantMutate.mockImplementation((_input, options) => options.onSuccess());
-    createVariantMutate.mockImplementation((_input, options) => options.onSuccess({ id: "var_new" }));
     render(<SellerProductEditPage productId="prod_1" />);
 
     fireEvent.change(screen.getByLabelText("Quantity on hand"), { target: { value: "14" } });
@@ -591,7 +590,11 @@ describe("Seller product pages", () => {
       expect.objectContaining({ onError: expect.any(Function) }),
     );
     expect(updateVariantStockMutate.mock.calls[0][0]).not.toHaveProperty("quantityReserved");
+  });
 
+  it("creates variants", () => {
+    createVariantMutate.mockImplementation((_input, options) => options.onSuccess({ id: "var_new" }));
+    render(<SellerProductEditPage productId="prod_1" />);
     fireEvent.click(screen.getByRole("button", { name: "Add variant" }));
     fireEvent.change(screen.getByLabelText("SKU", { selector: "#variant-sku-1" }), { target: { value: "SHIRT-2" } });
     fireEvent.change(screen.getByLabelText("Variant title", { selector: "#variant-title-1" }), { target: { value: "Medium" } });
@@ -599,7 +602,10 @@ describe("Seller product pages", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Save variant" })[1]);
 
     expect(createVariantMutate).toHaveBeenCalledWith(expect.objectContaining({ productId: "prod_1", sku: "SHIRT-2", price: 1550 }), expect.any(Object));
+  });
 
+  it("deletes variants after confirmation", () => {
+    render(<SellerProductEditPage productId="prod_1" />);
     fireEvent.click(screen.getAllByRole("button", { name: "Delete variant" })[0]);
     expect(screen.getByRole("alertdialog")).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: "Delete variant" }).at(-1)!);

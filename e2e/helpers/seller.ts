@@ -17,7 +17,7 @@ export async function isolateRateLimit(page: Page, testInfo: TestInfo) {
 
 export async function waitForRenderedPage(page: Page) {
   await page.waitForLoadState("domcontentloaded");
-  await page.waitForLoadState("networkidle");
+  await expect(page.locator("body")).toBeVisible();
 }
 
 export async function signInSeller(page: Page, identity: SellerIdentity = demoSeller) {

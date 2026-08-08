@@ -6,6 +6,8 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   workers: 1,
+  timeout: 45_000,
+  expect: { timeout: 10_000 },
   reporter: [
     ["list"],
     ["html", { open: "never" }],
@@ -23,9 +25,14 @@ export default defineConfig({
     },
     {
       name: "chromium",
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: [/auth\.setup\.ts/, /storefront\.spec\.ts/],
       dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], storageState: "test-results/.auth/seller.json" },
+    },
+    {
+      name: "storefront-chromium",
+      testMatch: /storefront\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "firefox",
@@ -48,8 +55,10 @@ export default defineConfig({
   ],
   webServer: {
     command: "bun run dev",
-    url: "http://localhost:3000/api/health",
+    url: "http://localhost:3000/api/health/ready",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    stdout: "pipe",
+    stderr: "pipe",
   },
 });
