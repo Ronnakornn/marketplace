@@ -9,7 +9,9 @@ const ShopParamsSchema = t.Object({
   shopId: t.String({ format: 'uuid' }),
 })
 
-const UpdateShopProfileBodySchema = t.Partial(t.Pick(ShopPlainInputUpdate, [
+const OptionalLocalizedTextSchema = t.Optional(t.Union([t.String({ maxLength: 5000 }), t.Null()]))
+
+const UpdateShopProfileBodySchema = t.Intersect([t.Partial(t.Pick(ShopPlainInputUpdate, [
   'name',
   'slug',
   'contactEmail',
@@ -19,9 +21,12 @@ const UpdateShopProfileBodySchema = t.Partial(t.Pick(ShopPlainInputUpdate, [
   'coverUrl',
   'metaTitle',
   'metaDescription',
-]))
+])), t.Object({
+  descriptionTh: OptionalLocalizedTextSchema,
+  descriptionEn: OptionalLocalizedTextSchema,
+})])
 
-const UpdateShopSettingsBodySchema = t.Partial(t.Pick(ShopSettingPlainInputUpdate, [
+const UpdateShopSettingsBodySchema = t.Intersect([t.Partial(t.Pick(ShopSettingPlainInputUpdate, [
   'autoAcceptOrder',
   'allowCod',
   'chatEnabled',
@@ -29,7 +34,12 @@ const UpdateShopSettingsBodySchema = t.Partial(t.Pick(ShopSettingPlainInputUpdat
   'defaultShippingProvider',
   'returnPolicy',
   'shippingPolicy',
-]))
+])), t.Object({
+  returnPolicyTh: OptionalLocalizedTextSchema,
+  returnPolicyEn: OptionalLocalizedTextSchema,
+  shippingPolicyTh: OptionalLocalizedTextSchema,
+  shippingPolicyEn: OptionalLocalizedTextSchema,
+})])
 
 function actor(authContext: any) {
   return { id: authContext!.user.id, role: authContext!.user.role }

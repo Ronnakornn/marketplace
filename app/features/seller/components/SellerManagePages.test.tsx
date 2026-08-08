@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SellerDashboardPage } from "./SellerManagePages";
 
@@ -16,6 +16,7 @@ let shopListQuery: any;
 let profileQuery: any;
 let settingsQuery: any;
 let updateSettingsMutation: any;
+let updateProfileMutation: any;
 
 vi.mock("next/link", () => ({
   default: ({ href, children, prefetch: _prefetch, ...props }: any) => <a href={href} {...props}>{children}</a>,
@@ -90,6 +91,7 @@ vi.mock("../hooks/useSellerManage", () => ({
   useSellerShopProfile: () => profileQuery,
   useSellerShopSettings: () => settingsQuery,
   useUpdateSellerShopSettings: () => updateSettingsMutation,
+  useUpdateSellerShopProfile: () => updateProfileMutation,
 
   useApproveReturn: () => ({ mutate: vi.fn(), isPending: false }),
   useCreateSellerCoupon: () => ({ mutate: vi.fn(), isPending: false }),
@@ -218,6 +220,8 @@ describe("SellerDashboardPage", () => {
         contactEmail: "seller@shop.one",
         contactPhone: "0800000000",
         description: null,
+        descriptionTh: null,
+        descriptionEn: null,
         logoUrl: null,
         coverUrl: null,
         metaTitle: null,
@@ -240,6 +244,10 @@ describe("SellerDashboardPage", () => {
         defaultShippingProvider: null,
         returnPolicy: null,
         shippingPolicy: null,
+        returnPolicyTh: null,
+        returnPolicyEn: null,
+        shippingPolicyTh: null,
+        shippingPolicyEn: null,
         version: 1,
         updatedAt: new Date("2026-06-01T00:00:00.000Z"),
       },
@@ -250,8 +258,10 @@ describe("SellerDashboardPage", () => {
 
     updateSettingsMutation = {
       mutate: vi.fn(),
+      mutateAsync: vi.fn().mockResolvedValue({}),
       isPending: false,
     };
+    updateProfileMutation = { mutateAsync: vi.fn().mockResolvedValue({}), isPending: false };
   });
 
   it("renders dashboard insights with moderation-aware shop reviews", () => {
@@ -261,6 +271,17 @@ describe("SellerDashboardPage", () => {
     expect(screen.getByText("seller.manage.recentShopReviewsTitle")).toBeTruthy();
     expect(screen.getByText(/seller.manage.reviewModerationReason/)).toBeTruthy();
     expect(screen.getByText("seller.manage.staffDescription")).toBeTruthy();
+  });
+
+  it("submits localized shop content while preserving base fields", async () => {
+    render(<SellerDashboardPage />);
+    const description = screen.getAllByLabelText("seller.manage.baseDescription").at(-1)!;
+    const form = description.closest("form")!;
+    fireEvent.change(description, { target: { value: "Base copy" } });
+    fireEvent.change(within(form).getByLabelText("seller.manage.thaiShippingPolicy"), { target: { value: "  " } });
+    fireEvent.click(within(form).getByRole("button", { name: "seller.manage.saveLocalizedContent" }));
+    expect(updateProfileMutation.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ shopId: "shop-1", description: "Base copy" }));
+    expect(updateSettingsMutation.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ shopId: "shop-1", shippingPolicyTh: null }));
   });
 
   it("shows review error state and retries review fetch", () => {

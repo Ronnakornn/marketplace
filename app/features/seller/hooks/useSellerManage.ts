@@ -57,6 +57,8 @@ export interface SellerShopProfileUpdateInput {
   contactEmail?: string;
   contactPhone?: string;
   description?: string | null;
+  descriptionTh?: string | null;
+  descriptionEn?: string | null;
   metaTitle?: string | null;
   metaDescription?: string | null;
   logoUrl?: string | null;
@@ -71,6 +73,10 @@ export interface SellerShopSettingsUpdateInput {
   defaultShippingProvider?: string | null;
   returnPolicy?: string | null;
   shippingPolicy?: string | null;
+  returnPolicyTh?: string | null;
+  returnPolicyEn?: string | null;
+  shippingPolicyTh?: string | null;
+  shippingPolicyEn?: string | null;
 }
 
 export interface SellerProductInput {

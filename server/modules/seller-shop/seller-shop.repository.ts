@@ -14,6 +14,8 @@ export type SellerOwnedShopRecord = Pick<
   | 'contactEmail'
   | 'contactPhone'
   | 'description'
+  | 'descriptionTh'
+  | 'descriptionEn'
   | 'logoUrl'
   | 'coverUrl'
   | 'metaTitle'
@@ -33,6 +35,10 @@ export type SellerShopSettingRecord = Pick<
   | 'defaultShippingProvider'
   | 'returnPolicy'
   | 'shippingPolicy'
+  | 'returnPolicyTh'
+  | 'returnPolicyEn'
+  | 'shippingPolicyTh'
+  | 'shippingPolicyEn'
   | 'version'
   | 'updatedAt'
 >
@@ -43,6 +49,8 @@ export interface SellerShopProfileUpdateInput {
   contactEmail?: string
   contactPhone?: string
   description?: string | null
+  descriptionTh?: string | null
+  descriptionEn?: string | null
   logoUrl?: string | null
   coverUrl?: string | null
   metaTitle?: string | null
@@ -57,6 +65,10 @@ export interface SellerShopSettingUpdateInput {
   defaultShippingProvider?: string | null
   returnPolicy?: string | null
   shippingPolicy?: string | null
+  returnPolicyTh?: string | null
+  returnPolicyEn?: string | null
+  shippingPolicyTh?: string | null
+  shippingPolicyEn?: string | null
 }
 
 export interface ISellerShopRepository {
@@ -79,6 +91,8 @@ const ownedShopSelect = {
   contactEmail: true,
   contactPhone: true,
   description: true,
+  descriptionTh: true,
+  descriptionEn: true,
   logoUrl: true,
   coverUrl: true,
   metaTitle: true,
@@ -97,6 +111,10 @@ const shopSettingSelect = {
   defaultShippingProvider: true,
   returnPolicy: true,
   shippingPolicy: true,
+  returnPolicyTh: true,
+  returnPolicyEn: true,
+  shippingPolicyTh: true,
+  shippingPolicyEn: true,
   version: true,
   updatedAt: true,
 } as const

@@ -5,7 +5,7 @@ import type {
   SellerOwnedShopRecord,
   SellerShopSettingRecord,
 } from './seller-shop.repository.ts'
-import { SellerShopService } from './seller-shop.service.ts'
+import { resolveLocalizedSellerText, SellerShopService } from './seller-shop.service.ts'
 
 function createAppContext(): AppContext {
   return {
@@ -30,6 +30,8 @@ function createShop(overrides: Partial<SellerOwnedShopRecord> = {}): SellerOwned
     contactEmail: 'shop@example.com',
     contactPhone: '0812345678',
     description: null,
+    descriptionTh: null,
+    descriptionEn: null,
     logoUrl: null,
     coverUrl: null,
     metaTitle: null,
@@ -51,6 +53,10 @@ function createSettings(overrides: Partial<SellerShopSettingRecord> = {}): Selle
     defaultShippingProvider: null,
     returnPolicy: null,
     shippingPolicy: null,
+    returnPolicyTh: null,
+    returnPolicyEn: null,
+    shippingPolicyTh: null,
+    shippingPolicyEn: null,
     version: 1,
     updatedAt: new Date('2026-05-26T00:00:00.000Z'),
     ...overrides,
@@ -135,5 +141,36 @@ describe('SellerShopService', () => {
       chatEnabled: false,
       vacationMode: true,
     }))
+  })
+
+  it('normalizes blank localized values to null', async () => {
+    await service.updateShopSettings({ id: 'seller-1', role: 'USER' }, 'shop-1', {
+      shippingPolicyTh: '   ', returnPolicyEn: ' English returns ',
+    })
+    expect(repo.upsertShopSettings).toHaveBeenCalledWith('shop-1', expect.objectContaining({
+      shippingPolicyTh: null, returnPolicyEn: 'English returns',
+    }))
+  })
+
+  it('rejects cross-shop profile updates', async () => {
+    vi.mocked(repo.findOwnedActiveShopById).mockResolvedValue(null)
+    vi.mocked(repo.findOwnedShopById).mockResolvedValue(null)
+    await expect(service.updateShopProfile({ id: 'seller-1', role: 'USER' }, 'shop-2', { descriptionTh: 'x' }))
+      .rejects.toMatchObject({ code: 'SHOP_FORBIDDEN' })
+    expect(repo.updateShopProfile).not.toHaveBeenCalled()
+  })
+})
+
+describe('resolveLocalizedSellerText', () => {
+  const values = { th: 'ไทย', base: 'Base', en: 'English' }
+  it('uses Thai, base, then English for Thai', () => {
+    expect(resolveLocalizedSellerText('th', values)).toBe('ไทย')
+    expect(resolveLocalizedSellerText('th', { ...values, th: ' ' })).toBe('Base')
+    expect(resolveLocalizedSellerText('th', { ...values, th: null, base: null })).toBe('English')
+  })
+  it('uses English, base, then Thai for English', () => {
+    expect(resolveLocalizedSellerText('en', values)).toBe('English')
+    expect(resolveLocalizedSellerText('en', { ...values, en: ' ' })).toBe('Base')
+    expect(resolveLocalizedSellerText('en', { ...values, en: null, base: null })).toBe('ไทย')
   })
 })

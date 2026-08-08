@@ -638,6 +638,8 @@ model Shop {
   contactEmail       String
   contactPhone       String
   description        String?
+  descriptionTh      String?
+  descriptionEn      String?
   logoUrl            String?
   coverUrl           String?
   status             ShopStatus @default(PENDING)
@@ -1213,6 +1215,10 @@ model ShopSetting {
   defaultShippingProvider String?
   returnPolicy            String?
   shippingPolicy          String?
+  returnPolicyTh          String?
+  returnPolicyEn          String?
+  shippingPolicyTh        String?
+  shippingPolicyEn        String?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
   version                 Int      @default(1)

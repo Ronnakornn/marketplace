@@ -72,6 +72,7 @@ import {
   useShipShipment,
   useArchiveSellerProduct,
   useUpdateSellerShopSettings,
+  useUpdateSellerShopProfile,
   useUpdateSellerProduct,
   useUpdateSellerCoupon,
   useUpdateSellerInventory,
@@ -362,6 +363,42 @@ function EmptyState({ message }: { message: string }) {
   return <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-500">{message}</div>;
 }
 
+function LocalizedShopContentForm({ shopId, profile, settings }: {
+  shopId: string;
+  profile: { description: string | null; descriptionTh: string | null; descriptionEn: string | null };
+  settings: { shippingPolicy: string | null; shippingPolicyTh: string | null; shippingPolicyEn: string | null; returnPolicy: string | null; returnPolicyTh: string | null; returnPolicyEn: string | null };
+}) {
+  const t = useTranslations();
+  const updateProfile = useUpdateSellerShopProfile();
+  const updateSettings = useUpdateSellerShopSettings();
+  const [values, setValues] = useState({
+    description: profile.description ?? "", descriptionTh: profile.descriptionTh ?? "", descriptionEn: profile.descriptionEn ?? "",
+    shippingPolicy: settings.shippingPolicy ?? "", shippingPolicyTh: settings.shippingPolicyTh ?? "", shippingPolicyEn: settings.shippingPolicyEn ?? "",
+    returnPolicy: settings.returnPolicy ?? "", returnPolicyTh: settings.returnPolicyTh ?? "", returnPolicyEn: settings.returnPolicyEn ?? "",
+  });
+  const field = (name: keyof typeof values, label: string) => <div className="space-y-2"><Label htmlFor={`shop-${name}`}>{label}</Label><Textarea id={`shop-${name}`} value={values[name]} maxLength={5000} rows={3} onChange={(event) => setValues((current) => ({ ...current, [name]: event.target.value }))} /></div>;
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    const nullable = (value: string) => value.trim() || null;
+    try {
+      await Promise.all([
+        updateProfile.mutateAsync({ shopId, description: nullable(values.description), descriptionTh: nullable(values.descriptionTh), descriptionEn: nullable(values.descriptionEn) }),
+        updateSettings.mutateAsync({ shopId, shippingPolicy: nullable(values.shippingPolicy), shippingPolicyTh: nullable(values.shippingPolicyTh), shippingPolicyEn: nullable(values.shippingPolicyEn), returnPolicy: nullable(values.returnPolicy), returnPolicyTh: nullable(values.returnPolicyTh), returnPolicyEn: nullable(values.returnPolicyEn) }),
+      ]);
+      toast.success(t("seller.manage.localizedContentSaved"));
+    } catch { toast.error(t("seller.manage.localizedContentFailed")); }
+  }
+
+  return <form className="space-y-4 rounded-lg border border-slate-200 px-3 py-3" onSubmit={save}>
+    <p className="text-sm font-semibold text-slate-900">{t("seller.manage.localizedContentTitle")}</p>
+    <div className="grid gap-3 md:grid-cols-3">{field("description", t("seller.manage.baseDescription"))}{field("descriptionTh", t("seller.manage.thaiDescription"))}{field("descriptionEn", t("seller.manage.englishDescription"))}</div>
+    <div className="grid gap-3 md:grid-cols-3">{field("shippingPolicy", t("seller.manage.baseShippingPolicy"))}{field("shippingPolicyTh", t("seller.manage.thaiShippingPolicy"))}{field("shippingPolicyEn", t("seller.manage.englishShippingPolicy"))}</div>
+    <div className="grid gap-3 md:grid-cols-3">{field("returnPolicy", t("seller.manage.baseReturnPolicy"))}{field("returnPolicyTh", t("seller.manage.thaiReturnPolicy"))}{field("returnPolicyEn", t("seller.manage.englishReturnPolicy"))}</div>
+    <Button type="submit" size="sm" disabled={updateProfile.isPending || updateSettings.isPending}>{t("seller.manage.saveLocalizedContent")}</Button>
+  </form>;
+}
+
 export function SellerDashboardPage() {
   const t = useTranslations();
   const searchParams = useSearchParams();
@@ -560,6 +597,8 @@ export function SellerDashboardPage() {
                     </Button>
                   </div>
                 </div>
+
+                <LocalizedShopContentForm key={resolvedShopId} shopId={resolvedShopId} profile={profileQuery.data} settings={settingsQuery.data} />
 
                 <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3">
                   <p className="text-sm font-semibold text-slate-900">{t("seller.manage.staffTitle")}</p>

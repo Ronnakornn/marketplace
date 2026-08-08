@@ -12,6 +12,16 @@ import type {
 
 const SLUG_MIN_LENGTH = 2
 
+export function resolveLocalizedSellerText(
+  locale: 'th' | 'en',
+  values: { base: string | null; th: string | null; en: string | null },
+): string | null {
+  const candidates = locale === 'th'
+    ? [values.th, values.base, values.en]
+    : [values.en, values.base, values.th]
+  return candidates.find((value) => value !== null && value.trim().length > 0)?.trim() ?? null
+}
+
 export interface SellerShopActor {
   id: string
   role: Role
@@ -41,6 +51,8 @@ export interface SellerShopProfileResponse {
   contactEmail: string
   contactPhone: string
   description: string | null
+  descriptionTh: string | null
+  descriptionEn: string | null
   logoUrl: string | null
   coverUrl: string | null
   metaTitle: string | null
@@ -58,6 +70,10 @@ export interface SellerShopSettingsResponse {
   defaultShippingProvider: string | null
   returnPolicy: string | null
   shippingPolicy: string | null
+  returnPolicyTh: string | null
+  returnPolicyEn: string | null
+  shippingPolicyTh: string | null
+  shippingPolicyEn: string | null
   version: number
   updatedAt: Date
 }
@@ -167,6 +183,8 @@ export class SellerShopService {
     }
 
     if (input.description !== undefined) next.description = this.normalizeNullableText(input.description)
+    if (input.descriptionTh !== undefined) next.descriptionTh = this.normalizeNullableText(input.descriptionTh)
+    if (input.descriptionEn !== undefined) next.descriptionEn = this.normalizeNullableText(input.descriptionEn)
     if (input.metaTitle !== undefined) next.metaTitle = this.normalizeNullableText(input.metaTitle)
     if (input.metaDescription !== undefined) next.metaDescription = this.normalizeNullableText(input.metaDescription)
     if (input.logoUrl !== undefined) next.logoUrl = this.normalizeNullableUrl(input.logoUrl, 'Logo URL')
@@ -185,6 +203,10 @@ export class SellerShopService {
     if (input.defaultShippingProvider !== undefined) next.defaultShippingProvider = this.normalizeNullableText(input.defaultShippingProvider)
     if (input.returnPolicy !== undefined) next.returnPolicy = this.normalizeNullableText(input.returnPolicy)
     if (input.shippingPolicy !== undefined) next.shippingPolicy = this.normalizeNullableText(input.shippingPolicy)
+    if (input.returnPolicyTh !== undefined) next.returnPolicyTh = this.normalizeNullableText(input.returnPolicyTh)
+    if (input.returnPolicyEn !== undefined) next.returnPolicyEn = this.normalizeNullableText(input.returnPolicyEn)
+    if (input.shippingPolicyTh !== undefined) next.shippingPolicyTh = this.normalizeNullableText(input.shippingPolicyTh)
+    if (input.shippingPolicyEn !== undefined) next.shippingPolicyEn = this.normalizeNullableText(input.shippingPolicyEn)
 
     return next
   }
@@ -267,6 +289,8 @@ export class SellerShopService {
       contactEmail: shop.contactEmail,
       contactPhone: shop.contactPhone,
       description: shop.description,
+      descriptionTh: shop.descriptionTh,
+      descriptionEn: shop.descriptionEn,
       logoUrl: shop.logoUrl,
       coverUrl: shop.coverUrl,
       metaTitle: shop.metaTitle,
@@ -286,6 +310,10 @@ export class SellerShopService {
       defaultShippingProvider: settings.defaultShippingProvider,
       returnPolicy: settings.returnPolicy,
       shippingPolicy: settings.shippingPolicy,
+      returnPolicyTh: settings.returnPolicyTh,
+      returnPolicyEn: settings.returnPolicyEn,
+      shippingPolicyTh: settings.shippingPolicyTh,
+      shippingPolicyEn: settings.shippingPolicyEn,
       version: settings.version,
       updatedAt: settings.updatedAt,
     }
