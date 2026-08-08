@@ -17,7 +17,7 @@ import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
 
-export function ProductCard({ product }: { product: BuyerProduct }) {
+export function ProductCard({ product, showShopIdentity = true }: { product: BuyerProduct; showShopIdentity?: boolean }) {
   const router = useRouter();
   const localePath = useLocalePath();
   const t = useTranslations();
@@ -174,15 +174,15 @@ export function ProductCard({ product }: { product: BuyerProduct }) {
             <StarIcon className="size-3.5 fill-amber-400 text-amber-400" />
             {product.rating.toFixed(1)}
           </span>
-          <span className="flex min-w-0 items-center gap-1">
+          {showShopIdentity ? <span className="flex min-w-0 items-center gap-1">
             <MapPinIcon className="size-3.5 shrink-0" />
             <span className="truncate">{product.shop.location}</span>
-          </span>
+          </span> : null}
         </div>
         <div className="flex min-h-9 items-center justify-between gap-2">
-          <Badge variant="outline" className="min-w-0 max-w-full truncate rounded-full border-orange-200 bg-orange-50 font-normal text-orange-700">
+          {showShopIdentity ? <Badge variant="outline" className="min-w-0 max-w-full truncate rounded-full border-orange-200 bg-orange-50 font-normal text-orange-700">
             {product.shop.name}
-          </Badge>
+          </Badge> : <span />}
           {quickAddVariant ? (
             <Button
               type="button"

@@ -6,7 +6,7 @@ import type * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BuyerTopBar } from "./BuyerShell";
+import { BuyerTopBar, MobileBottomNavigation } from "./BuyerShell";
 
 let pathname = "/en/seller/products";
 const signedInSession = {
@@ -114,5 +114,11 @@ describe("buyer shell smoke", () => {
     });
 
     expect(document.querySelector('a[href="/en/signup"]')).toBeTruthy();
+  });
+
+  it("does not mark a marketplace mobile item active on shop routes", () => {
+    pathname = "/en/shops/demo-shop";
+    renderWithClient(<MobileBottomNavigation />);
+    expect([...document.querySelectorAll("nav a")].every((link) => !link.className.includes("bg-orange-50"))).toBe(true);
   });
 });

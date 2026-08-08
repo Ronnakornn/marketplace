@@ -771,6 +771,27 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     const skip = filters.cursor ? 1 : (page - 1) * filters.limit
     const cursor = filters.cursor ? { id: filters.cursor } : undefined
     const take = filters.cursor ? filters.limit + 1 : filters.limit
+    if (filters.sort === 'price_asc' || filters.sort === 'price_desc') {
+      // ponytail: price sorting materializes matching products; replace with a composite SQL cursor if storefront scale proves this costly.
+      const rows = await this.prisma.product.findMany({ where, include: productInclude })
+      const direction = filters.sort === 'price_asc' ? 1 : -1
+      const sorted = rows
+        .filter((product) => product.variants.some((variant) => variant.status === 'ACTIVE'))
+        .sort((left, right) => {
+          const leftPrice = Math.min(...left.variants.filter((variant) => variant.status === 'ACTIVE').map((variant) => Number(variant.price)))
+          const rightPrice = Math.min(...right.variants.filter((variant) => variant.status === 'ACTIVE').map((variant) => Number(variant.price)))
+          return (leftPrice - rightPrice) * direction || left.id.localeCompare(right.id)
+        })
+      const data = sorted.slice(skip, skip + filters.limit)
+      return {
+        data, items: data,
+        meta: {
+          nextCursor: null, totalCount: sorted.length, page, pageSize: filters.limit,
+          hasNextPage: skip + filters.limit < sorted.length,
+          query: this.buildResultQuery(filters),
+        },
+      }
+    }
     const [rows, totalCount] = await this.prisma.$transaction([
       this.prisma.product.findMany({
         where,

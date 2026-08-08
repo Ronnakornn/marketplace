@@ -113,14 +113,14 @@ vi.mock("#/lib/auth-client", () => ({
   useSession: () => ({ data: cardMocks.session }),
 }));
 
-function renderWithClient(product: BuyerProduct) {
+function renderWithClient(product: BuyerProduct, showShopIdentity?: boolean) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
   return render(
     <QueryClientProvider client={client}>
-      <ProductCard product={product} />
+      <ProductCard product={product} showShopIdentity={showShopIdentity} />
     </QueryClientProvider>,
   );
 }
@@ -150,6 +150,13 @@ describe("ProductCard", () => {
     expect(screen.getByText("21 sold")).toBeTruthy();
     expect(screen.getByText("Demo Shop")).toBeTruthy();
     expect(screen.getByText("Bangkok")).toBeTruthy();
+  });
+
+  it("can omit redundant shop identity without changing the default", () => {
+    renderWithClient(createProductFixture(), false);
+    expect(screen.queryByText("Demo Shop")).toBeNull();
+    expect(screen.queryByText("Bangkok")).toBeNull();
+    expect(screen.getByText("Canvas Weekender Bag")).toBeTruthy();
   });
 
   it("shows quick add only for exactly one purchasable no-option variant", () => {

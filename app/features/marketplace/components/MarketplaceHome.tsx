@@ -8,18 +8,14 @@ import {
   FlameIcon,
   Grid3X3Icon,
   HeartIcon,
-  HomeIcon,
-  MenuIcon,
   PackageIcon,
   ShoppingBagIcon,
-  ShoppingCartIcon,
   SparklesIcon,
   StarIcon,
   TicketPercentIcon,
-  UserCircleIcon,
   ZapIcon,
 } from "lucide-react";
-import { BuyerTopBar } from "#/components/BuyerShell";
+import { BuyerTopBar, MobileBottomNavigation } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Skeleton } from "#/components/ui/skeleton";
@@ -48,7 +44,6 @@ interface MarketplaceHomeProps {
     role?: string | null;
   } | null;
 }
-
 const fallbackCategoryItems = [
   ["fashion", "Fashion", "bg-rose-100 text-rose-600"],
   ["beauty", "Beauty", "bg-pink-100 text-pink-600"],
@@ -256,11 +251,10 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
       </main>
 
       <StickyCheckoutCTA />
-      <MobileBottomNav />
+      <MobileBottomNavigation />
     </div>
   );
 }
-
 const emptyMarketplaceHome: MarketplaceHomeData = {
   banners: [],
   categories: [],
@@ -400,7 +394,7 @@ function FlashSaleSection({
               <p className="line-clamp-2 min-h-9 text-xs font-semibold text-slate-800">{product.title}</p>
               <p className="mt-1 text-base font-extrabold text-orange-600">{formatMoney(product.price, product.currency)}</p>
               <div className="mt-2 h-2 rounded-full bg-orange-100">
-                <div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: `${Math.min(92, 42 + product.soldCount * 4)}%` }} />
+                <div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: String(Math.min(92, 42 + product.soldCount * 4)) + "%" }} />
               </div>
               <p className="mt-1 text-[11px] text-slate-900">{product.soldCount.toLocaleString()} {t("product.sold")}</p>
               <Button
@@ -486,7 +480,7 @@ function ProductRail(props: {
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
         {props.products.map((product, index) => (
-          <div key={`${props.source}-${product.id}-${index}`}>
+          <div key={[props.source, product.id, index].join("-")}>
             <BuyerProductCard product={product.buyerProduct} />
           </div>
         ))}
@@ -555,7 +549,7 @@ function FeaturedShopsSection({ shops, isLoading }: { shops: MarketplaceShop[]; 
         {shops.map((shop, index) => (
           <Link
             key={shop.id}
-            href={localePath(`/shops/${shop.slug || shop.id}`)}
+            href={localePath(["/shops", shop.slug || shop.id].join("/"))}
             onClick={() => trackDiscoveryEvent({ eventType: "recommendation_clicked", shopId: shop.id, source: "marketplace_home_featured_shops", position: index })}
             className="min-w-0 rounded-2xl border border-slate-100 p-3 transition hover:bg-slate-50"
           >
@@ -617,27 +611,3 @@ function StickyCheckoutCTA() {
   );
 }
 
-function MobileBottomNav() {
-  const t = useTranslations();
-  const localePath = useLocalePath();
-  const items = [
-    [HomeIcon, t("common.home"), "/"],
-    [MenuIcon, t("common.categories"), "/categories/deals"],
-    [FlameIcon, t("common.deals"), "/search?q=deal"],
-    [ShoppingCartIcon, t("common.cart"), "/cart"],
-    [UserCircleIcon, t("common.account"), "/profile"],
-  ] as const;
-
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.35rem)] pt-1.5 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-5">
-        {items.map(([Icon, label, href], index) => (
-          <Link key={label} href={localePath(href)} className={`flex flex-col items-center gap-1 rounded-xl px-1 py-1 text-[11px] font-semibold ${index === 0 ? "bg-orange-50 text-orange-600" : "text-slate-900"}`}>
-            <Icon className="size-5" />
-            <span>{label}</span>
-          </Link>
-        ))}
-      </div>
-    </nav>
-  );
-}

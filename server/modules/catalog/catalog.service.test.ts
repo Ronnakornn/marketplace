@@ -353,6 +353,18 @@ describe('CatalogService', () => {
     })
   })
 
+  it('uses storefront paging defaults and falls back from invalid sort values', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, totalCount: 0, page: 1, pageSize: 12, hasNextPage: false, query: {} } })
+    const service = new CatalogService(createAppContext(), repo)
+    await service.listPublicShopProducts('shop-1', { keyword: ' bag ', categoryId: 'fashion', sort: 'invalid' })
+    expect(repo.findProducts).toHaveBeenCalledWith(expect.objectContaining({
+      shopId: 'shop-1', keyword: 'bag', categoryId: 'fashion', sort: 'newest', page: 1, limit: 12,
+      status: 'ACTIVE', publicOnly: true,
+    }))
+    expect(repo.findProductFacets).toHaveBeenLastCalledWith(expect.not.objectContaining({ categoryId: expect.anything() }))
+  })
+
   it('returns empty facet metadata when public listing facets cannot be calculated', async () => {
     const repo = createRepoMock()
     vi.mocked(repo.findProducts).mockResolvedValue({

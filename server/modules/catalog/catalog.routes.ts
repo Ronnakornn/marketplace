@@ -110,7 +110,7 @@ const ProductImageParamsSchema = t.Object({
 
 const PublicListQuerySchema = t.Object({
   keyword: t.Optional(t.String({ minLength: 1 })),
-  q: t.Optional(t.String({ minLength: 1 })),
+  q: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
   shopId: t.Optional(t.String({ format: 'uuid' })),
   brandId: t.Optional(t.String({ format: 'uuid' })),
   attributeFilters: t.Optional(t.String()),

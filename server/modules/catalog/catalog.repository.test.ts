@@ -21,6 +21,23 @@ function createAppContext() {
 }
 
 describe('PrismaCatalogRepository', () => {
+  it.each([
+    ['price_asc', ['cheap', 'tie-a', 'tie-b', 'expensive']],
+    ['price_desc', ['expensive', 'tie-a', 'tie-b', 'cheap']],
+  ])('sorts a shop page by minimum active variant price with stable ids (%s)', async (sort, expected) => {
+    const product = (id: string, prices: Array<[string, number]>) => ({ id, variants: prices.map(([status, price]) => ({ status, price })) })
+    const findMany = vi.fn().mockResolvedValue([
+      product('expensive', [['ACTIVE', 900]]), product('tie-b', [['ACTIVE', 500]]),
+      product('cheap', [['INACTIVE', 10], ['ACTIVE', 100]]), product('tie-a', [['ACTIVE', 500]]),
+      product('inactive-only', [['INACTIVE', 1]]),
+    ])
+    const repo = new PrismaCatalogRepository(createAppContext() as any, { product: { findMany } } as any)
+    const result = await repo.findProducts({ shopId: 'shop-1', status: 'ACTIVE', publicOnly: true, sort, page: 1, limit: 12 })
+    expect(result.data.map((item) => item.id)).toEqual(expected)
+    expect(result.meta).toMatchObject({ nextCursor: null, totalCount: 4, page: 1, pageSize: 12, hasNextPage: false })
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ shopId: 'shop-1', status: 'ACTIVE' }) }))
+  })
+
   it('returns public listing metadata from the same filters used for items', async () => {
     const rows = [{ id: 'p1' }, { id: 'p2' }]
     const findMany = vi.fn().mockResolvedValue(rows)

@@ -556,9 +556,17 @@ export class CatalogService {
     }
   }
 
-  listPublicShopProducts(shopId: string, filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
+  async listPublicShopProducts(shopId: string, filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
     this.logger.debug('CatalogService.listPublicShopProducts', { shopId, filters })
-    return this.listPublicProducts({ ...filters, shopId })
+    const sort = ['newest', 'price_asc', 'price_desc'].includes(filters.sort ?? '') ? filters.sort : 'newest'
+    const normalized = { ...filters, shopId, sort, limit: filters.limit ?? 12, page: filters.page ?? 1, cursor: undefined }
+    const result = await this.listPublicProducts(normalized)
+    const facets = await this.loadProductFacets({
+      ...this.normalizeListFilters({ ...normalized, categoryId: undefined }),
+      status: 'ACTIVE',
+      publicOnly: true,
+    })
+    return { ...result, facets }
   }
 
   async getPublicProductDetail(id: string, localeInput?: string): Promise<CatalogProductDetail> {

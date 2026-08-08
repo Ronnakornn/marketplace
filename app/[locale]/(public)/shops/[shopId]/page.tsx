@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { BuyerTopBar } from '#/components/BuyerShell'
 import { JsonLd } from '#/components/JsonLd'
 import { StorefrontIdentity } from '#/features/storefront/StorefrontIdentity'
+import { StorefrontCatalog } from '#/features/storefront/StorefrontCatalog'
+import { MobileBottomNavigation } from '#/components/BuyerShell'
 import { resolveLocale } from '#/i18n/config'
 import { createTranslator } from '#/i18n/server'
 import { getServerSession } from '#/lib/auth-server'
@@ -39,12 +41,14 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: s
     <JsonLd data={storeJsonLd(shop, resolvedLocale)} />
     <div className="min-h-[calc(100vh-80px)] bg-slate-50 text-slate-950">
       <BuyerTopBar title={shop.name} />
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 pb-24 md:px-6 md:pb-8">
         <StorefrontIdentity shop={shop} locale={resolvedLocale} labels={{
           products: t('storefront.products'), reviews: t('storefront.reviews'), followers: t('storefront.followers'),
           chat: t('storefront.chatAvailable'), manage: t('storefront.manageShop'), logoAlt: t('storefront.logoAlt').replace('{shop}', shop.name),
         }} />
+        <StorefrontCatalog shopId={shop.id} locale={resolvedLocale} />
       </main>
+      <MobileBottomNavigation />
     </div>
   </>
 }
