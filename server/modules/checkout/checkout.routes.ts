@@ -59,7 +59,7 @@ export function createCheckoutRoutes(container: ServiceContainer) {
     })
     .post('/api/checkout', ({ authContext, body }: any) =>
       container.checkoutService.createCheckout(authContext!.user, body), {
-      withAuth: true,
+      withVerifiedAuth: true,
       body: CreateCheckoutBodySchema,
       response: CheckoutResponseSchema,
     })

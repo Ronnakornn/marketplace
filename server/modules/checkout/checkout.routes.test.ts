@@ -40,6 +40,7 @@ function mockAuth(role: 'USER' | 'ADMIN' = 'USER') {
       name: role,
       role,
       status: 'ACTIVE',
+      emailVerified: true,
     },
   } as any)
 }

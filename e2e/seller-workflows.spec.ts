@@ -71,10 +71,12 @@ test("analytics: presets, custom date validation, search, chart, and table", asy
 test("inventory: low-stock filter and safe numeric update form", async ({ page }) => {
   await openSellerRoute(page, "/inventory");
 
-  const lowStockOnly = page.getByRole("checkbox", { name: "เฉพาะสต็อกต่ำ" });
-  await lowStockOnly.check();
-  await expect(lowStockOnly).toBeChecked();
-  await lowStockOnly.uncheck();
+  const stockFilter = page.getByRole("combobox", { name: "กรองสต็อก" });
+  await stockFilter.click();
+  await page.getByRole("option", { name: "เฉพาะสต็อกต่ำ", exact: true }).click();
+  await expect(stockFilter).toContainText("เฉพาะสต็อกต่ำ");
+  await stockFilter.click();
+  await page.getByRole("option", { name: "สต็อกทั้งหมด", exact: true }).click();
 
   const stockInputs = page.locator('input[name="quantityOnHand"]');
   await expect(stockInputs.first()).toBeVisible();
@@ -86,11 +88,13 @@ test("inventory: low-stock filter and safe numeric update form", async ({ page }
 test("orders and returns expose state-safe actions", async ({ page }) => {
   await openSellerRoute(page, "/orders");
   const shipmentActions = page.getByRole("button", { name: /ทำเครื่องหมายว่าแพ็กแล้ว|จัดส่ง|ทำเครื่องหมายว่าส่งแล้ว/ });
+  const emptyShipments = page.getByText("ไม่มีการจัดส่งที่ต้องดำเนินการ", { exact: true });
+  await expect(shipmentActions.first().or(emptyShipments)).toBeVisible();
   if (await shipmentActions.count()) {
     await expect(page.locator('input[name="carrier"]').first()).toBeVisible();
     await expect(page.locator('input[name="trackingNo"]').first()).toBeVisible();
   } else {
-    await expect(page.getByText("ไม่มีการจัดส่งที่ต้องดำเนินการ", { exact: true })).toBeVisible();
+    await expect(emptyShipments).toBeVisible();
   }
 
   await openSellerRoute(page, "/returns");

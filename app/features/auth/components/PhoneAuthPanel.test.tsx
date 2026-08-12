@@ -1,7 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, fireEvent, render as testingRender, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { completePhoneSignup, requestPhoneAuthOtp, verifyPhoneAuthOtp } from "#/features/auth/api";
 import { PhoneAuthPanel } from "./PhoneAuthPanel";
@@ -17,6 +19,10 @@ vi.mock("#/features/auth/api", () => ({
   requestPhoneAuthOtp: vi.fn(),
   verifyPhoneAuthOtp: vi.fn(),
 }));
+
+function render(ui: ReactElement) {
+  return testingRender(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
+}
 
 afterEach(() => cleanup());
 

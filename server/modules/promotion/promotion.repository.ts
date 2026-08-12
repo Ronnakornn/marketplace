@@ -1,4 +1,4 @@
-import type { Cart, CartItem, Coupon, PrismaClient, ProductVariant, Shop } from '#generated/client/client.ts'
+import type { Cart, CartItem, Coupon, CouponRedemptionStatus, PrismaClient, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -50,7 +50,7 @@ export interface IPromotionValidationRepository {
 export interface IPromotionRepository extends IPromotionValidationRepository {
   findCartForCouponValidation(cartId: string, userId: string): Promise<PromotionCart | null>
   findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'ownerId'>>>
-  listPublicCoupons(): Promise<Coupon[]>
+  listPublicCoupons(): Promise<PromotionCoupon[]>
   listAdminCoupons(): Promise<Coupon[]>
   listSellerCoupons(shopIds: string[]): Promise<Coupon[]>
   findCouponById(couponId: string): Promise<Coupon | null>
@@ -59,9 +59,11 @@ export interface IPromotionRepository extends IPromotionValidationRepository {
   deleteCoupon(couponId: string): Promise<Coupon>
 }
 
+const activeCouponRedemptionStatuses: CouponRedemptionStatus[] = ['RESERVED', 'REDEEMED']
+
 const couponCountInclude = {
   _count: {
-    select: { redemptions: true },
+    select: { redemptions: { where: { status: { in: activeCouponRedemptionStatuses } } } },
   },
 } as const
 
@@ -86,7 +88,7 @@ export class PrismaPromotionRepository implements IPromotionRepository {
   countCouponRedemptionsForUser(couponId: string, userId: string): Promise<number> {
     this.logger.debug('PrismaPromotionRepository.countCouponRedemptionsForUser', { couponId, userId })
     return this.prisma.couponRedemption.count({
-      where: { couponId, userId },
+      where: { couponId, userId, status: { in: ['RESERVED', 'REDEEMED'] } },
     })
   }
 
@@ -123,10 +125,18 @@ export class PrismaPromotionRepository implements IPromotionRepository {
     })
   }
 
-  listPublicCoupons(): Promise<Coupon[]> {
+  listPublicCoupons(): Promise<PromotionCoupon[]> {
     this.logger.debug('PrismaPromotionRepository.listPublicCoupons')
+    const now = new Date()
     return this.prisma.coupon.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        AND: [
+          { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+          { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+        ],
+      },
+      include: couponCountInclude,
       orderBy: { createdAt: 'desc' },
     })
   }

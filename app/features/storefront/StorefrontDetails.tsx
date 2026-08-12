@@ -10,15 +10,14 @@ import { trackDiscoveryEvent } from "#/features/tracking";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
+import { requestApi } from "#/lib/api-client";
 import type { PublicStorefrontProfile } from "#server/modules/seller-shop/seller-shop.service.ts";
 
 interface Review { id: string; userName: string; rating: number; comment: string | null; createdAt: string }
 interface Feed { items: Review[]; meta: { page: number; pageSize: number; totalCount: number; hasNextPage: boolean } }
 
 async function fetchFeed(shopId: string, page: number): Promise<Feed> {
-  const response = await fetch(`/api/shops/${shopId}/reviews/feed?page=${page}&limit=10`);
-  if (!response.ok) throw new Error("reviews");
-  return response.json() as Promise<Feed>;
+  return requestApi<Feed>(`/api/shops/${shopId}/reviews/feed?page=${page}&limit=10`);
 }
 
 export function StorefrontDetails({ shop, locale }: { shop: PublicStorefrontProfile; locale: "th" | "en" }) {

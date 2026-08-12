@@ -1,5 +1,7 @@
 "use client";
 
+import { requestApi } from "#/lib/api-client";
+
 export type SellerUploadUsage = "product_image" | "product_video" | "shop_image" | "kyc_document";
 
 export interface SellerUploadInput {
@@ -57,17 +59,7 @@ export async function uploadSellerFile({ file, usage }: SellerUploadInput): Prom
 }
 
 async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response, "Request failed"));
-  }
-  return response.json() as Promise<T>;
+  return requestApi<T>(path, { ...init, headers: { "content-type": "application/json", ...(init.headers ?? {}) } });
 }
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {

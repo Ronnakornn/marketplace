@@ -3,7 +3,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
-import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
+import { localizedText, resolveContentLocale } from '#server/lib/localization.ts'
 import { PromotionServiceError } from './promotion.errors.ts'
 import type {
   CreateCouponInput,
@@ -38,6 +38,20 @@ export interface CouponValidationResult {
   subtotal: number
 }
 
+export interface PublicCoupon {
+  id: string
+  code: string
+  title: string
+  description: string | null
+  discountType: Coupon['discountType']
+  discountValueCents: number | null
+  discountPercentBps: number | null
+  minOrderCents: number | null
+  maxDiscountCents: number | null
+  startsAt: string | null
+  endsAt: string | null
+}
+
 export interface CouponPayload {
   code: string
   titleTh?: string | null
@@ -68,10 +82,26 @@ export class PromotionService {
     this.logger = appContext.logger
   }
 
-  async listPublicCoupons(localeInput?: string): Promise<Array<Coupon & { title: string; description: string | null }>> {
+  async listPublicCoupons(localeInput?: string): Promise<PublicCoupon[]> {
     const locale = resolveContentLocale(localeInput)
     const coupons = await this.repo.listPublicCoupons()
-    return coupons.map((coupon) => this.localizeCoupon(coupon, locale))
+    return coupons
+      .filter((coupon) => coupon.usageLimit === null || coupon._count.redemptions < coupon.usageLimit)
+      .map((coupon) => {
+        return {
+          id: coupon.id,
+          code: coupon.code,
+          title: localizedText(locale, { th: coupon.titleTh, en: coupon.titleEn, fallback: coupon.code }) ?? coupon.code,
+          description: localizedText(locale, { th: coupon.descriptionTh, en: coupon.descriptionEn }),
+          discountType: coupon.discountType,
+          discountValueCents: coupon.discountValue === null ? null : this.toMoneyNumber(coupon.discountValue),
+          discountPercentBps: coupon.discountPercentBps,
+          minOrderCents: coupon.minOrder === null ? null : this.toMoneyNumber(coupon.minOrder),
+          maxDiscountCents: coupon.maxDiscount === null ? null : this.toMoneyNumber(coupon.maxDiscount),
+          startsAt: this.toIsoDate(coupon.startsAt),
+          endsAt: this.toIsoDate(coupon.endsAt),
+        }
+      })
   }
 
   listAdminCoupons(actor: PromotionActor): Promise<Coupon[]> {
@@ -189,9 +219,11 @@ export class PromotionService {
     subtotal: number,
   ): Promise<void> {
     const now = new Date()
+    const startsAt = this.toDate(coupon.startsAt)
+    const endsAt = this.toDate(coupon.endsAt)
     if (!coupon.isActive) throw new PromotionServiceError('Coupon is inactive', 400, 'COUPON_INACTIVE')
-    if (coupon.startsAt && coupon.startsAt > now) throw new PromotionServiceError('Coupon has not started', 400, 'COUPON_NOT_STARTED')
-    if (coupon.endsAt && coupon.endsAt < now) throw new PromotionServiceError('Coupon has expired', 400, 'COUPON_EXPIRED')
+    if (startsAt && startsAt > now) throw new PromotionServiceError('Coupon has not started', 400, 'COUPON_NOT_STARTED')
+    if (endsAt && endsAt < now) throw new PromotionServiceError('Coupon has expired', 400, 'COUPON_EXPIRED')
     const minOrder = coupon.minOrder ?? coupon.minOrderCents ?? null
     if (minOrder !== null && subtotal < minOrder) {
       throw new PromotionServiceError('Minimum order amount not met', 400, 'COUPON_MIN_ORDER_NOT_MET')
@@ -266,12 +298,14 @@ export class PromotionService {
     return value instanceof Date ? value : new Date(value)
   }
 
-  private localizeCoupon<T extends Coupon>(coupon: T, locale: ContentLocale): T & { title: string; description: string | null } {
-    return {
-      ...coupon,
-      title: localizedText(locale, { th: coupon.titleTh, en: coupon.titleEn, fallback: coupon.code }) ?? coupon.code,
-      description: localizedText(locale, { th: coupon.descriptionTh, en: coupon.descriptionEn }),
-    }
+  private toDate(value: Date | string | null | undefined): Date | null {
+    if (!value) return null
+    const date = value instanceof Date ? value : new Date(value)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  private toIsoDate(value: Date | string | null | undefined): string | null {
+    return this.toDate(value)?.toISOString() ?? null
   }
 
   private normalizeNullableText(value?: string | null): string | null {

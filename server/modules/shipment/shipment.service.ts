@@ -5,6 +5,7 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ActiveShopResolver } from '#server/modules/security'
+import type { AuditLogService } from '#server/modules/audit-log'
 import type { WalletService } from '#server/modules/wallet'
 import { ShipmentServiceError } from './shipment.errors.ts'
 import type {
@@ -102,6 +103,7 @@ export class ShipmentService {
     private eventPublisher?: EventPublisherService,
     private cacheInvalidation?: CacheInvalidation,
     private activeShopResolver?: ActiveShopResolver,
+    private auditLogService?: AuditLogService,
   ) {
     this.logger = appContext.logger
   }
@@ -182,6 +184,7 @@ export class ShipmentService {
       return this.toSellerShipmentResponse(updated)
     })
     await this.cacheInvalidation?.invalidateSellerDashboard(response.shopId)
+    await this.auditShipmentStatus(actor, response.id, 'PENDING_PACK', 'PACKED')
     return response
   }
 
@@ -211,6 +214,7 @@ export class ShipmentService {
       trackingNumber: response.trackingNumber,
     })
     await this.cacheInvalidation?.invalidateSellerDashboard(response.shopId)
+    await this.auditShipmentStatus(actor, response.id, 'PACKED', 'SHIPPED')
     return response
   }
 
@@ -235,6 +239,7 @@ export class ShipmentService {
       shopId: response.shopId,
     })
     await this.cacheInvalidation?.invalidateSellerDashboard(response.shopId)
+    await this.auditShipmentStatus(actor, response.id, 'SHIPPED', 'DELIVERED')
     return response
   }
 
@@ -417,5 +422,23 @@ export class ShipmentService {
         error: error instanceof Error ? error.message : String(error),
       })
     }
+  }
+
+  private async auditShipmentStatus(
+    actor: ShipmentActor,
+    shipmentId: string,
+    beforeStatus: string,
+    afterStatus: string,
+  ): Promise<void> {
+    await this.auditLogService?.createAuditLogBestEffort({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'SHIPMENT_STATUS_CHANGED',
+      entityType: 'shipment',
+      entityId: shipmentId,
+      before: { status: beforeStatus },
+      after: { status: afterStatus },
+      nonCritical: false,
+    })
   }
 }

@@ -26,6 +26,8 @@ function createAppContext() {
 function createRepoMock(): PaymentTransactionRepository {
   return {
     transaction: vi.fn(async (callback) => callback(repo)),
+    lockWebhookEvent: vi.fn(),
+    lockPayment: vi.fn(),
     findPayment: vi.fn(),
     findOrder: vi.fn(),
     findOrCreateAffiliate: vi.fn(),
@@ -241,7 +243,7 @@ describe('PaymentService', () => {
     })
   })
 
-  it('supports checkout-created card payments through the mock payment flow', async () => {
+  it('keeps checkout-created non-mock providers outside the mock payment flow', async () => {
     const service = await setup(createPayment('PENDING', { provider: 'card' }))
     const actor = {
       id: 'user-1',
@@ -252,17 +254,11 @@ describe('PaymentService', () => {
       emailVerified: true,
     }
 
-    await expect(service.getBuyerMockPaymentDetail(actor, baseBody.paymentId)).resolves.toMatchObject({
-      id: baseBody.paymentId,
-      status: 'PENDING',
-    })
-    await expect(service.handleMockPaymentEvent(actor, baseBody.paymentId, {
-      eventType: 'payment.paid',
-    })).resolves.toEqual({ ok: true, code: 'PAYMENT_PAID' })
-    expect(repo.createWebhookEvent).toHaveBeenCalledWith(expect.objectContaining({
-      provider: 'mock',
-      paymentId: baseBody.paymentId,
-    }))
+    await expect(service.getBuyerMockPaymentDetail(actor, baseBody.paymentId))
+      .rejects.toMatchObject({ code: 'INVALID_WEBHOOK_EVENT' })
+    await expect(service.handleMockPaymentEvent(actor, baseBody.paymentId, { eventType: 'payment.paid' }))
+      .rejects.toMatchObject({ code: 'INVALID_WEBHOOK_EVENT' })
+    expect(repo.createWebhookEvent).not.toHaveBeenCalled()
   })
 
   it('keeps non-card payment providers outside the mock payment flow', async () => {
@@ -386,6 +382,9 @@ describe('PaymentService', () => {
     const result = await service.handleWebhook(baseBody)
 
     expect(result).toEqual({ ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' })
+    expect(repo.lockWebhookEvent).toHaveBeenCalledWith(baseBody.providerRef)
+    expect(vi.mocked(repo.lockWebhookEvent).mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(repo.findWebhookEvent).mock.invocationCallOrder[0]!)
     expect(repo.createWebhookEvent).not.toHaveBeenCalled()
     expect(repo.applyPaymentStateTransition).not.toHaveBeenCalled()
     expect(eventPublisher.publish).not.toHaveBeenCalled()

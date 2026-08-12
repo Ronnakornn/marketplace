@@ -2,7 +2,7 @@ import type { NotificationData, NotificationType } from '#server/modules/notific
 
 export const jobNames = [
   'send_notification',
-  'send_email_placeholder',
+  'send_email',
   'release_expired_payment_stock',
   'cleanup_abandoned_carts',
   'sync_order_status',
@@ -18,7 +18,7 @@ export interface SendNotificationJobPayload {
   data?: NotificationData | null
 }
 
-export interface SendEmailPlaceholderJobPayload {
+export interface SendEmailJobPayload {
   to: string
   subject: string
   body?: string | null
@@ -40,7 +40,7 @@ export interface SyncOrderStatusJobPayload {
 
 export type JobPayloadByName = {
   send_notification: SendNotificationJobPayload
-  send_email_placeholder: SendEmailPlaceholderJobPayload
+  send_email: SendEmailJobPayload
   release_expired_payment_stock: ReleaseExpiredPaymentStockJobPayload
   cleanup_abandoned_carts: CleanupAbandonedCartsJobPayload
   sync_order_status: SyncOrderStatusJobPayload

@@ -12,6 +12,8 @@ Recommended environments:
 
 Each environment should have:
 - PostgreSQL database
+- pgvector extension
+- Redis
 - app secrets
 - payment webhook secret
 - shipping webhook secret if used
@@ -30,6 +32,13 @@ Each environment should have:
 - `ADMIN_EMAILS`
 - `NODE_ENV`
 - `PAYMENT_WEBHOOK_SECRET`
+- `PAYMENT_PROVIDER`, `PAYMENT_CHECKOUT_BASE_URL`, `PAYMENT_CHECKOUT_SECRET`
+- `OTP_HASH_SECRET`, `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`
+- `PHONE_OTP_PROVIDER=http` and `PHONE_OTP_HTTP_URL`, or explicitly `PHONE_OTP_ENABLED=false`
+- `REDIS_URL`
+- `TRUST_PROXY=true` with direct API access blocked so only the reverse proxy can supply client-IP headers
+- S3 endpoint, bucket, credentials, and public base URL
+- `MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED=true`
 
 Provider integrations:
 - payment provider API key
@@ -40,7 +49,8 @@ Provider integrations:
 ## Pre-Deploy Checklist
 
 ```bash
-bun install
+bun install --frozen-lockfile
+bunx --bun prisma migrate deploy
 bun run db:generate
 bunx tsc --noEmit
 bun run test
@@ -51,6 +61,7 @@ Database:
 - confirm migration status
 - confirm backup exists before production migration
 - confirm rollback plan
+- confirm PostgreSQL has the `vector` extension
 
 Security:
 - verify auth secret length and rotation plan
@@ -67,6 +78,13 @@ Production migration command:
 ```bash
 bunx prisma migrate deploy
 bun run db:generate
+```
+
+For containerized deployments, build and run the dedicated one-shot migration target before rolling out the application image:
+
+```bash
+docker build --target migration -t marketplace-migration .
+docker run --rm --env-file .env.production marketplace-migration
 ```
 
 Rules:
@@ -144,6 +162,15 @@ Database:
 - daily automated backups minimum
 - point-in-time recovery recommended
 - test restore process regularly
+
+Repository helpers:
+
+```bash
+bun run db:backup -- ./backups/pre-deploy.dump
+RESTORE_DATABASE_URL=postgresql://... bun run db:restore -- ./backups/pre-deploy.dump --confirm-restore
+```
+
+The restore helper intentionally ignores `DATABASE_URL` and requires a separate target variable plus explicit confirmation.
 
 Files/media:
 - if product images are externally stored, document provider backup/recovery separately

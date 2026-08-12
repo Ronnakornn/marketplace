@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { MouseEvent } from "react";
+import { type MouseEvent, useSyncExternalStore } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HeartIcon, MapPinIcon, ShoppingCartIcon, StarIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
@@ -17,13 +17,21 @@ import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
 
-export function ProductCard({ product, showShopIdentity = true, trackingSource = "product_card" }: { product: BuyerProduct; showShopIdentity?: boolean; trackingSource?: string }) {
+const subscribeToHydration = () => () => undefined;
+
+function useHasHydrated(): boolean {
+  return useSyncExternalStore(subscribeToHydration, () => true, () => false);
+}
+
+export function ProductCard({ product, showShopIdentity = true, trackingSource = "product_card", prefetch = true }: { product: BuyerProduct; showShopIdentity?: boolean; trackingSource?: string; prefetch?: boolean }) {
   const router = useRouter();
   const localePath = useLocalePath();
   const t = useTranslations();
   const tracking = useDiscoveryTracking(trackingSource);
   const queryClient = useQueryClient();
   const { data: session } = useSession();
+  const hasHydrated = useHasHydrated();
+  const hydratedSession = hasHydrated ? session : null;
   const image = resolveUploadedImageUrl(product.images[0]);
   const hasPriceRange = product.maxPrice > product.minPrice;
   const purchasableVariants = product.variants.filter((variant) => variant.stock > 0);
@@ -32,7 +40,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
       ? purchasableVariants[0]
       : null;
   const isOutOfStock = product.stock <= 0;
-  const canFetchBuyerState = session?.user.role === "USER";
+  const canFetchBuyerState = hydratedSession?.user.role === "USER";
   const favoriteQuery = useQuery({
     queryKey: ["buyer-favorite-status", product.id],
     queryFn: () => fetchFavoriteStatus(product.id),
@@ -76,7 +84,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
   const favoriteUnavailableLabel = canFetchBuyerState ? t("product.wishlistUnavailable") : t("product.signInBuyerWishlist");
   const quickAddDisabledReason = (() => {
     if (!quickAddVariant) return null;
-    if (!session) return t("product.loginToAddToCart");
+    if (!hydratedSession) return t("product.loginToAddToCart");
     if (!canFetchBuyerState) return t("product.onlyBuyerAccountsCanPurchase");
     if (product.stock <= 0 || quickAddVariant.stock <= 0) return t("product.itemOutOfStock");
     return null;
@@ -111,6 +119,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
       <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
         <Link
           href={`/products/${product.id}`}
+          prefetch={prefetch}
           onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
           className="block size-full focus-visible:outline-none"
           aria-label={t("product.viewProduct").replace("{title}", product.title)}
@@ -152,6 +161,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
       <div className="space-y-2 p-3">
         <Link
           href={`/products/${product.id}`}
+          prefetch={prefetch}
           onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
           className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
         >
@@ -200,6 +210,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
           ) : (
             <Link
               href={`/products/${product.id}`}
+              prefetch={prefetch}
               onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
               className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-orange-300 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
               aria-label={quickAddLabel}

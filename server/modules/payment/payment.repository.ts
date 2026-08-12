@@ -55,6 +55,8 @@ export type PaymentTransactionRepository = IPaymentRepository & IShipmentCreatio
 
 export interface IPaymentRepository {
   transaction<T>(callback: (repo: PaymentTransactionRepository) => Promise<T>): Promise<T>
+  lockWebhookEvent(providerRef: string): Promise<void>
+  lockPayment(paymentId: string): Promise<void>
   findPayment(paymentId: string): Promise<PaymentWithOrder | null>
   findOrder(orderId: string): Promise<Order | null>
   findWebhookEvent(providerRef: string): Promise<PaymentEvent | null>
@@ -103,6 +105,14 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
       where: { id: paymentId },
       include: paymentInclude,
     })
+  }
+
+  async lockPayment(paymentId: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "Payment" WHERE "id" = ${paymentId}::uuid FOR UPDATE`
+  }
+
+  async lockWebhookEvent(providerRef: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${providerRef}, 0))`
   }
 
   findOrder(orderId: string): Promise<Order | null> {
@@ -373,6 +383,10 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
         where: { id: input.orderId },
         data: { status: 'PAID', paymentStatus: 'SUCCEEDED' },
       })
+      await this.prisma.couponRedemption.updateMany({
+        where: { orderId: input.orderId, status: 'RESERVED' },
+        data: { status: 'REDEEMED', redeemedAt: input.occurredAt },
+      })
       return
     }
 
@@ -405,6 +419,10 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
     await this.prisma.order.update({
       where: { id: input.orderId },
       data: { status: 'CANCELED', paymentStatus },
+    })
+    await this.prisma.couponRedemption.updateMany({
+      where: { orderId: input.orderId, status: 'RESERVED' },
+      data: { status: 'RELEASED' },
     })
   }
 }

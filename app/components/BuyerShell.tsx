@@ -44,7 +44,7 @@ export function BuyerPageShell({ children }: { children: ReactNode }) {
   );
 }
 
-export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searchQuery?: string }) {
+export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: { title?: string; searchQuery?: string; prefetchLinks?: boolean }) {
   const { data: session, isPending: isSessionPending } = useSession();
   const router = useRouter();
   const t = useTranslations();
@@ -90,7 +90,7 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center gap-2">
-        <Link aria-label={t("common.marketplace")} href={localePath("/")} className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-orange-700 px-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-orange-800">
+        <Link aria-label={t("common.marketplace")} href={localePath("/")} prefetch={prefetchLinks} className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-orange-700 px-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-orange-800">
           <ShoppingBagIcon className="size-4 text-white" />
           <span className="hidden sm:inline text-white">{t("common.marketplace")}</span>
         </Link>
@@ -107,7 +107,7 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
             className="h-8 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
           />
         </form>
-        <Link href={localePath(notificationHref)} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+        <Link href={localePath(notificationHref)} prefetch={prefetchLinks} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
           <BellIcon className="size-5" />
           {notificationUnreadCount > 0 ? (
             <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-700 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
@@ -117,7 +117,7 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
           <span className="sr-only">{t("common.notifications")}</span>
         </Link>
         {canUseChat ? (
-          <Link href={localePath(chatHref)} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+          <Link href={localePath(chatHref)} prefetch={prefetchLinks} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
             <MessageCircleIcon className="size-5" />
             {chatUnreadCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-700 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
@@ -128,7 +128,7 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
           </Link>
         ) : null}
         {canUseBuyerCart ? (
-          <Link href={localePath("/cart")} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+          <Link href={localePath("/cart")} prefetch={prefetchLinks} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
             <ShoppingCartIcon className="size-5" />
             {cartItemCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-700 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
@@ -147,12 +147,12 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
               </Link>
             ) : null}
             {session.user.role !== "ADMIN" && !isSellerRoute ? (
-              <Link href={localePath(sellerChatHref)} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900 lg:flex">
+              <Link href={localePath(sellerChatHref)} prefetch={prefetchLinks} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900 lg:flex">
                 <StoreIcon className="size-4" />
                 {t("buyer.sellerChat")}
               </Link>
             ) : null}
-            <Link href={localePath("/profile")} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+            <Link href={localePath("/profile")} prefetch={prefetchLinks} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
               <UserCircleIcon className="size-5" />
              
             </Link>
@@ -174,12 +174,14 @@ export function BuyerTopBar({ title, searchQuery = "" }: { title?: string; searc
             <div className="flex items-center gap-2">
               <Link
                 href={localePath("/login")}
+                prefetch={prefetchLinks}
                 className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
               >
                 {t("common.login")}
               </Link>
               <Link
                 href={localePath("/signup")}
+                prefetch={prefetchLinks}
                 className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-3 py-1.5 text-xs font-semibold text-[var(--lagoon-deep)] no-underline transition hover:bg-[rgba(79,184,178,0.24)]"
               >
                 {t("common.signup")}
@@ -199,7 +201,7 @@ function isChatNotification(type: string): boolean {
   return type.toLowerCase().includes("chat");
 }
 
-export function MobileBottomNavigation() {
+export function MobileBottomNavigation({ prefetchLinks = true }: { prefetchLinks?: boolean } = {}) {
   const pathname = usePathname();
   const t = useTranslations();
   const localePath = useLocalePath();
@@ -213,6 +215,7 @@ export function MobileBottomNavigation() {
             <Link
               key={href}
               href={localizedHref}
+              prefetch={prefetchLinks}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-xl px-1 py-1 text-[11px] font-semibold",
                 active ? "bg-orange-50 text-orange-700" : "text-slate-900",

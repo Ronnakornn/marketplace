@@ -11,6 +11,7 @@ import { Button } from "#/components/ui/button";
 import { fetchNotifications } from "#/features/buyer/api";
 import { useFormatters, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { requestApi } from "#/lib/api-client";
 import { PushNotificationManager } from "./PushNotificationManager";
 
 const tabs = [
@@ -30,7 +31,7 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
   const [tab, setTab] = useState("all");
   const notificationsQuery = useQuery({ queryKey: ["notifications", scope], queryFn: () => fetchNotifications(scope) });
   const readAllMutation = useMutation({
-    mutationFn: () => fetch(`/api/notifications/read-all${scope === "seller" ? "?scope=seller" : ""}`, { method: "PATCH", credentials: "include" }),
+    mutationFn: () => requestApi(`/api/notifications/read-all${scope === "seller" ? "?scope=seller" : ""}`, { method: "PATCH" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications", scope] }),
   });
   const notifications = useMemo(() => {
@@ -43,6 +44,7 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
     <>
       {showTopBar ? <BuyerTopBar title={t("buyer.notifications")} /> : null}
       <div className="mx-auto max-w-3xl space-y-3 px-3 py-4">
+        {!showTopBar ? <h1 className="text-2xl font-bold text-slate-950">{t(scope === "seller" ? "seller.nav.notifications" : "buyer.notifications")}</h1> : null}
         {scope === "all" ? <PushNotificationManager /> : null}
         <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
           <div className="flex gap-2 overflow-x-auto">

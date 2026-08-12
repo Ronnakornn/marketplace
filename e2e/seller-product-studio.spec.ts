@@ -41,7 +41,7 @@ test("renders the Thai full-width Product Studio without the old accent text", a
     expect(section.width, `${section.id} should use the full Product Studio width`).toBeGreaterThanOrEqual(sectionLayout.formWidth * 0.98);
   }
 
-  const oldAccentOffenders = await page.locator("header").evaluate((header) => {
+  const oldAccentOffenders = await page.locator(".sticky").first().evaluate((header) => {
     const oldAccent = "rgb(141,229,219)";
     return Array.from(header.querySelectorAll("a, button, span, svg, path"))
       .filter((element) => {

@@ -39,7 +39,7 @@ describe("Next CDN and cache config", () => {
         headers: [{ key: "Cache-Control", value: "no-store" }],
       }),
       expect.objectContaining({
-        source: "/checkout",
+        source: "/:locale(en|th)/checkout",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       }),
     ]));

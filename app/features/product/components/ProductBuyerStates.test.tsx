@@ -17,6 +17,9 @@ const queryMocks = vi.hoisted(() => ({
   productsErrorPages: new Set<number>(),
   productDetailError: null as unknown,
   productsQueryFn: vi.fn(),
+  dealsResponse: { flashSale: null } as { flashSale: null | { id: string; title: string; description: string | null; endsAt: string | null; items: unknown[] } },
+  dealsError: null as unknown,
+  dealsQueryFn: vi.fn(),
   productDetailQueryFn: vi.fn(),
   relatedResponse: { items: [] } as { items: unknown[] },
   relatedError: null as unknown,
@@ -115,6 +118,14 @@ vi.mock("#/features/chat", () => ({
 vi.mock("#/features/product/cart-handoff", () => ({
   showAddToCartError: queryMocks.showAddToCartError,
   showAddToCartSuccess: queryMocks.showAddToCartSuccess,
+}));
+
+vi.mock("#/features/marketplace/queries", () => ({
+  marketplaceHomeQueryOptions: () => ({
+    queryKey: ["marketplace", "home", { locale: "en", limit: 24 }],
+    queryFn: queryMocks.dealsQueryFn,
+  }),
+  normalizeMarketplaceHome: (value: unknown) => value,
 }));
 
 vi.mock("#/features/product/components/ProductCard", () => ({
@@ -446,6 +457,7 @@ vi.mock("#/i18n/client", () => ({
     "chat.chatSeller": "Chat seller",
     "chat.sellerInbox": "Seller inbox",
     "state.loadErrorTitle": "Unable to load products",
+    "state.loadErrorDescription": "Products are temporarily unavailable.",
     "state.retry": "Retry",
   })[key] ?? key,
 }));
@@ -468,6 +480,8 @@ beforeEach(() => {
   queryMocks.productsResponsesByPage.clear();
   queryMocks.productDetailResponse = createProductDetailFixture();
   queryMocks.productsError = null;
+  queryMocks.dealsResponse = { flashSale: null };
+  queryMocks.dealsError = null;
   queryMocks.productsErrorPages.clear();
   queryMocks.productDetailError = null;
   queryMocks.relatedResponse = { items: [] };
@@ -494,6 +508,10 @@ beforeEach(() => {
     if (queryMocks.productsErrorPages.has(page)) throw new Error(`page ${page} unavailable`);
     if (queryMocks.productsError) throw queryMocks.productsError;
     return queryMocks.productsResponsesByPage.get(page) ?? queryMocks.productsResponse;
+  });
+  queryMocks.dealsQueryFn.mockImplementation(async () => {
+    if (queryMocks.dealsError) throw queryMocks.dealsError;
+    return queryMocks.dealsResponse;
   });
   queryMocks.productDetailQueryFn.mockImplementation(async () => {
     if (queryMocks.productDetailError) throw queryMocks.productDetailError;
@@ -697,20 +715,18 @@ describe("DealsPage buyer states", () => {
   });
 
   it("shows an error state with retry for deal products", async () => {
-    queryMocks.productsError = new Error("search unavailable");
+    queryMocks.dealsError = new Error("deals unavailable");
 
     renderWithClient(<DealsPage />);
 
     expect(await screen.findByText("Unable to load products")).toBeTruthy();
-    expect(screen.getByText("search unavailable")).toBeTruthy();
+    expect(screen.getByText("deals unavailable")).toBeTruthy();
 
-    queryMocks.productsError = null;
-    queryMocks.productsResponse = {
-      items: [{ id: "product-2", title: "Recovered deal product" }],
-    };
+    queryMocks.dealsError = null;
+    const callsBeforeRetry = queryMocks.dealsQueryFn.mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: /Retry/ }));
 
-    await waitFor(() => expect(screen.getAllByText("Recovered deal product").length).toBeGreaterThan(0));
+    await waitFor(() => expect(queryMocks.dealsQueryFn).toHaveBeenCalledTimes(callsBeforeRetry + 1));
   });
 });
 

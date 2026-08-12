@@ -17,7 +17,10 @@ export function createObservabilityRoutes(container: ServiceContainer) {
     })
     .get('/api/health', () => container.observabilityService.getHealth())
     .get('/api/health/live', () => container.observabilityService.getLiveness())
-    .get('/api/health/ready', () => container.observabilityService.getReadiness())
+    .get('/api/health/ready', async () => {
+      const response = await container.observabilityService.getReadiness()
+      return response.status === 'ok' ? response : httpStatus(503, response)
+    })
     .get('/api/metrics', ({ request }) => {
       assertMetricsAccess(request)
       return container.observabilityService.getMetrics()

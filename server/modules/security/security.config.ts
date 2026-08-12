@@ -10,6 +10,8 @@ export interface SecurityConfig {
   sellerMediaMaxRequests: number
   sellerReviewMaxRequests: number
   requestBodyLimitBytes: number
+  trustProxy: boolean
+  requireContentLength: boolean
 }
 
 export function getSecurityConfigFromEnv(env: Record<string, string | undefined> = process.env): SecurityConfig {
@@ -30,6 +32,8 @@ export function getSecurityConfigFromEnv(env: Record<string, string | undefined>
     sellerMediaMaxRequests: parsePositiveInteger(env['RATE_LIMIT_SELLER_MEDIA_MAX_REQUESTS'], 10),
     sellerReviewMaxRequests: parsePositiveInteger(env['RATE_LIMIT_SELLER_REVIEW_MAX_REQUESTS'], 5),
     requestBodyLimitBytes: parsePositiveInteger(env['REQUEST_BODY_LIMIT_BYTES'], 1024 * 1024),
+    trustProxy: env['TRUST_PROXY'] === 'true',
+    requireContentLength: env['REQUIRE_CONTENT_LENGTH'] === 'true' || env['NODE_ENV'] === 'production',
   }
 }
 

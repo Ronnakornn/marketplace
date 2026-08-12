@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import type React from "react";
 import { useState } from "react";
 import { changePassword, completePasswordReset, requestPasswordResetOtp, resendEmailVerification, verifyEmailOtp } from "#/features/auth/api";
@@ -12,35 +13,31 @@ export function VerifyEmailForm() {
   const [otp, setOtp] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<"verify" | "resend" | null>(null);
+  const verifyMutation = useMutation({ mutationFn: (value: Parameters<typeof verifyEmailOtp>[0]) => verifyEmailOtp(value) });
+  const resendMutation = useMutation({ mutationFn: () => resendEmailVerification() });
+  const loading = verifyMutation.isPending ? "verify" : resendMutation.isPending ? "resend" : null;
 
   async function handleVerify(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setMessage(null);
-    setLoading("verify");
     try {
-      await verifyEmailOtp({ email, otp });
+      await verifyMutation.mutateAsync({ email, otp });
       setMessage("Email verified. You can continue using your account.");
       setOtp("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
-    } finally {
-      setLoading(null);
     }
   }
 
   async function handleResend() {
     setError(null);
     setMessage(null);
-    setLoading("resend");
     try {
-      await resendEmailVerification();
+      await resendMutation.mutateAsync();
       setMessage("A new verification code was sent if your account is eligible.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not resend verification code");
-    } finally {
-      setLoading(null);
     }
   }
 
@@ -65,20 +62,17 @@ export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const resetRequestMutation = useMutation({ mutationFn: (value: string) => requestPasswordResetOtp(value) });
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setMessage(null);
-    setLoading(true);
     try {
-      await requestPasswordResetOtp(email);
+      await resetRequestMutation.mutateAsync(email);
       setMessage("If that email has an account, a reset code has been sent.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not request reset code");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -87,8 +81,8 @@ export function ForgotPasswordForm() {
       <StatusMessage message={message} error={error} />
       <form onSubmit={handleSubmit} className="space-y-4">
         <TextField id="reset-request-email" label="Email" type="email" value={email} onChange={setEmail} required />
-        <button type="submit" disabled={loading} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
-          {loading ? "Sending..." : "Send reset code"}
+        <button type="submit" disabled={resetRequestMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+          {resetRequestMutation.isPending ? "Sending..." : "Send reset code"}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-[var(--sea-ink-soft)]">
@@ -105,19 +99,16 @@ export function ResetPasswordForm() {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const resetMutation = useMutation({ mutationFn: (value: Parameters<typeof completePasswordReset>[0]) => completePasswordReset(value) });
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setLoading(true);
     try {
-      await completePasswordReset({ email, otp, newPassword });
+      await resetMutation.mutateAsync({ email, otp, newPassword });
       router.push("/login");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reset password");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -128,8 +119,8 @@ export function ResetPasswordForm() {
         <TextField id="reset-email" label="Email" type="email" value={email} onChange={setEmail} required />
         <TextField id="reset-otp" label="Reset code" value={otp} onChange={setOtp} required minLength={4} inputMode="numeric" />
         <TextField id="reset-new-password" label="New password" type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
-        <button type="submit" disabled={loading} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
-          {loading ? "Saving..." : "Save new password"}
+        <button type="submit" disabled={resetMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+          {resetMutation.isPending ? "Saving..." : "Save new password"}
         </button>
       </form>
     </AuthShell>
@@ -141,22 +132,19 @@ export function ChangePasswordForm() {
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const changeMutation = useMutation({ mutationFn: (value: Parameters<typeof changePassword>[0]) => changePassword(value) });
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setMessage(null);
-    setLoading(true);
     try {
-      await changePassword({ currentPassword, newPassword });
+      await changeMutation.mutateAsync({ currentPassword, newPassword });
       setCurrentPassword("");
       setNewPassword("");
       setMessage("Password changed.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not change password");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -166,8 +154,8 @@ export function ChangePasswordForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <TextField id="current-password" label="Current password" type="password" value={currentPassword} onChange={setCurrentPassword} required />
         <TextField id="new-password" label="New password" type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
-        <button type="submit" disabled={loading} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
-          {loading ? "Saving..." : "Change password"}
+        <button type="submit" disabled={changeMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+          {changeMutation.isPending ? "Saving..." : "Change password"}
         </button>
       </form>
     </AuthShell>

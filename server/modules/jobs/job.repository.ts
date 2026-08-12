@@ -34,9 +34,11 @@ export interface IJobRepository {
   transaction<T>(callback: (repo: IJobRepository) => Promise<T>): Promise<T>
   createNotification(input: CreateNotificationInput): Promise<void>
   findExpiredPendingPayments(cutoff: Date): Promise<ExpiredPaymentRecord[]>
+  lockPaymentForExpiry(paymentId: string): Promise<void>
   findPaymentForExpiry(paymentId: string): Promise<ExpiredPaymentRecord | null>
   markPaymentExpired(paymentId: string): Promise<void>
   markOrderCanceled(orderId: string): Promise<void>
+  releaseCouponReservation(orderId: string): Promise<void>
   markCheckoutExpired(checkoutId: string): Promise<void>
   releaseReservations(reservations: ReleaseReservationInput[]): Promise<void>
   cleanupAbandonedCarts(cutoff: Date): Promise<number>
@@ -93,12 +95,16 @@ export class PrismaJobRepository implements IJobRepository {
     return this.prisma.payment.findMany({
       where: {
         status: { in: ['PENDING', 'REQUIRES_ACTION'] },
-        createdAt: { lt: cutoff },
+        order: { checkout: { expiresAt: { lte: cutoff } } },
       },
       include: expiredPaymentInclude,
       orderBy: { createdAt: 'asc' },
       take: 100,
     })
+  }
+
+  async lockPaymentForExpiry(paymentId: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "Payment" WHERE "id" = ${paymentId}::uuid FOR UPDATE`
   }
 
   findPaymentForExpiry(paymentId: string): Promise<ExpiredPaymentRecord | null> {
@@ -123,6 +129,13 @@ export class PrismaJobRepository implements IJobRepository {
         status: 'CANCELED',
         paymentStatus: 'CANCELED',
       },
+    })
+  }
+
+  async releaseCouponReservation(orderId: string): Promise<void> {
+    await this.prisma.couponRedemption.updateMany({
+      where: { orderId, status: 'RESERVED' },
+      data: { status: 'RELEASED' },
     })
   }
 

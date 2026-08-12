@@ -1,6 +1,7 @@
 "use client";
 
 import { defaultCurrency } from "#/i18n/config";
+import { requestApi } from "#/lib/api-client";
 
 export interface BuyerCart {
   id: string | null;
@@ -525,21 +526,7 @@ export async function fetchSellerApplicationSummary(): Promise<SellerApplication
 }
 
 async function apiFetch(path: string, init: RequestInit = {}): Promise<unknown> {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...init.headers,
-    },
-    credentials: "include",
-  });
-  const text = await response.text();
-  const body = text ? JSON.parse(text) as unknown : null;
-  if (!response.ok) {
-    const message = readString(toRecord(toRecord(body).error).message, readString(toRecord(body).message, "Request failed"));
-    throw new Error(message);
-  }
-  return body;
+  return requestApi(path, { ...init, headers: { "content-type": "application/json", ...init.headers } });
 }
 
 function normalizeCart(input: unknown): BuyerCart {

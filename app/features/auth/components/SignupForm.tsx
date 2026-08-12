@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { signUp } from "#/lib/auth-client";
 import { useTranslations } from "#/i18n/client";
@@ -14,15 +15,13 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const signupMutation = useMutation({ mutationFn: () => signUp.email({ name, email, password }) });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-
     try {
-      const result = await signUp.email({ name, email, password });
+      const result = await signupMutation.mutateAsync();
       if (result.error) {
         setError(result.error.message ?? t("auth.signUpFailed"));
       } else {
@@ -30,8 +29,6 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
       }
     } catch {
       setError(t("auth.unexpectedError"));
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -110,10 +107,10 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={signupMutation.isPending}
             className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? t("auth.creatingAccount") : t("auth.createAccount")}
+            {signupMutation.isPending ? t("auth.creatingAccount") : t("auth.createAccount")}
           </button>
         </form>
 

@@ -1,6 +1,6 @@
 {
   "name": "thaitype-stack-spa-react-elysia-prisma-template",
-  "description": "Full-stack Todo app template with Next.js, Elysia, Prisma, and Better Auth",
+  "description": "Production marketplace platform built with Next.js, Elysia, Prisma, and Better Auth",
   "version": "1.0.0",
   "license": "MIT",
   "private": true,
@@ -13,9 +13,9 @@
   "scripts": {
     "dev": "concurrently -n frontend,backend -c cyan,magenta \"bun run dev:frontend\" \"bun run dev:server\"",
     "dev:push": "bun run scripts/dev-push.ts",
-    "dev:frontend": "next dev --port 3000",
-    "dev:server": "bun run --watch server/index.ts",
-    "start": "concurrently -n frontend,backend -c cyan,magenta \"bun run start:frontend\" \"bun run start:server\"",
+    "dev:frontend": "cross-env NODE_ENV=development next dev --port 3000",
+    "dev:server": "cross-env NODE_ENV=development bun run --watch server/index.ts",
+    "start": "bun run scripts/start-production.ts",
     "start:frontend": "cross-env NODE_ENV=production next start --port 3000",
     "start:server": "cross-env NODE_ENV=production bun run server/index.ts",
     "jobs:worker": "bun run server/modules/jobs/worker.ts",
@@ -23,7 +23,7 @@
     "build:all": "bunx prisma generate && next build",
     "preview": "next start --port 3000",
     "test": "vitest run --exclude \"**/e2e/**\"",
-    "test:e2e": "bun run db:push && playwright test",
+    "test:e2e": "bun run scripts/assert-e2e-database.ts && bun run db:migrate:deploy && bun run db:seed && playwright test",
     "test:push:http": "playwright test --config playwright.push-http.config.ts",
     "audit:i18n": "bun run scripts/i18n-audit.ts",
     "db:generate": "bunx prisma generate",
@@ -34,7 +34,9 @@
     "db:seed-demo-catalog": "bun run scripts/seed-demo-catalog.ts",
     "db:studio": "bunx prisma studio",
     "db:seed-admin": "bun run scripts/seed-admin.ts",
-    "db:seed-catalog-mock": "bun run scripts/seed-catalog-mock.ts"
+    "db:seed-catalog-mock": "bun run scripts/seed-catalog-mock.ts",
+    "db:backup": "bun run scripts/db-backup.ts",
+    "db:restore": "bun run scripts/db-restore.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.810.0",
@@ -54,7 +56,8 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.95.2",
     "@tanstack/react-table": "^8.21.3",
-    "better-auth": "^1.6.11",
+    "axios": "^1.19.0",
+    "better-auth": "^1.6.22",
     "bullmq": "^5.64.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -72,7 +75,6 @@
     "next-themes": "^0.4.6",
     "pg": "^8.16.3",
     "pino": "^10.3.1",
-    "prisma": "^7.8.0",
     "prismabox": "^1.1.26",
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",
@@ -81,7 +83,7 @@
     "react-hook-form": "^7.72.1",
     "react-resizable-panels": "^4",
     "recharts": "3.8.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.0",
     "sonner": "^2.0.7",
     "swagger-ui-dist": "^5.32.6",
     "tailwind-merge": "^3.5.0",
@@ -106,6 +108,7 @@
     "concurrently": "^9.2.1",
     "jsdom": "^28.1.0",
     "pino-pretty": "^13.1.3",
+    "prisma": "^7.8.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.8"
   },
@@ -116,9 +119,15 @@
     ]
   },
   "overrides": {
-    "@hono/node-server": "^1.19.13",
+    "@hono/node-server": "^2.0.5",
     "defu": "^6.1.7",
-    "postcss": "^8.5.14",
-    "vite": "^8.0.13"
+    "esbuild": "^0.28.1",
+    "fast-uri": "^3.1.5",
+    "hono": "^4.12.21",
+    "nanoid": "^5.1.16",
+    "postcss": "^8.5.23",
+    "undici": "^7.29.0",
+    "valibot": "^1.4.2",
+    "vite": "^8.0.16"
   }
 }

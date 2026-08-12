@@ -6,6 +6,7 @@ import type { CacheInvalidation } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
 import type { AffiliateService } from '#server/modules/affiliate'
+import { getPaymentProviderConfigFromEnv, type PaymentProviderConfig } from './payment.config.ts'
 import { PaymentServiceError } from './payment.errors.ts'
 import type { IPaymentRepository, PaymentWithOrder, ReleaseReservationInput } from './payment.repository.ts'
 import type {
@@ -14,8 +15,6 @@ import type {
   PaymentWebhookBody,
   PaymentWebhookResponse,
 } from './payment.types.ts'
-
-const MOCK_COMPATIBLE_PAYMENT_PROVIDERS = new Set(['mock', 'card'])
 
 const VALID_EVENTS = new Set(['payment.paid', 'payment.failed', 'payment.expired'])
 
@@ -29,6 +28,7 @@ export class PaymentService {
     private cacheInvalidation?: CacheInvalidation,
     private eventPublisher?: EventPublisherService,
     private affiliateService?: AffiliateService,
+    private paymentConfig: PaymentProviderConfig = getPaymentProviderConfigFromEnv(),
   ) {
     this.logger = appContext.logger
   }
@@ -38,6 +38,7 @@ export class PaymentService {
     paymentId: string,
     input: MockPaymentEventBody,
   ): Promise<PaymentWebhookResponse> {
+    this.assertMockEnabled()
     const payment = await this.getOwnedMockPayment(actor, paymentId)
 
     return this.handleWebhook({
@@ -51,6 +52,7 @@ export class PaymentService {
   }
 
   async getBuyerMockPaymentDetail(actor: SessionUser, paymentId: string): Promise<BuyerMockPaymentDetail> {
+    this.assertMockEnabled()
     const payment = await this.getOwnedMockPayment(actor, paymentId)
 
     return {
@@ -63,6 +65,10 @@ export class PaymentService {
     }
   }
 
+  isMockEnabled(): boolean {
+    return this.paymentConfig.mockEnabled && this.paymentConfig.provider === 'mock'
+  }
+
   async handleWebhook(input: PaymentWebhookBody): Promise<PaymentWebhookResponse> {
     this.validateInput(input)
     this.logger.info('PaymentService.handleWebhook', {
@@ -73,11 +79,13 @@ export class PaymentService {
     })
 
     const response = await this.repo.transaction(async (txRepo) => {
+      await txRepo.lockWebhookEvent(input.providerRef)
       const existingEvent = await txRepo.findWebhookEvent(input.providerRef)
       if (existingEvent) {
         return { ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' }
       }
 
+      await txRepo.lockPayment(input.paymentId)
       const payment = await txRepo.findPayment(input.paymentId)
       if (!payment) throw new PaymentServiceError('Payment not found', 404, 'PAYMENT_NOT_FOUND')
 
@@ -153,7 +161,7 @@ export class PaymentService {
   }
 
   private validateInput(input: PaymentWebhookBody): void {
-    if (input.provider !== 'mock') {
+    if (input.provider !== this.paymentConfig.provider) {
       throw new PaymentServiceError('Unsupported webhook provider', 400, 'INVALID_WEBHOOK_EVENT')
     }
     if (!VALID_EVENTS.has(input.eventType)) {
@@ -171,7 +179,7 @@ export class PaymentService {
 
     const payment = await this.repo.findPayment(paymentId)
     if (!payment) throw new PaymentServiceError('Payment not found', 404, 'PAYMENT_NOT_FOUND')
-    if (!MOCK_COMPATIBLE_PAYMENT_PROVIDERS.has(payment.provider)) {
+    if (payment.provider !== 'mock') {
       throw new PaymentServiceError('Only mock payments are available here', 400, 'INVALID_WEBHOOK_EVENT')
     }
     if (payment.order.userId !== actor.id) {
@@ -179,6 +187,12 @@ export class PaymentService {
     }
 
     return payment
+  }
+
+  private assertMockEnabled(): void {
+    if (!this.isMockEnabled()) {
+      throw new PaymentServiceError('Mock payments are disabled', 404, 'PAYMENT_NOT_FOUND')
+    }
   }
 
   private createMockProviderRef(paymentId: string, eventType: MockPaymentEventBody['eventType']): string {

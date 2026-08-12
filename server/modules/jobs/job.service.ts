@@ -3,6 +3,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
+import type { EmailService } from '#server/modules/email'
 import type { QueueProducer } from '#server/modules/queue'
 import { JobServiceError } from './job.errors.ts'
 import type { ExpiredPaymentRecord, IJobRepository, ReleaseReservationInput } from './job.repository.ts'
@@ -12,14 +13,13 @@ import type {
   JobName,
   JobPayloadByName,
   ReleaseExpiredPaymentStockJobPayload,
-  SendEmailPlaceholderJobPayload,
+  SendEmailJobPayload,
   SendNotificationJobPayload,
   SyncOrderStatusJobPayload,
 } from './job.types.ts'
 
-const defaultPaymentTimeoutMinutes = 30
 const defaultAbandonedCartMinutes = 60 * 24 * 14
-const retryableJobNames = new Set<JobName>(['send_notification', 'send_email_placeholder'])
+const retryableJobNames = new Set<JobName>(['send_notification', 'send_email'])
 const terminalPaymentStatuses: PaymentStatus[] = ['SUCCEEDED', 'FAILED', 'CANCELED', 'REFUNDED']
 
 export interface JobProcessResult {
@@ -37,6 +37,7 @@ export class JobService {
     private queueProducer: QueueProducer,
     private cacheInvalidation?: CacheInvalidation,
     private eventPublisher?: EventPublisherService,
+    private emailService?: EmailService,
   ) {
     this.logger = appContext.logger
   }
@@ -75,8 +76,8 @@ export class JobService {
     switch (jobName) {
       case 'send_notification':
         return this.sendNotification(payload as SendNotificationJobPayload)
-      case 'send_email_placeholder':
-        return this.sendEmailPlaceholder(payload as SendEmailPlaceholderJobPayload)
+      case 'send_email':
+        return this.sendEmail(payload as SendEmailJobPayload)
       case 'release_expired_payment_stock':
         return this.releaseExpiredPaymentStock(payload as ReleaseExpiredPaymentStockJobPayload)
       case 'cleanup_abandoned_carts':
@@ -97,21 +98,25 @@ export class JobService {
     return { ok: true, code: 'NOTIFICATION_SENT', processedCount: 1 }
   }
 
-  private async sendEmailPlaceholder(payload: SendEmailPlaceholderJobPayload): Promise<JobProcessResult> {
-    this.logger.info('JobService.sendEmailPlaceholder', {
+  private async sendEmail(payload: SendEmailJobPayload): Promise<JobProcessResult> {
+    if (!this.emailService) throw new JobServiceError('Email service is not configured', 'JOB_FAILED')
+    this.logger.info('JobService.sendEmail', {
       to: payload.to,
       subject: payload.subject,
     })
-    return { ok: true, code: 'EMAIL_PLACEHOLDER_SKIPPED', processedCount: 1 }
+    await this.emailService.sendMessage({
+      to: payload.to.trim(),
+      subject: payload.subject.trim(),
+      text: payload.body?.trim() || payload.subject.trim(),
+    })
+    return { ok: true, code: 'EMAIL_SENT', processedCount: 1 }
   }
 
   private async releaseExpiredPaymentStock(
     payload: ReleaseExpiredPaymentStockJobPayload,
   ): Promise<JobProcessResult> {
     const now = this.parseOptionalDate(payload.now) ?? new Date()
-    const timeoutMinutes = payload.paymentTimeoutMinutes ?? this.getPaymentTimeoutMinutes()
-    const cutoff = new Date(now.getTime() - timeoutMinutes * 60_000)
-    const candidates = await this.repo.findExpiredPendingPayments(cutoff)
+    const candidates = await this.repo.findExpiredPendingPayments(now)
     let processedCount = 0
 
     for (const candidate of candidates) {
@@ -127,6 +132,7 @@ export class JobService {
 
   private async expirePayment(paymentId: string): Promise<{ orderId: string; paymentId: string } | null> {
     return this.repo.transaction(async (txRepo) => {
+      await txRepo.lockPaymentForExpiry(paymentId)
       const payment = await txRepo.findPaymentForExpiry(paymentId)
       if (!payment || terminalPaymentStatuses.includes(payment.status)) return null
       if (payment.status !== 'PENDING' && payment.status !== 'REQUIRES_ACTION') return null
@@ -134,6 +140,7 @@ export class JobService {
       await txRepo.releaseReservations(this.getActiveReservations(payment))
       await txRepo.markPaymentExpired(payment.id)
       await txRepo.markOrderCanceled(payment.orderId)
+      await txRepo.releaseCouponReservation(payment.orderId)
       await txRepo.markCheckoutExpired(payment.order.checkoutId)
       await this.cacheInvalidation?.invalidateInventory()
       return { orderId: payment.orderId, paymentId: payment.id }
@@ -193,8 +200,8 @@ export class JobService {
       return
     }
 
-    if (jobName === 'send_email_placeholder') {
-      const input = payload as SendEmailPlaceholderJobPayload
+    if (jobName === 'send_email') {
+      const input = payload as SendEmailJobPayload
       if (!this.nonEmptyString(input.to) || !this.nonEmptyString(input.subject)) {
         throw new JobServiceError('Invalid email job payload', 'INVALID_JOB_PAYLOAD', { jobName })
       }
@@ -243,8 +250,4 @@ export class JobService {
     return typeof value === 'string' && value.trim().length > 0
   }
 
-  private getPaymentTimeoutMinutes(): number {
-    const configured = Number(process.env['PAYMENT_TIMEOUT_MINUTES'])
-    return Number.isInteger(configured) && configured > 0 ? configured : defaultPaymentTimeoutMinutes
-  }
 }

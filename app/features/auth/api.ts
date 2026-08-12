@@ -1,19 +1,14 @@
 "use client";
 
+import { requestApi } from "#/lib/api-client";
+
 export type SocialProviderAvailability = {
   google: boolean;
   facebook: boolean;
 };
 
 export async function getSocialProviderAvailability(): Promise<SocialProviderAvailability> {
-  const response = await fetch("/api/auth/provider-availability", {
-    credentials: "include",
-  });
-  const text = await response.text();
-  const body = text ? JSON.parse(text) as unknown : null;
-  if (!response.ok) {
-    throw new Error(readErrorMessage(body));
-  }
+  const body = await requestApi<unknown>("/api/auth/provider-availability");
   return readProviderAvailability(body);
 }
 
@@ -96,31 +91,7 @@ async function authFetch(path: string, init: RequestInit): Promise<void> {
 }
 
 async function authFetchJson<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...init.headers,
-    },
-    credentials: "include",
-  });
-  const text = await response.text();
-  const body = text ? JSON.parse(text) as unknown : null;
-  if (!response.ok) {
-    throw new Error(readErrorMessage(body));
-  }
-  return body as T;
-}
-
-function readErrorMessage(body: unknown): string {
-  if (!body || typeof body !== "object" || Array.isArray(body)) return "Request failed";
-  const record = body as Record<string, unknown>;
-  const error = record.error;
-  if (error && typeof error === "object" && !Array.isArray(error)) {
-    const message = (error as Record<string, unknown>).message;
-    if (typeof message === "string" && message.trim()) return message;
-  }
-  return typeof record.message === "string" && record.message.trim() ? record.message : "Request failed";
+  return requestApi<T>(path, { ...init, headers: { "content-type": "application/json", ...init.headers } });
 }
 
 function readProviderAvailability(body: unknown): SocialProviderAvailability {

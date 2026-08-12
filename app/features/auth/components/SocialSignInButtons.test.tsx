@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import en from "../../../../messages/en.json";
@@ -89,10 +90,11 @@ describe("social sign-in buttons", () => {
 
     renderAuth(<LoginForm nextPath="/checkout" />);
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/auth/provider-availability", {
-      credentials: "include",
-    }));
-    const googleButton = screen.getByRole("button", { name: "Google sign-in is not configured" });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/auth/provider-availability",
+      expect.objectContaining({ credentials: "include" }),
+    ));
+    const googleButton = await screen.findByRole("button", { name: "Google sign-in is not configured" });
     const facebookButton = screen.getByRole("button", { name: "Facebook sign-in is not configured" });
     expect(googleButton.hasAttribute("disabled")).toBe(true);
     expect(facebookButton.hasAttribute("disabled")).toBe(true);
@@ -115,10 +117,14 @@ describe("social sign-in buttons", () => {
 function providerAvailabilityResponse(body: { google: boolean; facebook: boolean }) {
   return {
     ok: true,
+    status: 200,
+    statusText: "OK",
+    headers: new Headers({ "content-type": "application/json" }),
     text: async () => JSON.stringify(body),
   };
 }
 
 function renderAuth(children: ReactNode) {
-  return render(<I18nProvider locale="en" messages={en} fallbackMessages={en}>{children}</I18nProvider>);
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}><I18nProvider locale="en" messages={en} fallbackMessages={en}>{children}</I18nProvider></QueryClientProvider>);
 }

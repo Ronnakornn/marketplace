@@ -3,7 +3,9 @@
  */
 import { type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BuyerProduct } from "#/features/product/queries";
 import { ProductCard } from "./ProductCard";
@@ -139,6 +141,33 @@ beforeEach(() => {
 });
 
 describe("ProductCard", () => {
+  it("hydrates with the anonymous server snapshot when a buyer session is already cached", async () => {
+    const product = createProductFixture({
+      variants: [{ ...createVariant("variant-safe", 1200, 4), optionValues: [] }],
+      options: [],
+    });
+    const createTree = () => (
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <ProductCard product={product} />
+      </QueryClientProvider>
+    );
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(createTree());
+    document.body.appendChild(container);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    await act(async () => {
+      root = hydrateRoot(container, createTree());
+    });
+
+    expect(consoleError.mock.calls.flat().join(" ")).not.toContain("Hydration failed");
+    expect(screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ })).toHaveProperty("disabled", false);
+    await act(async () => root?.unmount());
+    consoleError.mockRestore();
+    container.remove();
+  });
+
   it("renders core buyer card metrics and shop context", () => {
     renderWithClient(createProductFixture());
 

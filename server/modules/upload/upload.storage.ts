@@ -14,6 +14,7 @@ import type {
 } from './upload.types.ts'
 
 const publicUploadCacheControl = 'public, max-age=604800, stale-while-revalidate=86400'
+const maxImagePixels = 40_000_000
 
 export function getStorageConfigFromEnv(env: NodeJS.ProcessEnv = process.env): StorageConfig | null {
   const endpoint = env['S3_ENDPOINT']
@@ -113,12 +114,16 @@ export class LocalUploadStorage implements UploadStorage {
     if (!crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(input.signature))) {
       throw new Error('Invalid local upload signature')
     }
-    if (input.body.byteLength > input.fileSize) throw new Error('Uploaded file is larger than declared size')
+    if (input.body.byteLength !== input.fileSize) throw new Error('Uploaded file size does not match declared size')
 
     const source = Buffer.from(input.body)
+    await assertContentMatchesMimeType(source, input.contentType)
     const shouldConvert = isAvifConvertibleImage(input.contentType)
     const output = shouldConvert
-      ? await sharp(source).rotate().avif({ quality: 78, effort: 4 }).toBuffer()
+      ? await sharp(source, { failOn: 'error', limitInputPixels: maxImagePixels })
+          .rotate()
+          .avif({ quality: 78, effort: 4 })
+          .toBuffer()
       : source
     const contentType = shouldConvert ? 'image/avif' : input.contentType
     const absolutePath = this.toSafeAbsolutePath(input.key)
@@ -151,4 +156,29 @@ export class LocalUploadStorage implements UploadStorage {
 
 function isAvifConvertibleImage(contentType: string) {
   return contentType === 'image/jpeg' || contentType === 'image/png' || contentType === 'image/webp'
+}
+
+async function assertContentMatchesMimeType(source: Buffer, contentType: string): Promise<void> {
+  if (contentType.startsWith('image/')) {
+    const metadata = await sharp(source, { failOn: 'error', limitInputPixels: maxImagePixels }).metadata()
+    const expectedFormats: Record<string, string[]> = {
+      'image/jpeg': ['jpeg'],
+      'image/png': ['png'],
+      'image/webp': ['webp'],
+      'image/avif': ['heif', 'avif'],
+    }
+    if (!metadata.format || !expectedFormats[contentType]?.includes(metadata.format)) {
+      throw new Error('Uploaded image content does not match declared type')
+    }
+    return
+  }
+  if (contentType === 'application/pdf' && source.subarray(0, 5).toString('ascii') !== '%PDF-') {
+    throw new Error('Uploaded PDF content does not match declared type')
+  }
+  if (contentType === 'video/mp4' && source.subarray(4, 8).toString('ascii') !== 'ftyp') {
+    throw new Error('Uploaded MP4 content does not match declared type')
+  }
+  if (contentType === 'video/webm' && source.subarray(0, 4).toString('hex') !== '1a45dfa3') {
+    throw new Error('Uploaded WebM content does not match declared type')
+  }
 }

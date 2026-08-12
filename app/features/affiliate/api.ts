@@ -1,5 +1,7 @@
 "use client";
 
+import { requestApi } from "#/lib/api-client";
+
 export type AffiliateTargetType = "product" | "shop" | "campaign";
 export type AffiliateStatus = "ACTIVE" | "DISABLED";
 
@@ -116,24 +118,7 @@ export function affiliateTrackingUrl(code: string): string {
 }
 
 async function apiFetch(path: string, init: RequestInit = {}): Promise<unknown> {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...init.headers,
-    },
-    credentials: "include",
-  });
-  const text = await response.text();
-  const body = text ? JSON.parse(text) as unknown : null;
-  if (!response.ok) {
-    const record = toRecord(body);
-    const error = toRecord(record.error);
-    const message = readString(error.message, readString(record.message, "Request failed"));
-    const code = readString(error.code);
-    throw new Error(code ? `${code}: ${message}` : message);
-  }
-  return body;
+  return requestApi(path, { ...init, headers: { "content-type": "application/json", ...init.headers } });
 }
 
 function normalizeLink(input: unknown): AffiliateLink {

@@ -5,6 +5,7 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
 export interface IHealthCheckRepository {
   checkDatabase(timeoutMs: number): Promise<boolean>
+  checkDatabaseSchema(timeoutMs: number): Promise<boolean>
   checkRedis(redisUrl: string, timeoutMs: number): Promise<boolean>
 }
 
@@ -16,6 +17,42 @@ export class PrismaHealthCheckRepository implements IHealthCheckRepository {
     private prisma: PrismaClient,
   ) {
     this.logger = appContext.logger
+  }
+
+  async checkDatabaseSchema(timeoutMs: number): Promise<boolean> {
+    this.logger.debug('PrismaHealthCheckRepository.checkDatabaseSchema')
+    try {
+      const rows = await withTimeout(this.prisma.$queryRaw<Array<{ schemaReady: boolean; migrationsReady: boolean }>>`
+        SELECT (
+          to_regclass('"PushSubscription"') IS NOT NULL
+          AND to_regclass('"CouponRedemption"') IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'CouponRedemption'
+              AND column_name = 'status'
+          )
+        ) AS "schemaReady",
+        (to_regclass('"_prisma_migrations"') IS NOT NULL) AS "migrationsReady"
+      `, timeoutMs)
+      if (!rows[0]?.schemaReady || !rows[0]?.migrationsReady) return false
+      const migrations = await withTimeout(this.prisma.$queryRaw<Array<{ ready: boolean }>>`
+        SELECT EXISTS (
+          SELECT 1
+          FROM "_prisma_migrations"
+          WHERE migration_name = '20260813013000_coupon_redemption_lifecycle'
+            AND finished_at IS NOT NULL
+            AND rolled_back_at IS NULL
+        ) AS ready
+      `, timeoutMs)
+      return migrations[0]?.ready === true
+    } catch (error) {
+      this.logger.error('Database schema readiness check failed', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return false
+    }
   }
 
   async checkDatabase(timeoutMs: number): Promise<boolean> {

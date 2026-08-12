@@ -274,7 +274,10 @@ describe("UserService", () => {
       status: 400,
     })
 
-    expect(repo.findVerification).toHaveBeenCalledWith("EMAIL_VERIFICATION:user@example.com", "123456")
+    expect(repo.findVerification).toHaveBeenCalledWith(
+      "EMAIL_VERIFICATION:user@example.com",
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+    )
   })
 
   it("rejects expired OTPs", async () => {
@@ -360,7 +363,10 @@ describe("UserService", () => {
     const service = new UserService(createAppContext(), repo)
 
     await expect(service.completePasswordReset("user@example.com", "123456", "new-password")).resolves.toEqual({ success: true })
-    expect(repo.findVerification).toHaveBeenCalledWith("PASSWORD_RESET:user@example.com", "123456")
+    expect(repo.findVerification).toHaveBeenCalledWith(
+      "PASSWORD_RESET:user@example.com",
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+    )
     expect(repo.updateCredentialPassword).toHaveBeenCalledWith("account-1", "hashed:new-password")
     expect(repo.deleteVerification).toHaveBeenCalledWith("verification-1")
   })

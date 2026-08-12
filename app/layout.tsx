@@ -8,7 +8,7 @@ import { Providers } from "#/providers";
 import "./styles.css";
 
 const notoSansThai = localFont({
-  src: "../public/fonts/NotoSansThai-VariableFont_wdth,wght.ttf",
+  src: "../public/fonts/NotoSansThai-LatinThai-Variable.woff2",
   display: "swap",
   weight: "100 900",
   variable: "--font-noto-sans-thai",

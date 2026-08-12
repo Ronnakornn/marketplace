@@ -64,7 +64,7 @@ export interface CreatePendingOrderInput {
   address: CheckoutAddress
   totals: CheckoutTotalsRecord
   items: CheckoutCartItem[]
-  paymentMethod: string
+  paymentProvider: string
   locale?: string
   coupon?: CheckoutCouponRef | null
 }
@@ -79,6 +79,7 @@ export interface ICheckoutRepository extends IPromotionValidationRepository {
   transaction<T>(callback: (repo: ICheckoutRepository) => Promise<T>): Promise<T>
   findCartForCheckout(cartId: string): Promise<CheckoutCart | null>
   findAddressForUser(addressId: string, userId: string): Promise<CheckoutAddress | null>
+  lockCouponForCheckout(couponId: string): Promise<void>
   createPendingOrder(input: CreatePendingOrderInput): Promise<CreatedCheckoutOrder>
 }
 
@@ -150,7 +151,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
       where: { code },
       include: {
         _count: {
-          select: { redemptions: true },
+          select: { redemptions: { where: { status: { in: ['RESERVED', 'REDEEMED'] } } } },
         },
       },
     })
@@ -159,8 +160,12 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
   countCouponRedemptionsForUser(couponId: string, userId: string): Promise<number> {
     this.logger.debug('PrismaCheckoutRepository.countCouponRedemptionsForUser', { couponId, userId })
     return this.prisma.couponRedemption.count({
-      where: { couponId, userId },
+      where: { couponId, userId, status: { in: ['RESERVED', 'REDEEMED'] } },
     })
+  }
+
+  async lockCouponForCheckout(couponId: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "Coupon" WHERE "id" = ${couponId}::uuid FOR UPDATE`
   }
 
   async createPendingOrder(input: CreatePendingOrderInput): Promise<CreatedCheckoutOrder> {
@@ -280,6 +285,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
           couponId: input.coupon.id,
           userId: input.userId,
           orderId: order.id,
+          status: 'RESERVED',
         },
       })
     }
@@ -287,7 +293,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     const payment = await this.prisma.payment.create({
       data: {
         orderId: order.id,
-        provider: input.paymentMethod,
+        provider: input.paymentProvider,
         providerIntentId: `pending_${input.orderNumber}`,
         status: 'PENDING',
         amount: input.totals.grandTotal,

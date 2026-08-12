@@ -44,6 +44,7 @@ function mockAuthContext(overrides: Record<string, unknown> = {}) {
 function createContainer() {
   return {
     paymentService: {
+      isMockEnabled: vi.fn(() => true),
       handleWebhook: vi.fn(),
       handleMockPaymentEvent: vi.fn(async () => ({ ok: true, code: 'PAYMENT_PAID' })),
       getBuyerMockPaymentDetail: vi.fn(async () => ({
@@ -75,6 +76,19 @@ describe('payment routes', () => {
     )
 
     expect(response.status).toBe(401)
+  })
+
+  it('does not mount mock payment endpoints when mock payments are disabled', async () => {
+    const container = createContainer()
+    vi.mocked(container.paymentService.isMockEnabled).mockReturnValue(false)
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext() as any)
+
+    const response = await createApp(container).handle(
+      new Request(`http://localhost/api/payments/mock/${paymentId}`),
+    )
+
+    expect(response.status).toBe(404)
+    expect(container.paymentService.getBuyerMockPaymentDetail).not.toHaveBeenCalled()
   })
 
   it('returns buyer-owned mock payment detail from the payment service', async () => {

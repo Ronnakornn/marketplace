@@ -1,3 +1,5 @@
+import { requestApi } from "#/lib/api-client";
+
 export async function registerPushServiceWorker(): Promise<ServiceWorkerRegistration> {
   return navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
 }
@@ -38,13 +40,11 @@ export function supportsWebPush(): boolean {
 }
 
 async function apiRequest(path: string, body: unknown): Promise<void> {
-  const response = await fetch(path, {
+  await requestApi(path, {
     method: "POST",
-    credentials: "include",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`Push notification request failed (${response.status})`);
 }
 
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {

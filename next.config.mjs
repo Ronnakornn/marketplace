@@ -2,6 +2,33 @@ const staticAssetCacheControl = 'public, max-age=31536000, immutable'
 const publicImageCacheControl = 'public, max-age=604800, stale-while-revalidate=86400'
 const noStoreCacheControl = 'no-store'
 const isProduction = process.env.NODE_ENV === 'production'
+const enforceHttps = isProduction && process.env.ALLOW_INSECURE_HTTP !== 'true'
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isProduction ? '' : " 'unsafe-eval'"}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https: wss: ws:",
+  "media-src 'self' blob: https:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  ...(enforceHttps ? ['upgrade-insecure-requests'] : []),
+].join('; ')
+
+const securityHeaders = [
+  { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(self)' },
+  ...(enforceHttps
+    ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }]
+    : []),
+]
 
 function toUrl(value) {
   if (!value) return null
@@ -63,10 +90,6 @@ const nextConfig = {
     const productionStaticHeaders = isProduction
       ? [
           {
-            source: '/_next/static/:path*',
-            headers: [{ key: 'Cache-Control', value: staticAssetCacheControl }],
-          },
-          {
             source: '/:path*.:ext(js|css|woff|woff2|ttf|otf|ico|png|jpg|jpeg|gif|webp|avif|svg)',
             headers: [{ key: 'Cache-Control', value: staticAssetCacheControl }],
           },
@@ -74,6 +97,10 @@ const nextConfig = {
       : []
 
     return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
       ...productionStaticHeaders,
       {
         source: '/uploads/:path*',
@@ -92,23 +119,23 @@ const nextConfig = {
         ],
       },
       {
-        source: '/admin/:path*',
+        source: '/:locale(en|th)/admin/:path*',
         headers: [{ key: 'Cache-Control', value: noStoreCacheControl }],
       },
       {
-        source: '/seller/:path*',
+        source: '/:locale(en|th)/seller/:path*',
         headers: [{ key: 'Cache-Control', value: noStoreCacheControl }],
       },
       {
-        source: '/cart',
+        source: '/:locale(en|th)/cart',
         headers: [{ key: 'Cache-Control', value: noStoreCacheControl }],
       },
       {
-        source: '/checkout',
+        source: '/:locale(en|th)/checkout',
         headers: [{ key: 'Cache-Control', value: noStoreCacheControl }],
       },
       {
-        source: '/payment/:path*',
+        source: '/:locale(en|th)/payment/:path*',
         headers: [{ key: 'Cache-Control', value: noStoreCacheControl }],
       },
     ]

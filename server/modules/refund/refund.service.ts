@@ -2,6 +2,7 @@ import type { RefundStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { EventPublisherService } from '#server/modules/event-bus'
+import type { AuditLogService } from '#server/modules/audit-log'
 import { RefundServiceError } from './refund.errors.ts'
 import type { IRefundRepository, RefundRecord } from './refund.repository.ts'
 
@@ -29,6 +30,7 @@ export class RefundService {
     appContext: AppContext,
     private repo: IRefundRepository,
     private eventPublisher?: EventPublisherService,
+    private auditLogService?: AuditLogService,
   ) {
     this.logger = appContext.logger
   }
@@ -54,6 +56,16 @@ export class RefundService {
     const nextStatus = this.normalizeStatus(status)
     this.assertTransition(refund.status, nextStatus)
     const response = this.toResponse(await this.repo.updateRefundStatus(refund.id, nextStatus))
+    await this.auditLogService?.createAuditLogBestEffort({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'REFUND_STATUS_CHANGED',
+      entityType: 'refund',
+      entityId: refund.id,
+      before: { status: refund.status },
+      after: { status: nextStatus },
+      nonCritical: false,
+    })
     if (nextStatus === 'SUCCESS') {
       await this.publishBestEffort('refund.succeeded', response.id, actor.id, {
         refundId: response.id,

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,8 +23,8 @@ import { addCartItem } from "#/features/buyer/api";
 import {
   marketplaceHomeQueryOptions,
   normalizeMarketplaceHome,
+  type DiscoveryHomeResponse,
   type MarketplaceBanner,
-  type MarketplaceCategory,
   type MarketplaceHomeData,
   type MarketplaceProductCard,
   type MarketplacePromotion,
@@ -38,25 +38,13 @@ import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 
 interface MarketplaceHomeProps {
+  initialHome?: DiscoveryHomeResponse;
   user?: {
     name?: string;
     email?: string;
     role?: string | null;
   } | null;
 }
-const fallbackCategoryItems = [
-  ["fashion", "Fashion", "bg-rose-100 text-rose-600"],
-  ["beauty", "Beauty", "bg-pink-100 text-pink-600"],
-  ["gadgets", "Gadgets", "bg-slate-100 text-slate-900"],
-  ["home", "Home", "bg-emerald-100 text-emerald-900"],
-  ["sports", "Sports", "bg-orange-100 text-orange-700"],
-  ["kids", "Kids", "bg-violet-100 text-violet-600"],
-  ["groceries", "Groceries", "bg-lime-100 text-emerald-900"],
-  ["pets", "Pets", "bg-amber-100 text-amber-700"],
-  ["deals", "Deals", "bg-red-100 text-red-600"],
-  ["more", "More", "bg-slate-100 text-slate-900"],
-] as const;
-
 const categoryStyles = [
   "bg-rose-100 text-rose-600",
   "bg-pink-100 text-pink-600",
@@ -79,7 +67,9 @@ const productGradients = [
   "from-slate-100 via-zinc-100 to-white",
 ];
 
-export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
+const PERSONALIZATION_DELAY_MS = 10_000;
+
+export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomeProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const localePath = useLocalePath();
@@ -90,6 +80,8 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   const canUseBuyerCart = user?.role === "USER";
   const homeQuery = useQuery({
     ...marketplaceHomeQueryOptions({ locale, limit: 12, sessionId }),
+    initialData: sessionId ? undefined : initialHome,
+    placeholderData: (previousData) => previousData,
     select: normalizeMarketplaceHome,
   });
   const addToCartMutation = useMutation({
@@ -123,14 +115,12 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   const home = homeQuery.data ?? emptyMarketplaceHome;
   const visibleProducts = home.recommendedProducts.slice(0, visibleCount);
-  const categories = useMemo(() => {
-    if (home.categories.length) return home.categories.map((category, index) => ({
+  const categories = home.categories.map((category, index) => ({
+      id: category.id,
       slug: category.slug,
       label: category.name,
       className: categoryStyles[index % categoryStyles.length] ?? categoryStyles.at(-1)!,
     }));
-    return fallbackCategoryItems.map(([slug, label, className]) => ({ slug, label, className }));
-  }, [home.categories]);
   useTrackVisibleProducts(
     [...visibleProducts, ...home.newArrivals, ...(home.flashSale?.items ?? [])].map((product) => ({ id: product.id, shop: { id: product.shop.id } })),
     "marketplace_home",
@@ -146,7 +136,8 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   }
 
   useEffect(() => {
-    setSessionId(getAnonymousSessionId());
+    const timer = window.setTimeout(() => setSessionId(getAnonymousSessionId()), PERSONALIZATION_DELAY_MS);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -168,7 +159,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   return (
     <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950">
-      <BuyerTopBar title={user?.name ? t("home.welcomeBack").replace("{name}", user.name) : t("common.marketplace")} />
+      <BuyerTopBar title={user?.name ? t("home.welcomeBack").replace("{name}", user.name) : t("common.marketplace")} prefetchLinks={false} />
 
       <main className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
         <HeroPromo banners={home.banners} />
@@ -184,7 +175,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
           pendingVariantId={addToCartMutation.variables?.variantId}
           formatMoney={formatters.currency}
         />
-        <CategoryGrid categories={categories} apiCategories={home.categories} isLoading={homeQuery.isLoading} />
+        <CategoryGrid categories={categories} isLoading={homeQuery.isLoading} />
         <ProductRail
           title={t("home.recommendedTitle")}
           subtitle={t("home.recommendedSubtitle")}
@@ -232,7 +223,7 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
       </main>
 
       <StickyCheckoutCTA />
-      <MobileBottomNavigation />
+      <MobileBottomNavigation prefetchLinks={false} />
     </div>
   );
 }
@@ -270,6 +261,7 @@ function HeroPromo({ banners }: { banners: MarketplaceBanner[] }) {
             <Button asChild className="rounded-full bg-white text-rose-600 hover:bg-white/95">
               <Link
                 href={href}
+                prefetch={false}
                 onClick={() => banner ? trackDiscoveryEvent({ eventType: "banner_clicked", bannerId: banner.id, source: "marketplace_home_hero", position: 0 }) : undefined}
               >
                 {t("home.shopNow")}
@@ -366,6 +358,7 @@ function FlashSaleSection({
           <article key={product.id} className="min-w-[132px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
             <Link
               href={localePath(`/products/${product.id}`)}
+              prefetch={false}
               onClick={() => trackDiscoveryEvent({ eventType: "recommendation_clicked", productId: product.id, shopId: product.shop.id, source: "flash_sale", position: index })}
             >
               <ProductVisual product={product} compact />
@@ -395,11 +388,9 @@ function FlashSaleSection({
 
 function CategoryGrid({
   categories,
-  apiCategories,
   isLoading,
 }: {
-  categories: Array<{ slug: string; label: string; className: string }>;
-  apiCategories: MarketplaceCategory[];
+  categories: Array<{ id: string; slug: string; label: string; className: string }>;
   isLoading: boolean;
 }) {
   const t = useTranslations();
@@ -412,11 +403,12 @@ function CategoryGrid({
       </div>
       {isLoading ? <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">{Array.from({ length: 10 }).map((_, index) => <Skeleton key={index} className="h-20 rounded-2xl" />)}</div> : null}
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
-        {categories.map(({ slug, label, className }) => (
+        {categories.map(({ id, slug, label, className }) => (
           <Link
             key={slug}
             href={localePath(`/categories/${slug}`)}
-            onClick={() => trackDiscoveryEvent({ eventType: "category_viewed", categoryId: apiCategories.find((category) => category.slug === slug)?.id ?? slug, source: "marketplace_home_categories" })}
+            prefetch={false}
+            onClick={() => trackDiscoveryEvent({ eventType: "category_viewed", categoryId: id, source: "marketplace_home_categories" })}
             className="group flex min-w-0 flex-col items-center gap-2 rounded-2xl p-2 transition hover:bg-slate-50"
           >
             <span className={`flex size-11 items-center justify-center rounded-2xl ${className}`}>
@@ -461,7 +453,7 @@ function ProductRail(props: {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
         {props.products.map((product, index) => (
           <div key={[props.source, product.id, index].join("-")}>
-            <BuyerProductCard product={product.buyerProduct} />
+            <BuyerProductCard product={product.buyerProduct} prefetch={false} />
           </div>
         ))}
         {props.isLoading ? Array.from({ length: 6 }).map((_, index) => (
@@ -530,6 +522,7 @@ function FeaturedShopsSection({ shops, isLoading }: { shops: MarketplaceShop[]; 
           <Link
             key={shop.id}
             href={localePath(["/shops", shop.slug || shop.id].join("/"))}
+            prefetch={false}
             onClick={() => trackDiscoveryEvent({ eventType: "recommendation_clicked", shopId: shop.id, source: "marketplace_home_featured_shops", position: index })}
             className="min-w-0 rounded-2xl border border-slate-100 p-3 transition hover:bg-slate-50"
           >

@@ -1,5 +1,5 @@
 import { createContainer } from '#server/context/app-context.ts'
-import { createJobQueueEvents, createJobWorker } from '#server/modules/jobs'
+import { createJobQueueEvents, createJobWorker, ensureRecurringJobSchedulers } from '#server/modules/jobs'
 import { getQueueConfigFromEnv } from '#server/modules/queue'
 
 const container = createContainer()
@@ -15,6 +15,7 @@ if (!config) {
 
 const worker = createJobWorker(container, config)
 const events = createJobQueueEvents(container, config)
+const schedulerQueue = await ensureRecurringJobSchedulers(config)
 
 logger.info('Job worker running', {
   concurrency: config.concurrency,
@@ -27,6 +28,7 @@ async function shutdown(signal: string): Promise<void> {
   await Promise.all([
     worker.close(),
     events.close(),
+    schedulerQueue.close(),
   ])
 }
 

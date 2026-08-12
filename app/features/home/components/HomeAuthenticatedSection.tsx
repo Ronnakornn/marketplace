@@ -1,6 +1,8 @@
 import { HomeMarketplaceClient } from "./HomeMarketplaceClient";
+import type { DiscoveryHomeResponse } from "#/features/marketplace/queries";
 
 interface HomeAuthenticatedSectionProps {
+  initialHome?: DiscoveryHomeResponse;
   user: {
     name: string;
     email: string;
@@ -9,7 +11,8 @@ interface HomeAuthenticatedSectionProps {
 }
 
 export function HomeAuthenticatedSection({
+  initialHome,
   user,
 }: HomeAuthenticatedSectionProps) {
-  return <HomeMarketplaceClient user={user} />;
+  return <HomeMarketplaceClient initialHome={initialHome} user={user} />;
 }

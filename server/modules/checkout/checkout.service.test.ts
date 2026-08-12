@@ -37,6 +37,7 @@ function createRepoMock(): ICheckoutRepository {
     findAddressForUser: vi.fn(),
     findCouponByCode: vi.fn(),
     countCouponRedemptionsForUser: vi.fn(),
+    lockCouponForCheckout: vi.fn(),
     createPendingOrder: vi.fn(),
   }
 }
@@ -251,7 +252,7 @@ describe('CheckoutService', () => {
     expect(repo.createPendingOrder).toHaveBeenCalledWith(expect.objectContaining({
       cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       userId: 'user-1',
-      paymentMethod: 'stripe',
+      paymentProvider: 'mock',
       coupon: { id: '99999999-9999-4999-8999-999999999999' },
       totals: {
         subtotal: 2400,

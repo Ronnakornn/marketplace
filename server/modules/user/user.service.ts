@@ -5,8 +5,10 @@ import { isAPIError } from 'better-auth/api'
 import type { AppContext } from '#server/context/app-context.ts'
 import { auth } from '#server/lib/auth.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { createEmailService, type EmailService } from '#server/modules/email'
 import type { AddressData, AdminUserListItem, BuyerAddress, FavoriteProductRecord, IUserRepository, ShopFollowRecord, UserProfile } from './user.repository.ts'
 import { UserServiceError } from './user.errors.ts'
+import { getOtpHashSecret, hashEmailOtp } from './user.otp.ts'
 
 export interface CreateAdminUserData {
   name: string
@@ -31,6 +33,7 @@ export interface UpdateCurrentUserData {
 export type VerificationPurpose = 'EMAIL_VERIFICATION' | 'PASSWORD_RESET'
 
 const OTP_TTL_MS = 15 * 60 * 1000
+const OTP_TTL_MINUTES = OTP_TTL_MS / 60_000
 
 export interface AddressInput {
   recipientName?: string
@@ -76,12 +79,17 @@ export interface ShopFollowResponse {
 
 export class UserService {
   private logger: ILogger
+  private emailService: EmailService
+  private otpHashSecret: string
 
   constructor(
     appContext: AppContext,
     private repo: IUserRepository,
+    emailService?: EmailService,
   ) {
     this.logger = appContext.logger
+    this.otpHashSecret = getOtpHashSecret()
+    this.emailService = emailService ?? createEmailService(appContext)
   }
 
   listForAdmin(): Promise<AdminUserListItem[]> {
@@ -434,16 +442,37 @@ export class UserService {
 
   private async createOtp(purpose: VerificationPurpose, email: string): Promise<void> {
     const identifier = this.verificationIdentifier(purpose, email)
+    const otp = this.generateOtp()
     await this.repo.deleteVerificationsByIdentifier(identifier)
-    await this.repo.createVerification({
+    const verification = await this.repo.createVerification({
       identifier,
-      value: this.generateOtp(),
+      value: hashEmailOtp(identifier, otp, this.otpHashSecret),
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
     })
+    try {
+      await this.emailService.sendOtp({
+        to: email,
+        otp,
+        purpose,
+        expiresInMinutes: OTP_TTL_MINUTES,
+      })
+    } catch (error) {
+      await this.repo.deleteVerification(verification.id)
+      this.logger.error('UserService OTP delivery failed', {
+        purpose,
+        email,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      throw new UserServiceError('Unable to deliver verification code', 502)
+    }
   }
 
   private async findValidOtp(purpose: VerificationPurpose, email: string, otp: string) {
-    const verification = await this.repo.findVerification(this.verificationIdentifier(purpose, email), otp.trim())
+    const identifier = this.verificationIdentifier(purpose, email)
+    const verification = await this.repo.findVerification(
+      identifier,
+      hashEmailOtp(identifier, otp, this.otpHashSecret),
+    )
     if (!verification || verification.expiresAt <= new Date()) {
       throw new UserServiceError(`Invalid or expired ${purpose === 'EMAIL_VERIFICATION' ? 'verification' : 'reset'} code`, 400)
     }

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const useProductionServers = process.env.PLAYWRIGHT_PRODUCTION === "true";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -55,7 +57,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "bun run dev:server",
+      command: useProductionServers ? "bun run start:server" : "bun run dev:server",
       url: "http://localhost:3001/api/health/ready",
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
@@ -63,7 +65,7 @@ export default defineConfig({
       stderr: "pipe",
     },
     {
-      command: "bun run dev:frontend",
+      command: useProductionServers ? "bun run start:frontend" : "bun run dev:frontend",
       url: "http://localhost:3000/favicon.ico",
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

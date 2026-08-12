@@ -1,8 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
-import { type ReactNode } from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { type ReactElement, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, fireEvent, render as testingRender, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChangePasswordForm, ForgotPasswordForm, ResetPasswordForm, VerifyEmailForm } from "./AuthV1Forms";
 import { changePassword, completePasswordReset, requestPasswordResetOtp, verifyEmailOtp } from "#/features/auth/api";
@@ -24,6 +25,10 @@ vi.mock("#/features/auth/api", () => ({
   resendEmailVerification: vi.fn(),
   verifyEmailOtp: vi.fn(),
 }));
+
+function render(ui: ReactElement) {
+  return testingRender(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
+}
 
 afterEach(() => cleanup());
 

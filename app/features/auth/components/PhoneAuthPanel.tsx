@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import { completePhoneSignup, requestPhoneAuthOtp, verifyPhoneAuthOtp } from "#/features/auth/api";
 import { resolveNextPath } from "../redirect";
 
@@ -19,22 +20,22 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
   const [resendAvailableAt, setResendAvailableAt] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const requestOtpMutation = useMutation({ mutationFn: (value: string) => requestPhoneAuthOtp(value) });
+  const verifyOtpMutation = useMutation({ mutationFn: (value: { phone: string; otp: string }) => verifyPhoneAuthOtp(value) });
+  const completeSignupMutation = useMutation({ mutationFn: (value: Parameters<typeof completePhoneSignup>[0]) => completePhoneSignup(value) });
+  const loading = requestOtpMutation.isPending || verifyOtpMutation.isPending || completeSignupMutation.isPending;
 
   async function handleRequestOtp(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setMessage(null);
-    setLoading(true);
     try {
-      const result = await requestPhoneAuthOtp(phone);
+      const result = await requestOtpMutation.mutateAsync(phone);
       setResendAvailableAt(result.resendAvailableAt);
       setStep("OTP");
       setMessage("Verification code sent.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to send verification code");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -42,9 +43,8 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
     event.preventDefault();
     setError(null);
     setMessage(null);
-    setLoading(true);
     try {
-      const result = await verifyPhoneAuthOtp({ phone, otp });
+      const result = await verifyOtpMutation.mutateAsync({ phone, otp });
       if (result.state === "LOGIN_READY") {
         router.push(resolveNextPath(nextPath ?? null));
         return;
@@ -57,8 +57,6 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to verify phone code");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -66,14 +64,11 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
     event.preventDefault();
     setError(null);
     setMessage(null);
-    setLoading(true);
     try {
-      await completePhoneSignup({ phone, pendingSignupToken, email, name, password });
+      await completeSignupMutation.mutateAsync({ phone, pendingSignupToken, email, name, password });
       router.push(resolveNextPath(nextPath ?? null));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to complete signup");
-    } finally {
-      setLoading(false);
     }
   }
 

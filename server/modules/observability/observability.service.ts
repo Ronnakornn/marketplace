@@ -12,6 +12,7 @@ export interface HealthResponse {
   services: {
     api: 'ok'
     database: 'ok' | 'down'
+    databaseSchema?: 'ok' | 'down'
     redis?: 'ok' | 'down'
     queue?: 'ok' | 'down'
   }
@@ -55,9 +56,13 @@ export class ObservabilityService {
 
   async getReadiness(): Promise<HealthResponse> {
     const databaseOk = await this.repo.checkDatabase(this.options.healthCheckTimeoutMs)
+    const databaseSchemaOk = databaseOk
+      ? await this.repo.checkDatabaseSchema(this.options.healthCheckTimeoutMs)
+      : false
     const services: HealthResponse['services'] = {
       api: 'ok',
       database: databaseOk ? 'ok' : 'down',
+      databaseSchema: databaseSchemaOk ? 'ok' : 'down',
     }
 
     if (this.options.queueConfig) {
@@ -88,7 +93,7 @@ export class ObservabilityService {
   }
 
   private calculateStatus(services: HealthResponse['services']): HealthResponse['status'] {
-    if (services.database === 'down') return 'down'
+    if (services.database === 'down' || services.databaseSchema === 'down') return 'down'
     if (services.redis === 'down' || services.queue === 'down') return 'degraded'
     return 'ok'
   }

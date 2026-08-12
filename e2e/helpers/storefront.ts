@@ -63,6 +63,9 @@ export async function closeStorefrontFixtures() {
 export async function signIn(page: Page, identity: { email: string; password: string }) {
   const response = await page.request.post("/api/auth/sign-in/email", { data: identity });
   expect(response.ok(), await response.text()).toBeTruthy();
+  const session = await page.request.get("/api/auth/get-session");
+  expect(session.ok(), "Authenticated storefront session could not be read").toBeTruthy();
+  expect(await session.json(), "Storefront sign-in did not create a session").toBeTruthy();
 }
 
 export async function openStorefront(page: Page, locale: "th" | "en" = "en", slug = storefrontFixture.slug) {

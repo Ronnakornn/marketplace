@@ -147,6 +147,9 @@ export const auth = betterAuth({
     defaultCookieAttributes: {
       secure: useSecureAuthCookies,
     },
+    ipAddress: process.env.TRUST_PROXY === "true"
+      ? { ipAddressHeaders: ["x-forwarded-for", "x-real-ip"] }
+      : undefined,
     database: {
       generateId: "uuid",
     },

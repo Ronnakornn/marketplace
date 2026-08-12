@@ -1,5 +1,7 @@
 "use client";
 
+import { requestApi } from "#/lib/api-client";
+
 export interface ChatUserSummary {
   id: string;
   name: string;
@@ -92,22 +94,7 @@ export async function markChatRead(roomId: string, audience?: ChatAudience): Pro
 }
 
 async function chatFetch(path: string, init: RequestInit = {}): Promise<unknown> {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...init.headers,
-    },
-    credentials: "include",
-  });
-  const text = await response.text();
-  const body = text ? JSON.parse(text) as unknown : null;
-  if (!response.ok) {
-    const record = toRecord(body);
-    const error = toRecord(record.error);
-    throw new Error(readString(error.message, readString(record.message, "Request failed")));
-  }
-  return body;
+  return requestApi(path, { ...init, headers: { "content-type": "application/json", ...init.headers } });
 }
 
 function normalizeRoom(input: unknown): ChatRoom {

@@ -48,6 +48,8 @@ function createSecurityApp(appContext = createAppContext()) {
       sellerMediaMaxRequests: 1,
       sellerReviewMaxRequests: 1,
       requestBodyLimitBytes: 10,
+      trustProxy: false,
+      requireContentLength: false,
     }))
     .get('/api/public', () => ({ ok: true }))
     .get('/api/auth/session', () => ({ ok: true }))
@@ -106,6 +108,35 @@ describe('security hardening', () => {
 
     expect(response.status).toBe(429)
     await expect(response.json()).resolves.toMatchObject({ error: { code: 'RATE_LIMIT_EXCEEDED' } })
+  })
+
+  it('falls back to memory when Redis is unavailable outside production', async () => {
+    const originalRedisUrl = process.env['REDIS_URL']
+    process.env['REDIS_URL'] = 'redis://127.0.0.1:1'
+    try {
+      const response = await createSecurityApp(createAppContext('development'))
+        .handle(new Request('http://localhost/api/public'))
+
+      expect(response.status).toBe(200)
+    } finally {
+      if (originalRedisUrl === undefined) delete process.env['REDIS_URL']
+      else process.env['REDIS_URL'] = originalRedisUrl
+    }
+  })
+
+  it('fails closed when Redis is unavailable in production', async () => {
+    const originalRedisUrl = process.env['REDIS_URL']
+    process.env['REDIS_URL'] = 'redis://127.0.0.1:1'
+    try {
+      const response = await createSecurityApp(createAppContext('production'))
+        .handle(new Request('http://localhost/api/public'))
+
+      expect(response.status).toBe(503)
+      await expect(response.json()).resolves.toMatchObject({ error: { code: 'RATE_LIMIT_UNAVAILABLE' } })
+    } finally {
+      if (originalRedisUrl === undefined) delete process.env['REDIS_URL']
+      else process.env['REDIS_URL'] = originalRedisUrl
+    }
   })
 
   it('auth routes have a stricter rate limit', async () => {

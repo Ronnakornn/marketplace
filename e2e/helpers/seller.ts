@@ -1,4 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
+import { createHash } from "node:crypto";
 
 export type SellerIdentity = {
   email: string;
@@ -12,7 +13,9 @@ export const demoSeller: SellerIdentity = {
 
 export async function isolateRateLimit(page: Page, testInfo: TestInfo) {
   const testKey = `${testInfo.project.name}-${testInfo.title}`.replace(/[^a-z0-9-]/gi, "-");
-  await page.setExtraHTTPHeaders({ "x-forwarded-for": `e2e-${testKey}` });
+  const digest = createHash("sha256").update(testKey).digest();
+  const testIp = `10.${digest[0]}.${digest[1]}.${(digest[2] % 254) + 1}`;
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": testIp });
 }
 
 export async function waitForRenderedPage(page: Page) {
@@ -68,8 +71,10 @@ export async function openProductStudio(page: Page) {
 }
 
 export async function getActiveShopId(page: Page) {
-  await openSellerRoute(page);
-  const productsHref = await page.locator('a[href*="/seller/products?shopId="]').first().getAttribute("href");
-  expect(productsHref, "Seller shell should expose active shop id").toBeTruthy();
-  return new URL(productsHref!, "http://localhost:3000").searchParams.get("shopId")!;
+  const response = await page.request.get("/api/seller/shops");
+  const body = await response.json() as { activeShopId?: string | null; shops?: Array<{ id?: string }> };
+  expect(response.ok(), `Seller shops request failed: ${response.status()}`).toBeTruthy();
+  const activeShopId = body.activeShopId ?? body.shops?.[0]?.id;
+  expect(activeShopId, "Seed at least one active shop owned by the demo seller").toBeTruthy();
+  return activeShopId!;
 }

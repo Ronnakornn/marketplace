@@ -108,6 +108,40 @@ describe('PromotionService', () => {
     expect(repo.findCouponByCode).toHaveBeenCalledWith('SAVE')
   })
 
+  it('returns only redeemable public coupons using the API field contract', async () => {
+    vi.mocked(repo.listPublicCoupons).mockResolvedValue([
+      {
+        ...createCoupon({ usageLimit: 2, redemptions: 1 }),
+        discountValue: 500n,
+        minOrder: 1_000n,
+        maxDiscount: null,
+        titleTh: 'ลดห้าบาท',
+        titleEn: 'Five off',
+        descriptionTh: null,
+        descriptionEn: null,
+        endsAt: '2999-01-01T00:00:00.000Z',
+      },
+      {
+        ...createCoupon({ usageLimit: 1, redemptions: 1 }),
+        discountValue: 500n,
+        minOrder: null,
+        maxDiscount: null,
+        titleTh: 'เต็มแล้ว',
+        titleEn: 'Used up',
+        descriptionTh: null,
+        descriptionEn: null,
+      },
+    ] as any)
+
+    await expect(service.listPublicCoupons('en')).resolves.toEqual([expect.objectContaining({
+      code: 'SAVE',
+      title: 'Five off',
+      discountValueCents: 500,
+      minOrderCents: 1_000,
+      endsAt: '2999-01-01T00:00:00.000Z',
+    })])
+  })
+
   it('applies a valid percent coupon discount', async () => {
     vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({
       discountType: 'PERCENT',

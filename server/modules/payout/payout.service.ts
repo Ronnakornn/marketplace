@@ -3,6 +3,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ActiveShopResolver } from '#server/modules/security'
+import type { AuditLogService } from '#server/modules/audit-log'
 import { WalletServiceError } from '#server/modules/wallet'
 import type { IPayoutRepository, PayoutRecord } from './payout.repository.ts'
 
@@ -44,6 +45,7 @@ export class PayoutService {
     private repo: IPayoutRepository,
     private eventPublisher?: EventPublisherService,
     private activeShopResolver?: ActiveShopResolver,
+    private auditLogService?: AuditLogService,
   ) {
     this.logger = appContext.logger
   }
@@ -111,20 +113,22 @@ export class PayoutService {
     return this.toResponse(payout)
   }
 
-  approveAdminPayout(actor: PayoutActor, payoutId: string): Promise<PayoutResponse> {
+  async approveAdminPayout(actor: PayoutActor, payoutId: string): Promise<PayoutResponse> {
     this.assertAdmin(actor)
     this.logger.info('PayoutService.approveAdminPayout', { actorId: actor.id, payoutId })
-    return this.repo.transaction(async (txRepo) => {
+    const result = await this.repo.transaction(async (txRepo) => {
       const payout = await this.getPayoutForUpdate(txRepo, payoutId)
       if (payout.status !== 'requested') {
         throw new WalletServiceError('Only requested payouts can be approved', 409, 'INVALID_PAYOUT_STATE')
       }
-      return this.toResponse(await txRepo.updatePayout(payout.id, {
+      return { beforeStatus: payout.status, response: this.toResponse(await txRepo.updatePayout(payout.id, {
         status: 'approved',
         approvedById: actor.id,
         approvedAt: new Date(),
-      }))
+      })) }
     })
+    await this.auditPayoutStatus(actor, payoutId, result.beforeStatus, result.response.status)
+    return result.response
   }
 
   async rejectAdminPayout(actor: PayoutActor, payoutId: string, input: RejectPayoutInput = {}): Promise<PayoutResponse> {
@@ -149,7 +153,7 @@ export class PayoutService {
         currency: payout.currency,
         description: 'Payout reserve released after rejection',
       })
-      return { response: this.toResponse(updated), requestedById: payout.requestedById }
+      return { response: this.toResponse(updated), requestedById: payout.requestedById, beforeStatus: payout.status }
     })
     await this.publishBestEffort('payout.rejected', result.response.id, actor.id, {
       payoutId: result.response.id,
@@ -157,12 +161,13 @@ export class PayoutService {
       sellerUserId: result.requestedById,
       reason: result.response.rejectionReason,
     })
+    await this.auditPayoutStatus(actor, payoutId, result.beforeStatus, result.response.status)
     return result.response
   }
 
-  markAdminPayoutPaid(actor: PayoutActor, payoutId: string): Promise<PayoutResponse> {
+  async markAdminPayoutPaid(actor: PayoutActor, payoutId: string): Promise<PayoutResponse> {
     this.assertAdmin(actor)
-    return this.repo.transaction(async (txRepo) => {
+    const result = await this.repo.transaction(async (txRepo) => {
       const payout = await this.getPayoutForUpdate(txRepo, payoutId)
       if (payout.status !== 'approved') {
         throw new WalletServiceError('Only approved payouts can be marked paid', 409, 'INVALID_PAYOUT_STATE')
@@ -188,8 +193,10 @@ export class PayoutService {
         sellerUserId: payout.requestedById,
         amount: response.amount,
       })
-      return response
+      return { response, beforeStatus: payout.status }
     })
+    await this.auditPayoutStatus(actor, payoutId, result.beforeStatus, result.response.status)
+    return result.response
   }
 
   private async getPayoutForUpdate(repo: IPayoutRepository, payoutId: string): Promise<PayoutRecord> {
@@ -250,5 +257,23 @@ export class PayoutService {
         error: error instanceof Error ? error.message : String(error),
       })
     }
+  }
+
+  private async auditPayoutStatus(
+    actor: PayoutActor,
+    payoutId: string,
+    beforeStatus: string,
+    afterStatus: string,
+  ): Promise<void> {
+    await this.auditLogService?.createAuditLogBestEffort({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'PAYOUT_STATUS_CHANGED',
+      entityType: 'payout',
+      entityId: payoutId,
+      before: { status: beforeStatus },
+      after: { status: afterStatus },
+      nonCritical: false,
+    })
   }
 }

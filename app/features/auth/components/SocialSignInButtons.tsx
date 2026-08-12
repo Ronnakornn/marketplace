@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ComponentType } from "react";
+import { useState, type ComponentType } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { signIn } from "#/lib/auth-client";
 import { useTranslations } from "#/i18n/client";
 import { getSocialProviderAvailability, type SocialProviderAvailability } from "../api";
@@ -15,41 +16,29 @@ const PROVIDERS: Array<{ id: SocialProvider; label: string; Icon: ComponentType 
 
 export function SocialSignInButtons({ nextPath }: { nextPath?: string | null }) {
   const t = useTranslations();
-  const [availability, setAvailability] = useState<SocialProviderAvailability | null>(null);
-  const [loadingProvider, setLoadingProvider] = useState<SocialProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    getSocialProviderAvailability()
-      .then((data) => {
-        if (mounted) setAvailability(data);
-      })
-      .catch(() => {
-        if (mounted) setAvailability({ google: false, facebook: false });
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const availabilityQuery = useQuery({
+    queryKey: ["auth", "social-provider-availability"],
+    queryFn: getSocialProviderAvailability,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const socialMutation = useMutation({
+    mutationFn: (provider: SocialProvider) => signIn.social({ provider, callbackURL: resolveNextPath(nextPath ?? null) }),
+  });
+  const availability = availabilityQuery.data ?? (availabilityQuery.isError ? { google: false, facebook: false } : null);
 
   if (!availability) return null;
 
   async function handleSocialSignIn(provider: SocialProvider) {
     setError(null);
-    setLoadingProvider(provider);
     try {
-      const result = await signIn.social({
-        provider,
-        callbackURL: resolveNextPath(nextPath ?? null),
-      });
+      const result = await socialMutation.mutateAsync(provider);
       if (result?.error) {
         setError(result.error.message ?? t("auth.socialSignInFailed"));
       }
     } catch {
       setError(t("auth.socialSignInFailed"));
-    } finally {
-      setLoadingProvider(null);
     }
   }
 
@@ -64,14 +53,14 @@ export function SocialSignInButtons({ nextPath }: { nextPath?: string | null }) 
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {PROVIDERS.map((provider) => {
-          const isLoading = loadingProvider === provider.id;
+          const isLoading = socialMutation.isPending && socialMutation.variables === provider.id;
           const isAvailable = availability[provider.id];
           const { Icon } = provider;
           return (
             <button
               key={provider.id}
               type="button"
-              disabled={!isAvailable || loadingProvider !== null}
+              disabled={!isAvailable || socialMutation.isPending}
               onClick={() => {
                 if (isAvailable) void handleSocialSignIn(provider.id);
               }}

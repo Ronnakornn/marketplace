@@ -1,10 +1,28 @@
-import { QueueEvents, Worker, type Job } from 'bullmq'
+import { Queue, QueueEvents, Worker, type Job } from 'bullmq'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { createRedisConnection } from '#server/modules/queue/queue.connection.ts'
 import type { QueueConfig } from '#server/modules/queue/queue.config.ts'
 import { jobNames, type AnyJobPayload, type JobName } from './job.types.ts'
 
 export const queueName = 'marketplace-jobs'
+
+export async function ensureRecurringJobSchedulers(config: QueueConfig): Promise<Queue> {
+  const queue = new Queue(queueName, {
+    connection: createRedisConnection(config),
+    skipVersionCheck: config.skipRedisVersionCheck,
+  })
+  await Promise.all([
+    queue.upsertJobScheduler('release-expired-payment-stock', { every: 60_000 }, {
+      name: 'release_expired_payment_stock',
+      data: {},
+    }),
+    queue.upsertJobScheduler('cleanup-abandoned-carts', { pattern: '0 3 * * *' }, {
+      name: 'cleanup_abandoned_carts',
+      data: {},
+    }),
+  ])
+  return queue
+}
 
 export function isJobName(value: string): value is JobName {
   return (jobNames as readonly string[]).includes(value)

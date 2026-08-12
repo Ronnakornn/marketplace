@@ -1,4 +1,5 @@
 import { Elysia } from 'elysia'
+import IORedis from 'ioredis'
 import type { AppContext } from '#server/context/app-context.ts'
 import { SecurityError } from '#server/modules/security/security.errors.ts'
 import { SecurityService } from '#server/modules/security/security.service.ts'
@@ -18,16 +19,21 @@ export function resetSecurityRateLimitBuckets(): void {
 
 export function createSecurityPlugin(appContext: AppContext, config: SecurityConfig) {
   const securityService = new SecurityService(appContext)
+  const rateLimitStore = createRateLimitStore(appContext)
 
   return new Elysia({ name: 'security' })
-    .onRequest(async ({ request, set }) => {
+    .onRequest(async ({ request, set, server }) => {
       set.headers['x-content-type-options'] = 'nosniff'
       set.headers['x-frame-options'] = 'DENY'
       set.headers['referrer-policy'] = 'no-referrer'
       set.headers['permissions-policy'] = 'camera=(), microphone=(), geolocation=()'
+      if (isSensitivePath(new URL(request.url).pathname)) {
+        set.headers['cache-control'] = 'no-store'
+      }
 
-      enforceRequestSize(request, config, securityService)
-      await enforceRateLimit(request, config, securityService)
+      const remoteAddress = server?.requestIP(request)?.address
+      enforceRequestSize(request, config, securityService, remoteAddress)
+      await enforceRateLimit(request, config, securityService, rateLimitStore, remoteAddress)
     })
     .onError(({ error, set }) => {
       const formatted = securityService.formatError(error, appContext.config.environment)
@@ -37,16 +43,26 @@ export function createSecurityPlugin(appContext: AppContext, config: SecurityCon
     .as('global')
 }
 
-function enforceRequestSize(request: Request, config: SecurityConfig, securityService: SecurityService): void {
+function enforceRequestSize(
+  request: Request,
+  config: SecurityConfig,
+  securityService: SecurityService,
+  remoteAddress?: string,
+): void {
   const contentLength = request.headers.get('content-length')
-  if (!contentLength) return
+  if (!contentLength) {
+    if (config.requireContentLength && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      throw new SecurityError('Content-Length is required', 411, 'CONTENT_LENGTH_REQUIRED')
+    }
+    return
+  }
 
   const size = Number(contentLength)
   if (Number.isFinite(size) && size > config.requestBodyLimitBytes) {
     securityService.logSuspiciousActivity({
       type: 'REQUEST_BODY_TOO_LARGE',
       severity: 'medium',
-      ipAddress: getClientIp(request),
+      ipAddress: getClientIp(request, config, remoteAddress),
       userAgent: request.headers.get('user-agent'),
       path: new URL(request.url).pathname,
       metadata: { size, limit: config.requestBodyLimitBytes },
@@ -55,26 +71,27 @@ function enforceRequestSize(request: Request, config: SecurityConfig, securitySe
   }
 }
 
-async function enforceRateLimit(request: Request, config: SecurityConfig, securityService: SecurityService): Promise<void> {
+async function enforceRateLimit(
+  request: Request,
+  config: SecurityConfig,
+  securityService: SecurityService,
+  store: RateLimitStore,
+  remoteAddress?: string,
+): Promise<void> {
   if (!config.rateLimitEnabled) return
 
   const url = new URL(request.url)
   const category = getRateLimitCategory(url.pathname, request.method)
   const limit = getLimitForCategory(category, config)
-  const subject = await getRateLimitSubject(request, category)
+  const subject = await getRateLimitSubject(request, category, config, remoteAddress)
   const key = `${category}:${subject}`
-  const now = Date.now()
-  const existing = buckets.get(key)
-  const resetAt = existing && existing.resetAt > now ? existing.resetAt : now + config.rateLimitWindowSeconds * 1000
-  const bucket = existing && existing.resetAt > now ? existing : { count: 0, resetAt }
-  bucket.count += 1
-  buckets.set(key, bucket)
+  const count = await store.increment(key, config.rateLimitWindowSeconds * 1000)
 
-  if (bucket.count > limit) {
+  if (count > limit) {
     securityService.logSuspiciousActivity({
       type: 'RATE_LIMIT_EXCEEDED',
       severity: 'medium',
-      ipAddress: getClientIp(request),
+      ipAddress: getClientIp(request, config, remoteAddress),
       userAgent: request.headers.get('user-agent'),
       path: url.pathname,
       metadata: { category, limit },
@@ -108,15 +125,90 @@ function getLimitForCategory(category: RateLimitCategory, config: SecurityConfig
   return config.publicMaxRequests
 }
 
-async function getRateLimitSubject(request: Request, category: RateLimitCategory): Promise<string> {
-  if (!category.startsWith('seller')) return `ip:${getClientIp(request)}`
+async function getRateLimitSubject(
+  request: Request,
+  category: RateLimitCategory,
+  config: SecurityConfig,
+  remoteAddress?: string,
+): Promise<string> {
+  if (!category.startsWith('seller')) return `ip:${getClientIp(request, config, remoteAddress)}`
 
   const authContext = await getAuthContext(request.headers)
-  return authContext ? `user:${authContext.user.id}` : `ip:${getClientIp(request)}`
+  return authContext ? `user:${authContext.user.id}` : `ip:${getClientIp(request, config, remoteAddress)}`
 }
 
-function getClientIp(request: Request): string {
-  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip')
-    || 'unknown'
+function getClientIp(request: Request, config: SecurityConfig, remoteAddress?: string): string {
+  if (config.trustProxy) {
+    return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || request.headers.get('x-real-ip')
+      || remoteAddress
+      || 'unknown'
+  }
+  return remoteAddress || 'unknown'
+}
+
+interface RateLimitStore {
+  increment(key: string, windowMs: number): Promise<number>
+}
+
+class MemoryRateLimitStore implements RateLimitStore {
+  async increment(key: string, windowMs: number): Promise<number> {
+    const now = Date.now()
+    const existing = buckets.get(key)
+    const bucket = existing && existing.resetAt > now
+      ? existing
+      : { count: 0, resetAt: now + windowMs }
+    bucket.count += 1
+    buckets.set(key, bucket)
+    return bucket.count
+  }
+}
+
+class RedisRateLimitStore implements RateLimitStore {
+  private redis: IORedis
+  private readonly fallback = new MemoryRateLimitStore()
+  private fallbackWarningLogged = false
+
+  constructor(redisUrl: string, private appContext: AppContext) {
+    this.redis = new IORedis(redisUrl, { maxRetriesPerRequest: 1, enableOfflineQueue: false })
+    this.redis.on('error', () => undefined)
+  }
+
+  async increment(key: string, windowMs: number): Promise<number> {
+    try {
+      return Number(await this.redis.eval(
+        "local current = redis.call('INCR', KEYS[1]); if current == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return current",
+        1,
+        `rate-limit:${key}`,
+        windowMs,
+      ))
+    } catch (error) {
+      if (this.appContext.config.environment !== 'production') {
+        if (!this.fallbackWarningLogged) {
+          this.appContext.logger.warn('Redis rate limit unavailable; using in-memory development fallback', {
+            error: error instanceof Error ? error.message : String(error),
+          })
+          this.fallbackWarningLogged = true
+        }
+        return this.fallback.increment(key, windowMs)
+      }
+      this.appContext.logger.error('Redis rate limit failed', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      throw new SecurityError('Rate limit service unavailable', 503, 'RATE_LIMIT_UNAVAILABLE')
+    }
+  }
+}
+
+function createRateLimitStore(appContext: AppContext): RateLimitStore {
+  const redisUrl = process.env['REDIS_URL']?.trim()
+  return redisUrl ? new RedisRateLimitStore(redisUrl, appContext) : new MemoryRateLimitStore()
+}
+
+function isSensitivePath(pathname: string): boolean {
+  return pathname.startsWith('/api/auth')
+    || pathname.startsWith('/api/checkout')
+    || pathname.startsWith('/api/payment')
+    || pathname.startsWith('/api/admin')
+    || pathname.startsWith('/api/seller')
 }

@@ -13,7 +13,6 @@ const PRODUCT_LOG_EVENTS = new Set<TrackingEventType>([
   'product_viewed',
   'product_impression',
   'product_click',
-  'recommendation_clicked',
   'recently_viewed_update',
 ])
 const SHOP_EVENTS = { shop_viewed: 'VIEW', shop_followed: 'FOLLOW', shop_chat_opened: 'CHAT_OPEN' } as const
@@ -104,6 +103,17 @@ export class TrackingService {
 
     if (PRODUCT_LOG_EVENTS.has(event.eventType)) {
       await this.recordProductView(actor, event)
+      return { ok: true }
+    }
+
+    if (event.eventType === 'recommendation_clicked') {
+      if (event.productId) {
+        await this.recordProductView(actor, event)
+      } else if (event.shopId) {
+        await this.recordShopEvent(actor, { ...event, eventType: 'shop_viewed' })
+      } else {
+        throw new TrackingServiceError('Recommendation tracking requires productId or shopId', 400, 'TRACKING_PAYLOAD_INVALID')
+      }
       return { ok: true }
     }
 

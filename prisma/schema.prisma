@@ -291,6 +291,12 @@ enum DiscountType {
   FREE_SHIPPING
 }
 
+enum CouponRedemptionStatus {
+  RESERVED
+  REDEEMED
+  RELEASED
+}
+
 enum ReviewStatus {
   PENDING
   PUBLISHED
@@ -360,6 +366,7 @@ enum AuditAction {
   ORDER_STATUS_CHANGED
   SHIPMENT_STATUS_CHANGED
   REFUND_STATUS_CHANGED
+  PAYOUT_STATUS_CHANGED
   RETURN_STATUS_CHANGED
   REVIEW_STATUS_CHANGED
   REVIEW_REPORT_STATUS_CHANGED
@@ -948,7 +955,7 @@ model Product {
   highlights                  ProductHighlight[]
   attributes                  ProductAttribute[]
   chatMessages                ChatMessage[]
-  // embeddings  ProductEmbedding[]
+  embeddings  ProductEmbedding[]
 
   @@index([status, deletedAt, createdAt])
   @@index([shopId, status, deletedAt, createdAt])
@@ -1096,22 +1103,22 @@ model ProductVideo {
   @@index([uploadId])
 }
 
-// model ProductEmbedding {
-//   id          String                      @id @default(uuid()) @db.Uuid
-//   productId   String                      @db.Uuid
-//   locale      String                      @default("default")
-//   model       String
-//   contentHash String
-//   embedding   Unsupported("vector(1536)")
-//   createdAt   DateTime                    @default(now())
-//   updatedAt   DateTime                    @updatedAt
+model ProductEmbedding {
+  id          String                      @id @default(uuid()) @db.Uuid
+  productId   String                      @db.Uuid
+  locale      String                      @default("default")
+  model       String
+  contentHash String
+  embedding   Unsupported("vector(1536)")
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
 
-//   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-//   @@unique([productId, locale, model])
-//   @@index([productId])
-//   @@index([model, locale])
-// }
+  @@unique([productId, locale, model])
+  @@index([productId])
+  @@index([model, locale])
+}
 
 model FavoriteProduct {
   id        String   @id @default(uuid()) @db.Uuid
@@ -1687,6 +1694,7 @@ model CouponRedemption {
   couponId   String   @db.Uuid
   userId     String   @db.Uuid
   orderId    String   @db.Uuid
+  status     CouponRedemptionStatus @default(RESERVED)
   redeemedAt DateTime @default(now())
 
   coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
@@ -1694,8 +1702,8 @@ model CouponRedemption {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([couponId, orderId])
-  @@index([couponId])
-  @@index([userId])
+  @@index([couponId, status])
+  @@index([userId, couponId, status])
 }
 
 model Review {

@@ -94,4 +94,28 @@ describe('local upload storage', () => {
       await rm(rootDir, { recursive: true, force: true })
     }
   })
+
+  it('rejects uploaded bytes that do not match the signed content type', async () => {
+    const storage = new LocalUploadStorage({
+      rootDir: tmpdir(),
+      signingSecret: 'test-secret',
+    })
+    const body = Buffer.from('not an image')
+    const uploadUrl = await storage.createPresignedPutUrl({
+      key: 'uploads/product_image/seller-1/fake.avif',
+      contentType: 'image/png',
+      fileSize: body.byteLength,
+      expiresIn: 900,
+    })
+    const parsedUrl = new URL(uploadUrl, 'http://localhost')
+
+    await expect(storage.writePresignedPutUrl!({
+      key: parsedUrl.searchParams.get('key')!,
+      contentType: parsedUrl.searchParams.get('contentType')!,
+      fileSize: Number(parsedUrl.searchParams.get('fileSize')),
+      expires: Number(parsedUrl.searchParams.get('expires')),
+      signature: parsedUrl.searchParams.get('signature')!,
+      body: body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
+    })).rejects.toThrow()
+  })
 })

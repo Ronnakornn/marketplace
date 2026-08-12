@@ -3,6 +3,11 @@ import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation } from '#server/modules/cache'
+import {
+  createPaymentCheckoutUrl,
+  getPaymentProviderConfigFromEnv,
+  type PaymentProviderConfig,
+} from '#server/modules/payment/payment.config.ts'
 import { PromotionServiceError } from '#server/modules/promotion/promotion.errors.ts'
 import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import { CheckoutServiceError } from './checkout.errors.ts'
@@ -15,8 +20,6 @@ import type {
 
 const FLAT_SHIPPING_CENTS = 500
 const CHECKOUT_RESERVATION_MINUTES = 15
-const DEFAULT_CHECKOUT_LOCALE = 'th'
-const SUPPORTED_CHECKOUT_LOCALES = new Set(['th', 'en'])
 
 export interface CheckoutActor {
   id: string
@@ -79,6 +82,7 @@ export class CheckoutService {
     private repo: ICheckoutRepository,
     private promotionService: PromotionService,
     private cacheInvalidation?: CacheInvalidation,
+    private paymentConfig: PaymentProviderConfig = getPaymentProviderConfigFromEnv(),
   ) {
     this.logger = appContext.logger
   }
@@ -97,9 +101,18 @@ export class CheckoutService {
 
       this.validateItems(items)
       const baseTotals = this.calculateTotals(items)
-      const couponValidation = data.couponCode
+      let couponValidation = data.couponCode
         ? await this.validateCouponForCheckout(txRepo, actor.id, data.couponCode, baseTotals.subtotal)
         : null
+      if (couponValidation) {
+        await txRepo.lockCouponForCheckout(couponValidation.couponId)
+        couponValidation = await this.validateCouponForCheckout(
+          txRepo,
+          actor.id,
+          data.couponCode!,
+          baseTotals.subtotal,
+        )
+      }
       const totals = this.calculateTotals(items, couponValidation?.discount ?? 0)
       const orderNumber = this.createOrderNumber()
       const checkoutExpiresAt = new Date(Date.now() + CHECKOUT_RESERVATION_MINUTES * 60 * 1000)
@@ -112,7 +125,7 @@ export class CheckoutService {
           address,
           totals,
           items,
-          paymentMethod: data.paymentMethod.trim(),
+          paymentProvider: this.paymentConfig.provider,
           locale: data.locale,
           coupon: couponValidation ? { id: couponValidation.couponId } : null,
         })
@@ -124,7 +137,14 @@ export class CheckoutService {
         orderNo: result.order.orderNumber,
         paymentId: result.payment.id,
         paymentStatus: 'pending',
-        paymentUrl: this.createPaymentUrl(result.payment.id, data.locale),
+        paymentUrl: createPaymentCheckoutUrl(this.paymentConfig, {
+          paymentId: result.payment.id,
+          orderId: result.order.id,
+          amount: totals.grandTotal,
+          currency: totals.currency,
+          expiresAt: checkoutExpiresAt,
+          locale: data.locale,
+        }),
         totalCents: totals.grandTotal,
       }
     })
@@ -290,11 +310,6 @@ export class CheckoutService {
     const timestamp = Date.now().toString(36).toUpperCase()
     const random = uuidv4().slice(0, 8).toUpperCase()
     return `ORD-${timestamp}-${random}`
-  }
-
-  private createPaymentUrl(paymentId: string, locale?: string): string {
-    const resolvedLocale = locale && SUPPORTED_CHECKOUT_LOCALES.has(locale) ? locale : DEFAULT_CHECKOUT_LOCALE
-    return `/${resolvedLocale}/payment/mock/${paymentId}`
   }
 
   private async createPendingOrder(

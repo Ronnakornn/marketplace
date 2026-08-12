@@ -47,6 +47,8 @@ const port = Number(process.env.API_PORT ?? 3001);
 // --- Composition Root: wire all dependencies via container ---
 const container = createContainer();
 const log = container.appContext.logger;
+const isOpenApiEnabled = container.appContext.config.environment !== 'production'
+  || process.env['OPENAPI_ENABLED'] === 'true';
 
 const baseApp = new Elysia()
   .onError(({ error, code }) => {
@@ -64,7 +66,7 @@ const baseApp = new Elysia()
   .use(createSecurityPlugin(container.appContext, getSecurityConfigFromEnv()))
 
   // --- Swagger/OpenAPI documentation ---
-  .use(swagger({
+  .use(isOpenApiEnabled ? swagger({
     path: "/swagger",
     specPath: "/swagger/json",
     provider: "swagger-ui",
@@ -106,7 +108,7 @@ const baseApp = new Elysia()
         { name: "Wallet", description: "Seller wallet and payout balances" },
       ],
     },
-  }))
+  }) : new Elysia({ name: 'openapi-disabled' }))
 
   // --- Redis-backed backend cache context ---
   .use(createCachePlugin(container.cacheService))

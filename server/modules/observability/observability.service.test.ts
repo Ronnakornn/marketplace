@@ -26,6 +26,7 @@ function createAppContext(): AppContext {
 function createRepoMock(): IHealthCheckRepository {
   return {
     checkDatabase: vi.fn(async () => true),
+    checkDatabaseSchema: vi.fn(async () => true),
     checkRedis: vi.fn(async () => true),
   }
 }

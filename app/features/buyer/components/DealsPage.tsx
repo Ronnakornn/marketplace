@@ -1,17 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ClockIcon, FlameIcon, TicketIcon } from "lucide-react";
+import { FlameIcon, TicketIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingGrid } from "#/components/BuyerState";
 import { BuyerTopBar, MobileBottomNavigation } from "#/components/BuyerShell";
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { Progress } from "#/components/ui/progress";
 import { fetchCoupons, formatMoney } from "#/features/buyer/api";
+import { marketplaceHomeQueryOptions, normalizeMarketplaceHome } from "#/features/marketplace/queries";
 import { ProductCard } from "#/features/product/components/ProductCard";
-import { normalizePublicProducts, publicProductSearchQueryOptions } from "#/features/product/queries";
 import { formatDate, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -19,19 +16,13 @@ export function DealsPage() {
   const localePath = useLocalePath();
   const locale = useLocale();
   const t = useTranslations();
-  const productsQuery = useQuery({
-    ...publicProductSearchQueryOptions({ sort: "best_selling", limit: 24, locale }),
-    select: normalizePublicProducts,
+  const dealsQuery = useQuery({
+    ...marketplaceHomeQueryOptions({ limit: 24, locale }),
+    select: normalizeMarketplaceHome,
   });
   const couponsQuery = useQuery({ queryKey: ["buyer-coupons", locale], queryFn: () => fetchCoupons(locale) });
-  const [endsAtLabel, setEndsAtLabel] = useState(t("buyer.endsSoon"));
-
-  useEffect(() => {
-    const value = new Date();
-    value.setHours(value.getHours() + 6, 0, 0, 0);
-    setEndsAtLabel(t("buyer.endsAt").replace("{time}", formatDate(value, locale, { hour: "2-digit", minute: "2-digit" })));
-  }, [locale]);
-
+  const flashSale = dealsQuery.data?.flashSale;
+  const products = flashSale?.items ?? [];
   return (
     <>
       <BuyerTopBar title={t("common.deals")} />
@@ -41,18 +32,17 @@ export function DealsPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="flex items-center gap-2 text-sm font-bold uppercase"><FlameIcon className="size-4" />{t("buyer.flashSale")}</p>
-                <h1 className="mt-1 text-2xl font-extrabold">{t("buyer.limitedDeals")}</h1>
+                <h1 className="mt-1 text-2xl font-extrabold">{flashSale?.title ?? t("buyer.limitedDeals")}</h1>
+                {flashSale?.endsAt ? <p className="mt-1 text-sm text-white/85">{t("buyer.endsAt").replace("{time}", formatDate(flashSale.endsAt, locale, { dateStyle: "medium", timeStyle: "short" }))}</p> : null}
               </div>
-              <Badge className="rounded-full bg-white text-orange-700 hover:bg-white"><ClockIcon className="mr-1 size-3" />{endsAtLabel}</Badge>
             </div>
           </div>
           <div className="grid gap-3 p-4 sm:grid-cols-3">
-            {(productsQuery.data ?? []).slice(0, 3).map((product, index) => (
+            {products.slice(0, 3).map((product) => (
               <Link key={product.id} href={localePath(`/products/${product.id}`)} className="rounded-2xl border border-orange-100 bg-orange-50 p-3 transition hover:bg-orange-100">
                 <p className="line-clamp-2 min-h-10 text-sm font-bold text-slate-950">{product.title}</p>
                 <p className="mt-2 text-lg font-extrabold text-orange-600">{formatMoney(product.price, product.currency)}</p>
-                <Progress value={Math.min(100, 35 + index * 20 + product.soldCount)} className="mt-3 h-2" />
-                <p className="mt-1 text-xs font-semibold text-slate-500">{t("buyer.sellingFast")}</p>
+                <p className="mt-2 text-xs font-semibold text-slate-500">{t("product.soldCount").replace("{count}", String(product.soldCount))}</p>
               </Link>
             ))}
           </div>
@@ -73,6 +63,7 @@ export function DealsPage() {
                   <p className="mt-1 text-xs text-slate-500">
                     {coupon.minOrderCents ? t("buyer.minSpend").replace("{amount}", formatMoney(coupon.minOrderCents)) : t("buyer.readyToApplyAtCheckout")}
                   </p>
+                  {coupon.endsAt ? <p className="mt-1 text-xs font-medium text-orange-700">{t("buyer.endsAt").replace("{time}", formatDate(coupon.endsAt, locale, { dateStyle: "medium", timeStyle: "short" }))}</p> : null}
                 </div>
               ))}
             </div>
@@ -85,14 +76,14 @@ export function DealsPage() {
               <h2 className="text-lg font-bold text-slate-950">{t("buyer.dealFeed")}</h2>
               <p className="text-xs text-slate-500">{t("buyer.dealFeedDescription")}</p>
             </div>
-            <Button asChild variant="outline" className="rounded-full"><Link href={localePath("/search?sort=best_selling")}>{t("buyer.filterMore")}</Link></Button>
+              <Button asChild variant="outline" className="rounded-full"><Link href={localePath("/search")}>{t("buyer.filterMore")}</Link></Button>
           </div>
-          {productsQuery.isLoading ? <BuyerLoadingGrid /> : null}
-          {productsQuery.isError ? <BuyerErrorState message={productsQuery.error.message} onRetry={() => void productsQuery.refetch()} /> : null}
-          {productsQuery.isSuccess && productsQuery.data.length === 0 ? <BuyerEmptyState title={t("buyer.noDealsAvailable")} description={t("buyer.noDealsDescription")} /> : null}
-          {productsQuery.data?.length ? (
+          {dealsQuery.isLoading ? <BuyerLoadingGrid /> : null}
+          {dealsQuery.isError ? <BuyerErrorState message={dealsQuery.error instanceof Error ? dealsQuery.error.message : t("state.loadErrorDescription")} onRetry={() => void dealsQuery.refetch()} /> : null}
+          {dealsQuery.isSuccess && products.length === 0 ? <BuyerEmptyState title={t("buyer.noDealsAvailable")} description={t("buyer.noDealsDescription")} /> : null}
+          {products.length ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {productsQuery.data.map((product) => <ProductCard key={product.id} product={product} />)}
+              {products.map((product) => <ProductCard key={product.id} product={product.buyerProduct} />)}
             </div>
           ) : null}
         </section>

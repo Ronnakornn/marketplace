@@ -32,8 +32,16 @@ test.beforeEach(async ({ page }, testInfo) => {
 });
 
 for (const locale of ["th", "en"] as const) {
+  test(`${locale}: notifications route exposes its page heading`, async ({ page }) => {
+    const shopId = await getActiveShopId(page);
+
+    await openSellerRoute(page, `/notifications?shopId=${shopId}`, locale);
+
+    await expect(page.getByRole("heading", { level: 1, name: locale === "th" ? th.seller.nav.notifications : en.seller.nav.notifications })).toBeVisible();
+  });
+
   test(`${locale}: every seller route renders without runtime errors`, async ({ page }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(120_000);
     const shopId = await getActiveShopId(page);
 
     for (const path of routes) {

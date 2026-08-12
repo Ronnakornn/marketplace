@@ -91,9 +91,10 @@ describe("tracking utilities", () => {
 
     const result = await fetchRecentlyViewedProducts(4);
 
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/discovery\/recently-viewed\?limit=4&sessionId=/), {
-      credentials: "include",
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/api\/discovery\/recently-viewed\?limit=4&sessionId=/),
+      expect.objectContaining({ credentials: "include" }),
+    );
     expect(result[0]?.productId).toBe("p1");
   });
 });

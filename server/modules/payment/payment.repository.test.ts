@@ -7,6 +7,7 @@ function createRepository() {
     order: { update: vi.fn().mockResolvedValue({}) },
     inventoryReservation: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     inventory: { update: vi.fn().mockResolvedValue({}) },
+    couponRedemption: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
   }
   const repository = new PrismaPaymentRepository({
     logger: {
@@ -40,6 +41,10 @@ describe('PrismaPaymentRepository.applyPaymentStateTransition', () => {
       where: { id: 'order-1' },
       data: { status: 'PAID', paymentStatus: 'SUCCEEDED' },
     })
+    expect(prisma.couponRedemption.updateMany).toHaveBeenCalledWith({
+      where: { orderId: 'order-1', status: 'RESERVED' },
+      data: { status: 'REDEEMED', redeemedAt: occurredAt },
+    })
   })
 
   it('releases reservations and synchronizes failed status', async () => {
@@ -64,6 +69,10 @@ describe('PrismaPaymentRepository.applyPaymentStateTransition', () => {
     expect(prisma.order.update).toHaveBeenCalledWith({
       where: { id: 'order-1' },
       data: { status: 'CANCELED', paymentStatus: 'FAILED' },
+    })
+    expect(prisma.couponRedemption.updateMany).toHaveBeenCalledWith({
+      where: { orderId: 'order-1', status: 'RESERVED' },
+      data: { status: 'RELEASED' },
     })
   })
 })

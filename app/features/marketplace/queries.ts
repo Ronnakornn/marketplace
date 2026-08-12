@@ -8,7 +8,7 @@ import { api } from "#/lib/eden";
 export const MARKETPLACE_HOME_STALE_TIME_MS = 60_000;
 
 type Locale = "th" | "en";
-type DiscoveryHomeResponse = Treaty.Data<ReturnType<typeof api.api.discovery.home.get>>;
+export type DiscoveryHomeResponse = Treaty.Data<ReturnType<typeof api.api.discovery.home.get>>;
 
 export interface MarketplaceHomeQueryInput {
   locale?: Locale;

@@ -1,6 +1,7 @@
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { validateProductionRuntimeEnv } from '#server/config/production-env.ts'
 import { createLogger } from '#server/infrastructure/logging/index.ts'
+import { createEmailService } from '#server/modules/email'
 import { prisma } from '#server/lib/prisma.ts'
 import { PrismaCartRepository } from '#server/modules/cart/cart.repository.ts'
 import { CartService } from '#server/modules/cart/cart.service.ts'
@@ -31,7 +32,7 @@ import { PromotionService } from '#server/modules/promotion/promotion.service.ts
 import { PrismaNotificationRepository } from '#server/modules/notification/notification.repository.ts'
 import { NotificationService } from '#server/modules/notification/notification.service.ts'
 import { getPushConfigFromEnv, PrismaPushRepository, PushService } from '#server/modules/notification'
-import { InMemoryRealtimeAdapter, PrismaRealtimeRepository, RealtimeService } from '#server/modules/realtime'
+import { createRealtimeAdapter, PrismaRealtimeRepository, RealtimeService } from '#server/modules/realtime'
 import { PrismaRefundRepository } from '#server/modules/refund/refund.repository.ts'
 import { RefundService } from '#server/modules/refund/refund.service.ts'
 import { PrismaOrderRepository } from '#server/modules/order/order.repository.ts'
@@ -144,6 +145,7 @@ export function createContainer(): ServiceContainer {
   const logger = createLogger({ environment, level: process.env['LOG_LEVEL'] })
   const config: AppConfig = { environment }
   const appContext: AppContext = { logger, config }
+  const emailService = createEmailService(appContext)
   const observabilityConfig = getObservabilityConfigFromEnv()
   const aiSearchConfig = getAiSearchConfigFromEnv()
   const fraudRuleConfig = getFraudRuleConfigFromEnv()
@@ -175,7 +177,7 @@ export function createContainer(): ServiceContainer {
   const cartRepo = new PrismaCartRepository(appContext, prisma)
   const cartService = new CartService(appContext, cartRepo, trackingService)
   const realtimeRepo = new PrismaRealtimeRepository(appContext, prisma)
-  const realtimeService = new RealtimeService(appContext, realtimeRepo, new InMemoryRealtimeAdapter())
+  const realtimeService = new RealtimeService(appContext, realtimeRepo, createRealtimeAdapter(appContext))
   const promotionRepo = new PrismaPromotionRepository(appContext, prisma)
   const promotionService = new PromotionService(appContext, promotionRepo, activeShopResolver)
   const commissionService = new CommissionService(appContext)
@@ -204,17 +206,18 @@ export function createContainer(): ServiceContainer {
     eventPublisherService,
     cacheInvalidation,
     activeShopResolver,
+    auditLogService,
   )
   const paymentRepo = new PrismaPaymentRepository(appContext, prisma)
   const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation, eventPublisherService, affiliateService)
   const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
-  const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService, activeShopResolver)
+  const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService, activeShopResolver, auditLogService)
   const phoneOtpRepo = new PrismaPhoneOtpRepository(appContext, prisma)
   const phoneOtpService = new PhoneOtpService(appContext, phoneOtpRepo, createPhoneOtpProvider())
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
   const returnService = new ReturnService(appContext, returnRepo, activeShopResolver, eventPublisherService)
   const refundRepo = new PrismaRefundRepository(appContext, prisma)
-  const refundService = new RefundService(appContext, refundRepo, eventPublisherService)
+  const refundService = new RefundService(appContext, refundRepo, eventPublisherService, auditLogService)
   const recommendationRepo = new PrismaRecommendationRepository(appContext, prisma)
   const recommendationService = new RecommendationService(appContext, recommendationRepo, cacheService)
   const discoveryService = new DiscoveryService(appContext, discoveryRepo, catalogService, recommendationService, promotionService, trackingService)
@@ -253,7 +256,14 @@ export function createContainer(): ServiceContainer {
     queueConfig ? new BullMqQueueProducer(appContext, queueConfig) : null,
   )
   const jobRepo = new PrismaJobRepository(appContext, prisma)
-  const jobService = new JobService(appContext, jobRepo, queueProducer, cacheInvalidation, eventPublisherService)
+  const jobService = new JobService(
+    appContext,
+    jobRepo,
+    queueProducer,
+    cacheInvalidation,
+    eventPublisherService,
+    emailService,
+  )
   const healthCheckRepo = new PrismaHealthCheckRepository(appContext, prisma)
   const observabilityService = new ObservabilityService(appContext, healthCheckRepo, metricsCollector, {
     metricsEnabled: observabilityConfig.metricsEnabled,
@@ -261,7 +271,7 @@ export function createContainer(): ServiceContainer {
     queueConfig,
   })
   const userRepo = new PrismaUserRepository(appContext, prisma)
-  const userService = new UserService(appContext, userRepo)
+  const userService = new UserService(appContext, userRepo, emailService)
 
   eventHandlerRegistry.registerMany(createCoreCommerceEventHandlers({
     cacheInvalidation,

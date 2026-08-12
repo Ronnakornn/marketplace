@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { BellRingIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
@@ -11,24 +12,57 @@ import {
   unsubscribePushForCurrentBrowser,
 } from "#/lib/push-notifications";
 import { useLocale, useTranslations } from "#/i18n/client";
+import { requestApi } from "#/lib/api-client";
 
 type PushState = "loading" | "unavailable" | "off" | "on" | "denied" | "error";
+
+async function fetchPushConfig(): Promise<{ enabled?: boolean; publicKey?: string }> {
+  return requestApi("/api/notifications/push/config");
+}
 
 export function PushNotificationManager() {
   const t = useTranslations();
   const locale = useLocale();
   const [state, setState] = useState<PushState>("loading");
   const [publicKey, setPublicKey] = useState("");
-  const [pending, setPending] = useState(false);
+  const configQuery = useQuery({
+    queryKey: ["notifications", "push", "config"],
+    queryFn: fetchPushConfig,
+    staleTime: 5 * 60_000,
+    retry: false,
+    enabled: supportsWebPush(),
+  });
+  const enableMutation = useMutation({
+    mutationFn: async () => {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return permission === "denied" ? "denied" as const : "off" as const;
+      const subscription = await subscribeBrowserToPush(publicKey);
+      await savePushSubscription(subscription, locale);
+      await requestApi("/api/notifications/push/test", { method: "POST" });
+      return "on" as const;
+    },
+    onSuccess: setState,
+    onError: () => setState("error"),
+  });
+  const disableMutation = useMutation({
+    mutationFn: () => unsubscribePushForCurrentBrowser(),
+    onSuccess: () => setState("off"),
+    onError: () => setState("error"),
+  });
+  const pending = enableMutation.isPending || disableMutation.isPending;
 
   useEffect(() => {
     if (!supportsWebPush()) {
       setState("unavailable");
       return;
     }
-    void fetch("/api/notifications/push/config", { credentials: "include" })
-      .then(async (response) => response.ok ? response.json() : Promise.reject(new Error(String(response.status))))
-      .then(async (config: { enabled?: boolean; publicKey?: string }) => {
+    if (configQuery.isError) {
+      setState("error");
+      return;
+    }
+    if (!configQuery.data) return;
+    void Promise.resolve(configQuery.data)
+      .then(async (config) => {
         if (!config.enabled || !config.publicKey) return setState("unavailable");
         setPublicKey(config.publicKey);
         const registration = await registerPushServiceWorker();
@@ -37,34 +71,14 @@ export function PushNotificationManager() {
         setState(subscription ? "on" : Notification.permission === "denied" ? "denied" : "off");
       })
       .catch(() => setState("error"));
-  }, [locale]);
+  }, [configQuery.data, configQuery.isError, locale]);
 
   async function enable() {
-    setPending(true);
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") return setState(permission === "denied" ? "denied" : "off");
-      const subscription = await subscribeBrowserToPush(publicKey);
-      await savePushSubscription(subscription, locale);
-      setState("on");
-      await fetch("/api/notifications/push/test", { method: "POST", credentials: "include" });
-    } catch {
-      setState("error");
-    } finally {
-      setPending(false);
-    }
+    await enableMutation.mutateAsync().catch(() => undefined);
   }
 
   async function disable() {
-    setPending(true);
-    try {
-      await unsubscribePushForCurrentBrowser();
-      setState("off");
-    } catch {
-      setState("error");
-    } finally {
-      setPending(false);
-    }
+    await disableMutation.mutateAsync().catch(() => undefined);
   }
 
   if (state === "loading" || state === "unavailable") return null;

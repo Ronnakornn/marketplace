@@ -2,10 +2,11 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { requestApi } from "#/lib/api-client";
 
 const SESSION_STORAGE_KEY = "marketplace-anonymous-session-id";
 const RECENTLY_VIEWED_STORAGE_KEY = "marketplace-recently-viewed-products";
-const IMPRESSION_DEBOUNCE_MS = 500;
+const IMPRESSION_DEBOUNCE_MS = 10_000;
 const MAX_LOCAL_RECENTLY_VIEWED = 24;
 
 export type DiscoveryTrackingEvent =
@@ -172,13 +173,7 @@ export async function fetchRecentlyViewedProducts(limit = 8): Promise<RecentlyVi
   const sessionId = getAnonymousSessionId();
   if (sessionId) params.set("sessionId", sessionId);
 
-  const response = await fetch(`/api/discovery/recently-viewed?${params.toString()}`, {
-    credentials: "include",
-  });
-  if (!response.ok) {
-    throw new Error("Recently viewed products are unavailable.");
-  }
-  const data = await response.json() as unknown;
+  const data = await requestApi<unknown>(`/api/discovery/recently-viewed?${params.toString()}`);
   return normalizeRecentlyViewedProducts(data);
 }
 

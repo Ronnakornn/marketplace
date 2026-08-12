@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { requestApi } from "#/lib/api-client";
 import { SellerPageHeader } from "./SellerShell";
 
 type ApplicationStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -146,23 +147,7 @@ function normalizeStep(step?: string): RegisterStep {
 }
 
 async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    const details = payload?.error?.details;
-    const detailText = details?.missing && Array.isArray(details.missing)
-      ? ` Missing: ${details.missing.join(", ")}.`
-      : "";
-    const message = `${payload?.error?.message ?? payload?.message ?? "Request failed"}${detailText}`;
-    throw new Error(message);
-  }
-  return payload as T;
+  return requestApi<T>(path, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
 }
 
 function useSellerApplication() {
@@ -757,20 +742,8 @@ function DocumentUpload({
   onChange: (value: string) => void;
 }) {
   const t = useTranslations();
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  function reviewStatusLabel(status: DocumentReviewStatus) {
-    if (status === "APPROVED") return t("seller.kyc.reviewStatus.approved");
-    if (status === "REJECTED") return t("seller.kyc.reviewStatus.rejected");
-    return t("seller.kyc.reviewStatus.pending");
-  }
-
-  async function handleFile(file: File | undefined) {
-    if (!file) return;
-    setUploading(true);
-    setError(null);
-    try {
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
       const presigned = await apiRequest<{ fileId: string; uploadUrl: string }>("/api/uploads/presigned-url", {
         method: "POST",
         body: JSON.stringify({
@@ -790,12 +763,21 @@ function DocumentUpload({
         method: "POST",
         body: JSON.stringify({ fileId: presigned.fileId }),
       });
-      onChange(presigned.fileId);
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
-    } finally {
-      setUploading(false);
-    }
+      return presigned.fileId;
+    },
+    onSuccess: onChange,
+  });
+  const error = uploadMutation.error instanceof Error ? uploadMutation.error.message : uploadMutation.isError ? "Upload failed" : null;
+
+  function reviewStatusLabel(status: DocumentReviewStatus) {
+    if (status === "APPROVED") return t("seller.kyc.reviewStatus.approved");
+    if (status === "REJECTED") return t("seller.kyc.reviewStatus.rejected");
+    return t("seller.kyc.reviewStatus.pending");
+  }
+
+  function handleFile(file: File | undefined) {
+    if (!file) return;
+    uploadMutation.mutate(file);
   }
 
   return (
@@ -806,8 +788,8 @@ function DocumentUpload({
           {required ? t("seller.kyc.required") : t("seller.kyc.optional")}
         </span>
       </span>
-      <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(event) => void handleFile(event.target.files?.[0])} className={inputClass} />
-      {uploading ? <span className="text-xs text-slate-500">{t("seller.kyc.uploading")}</span> : null}
+      <input type="file" accept="application/pdf,image/jpeg,image/png" disabled={uploadMutation.isPending} onChange={(event) => handleFile(event.target.files?.[0])} className={inputClass} />
+      {uploadMutation.isPending ? <span className="text-xs text-slate-500">{t("seller.kyc.uploading")}</span> : null}
       {value ? <span className="text-xs font-medium text-emerald-700">{t("seller.kyc.uploadId")} {value}</span> : null}
       {reviewStatus ? (
         <span className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold ${reviewStatus === "APPROVED" ? "bg-emerald-100 text-emerald-700" : reviewStatus === "REJECTED" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>

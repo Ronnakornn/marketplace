@@ -29,7 +29,7 @@ export function createPaymentRoutes(container: ServiceContainer) {
     response: PaymentWebhookResponseSchema,
   }
 
-  return new Elysia()
+  const routes = new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
       if (error instanceof PaymentServiceError) {
@@ -44,6 +44,9 @@ export function createPaymentRoutes(container: ServiceContainer) {
     })
     .post('/api/payment/webhook', handleWebhook, webhookOptions)
     .post('/api/payments/webhook', handleWebhook, webhookOptions)
+
+  const mockRoutes = new Elysia()
+    .use(authPlugin)
     .get('/api/payments/mock/:paymentId', ({ authContext, params }: any) =>
       container.paymentService.getBuyerMockPaymentDetail(authContext!.user, params.paymentId), {
       withAuth: true,
@@ -57,4 +60,10 @@ export function createPaymentRoutes(container: ServiceContainer) {
       body: MockPaymentEventBodySchema,
       response: PaymentWebhookResponseSchema,
     })
+
+  const enabledMockRoutes = container.paymentService.isMockEnabled()
+    ? mockRoutes
+    : new Elysia({ name: 'mock-payments-disabled' }) as typeof mockRoutes
+
+  return routes.use(enabledMockRoutes)
 }

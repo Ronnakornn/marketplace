@@ -105,6 +105,26 @@ describe('TrackingService', () => {
     }))
   })
 
+  it('accepts featured-shop recommendation clicks without requiring a product id', async () => {
+    vi.mocked(repo.hasRecentShopEvent).mockResolvedValue(false)
+
+    await service.trackEvent({}, {
+      eventType: 'recommendation_clicked',
+      shopId,
+      sessionId: 'anon-session',
+      source: 'marketplace_home_featured_shops',
+      position: 0,
+    })
+
+    expect(repo.findActiveProduct).not.toHaveBeenCalled()
+    expect(repo.createShopEventLog).toHaveBeenCalledWith(expect.objectContaining({
+      shopId,
+      sessionId: 'anon-session',
+      source: 'marketplace_home_featured_shops',
+      eventType: 'VIEW',
+    }))
+  })
+
   it('records bounded shop events and deduplicates recent shop views', async () => {
     vi.mocked(repo.hasRecentShopEvent).mockResolvedValueOnce(false).mockResolvedValueOnce(true)
     await service.trackEvent({}, { eventType: 'shop_viewed', shopId, sessionId: 'anon-session', source: 'storefront' })
