@@ -5,6 +5,7 @@ import type { RealtimeService } from '#server/modules/realtime'
 import { NotificationServiceError } from './notification.errors.ts'
 import type { INotificationRepository, NotificationRecord } from './notification.repository.ts'
 import type { NotificationData, NotificationType } from './notification.types.ts'
+import type { PushService } from './push.service.ts'
 
 export interface NotificationActor {
   id: string
@@ -30,6 +31,7 @@ export class NotificationService {
     appContext: AppContext,
     private repo: INotificationRepository,
     private realtimeService?: RealtimeService,
+    private pushService?: PushService,
   ) {
     this.logger = appContext.logger
   }
@@ -91,6 +93,7 @@ export class NotificationService {
     })
     const response = this.toResponse(notification)
     this.realtimeService?.publish('notification.created', `user:${userId}:notifications`, response)
+    await this.bestEffort('deliverPush', () => this.pushService?.deliver(userId, response) ?? Promise.resolve())
     return response
   }
 
@@ -103,6 +106,77 @@ export class NotificationService {
         'order_paid',
         'Payment confirmed',
         `Order ${order.orderNumber} has been paid.`,
+        { orderId: order.id, orderNo: order.orderNumber },
+      )
+    })
+  }
+
+  async notifySellerOrderPaid(orderId: string): Promise<void> {
+    await this.bestEffort('notifySellerOrderPaid', async () => {
+      const sellerUserIds = await this.repo.findSellerUserIdsForOrder(orderId)
+      await Promise.all(sellerUserIds.map((sellerUserId) => this.createNotification(
+        sellerUserId,
+        'order_paid',
+        'New paid order',
+        'A buyer paid for an order from your shop.',
+        { orderId, audience: 'seller', targetPath: '/seller/orders' },
+      )))
+    })
+  }
+
+  async notifyReturnRequested(returnId: string): Promise<void> {
+    await this.bestEffort('notifyReturnRequested', async () => {
+      const returnRecord = await this.repo.findReturnForNotification(returnId)
+      if (!returnRecord) return
+      await this.createNotification(
+        returnRecord.shop.ownerId,
+        'return_requested',
+        'New return request',
+        `A buyer requested a return for order ${returnRecord.order.orderNumber}.`,
+        {
+          returnId: returnRecord.id,
+          orderId: returnRecord.orderId,
+          audience: 'seller',
+          targetPath: '/seller/returns',
+        },
+      )
+    })
+  }
+
+  async notifyReturnDecision(returnId: string, decision: 'approved' | 'rejected'): Promise<void> {
+    await this.bestEffort('notifyReturnDecision', async () => {
+      const returnRecord = await this.repo.findReturnForNotification(returnId)
+      if (!returnRecord) return
+      const approved = decision === 'approved'
+      await this.createNotification(
+        returnRecord.userId,
+        approved ? 'return_approved' : 'return_rejected',
+        approved ? 'Return approved' : 'Return rejected',
+        approved
+          ? `Your return for order ${returnRecord.order.orderNumber} was approved. The refund is now processing.`
+          : `Your return for order ${returnRecord.order.orderNumber} was rejected.`,
+        {
+          returnId: returnRecord.id,
+          orderId: returnRecord.orderId,
+          orderNo: returnRecord.order.orderNumber,
+          targetPath: `/orders/${returnRecord.orderId}`,
+        },
+      )
+    })
+  }
+
+  async notifyOrderCancelled(orderId: string, cause: 'payment_failed' | 'payment_expired'): Promise<void> {
+    await this.bestEffort('notifyOrderCancelled', async () => {
+      const order = await this.repo.findOrderForNotification(orderId)
+      if (!order) return
+      const expired = cause === 'payment_expired'
+      await this.createNotification(
+        order.userId,
+        cause,
+        expired ? 'Payment expired' : 'Payment failed',
+        expired
+          ? `Payment time for order ${order.orderNumber} expired. The order was cancelled and reserved items were released.`
+          : `Payment for order ${order.orderNumber} failed. The order was cancelled and reserved items were released.`,
         { orderId: order.id, orderNo: order.orderNumber },
       )
     })

@@ -57,6 +57,7 @@ function createRepoMock(): PaymentTransactionRepository {
 }
 
 let repo: PaymentTransactionRepository
+let eventPublisher: { publish: ReturnType<typeof vi.fn> }
 
 const baseBody: PaymentWebhookBody = {
   provider: 'mock',
@@ -162,9 +163,10 @@ async function setup(payment: PaymentWithOrder | null = createPayment()) {
   vi.mocked(repo.findWebhookEvent).mockResolvedValue(null)
   vi.mocked(repo.createWebhookEvent).mockResolvedValue({} as never)
   vi.mocked(repo.applyPaymentStateTransition).mockResolvedValue()
+  eventPublisher = { publish: vi.fn().mockResolvedValue(undefined) }
   return new PaymentService(createAppContext(), repo, {
     createShipmentsForPaidOrderWithRepo: vi.fn().mockResolvedValue([]),
-  } as never)
+  } as never, undefined, eventPublisher as never)
 }
 
 describe('PaymentService', () => {
@@ -186,6 +188,7 @@ describe('PaymentService', () => {
       reservations: [],
       occurredAt: expect.any(Date),
     })
+    expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({ eventName: 'order.paid' }))
   })
 
   it('creates mock paid events from trusted server payment facts', async () => {
@@ -385,6 +388,7 @@ describe('PaymentService', () => {
     expect(result).toEqual({ ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' })
     expect(repo.createWebhookEvent).not.toHaveBeenCalled()
     expect(repo.applyPaymentStateTransition).not.toHaveBeenCalled()
+    expect(eventPublisher.publish).not.toHaveBeenCalled()
   })
 
   it('returns success when payment is already paid without changing data again', async () => {
@@ -439,6 +443,11 @@ describe('PaymentService', () => {
       reservations: expectedReservations,
       occurredAt: expect.any(Date),
     })
+    expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({
+      eventName: 'order.cancelled',
+      aggregateId: baseBody.orderId,
+      data: expect.objectContaining({ cause: 'payment_failed' }),
+    }))
   })
 
   it('releases reserved stock and marks expired payment and order canceled', async () => {
@@ -451,6 +460,11 @@ describe('PaymentService', () => {
       paymentId: baseBody.paymentId,
       orderId: baseBody.orderId,
       eventType: 'payment.expired',
+    }))
+    expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({
+      eventName: 'order.cancelled',
+      aggregateId: baseBody.orderId,
+      data: expect.objectContaining({ cause: 'payment_expired' }),
     }))
   })
 
@@ -490,5 +504,6 @@ describe('PaymentService', () => {
 
     await expect(service.handleWebhook({ ...baseBody, eventType: 'payment.failed' })).rejects.toThrow('rollback marker')
     expect(repo.applyPaymentStateTransition).toHaveBeenCalledOnce()
+    expect(eventPublisher.publish).not.toHaveBeenCalled()
   })
 })

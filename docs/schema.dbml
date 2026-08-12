@@ -916,6 +916,23 @@ Table notifications {
   created_at timestamp [not null]
 }
 
+Table push_subscriptions {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  endpoint_hash varchar [not null, unique]
+  endpoint_encrypted text [not null]
+  p256dh_encrypted text [not null]
+  auth_encrypted text [not null]
+  locale varchar [not null, default: "th"]
+  expiration_time timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (user_id, created_at)
+  }
+}
+
 Ref: shop_wallets.(id, shop_id) < wallet_ledger_entries.(wallet_id, shop_id)
 Ref: shop_wallets.(id, shop_id) < seller_payouts.(wallet_id, shop_id)
 Ref: shop_wallets.(id, shop_id) < seller_transactions.(wallet_id, shop_id)

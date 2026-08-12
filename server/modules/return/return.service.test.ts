@@ -173,10 +173,12 @@ function createRefund(amount = 2400): any {
 
 let repo: IReturnRepository
 let service: ReturnService
+let eventPublisher: { publish: ReturnType<typeof vi.fn> }
 
 function setup() {
   repo = createRepoMock()
-  service = new ReturnService(createAppContext(), repo)
+  eventPublisher = { publish: vi.fn().mockResolvedValue(undefined) }
+  service = new ReturnService(createAppContext(), repo, undefined, eventPublisher as any)
   vi.mocked(repo.findOrderItemForReturn).mockResolvedValue(createOrderItem())
   vi.mocked(repo.createReturn).mockResolvedValue(createReturnRecord())
   vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
@@ -208,6 +210,9 @@ describe('ReturnService', () => {
       description: 'Box was crushed',
       images: ['https://example.com/a.jpg'],
       quantity: 2,
+    }))
+    expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({
+      eventName: 'return.requested', aggregateId: '66666666-6666-4666-8666-666666666666',
     }))
   })
 
@@ -268,6 +273,9 @@ describe('ReturnService', () => {
       status: 'APPROVED',
     }))
     expect(result.refund).toMatchObject({ status: 'pending', amount: 1999 })
+    expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({
+      eventName: 'return.approved', aggregateId: '66666666-6666-4666-8666-666666666666',
+    }))
   })
 
   it('lets sellers reject requested returns', async () => {
@@ -275,6 +283,7 @@ describe('ReturnService', () => {
 
     expect(repo.updateReturnStatus).toHaveBeenCalledWith('66666666-6666-4666-8666-666666666666', 'REJECTED')
     expect(result.status).toBe('rejected')
+    expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({ eventName: 'return.rejected' }))
   })
 
   it('rejects invalid return transitions and rolls back repository failures', async () => {
@@ -285,5 +294,6 @@ describe('ReturnService', () => {
     vi.mocked(repo.createPendingRefundForReturn).mockRejectedValueOnce(new Error('rollback'))
     await expect(service.approveSellerReturn(sellerActor(), 'return-1')).rejects.toThrow('rollback')
     expect(repo.transaction).toHaveBeenCalled()
+    expect(eventPublisher.publish).not.toHaveBeenCalled()
   })
 })

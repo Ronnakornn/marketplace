@@ -96,6 +96,10 @@ docs/
 - Hooks should use Eden Treaty + React Query and invalidate related query keys after mutations.
 - Do not duplicate backend response types on the frontend.
 
+## Notification Delivery
+
+`Notification` rows remain the source of truth. Foreground clients receive realtime events; opted-in devices may also receive best-effort Web Push for payment, shipping, and refund updates. Push subscription endpoints and keys are encrypted at rest, push failure never rolls back notification creation, and expired provider subscriptions are removed after `404` or `410` responses. The push-only service worker does not cache application or API responses.
+
 ## Database Workflow
 
 After editing `prisma/schema.prisma`:

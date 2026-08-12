@@ -141,6 +141,12 @@ export class PaymentService {
         provider: input.provider,
         amount: input.amount,
       })
+    } else if (response.code === 'PAYMENT_FAILED' || response.code === 'PAYMENT_EXPIRED') {
+      await this.publishBestEffort('order.cancelled', input.orderId, {
+        orderId: input.orderId,
+        paymentId: input.paymentId,
+        cause: response.code === 'PAYMENT_FAILED' ? 'payment_failed' : 'payment_expired',
+      })
     }
 
     return response
@@ -223,7 +229,7 @@ export class PaymentService {
     )
   }
 
-  private async publishBestEffort(eventName: 'order.paid', orderId: string, data: Record<string, unknown>): Promise<void> {
+  private async publishBestEffort(eventName: 'order.paid' | 'order.cancelled', orderId: string, data: Record<string, unknown>): Promise<void> {
     try {
       await this.eventPublisher?.publish({
         eventName,

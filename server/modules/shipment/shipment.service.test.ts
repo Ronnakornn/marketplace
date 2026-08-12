@@ -44,6 +44,7 @@ function createRepoMock(): IShipmentRepository {
 }
 
 let repo: IShipmentRepository
+let eventPublisher: { publish: ReturnType<typeof vi.fn> }
 
 function createPaidOrder(overrides: Partial<ShipmentOrderForCreation> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
@@ -232,7 +233,8 @@ describe('ShipmentService', () => {
 
   beforeEach(() => {
     repo = createRepoMock()
-    service = new ShipmentService(createAppContext(), repo)
+    eventPublisher = { publish: vi.fn().mockResolvedValue(undefined) }
+    service = new ShipmentService(createAppContext(), repo, undefined, eventPublisher as never)
     vi.clearAllMocks()
   })
 
@@ -348,6 +350,7 @@ describe('ShipmentService', () => {
     expect(result.status).toBe('packed')
     expect(repo.updateOrderItemsStatus).toHaveBeenCalledWith(['item-1'], 'PACKED')
     expect(repo.updateOrderStatus).toHaveBeenCalledWith('order-1', 'PROCESSING')
+    expect(eventPublisher.publish).not.toHaveBeenCalled()
   })
 
   it('does not ship before pack and requires carrier and tracking number', async () => {
@@ -389,6 +392,20 @@ describe('ShipmentService', () => {
     expect(result.trackingNumber).toBe('TRACK-1')
     expect(repo.updateOrderItemsStatus).toHaveBeenCalledWith(['item-1'], 'SHIPPED')
     expect(repo.updateOrderStatus).toHaveBeenCalledWith('order-1', 'SHIPPED')
+    expect(eventPublisher.publish).toHaveBeenCalledOnce()
+    expect(eventPublisher.publish).toHaveBeenCalledWith({
+      eventName: 'shipment.shipped',
+      aggregateType: 'shipment',
+      aggregateId: 'shipment-1',
+      actorUserId: 'seller-1',
+      data: {
+        shipmentId: 'shipment-1',
+        orderId: 'order-1',
+        shopId: 'shop-1',
+        carrier: 'DHL',
+        trackingNumber: 'TRACK-1',
+      },
+    })
   })
 
   it('delivers shipped shipment and only marks order delivered when all shipments are delivered', async () => {
@@ -467,5 +484,6 @@ describe('ShipmentService', () => {
 
     await expect(service.packSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1')).rejects.toThrow('rollback marker')
     expect(repo.updateOrderStatus).not.toHaveBeenCalledWith('order-1', 'PROCESSING')
+    expect(eventPublisher.publish).not.toHaveBeenCalled()
   })
 })

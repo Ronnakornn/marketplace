@@ -49,7 +49,7 @@ const fallbackCategoryItems = [
   ["beauty", "Beauty", "bg-pink-100 text-pink-600"],
   ["gadgets", "Gadgets", "bg-slate-100 text-slate-900"],
   ["home", "Home", "bg-emerald-100 text-emerald-900"],
-  ["sports", "Sports", "bg-orange-100 text-orange-600"],
+  ["sports", "Sports", "bg-orange-100 text-orange-700"],
   ["kids", "Kids", "bg-violet-100 text-violet-600"],
   ["groceries", "Groceries", "bg-lime-100 text-emerald-900"],
   ["pets", "Pets", "bg-amber-100 text-amber-700"],
@@ -62,7 +62,7 @@ const categoryStyles = [
   "bg-pink-100 text-pink-600",
   "bg-slate-100 text-slate-900",
   "bg-emerald-100 text-emerald-900",
-  "bg-orange-100 text-orange-600",
+  "bg-orange-100 text-orange-700",
   "bg-violet-100 text-violet-600",
   "bg-lime-100 text-emerald-900",
   "bg-amber-100 text-amber-700",
@@ -78,25 +78,6 @@ const productGradients = [
   "from-amber-100 via-orange-100 to-white",
   "from-slate-100 via-zinc-100 to-white",
 ];
-
-function ClientReadyBuyerTopBar({ title }: { title: string }) {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setReady(true);
-  }, []);
-
-  if (!ready) {
-    return (
-      <div
-        aria-hidden="true"
-        className="sticky top-0 z-40 h-[76px] border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-xl"
-      />
-    );
-  }
-
-  return <BuyerTopBar title={title} />;
-}
 
 export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
   const router = useRouter();
@@ -187,10 +168,10 @@ export function MarketplaceHome({ user = null }: MarketplaceHomeProps) {
 
   return (
     <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950">
-      <ClientReadyBuyerTopBar title={user?.name ? t("home.welcomeBack").replace("{name}", user.name) : t("common.marketplace")} />
+      <BuyerTopBar title={user?.name ? t("home.welcomeBack").replace("{name}", user.name) : t("common.marketplace")} />
 
       <main className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
-        <HeroPromo banners={home.banners} isLoading={homeQuery.isLoading} />
+        <HeroPromo banners={home.banners} />
         <VoucherStrip
           promotions={home.promotions}
           hasProducts={home.recommendedProducts.length > 0 || home.newArrivals.length > 0}
@@ -266,11 +247,10 @@ const emptyMarketplaceHome: MarketplaceHomeData = {
   promotions: [],
 };
 
-function HeroPromo({ banners, isLoading }: { banners: MarketplaceBanner[]; isLoading: boolean }) {
+function HeroPromo({ banners }: { banners: MarketplaceBanner[] }) {
   const t = useTranslations();
   const localePath = useLocalePath();
   const banner = banners[0];
-  if (isLoading) return <Skeleton className="h-72 rounded-3xl" />;
   const href = normalizeHomepageHref(banner?.targetUrl, localePath("/search?q=deals"));
   return (
     <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-rose-500 to-fuchsia-600 p-4 text-white shadow-[0_18px_48px_rgba(244,63,94,0.24)] sm:p-6">
@@ -334,7 +314,7 @@ function VoucherStrip({ promotions, hasProducts, isLoading }: { promotions: Mark
         [hasProducts ? t("home.liveCatalog") : t("product.noProductsFound"), hasProducts ? t("home.syncedFromApi") : t("product.noProductsDescription")],
       ].map(([title, subtitle]) => (
         <div key={title} className="flex min-w-[154px] items-center gap-2 rounded-2xl border border-orange-100 bg-white px-3 py-2 shadow-sm">
-          <div className="flex size-9 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+          <div className="flex size-9 items-center justify-center rounded-full bg-orange-50 text-orange-700">
             <TicketPercentIcon className="size-4" />
           </div>
           <div>
@@ -364,7 +344,7 @@ function FlashSaleSection({
   const localePath = useLocalePath();
   const products = flashSale?.items ?? [];
   return (
-    <section className="mt-5 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70 sm:p-4">
+    <section className="mt-5 min-h-[286px] rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70 sm:p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex size-9 items-center justify-center rounded-full bg-red-50 text-red-600">
@@ -392,14 +372,14 @@ function FlashSaleSection({
             </Link>
             <div className="p-2">
               <p className="line-clamp-2 min-h-9 text-xs font-semibold text-slate-800">{product.title}</p>
-              <p className="mt-1 text-base font-extrabold text-orange-600">{formatMoney(product.price, product.currency)}</p>
+              <p className="mt-1 text-base font-extrabold text-orange-700">{formatMoney(product.price, product.currency)}</p>
               <div className="mt-2 h-2 rounded-full bg-orange-100">
                 <div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: String(Math.min(92, 42 + product.soldCount * 4)) + "%" }} />
               </div>
               <p className="mt-1 text-[11px] text-slate-900">{product.soldCount.toLocaleString()} {t("product.sold")}</p>
               <Button
                 size="sm"
-                className="mt-2 h-8 w-full rounded-full bg-orange-600 text-white hover:bg-orange-700"
+                className="mt-2 h-8 w-full rounded-full bg-orange-700 text-white hover:bg-orange-800"
                 disabled={!product.variantId || pendingVariantId === product.variantId}
                 onClick={() => onAddToCart(product)}
               >
@@ -522,7 +502,7 @@ function ProductVisual({ product, compact = false }: { product: MarketplaceProdu
         />
       ) : null}
       {imageUrl ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-transparent" /> : null}
-      {product.originalPrice && product.originalPrice > product.price ? <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-600 shadow-sm">{t("home.saleBadge")}</div> : null}
+      {product.originalPrice && product.originalPrice > product.price ? <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-700 shadow-sm">{t("home.saleBadge")}</div> : null}
       <span className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-900 shadow-sm">
         <HeartIcon className="size-4" />
         <span className="sr-only">{t("product.saveProduct")}</span>
@@ -557,7 +537,7 @@ function FeaturedShopsSection({ shops, isLoading }: { shops: MarketplaceShop[]; 
             <p className="mt-1 text-xs text-slate-900">
               {t("buyer.productsCount").replace("{count}", shop.productCount.toLocaleString())} · {t("buyer.followersCount").replace("{count}", shop.followerCount.toLocaleString())}
             </p>
-            <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-600"><StarIcon className="size-3 fill-amber-400 text-amber-400" /> {shop.ratingAverage.toFixed(1)} ({shop.ratingCount})</p>
+            <p className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-700"><StarIcon className="size-3 fill-amber-400 text-amber-400" /> {shop.ratingAverage.toFixed(1)} ({shop.ratingCount})</p>
           </Link>
         ))}
       </div>
@@ -603,7 +583,7 @@ function StickyCheckoutCTA() {
           <p className="truncate text-sm font-extrabold text-slate-950">{t("home.extraOff")}</p>
           <p className="text-xs text-slate-900">{t("home.voucherAutoApplies")}</p>
         </div>
-        <Button className="rounded-xl bg-orange-600 px-4 text-white hover:bg-orange-700">
+        <Button className="rounded-xl bg-orange-700 px-4 text-white hover:bg-orange-800">
           {t("product.buyNow")}
         </Button>
       </div>

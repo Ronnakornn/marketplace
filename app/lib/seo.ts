@@ -5,7 +5,7 @@ import { isSecretStorageUrl } from "#/lib/assets";
 
 const DEFAULT_SITE_URL = "http://localhost:3000";
 const DEFAULT_SITE_NAME = "Marketplace";
-const FALLBACK_IMAGE_PATH = "/logo512.png";
+const FALLBACK_IMAGE_PATH = "/icons/icon-512.png";
 const DEFAULT_DESCRIPTION = "Shop active products from trusted marketplace sellers.";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 

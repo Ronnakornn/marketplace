@@ -178,7 +178,7 @@ test("product lifecycle creates, saves, configures options and stock, then clean
     await productSaved;
     await expect(page.locator('[aria-live="polite"]').filter({ hasText: "สถานะการบันทึก" })).toContainText("บันทึกแล้ว");
 
-    await page.locator('input[name="productImages"]').setInputFiles("public/logo192.png");
+    await page.locator('input[name="productImages"]').setInputFiles("public/icons/icon-192.png");
     const preview = page.locator("#media img");
     await expect(preview).toHaveCount(1);
     await expect(preview).toHaveAttribute("loading", "lazy");

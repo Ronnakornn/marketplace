@@ -2,6 +2,7 @@ import type { PaymentStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation } from '#server/modules/cache'
+import type { EventPublisherService } from '#server/modules/event-bus'
 import type { QueueProducer } from '#server/modules/queue'
 import { JobServiceError } from './job.errors.ts'
 import type { ExpiredPaymentRecord, IJobRepository, ReleaseReservationInput } from './job.repository.ts'
@@ -35,6 +36,7 @@ export class JobService {
     private repo: IJobRepository,
     private queueProducer: QueueProducer,
     private cacheInvalidation?: CacheInvalidation,
+    private eventPublisher?: EventPublisherService,
   ) {
     this.logger = appContext.logger
   }
@@ -114,25 +116,45 @@ export class JobService {
 
     for (const candidate of candidates) {
       const expired = await this.expirePayment(candidate.id)
-      if (expired) processedCount += 1
+      if (expired) {
+        processedCount += 1
+        await this.publishCancellationBestEffort(expired.orderId, expired.paymentId)
+      }
     }
 
     return { ok: true, code: 'EXPIRED_PAYMENTS_RELEASED', processedCount }
   }
 
-  private async expirePayment(paymentId: string): Promise<boolean> {
+  private async expirePayment(paymentId: string): Promise<{ orderId: string; paymentId: string } | null> {
     return this.repo.transaction(async (txRepo) => {
       const payment = await txRepo.findPaymentForExpiry(paymentId)
-      if (!payment || terminalPaymentStatuses.includes(payment.status)) return false
-      if (payment.status !== 'PENDING' && payment.status !== 'REQUIRES_ACTION') return false
+      if (!payment || terminalPaymentStatuses.includes(payment.status)) return null
+      if (payment.status !== 'PENDING' && payment.status !== 'REQUIRES_ACTION') return null
 
       await txRepo.releaseReservations(this.getActiveReservations(payment))
       await txRepo.markPaymentExpired(payment.id)
       await txRepo.markOrderCanceled(payment.orderId)
       await txRepo.markCheckoutExpired(payment.order.checkoutId)
       await this.cacheInvalidation?.invalidateInventory()
-      return true
+      return { orderId: payment.orderId, paymentId: payment.id }
     })
+  }
+
+  private async publishCancellationBestEffort(orderId: string, paymentId: string): Promise<void> {
+    try {
+      await this.eventPublisher?.publish({
+        eventName: 'order.cancelled',
+        aggregateType: 'order',
+        aggregateId: orderId,
+        data: { orderId, paymentId, cause: 'payment_expired' },
+      })
+    } catch (error) {
+      this.logger.warn('JobService event publish failed', {
+        eventName: 'order.cancelled',
+        orderId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
   }
 
   private async cleanupAbandonedCarts(payload: CleanupAbandonedCartsJobPayload): Promise<JobProcessResult> {

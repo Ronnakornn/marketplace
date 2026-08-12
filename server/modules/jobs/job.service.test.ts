@@ -123,13 +123,15 @@ function createExpiredPayment(status: PaymentStatus = 'PENDING'): any {
 let repo: IJobRepository
 let queueProducer: QueueProducer
 let service: JobService
+let eventPublisher: { publish: ReturnType<typeof vi.fn> }
 
 describe('JobService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     repo = createRepoMock()
     queueProducer = createQueueProducerMock()
-    service = new JobService(createAppContext(), repo, queueProducer)
+    eventPublisher = { publish: vi.fn().mockResolvedValue(undefined) }
+    service = new JobService(createAppContext(), repo, queueProducer, undefined, eventPublisher as never)
   })
 
   it('enqueues notification jobs', async () => {
@@ -186,6 +188,12 @@ describe('JobService', () => {
     expect(repo.markPaymentExpired).toHaveBeenCalledWith('payment-1')
     expect(repo.markOrderCanceled).toHaveBeenCalledWith('order-1')
     expect(repo.markCheckoutExpired).toHaveBeenCalledWith('checkout-1')
+    expect(eventPublisher.publish).toHaveBeenCalledWith({
+      eventName: 'order.cancelled',
+      aggregateType: 'order',
+      aggregateId: 'order-1',
+      data: { orderId: 'order-1', paymentId: 'payment-1', cause: 'payment_expired' },
+    })
   })
 
   it('is idempotent for already expired payments', async () => {
@@ -201,6 +209,7 @@ describe('JobService', () => {
     expect(result.processedCount).toBe(0)
     expect(repo.releaseReservations).not.toHaveBeenCalled()
     expect(repo.markPaymentExpired).not.toHaveBeenCalled()
+    expect(eventPublisher.publish).not.toHaveBeenCalled()
   })
 
   it('cleans abandoned carts through repository criteria that ignore ordered carts', async () => {

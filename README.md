@@ -170,6 +170,11 @@ projects, database safety, debugging, and CI order.
 | `NEXT_ALLOWED_DEV_ORIGINS` | Comma-separated hosts allowed to access Next.js dev resources such as HMR | `localhost:3000,127.0.0.1:3000` |
 | `API_BASE_URL` | Internal API target used by Next.js rewrites | `http://localhost:3001` |
 | `ADMIN_EMAILS` | Comma-separated emails to promote via seed script | `admin@example.com` |
+| `PUSH_NOTIFICATIONS_ENABLED` | Enables Web Push delivery for important order updates | `false` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Public VAPID key used by browser push subscriptions | - |
+| `VAPID_PRIVATE_KEY` | Server-only VAPID private key | - |
+| `VAPID_SUBJECT` | VAPID contact URI, such as `mailto:admin@example.com` | - |
+| `PUSH_SUBSCRIPTION_ENCRYPTION_KEY` | Encrypts push endpoints and browser keys at rest; minimum 32 characters in production | - |
 | `PHONE_OTP_ENABLED` | Enables phone OTP delivery; set `false` to disable phone OTP without requiring provider credentials | `true` |
 | `PHONE_OTP_PROVIDER` | Phone OTP delivery provider: `deterministic-dev` for local/demo OTPs or `http` for an HTTPS SMS gateway adapter | `deterministic-dev` |
 | `ALLOW_DETERMINISTIC_OTP` | Allows `deterministic-dev` phone OTP in production; use only for demo/staging deployments | `false` |
@@ -197,6 +202,27 @@ projects, database safety, debugging, and CI order.
 | `NODE_ENV` | Environment (`development` / `production`) | `development` |
 
 Google and Facebook callback URLs must also be configured in the provider consoles for the active `BETTER_AUTH_URL` host, for example `/api/auth/callback/google` and `/api/auth/callback/facebook`. Real OAuth callback validation requires provider console setup and is outside local deterministic tests.
+
+### Web Push Notifications
+
+Generate VAPID keys once, keep the private key server-only, then enable push and deploy the database migration:
+
+```bash
+bunx web-push generate-vapid-keys
+bunx prisma migrate deploy
+```
+
+Set `PUSH_NOTIFICATIONS_ENABLED=true` plus the four push environment variables above. Web Push requires HTTPS. Android browsers can subscribe directly; iOS/iPadOS 16.4+ users must first install the PWA with Add to Home Screen.
+
+For local HTTP development, browsers treat `http://localhost` and `http://127.0.0.1` as secure contexts. Generate ephemeral in-memory keys and run the complete stack with:
+
+```bash
+bun run db:push
+bun run dev:push
+bun run test:push:http
+```
+
+LAN IPs and public HTTP domains are not secure contexts and cannot use Web Push. Use HTTPS when testing from a physical Android or iOS device.
 
 ## Key Patterns
 

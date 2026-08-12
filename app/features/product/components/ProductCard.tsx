@@ -121,7 +121,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
         </Link>
         <div className="absolute left-2 top-2 flex min-h-5 max-w-[calc(100%-3.5rem)] flex-wrap gap-1">
           {cardBadges.slice(0, 2).map((badge) => (
-            <Badge key={badge} className="rounded-md bg-orange-600 px-1.5 py-0.5 text-[10px] leading-none text-white">
+            <Badge key={badge} className="rounded-md bg-orange-700 px-1.5 py-0.5 text-[10px] leading-none text-white">
               {badge}
             </Badge>
           ))}
@@ -160,9 +160,9 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
         {product.brand ? <p className="truncate text-xs font-medium text-slate-500">{product.brand.name}</p> : null}
         <div className="flex min-h-12 items-end justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-bold text-orange-600" title={priceLabel}>{priceLabel}</p>
+            <p className="truncate text-base font-bold text-orange-700" title={priceLabel}>{priceLabel}</p>
             {product.originalPrice && product.originalPrice > product.minPrice ? (
-              <p className="truncate text-xs text-slate-400 line-through" title={formatMoney(product.originalPrice, product.currency)}>
+              <p className="truncate text-xs text-slate-600 line-through" title={formatMoney(product.originalPrice, product.currency)}>
                 {formatMoney(product.originalPrice, product.currency)}
               </p>
             ) : null}

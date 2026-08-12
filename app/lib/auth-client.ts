@@ -2,6 +2,7 @@
 
 import { createAuthClient } from "better-auth/react";
 import { inferAdditionalFields } from "better-auth/client/plugins";
+import { unsubscribePushForCurrentBrowser } from "#/lib/push-notifications";
 
 const authBaseUrl =
   typeof window === "undefined"
@@ -30,4 +31,13 @@ export const authClient = createAuthClient({
   ],
 });
 
-export const { useSession, signIn, signUp, signOut } = authClient;
+export const { useSession, signIn, signUp } = authClient;
+
+export async function signOut() {
+  try {
+    await unsubscribePushForCurrentBrowser();
+  } catch {
+    // Signing out must not depend on browser push support or provider availability.
+  }
+  return authClient.signOut();
+}

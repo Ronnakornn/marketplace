@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BellIcon, CheckCheckIcon, CreditCardIcon, MegaphoneIcon, MessageCircleIcon, PackageIcon, RotateCcwIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
@@ -9,6 +10,8 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { fetchNotifications } from "#/features/buyer/api";
 import { useFormatters, useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
+import { PushNotificationManager } from "./PushNotificationManager";
 
 const tabs = [
   { value: "all", labelKey: "notification.all" },
@@ -23,6 +26,7 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
   const queryClient = useQueryClient();
   const t = useTranslations();
   const formatters = useFormatters();
+  const localePath = useLocalePath();
   const [tab, setTab] = useState("all");
   const notificationsQuery = useQuery({ queryKey: ["notifications", scope], queryFn: () => fetchNotifications(scope) });
   const readAllMutation = useMutation({
@@ -39,6 +43,7 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
     <>
       {showTopBar ? <BuyerTopBar title={t("buyer.notifications")} /> : null}
       <div className="mx-auto max-w-3xl space-y-3 px-3 py-4">
+        {scope === "all" ? <PushNotificationManager /> : null}
         <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
           <div className="flex gap-2 overflow-x-auto">
             {tabs.map((item) => (
@@ -58,8 +63,9 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
         {notificationsQuery.isSuccess && notificationsQuery.data.length > 0 && notifications.length === 0 ? <BuyerEmptyState title={t("notification.emptyCategoryTitle")} description={t("notification.emptyCategoryDescription")} /> : null}
         {notifications.map((notification) => {
           const Icon = notificationIcon(notification.type);
-          return (
-            <article key={notification.id} className="rounded-lg border border-slate-200 bg-white p-4">
+          const targetPath = notificationTargetPath(notification);
+          const card = (
+            <article className="rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-orange-300">
               <div className="flex gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600"><Icon className="size-5" /></div>
                 <div className="min-w-0 flex-1">
@@ -73,10 +79,20 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
               </div>
             </article>
           );
+          return targetPath
+            ? <Link key={notification.id} href={localePath(targetPath)} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2">{card}</Link>
+            : <div key={notification.id}>{card}</div>;
         })}
       </div>
     </>
   );
+}
+
+function notificationTargetPath(notification: { type: string; data: Record<string, unknown> | null }): string | null {
+  const targetPath = notification.data?.targetPath;
+  if (typeof targetPath === "string" && targetPath.startsWith("/")) return targetPath;
+  const orderId = notification.data?.orderId;
+  return typeof orderId === "string" ? `/orders/${encodeURIComponent(orderId)}` : null;
 }
 
 function formatNotificationType(type: string, t: (key: never) => string, scope: "all" | "seller"): string {

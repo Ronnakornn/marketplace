@@ -89,6 +89,18 @@ describe('EventBus', () => {
     expect(cacheInvalidation.invalidateProduct).toHaveBeenCalledWith('product-1')
   })
 
+  it('routes payment cancellation causes to buyer notifications', async () => {
+    const notificationService = { notifyOrderCancelled: vi.fn(async () => {}) }
+    registry.registerMany(createCoreCommerceEventHandlers({ notificationService: notificationService as any }))
+
+    await publisher.publishEvent({
+      ...buildEvent('event-cancel', 'order.cancelled', 'order', 'order-1'),
+      data: { cause: 'payment_expired' },
+    })
+
+    expect(notificationService.notifyOrderCancelled).toHaveBeenCalledWith('order-1', 'payment_expired')
+  })
+
   it('reindexes product search on product.updated when a search engine exists', async () => {
     const searchService = {
       reindexProduct: vi.fn(async () => {}),

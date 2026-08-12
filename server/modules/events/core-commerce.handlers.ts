@@ -35,7 +35,7 @@ export function createCoreCommerceEventHandlers(deps: CoreCommerceEventHandlerDe
         name: 'order-paid.notify-buyer-seller',
         async handle(event) {
           await deps.notificationService?.notifyOrderPaid(event.aggregateId)
-          await notifySellerUsers(deps.notificationService, event)
+          await deps.notificationService?.notifySellerOrderPaid(event.aggregateId)
         },
       },
     },
@@ -49,11 +49,50 @@ export function createCoreCommerceEventHandlers(deps: CoreCommerceEventHandlerDe
       },
     },
     {
+      eventName: 'order.cancelled',
+      handler: {
+        name: 'order-cancelled.notify-buyer',
+        async handle(event) {
+          const cause = event.data['cause']
+          if (cause === 'payment_failed' || cause === 'payment_expired') {
+            await deps.notificationService?.notifyOrderCancelled(event.aggregateId, cause)
+          }
+        },
+      },
+    },
+    {
       eventName: 'shipment.delivered',
       handler: {
         name: 'shipment-delivered.notify-buyer',
         async handle(event) {
           await deps.notificationService?.notifyShipmentDelivered(event.aggregateId)
+        },
+      },
+    },
+    {
+      eventName: 'return.requested',
+      handler: {
+        name: 'return-requested.notify-seller',
+        async handle(event) {
+          await deps.notificationService?.notifyReturnRequested(event.aggregateId)
+        },
+      },
+    },
+    {
+      eventName: 'return.approved',
+      handler: {
+        name: 'return-approved.notify-buyer',
+        async handle(event) {
+          await deps.notificationService?.notifyReturnDecision(event.aggregateId, 'approved')
+        },
+      },
+    },
+    {
+      eventName: 'return.rejected',
+      handler: {
+        name: 'return-rejected.notify-buyer',
+        async handle(event) {
+          await deps.notificationService?.notifyReturnDecision(event.aggregateId, 'rejected')
         },
       },
     },
@@ -107,26 +146,6 @@ export function createCoreCommerceEventHandlers(deps: CoreCommerceEventHandlerDe
   ]
 }
 
-async function notifySellerUsers(notificationService: NotificationService | undefined, event: DomainEvent): Promise<void> {
-  if (!notificationService) return
-  const sellerUserIds = getStringArray(event.data['sellerUserIds'])
-  await Promise.all(sellerUserIds.map((sellerUserId) =>
-    notificationService.createNotification(
-      sellerUserId,
-            'order_paid',
-            'New paid order',
-            'A buyer paid for an order from your shop.',
-            { orderId: event.aggregateId, audience: 'seller' },
-    ),
-  ))
-}
-
 function getString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null
-}
-
-function getStringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-    : []
 }

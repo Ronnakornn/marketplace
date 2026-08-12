@@ -73,7 +73,7 @@ describe("SEO helpers", () => {
       description: "Durable canvas bag.",
       url: absoluteUrl("/th/products/product-1"),
     });
-    expect(resolveSeoImage()).toBe(absoluteUrl("/logo512.png"));
+    expect(resolveSeoImage()).toBe(absoluteUrl("/icons/icon-512.png"));
   });
 
   it("marks unsafe search pages as noindex", () => {
@@ -95,7 +95,7 @@ describe("SEO helpers", () => {
       slug: "canvas-bag",
       updatedAt: new Date("2026-05-14T00:00:00.000Z"),
       urlPath: "/products/product-1",
-      image: absoluteUrl("/logo512.png"),
+      image: absoluteUrl("/icons/icon-512.png"),
       price: "48.90",
       currency: "USD",
       availability: "https://schema.org/InStock",
@@ -148,7 +148,7 @@ describe("SEO helpers", () => {
       slug: "canvas-bag",
       updatedAt: new Date("2026-05-14T00:00:00.000Z"),
       urlPath: "/products/product-1",
-      image: absoluteUrl("/logo512.png"),
+      image: absoluteUrl("/icons/icon-512.png"),
       price: null,
       currency: "USD",
       availability: "https://schema.org/OutOfStock",

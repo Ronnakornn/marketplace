@@ -10,6 +10,8 @@ export const coreDomainEventNames = [
   'shipment.shipped',
   'shipment.delivered',
   'return.requested',
+  'return.approved',
+  'return.rejected',
   'refund.created',
   'refund.succeeded',
   'payout.requested',

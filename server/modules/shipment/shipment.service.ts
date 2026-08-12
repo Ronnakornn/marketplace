@@ -179,15 +179,7 @@ export class ShipmentService {
       if (updated.order.status === 'PAID') {
         await txRepo.updateOrderStatus(updated.orderId, 'PROCESSING')
       }
-      const response = this.toSellerShipmentResponse(updated)
-      await this.publishBestEffort('shipment.shipped', response.id, actor.id, {
-        shipmentId: response.id,
-        orderId: response.orderId,
-        shopId: response.shopId,
-        carrier: response.carrier,
-        trackingNumber: response.trackingNumber,
-      })
-      return response
+      return this.toSellerShipmentResponse(updated)
     })
     await this.cacheInvalidation?.invalidateSellerDashboard(response.shopId)
     return response
@@ -210,6 +202,13 @@ export class ShipmentService {
         await txRepo.updateOrderStatus(updated.orderId, 'SHIPPED')
       }
       return this.toSellerShipmentResponse(updated)
+    })
+    await this.publishBestEffort('shipment.shipped', response.id, actor.id, {
+      shipmentId: response.id,
+      orderId: response.orderId,
+      shopId: response.shopId,
+      carrier: response.carrier,
+      trackingNumber: response.trackingNumber,
     })
     await this.cacheInvalidation?.invalidateSellerDashboard(response.shopId)
     return response

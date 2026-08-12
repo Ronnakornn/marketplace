@@ -622,6 +622,15 @@
     "promos": "Promos",
     "readAll": "Read all",
     "returns": "Returns",
+    "push": {
+      "title": "Device notifications",
+      "off": "Get important payment, shipping, and refund updates.",
+      "on": "Important order updates are enabled on this device.",
+      "denied": "Notifications are blocked in your browser settings.",
+      "error": "Could not update notification settings. Try again.",
+      "enable": "Enable",
+      "disable": "Disable"
+    },
     "event": {
       "orderPaid": {
         "badge": "Payment paid",

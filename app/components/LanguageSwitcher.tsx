@@ -17,17 +17,13 @@ export function LanguageSwitcher() {
   const pathname = usePathname();
   const t = useTranslations();
   const [queryString, setQueryString] = useState("");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setQueryString(window.location.search.replace(/^\?/, ""));
-    setMounted(true);
   }, []);
 
-  if (!mounted) return null;
-
   return (
-    <div className="flex items-center gap-1 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] p-1" aria-label={t("common.language")}>
+    <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1" aria-label={t("common.language")}>
       {locales.map((targetLocale) => (
         <Link
           key={targetLocale}
@@ -35,8 +31,8 @@ export function LanguageSwitcher() {
           className={cn(
             "rounded-full px-2 py-1 text-xs font-bold no-underline transition",
             locale === targetLocale
-              ? "bg-white text-[var(--sea-ink)] shadow-sm"
-              : "text-[var(--sea-ink-soft)] hover:text-[var(--sea-ink)]",
+              ? "bg-white text-slate-950 shadow-sm"
+              : "text-slate-700 hover:text-slate-950",
           )}
           hrefLang={targetLocale}
         >

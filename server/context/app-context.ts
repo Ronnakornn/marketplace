@@ -30,6 +30,7 @@ import { PrismaPromotionRepository } from '#server/modules/promotion/promotion.r
 import { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import { PrismaNotificationRepository } from '#server/modules/notification/notification.repository.ts'
 import { NotificationService } from '#server/modules/notification/notification.service.ts'
+import { getPushConfigFromEnv, PrismaPushRepository, PushService } from '#server/modules/notification'
 import { InMemoryRealtimeAdapter, PrismaRealtimeRepository, RealtimeService } from '#server/modules/realtime'
 import { PrismaRefundRepository } from '#server/modules/refund/refund.repository.ts'
 import { RefundService } from '#server/modules/refund/refund.service.ts'
@@ -106,6 +107,7 @@ export interface ServiceContainer {
   inventoryService: InventoryService
   jobService: JobService
   notificationService: NotificationService
+  pushService: PushService
   realtimeService: RealtimeService
   metricsCollector: MetricsCollector
   observabilityService: ObservabilityService
@@ -182,7 +184,9 @@ export function createContainer(): ServiceContainer {
   const checkoutRepo = new PrismaCheckoutRepository(appContext, prisma)
   const checkoutService = new CheckoutService(appContext, checkoutRepo, promotionService, cacheInvalidation)
   const notificationRepo = new PrismaNotificationRepository(appContext, prisma)
-  const notificationService = new NotificationService(appContext, notificationRepo, realtimeService)
+  const pushRepo = new PrismaPushRepository(appContext, prisma)
+  const pushService = new PushService(appContext, pushRepo, getPushConfigFromEnv())
+  const notificationService = new NotificationService(appContext, notificationRepo, realtimeService, pushService)
   const chatRepo = new PrismaChatRepository(appContext, prisma)
   const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
@@ -208,7 +212,7 @@ export function createContainer(): ServiceContainer {
   const phoneOtpRepo = new PrismaPhoneOtpRepository(appContext, prisma)
   const phoneOtpService = new PhoneOtpService(appContext, phoneOtpRepo, createPhoneOtpProvider())
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
-  const returnService = new ReturnService(appContext, returnRepo, activeShopResolver)
+  const returnService = new ReturnService(appContext, returnRepo, activeShopResolver, eventPublisherService)
   const refundRepo = new PrismaRefundRepository(appContext, prisma)
   const refundService = new RefundService(appContext, refundRepo, eventPublisherService)
   const recommendationRepo = new PrismaRecommendationRepository(appContext, prisma)
@@ -249,7 +253,7 @@ export function createContainer(): ServiceContainer {
     queueConfig ? new BullMqQueueProducer(appContext, queueConfig) : null,
   )
   const jobRepo = new PrismaJobRepository(appContext, prisma)
-  const jobService = new JobService(appContext, jobRepo, queueProducer, cacheInvalidation)
+  const jobService = new JobService(appContext, jobRepo, queueProducer, cacheInvalidation, eventPublisherService)
   const healthCheckRepo = new PrismaHealthCheckRepository(appContext, prisma)
   const observabilityService = new ObservabilityService(appContext, healthCheckRepo, metricsCollector, {
     metricsEnabled: observabilityConfig.metricsEnabled,
@@ -289,6 +293,7 @@ export function createContainer(): ServiceContainer {
     inventoryService,
     jobService,
     notificationService,
+    pushService,
     realtimeService,
     metricsCollector,
     observabilityService,

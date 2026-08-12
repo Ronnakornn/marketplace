@@ -300,8 +300,8 @@ describe("MarketplaceHome", () => {
 
     renderWithClient(<MarketplaceHome />);
 
-    expect(await screen.findByRole("heading", { name: "Shop fast. Checkout faster." })).toBeTruthy();
-    expect(screen.getByText("No flash sale right now")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Shop fast. Checkout faster." })).toBeTruthy();
+    expect(await screen.findByText("No flash sale right now")).toBeTruthy();
     expect(screen.getByText("No recommendations yet")).toBeTruthy();
     expect(screen.getByText("No new arrivals yet")).toBeTruthy();
     expect(screen.getByText("No featured shops yet")).toBeTruthy();

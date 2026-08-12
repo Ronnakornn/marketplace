@@ -85,4 +85,13 @@ export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.en
       requireHttpsUrl: true,
     }, env)
   }
+  if (env['PUSH_NOTIFICATIONS_ENABLED'] === 'true') {
+    requireProductionEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY', env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'], {}, env)
+    requireProductionEnv('VAPID_PRIVATE_KEY', env['VAPID_PRIVATE_KEY'], {}, env)
+    requireProductionEnv('VAPID_SUBJECT', env['VAPID_SUBJECT'], {}, env)
+    requireProductionEnv('PUSH_SUBSCRIPTION_ENCRYPTION_KEY', env['PUSH_SUBSCRIPTION_ENCRYPTION_KEY'], {
+      minLength: 32,
+      forbiddenSubstrings: ['your-push-subscription-key', 'development-push-subscription-key'],
+    }, env)
+  }
 }

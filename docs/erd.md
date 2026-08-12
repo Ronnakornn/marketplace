@@ -390,6 +390,17 @@ erDiagram
     string readAt
   }
 
+  PUSH_SUBSCRIPTION {
+    string id PK
+    string userId FK
+    string endpointHash UK
+    string endpointEncrypted
+    string p256dhEncrypted
+    string authEncrypted
+    string locale
+    datetime expirationTime
+  }
+
   USER ||--o| SELLER_PROFILE : has
   USER ||--o{ SELLER_APPLICATION : submits
   USER ||--o{ SELLER_APPLICATION : reviews
@@ -464,6 +475,7 @@ erDiagram
   ORDER ||--o{ CHAT_MESSAGE : references
   USER ||--o{ CHAT_MESSAGE : sends
   USER ||--o{ NOTIFICATION : receives
+  USER ||--o{ PUSH_SUBSCRIPTION : registers
 ```
 
 Notes:

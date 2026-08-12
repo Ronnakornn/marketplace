@@ -52,4 +52,17 @@ describe("Next CDN and cache config", () => {
       expect.objectContaining({ source: "/_next/static/:path*" }),
     ]));
   });
+
+  it("prevents service worker caching", async () => {
+    const headers = await config.headers!();
+
+    expect(headers).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        source: "/sw.js",
+        headers: expect.arrayContaining([
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        ]),
+      }),
+    ]));
+  });
 });

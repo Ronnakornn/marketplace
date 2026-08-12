@@ -70,7 +70,7 @@ test("exposes stable form, live-region, numeric, and media semantics", async ({ 
 
   const mediaImages = page.locator("#media img");
   if (await mediaImages.count() === 0) {
-    await page.locator('input[name="productImages"]').setInputFiles("public/logo192.png");
+    await page.locator('input[name="productImages"]').setInputFiles("public/icons/icon-192.png");
     await expect(mediaImages).toHaveCount(1);
   }
   const mediaImageCount = await mediaImages.count();

@@ -31,3 +31,8 @@ yields different amounts under different [[Checkout Quote]]s.
 
 The subset of Cart Items a buyer explicitly chooses to purchase in one
 Checkout. Items outside a Checkout Selection remain in the Cart.
+
+### Return Approval
+
+A seller decision accepting a buyer's Return Request and authorizing the next
+return or refund step. Return Approval is not Refund Completion.

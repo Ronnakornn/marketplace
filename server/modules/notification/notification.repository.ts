@@ -1,4 +1,4 @@
-import type { Notification, Order, Prisma, PrismaClient, Refund, Shipment } from '#generated/client/client.ts'
+import type { Notification, Order, Prisma, PrismaClient, Refund, ReturnRequest, Shipment } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { NotificationData, NotificationType } from './notification.types.ts'
@@ -13,6 +13,11 @@ export type NotificationShipment = Shipment & {
 
 export type NotificationRefund = Refund & {
   order: Pick<Order, 'id' | 'orderNumber' | 'userId'>
+}
+
+export type NotificationReturn = Pick<ReturnRequest, 'id' | 'orderId' | 'shopId' | 'userId'> & {
+  order: Pick<Order, 'id' | 'orderNumber' | 'userId'>
+  shop: { ownerId: string }
 }
 
 export interface CreateNotificationInput {
@@ -31,6 +36,8 @@ export interface INotificationRepository {
   markAsRead(notificationId: string, readAt: Date): Promise<NotificationRecord>
   markAllAsRead(userId: string, readAt: Date): Promise<number>
   findOrderForNotification(orderId: string): Promise<NotificationOrder | null>
+  findSellerUserIdsForOrder(orderId: string): Promise<string[]>
+  findReturnForNotification(returnId: string): Promise<NotificationReturn | null>
   findShipmentForNotification(shipmentId: string): Promise<NotificationShipment | null>
   findRefundForNotification(refundId: string): Promise<NotificationRefund | null>
 }
@@ -114,6 +121,30 @@ export class PrismaNotificationRepository implements INotificationRepository {
         id: true,
         orderNumber: true,
         userId: true,
+      },
+    })
+  }
+
+  async findSellerUserIdsForOrder(orderId: string): Promise<string[]> {
+    this.logger.debug('PrismaNotificationRepository.findSellerUserIdsForOrder', { orderId })
+    const shops = await this.prisma.shop.findMany({
+      where: { orderItems: { some: { orderId } } },
+      select: { ownerId: true },
+    })
+    return [...new Set(shops.map((shop) => shop.ownerId))]
+  }
+
+  findReturnForNotification(returnId: string): Promise<NotificationReturn | null> {
+    this.logger.debug('PrismaNotificationRepository.findReturnForNotification', { returnId })
+    return this.prisma.returnRequest.findUnique({
+      where: { id: returnId },
+      select: {
+        id: true,
+        orderId: true,
+        shopId: true,
+        userId: true,
+        order: { select: { id: true, orderNumber: true, userId: true } },
+        shop: { select: { ownerId: true } },
       },
     })
   }

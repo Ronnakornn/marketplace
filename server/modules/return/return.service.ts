@@ -3,6 +3,7 @@ import type { Refund } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
+import type { EventPublisherService } from '#server/modules/event-bus'
 import { ReturnServiceError } from './return.errors.ts'
 import type { IReturnRepository, ReturnRecord } from './return.repository.ts'
 
@@ -56,6 +57,7 @@ export class ReturnService {
     appContext: AppContext,
     private repo: IReturnRepository,
     private activeShopResolver?: ActiveShopResolver,
+    private eventPublisher?: EventPublisherService,
   ) {
     this.logger = appContext.logger
   }
@@ -66,7 +68,7 @@ export class ReturnService {
     if (!reason) throw new ReturnServiceError('Return reason is required', 400, 'INVALID_RETURN_STATE')
     this.logger.info('ReturnService.createReturn', { actorId: actor.id, orderItemId: input.orderItemId })
 
-    return this.repo.transaction(async (txRepo) => {
+    const created = await this.repo.transaction(async (txRepo) => {
       const orderItem = await txRepo.findOrderItemForReturn(input.orderItemId)
       if (!orderItem || orderItem.orderId !== input.orderId) {
         throw new ReturnServiceError('Order item not found', 404, 'ORDER_ITEM_NOT_FOUND')
@@ -81,7 +83,7 @@ export class ReturnService {
         throw new ReturnServiceError('Order item already has an active return', 409, 'RETURN_ALREADY_EXISTS')
       }
 
-      const created = await txRepo.createReturn({
+      const returnRecord = await txRepo.createReturn({
         orderId: orderItem.orderId,
         userId: actor.id,
         shopId: orderItem.shopId,
@@ -91,8 +93,10 @@ export class ReturnService {
         description: this.normalizeOptionalText(input.description),
         images: this.normalizeImages(input.images),
       })
-      return this.toResponse(created)
+      return this.toResponse(returnRecord)
     })
+    await this.publishReturnEvent('return.requested', created, actor.id)
+    return created
   }
 
   async listBuyerReturns(actor: ReturnActor): Promise<ReturnResponse[]> {
@@ -134,7 +138,7 @@ export class ReturnService {
   }
 
   async approveSellerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
-    return this.repo.transaction(async (txRepo) => {
+    const approved = await this.repo.transaction(async (txRepo) => {
       const returnRecord = await this.findSellerReturn(txRepo, actor.id, returnId)
       if (returnRecord.status !== 'REQUESTED') {
         throw new ReturnServiceError('Only requested returns can be approved', 409, 'INVALID_RETURN_STATE')
@@ -150,15 +154,33 @@ export class ReturnService {
       }
       return this.toResponse(approved)
     })
+    await this.publishReturnEvent('return.approved', approved, actor.id)
+    return approved
   }
 
   async rejectSellerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
-    return this.repo.transaction(async (txRepo) => {
+    const rejected = await this.repo.transaction(async (txRepo) => {
       const returnRecord = await this.findSellerReturn(txRepo, actor.id, returnId)
       if (returnRecord.status !== 'REQUESTED') {
         throw new ReturnServiceError('Only requested returns can be rejected', 409, 'INVALID_RETURN_STATE')
       }
       return this.toResponse(await txRepo.updateReturnStatus(returnRecord.id, 'REJECTED'))
+    })
+    await this.publishReturnEvent('return.rejected', rejected, actor.id)
+    return rejected
+  }
+
+  private async publishReturnEvent(
+    eventName: 'return.requested' | 'return.approved' | 'return.rejected',
+    returnRecord: ReturnResponse,
+    actorUserId: string,
+  ): Promise<void> {
+    await this.eventPublisher?.publish({
+      eventName,
+      aggregateType: 'return',
+      aggregateId: returnRecord.id,
+      actorUserId,
+      data: { orderId: returnRecord.orderId },
     })
   }
 

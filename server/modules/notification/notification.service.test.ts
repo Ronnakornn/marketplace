@@ -32,6 +32,8 @@ function createRepoMock(): INotificationRepository {
     markAsRead: vi.fn(),
     markAllAsRead: vi.fn(),
     findOrderForNotification: vi.fn(),
+    findSellerUserIdsForOrder: vi.fn(),
+    findReturnForNotification: vi.fn(),
     findShipmentForNotification: vi.fn(),
     findRefundForNotification: vi.fn(),
   }
@@ -171,6 +173,58 @@ describe('NotificationService', () => {
     expect(result.data).toEqual({ shipmentId: 'shipment-1', nested: { ok: true } })
   })
 
+  it('notifies the buyer when payment fails or expires', async () => {
+    vi.mocked(repo.findOrderForNotification).mockResolvedValue({
+      id: 'order-1', userId: 'user-1', orderNumber: 'ORD-1',
+    })
+
+    await service.notifyOrderCancelled('order-1', 'payment_failed')
+    await service.notifyOrderCancelled('order-1', 'payment_expired')
+
+    expect(repo.createNotification).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      userId: 'user-1', type: 'payment_failed', data: { orderId: 'order-1', orderNo: 'ORD-1' },
+    }))
+    expect(repo.createNotification).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      userId: 'user-1', type: 'payment_expired', data: { orderId: 'order-1', orderNo: 'ORD-1' },
+    }))
+  })
+
+  it('resolves shop owners for a paid order and notifies each seller once', async () => {
+    vi.mocked(repo.findSellerUserIdsForOrder).mockResolvedValue(['seller-1', 'seller-2'])
+
+    await service.notifySellerOrderPaid('order-1')
+
+    expect(repo.createNotification).toHaveBeenCalledTimes(2)
+    expect(repo.createNotification).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'seller-1', type: 'order_paid',
+      data: { orderId: 'order-1', audience: 'seller', targetPath: '/seller/orders' },
+    }))
+  })
+
+  it('notifies the shop owner of a return request and the buyer of its decision', async () => {
+    vi.mocked(repo.findReturnForNotification).mockResolvedValue({
+      id: 'return-1', orderId: 'order-1', shopId: 'shop-1', userId: 'buyer-1',
+      order: { id: 'order-1', orderNumber: 'ORD-1', userId: 'buyer-1' },
+      shop: { ownerId: 'seller-1' },
+    })
+
+    await service.notifyReturnRequested('return-1')
+    await service.notifyReturnDecision('return-1', 'approved')
+    await service.notifyReturnDecision('return-1', 'rejected')
+
+    expect(repo.createNotification).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      userId: 'seller-1', type: 'return_requested',
+      data: expect.objectContaining({ audience: 'seller', targetPath: '/seller/returns' }),
+    }))
+    expect(repo.createNotification).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      userId: 'buyer-1', type: 'return_approved',
+      body: expect.stringContaining('refund is now processing'),
+    }))
+    expect(repo.createNotification).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      userId: 'buyer-1', type: 'return_rejected',
+    }))
+  })
+
   it('handles missing optional body and data', async () => {
     const result = await service.createNotification('user-1', 'coupon_available', 'Coupon available')
 
@@ -183,6 +237,24 @@ describe('NotificationService', () => {
     })
     expect(result.body).toBeUndefined()
     expect(result.data).toBeUndefined()
+  })
+
+  it('delivers push after persisting a notification', async () => {
+    const pushService = { deliver: vi.fn().mockResolvedValue(undefined) }
+    service = new NotificationService(createAppContext(), repo, undefined, pushService as any)
+
+    await service.createNotification('user-1', 'order_paid', 'Payment confirmed')
+
+    expect(pushService.deliver).toHaveBeenCalledWith('user-1', expect.objectContaining({ type: 'order_paid' }))
+  })
+
+  it('keeps the notification when push delivery fails', async () => {
+    const pushService = { deliver: vi.fn().mockRejectedValue(new Error('push unavailable')) }
+    service = new NotificationService(createAppContext(), repo, undefined, pushService as any)
+
+    await expect(service.createNotification('user-1', 'order_paid', 'Payment confirmed')).resolves.toMatchObject({
+      type: 'order_paid',
+    })
   })
 
   it('publishes notification created and read events', async () => {
