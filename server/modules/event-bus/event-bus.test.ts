@@ -101,6 +101,34 @@ describe('EventBus', () => {
     expect(notificationService.notifyOrderCancelled).toHaveBeenCalledWith('order-1', 'payment_expired')
   })
 
+  it('routes payout rejection with its reason to the requester', async () => {
+    const notificationService = { createNotification: vi.fn(async () => ({})) }
+    registry.registerMany(createCoreCommerceEventHandlers({ notificationService: notificationService as any }))
+
+    await publisher.publishEvent({
+      ...buildEvent('event-payout-rejected', 'payout.rejected', 'payout', 'payout-1'),
+      data: {
+        sellerUserId: 'seller-1',
+        shopId: 'shop-1',
+        reason: 'Verify bank account',
+      },
+    })
+
+    expect(notificationService.createNotification).toHaveBeenCalledWith(
+      'seller-1',
+      'payout_rejected',
+      'Payout rejected',
+      'Your payout request was rejected: Verify bank account',
+      {
+        payoutId: 'payout-1',
+        shopId: 'shop-1',
+        reason: 'Verify bank account',
+        audience: 'seller',
+        targetPath: '/seller/finance',
+      },
+    )
+  })
+
   it('reindexes product search on product.updated when a search engine exists', async () => {
     const searchService = {
       reindexProduct: vi.fn(async () => {}),

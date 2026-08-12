@@ -52,7 +52,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
           <div>
             <label
               htmlFor="email"
@@ -62,6 +62,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
             </label>
             <input
               id="email"
+              suppressHydrationWarning
               type="email"
               required
               value={email}
@@ -80,6 +81,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
             </label>
             <input
               id="password"
+              suppressHydrationWarning
               type="password"
               required
               value={password}

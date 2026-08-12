@@ -127,9 +127,9 @@ export class PayoutService {
     })
   }
 
-  rejectAdminPayout(actor: PayoutActor, payoutId: string, input: RejectPayoutInput = {}): Promise<PayoutResponse> {
+  async rejectAdminPayout(actor: PayoutActor, payoutId: string, input: RejectPayoutInput = {}): Promise<PayoutResponse> {
     this.assertAdmin(actor)
-    return this.repo.transaction(async (txRepo) => {
+    const result = await this.repo.transaction(async (txRepo) => {
       const payout = await this.getPayoutForUpdate(txRepo, payoutId)
       if (payout.status !== 'requested' && payout.status !== 'approved') {
         throw new WalletServiceError('Only requested or approved payouts can be rejected', 409, 'INVALID_PAYOUT_STATE')
@@ -149,8 +149,15 @@ export class PayoutService {
         currency: payout.currency,
         description: 'Payout reserve released after rejection',
       })
-      return this.toResponse(updated)
+      return { response: this.toResponse(updated), requestedById: payout.requestedById }
     })
+    await this.publishBestEffort('payout.rejected', result.response.id, actor.id, {
+      payoutId: result.response.id,
+      shopId: result.response.shop.id,
+      sellerUserId: result.requestedById,
+      reason: result.response.rejectionReason,
+    })
+    return result.response
   }
 
   markAdminPayoutPaid(actor: PayoutActor, payoutId: string): Promise<PayoutResponse> {
@@ -223,7 +230,7 @@ export class PayoutService {
   }
 
   private async publishBestEffort(
-    eventName: 'payout.requested' | 'payout.paid',
+    eventName: 'payout.requested' | 'payout.rejected' | 'payout.paid',
     payoutId: string,
     actorUserId: string,
     data: Record<string, unknown>,

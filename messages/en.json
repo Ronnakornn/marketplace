@@ -643,11 +643,17 @@
       "title": "New paid order",
       "body": "A buyer paid for an order from your shop."
     },
-    "sellerPayoutPaid": {
-      "badge": "Payout",
-      "title": "Payout paid",
-      "body": "Your payout has been paid."
-    }
+      "sellerPayoutPaid": {
+        "badge": "Payout",
+        "title": "Payout paid",
+        "body": "Your payout has been paid."
+      },
+      "sellerPayoutRejected": {
+        "badge": "Payout rejected",
+        "title": "Payout request rejected",
+        "body": "Your payout request was rejected: {reason}",
+        "bodyWithoutReason": "Your payout request was rejected."
+      }
     }
   },
   "affiliate": {

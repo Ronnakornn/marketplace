@@ -36,3 +36,8 @@ Checkout. Items outside a Checkout Selection remain in the Cart.
 
 A seller decision accepting a buyer's Return Request and authorizing the next
 return or refund step. Return Approval is not Refund Completion.
+
+### Payout Rejection
+
+A decision declining a seller's Payout Request. A Payout Rejection includes a
+reason the requester can act on and is not a failed transfer.

@@ -11,6 +11,7 @@ export type NotificationType =
   | 'refund_processing'
   | 'refund_success'
   | 'payout_paid'
+  | 'payout_rejected'
   | 'coupon_available'
   | 'chat_message'
 

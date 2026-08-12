@@ -15,6 +15,7 @@ export const coreDomainEventNames = [
   'refund.created',
   'refund.succeeded',
   'payout.requested',
+  'payout.rejected',
   'payout.paid',
 ] as const
 

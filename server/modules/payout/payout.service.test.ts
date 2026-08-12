@@ -67,11 +67,13 @@ function repoMock(): IPayoutRepository {
 
 let repo: IPayoutRepository
 let service: PayoutService
+let eventPublisher: { publish: ReturnType<typeof vi.fn> }
 
 describe('PayoutService', () => {
   beforeEach(() => {
     repo = repoMock()
-    service = new PayoutService(appContext(), repo)
+    eventPublisher = { publish: vi.fn().mockResolvedValue(undefined) }
+    service = new PayoutService(appContext(), repo, eventPublisher as any)
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', name: 'Shop One', ownerId: 'seller-1' }])
     vi.mocked(repo.ensureWallet).mockResolvedValue({
       id: 'wallet-1',
@@ -124,6 +126,52 @@ describe('PayoutService', () => {
       type: 'payout_rejected',
       amount: 5000,
     }))
+    expect(eventPublisher.publish).toHaveBeenCalledWith({
+      eventName: 'payout.rejected',
+      aggregateType: 'payout',
+      aggregateId: 'payout-1',
+      actorUserId: 'admin-1',
+      data: {
+        payoutId: 'payout-1',
+        shopId: 'shop-1',
+        sellerUserId: 'seller-1',
+        reason: 'bad details',
+      },
+    })
+  })
+
+  it('publishes payout rejection only after the transaction commits', async () => {
+    let committed = false
+    vi.mocked(repo.transaction).mockImplementationOnce(async (callback) => {
+      const result = await callback(repo)
+      committed = true
+      return result
+    })
+    vi.mocked(repo.findPayoutById).mockResolvedValue(payout('requested'))
+    vi.mocked(repo.updatePayout).mockResolvedValue({ ...payout('rejected'), rejectionReason: 'verify bank account' })
+    eventPublisher.publish.mockImplementation(async () => {
+      expect(committed).toBe(true)
+    })
+
+    await service.rejectAdminPayout({ id: 'admin-1', role: 'ADMIN' }, 'payout-1', {
+      reason: ' verify bank account ',
+    })
+
+    expect(eventPublisher.publish).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not publish payout rejection for invalid or rolled-back transitions', async () => {
+    vi.mocked(repo.findPayoutById).mockResolvedValueOnce(payout('paid'))
+    await expect(service.rejectAdminPayout({ id: 'admin-1', role: 'ADMIN' }, 'payout-1'))
+      .rejects.toMatchObject({ code: 'INVALID_PAYOUT_STATE' })
+
+    vi.mocked(repo.findPayoutById).mockResolvedValueOnce(payout('requested'))
+    vi.mocked(repo.updatePayout).mockResolvedValueOnce(payout('rejected'))
+    vi.mocked(repo.createLedgerEntry).mockRejectedValueOnce(new Error('rollback'))
+    await expect(service.rejectAdminPayout({ id: 'admin-1', role: 'ADMIN' }, 'payout-1'))
+      .rejects.toThrow('rollback')
+
+    expect(eventPublisher.publish).not.toHaveBeenCalled()
   })
 
   it('admin can mark payout paid', async () => {

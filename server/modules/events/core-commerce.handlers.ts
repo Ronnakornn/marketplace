@@ -127,6 +127,30 @@ export function createCoreCommerceEventHandlers(deps: CoreCommerceEventHandlerDe
       },
     },
     {
+      eventName: 'payout.rejected',
+      handler: {
+        name: 'payout-rejected.notify-requester',
+        async handle(event) {
+          const sellerUserId = getString(event.data['sellerUserId'])
+          if (!sellerUserId) return
+          const reason = getString(event.data['reason'])
+          await deps.notificationService?.createNotification(
+            sellerUserId,
+            'payout_rejected',
+            'Payout rejected',
+            reason ? `Your payout request was rejected: ${reason}` : 'Your payout request was rejected.',
+            {
+              payoutId: event.aggregateId,
+              shopId: event.data['shopId'],
+              reason,
+              audience: 'seller',
+              targetPath: '/seller/finance',
+            },
+          )
+        },
+      },
+    },
+    {
       eventName: 'payout.paid',
       handler: {
         name: 'payout-paid.notify-seller',

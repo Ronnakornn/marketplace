@@ -31,7 +31,7 @@ export function LanguageSwitcher() {
           className={cn(
             "rounded-full px-2 py-1 text-xs font-bold no-underline transition",
             locale === targetLocale
-              ? "bg-white text-slate-950 shadow-sm"
+              ? "bg-white !text-slate-950 shadow-sm"
               : "text-slate-700 hover:text-slate-950",
           )}
           hrefLang={targetLocale}

@@ -99,6 +99,7 @@ function formatNotificationType(type: string, t: (key: never) => string, scope: 
   const normalized = type.toLowerCase();
   if (scope === "seller" && normalized === "order_paid") return t("notification.event.sellerOrderPaid.badge" as never);
   if (scope === "seller" && normalized === "payout_paid") return t("notification.event.sellerPayoutPaid.badge" as never);
+  if (scope === "seller" && normalized === "payout_rejected") return t("notification.event.sellerPayoutRejected.badge" as never);
   if (normalized === "order_paid" && scope === "all") return t("notification.event.orderPaid.badge" as never);
   return type;
 }
@@ -106,6 +107,7 @@ function formatNotificationType(type: string, t: (key: never) => string, scope: 
 function formatNotificationTitle(notification: { type: string; title: string }, t: (key: never) => string, scope: "all" | "seller"): string {
   if (scope === "seller" && notification.type.toLowerCase() === "order_paid") return t("notification.event.sellerOrderPaid.title" as never);
   if (scope === "seller" && notification.type.toLowerCase() === "payout_paid") return t("notification.event.sellerPayoutPaid.title" as never);
+  if (scope === "seller" && notification.type.toLowerCase() === "payout_rejected") return t("notification.event.sellerPayoutRejected.title" as never);
   if (notification.type.toLowerCase() === "order_paid" && scope === "all") return t("notification.event.orderPaid.title" as never);
   return notification.title;
 }
@@ -113,6 +115,12 @@ function formatNotificationTitle(notification: { type: string; title: string }, 
 function formatNotificationBody(notification: { type: string; body: string | null; data: Record<string, unknown> | null }, t: (key: never) => string, scope: "all" | "seller"): string | null {
   if (scope === "seller" && notification.type.toLowerCase() === "order_paid") return t("notification.event.sellerOrderPaid.body" as never);
   if (scope === "seller" && notification.type.toLowerCase() === "payout_paid") return t("notification.event.sellerPayoutPaid.body" as never);
+  if (scope === "seller" && notification.type.toLowerCase() === "payout_rejected") {
+    const reason = notification.data?.reason;
+    return typeof reason === "string" && reason
+      ? t("notification.event.sellerPayoutRejected.body" as never).replace("{reason}", reason)
+      : t("notification.event.sellerPayoutRejected.bodyWithoutReason" as never);
+  }
   if (notification.type.toLowerCase() !== "order_paid" || scope === "seller") return notification.body;
   const orderNo = notification.data?.orderNo;
   return typeof orderNo === "string"
