@@ -59,6 +59,10 @@ export interface ShipShipmentInput {
   service?: string
 }
 
+export interface DeliverShipmentInput {
+  evidenceReference: string
+}
+
 export interface BuyerShipmentTrackingResponse {
   orderId: string
   orderNo: string
@@ -218,11 +222,17 @@ export class ShipmentService {
     return response
   }
 
-  async deliverSellerShipment(actor: ShipmentActor, shipmentId: string): Promise<ShipmentResponse> {
-    this.logger.info('ShipmentService.deliverSellerShipment', { actorId: actor.id, shipmentId })
+  async deliverAdminShipment(actor: ShipmentActor, shipmentId: string, input: DeliverShipmentInput): Promise<ShipmentResponse> {
+    this.assertAdmin(actor)
+    const evidenceReference = input.evidenceReference?.trim()
+    if (!evidenceReference) {
+      throw new ShipmentServiceError('Carrier delivery evidence is required', 400, 'INVALID_SHIPMENT_STATE')
+    }
+    this.logger.info('ShipmentService.deliverAdminShipment', { actorId: actor.id, shipmentId })
 
     const response = await this.repo.transaction(async (txRepo) => {
-      const shipment = await this.findSellerShipment(txRepo, actor.id, shipmentId)
+      const shipment = await txRepo.findShipmentById(shipmentId)
+      if (!shipment) throw new ShipmentServiceError('Shipment not found', 404, 'SHIPMENT_NOT_FOUND')
       this.assertTransition(shipment.status, 'DELIVERED')
 
       const updated = await txRepo.updateShipmentDelivered(shipment.id, new Date())
@@ -237,9 +247,10 @@ export class ShipmentService {
       shipmentId: response.id,
       orderId: response.orderId,
       shopId: response.shopId,
+      evidenceReference,
     })
     await this.cacheInvalidation?.invalidateSellerDashboard(response.shopId)
-    await this.auditShipmentStatus(actor, response.id, 'SHIPPED', 'DELIVERED')
+    await this.auditShipmentStatus(actor, response.id, 'SHIPPED', 'DELIVERED', { evidenceReference })
     return response
   }
 
@@ -424,11 +435,18 @@ export class ShipmentService {
     }
   }
 
+  private assertAdmin(actor: ShipmentActor): void {
+    if (actor.role !== 'ADMIN') {
+      throw new ShipmentServiceError('Admin delivery confirmation requires admin role', 403, 'SHIPMENT_FORBIDDEN')
+    }
+  }
+
   private async auditShipmentStatus(
     actor: ShipmentActor,
     shipmentId: string,
     beforeStatus: string,
     afterStatus: string,
+    details: Record<string, unknown> = {},
   ): Promise<void> {
     await this.auditLogService?.createAuditLogBestEffort({
       actorUserId: actor.id,
@@ -437,7 +455,7 @@ export class ShipmentService {
       entityType: 'shipment',
       entityId: shipmentId,
       before: { status: beforeStatus },
-      after: { status: afterStatus },
+      after: { status: afterStatus, ...details },
       nonCritical: false,
     })
   }

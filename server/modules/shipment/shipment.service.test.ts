@@ -34,6 +34,7 @@ function createRepoMock(): IShipmentRepository {
     findSellerShops: vi.fn(),
     findSellerShipments: vi.fn(),
     findSellerShipmentById: vi.fn(),
+    findShipmentById: vi.fn(),
     findBuyerShipmentById: vi.fn(),
     updateShipmentPacked: vi.fn(),
     updateShipmentShipped: vi.fn(),
@@ -408,7 +409,7 @@ describe('ShipmentService', () => {
     })
   })
 
-  it('delivers shipped shipment and only marks order delivered when all shipments are delivered', async () => {
+  it('lets admin confirm carrier delivery and only marks order delivered when all shipments are delivered', async () => {
     const now = new Date('2026-05-13T00:00:00.000Z')
     const orderWithTwoShipments = {
       ...createSellerShipment().order,
@@ -441,8 +442,7 @@ describe('ShipmentService', () => {
       ],
     } as SellerShipment['order']
 
-    vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
-    vi.mocked(repo.findSellerShipmentById).mockResolvedValue(createSellerShipment({ status: 'SHIPPED', order: orderWithTwoShipments }))
+    vi.mocked(repo.findShipmentById).mockResolvedValue(createSellerShipment({ status: 'SHIPPED', order: orderWithTwoShipments }))
     vi.mocked(repo.updateShipmentDelivered).mockResolvedValue(createSellerShipment({
       status: 'DELIVERED',
       order: {
@@ -454,7 +454,9 @@ describe('ShipmentService', () => {
       },
     }))
 
-    await service.deliverSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1')
+    await service.deliverAdminShipment({ id: 'admin-1', role: 'ADMIN' }, 'shipment-1', {
+      evidenceReference: 'carrier-event-1',
+    })
     expect(repo.updateOrderItemsStatus).toHaveBeenCalledWith(['item-1'], 'DELIVERED')
     expect(repo.updateOrderStatus).not.toHaveBeenCalledWith('order-1', 'DELIVERED')
 
@@ -466,8 +468,19 @@ describe('ShipmentService', () => {
       },
     }))
 
-    await service.deliverSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1')
+    await service.deliverAdminShipment({ id: 'admin-1', role: 'ADMIN' }, 'shipment-1', {
+      evidenceReference: 'carrier-event-2',
+    })
     expect(repo.updateOrderStatus).toHaveBeenCalledWith('order-1', 'DELIVERED')
+  })
+
+  it('rejects seller delivery confirmation and missing carrier evidence', async () => {
+    await expect(service.deliverAdminShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1', {
+      evidenceReference: 'carrier-event-1',
+    })).rejects.toMatchObject({ code: 'SHIPMENT_FORBIDDEN' })
+    await expect(service.deliverAdminShipment({ id: 'admin-1', role: 'ADMIN' }, 'shipment-1', {
+      evidenceReference: ' ',
+    })).rejects.toMatchObject({ code: 'INVALID_SHIPMENT_STATE' })
   })
 
   it('rejects delivered shipment updates and rolls back failed item status update', async () => {

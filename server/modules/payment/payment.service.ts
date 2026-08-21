@@ -111,11 +111,16 @@ export class PaymentService {
       await txRepo.createWebhookEvent(input)
 
       if (input.eventType === 'payment.paid') {
+        const reservations = this.getActiveReservations(payment)
+        if (reservations.length === 0) {
+          throw new PaymentServiceError('Paid order has no active inventory reservations', 409, 'PAYMENT_STATE_CONFLICT')
+        }
         await txRepo.applyPaymentStateTransition({
           paymentId: payment.id,
           orderId: order.id,
+          checkoutId: payment.order.checkoutId,
           eventType: input.eventType,
-          reservations: [],
+          reservations,
           occurredAt: new Date(),
         })
         await this.affiliateService?.createCommissionForPaidOrderWithRepo(txRepo, {
@@ -132,6 +137,7 @@ export class PaymentService {
       await txRepo.applyPaymentStateTransition({
         paymentId: payment.id,
         orderId: order.id,
+        checkoutId: payment.order.checkoutId,
         eventType,
         reservations,
         occurredAt: new Date(),

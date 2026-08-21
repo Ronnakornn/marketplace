@@ -73,9 +73,9 @@ const summaryCards = [
 ] as const;
 
 const exceptionCards = [
-  { key: "pendingPayments", title: "pendingPayments", href: "/admin/orders", icon: ReceiptTextIcon },
-  { key: "failedPayments", title: "failedPayments", href: "/admin/orders", icon: ReceiptTextIcon },
-  { key: "delayedShipments", title: "delayedShipments", href: "/admin/orders", icon: PackageSearchIcon },
+  { key: "pendingPayments", title: "pendingPayments", href: "/admin/orders?paymentState=PENDING", icon: ReceiptTextIcon },
+  { key: "failedPayments", title: "failedPayments", href: "/admin/orders?paymentState=FAILED", icon: ReceiptTextIcon },
+  { key: "delayedShipments", title: "delayedShipments", href: "/admin/orders?shipmentState=DELAYED", icon: PackageSearchIcon },
   { key: "returnEscalations", title: "returnEscalations", href: "/admin/returns", icon: Undo2Icon },
   { key: "refundEscalations", title: "refundEscalations", href: "/admin/refunds", icon: RotateCcwIcon },
   { key: "payoutApprovals", title: "payoutApprovals", href: "/admin/payouts", icon: BanknoteIcon },

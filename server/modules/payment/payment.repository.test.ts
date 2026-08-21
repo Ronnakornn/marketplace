@@ -5,8 +5,10 @@ function createRepository() {
   const prisma = {
     payment: { update: vi.fn().mockResolvedValue({}) },
     order: { update: vi.fn().mockResolvedValue({}) },
+    shopOrder: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    checkout: { update: vi.fn().mockResolvedValue({}) },
     inventoryReservation: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-    inventory: { update: vi.fn().mockResolvedValue({}) },
+    inventory: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     couponRedemption: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
   }
   const repository = new PrismaPaymentRepository({
@@ -28,11 +30,28 @@ describe('PrismaPaymentRepository.applyPaymentStateTransition', () => {
     await repository.applyPaymentStateTransition({
       paymentId: 'payment-1',
       orderId: 'order-1',
+      checkoutId: 'checkout-1',
       eventType: 'payment.paid',
-      reservations: [],
+      reservations: [{ reservationId: 'reservation-1', inventoryId: 'inventory-1', quantity: 2 }],
       occurredAt,
     })
 
+    expect(prisma.inventoryReservation.updateMany).toHaveBeenCalledWith({
+      where: { id: 'reservation-1', status: 'ACTIVE' },
+      data: { status: 'COMMITTED', orderId: 'order-1' },
+    })
+    expect(prisma.inventory.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'inventory-1',
+        quantityOnHand: { gte: 2 },
+        quantityReserved: { gte: 2 },
+      },
+      data: {
+        quantityOnHand: { decrement: 2 },
+        quantityReserved: { decrement: 2 },
+        version: { increment: 1 },
+      },
+    })
     expect(prisma.payment.update).toHaveBeenCalledWith({
       where: { id: 'payment-1' },
       data: { status: 'SUCCEEDED', paidAt: occurredAt },
@@ -53,14 +72,15 @@ describe('PrismaPaymentRepository.applyPaymentStateTransition', () => {
     await repository.applyPaymentStateTransition({
       paymentId: 'payment-1',
       orderId: 'order-1',
+      checkoutId: 'checkout-1',
       eventType: 'payment.failed',
       reservations: [{ reservationId: 'reservation-1', inventoryId: 'inventory-1', quantity: 2 }],
       occurredAt: new Date(),
     })
 
-    expect(prisma.inventory.update).toHaveBeenCalledWith({
-      where: { id: 'inventory-1' },
-      data: { quantityReserved: { decrement: 2 } },
+    expect(prisma.inventory.updateMany).toHaveBeenCalledWith({
+      where: { id: 'inventory-1', quantityReserved: { gte: 2 } },
+      data: { quantityReserved: { decrement: 2 }, version: { increment: 1 } },
     })
     expect(prisma.payment.update).toHaveBeenCalledWith({
       where: { id: 'payment-1' },

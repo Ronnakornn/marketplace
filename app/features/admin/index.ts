@@ -19,6 +19,7 @@ export {
   AdminReportsOverview,
   AdminReturnsTable,
 } from "./components/AdminBackofficeTables";
+export { AdminCommissionsTable, AdminSettingsManager } from "./components/AdminConfigurationTables";
 export { AdminPageIntro } from "./components/AdminPageIntro";
 export { AdminSpaceCat } from "./components/AdminSpaceCat";
 export { AdminStatusBadge } from "./components/AdminStatusBadge";

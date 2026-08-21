@@ -68,10 +68,11 @@ function FilterSelect(props: { value: string; onChange: (value: string) => void;
 }
 
 function EmptyRow({ colSpan }: { colSpan: number }) {
+  const t = useTranslations();
   return (
     <TableRow className="border-white/8 hover:bg-transparent">
       <TableCell colSpan={colSpan} className="h-32 text-center text-slate-400">
-        No records match the current filters.
+        {t("admin.ui.noRecords")}
       </TableCell>
     </TableRow>
   );
@@ -96,9 +97,9 @@ export function AdminReturnsTable() {
           <TableBody>
             {rows.length ? rows.map((item: AdminReturn) => (
               <TableRow key={item.id} className="border-white/8 hover:bg-white/4">
-                <TableCell className="px-5 py-4"><p className="font-medium text-white">{item.order.orderNumber}</p><p className="text-xs text-slate-500">{item.reason ?? "No reason"} · {formatDate(item.createdAt)}</p></TableCell>
+                <TableCell className="px-5 py-4"><p className="font-medium text-white">{item.order.orderNumber}</p><p className="text-xs text-slate-500">{item.reason ?? t("admin.common.noReason")} · {formatDate(item.createdAt)}</p></TableCell>
                 <TableCell><p className="text-sm text-slate-200">{item.user.name}</p><p className="text-xs text-slate-500">{item.user.email}</p></TableCell>
-                <TableCell className="text-sm text-slate-300">{item.items.length} item(s), {item.refunds.length} refund(s)</TableCell>
+                <TableCell className="text-sm text-slate-300">{t("admin.common.returnCounts").replace("{items}", String(item.items.length)).replace("{refunds}", String(item.refunds.length))}</TableCell>
                 <TableCell><AdminStatusBadge status={item.status} /></TableCell>
                 <TableCell className="flex justify-end"><AdminStatusAction label={item.order.orderNumber} currentStatus={item.status} options={RETURN_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: item.id, status: next })} /></TableCell>
               </TableRow>
@@ -135,7 +136,7 @@ export function AdminPayoutsTable() {
                 <TableCell className="text-sm font-semibold text-slate-100">{formatMoney(item.amount, item.currency)}</TableCell>
                 <TableCell><AdminStatusBadge status={item.status} /></TableCell>
                 <TableCell className="text-sm text-slate-300">{formatDate(item.requestedAt)}</TableCell>
-                <TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={approve.isPending || item.status !== "requested"} onClick={() => approve.mutate(item.id)}>{t("admin.ui.approve")}</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={markPaid.isPending || item.status !== "approved"} onClick={() => markPaid.mutate(item.id)}>{t("admin.ui.paid")}</Button><Button size="sm" variant="destructive" disabled={reject.isPending || (item.status !== "requested" && item.status !== "approved")} onClick={() => reject.mutate({ id: item.id, reason: "Rejected from admin console" })}>{t("admin.ui.reject")}</Button></div></TableCell>
+                <TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={approve.isPending || item.status !== "requested"} onClick={() => approve.mutate(item.id)}>{t("admin.ui.approve")}</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={markPaid.isPending || item.status !== "approved"} onClick={() => { const externalReference = window.prompt(t("admin.payouts.externalReferencePrompt"))?.trim(); if (externalReference) markPaid.mutate({ id: item.id, externalReference }); }}>{t("admin.ui.paid")}</Button><Button size="sm" variant="destructive" disabled={reject.isPending || (item.status !== "requested" && item.status !== "approved")} onClick={() => { const reason = window.prompt(t("admin.payouts.rejectionReasonPrompt"))?.trim(); if (reason) reject.mutate({ id: item.id, reason }); }}>{t("admin.ui.reject")}</Button></div></TableCell>
               </TableRow>
             )) : <EmptyRow colSpan={5} />}
           </TableBody>
@@ -168,7 +169,7 @@ export function AdminFraudCasesTable() {
               <TableRow key={item.id} className="border-white/8 hover:bg-white/4">
                 <TableCell className="px-5 py-4"><p className="font-medium text-white">{item.entityType}</p><p className="text-xs text-slate-500">{item.entityId}</p></TableCell>
                 <TableCell><p className="text-sm font-semibold text-slate-100">{item.riskScore}</p><AdminStatusBadge status={item.riskLevel} /></TableCell>
-                <TableCell className="max-w-md text-sm text-slate-300">{item.reasons.join(", ") || "No reason"}</TableCell>
+                <TableCell className="max-w-md text-sm text-slate-300">{item.reasons.join(", ") || t("admin.common.noReason")}</TableCell>
                 <TableCell><AdminStatusBadge status={item.status} /></TableCell>
                 <TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={review.isPending || item.status !== "OPEN"} onClick={() => review.mutate(item.id)}>{t("admin.ui.review")}</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={resolve.isPending || item.status === "RESOLVED" || item.status === "DISMISSED"} onClick={() => resolve.mutate({ id: item.id, status: "RESOLVED" })}>{t("admin.ui.resolve")}</Button><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={resolve.isPending || item.status === "RESOLVED" || item.status === "DISMISSED"} onClick={() => resolve.mutate({ id: item.id, status: "DISMISSED" })}>{t("admin.ui.dismiss")}</Button></div></TableCell>
               </TableRow>

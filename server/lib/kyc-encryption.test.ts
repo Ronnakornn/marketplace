@@ -24,6 +24,7 @@ function productionEnv(overrides: Record<string, string | undefined> = {}): Node
     PAYMENT_CHECKOUT_BASE_URL: 'https://payments.example.com/checkout',
     PAYMENT_CHECKOUT_SECRET: 'production-checkout-secret-at-least-32-characters',
     KYC_ENCRYPTION_KEY: 'production-kyc-secret-at-least-32-characters',
+    UPLOAD_STORAGE: 's3',
     S3_ENDPOINT: 'https://s3.example.com',
     S3_REGION: 'ap-southeast-1',
     S3_BUCKET: 'marketplace-production',
@@ -31,6 +32,8 @@ function productionEnv(overrides: Record<string, string | undefined> = {}): Node
     S3_SECRET_ACCESS_KEY: 'production-secret-access-key',
     S3_PUBLIC_BASE_URL: 'https://cdn.example.com',
     MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED: 'true',
+    AFFILIATE_ENABLED: 'false',
+    AI_SEARCH_ENABLED: 'false',
     PHONE_OTP_ENABLED: 'false',
     ...overrides,
   }

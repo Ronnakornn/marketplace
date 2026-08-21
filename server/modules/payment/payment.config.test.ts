@@ -22,6 +22,21 @@ describe('payment provider config', () => {
     })).toThrow('Mock payments must be disabled in production')
   })
 
+  it('allows payments to be explicitly disabled in production', () => {
+    const config = getPaymentProviderConfigFromEnv({
+      NODE_ENV: 'production',
+      PAYMENT_PROVIDER: 'disabled',
+      PAYMENT_MOCK_ENABLED: 'false',
+    })
+    expect(() => createPaymentCheckoutUrl(config, {
+      paymentId: 'payment-1',
+      orderId: 'order-1',
+      amount: 1500,
+      currency: 'THB',
+      expiresAt: new Date('2030-01-01T00:00:00.000Z'),
+    })).toThrow(/not configured/)
+  })
+
   it('allows explicit HTTP checkout endpoints only when insecure HTTP is acknowledged', () => {
     const production = {
       NODE_ENV: 'production',

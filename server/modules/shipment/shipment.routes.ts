@@ -13,6 +13,10 @@ const ShipShipmentBodySchema = t.Object({
   service: t.Optional(t.String({ minLength: 1 })),
 })
 
+const DeliverShipmentBodySchema = t.Object({
+  evidenceReference: t.String({ minLength: 1, maxLength: 200 }),
+})
+
 export function createShipmentRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
@@ -56,10 +60,10 @@ export function createShipmentRoutes(container: ServiceContainer) {
       params: ShipmentParamsSchema,
       body: ShipShipmentBodySchema,
     })
-    .patch('/api/seller/shipments/:shipmentId/deliver', ({ authContext, params }: any) =>
-      container.shipmentService.deliverSellerShipment(authContext!.user, params.shipmentId), {
-      withAuth: true,
-      withSellerOperational: true,
+    .patch('/api/admin/shipments/:shipmentId/deliver', ({ authContext, params, body }: any) =>
+      container.shipmentService.deliverAdminShipment(authContext!.user, params.shipmentId, body), {
+      withRole: 'ADMIN',
       params: ShipmentParamsSchema,
+      body: DeliverShipmentBodySchema,
     })
 }

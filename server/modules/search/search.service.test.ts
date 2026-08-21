@@ -95,7 +95,9 @@ function createProduct(overrides: Partial<{
       name: 'Shop One',
       slug: 'shop-one',
       status: 'ACTIVE',
+      addresses: [{ city: 'Bangkok', region: 'Bangkok', country: 'TH' }],
     },
+    images: [{ url: '/uploads/products/cotton-tee.webp' }],
     variants: [
       {
         id: 'variant-1',

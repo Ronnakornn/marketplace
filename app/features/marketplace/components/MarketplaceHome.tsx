@@ -165,7 +165,6 @@ export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomePro
         <HeroPromo banners={home.banners} />
         <VoucherStrip
           promotions={home.promotions}
-          hasProducts={home.recommendedProducts.length > 0 || home.newArrivals.length > 0}
           isLoading={homeQuery.isLoading}
         />
         <FlashSaleSection
@@ -222,7 +221,6 @@ export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomePro
         {homeQuery.isError ? <HomeErrorState onRetry={() => void homeQuery.refetch()} /> : null}
       </main>
 
-      <StickyCheckoutCTA />
       <MobileBottomNavigation prefetchLinks={false} />
     </div>
   );
@@ -267,8 +265,8 @@ function HeroPromo({ banners }: { banners: MarketplaceBanner[] }) {
                 {t("home.shopNow")}
               </Link>
             </Button>
-            <Button variant="outline" className="rounded-full border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-              {t("home.claimVoucher")}
+            <Button asChild variant="outline" className="rounded-full border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+              <Link href={localePath("/vouchers")}>{t("home.claimVoucher")}</Link>
             </Button>
           </div>
         </div>
@@ -282,38 +280,25 @@ function HeroPromo({ banners }: { banners: MarketplaceBanner[] }) {
   );
 }
 
-function VoucherStrip({ promotions, hasProducts, isLoading }: { promotions: MarketplacePromotion[]; hasProducts: boolean; isLoading: boolean }) {
-  const t = useTranslations();
-  const liveVouchers = promotions.slice(0, 3).map((promotion) => [
-    promotion.title,
-    promotion.description ?? promotion.code,
-  ]);
+function VoucherStrip({ promotions, isLoading }: { promotions: MarketplacePromotion[]; isLoading: boolean }) {
+  const localePath = useLocalePath();
   if (isLoading) {
     return <div className="mt-3 flex gap-2 overflow-hidden">{Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-14 min-w-[154px] rounded-2xl" />)}</div>;
   }
-  const vouchers = liveVouchers.length
-    ? liveVouchers
-    : [
-        [t("home.freeShipping"), t("home.voucherAmount").replace("{amount}", "500")],
-        [t("home.voucherPercentOff").replace("{percent}", "15"), t("home.selectedShops")],
-        [t("home.coinsCashback"), t("home.upToCashback")],
-      ];
+  if (promotions.length === 0) return null;
 
   return (
     <section className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {[
-        ...vouchers,
-        [hasProducts ? t("home.liveCatalog") : t("product.noProductsFound"), hasProducts ? t("home.syncedFromApi") : t("product.noProductsDescription")],
-      ].map(([title, subtitle]) => (
-        <div key={title} className="flex min-w-[154px] items-center gap-2 rounded-2xl border border-orange-100 bg-white px-3 py-2 shadow-sm">
+      {promotions.slice(0, 3).map((promotion) => (
+        <Link key={promotion.id} href={localePath("/vouchers")} className="flex min-w-[154px] items-center gap-2 rounded-2xl border border-orange-100 bg-white px-3 py-2 shadow-sm transition hover:border-orange-200 hover:bg-orange-50">
           <div className="flex size-9 items-center justify-center rounded-full bg-orange-50 text-orange-700">
             <TicketPercentIcon className="size-4" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-950">{title}</p>
-            <p className="text-xs text-slate-900">{subtitle}</p>
+            <p className="text-sm font-bold text-slate-950">{promotion.title}</p>
+            <p className="text-xs text-slate-900">{promotion.description ?? promotion.code}</p>
           </div>
-        </div>
+        </Link>
       ))}
     </section>
   );
@@ -347,9 +332,6 @@ function FlashSaleSection({
             <p className="text-xs text-slate-900">{flashSale?.description ?? (flashSale?.endsAt ? t("home.endsAt").replace("{time}", new Date(flashSale.endsAt).toLocaleDateString()) : t("home.limitedTimeDeals"))}</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" className="rounded-full text-red-600 hover:bg-red-50 hover:text-red-700">
-          {t("home.seeAll")}
-        </Button>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {isLoading ? Array.from({ length: 5 }).map((_, index) => (
@@ -565,22 +547,5 @@ function normalizeHomepageHref(href: string | null | undefined, fallback: string
 
 function hashString(value: string): number {
   return [...value].reduce((hash, char) => hash + char.charCodeAt(0), 0);
-}
-
-function StickyCheckoutCTA() {
-  const t = useTranslations();
-  return (
-    <div className="fixed inset-x-0 bottom-16 z-40 px-3 sm:hidden">
-      <div className="mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-white/95 p-2 shadow-[0_18px_48px_rgba(15,23,42,0.18)] backdrop-blur-xl">
-        <div className="min-w-0 pl-2">
-          <p className="truncate text-sm font-extrabold text-slate-950">{t("home.extraOff")}</p>
-          <p className="text-xs text-slate-900">{t("home.voucherAutoApplies")}</p>
-        </div>
-        <Button className="rounded-xl bg-orange-700 px-4 text-white hover:bg-orange-800">
-          {t("product.buyNow")}
-        </Button>
-      </div>
-    </div>
-  );
 }
 

@@ -87,7 +87,7 @@ function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<Pay
     updatedAt: now,
     order: {
       id: orderId,
-      checkoutId,
+      checkoutId: '12121212-1212-4121-8121-121212121212',
       userId: 'user-1',
       orderNumber: 'ORD-TEST',
       status: status === 'SUCCEEDED' ? 'PAID' : 'PENDING_PAYMENT',
@@ -176,7 +176,7 @@ describe('PaymentService', () => {
     vi.clearAllMocks()
   })
 
-  it('handles payment paid success and updates order to paid without decreasing stock on hand', async () => {
+  it('handles payment paid success and commits reserved stock', async () => {
     const service = await setup()
 
     const result = await service.handleWebhook(baseBody)
@@ -186,8 +186,13 @@ describe('PaymentService', () => {
     expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith({
       paymentId: baseBody.paymentId,
       orderId: baseBody.orderId,
+      checkoutId: '12121212-1212-4121-8121-121212121212',
       eventType: 'payment.paid',
-      reservations: [],
+      reservations: [{
+        reservationId: '16161616-1616-4161-8161-161616161616',
+        inventoryId: '17171717-1717-4171-8171-171717171717',
+        quantity: 2,
+      }],
       occurredAt: expect.any(Date),
     })
     expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({ eventName: 'order.paid' }))
@@ -313,6 +318,7 @@ describe('PaymentService', () => {
     expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith(expect.objectContaining({
       paymentId: baseBody.paymentId,
       orderId: baseBody.orderId,
+      checkoutId: '12121212-1212-4121-8121-121212121212',
       eventType: 'payment.failed',
     }))
   })
@@ -438,6 +444,7 @@ describe('PaymentService', () => {
     expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith({
       paymentId: baseBody.paymentId,
       orderId: baseBody.orderId,
+      checkoutId: '12121212-1212-4121-8121-121212121212',
       eventType: 'payment.failed',
       reservations: expectedReservations,
       occurredAt: expect.any(Date),

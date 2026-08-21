@@ -329,6 +329,13 @@ erDiagram
     datetime redeemedAt
   }
 
+  COUPON_CLAIM {
+    string id PK
+    string couponId FK
+    string userId FK
+    datetime claimedAt
+  }
+
   REVIEW {
     string id PK
     string userId FK
@@ -453,6 +460,8 @@ erDiagram
   SHOP ||--o{ COUPON : offers
   COUPON ||--o{ COUPON_REDEMPTION : redeemed
   ORDER ||--o{ COUPON_REDEMPTION : applies
+  COUPON ||--o{ COUPON_CLAIM : claimed
+  USER ||--o{ COUPON_CLAIM : saves
   USER ||--o{ REVIEW : writes
   PRODUCT ||--o{ REVIEW : receives
   ORDER_ITEM ||--o| REVIEW : verifies

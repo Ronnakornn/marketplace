@@ -46,7 +46,16 @@ export function createEmailService(appContext: AppContext, env: NodeJS.ProcessEn
   if (provider === 'console' && appContext.config.environment !== 'production') {
     return new EmailService(new DevelopmentEmailSender(appContext.logger))
   }
+  if (provider === 'disabled') {
+    return new EmailService(new DisabledEmailSender())
+  }
   throw new Error(`Unsupported email provider: ${provider}`)
+}
+
+class DisabledEmailSender implements EmailSender {
+  async send(): Promise<void> {
+    throw new Error('Email delivery is not configured')
+  }
 }
 
 class ResendEmailSender implements EmailSender {

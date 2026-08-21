@@ -5,11 +5,14 @@ Refunds, payouts, and carrier delivery updates are currently operator-driven wor
 ## Controls
 
 - Restrict actions to named admin/seller accounts with MFA at the identity provider.
-- Require a provider/bank/carrier reference in the external case record before changing local state.
-- Use two-person approval for payout approval and paid confirmation.
-- Never mark a refund successful until the payment provider confirms settlement.
-- Never mark a shipment delivered from a buyer message alone; use carrier evidence.
+- Payouts are code-enforced as `requested -> approved -> paid`: approval records the approving admin; paid confirmation requires a different admin and a non-empty bank transfer reference.
+- Refunds are code-enforced as `PENDING -> PROCESSING -> SUCCESS`: processing records the first admin; successful completion requires a different admin and a non-empty payment-provider reference.
+- Admin delivery override requires a non-empty trusted carrier event or proof reference. Never use a buyer message alone as evidence.
+- Keep provider, bank, and carrier evidence in the external system of record and use the same reference in the marketplace action.
+- Never advance a refund to `SUCCESS` until the payment provider confirms settlement.
 - Review `PAYOUT_STATUS_CHANGED`, `REFUND_STATUS_CHANGED`, and `SHIPMENT_STATUS_CHANGED` audit logs daily.
+
+MFA, provider settlement, bank execution, carrier verification, and reconciliation remain operational controls outside this repository. The production acknowledgement confirms that those controls are active; it does not replace them.
 
 ## Daily reconciliation
 

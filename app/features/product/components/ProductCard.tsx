@@ -73,8 +73,6 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
     : formatMoney(product.price, product.currency);
   const fallbackBadges = [
     isOutOfStock ? t("product.outOfStock") : null,
-    product.soldCount >= 20 ? "Hot" : null,
-    hasPriceRange ? "Options" : null,
   ].filter((badge): badge is string => Boolean(badge));
   const cardBadges = product.badges.length ? product.badges : fallbackBadges;
   const discountLabel = product.discountPercent && product.discountPercent > 0 ? t("product.discountPercentOff").replace("{percent}", String(product.discountPercent)) : null;

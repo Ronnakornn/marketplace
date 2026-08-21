@@ -20,7 +20,7 @@ function walletRecord(ownerId = 'seller-1'): WalletRecord {
   return {
     id: 'wallet-1',
     shopId: 'shop-1',
-    currency: 'USD',
+    currency: 'THB',
     version: 0,
     balance: BigInt(0),
     pendingBalance: BigInt(0),
@@ -63,7 +63,7 @@ describe('WalletService', () => {
       walletId: 'wallet-1',
       shopId: 'shop-1',
       shopName: 'Shop One',
-      currency: 'USD',
+      currency: 'THB',
       availableBalanceCents: 9000,
     })
   })
@@ -89,7 +89,7 @@ describe('WalletService', () => {
       shippingTotal: BigInt(0),
       taxTotal: BigInt(0),
       grandTotal: BigInt(10000),
-      currency: 'USD',
+      currency: 'THB',
       shippingName: 'Buyer',
       shippingPhone: null,
       shippingLine1: 'Line 1',
@@ -114,7 +114,7 @@ describe('WalletService', () => {
         quantity: 1,
         unitPrice: BigInt(10000),
         lineTotal: BigInt(10000),
-        currency: 'USD',
+        currency: 'THB',
         fulfillmentStatus: 'DELIVERED',
       }],
     })

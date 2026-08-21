@@ -40,9 +40,12 @@ COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./
 COPY --from=build /app/next.config.mjs ./next.config.mjs
 COPY --from=build /app/postcss.config.mjs ./postcss.config.mjs
+RUN mkdir -p /app/public/uploads /app/.data/uploads \
+  && chown -R bun:bun /app/public/uploads /app/.data
 
 ENV NODE_ENV=production
 EXPOSE 3000
+VOLUME ["/app/public/uploads", "/app/.data/uploads"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD bun -e "fetch('http://127.0.0.1:3001/api/health/ready').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 USER bun
 CMD ["bun", "run", "start"]

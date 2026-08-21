@@ -32,6 +32,7 @@ const MAX_RELATED_LIMIT = 12
 const MAX_PRODUCT_IMAGES = 10
 const PRODUCT_VIDEO_CONTENT_TYPES = new Set(['video/mp4', 'video/webm'])
 const PRODUCT_VIDEO_MAX_FILE_SIZE = 25 * 1024 * 1024
+const MARKETPLACE_CURRENCY = 'THB'
 
 export interface CatalogActor {
   id: string
@@ -547,7 +548,7 @@ export class CatalogService {
       { ttlSeconds: this.cache.ttl().product },
     )
     const facets = await this.loadProductFacets(normalizedFilters)
-    const data = result.data.map((product) => this.localizeProduct(product, locale))
+    const data = (await this.attachPublicProductMetrics(result.data)).map((product) => this.localizeProduct(product, locale))
     return {
       ...result,
       data,
@@ -582,7 +583,8 @@ export class CatalogService {
     if (!product || product.status !== 'ACTIVE' || product.deletedAt || product.shop.status !== 'ACTIVE') {
       throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     }
-    return this.preparePublicProduct(product, locale)
+    const [enriched] = await this.attachPublicProductMetrics([product])
+    return this.preparePublicProduct(enriched!, locale)
   }
 
   async listRelatedProducts(id: string, data: RelatedProductsData = {}): Promise<CatalogProductListItem[]> {
@@ -594,7 +596,7 @@ export class CatalogService {
       throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     }
     const related = await this.repo.findRelatedProducts(product, limit)
-    return related.map((item) => this.preparePublicProduct(item, locale))
+    return (await this.attachPublicProductMetrics(related)).map((item) => this.preparePublicProduct(item, locale))
   }
 
   listAdminProducts(filters: SellerListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
@@ -694,7 +696,7 @@ export class CatalogService {
         ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
         price: data.price,
-        currency: data.currency?.trim().toUpperCase() || 'USD',
+        currency: this.normalizeMarketplaceCurrency(data.currency),
         ...this.normalizeVariantShippingFields(data),
       }),
     )
@@ -720,7 +722,7 @@ export class CatalogService {
         ...(data.titleTh === undefined ? {} : { titleTh: this.normalizeNullableText(data.titleTh) }),
         ...(data.titleEn === undefined ? {} : { titleEn: this.normalizeNullableText(data.titleEn) }),
         ...(data.price === undefined ? {} : { price: data.price }),
-        ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
+        ...(data.currency === undefined ? {} : { currency: this.normalizeMarketplaceCurrency(data.currency) }),
         ...this.normalizeVariantShippingFields(data),
       }),
     )
@@ -1044,7 +1046,7 @@ export class CatalogService {
         sku: data.sku.trim(),
         title: data.title.trim(),
         price: data.price, // Update the property name to 'price'
-        currency: data.currency?.trim().toUpperCase() || 'USD',
+        currency: this.normalizeMarketplaceCurrency(data.currency),
         ...this.normalizeVariantShippingFields(data),
         optionValueIds: optionSelection.optionValueIds,
         optionCombinationKey: optionSelection.combinationKey,
@@ -1074,7 +1076,7 @@ export class CatalogService {
         ...(data.sku === undefined ? {} : { sku: data.sku.trim() }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
         ...(data.price === undefined ? {} : { price: data.price }),
-        ...(data.currency === undefined ? {} : { currency: data.currency.trim().toUpperCase() }),
+        ...(data.currency === undefined ? {} : { currency: this.normalizeMarketplaceCurrency(data.currency) }),
         ...this.normalizeVariantShippingFields(data),
         ...(optionSelection === undefined ? {} : {
           optionValueIds: optionSelection.optionValueIds,
@@ -1472,7 +1474,27 @@ export class CatalogService {
     if (!Number.isInteger(data.price) || data.price <= 0) {
       throw new CatalogServiceError('Variant price must be a positive integer in cents', 400, 'VARIANT_VALIDATION_FAILED')
     }
+    this.normalizeMarketplaceCurrency(data.currency)
     this.validateVariantShippingFields(data)
+  }
+
+  private async attachPublicProductMetrics<T extends CatalogProductListItem>(products: T[]): Promise<T[]> {
+    const metrics = await this.repo.findProductMetrics(products.map((product) => product.id))
+    const metricsByProductId = new Map(metrics.map((metric) => [metric.productId, metric]))
+    return products.map((product) => {
+      const metric = metricsByProductId.get(product.id)
+      const rating = metric?.rating ?? 0
+      const ratingCount = metric?.ratingCount ?? 0
+      return {
+        ...product,
+        rating,
+        ratingSummary: {
+          averageRating: rating,
+          totalReviewCount: ratingCount,
+        },
+        soldCount: metric?.soldCount ?? 0,
+      }
+    })
   }
 
   private validateVariantUpdateInput(data: UpdateVariantData): void {
@@ -1485,7 +1507,20 @@ export class CatalogService {
     if (data.price !== undefined && (!Number.isInteger(data.price) || data.price <= 0)) {
       throw new CatalogServiceError('Variant price must be a positive integer in cents', 400, 'VARIANT_VALIDATION_FAILED')
     }
+    if (data.currency !== undefined) this.normalizeMarketplaceCurrency(data.currency)
     this.validateVariantShippingFields(data)
+  }
+
+  private normalizeMarketplaceCurrency(currency?: string): string {
+    const normalized = currency?.trim().toUpperCase() || MARKETPLACE_CURRENCY
+    if (normalized !== MARKETPLACE_CURRENCY) {
+      throw new CatalogServiceError(
+        `Marketplace variants must use ${MARKETPLACE_CURRENCY}`,
+        400,
+        'VARIANT_VALIDATION_FAILED',
+      )
+    }
+    return normalized
   }
 
   private async validateBrand(brandId: string | null | undefined): Promise<void> {

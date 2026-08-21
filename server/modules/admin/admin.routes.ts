@@ -8,6 +8,20 @@ const PaginationQuery = t.Object({
   limit: t.Optional(t.Numeric()),
 })
 const StatusBody = t.Object({ status: t.String({ minLength: 1 }) })
+const RefundStatusBody = t.Object({
+  status: t.String({ minLength: 1 }),
+  externalReference: t.Optional(t.String({ minLength: 1, maxLength: 200 })),
+})
+const CommissionStatusBody = t.Object({
+  status: t.Union([t.Literal('APPROVED'), t.Literal('VOID')]),
+  reason: t.String({ minLength: 3, maxLength: 500 }),
+})
+const SystemSettingWriteBody = t.Object({
+  value: t.Unknown(),
+  valueType: t.Union([t.Literal('STRING'), t.Literal('NUMBER'), t.Literal('BOOLEAN'), t.Literal('JSON')]),
+  description: t.Optional(t.Nullable(t.String({ maxLength: 500 }))),
+  isPublic: t.Optional(t.Boolean()),
+})
 const UserWriteBody = t.Object({
   name: t.String({ minLength: 1 }),
   email: t.String({ format: 'email' }),
@@ -77,6 +91,37 @@ export function createAdminRoutes(container: ServiceContainer) {
     .get('/api/admin/reports', ({ authContext }: any) => container.adminService.getReports(adminActor(authContext)), {
       withRole: 'ADMIN',
     })
+    .get('/api/admin/commissions', ({ authContext, query }: any) => container.adminService.listCommissions(adminActor(authContext), query), {
+      withRole: 'ADMIN',
+      query: t.Composite([
+        PaginationQuery,
+        t.Object({
+          status: t.Optional(t.String()),
+          q: t.Optional(t.String({ maxLength: 200 })),
+        }),
+      ]),
+    })
+    .patch(
+      '/api/admin/commissions/:commissionId/status',
+      ({ authContext, params: { commissionId }, body }: any) => container.adminService.updateCommissionStatus(adminActor(authContext), commissionId, body),
+      {
+        withRole: 'ADMIN',
+        params: t.Object({ commissionId: t.String({ format: 'uuid' }) }),
+        body: CommissionStatusBody,
+      },
+    )
+    .get('/api/admin/settings', ({ authContext }: any) => container.adminService.listSystemSettings(adminActor(authContext)), {
+      withRole: 'ADMIN',
+    })
+    .put(
+      '/api/admin/settings/:key',
+      ({ authContext, params: { key }, body }: any) => container.adminService.upsertSystemSetting(adminActor(authContext), key, body),
+      {
+        withRole: 'ADMIN',
+        params: t.Object({ key: t.String({ minLength: 2, maxLength: 120 }) }),
+        body: SystemSettingWriteBody,
+      },
+    )
     .get('/api/admin/users', ({ authContext, query }: any) => container.adminService.listUsers(adminActor(authContext), query), {
       withRole: 'ADMIN',
       query: t.Composite([
@@ -194,7 +239,15 @@ export function createAdminRoutes(container: ServiceContainer) {
     )
     .get('/api/admin/orders', ({ authContext, query }: any) => container.adminService.listOrders(adminActor(authContext), query), {
       withRole: 'ADMIN',
-      query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()), shopId: t.Optional(t.String()) })]),
+      query: t.Composite([
+        PaginationQuery,
+        t.Object({
+          status: t.Optional(t.String()),
+          shopId: t.Optional(t.String()),
+          paymentState: t.Optional(t.String()),
+          shipmentState: t.Optional(t.String()),
+        }),
+      ]),
     })
     .get(
       '/api/admin/orders/:orderId',
@@ -218,11 +271,11 @@ export function createAdminRoutes(container: ServiceContainer) {
     )
     .patch(
       '/api/admin/refunds/:refundId/status',
-      ({ authContext, params: { refundId }, body }: any) => container.adminService.updateRefundStatus(adminActor(authContext), refundId, body.status),
+      ({ authContext, params: { refundId }, body }: any) => container.adminService.updateRefundStatus(adminActor(authContext), refundId, body),
       {
         withRole: 'ADMIN',
         params: t.Object({ refundId: t.String() }),
-        body: StatusBody,
+        body: RefundStatusBody,
       },
     )
     .get('/api/admin/returns', ({ authContext, query }: any) => container.adminService.listReturns(adminActor(authContext), query), {

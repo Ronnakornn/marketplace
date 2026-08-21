@@ -472,6 +472,7 @@ model User {
   chatThreads                     ChatThread[]
   chatThreadReadStates            ChatThreadReadState[]
   couponRedemptions               CouponRedemption[]
+  couponClaims                    CouponClaim[]
   favoriteProducts                FavoriteProduct[]
   followedShops                   ShopFollow[]
   notifications                   Notification[]
@@ -494,6 +495,8 @@ model User {
   approvedSellerPayouts           SellerPayout[]           @relation("SellerPayoutApprovedBy")
   rejectedSellerPayouts           SellerPayout[]           @relation("SellerPayoutRejectedBy")
   paidSellerPayouts               SellerPayout[]           @relation("SellerPayoutPaidBy")
+  processingRefunds               Refund[]                 @relation("RefundProcessingBy")
+  completedRefunds                Refund[]                 @relation("RefundCompletedBy")
   shopStaffMemberships            ShopStaff[]
   shopRatings                     ShopRating[]
   moderatedShopRatings            ShopRating[]             @relation("ShopRatingModeratedBy")
@@ -955,7 +958,7 @@ model Product {
   highlights                  ProductHighlight[]
   attributes                  ProductAttribute[]
   chatMessages                ChatMessage[]
-  embeddings  ProductEmbedding[]
+  // pgvector-backed ProductEmbedding is temporarily disabled.
 
   @@index([status, deletedAt, createdAt])
   @@index([shopId, status, deletedAt, createdAt])
@@ -1103,22 +1106,24 @@ model ProductVideo {
   @@index([uploadId])
 }
 
-model ProductEmbedding {
-  id          String                      @id @default(uuid()) @db.Uuid
-  productId   String                      @db.Uuid
-  locale      String                      @default("default")
-  model       String
-  contentHash String
-  embedding   Unsupported("vector(1536)")
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, locale, model])
-  @@index([productId])
-  @@index([model, locale])
-}
+// pgvector-backed ProductEmbedding is temporarily disabled. Restore this model
+// together with its initial-migration SQL before enabling AI_SEARCH_ENABLED.
+// model ProductEmbedding {
+//   id          String                      @id @default(uuid()) @db.Uuid
+//   productId   String                      @db.Uuid
+//   locale      String                      @default("default")
+//   model       String
+//   contentHash String
+//   embedding   Unsupported("vector(1536)")
+//   createdAt   DateTime                    @default(now())
+//   updatedAt   DateTime                    @updatedAt
+//
+//   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+//
+//   @@unique([productId, locale, model])
+//   @@index([productId])
+//   @@index([model, locale])
+// }
 
 model FavoriteProduct {
   id        String   @id @default(uuid()) @db.Uuid
@@ -1683,6 +1688,7 @@ model Coupon {
 
   shop        Shop?              @relation(fields: [shopId], references: [id], onDelete: Cascade)
   redemptions CouponRedemption[]
+  claims      CouponClaim[]
 
   @@index([shopId, isActive, startsAt, endsAt])
   @@index([shopId])
@@ -1690,12 +1696,12 @@ model Coupon {
 }
 
 model CouponRedemption {
-  id         String   @id @default(uuid()) @db.Uuid
-  couponId   String   @db.Uuid
-  userId     String   @db.Uuid
-  orderId    String   @db.Uuid
+  id         String                 @id @default(uuid()) @db.Uuid
+  couponId   String                 @db.Uuid
+  userId     String                 @db.Uuid
+  orderId    String                 @db.Uuid
   status     CouponRedemptionStatus @default(RESERVED)
-  redeemedAt DateTime @default(now())
+  redeemedAt DateTime               @default(now())
 
   coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
   order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -1704,6 +1710,20 @@ model CouponRedemption {
   @@unique([couponId, orderId])
   @@index([couponId, status])
   @@index([userId, couponId, status])
+}
+
+model CouponClaim {
+  id        String   @id @default(uuid()) @db.Uuid
+  couponId  String   @db.Uuid
+  userId    String   @db.Uuid
+  claimedAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, userId])
+  @@index([userId, claimedAt])
+  @@index([couponId, claimedAt])
 }
 
 model Review {
@@ -1782,25 +1802,34 @@ model ReviewReport {
 }
 
 model Refund {
-  id              String       @id @default(uuid()) @db.Uuid
-  orderId         String       @db.Uuid
-  paymentId       String       @db.Uuid
-  returnRequestId String?      @unique @db.Uuid
-  status          RefundStatus @default(PENDING)
-  amount          BigInt
-  reason          String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id                String       @id @default(uuid()) @db.Uuid
+  orderId           String       @db.Uuid
+  paymentId         String       @db.Uuid
+  returnRequestId   String?      @unique @db.Uuid
+  status            RefundStatus @default(PENDING)
+  amount            BigInt
+  reason            String?
+  processingById    String?      @db.Uuid
+  completedById     String?      @db.Uuid
+  externalReference String?
+  processingAt      DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
   payment            Payment             @relation(fields: [paymentId], references: [id])
   returnRequest      ReturnRequest?      @relation(fields: [returnRequestId], references: [id])
+  processingBy       User?               @relation("RefundProcessingBy", fields: [processingById], references: [id], onDelete: SetNull)
+  completedBy        User?               @relation("RefundCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
   walletEntries      WalletLedgerEntry[]
   sellerTransactions SellerTransaction[]
 
   @@index([orderId, status])
   @@index([paymentId])
   @@index([returnRequestId])
+  @@index([processingById])
+  @@index([completedById])
 }
 
 model ShopWallet {
@@ -1852,23 +1881,24 @@ model WalletLedgerEntry {
 }
 
 model SellerPayout {
-  id              String       @id @default(uuid()) @db.Uuid
-  walletId        String       @db.Uuid
-  shopId          String       @db.Uuid
-  amount          BigInt
-  currency        String       @default("THB")
-  status          PayoutStatus @default(requested)
-  requestedById   String       @db.Uuid
-  approvedById    String?      @db.Uuid
-  rejectedById    String?      @db.Uuid
-  paidById        String?      @db.Uuid
-  rejectionReason String?
-  requestedAt     DateTime     @default(now())
-  approvedAt      DateTime?
-  rejectedAt      DateTime?
-  paidAt          DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id                String       @id @default(uuid()) @db.Uuid
+  walletId          String       @db.Uuid
+  shopId            String       @db.Uuid
+  amount            BigInt
+  currency          String       @default("THB")
+  status            PayoutStatus @default(requested)
+  requestedById     String       @db.Uuid
+  approvedById      String?      @db.Uuid
+  rejectedById      String?      @db.Uuid
+  paidById          String?      @db.Uuid
+  externalReference String?
+  rejectionReason   String?
+  requestedAt       DateTime     @default(now())
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   wallet       ShopWallet          @relation(fields: [walletId, shopId], references: [id, shopId], onDelete: Cascade)
   shop         Shop                @relation(fields: [shopId], references: [id])
@@ -2884,9 +2914,9 @@ model ProductAddToCartLog {
 }
 
 model ShopViewLog {
-  id            String   @id @default(uuid()) @db.Uuid
-  shopId        String   @db.Uuid
-  userId        String?  @db.Uuid
+  id            String            @id @default(uuid()) @db.Uuid
+  shopId        String            @db.Uuid
+  userId        String?           @db.Uuid
   sessionId     String?
   source        String?
   referrer      String?
@@ -2894,7 +2924,7 @@ model ShopViewLog {
   userAgentHash String?
   metadata      Json?
   eventType     ShopViewEventType @default(VIEW)
-  createdAt     DateTime @default(now())
+  createdAt     DateTime          @default(now())
 
   shop Shop  @relation(fields: [shopId], references: [id], onDelete: Cascade)
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)

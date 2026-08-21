@@ -96,25 +96,30 @@ export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.en
     minLength: 32,
     forbiddenValues: ['change-me', 'your-otp-hash-secret'],
   }, env)
-  if (env['EMAIL_PROVIDER'] !== 'resend') {
-    throw new Error('EMAIL_PROVIDER must be resend in production')
+  const emailProvider = requireProductionEnv('EMAIL_PROVIDER', env['EMAIL_PROVIDER'], {}, env)
+  if (emailProvider !== 'resend' && emailProvider !== 'disabled') {
+    throw new Error('EMAIL_PROVIDER must be resend or disabled in production')
   }
-  requireProductionEnv('RESEND_API_KEY', env['RESEND_API_KEY'], {
-    minLength: 20,
-    forbiddenValues: ['change-me', 'your-resend-api-key'],
-  }, env)
-  requireProductionEnv('EMAIL_FROM', env['EMAIL_FROM'], {}, env)
-  requireProductionEnv('PAYMENT_PROVIDER', env['PAYMENT_PROVIDER'], {
+  if (emailProvider === 'resend') {
+    requireProductionEnv('RESEND_API_KEY', env['RESEND_API_KEY'], {
+      minLength: 20,
+      forbiddenValues: ['change-me', 'your-resend-api-key'],
+    }, env)
+    requireProductionEnv('EMAIL_FROM', env['EMAIL_FROM'], {}, env)
+  }
+  const paymentProvider = requireProductionEnv('PAYMENT_PROVIDER', env['PAYMENT_PROVIDER'], {
     forbiddenValues: ['mock'],
   }, env)
-  requireProductionEnv('PAYMENT_CHECKOUT_BASE_URL', env['PAYMENT_CHECKOUT_BASE_URL'], {
-    requireHttpsUrl: true,
-    allowInsecureHttp,
-  }, env)
-  requireProductionEnv('PAYMENT_CHECKOUT_SECRET', env['PAYMENT_CHECKOUT_SECRET'], {
-    minLength: 32,
-    forbiddenValues: ['change-me', 'your-payment-checkout-secret'],
-  }, env)
+  if (paymentProvider !== 'disabled') {
+    requireProductionEnv('PAYMENT_CHECKOUT_BASE_URL', env['PAYMENT_CHECKOUT_BASE_URL'], {
+      requireHttpsUrl: true,
+      allowInsecureHttp,
+    }, env)
+    requireProductionEnv('PAYMENT_CHECKOUT_SECRET', env['PAYMENT_CHECKOUT_SECRET'], {
+      minLength: 32,
+      forbiddenValues: ['change-me', 'your-payment-checkout-secret'],
+    }, env)
+  }
   if (env['PAYMENT_MOCK_ENABLED'] === 'true' || env['PAYMENT_MOCK_ENABLED'] === '1') {
     throw new Error('PAYMENT_MOCK_ENABLED must be false in production')
   }
@@ -123,19 +128,29 @@ export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.en
     forbiddenValues: ['change-me', 'your-kyc-encryption-key'],
     forbiddenSubstrings: ['your-kyc-encryption-key', 'development-kyc-encryption-key'],
   }, env)
-  requireProductionEnv('S3_ENDPOINT', env['S3_ENDPOINT'], {}, env)
-  requireProductionEnv('S3_REGION', env['S3_REGION'], {}, env)
-  requireProductionEnv('S3_BUCKET', env['S3_BUCKET'], {}, env)
-  requireProductionEnv('S3_ACCESS_KEY_ID', env['S3_ACCESS_KEY_ID'], {}, env)
-  requireProductionEnv('S3_SECRET_ACCESS_KEY', env['S3_SECRET_ACCESS_KEY'], {
-    minLength: 16,
-  }, env)
-  requireProductionEnv('S3_PUBLIC_BASE_URL', env['S3_PUBLIC_BASE_URL'], {
-    requireHttpsUrl: true,
-    allowInsecureHttp,
-  }, env)
+  const uploadStorage = env['UPLOAD_STORAGE']?.trim().toLowerCase() || 'local'
+  if (uploadStorage !== 'local' && uploadStorage !== 's3') {
+    throw new Error('UPLOAD_STORAGE must be local or s3 in production')
+  }
+  if (uploadStorage === 's3') {
+    requireProductionEnv('S3_ENDPOINT', env['S3_ENDPOINT'], {}, env)
+    requireProductionEnv('S3_REGION', env['S3_REGION'], {}, env)
+    requireProductionEnv('S3_BUCKET', env['S3_BUCKET'], {}, env)
+    requireProductionEnv('S3_ACCESS_KEY_ID', env['S3_ACCESS_KEY_ID'], {}, env)
+    requireProductionEnv('S3_SECRET_ACCESS_KEY', env['S3_SECRET_ACCESS_KEY'], { minLength: 16 }, env)
+    requireProductionEnv('S3_PUBLIC_BASE_URL', env['S3_PUBLIC_BASE_URL'], {
+      requireHttpsUrl: true,
+      allowInsecureHttp,
+    }, env)
+  }
   if (env['MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED'] !== 'true') {
     throw new Error('MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED must be true in production')
+  }
+  if (env['AFFILIATE_ENABLED'] !== 'false') {
+    throw new Error('AFFILIATE_ENABLED must be false in production until commission settlement is enabled')
+  }
+  if (env['AI_SEARCH_ENABLED'] !== 'false') {
+    throw new Error('AI_SEARCH_ENABLED must be false in production while pgvector storage is disabled')
   }
   if (env['METRICS_ENABLED'] === 'true') {
     requireProductionEnv('METRICS_AUTH_TOKEN', env['METRICS_AUTH_TOKEN'], { minLength: 24 }, env)

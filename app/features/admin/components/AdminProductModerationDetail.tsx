@@ -19,7 +19,7 @@ import {
   useSuspendCatalogProduct,
 } from "../hooks/useAdminOperations";
 import { AdminStatusBadge } from "./AdminStatusBadge";
-import { useTranslations } from "#/i18n/client";
+import { useFormatters, useTranslations } from "#/i18n/client";
 
 interface AdminProductModerationDetailProps {
   productId: string;
@@ -45,32 +45,13 @@ type ModerationCase = {
 type ModerationAction = ModerationCase["actions"][number];
 type ModerationProduct = CatalogProduct & { moderationCase?: ModerationCase | null };
 
-function formatDate(value: string | Date | null | undefined) {
-  if (!value) return "Not available";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
-
-function formatMoney(cents: number | bigint, currency = "USD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(cents) / 100);
-}
-
-function readErrorMessage(error: unknown) {
+function readErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object") {
     const record = error as { value?: { error?: { message?: string } }; error?: { message?: string }; message?: string };
-    return record.value?.error?.message ?? record.error?.message ?? record.message ?? "Operation failed.";
+    return record.value?.error?.message ?? record.error?.message ?? record.message ?? fallback;
   }
-  return "Operation failed.";
-}
-
-function readiness(product: ModerationProduct) {
-  return [
-    { label: "Category assigned", ready: Boolean(product.category), detail: product.category?.name ?? "No category" },
-    { label: "Media available", ready: product.images.length > 0, detail: `${product.images.length} image${product.images.length === 1 ? "" : "s"}` },
-    { label: "Primary image", ready: product.images.some((image) => image.isPrimary), detail: product.images.some((image) => image.isPrimary) ? "Set" : "Missing" },
-    { label: "Active priced variant", ready: product.variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price) > 0), detail: `${product.variants.length} variant${product.variants.length === 1 ? "" : "s"}` },
-    { label: "Available inventory", ready: product.variants.some((variant) => (variant.inventory?.quantityOnHand ?? 0) > 0), detail: `${totalInventory(product)} units on hand` },
-  ];
+  return fallback;
 }
 
 function totalInventory(product: ModerationProduct) {
@@ -102,6 +83,7 @@ function Metric(props: { label: string; value: string }) {
 
 export function AdminProductModerationDetail({ productId }: AdminProductModerationDetailProps) {
   const t = useTranslations();
+  const formatters = useFormatters();
   const { data: productData, isLoading, error, refetch } = useAdminCatalogProductDetail(productId);
   const approve = useApproveCatalogProduct();
   const reject = useRejectCatalogProduct();
@@ -146,7 +128,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
     if (!moderationProduct || !reasonAction || !reason.trim()) return;
     const payload = { id: moderationProduct.id, reason: reason.trim() };
     const onSuccess = () => {
-      setMessage(`${moderationProduct.title} ${reasonAction === "reject" ? "rejected" : "suspended"}.`);
+      setMessage(t(reasonAction === "reject" ? "admin.productModerationDetail.rejected" : "admin.productModerationDetail.suspended").replace("{title}", moderationProduct.title));
       setReasonAction(null);
       setReason("");
     };
@@ -155,8 +137,16 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
   }
 
   const product = moderationProduct;
-  const checklist = readiness(product);
+  const checklist = [
+    { label: t("admin.productModerationDetail.categoryAssigned"), ready: Boolean(product.category), detail: product.category?.name ?? t("admin.productModerationDetail.noCategory") },
+    { label: t("admin.productModerationDetail.mediaAvailable"), ready: product.images.length > 0, detail: t("admin.productModerationDetail.imageCount").replace("{count}", String(product.images.length)) },
+    { label: t("admin.productModerationDetail.primaryImage"), ready: product.images.some((image) => image.isPrimary), detail: t(product.images.some((image) => image.isPrimary) ? "admin.productModerationDetail.set" : "admin.productModerationDetail.missing") },
+    { label: t("admin.productModerationDetail.activePricedVariant"), ready: product.variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price) > 0), detail: t("admin.productModerationDetail.variantCount").replace("{count}", String(product.variants.length)) },
+    { label: t("admin.productModerationDetail.availableInventory"), ready: product.variants.some((variant) => (variant.inventory?.quantityOnHand ?? 0) > 0), detail: t("admin.productModerationDetail.onHandCount").replace("{count}", String(totalInventory(product))) },
+  ];
   const moderationCase = product.moderationCase ?? null;
+  const formatDate = (value: string | Date | null | undefined) => value ? formatters.date(value) : t("admin.productModerationDetail.notAvailable");
+  const formatMoney = (cents: number | bigint, currency: string) => formatters.currency(Number(cents), currency);
 
   return (
     <div className="space-y-6">
@@ -165,39 +155,39 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
           <div className="min-w-0">
             <Link href="/admin/products" className="inline-flex items-center gap-1 text-sm text-cyan-100 hover:text-cyan-50">
               <ArrowLeftIcon className="size-4" />
-              Product moderation
+              {t("admin.productModerationDetail.title")}
             </Link>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
               <h1 className="text-2xl font-semibold text-white sm:text-3xl">{product.title}</h1>
               <AdminStatusBadge status={product.status} />
             </div>
-            <p className="mt-2 max-w-3xl text-sm text-slate-400">{product.description ?? "No product description provided."}</p>
+            <p className="mt-2 max-w-3xl text-sm text-slate-400">{product.description ?? t("admin.productModerationDetail.noDescription")}</p>
             <p className="mt-3 font-mono text-xs text-slate-500">{product.id}</p>
           </div>
           <div className="flex flex-wrap gap-2 xl:justify-end">
-            <Button variant="outline" className="border-emerald-400/30 bg-emerald-500/10 text-emerald-100" disabled={isMutating || product.status !== "PENDING_REVIEW"} onClick={() => approve.mutate(product.id, { onSuccess: () => setMessage(`${product.title} approved.`) })}>{approve.isPending ? "Approving..." : "Approve"}</Button>
+            <Button variant="outline" className="border-emerald-400/30 bg-emerald-500/10 text-emerald-100" disabled={isMutating || product.status !== "PENDING_REVIEW"} onClick={() => approve.mutate(product.id, { onSuccess: () => setMessage(t("admin.productModerationDetail.approved").replace("{title}", product.title)) })}>{approve.isPending ? t("admin.productModerationDetail.approving") : t("admin.ui.approve")}</Button>
             <Button variant="outline" className="border-amber-400/30 bg-amber-500/10 text-amber-100" disabled={isMutating || product.status !== "PENDING_REVIEW"} onClick={() => setReasonAction("reject")}>{t("admin.ui.reject")}</Button>
             <Button variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isMutating || product.status === "SUSPENDED"} onClick={() => setReasonAction("suspend")}>{t("admin.ui.suspend")}</Button>
-            <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setMessage(`${product.title} restored.`) })}>
+            <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setMessage(t("admin.productModerationDetail.restored").replace("{title}", product.title)) })}>
               <RotateCcwIcon className="size-4" />
-              {restore.isPending ? "Restoring..." : "Restore"}
+              {restore.isPending ? t("admin.productModerationDetail.restoring") : t("admin.productModerationDetail.restore")}
             </Button>
           </div>
         </div>
         {message ? <div className="mt-5 rounded-lg border border-emerald-300/25 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">{message}</div> : null}
-        {mutationError ? <div className="mt-5 rounded-lg border border-red-300/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">{readErrorMessage(mutationError)}</div> : null}
+        {mutationError ? <div className="mt-5 rounded-lg border border-red-300/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">{readErrorMessage(mutationError, t("admin.sellerApplications.operationFailed"))}</div> : null}
       </section>
 
       {reasonAction ? (
         <section className="admin-panel rounded-xl border border-white/10 bg-white/5 p-5">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="space-y-2">
-              <Label htmlFor="moderation-detail-reason" className="text-slate-200">{reasonAction === "reject" ? "Reject reason" : "Suspend reason"}</Label>
+              <Label htmlFor="moderation-detail-reason" className="text-slate-200">{t(reasonAction === "reject" ? "admin.productModerationDetail.rejectReason" : "admin.productModerationDetail.suspendReason")}</Label>
               <Textarea
                 id="moderation-detail-reason"
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                placeholder="Explain the policy or listing issue the seller must address."
+                placeholder={t("admin.productModerationDetail.reasonPlaceholder")}
                 className="min-h-28 border-white/10 bg-slate-950/60 text-slate-100 placeholder:text-slate-600"
                 aria-invalid={reason.trim().length === 0}
               />
@@ -205,7 +195,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating} onClick={() => { setReasonAction(null); setReason(""); }}>{t("admin.ui.cancel")}</Button>
-              <Button variant={reasonAction === "suspend" ? "destructive" : "default"} disabled={isMutating || reason.trim().length === 0} onClick={submitReasonAction}>{isMutating ? "Submitting..." : reasonAction === "reject" ? "Reject product" : "Suspend product"}</Button>
+              <Button variant={reasonAction === "suspend" ? "destructive" : "default"} disabled={isMutating || reason.trim().length === 0} onClick={submitReasonAction}>{isMutating ? t("admin.productModerationDetail.submitting") : t(reasonAction === "reject" ? "admin.productModerationDetail.rejectProduct" : "admin.productModerationDetail.suspendProduct")}</Button>
             </div>
           </div>
         </section>
@@ -213,7 +203,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-5">
-          <DetailPanel title="Media Preview" icon={ImageIcon}>
+          <DetailPanel title={t("admin.productModerationDetail.mediaPreview")} icon={ImageIcon}>
             <div className="grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)]">
               <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-slate-950/70">
                 {primaryImage ? <img src={primaryImage.url} alt={primaryImage.altText ?? product.title} className="size-full object-cover" /> : <ImageIcon className="size-10 text-slate-600" />}
@@ -230,12 +220,12 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
             </div>
           </DetailPanel>
 
-          <DetailPanel title="Basics & Category Specs" icon={ClipboardListIcon}>
+          <DetailPanel title={t("admin.productModerationDetail.basicsAndSpecs")} icon={ClipboardListIcon}>
             <div className="grid gap-3 md:grid-cols-2">
-              <Metric label="Slug" value={product.slug} />
-              <Metric label="Category" value={product.category?.name ?? "Unassigned"} />
-              <Metric label="Created" value={formatDate(product.createdAt)} />
-              <Metric label="Updated" value={formatDate(product.updatedAt)} />
+              <Metric label={t("admin.productModerationDetail.slug")} value={product.slug} />
+              <Metric label={t("admin.ui.category")} value={product.category?.name ?? t("admin.productModerationDetail.unassigned")} />
+              <Metric label={t("admin.ui.created")} value={formatDate(product.createdAt)} />
+              <Metric label={t("admin.productModerationDetail.updated")} value={formatDate(product.updatedAt)} />
             </div>
             <div className="mt-4 overflow-hidden rounded-lg border border-white/10">
               <Table>
@@ -255,11 +245,11 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
             </div>
           </DetailPanel>
 
-          <DetailPanel title="Variants & Inventory" icon={BoxesIcon}>
+          <DetailPanel title={t("admin.productModerationDetail.variantsAndInventory")} icon={BoxesIcon}>
             <div className="mb-4 grid gap-3 sm:grid-cols-3">
-              <Metric label="Variants" value={String(product.variants.length)} />
-              <Metric label="From price" value={lowestPrice ? formatMoney(lowestPrice.price, lowestPrice.currency) : "None"} />
-              <Metric label="Total stock" value={String(totalInventory(product))} />
+              <Metric label={t("admin.ui.variants")} value={String(product.variants.length)} />
+              <Metric label={t("admin.productModerationDetail.fromPrice")} value={lowestPrice ? formatMoney(lowestPrice.price, lowestPrice.currency) : t("admin.productModerationDetail.none")} />
+              <Metric label={t("admin.productModerationDetail.totalStock")} value={String(totalInventory(product))} />
             </div>
             <div className="overflow-hidden rounded-lg border border-white/10">
               <Table>
@@ -270,7 +260,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
                       <TableCell className="px-4 py-3 font-medium text-white">{variant.title}</TableCell>
                       <TableCell className="font-mono text-xs text-slate-400">{variant.sku}</TableCell>
                       <TableCell className="text-sm text-slate-300">{formatMoney(variant.price, variant.currency)}</TableCell>
-                      <TableCell className="text-sm text-slate-300">{variant.inventory?.quantityOnHand ?? 0} on hand, {variant.inventory?.quantityReserved ?? 0} reserved</TableCell>
+                      <TableCell className="text-sm text-slate-300">{t("admin.productModerationDetail.inventoryCounts").replace("{onHand}", String(variant.inventory?.quantityOnHand ?? 0)).replace("{reserved}", String(variant.inventory?.quantityReserved ?? 0))}</TableCell>
                       <TableCell><AdminStatusBadge status={variant.status} /></TableCell>
                     </TableRow>
                   )) : (
@@ -283,15 +273,15 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
         </div>
 
         <div className="space-y-5">
-          <DetailPanel title="Shop Context" icon={StoreIcon}>
+          <DetailPanel title={t("admin.productModerationDetail.shopContext")} icon={StoreIcon}>
             <div className="space-y-3">
-              <Metric label="Shop" value={product.shop.name} />
-              <Metric label="Shop slug" value={product.shop.slug} />
-              <Metric label="Shop status" value={product.shop.status} />
+              <Metric label={t("admin.ui.shop")} value={product.shop.name} />
+              <Metric label={t("admin.productModerationDetail.shopSlug")} value={product.shop.slug} />
+              <Metric label={t("admin.productModerationDetail.shopStatus")} value={product.shop.status} />
             </div>
           </DetailPanel>
 
-          <DetailPanel title="Readiness Checklist" icon={ShieldCheckIcon}>
+          <DetailPanel title={t("admin.productModerationDetail.readinessChecklist")} icon={ShieldCheckIcon}>
             <div className="space-y-3">
               {checklist.map((item) => (
                 <div key={item.label} className="flex items-start gap-3 rounded-lg border border-white/10 bg-slate-950/40 p-3">
@@ -305,13 +295,13 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
             </div>
           </DetailPanel>
 
-          <DetailPanel title="Moderation History" icon={ClipboardListIcon}>
+          <DetailPanel title={t("admin.productModerationDetail.moderationHistory")} icon={ClipboardListIcon}>
             {moderationCase ? (
               <div className="space-y-4">
                 <div className="grid gap-3">
-                  <Metric label="Case status" value={moderationCase.status} />
-                  <Metric label="Reason" value={moderationCase.reason} />
-                  <Metric label="Severity" value={moderationCase.severity} />
+                  <Metric label={t("admin.productModerationDetail.caseStatus")} value={moderationCase.status} />
+                  <Metric label={t("admin.ui.reason")} value={moderationCase.reason} />
+                  <Metric label={t("admin.productModerationDetail.severity")} value={moderationCase.severity} />
                 </div>
                 <div className="space-y-3">
                   {moderationCase.actions.map((action: ModerationAction) => (

@@ -7,6 +7,8 @@ import { cleanup, fireEvent, render as testingRender, screen, waitFor } from "@t
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { completePhoneSignup, requestPhoneAuthOtp, verifyPhoneAuthOtp } from "#/features/auth/api";
 import { PhoneAuthPanel } from "./PhoneAuthPanel";
+import { I18nProvider } from "#/i18n/client";
+import enMessages from "../../../../messages/en.json";
 
 const push = vi.fn();
 
@@ -21,7 +23,7 @@ vi.mock("#/features/auth/api", () => ({
 }));
 
 function render(ui: ReactElement) {
-  return testingRender(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
+  return testingRender(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}><I18nProvider locale="en" messages={enMessages} fallbackMessages={enMessages}>{ui}</I18nProvider></QueryClientProvider>);
 }
 
 afterEach(() => cleanup());

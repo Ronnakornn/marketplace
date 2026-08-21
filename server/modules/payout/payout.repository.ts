@@ -15,7 +15,8 @@ export interface IPayoutRepository {
   findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'name' | 'ownerId'>>>
   ensureWallet(shopId: string, currency: string): Promise<ShopWallet>
   findWalletByShopId(shopId: string): Promise<(ShopWallet & { shop: Pick<Shop, 'id' | 'name' | 'ownerId'> }) | null>
-  sumLedger(walletId: string): Promise<number>
+  lockWallet(walletId: string): Promise<void>
+  sumLedger(walletId: string, currency: string): Promise<number>
   createPayout(input: { walletId: string; shopId: string; amount: number; currency: string; requestedById: string }): Promise<PayoutRecord>
   createLedgerEntry(input: {
     walletId: string
@@ -28,8 +29,9 @@ export interface IPayoutRepository {
   }): Promise<WalletLedgerEntry>
   listSellerPayouts(shopIds: string[]): Promise<PayoutRecord[]>
   listAdminPayouts(status?: PayoutStatus): Promise<PayoutRecord[]>
+  lockPayout(payoutId: string): Promise<void>
   findPayoutById(payoutId: string): Promise<PayoutRecord | null>
-  updatePayout(payoutId: string, data: Partial<Pick<SellerPayout, 'status' | 'approvedById' | 'rejectedById' | 'paidById' | 'rejectionReason' | 'approvedAt' | 'rejectedAt' | 'paidAt'>>): Promise<PayoutRecord>
+  updatePayout(payoutId: string, data: Partial<Pick<SellerPayout, 'status' | 'approvedById' | 'rejectedById' | 'paidById' | 'externalReference' | 'rejectionReason' | 'approvedAt' | 'rejectedAt' | 'paidAt'>>): Promise<PayoutRecord>
 }
 
 const payoutInclude = {
@@ -84,9 +86,13 @@ export class PrismaPayoutRepository implements IPayoutRepository {
     })
   }
 
-  async sumLedger(walletId: string): Promise<number> {
+  async lockWallet(walletId: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "ShopWallet" WHERE "id" = ${walletId}::uuid FOR UPDATE`
+  }
+
+  async sumLedger(walletId: string, currency: string): Promise<number> {
     const result = await this.prisma.walletLedgerEntry.aggregate({
-      where: { walletId },
+      where: { walletId, currency },
       _sum: { amount: true },
     })
     return Number(result._sum.amount ?? 0)
@@ -152,7 +158,11 @@ export class PrismaPayoutRepository implements IPayoutRepository {
     })
   }
 
-  updatePayout(payoutId: string, data: Partial<Pick<SellerPayout, 'status' | 'approvedById' | 'rejectedById' | 'paidById' | 'rejectionReason' | 'approvedAt' | 'rejectedAt' | 'paidAt'>>): Promise<PayoutRecord> {
+  async lockPayout(payoutId: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "SellerPayout" WHERE "id" = ${payoutId}::uuid FOR UPDATE`
+  }
+
+  updatePayout(payoutId: string, data: Partial<Pick<SellerPayout, 'status' | 'approvedById' | 'rejectedById' | 'paidById' | 'externalReference' | 'rejectionReason' | 'approvedAt' | 'rejectedAt' | 'paidAt'>>): Promise<PayoutRecord> {
     return this.prisma.sellerPayout.update({
       where: { id: payoutId },
       data,

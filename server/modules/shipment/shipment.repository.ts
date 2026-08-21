@@ -61,6 +61,7 @@ export interface IShipmentRepository extends IShipmentCreationRepository {
   findSellerShops(ownerId: string): Promise<Pick<Shop, 'id'>[]>
   findSellerShipments(shopIds: string[]): Promise<SellerShipment[]>
   findSellerShipmentById(shipmentId: string, shopIds: string[]): Promise<SellerShipment | null>
+  findShipmentById(shipmentId: string): Promise<SellerShipment | null>
   findBuyerShipmentById(shipmentId: string, userId: string): Promise<BuyerShipment | null>
   updateShipmentPacked(shipmentId: string): Promise<SellerShipment>
   updateShipmentShipped(shipmentId: string, carrier: string, trackingNo: string, shippedAt: Date): Promise<SellerShipment>
@@ -182,6 +183,13 @@ export class PrismaShipmentRepository implements IShipmentRepository {
         id: shipmentId,
         shopId: { in: shopIds },
       },
+      include: sellerShipmentInclude,
+    })
+  }
+
+  findShipmentById(shipmentId: string): Promise<SellerShipment | null> {
+    return this.prisma.shipment.findUnique({
+      where: { id: shipmentId },
       include: sellerShipmentInclude,
     })
   }

@@ -279,6 +279,11 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
       },
     })
 
+    await this.prisma.inventoryReservation.updateMany({
+      where: { checkoutId: checkout.id, status: 'ACTIVE' },
+      data: { orderId: order.id },
+    })
+
     if (input.coupon) {
       await this.prisma.couponRedemption.create({
         data: {

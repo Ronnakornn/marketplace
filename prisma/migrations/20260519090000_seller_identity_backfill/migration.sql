@@ -328,7 +328,7 @@ SET "shopId" = src."shopId"
 FROM (
   SELECT
     ri."returnRequestId",
-    MIN(oi."shopId") AS "shopId",
+    MIN(oi."shopId"::text)::uuid AS "shopId",
     COUNT(DISTINCT oi."shopId") AS "shopCount"
   FROM "ReturnItem" ri
   JOIN "OrderItem" oi ON oi."id" = ri."orderItemId"

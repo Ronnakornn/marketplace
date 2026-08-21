@@ -1,4 +1,15 @@
-import type { OrderStatus, ProductStatus, RefundStatus, ReturnStatus, Role, ShopStatus, UserStatus } from '#generated/client/enums.ts'
+import type { Prisma } from '#generated/client/client.ts'
+import type {
+  AffiliateCommissionStatus,
+  OrderStatus,
+  ProductStatus,
+  RefundStatus,
+  ReturnStatus,
+  Role,
+  SettingValueType,
+  ShopStatus,
+  UserStatus,
+} from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { AuditLogService } from '#server/modules/audit-log'
@@ -8,6 +19,7 @@ import { AdminServiceError } from './admin.errors.ts'
 import type {
   AdminDashboardCounts,
   AdminBrandRecord,
+  AdminCommissionRecord,
   AdminPaginatedResult,
   AdminPaginationInput,
   AdminProductRecord,
@@ -15,6 +27,7 @@ import type {
   AdminReportMetrics,
   AdminReturnRecord,
   AdminShopRecord,
+  AdminSystemSettingRecord,
   AdminOrderRecord,
   AdminUserRecord,
   IAdminRepository,
@@ -42,6 +55,25 @@ export interface AdminListUsersInput {
   status?: string
 }
 
+export interface AdminListCommissionsInput {
+  page?: number | string
+  limit?: number | string
+  status?: string
+  q?: string
+}
+
+export interface AdminCommissionStatusInput {
+  status?: string
+  reason?: string
+}
+
+export interface AdminSystemSettingWriteInput {
+  value: unknown
+  valueType?: string
+  description?: string | null
+  isPublic?: boolean
+}
+
 export interface AdminCreateUserInput {
   name?: string
   email?: string
@@ -61,6 +93,13 @@ export interface AdminListByStatusInput {
   limit?: number | string
   status?: string
   shopId?: string
+  paymentState?: string
+  shipmentState?: string
+}
+
+export interface AdminRefundStatusInput {
+  status: string
+  externalReference?: string
 }
 
 export interface AdminListBrandsInput {
@@ -118,8 +157,13 @@ const ORDER_STATUSES = [
   'CANCELED',
   'REFUNDED',
 ] as const
+const PAYMENT_EXCEPTION_STATES = ['PENDING', 'FAILED'] as const
+const SHIPMENT_EXCEPTION_STATES = ['DELAYED'] as const
 const REFUND_STATUSES = ['PENDING', 'PROCESSING', 'SUCCESS', 'FAILED'] as const
 const RETURN_STATUSES = ['REQUESTED', 'APPROVED', 'REJECTED', 'RECEIVED', 'COMPLETED', 'CANCELLED'] as const
+const COMMISSION_STATUSES = ['PENDING', 'APPROVED', 'VOID'] as const
+const COMMISSION_DECISION_STATUSES = ['APPROVED', 'VOID'] as const
+const SETTING_VALUE_TYPES = ['STRING', 'NUMBER', 'BOOLEAN', 'JSON'] as const
 
 export class AdminService {
   private logger: ILogger
@@ -140,6 +184,92 @@ export class AdminService {
   getReports(actor: AdminActor): Promise<AdminReportMetrics> {
     this.assertAdmin(actor)
     return this.repository.getReportMetrics()
+  }
+
+  async listCommissions(
+    actor: AdminActor,
+    input: AdminListCommissionsInput = {},
+  ): Promise<AdminListResponse<AdminCommissionRecord>> {
+    this.assertAdmin(actor)
+    const pagination = this.normalizePagination(input)
+    const status = input.status === undefined
+      ? undefined
+      : this.parseEnum<AffiliateCommissionStatus>(input.status, COMMISSION_STATUSES)
+    const q = input.q?.trim() || undefined
+    return this.toListResponse(await this.repository.listCommissions({ status, q }, pagination), pagination)
+  }
+
+  async updateCommissionStatus(
+    actor: AdminActor,
+    commissionId: string,
+    input: AdminCommissionStatusInput,
+  ): Promise<AdminCommissionRecord> {
+    this.assertAdmin(actor)
+    const nextStatus = this.parseEnum<AffiliateCommissionStatus>(input.status ?? '', COMMISSION_DECISION_STATUSES)
+    const reason = input.reason?.trim()
+    if (!reason || reason.length < 3 || reason.length > 500) {
+      throw new AdminServiceError('Decision reason must be between 3 and 500 characters', 400, 'INVALID_ADMIN_INPUT')
+    }
+    const existing = await this.repository.findCommissionById(commissionId)
+    if (!existing) throw new AdminServiceError('Commission not found', 404, 'COMMISSION_NOT_FOUND')
+    if (existing.status === nextStatus) return existing
+    const allowed: Record<AffiliateCommissionStatus, readonly AffiliateCommissionStatus[]> = {
+      PENDING: ['APPROVED', 'VOID'],
+      APPROVED: ['VOID'],
+      VOID: [],
+    }
+    if (!allowed[existing.status].includes(nextStatus)) {
+      throw new AdminServiceError('Invalid commission status transition', 409, 'INVALID_STATUS_TRANSITION')
+    }
+    const updated = await this.repository.updateCommissionStatus(commissionId, existing.status, nextStatus)
+    if (!updated) {
+      throw new AdminServiceError('Commission changed while the decision was being saved', 409, 'STALE_ADMIN_WRITE')
+    }
+    this.logger.info('AdminService.updateCommissionStatus', { actorId: actor.id, commissionId, nextStatus })
+    await this.auditAdminConfigChange(actor, 'AffiliateCommission', commissionId, { status: existing.status }, { status: updated.status }, { reason })
+    return updated
+  }
+
+  listSystemSettings(actor: AdminActor): Promise<AdminSystemSettingRecord[]> {
+    this.assertAdmin(actor)
+    return this.repository.listSystemSettings()
+  }
+
+  async upsertSystemSetting(
+    actor: AdminActor,
+    keyValue: string,
+    input: AdminSystemSettingWriteInput,
+  ): Promise<AdminSystemSettingRecord> {
+    this.assertAdmin(actor)
+    const key = keyValue.trim().toLowerCase()
+    if (!/^[a-z][a-z0-9_.-]{1,119}$/.test(key)) {
+      throw new AdminServiceError('Setting key must use lowercase letters, numbers, dots, underscores, or dashes', 400, 'INVALID_ADMIN_INPUT')
+    }
+    const valueType = this.parseEnum<SettingValueType>(input.valueType ?? 'JSON', SETTING_VALUE_TYPES)
+    const value = this.normalizeSystemSettingValue(input.value, valueType)
+    const description = input.description?.trim() || null
+    if (description && description.length > 500) {
+      throw new AdminServiceError('Setting description is too long', 400, 'INVALID_ADMIN_INPUT')
+    }
+    const existing = await this.repository.findSystemSettingByKey(key)
+    const updated = await this.repository.upsertSystemSetting({
+      key,
+      value,
+      valueType,
+      description,
+      isPublic: input.isPublic ?? false,
+      updatedById: actor.id,
+    })
+    this.logger.info('AdminService.upsertSystemSetting', { actorId: actor.id, key, valueType, isPublic: updated.isPublic })
+    await this.auditAdminConfigChange(
+      actor,
+      'SystemSetting',
+      updated.id,
+      existing ? { key: existing.key, valueType: existing.valueType, description: existing.description, isPublic: existing.isPublic } : null,
+      { key: updated.key, valueType: updated.valueType, description: updated.description, isPublic: updated.isPublic },
+      { valueChanged: existing?.value !== updated.value },
+    )
+    return updated
   }
 
   async listUsers(actor: AdminActor, input: AdminListUsersInput = {}): Promise<AdminListResponse<AdminUserRecord>> {
@@ -421,7 +551,16 @@ export class AdminService {
     this.assertAdmin(actor)
     const pagination = this.normalizePagination(input)
     const status = input.status === undefined ? undefined : this.parseEnum<OrderStatus>(input.status, ORDER_STATUSES)
-    return this.toListResponse(await this.repository.listOrders({ status, shopId: input.shopId }, pagination), pagination)
+    const paymentState = input.paymentState === undefined
+      ? undefined
+      : this.parseEnum<'PENDING' | 'FAILED'>(input.paymentState, PAYMENT_EXCEPTION_STATES)
+    const shipmentState = input.shipmentState === undefined
+      ? undefined
+      : this.parseEnum<'DELAYED'>(input.shipmentState, SHIPMENT_EXCEPTION_STATES)
+    return this.toListResponse(
+      await this.repository.listOrders({ status, shopId: input.shopId, paymentState, shipmentState }, pagination),
+      pagination,
+    )
   }
 
   async getOrder(actor: AdminActor, orderId: string): Promise<AdminOrderRecord> {
@@ -449,9 +588,9 @@ export class AdminService {
     return refund
   }
 
-  async updateRefundStatus(actor: AdminActor, refundId: string, statusValue: string): Promise<AdminRefundRecord> {
+  async updateRefundStatus(actor: AdminActor, refundId: string, input: AdminRefundStatusInput): Promise<AdminRefundRecord> {
     this.assertAdmin(actor)
-    const status = this.parseEnum<RefundStatus>(statusValue, REFUND_STATUSES)
+    const status = this.parseEnum<RefundStatus>(input.status, REFUND_STATUSES)
     const existing = await this.repository.findRefundById(refundId)
     if (!existing) {
       throw new AdminServiceError('Refund not found', 404, 'REFUND_NOT_FOUND')
@@ -462,9 +601,23 @@ export class AdminService {
     if (existing.status === 'SUCCESS' || existing.status === 'FAILED' || (status === 'SUCCESS' && existing.status !== 'PROCESSING')) {
       throw new AdminServiceError('Invalid refund status transition', 409, 'INVALID_STATUS_TRANSITION')
     }
+    const externalReference = input.externalReference?.trim()
+    if (status === 'SUCCESS' && !externalReference) {
+      throw new AdminServiceError('External refund reference is required', 400, 'INVALID_STATUS_TRANSITION')
+    }
+    if (status === 'SUCCESS' && existing.processingById === actor.id) {
+      throw new AdminServiceError('Refund must be completed by a different administrator', 409, 'INVALID_STATUS_TRANSITION')
+    }
     this.logger.info('AdminService.updateRefundStatus', { actorId: actor.id, refundId, status })
-    const updated = await this.repository.updateRefundStatus(refundId, status)
-    await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', refundId, existing, updated)
+    const updated = await this.repository.updateRefundStatus(refundId, existing.status, {
+      status,
+      ...(status === 'PROCESSING' ? { processingById: actor.id, processingAt: new Date() } : {}),
+      ...(status === 'SUCCESS' ? { completedById: actor.id, completedAt: new Date(), externalReference } : {}),
+    })
+    if (!updated) throw new AdminServiceError('Refund status changed concurrently', 409, 'INVALID_STATUS_TRANSITION')
+    await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', refundId, existing, updated, {
+      externalReference: status === 'SUCCESS' ? externalReference : undefined,
+    }, false)
     return updated
   }
 
@@ -512,6 +665,8 @@ export class AdminService {
     entityId: string,
     before: { status: string },
     after: { status: string },
+    metadata: Record<string, unknown> = {},
+    nonCritical = true,
   ): Promise<void> {
     if (!this.auditLogService || before.status === after.status) return
     await this.auditLogService.createAuditLogBestEffort({
@@ -522,8 +677,8 @@ export class AdminService {
       entityId,
       before: { status: before.status },
       after: { status: after.status },
-      metadata: { source: 'admin_api' },
-      nonCritical: true,
+      metadata: { source: 'admin_api', ...metadata },
+      nonCritical,
     })
   }
 
@@ -564,6 +719,28 @@ export class AdminService {
       before: { status: before.status, name: before.name, slug: before.slug, ownerId: before.ownerId },
       after: { status: after.status, name: after.name, slug: after.slug, ownerId: after.ownerId },
       metadata: { source: 'admin_api' },
+      nonCritical: true,
+    })
+  }
+
+  private async auditAdminConfigChange(
+    actor: AdminActor,
+    entityType: string,
+    entityId: string,
+    before: Record<string, unknown> | null,
+    after: Record<string, unknown> | null,
+    metadata: Record<string, unknown> = {},
+  ): Promise<void> {
+    if (!this.auditLogService) return
+    await this.auditLogService.createAuditLogBestEffort({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'ADMIN_CONFIG_CHANGED',
+      entityType,
+      entityId,
+      before,
+      after,
+      metadata: { source: 'admin_api', ...metadata },
       nonCritical: true,
     })
   }
@@ -616,6 +793,28 @@ export class AdminService {
     if (value === 'true') return true
     if (value === 'false') return false
     throw new AdminServiceError('Invalid boolean filter', 400, 'INVALID_STATUS')
+  }
+
+  private normalizeSystemSettingValue(value: unknown, valueType: SettingValueType): Prisma.InputJsonValue {
+    const valid = valueType === 'STRING'
+      ? typeof value === 'string'
+      : valueType === 'NUMBER'
+        ? typeof value === 'number' && Number.isFinite(value)
+        : valueType === 'BOOLEAN'
+          ? typeof value === 'boolean'
+          : value !== null && this.isJsonValue(value)
+    if (!valid) {
+      throw new AdminServiceError(`Setting value does not match ${valueType}`, 400, 'INVALID_ADMIN_INPUT')
+    }
+    return value as Prisma.InputJsonValue
+  }
+
+  private isJsonValue(value: unknown): boolean {
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') return true
+    if (typeof value === 'number') return Number.isFinite(value)
+    if (Array.isArray(value)) return value.every((item) => this.isJsonValue(item))
+    if (typeof value !== 'object') return false
+    return Object.values(value as Record<string, unknown>).every((item) => this.isJsonValue(item))
   }
 
   private normalizeOptionalCode(value: string | null | undefined): string | null {

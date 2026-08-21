@@ -16,7 +16,7 @@ import { Button } from "#/components/ui/button";
 import { CardContent } from "#/components/ui/card";
 import { Textarea } from "#/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
-import { useTranslations } from "#/i18n/client";
+import { useFormatters, useTranslations } from "#/i18n/client";
 import { AdminDataShell } from "./AdminDataShell";
 import { AdminStatusBadge } from "./AdminStatusBadge";
 import {
@@ -38,11 +38,6 @@ interface DocumentRejectTarget {
   documentId: string;
   documentType: string;
   documentSide: string | null | undefined;
-}
-
-function formatDate(value: string | Date | null | undefined) {
-  if (!value) return "Not set";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
 function formatFileSize(bytes: number | null | undefined) {
@@ -75,7 +70,7 @@ function readApiError(error: unknown): ParsedApiError | null {
   return null;
 }
 
-function readErrorMessage(error: unknown, fallback = "Operation failed.") {
+function readErrorMessage(error: unknown, fallback: string) {
   return readApiError(error)?.message ?? fallback;
 }
 
@@ -116,6 +111,8 @@ function DetailLine({ label, value }: { label: string; value: string | null | un
 
 export function AdminSellerApplicationsTable() {
   const t = useTranslations();
+  const formatters = useFormatters();
+  const formatDate = (value: string | Date | null | undefined) => value ? formatters.date(value) : t("admin.sellerApplications.notSet");
   const [search, setSearch] = useState("");
   const [rejectTarget, setRejectTarget] = useState<AdminSellerApplication | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -156,7 +153,7 @@ export function AdminSellerApplicationsTable() {
 
   return (
     <AdminDataShell
-      title="Seller Application Queue"
+      title={t("admin.sellerApplications.title")}
       description={t("admin.sellerApplications.description")}
       icon={ClipboardCheckIcon}
       search={search}
@@ -188,24 +185,24 @@ export function AdminSellerApplicationsTable() {
                     <AdminStatusBadge status={application.status} />
                     <AdminStatusBadge status={application.user.status} />
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">Submitted {formatDate(application.submittedAt)}</p>
+                  <p className="mt-2 text-xs text-slate-500">{t("admin.sellerApplications.submitted")} {formatDate(application.submittedAt)}</p>
                 </TableCell>
                 <TableCell className="align-top">
                   <p className="text-sm font-medium text-slate-100">{application.shopName}</p>
                   <p className="text-xs text-slate-500">{application.shopSlug}</p>
                   <div className="mt-2 space-y-1 text-xs">
-                    <DetailLine label="Business" value={application.businessType} />
-                    <DetailLine label="Legal" value={application.legalName} />
-                    <DetailLine label="Email" value={application.shopContactEmail} />
-                    <DetailLine label="Phone" value={application.shopContactPhone} />
+                    <DetailLine label={t("admin.sellerApplications.business")} value={application.businessType} />
+                    <DetailLine label={t("admin.sellerApplications.legalName")} value={application.legalName} />
+                    <DetailLine label={t("admin.sellerApplications.email")} value={application.shopContactEmail} />
+                    <DetailLine label={t("admin.sellerApplications.phone")} value={application.shopContactPhone} />
                   </div>
                 </TableCell>
                 <TableCell className="align-top text-xs">
                   <div className="space-y-1">
-                    <DetailLine label="National ID" value={application.nationalIdMasked} />
-                    <DetailLine label="Company" value={application.companyRegistrationMasked} />
-                    <DetailLine label="Tax" value={application.taxIdMasked} />
-                    <DetailLine label="Bank account" value={application.bankAccountNumberMasked} />
+                    <DetailLine label={t("admin.sellerApplications.nationalId")} value={application.nationalIdMasked} />
+                    <DetailLine label={t("admin.sellerApplications.company")} value={application.companyRegistrationMasked} />
+                    <DetailLine label={t("admin.sellerApplications.taxId")} value={application.taxIdMasked} />
+                    <DetailLine label={t("admin.sellerApplications.bankAccount")} value={application.bankAccountNumberMasked} />
                   </div>
                   <div className="mt-3 rounded-md border border-white/10 bg-slate-950/50 p-3">
                     <p className="flex items-center gap-2 font-medium text-slate-200">
@@ -239,13 +236,19 @@ export function AdminSellerApplicationsTable() {
                           </p>
                         </div>
                         <p className="mt-1 truncate text-slate-500">{document.fileName} / {document.contentType} / {formatFileSize(document.fileSize)}</p>
-                        <p className="text-slate-500">Upload {document.uploadId} / {document.status} / {formatDate(document.completedAt)}</p>
+                        <p className="text-slate-500">{t("admin.sellerApplications.upload")} {document.uploadId} / {document.status} / {formatDate(document.completedAt)}</p>
                         {document.reviewStatus === "REJECTED" && document.rejectionReason ? (
                           <p className="mt-1 rounded border border-red-400/30 bg-red-500/10 px-2 py-1 text-red-200">
                             {t("seller.kyc.rejectionReason")} {document.rejectionReason}
                           </p>
                         ) : null}
                         <div className="mt-2 flex flex-wrap justify-end gap-2">
+                          <Button asChild type="button" size="sm" variant="outline" className="border-cyan-300/40 text-cyan-200 hover:bg-cyan-300/10">
+                            <a href={`/api/uploads/${document.uploadId}/content`} target="_blank" rel="noreferrer noopener">
+                              <FileTextIcon className="size-4" />
+                              {t("admin.sellerApplications.viewDocument")}
+                            </a>
+                          </Button>
                           <Button
                             type="button"
                             size="sm"
@@ -294,7 +297,7 @@ export function AdminSellerApplicationsTable() {
                       onClick={() => review.mutate({ id: application.id, decision: "APPROVED" })}
                     >
                       <CheckIcon className="size-4" />
-                      Approve
+                      {t("admin.ui.approve")}
                     </Button>
                     <Button
                       type="button"
@@ -305,7 +308,7 @@ export function AdminSellerApplicationsTable() {
                       onClick={() => setRejectTarget(application)}
                     >
                       <XIcon className="size-4" />
-                      Reject
+                      {t("admin.ui.reject")}
                     </Button>
                   </div>
                 </TableCell>
@@ -313,7 +316,7 @@ export function AdminSellerApplicationsTable() {
             )) : (
               <TableRow className="border-white/8 hover:bg-transparent">
                 <TableCell colSpan={5} className="h-32 text-center text-slate-400">
-                  No submitted seller applications match the current search.
+                  {t("admin.sellerApplications.empty")}
                 </TableCell>
               </TableRow>
             )}
@@ -339,14 +342,14 @@ export function AdminSellerApplicationsTable() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t("admin.sellerApplications.rejectApplicationTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Provide a reason for {rejectTarget?.shopName}. The seller will see this message on their status page.
+              {t("admin.sellerApplications.rejectApplicationDescription").replace("{shop}", rejectTarget?.shopName ?? "-")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
             <Textarea
               value={rejectionReason}
               onChange={(event) => setRejectionReason(event.target.value)}
-              placeholder="Explain what must be corrected before resubmission."
+              placeholder={t("admin.sellerApplications.rejectApplicationPlaceholder")}
               className="min-h-28"
             />
             {rejectionReasonError ? <p className="text-sm font-medium text-red-600">{t("admin.sellerApplications.rejectionReasonRequired")}</p> : null}
@@ -366,7 +369,7 @@ export function AdminSellerApplicationsTable() {
                   );
                 }}
               >
-                Reject
+                {t("admin.ui.reject")}
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>

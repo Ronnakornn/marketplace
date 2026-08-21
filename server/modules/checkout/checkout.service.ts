@@ -90,6 +90,9 @@ export class CheckoutService {
   async createCheckout(actor: CheckoutActor, data: CreateCheckoutData): Promise<CheckoutResponse> {
     this.assertBuyer(actor)
     this.validateInput(data)
+    if (this.paymentConfig.provider === 'disabled') {
+      throw new CheckoutServiceError('Payment checkout is not configured', 503, 'PAYMENT_UNAVAILABLE')
+    }
     this.logger.info('CheckoutService.createCheckout', { actorId: actor.id, cartId: data.cartId })
 
     return this.repo.transaction(async (txRepo) => {
@@ -201,6 +204,9 @@ export class CheckoutService {
     if (!data.paymentMethod?.trim()) {
       throw new CheckoutServiceError('Payment method is required', 400, 'CHECKOUT_PAYMENT_METHOD_REQUIRED')
     }
+    if (data.paymentMethod.trim().toLowerCase() === 'cod') {
+      throw new CheckoutServiceError('Cash on delivery is not available', 400, 'PAYMENT_METHOD_UNAVAILABLE')
+    }
   }
 
   private assertCart(actor: CheckoutActor, cart: CheckoutCart | null): asserts cart is CheckoutCart {
@@ -256,9 +262,12 @@ export class CheckoutService {
   }
 
   private calculateTotals(items: CheckoutCartItem[], discountCents = 0): CalculatedTotals {
-    const currency = items[0]?.variant.currency ?? 'USD'
+    const currency = items[0]?.variant.currency ?? 'THB'
     if (items.some((item) => item.variant.currency !== currency)) {
       throw new CheckoutServiceError('Mixed currencies are not supported in checkout', 400, 'CHECKOUT_FAILED')
+    }
+    if (currency !== 'THB') {
+      throw new CheckoutServiceError('Checkout supports THB only', 400, 'CHECKOUT_FAILED')
     }
 
     const subtotal = items.reduce((total, item) => total + Number(item.variant.price) * item.quantity, 0)

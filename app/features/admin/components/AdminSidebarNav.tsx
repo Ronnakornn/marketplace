@@ -7,6 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   CommandIcon,
   BellIcon,
+  BadgePercentIcon,
   BanknoteIcon,
   BarChart3Icon,
   Building2Icon,
@@ -123,7 +124,13 @@ const ADMIN_NAV_ITEMS = [
     title: "admin.nav.payouts",
     href: "/admin/payouts",
     icon: BanknoteIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/payouts") || pathname.startsWith("/admin/commissions"),
+    match: (pathname: string) => pathname.startsWith("/admin/payouts"),
+  },
+  {
+    title: "admin.nav.commissions",
+    href: "/admin/commissions",
+    icon: BadgePercentIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/commissions"),
   },
   {
     title: "admin.nav.affiliates",

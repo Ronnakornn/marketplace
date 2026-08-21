@@ -21,12 +21,13 @@ function payout(status: PayoutRecord['status'] = 'requested'): PayoutRecord {
     walletId: 'wallet-1',
     shopId: 'shop-1',
     amount: BigInt(5000),
-    currency: 'USD',
+    currency: 'THB',
     status,
     requestedById: 'seller-1',
     approvedById: null,
     rejectedById: null,
     paidById: null,
+    externalReference: null,
     rejectionReason: null,
     requestedAt: new Date('2026-05-01T00:00:00.000Z'),
     approvedAt: null,
@@ -37,7 +38,7 @@ function payout(status: PayoutRecord['status'] = 'requested'): PayoutRecord {
     wallet: {
       id: 'wallet-1',
       shopId: 'shop-1',
-      currency: 'USD',
+      currency: 'THB',
       version: 0,
       balance: BigInt(0),
       pendingBalance: BigInt(0),
@@ -54,12 +55,14 @@ function repoMock(): IPayoutRepository {
     transaction: vi.fn((callback) => callback(repo)),
     findSellerShops: vi.fn(),
     ensureWallet: vi.fn(),
+    lockWallet: vi.fn(),
     findWalletByShopId: vi.fn(),
     sumLedger: vi.fn(),
     createPayout: vi.fn(),
     createLedgerEntry: vi.fn(),
     listSellerPayouts: vi.fn(),
     listAdminPayouts: vi.fn(),
+    lockPayout: vi.fn(),
     findPayoutById: vi.fn(),
     updatePayout: vi.fn(),
   }
@@ -78,7 +81,7 @@ describe('PayoutService', () => {
     vi.mocked(repo.ensureWallet).mockResolvedValue({
       id: 'wallet-1',
       shopId: 'shop-1',
-      currency: 'USD',
+      currency: 'THB',
       version: 0,
       balance: BigInt(0),
       pendingBalance: BigInt(0),
@@ -178,12 +181,29 @@ describe('PayoutService', () => {
     vi.mocked(repo.findPayoutById).mockResolvedValue(payout('approved'))
     vi.mocked(repo.updatePayout).mockResolvedValue(payout('paid'))
 
-    await expect(service.markAdminPayoutPaid({ id: 'admin-1', role: 'ADMIN' }, 'payout-1'))
+    await expect(service.markAdminPayoutPaid({ id: 'admin-2', role: 'ADMIN' }, 'payout-1', {
+      externalReference: 'BANK-TRANSFER-123',
+    }))
       .resolves.toMatchObject({ status: 'paid' })
+    expect(repo.updatePayout).toHaveBeenCalledWith('payout-1', expect.objectContaining({
+      paidById: 'admin-2',
+      externalReference: 'BANK-TRANSFER-123',
+    }))
     expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       type: 'payout_paid',
       amount: 0,
     }))
+  })
+
+  it('requires two administrators and an external transfer reference', async () => {
+    vi.mocked(repo.findPayoutById).mockResolvedValue({ ...payout('approved'), approvedById: 'admin-1' })
+
+    await expect(service.markAdminPayoutPaid({ id: 'admin-1', role: 'ADMIN' }, 'payout-1', {
+      externalReference: 'BANK-TRANSFER-123',
+    })).rejects.toMatchObject({ code: 'INVALID_PAYOUT_STATE' })
+    await expect(service.markAdminPayoutPaid({ id: 'admin-2', role: 'ADMIN' }, 'payout-1', {
+      externalReference: ' ',
+    })).rejects.toMatchObject({ code: 'INVALID_PAYOUT_STATE' })
   })
 
   it('invalid payout transition fails', async () => {

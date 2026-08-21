@@ -48,7 +48,7 @@ export class WalletService {
 
   async getSellerWallet(actor: WalletActor): Promise<WalletSummary> {
     const wallet = await this.getSellerWalletRecord(actor.id)
-    return this.toSummary(wallet, await this.repo.sumLedger(wallet.id))
+    return this.toSummary(wallet, await this.repo.sumLedger(wallet.id, wallet.currency))
   }
 
   async listSellerTransactions(actor: WalletActor, input: { page?: number; limit?: number }): Promise<{
@@ -79,6 +79,7 @@ export class WalletService {
         const gross = items.reduce((sum: number, item) => sum + Number(item.lineTotal), 0)
         const commission = this.commissionService.calculate(gross)
         const wallet = await txRepo.ensureWallet(shopId, order.currency)
+        this.assertWalletCurrency(wallet.currency, order.currency)
         await txRepo.createLedgerEntry({
           walletId: wallet.id,
           shopId,
@@ -105,12 +106,13 @@ export class WalletService {
     })
   }
 
-  async applyRefundAdjustment(shopId: string, refundId: string, orderId: string, amount: number, currency = 'USD'): Promise<void> {
+  async applyRefundAdjustment(shopId: string, refundId: string, orderId: string, amount: number, currency = 'THB'): Promise<void> {
     if (!Number.isInteger(amount) || amount <= 0) {
       throw new WalletServiceError('Refund adjustment amount must be positive', 400, 'INVALID_PAYOUT_STATE')
     }
     await this.repo.transaction(async (txRepo) => {
       const wallet = await txRepo.ensureWallet(shopId, currency)
+      this.assertWalletCurrency(wallet.currency, currency)
       await txRepo.createLedgerEntry({
         walletId: wallet.id,
         shopId,
@@ -129,11 +131,18 @@ export class WalletService {
       ? (await this.activeShopResolver.resolveActiveShops(ownerId))[0]
       : (await this.repo.findSellerShops(ownerId))[0]
     if (!shop) throw new WalletServiceError('Wallet not found', 404, 'WALLET_NOT_FOUND')
-    await this.repo.ensureWallet(shop.id, 'USD')
+    await this.repo.ensureWallet(shop.id, 'THB')
     const wallet = await this.repo.findWalletByShopId(shop.id)
     if (!wallet) throw new WalletServiceError('Wallet not found', 404, 'WALLET_NOT_FOUND')
     if (wallet.shop.ownerId !== ownerId) throw new WalletServiceError('Wallet forbidden', 403, 'WALLET_FORBIDDEN')
+    this.assertWalletCurrency(wallet.currency, 'THB')
     return wallet
+  }
+
+  private assertWalletCurrency(walletCurrency: string, expectedCurrency: string): void {
+    if (walletCurrency !== expectedCurrency) {
+      throw new WalletServiceError('Wallet currency does not match transaction currency', 409, 'WALLET_CURRENCY_MISMATCH')
+    }
   }
 
   private normalizePagination(input: { page?: number; limit?: number }) {

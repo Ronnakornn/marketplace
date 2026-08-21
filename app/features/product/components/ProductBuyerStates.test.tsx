@@ -358,6 +358,7 @@ vi.mock("#/i18n/client", () => ({
     "product.highlights": "Highlights",
     "product.highlightsDescription": "Quick seller-provided notes for this product.",
     "product.increaseQuantity": "Increase quantity",
+    "product.itemsShown": "Showing {visible} of {total} items",
     "product.loadingMore": "Loading more...",
     "product.loadMore": "Load more",
     "product.loadMoreQuestions": "Load more questions",
@@ -596,13 +597,13 @@ describe("ProductListingPage buyer states", () => {
 
     expect(await screen.findByText("First product")).toBeTruthy();
     expect(screen.getByText("Second product")).toBeTruthy();
-    expect(screen.getByText("4 items found (2 shown)")).toBeTruthy();
+    expect(screen.getByText("Showing 2 of 4 items")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
 
     expect(await screen.findByText("Third product")).toBeTruthy();
     expect(screen.queryByText("Second product duplicate")).toBeNull();
-    expect(screen.getByText("4 items found (3 shown)")).toBeTruthy();
+    expect(screen.getByText("Showing 3 of 4 items")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });
 

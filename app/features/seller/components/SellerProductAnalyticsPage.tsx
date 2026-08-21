@@ -19,12 +19,7 @@ import {
   validateSellerProductAnalyticsRange,
 } from "../hooks/useSellerProductAnalytics";
 
-const rangeOptions: Array<{ value: SellerProductAnalyticsRange; label: string }> = [
-  { value: "7d", label: "7 days" },
-  { value: "30d", label: "30 days" },
-  { value: "90d", label: "90 days" },
-  { value: "custom", label: "Custom" },
-];
+const rangeOptions: SellerProductAnalyticsRange[] = ["7d", "30d", "90d", "custom"];
 
 export function SellerProductAnalyticsPage() {
   const t = useTranslations();
@@ -71,8 +66,8 @@ export function SellerProductAnalyticsPage() {
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2" role="group" aria-label={t("seller.analytics.dateRange")}>
               {rangeOptions.map((option) => (
-                <Button key={option.value} type="button" variant={filters.range === option.value ? "default" : "outline"} onClick={() => setRange(option.value)}>
-                  {option.value === "7d" ? t("seller.analytics.days7") : option.value === "30d" ? t("seller.analytics.days30") : option.value === "90d" ? t("seller.analytics.days90") : t("seller.analytics.custom")}
+                <Button key={option} type="button" variant={filters.range === option ? "default" : "outline"} onClick={() => setRange(option)}>
+                  {option === "7d" ? t("seller.analytics.days7") : option === "30d" ? t("seller.analytics.days30") : option === "90d" ? t("seller.analytics.days90") : t("seller.analytics.custom")}
                 </Button>
               ))}
             </div>
@@ -121,9 +116,9 @@ export function SellerProductAnalyticsPage() {
                   {data.daily.map((item) => (
                     <div key={item.date} className="flex flex-1 flex-col items-center gap-2">
                       <div className="flex h-52 w-full items-end justify-center gap-1">
-                        <TrendBar label={`${item.date} views`} value={item.views} max={maxTrendValue} className="bg-slate-700" />
-                        <TrendBar label={`${item.date} add to cart`} value={item.addToCart} max={maxTrendValue} className="bg-emerald-600" />
-                        <TrendBar label={`${item.date} orders`} value={item.orders} max={maxTrendValue} className="bg-amber-500" />
+                        <TrendBar label={t("seller.analytics.trendViews").replace("{date}", item.date)} value={item.views} max={maxTrendValue} className="bg-slate-700" />
+                        <TrendBar label={t("seller.analytics.trendAddToCart").replace("{date}", item.date)} value={item.addToCart} max={maxTrendValue} className="bg-emerald-600" />
+                        <TrendBar label={t("seller.analytics.trendOrders").replace("{date}", item.date)} value={item.orders} max={maxTrendValue} className="bg-amber-500" />
                       </div>
                       <span className="w-16 truncate text-center text-[11px] text-slate-500">{formatTrendDate(item.date)}</span>
                     </div>
@@ -160,9 +155,9 @@ export function SellerProductAnalyticsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-950">{product.title}</p>
-                    <p className="text-xs text-slate-500">{formatNumber(product.views)} views / {formatRate(product.conversionRate)} conversion</p>
+                    <p className="text-xs text-slate-500">{t("seller.analytics.lowPerformerSummary").replace("{views}", formatNumber(product.views)).replace("{conversion}", formatRate(product.conversionRate))}</p>
                   </div>
-                  <Link href={`/seller/products/${product.productId}`} className="shrink-0 text-xs font-semibold text-emerald-700 no-underline">Tune</Link>
+                  <Link href={`/seller/products/${product.productId}`} className="shrink-0 text-xs font-semibold text-emerald-700 no-underline">{t("seller.analytics.tune")}</Link>
                 </div>
               </div>
             )) : <EmptyState message={query.isLoading ? t("seller.analytics.loadingLowPerformers") : t("seller.analytics.emptyLowPerformers")} />}
@@ -189,6 +184,7 @@ function TrendBar({ label, value, max, className }: { label: string; value: numb
 }
 
 function SkuRow({ sku }: { sku: SellerProductAnalyticsSkuMetric }) {
+  const t = useTranslations();
   return (
     <div className="rounded-md border border-slate-200 p-3">
       <div className="flex items-start justify-between gap-3">
@@ -198,17 +194,18 @@ function SkuRow({ sku }: { sku: SellerProductAnalyticsSkuMetric }) {
         </div>
         <p className="shrink-0 text-sm font-semibold text-slate-950">{formatMoney(sku.revenue, sku.currency)}</p>
       </div>
-      <p className="mt-2 text-xs text-slate-500">{formatNumber(sku.unitsSold)} units / {formatNumber(sku.orders)} orders</p>
+      <p className="mt-2 text-xs text-slate-500">{t("seller.analytics.skuSummary").replace("{units}", formatNumber(sku.unitsSold)).replace("{orders}", formatNumber(sku.orders))}</p>
     </div>
   );
 }
 
 function AnalyticsErrorState({ error, retry }: { error: unknown; retry: () => void }) {
+  const t = useTranslations();
   return (
     <Card className="border-red-200 bg-red-50">
       <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-red-700">{error instanceof Error ? error.message : "Failed to load product analytics."}</p>
-        <Button type="button" variant="outline" onClick={retry}><RefreshCwIcon className="size-4" />Retry</Button>
+        <p className="text-sm text-red-700">{error instanceof Error ? error.message : t("seller.analytics.loadError")}</p>
+        <Button type="button" variant="outline" onClick={retry}><RefreshCwIcon className="size-4" />{t("common.retry")}</Button>
       </CardContent>
     </Card>
   );
@@ -222,8 +219,8 @@ function formatNumber(value: number | null | undefined) {
   return new Intl.NumberFormat("en-US").format(value ?? 0);
 }
 
-function formatMoney(cents: number | null | undefined, currency: string | null | undefined = "USD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD" }).format(Number(cents ?? 0) / 100);
+function formatMoney(cents: number | null | undefined, currency: string | null | undefined = "THB") {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "THB" }).format(Number(cents ?? 0) / 100);
 }
 
 function formatRate(value: number | null | undefined) {

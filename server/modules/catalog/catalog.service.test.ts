@@ -43,6 +43,12 @@ function createRepoMock(): ICatalogRepository {
     findShopById: vi.fn(),
     findFirstShopByOwnerId: vi.fn(),
     findProductById: vi.fn(),
+    findProductMetrics: vi.fn(async (productIds: string[]) => productIds.map((productId) => ({
+      productId,
+      rating: 0,
+      ratingCount: 0,
+      soldCount: 0,
+    }))),
     findRelatedProducts: vi.fn(),
     findProducts: vi.fn(),
     findProductFacets: vi.fn(async () => ({
@@ -214,7 +220,7 @@ function createVariant(overrides: Partial<{
     sku: overrides.sku ?? 'SKU-1',
     title: overrides.title ?? 'Blue',
     price: BigInt(overrides.price ?? 1299),
-    currency: 'USD',
+    currency: 'THB',
     status: 'ACTIVE' as const,
     createdAt: now,
     updatedAt: now,
@@ -350,6 +356,29 @@ describe('CatalogService', () => {
       limit: 10,
       status: 'ACTIVE',
       publicOnly: true,
+    })
+  })
+
+  it('adds real review and paid-order metrics to public products', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findProducts).mockResolvedValue({
+      data: [createProduct({ id: '22222222-2222-4222-8222-222222222222', status: 'ACTIVE' })],
+      meta: { nextCursor: null, hasNextPage: false },
+    })
+    vi.mocked(repo.findProductMetrics).mockResolvedValue([{
+      productId: '22222222-2222-4222-8222-222222222222',
+      rating: 4.25,
+      ratingCount: 8,
+      soldCount: 17,
+    }])
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.listPublicProducts({})).resolves.toMatchObject({
+      items: [{
+        rating: 4.25,
+        ratingSummary: { averageRating: 4.25, totalReviewCount: 8 },
+        soldCount: 17,
+      }],
     })
   })
 
@@ -585,7 +614,12 @@ describe('CatalogService', () => {
     vi.mocked(repo.findRelatedProducts).mockResolvedValue([related])
     const service = new CatalogService(createAppContext(), repo)
 
-    await expect(service.listRelatedProducts(source.id, { limit: 6, locale: 'en' })).resolves.toEqual([related])
+    await expect(service.listRelatedProducts(source.id, { limit: 6, locale: 'en' })).resolves.toEqual([{
+      ...related,
+      rating: 0,
+      ratingSummary: { averageRating: 0, totalReviewCount: 0 },
+      soldCount: 0,
+    }])
 
     expect(repo.findRelatedProducts).toHaveBeenCalledWith(source, 6)
     await expect(service.listRelatedProducts(source.id, { limit: 13 })).rejects.toMatchObject({
@@ -1509,7 +1543,7 @@ describe('CatalogService', () => {
       sku: 'SKU-1',
       title: 'Blue',
       price: 1299,
-      currency: 'USD',
+      currency: 'THB',
     }))
   })
 

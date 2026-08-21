@@ -54,6 +54,7 @@ export interface StorageConfig {
 
 export interface LocalStorageConfig {
   rootDir: string
+  privateRootDir: string
   publicBaseUrl?: string
   signingSecret: string
 }
@@ -64,6 +65,12 @@ export interface CreatePresignedPutUrlInput {
   fileSize: number
   expiresIn: number
   cacheControl?: string
+}
+
+export interface CreatePresignedGetUrlInput {
+  key: string
+  contentType: string
+  expiresIn: number
 }
 
 export interface LocalPresignedPutInput {
@@ -81,8 +88,22 @@ export interface LocalPresignedPutResponse {
   fileSize: number
 }
 
+export interface LocalPresignedGetInput {
+  key: string
+  contentType: string
+  expires: number
+  signature: string
+}
+
+export interface LocalPresignedGetResponse {
+  body: Uint8Array
+  contentType: string
+}
+
 export interface UploadStorage {
   createPresignedPutUrl(input: CreatePresignedPutUrlInput): Promise<string>
+  createPresignedGetUrl(input: CreatePresignedGetUrlInput): Promise<string>
   getPublicUrl(key: string): string | undefined
   writePresignedPutUrl?(input: LocalPresignedPutInput): Promise<LocalPresignedPutResponse>
+  readPresignedGetUrl?(input: LocalPresignedGetInput): Promise<LocalPresignedGetResponse>
 }

@@ -10,6 +10,10 @@ export const PAGE_SIZE = 10;
 
 export type AdminDashboard = Treaty.Data<ReturnType<typeof api.api.admin.dashboard.get>>;
 export type AdminReports = Treaty.Data<ReturnType<typeof api.api.admin.reports.get>>;
+export type AdminCommissionsResponse = Treaty.Data<ReturnType<typeof api.api.admin.commissions.get>>;
+export type AdminCommission = AdminCommissionsResponse extends { items: Array<infer T> } ? T : never;
+export type AdminSettingsResponse = Treaty.Data<ReturnType<typeof api.api.admin.settings.get>>;
+export type AdminSystemSetting = AdminSettingsResponse extends Array<infer T> ? T : never;
 export type AdminUsersResponse = Treaty.Data<ReturnType<typeof api.api.admin.users.get>>;
 export type AdminUser = AdminUsersResponse extends { items: Array<infer T> } ? T : never;
 export type AdminShopsResponse = Treaty.Data<ReturnType<typeof api.api.admin.shops.get>>;
@@ -49,6 +53,8 @@ export interface AdminListFilters {
   status?: string;
   q?: string;
   shopId?: string;
+  paymentState?: string;
+  shipmentState?: string;
 }
 
 export interface AdminShopMutationInput {
@@ -76,6 +82,14 @@ export interface AdminBrandMutationInput {
   isActive?: boolean;
 }
 
+export interface AdminSystemSettingMutationInput {
+  key: string;
+  value: unknown;
+  valueType: "STRING" | "NUMBER" | "BOOLEAN" | "JSON";
+  description?: string | null;
+  isPublic?: boolean;
+}
+
 function cleanQuery(filters: AdminListFilters) {
   return Object.fromEntries(
     Object.entries({
@@ -85,6 +99,8 @@ function cleanQuery(filters: AdminListFilters) {
       status: filters.status || undefined,
       q: filters.q || undefined,
       shopId: filters.shopId || undefined,
+      paymentState: filters.paymentState || undefined,
+      shipmentState: filters.shipmentState || undefined,
     }).filter(([, value]) => value !== undefined),
   );
 }
@@ -208,6 +224,40 @@ export function useAdminOrdersList(filters: AdminListFilters) {
     queryKey: listKey("orders", filters),
     queryFn: async () => {
       const { data, error } = await api.api.admin.orders.get({ query: cleanQuery(filters) });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useConfirmShipmentDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ shipmentId, evidenceReference }: { shipmentId: string; evidenceReference: string }) => {
+      const { data, error } = await api.api.admin.shipments({ shipmentId }).deliver.patch({ evidenceReference });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "orders"] }),
+  });
+}
+
+export function useAdminCommissionsList(filters: AdminListFilters) {
+  return useQuery({
+    queryKey: listKey("commissions", filters),
+    queryFn: async () => {
+      const { data, error } = await api.api.admin.commissions.get({ query: cleanQuery(filters) });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAdminSystemSettings() {
+  return useQuery({
+    queryKey: ["admin", "settings"],
+    queryFn: async () => {
+      const { data, error } = await api.api.admin.settings.get();
       if (error) throw error;
       return data;
     },
@@ -520,8 +570,8 @@ export function useUpdateModerationAnswerStatus() {
 export function useUpdateRefundStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { data, error } = await api.api.admin.refunds({ refundId: id }).status.patch({ status });
+    mutationFn: async ({ id, status, externalReference }: { id: string; status: string; externalReference?: string }) => {
+      const { data, error } = await api.api.admin.refunds({ refundId: id }).status.patch({ status, externalReference });
       if (error) throw error;
       return data;
     },
@@ -538,6 +588,35 @@ export function useUpdateReturnStatus() {
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useUpdateCommissionStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, reason }: { id: string; status: "APPROVED" | "VOID"; reason: string }) => {
+      const { data, error } = await api.api.admin.commissions({ commissionId: id }).status.patch({ status, reason });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin", "commissions"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "reports"] }),
+      ]);
+    },
+  });
+}
+
+export function useUpsertSystemSetting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ key, ...input }: AdminSystemSettingMutationInput) => {
+      const { data, error } = await api.api.admin.settings({ key }).put(input);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "settings"] }),
   });
 }
 
@@ -568,8 +647,8 @@ export function useRejectPayout() {
 export function useMarkPayoutPaid() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await api.api.admin.payouts({ payoutId: id })["mark-paid"].patch();
+    mutationFn: async ({ id, externalReference }: { id: string; externalReference: string }) => {
+      const { data, error } = await api.api.admin.payouts({ payoutId: id })["mark-paid"].patch({ externalReference });
       if (error) throw error;
       return data;
     },

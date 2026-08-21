@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import type React from "react";
 import { useState } from "react";
+import { useTranslations } from "#/i18n/client";
 import { changePassword, completePasswordReset, requestPasswordResetOtp, resendEmailVerification, verifyEmailOtp } from "#/features/auth/api";
 
 export function VerifyEmailForm() {
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [otp, setOtp] = useState("");
@@ -23,10 +25,10 @@ export function VerifyEmailForm() {
     setMessage(null);
     try {
       await verifyMutation.mutateAsync({ email, otp });
-      setMessage("Email verified. You can continue using your account.");
+      setMessage(t("auth.emailVerifiedSuccess"));
       setOtp("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Verification failed");
+      setError(err instanceof Error ? err.message : t("auth.verificationFailed"));
     }
   }
 
@@ -35,30 +37,31 @@ export function VerifyEmailForm() {
     setMessage(null);
     try {
       await resendMutation.mutateAsync();
-      setMessage("A new verification code was sent if your account is eligible.");
+      setMessage(t("auth.verificationCodeSent"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not resend verification code");
+      setError(err instanceof Error ? err.message : t("auth.resendVerificationFailed"));
     }
   }
 
   return (
-    <AuthShell title="Verify your email" description="Enter the code sent to your email address.">
+    <AuthShell title={t("auth.verifyEmailTitle")} description={t("auth.verifyEmailDescription")}>
       <StatusMessage message={message} error={error} />
       <form onSubmit={handleVerify} className="space-y-4">
-        <TextField id="verify-email" label="Email" type="email" value={email} onChange={setEmail} required />
-        <TextField id="verify-otp" label="Verification code" value={otp} onChange={setOtp} required minLength={4} inputMode="numeric" />
+        <TextField id="verify-email" label={t("auth.email")} type="email" value={email} onChange={setEmail} required />
+        <TextField id="verify-otp" label={t("auth.verificationCode")} value={otp} onChange={setOtp} required minLength={4} inputMode="numeric" />
         <button type="submit" disabled={loading !== null} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
-          {loading === "verify" ? "Verifying..." : "Verify email"}
+          {loading === "verify" ? t("auth.verifying") : t("auth.verifyEmail")}
         </button>
       </form>
       <button type="button" onClick={handleResend} disabled={loading !== null} className="mt-3 w-full rounded-full border border-[var(--line)] px-5 py-2.5 text-sm font-semibold text-[var(--sea-ink)] disabled:cursor-not-allowed disabled:opacity-50">
-        {loading === "resend" ? "Sending..." : "Resend code"}
+        {loading === "resend" ? t("auth.sending") : t("auth.resendCode")}
       </button>
     </AuthShell>
   );
 }
 
 export function ForgotPasswordForm() {
+  const t = useTranslations();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,29 +73,30 @@ export function ForgotPasswordForm() {
     setMessage(null);
     try {
       await resetRequestMutation.mutateAsync(email);
-      setMessage("If that email has an account, a reset code has been sent.");
+      setMessage(t("auth.resetCodeSent"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not request reset code");
+      setError(err instanceof Error ? err.message : t("auth.resetRequestFailed"));
     }
   }
 
   return (
-    <AuthShell title="Reset password" description="Request a code to set a new password.">
+    <AuthShell title={t("auth.resetPasswordTitle")} description={t("auth.resetPasswordDescription")}>
       <StatusMessage message={message} error={error} />
       <form onSubmit={handleSubmit} className="space-y-4">
-        <TextField id="reset-request-email" label="Email" type="email" value={email} onChange={setEmail} required />
+        <TextField id="reset-request-email" label={t("auth.email")} type="email" value={email} onChange={setEmail} required />
         <button type="submit" disabled={resetRequestMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
-          {resetRequestMutation.isPending ? "Sending..." : "Send reset code"}
+          {resetRequestMutation.isPending ? t("auth.sending") : t("auth.sendResetCode")}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-[var(--sea-ink-soft)]">
-        Have a code? <Link href="/reset-password" className="font-medium text-[var(--lagoon-deep)] hover:underline">Set a new password</Link>
+        {t("auth.haveResetCode")} <Link href="/reset-password" className="font-medium text-[var(--lagoon-deep)] hover:underline">{t("auth.setNewPassword")}</Link>
       </p>
     </AuthShell>
   );
 }
 
 export function ResetPasswordForm() {
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
@@ -108,19 +112,19 @@ export function ResetPasswordForm() {
       await resetMutation.mutateAsync({ email, otp, newPassword });
       router.push("/login");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not reset password");
+      setError(err instanceof Error ? err.message : t("auth.resetPasswordFailed"));
     }
   }
 
   return (
-    <AuthShell title="Set a new password" description="Use the reset code from your email.">
+    <AuthShell title={t("auth.setNewPassword")} description={t("auth.setNewPasswordDescription")}>
       <StatusMessage error={error} />
       <form onSubmit={handleSubmit} className="space-y-4">
-        <TextField id="reset-email" label="Email" type="email" value={email} onChange={setEmail} required />
-        <TextField id="reset-otp" label="Reset code" value={otp} onChange={setOtp} required minLength={4} inputMode="numeric" />
-        <TextField id="reset-new-password" label="New password" type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
+        <TextField id="reset-email" label={t("auth.email")} type="email" value={email} onChange={setEmail} required />
+        <TextField id="reset-otp" label={t("auth.resetCode")} value={otp} onChange={setOtp} required minLength={4} inputMode="numeric" />
+        <TextField id="reset-new-password" label={t("auth.newPassword")} type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
         <button type="submit" disabled={resetMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
-          {resetMutation.isPending ? "Saving..." : "Save new password"}
+          {resetMutation.isPending ? t("common.saving") : t("auth.saveNewPassword")}
         </button>
       </form>
     </AuthShell>
@@ -128,6 +132,7 @@ export function ResetPasswordForm() {
 }
 
 export function ChangePasswordForm() {
+  const t = useTranslations();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -142,20 +147,20 @@ export function ChangePasswordForm() {
       await changeMutation.mutateAsync({ currentPassword, newPassword });
       setCurrentPassword("");
       setNewPassword("");
-      setMessage("Password changed.");
+      setMessage(t("auth.passwordChanged"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not change password");
+      setError(err instanceof Error ? err.message : t("auth.changePasswordFailed"));
     }
   }
 
   return (
-    <AuthShell title="Change password" description="Confirm your current password before setting a new one.">
+    <AuthShell title={t("auth.changePasswordTitle")} description={t("auth.changePasswordDescription")}>
       <StatusMessage message={message} error={error} />
       <form onSubmit={handleSubmit} className="space-y-4">
-        <TextField id="current-password" label="Current password" type="password" value={currentPassword} onChange={setCurrentPassword} required />
-        <TextField id="new-password" label="New password" type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
+        <TextField id="current-password" label={t("auth.currentPassword")} type="password" value={currentPassword} onChange={setCurrentPassword} required />
+        <TextField id="new-password" label={t("auth.newPassword")} type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
         <button type="submit" disabled={changeMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
-          {changeMutation.isPending ? "Saving..." : "Change password"}
+          {changeMutation.isPending ? t("common.saving") : t("auth.changePasswordAction")}
         </button>
       </form>
     </AuthShell>

@@ -12,7 +12,7 @@ import { fetchCart, formatMoney, removeCartItem, updateCartItem } from "#/featur
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
-export function CartPage() {
+export function CartPage({ initialVoucher = "" }: { initialVoucher?: string }) {
   const queryClient = useQueryClient();
   const locale = useLocale();
   const t = useTranslations();
@@ -35,7 +35,9 @@ export function CartPage() {
     [cart, selectedItemIds],
   );
   const selectedSubtotal = selectedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const checkoutHref = `${localePath("/checkout")}?${new URLSearchParams({ items: selectedItems.map((item) => item.id).join(",") })}`;
+  const checkoutParams = new URLSearchParams({ items: selectedItems.map((item) => item.id).join(",") });
+  if (initialVoucher) checkoutParams.set("voucher", initialVoucher);
+  const checkoutHref = `${localePath("/checkout")}?${checkoutParams}`;
 
   function toggleItem(itemId: string, checked: boolean) {
     setSelectedItemIds((current) => {

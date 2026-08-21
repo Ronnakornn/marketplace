@@ -78,6 +78,8 @@ export interface BuyerCoupon {
   minOrderCents: number | null;
   maxDiscountCents: number | null;
   endsAt: string | null;
+  claimed: boolean;
+  claimedAt: string | null;
 }
 
 export interface BuyerNotification {
@@ -177,7 +179,7 @@ export interface ReviewInput {
   orderItemId: string;
   rating: number;
   comment?: string;
-  images?: string[];
+  uploadIds?: string[];
 }
 
 export interface ReturnRequestInput {
@@ -185,7 +187,7 @@ export interface ReturnRequestInput {
   orderItemId: string;
   reason: string;
   description?: string;
-  images?: string[];
+  uploadIds?: string[];
 }
 
 export interface CheckoutResult {
@@ -217,7 +219,7 @@ export interface CheckoutQuote {
 }
 
 export async function fetchCoupons(locale?: string): Promise<BuyerCoupon[]> {
-  const response = await apiFetch(`/api/coupons${toQuery({ locale })}`);
+  const response = await apiFetch(`/api/me/coupons${toQuery({ locale })}`);
   const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
   return rawItems.map((item) => {
     const record = toRecord(item);
@@ -232,8 +234,29 @@ export async function fetchCoupons(locale?: string): Promise<BuyerCoupon[]> {
       minOrderCents: optionalNumber(record.minOrderCents),
       maxDiscountCents: optionalNumber(record.maxDiscountCents),
       endsAt: optionalString(record.endsAt),
+      claimed: Boolean(record.claimed),
+      claimedAt: optionalString(record.claimedAt),
     };
   });
+}
+
+export async function claimCoupon(couponId: string, locale?: string): Promise<BuyerCoupon> {
+  const response = await apiFetch(`/api/coupons/${couponId}/claim${toQuery({ locale })}`, { method: "POST" });
+  const record = toRecord(response);
+  return {
+    id: readString(record.id),
+    code: readString(record.code),
+    title: readString(record.title, readString(record.code)),
+    description: optionalString(record.description),
+    discountType: readString(record.discountType),
+    discountValueCents: optionalNumber(record.discountValueCents),
+    discountPercentBps: optionalNumber(record.discountPercentBps),
+    minOrderCents: optionalNumber(record.minOrderCents),
+    maxDiscountCents: optionalNumber(record.maxDiscountCents),
+    endsAt: optionalString(record.endsAt),
+    claimed: Boolean(record.claimed),
+    claimedAt: optionalString(record.claimedAt),
+  };
 }
 
 export async function fetchFavoriteProducts(): Promise<BuyerFavoriteProduct[]> {

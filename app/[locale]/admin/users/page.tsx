@@ -1,10 +1,6 @@
-import { AdminUserTable } from "#/features/user";
-import { AdminPageIntro, AdminSpaceCat } from "#/features/admin";
-import { requireAdmin } from "#/lib/auth-server";
+import { AdminPageIntro, AdminSpaceCat, AdminUsersTable } from "#/features/admin";
 
-export default async function AdminUsersPage() {
-  const session = await requireAdmin();
-
+export default function AdminUsersPage() {
   return (
     <div className="flex flex-col gap-6">
       <AdminPageIntro
@@ -14,9 +10,7 @@ export default async function AdminUsersPage() {
       >
         <AdminSpaceCat mode="users" />
       </AdminPageIntro>
-      <div className="admin-users-scope">
-        <AdminUserTable currentUserId={session.user.id} />
-      </div>
+      <AdminUsersTable />
     </div>
   );
 }

@@ -40,8 +40,6 @@ export default async function CategoryPage({
     sort?: string;
     rating?: string;
     inStock?: string;
-    freeShipping?: string;
-    onSale?: string;
   }>;
 }) {
   const { locale, categoryId } = await params;
@@ -66,8 +64,6 @@ export default async function CategoryPage({
         sort={query.sort}
         rating={query.rating}
         inStock={query.inStock}
-        freeShipping={query.freeShipping}
-        onSale={query.onSale}
       />
     </>
   );
@@ -82,7 +78,5 @@ function hasIndexUnsafeCategoryFilters(query: Record<string, string | undefined>
       || query.sort
       || query.rating
       || query.inStock
-      || query.freeShipping
-      || query.onSale,
   );
 }

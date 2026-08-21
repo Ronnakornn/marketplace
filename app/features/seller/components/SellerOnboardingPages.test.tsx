@@ -5,6 +5,9 @@ import { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import enMessages from "../../../../messages/en.json";
+import thMessages from "../../../../messages/th.json";
+import { I18nProvider } from "#/i18n/client";
 import { SellerRegisterPage, SellerStatusPage } from "./SellerOnboardingPages";
 
 const push = vi.fn();
@@ -23,29 +26,18 @@ vi.mock("#/i18n/navigation", () => ({
   useLocalePath: () => (path: string) => path,
 }));
 
-vi.mock("#/i18n/client", () => ({
-  useTranslations: () => (key: string) => {
-    const labels: Record<string, string> = {
-      "seller.kyc.required": "Required",
-      "seller.kyc.optional": "Optional",
-      "seller.kyc.uploading": "Uploading...",
-      "seller.kyc.uploadId": "Upload ID:",
-      "seller.kyc.reviewLabel": "Review:",
-      "seller.kyc.rejectionReason": "Reason:",
-      "seller.kyc.requiredBeforeSubmit": "This document is required before submit.",
-      "seller.kyc.reviewStatus.pending": "Pending",
-      "seller.kyc.reviewStatus.approved": "Approved",
-      "seller.kyc.reviewStatus.rejected": "Rejected",
-    };
-    return labels[key] ?? key;
-  },
-}));
-
-function renderWithClient(ui: ReactNode) {
+function renderWithClient(ui: ReactNode, locale: "en" | "th" = "en") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  const messages = locale === "th" ? thMessages : enMessages;
+  return render(
+    <QueryClientProvider client={client}>
+      <I18nProvider locale={locale} messages={messages} fallbackMessages={enMessages}>
+        {ui}
+      </I18nProvider>
+    </QueryClientProvider>,
+  );
 }
 
 function jsonResponse(payload: unknown, status = 200) {
@@ -76,11 +68,11 @@ describe("seller onboarding frontend smoke", () => {
 
     renderWithClient(<SellerRegisterPage step="account" />);
 
-    await screen.findByLabelText("ชื่อผู้สมัคร / ชื่อนิติบุคคล");
+    await screen.findByLabelText("Applicant or legal entity name");
 
-    fireEvent.change(screen.getByLabelText("ชื่อผู้สมัคร / ชื่อนิติบุคคล"), { target: { value: "Fashion Seller" } });
-    fireEvent.change(screen.getByLabelText("อีเมลเพื่อยืนยันตัวตน"), { target: { value: "seller@example.com" } });
-    fireEvent.change(screen.getByLabelText("เบอร์โทร"), { target: { value: "0800000000" } });
+    fireEvent.change(screen.getByLabelText("Applicant or legal entity name"), { target: { value: "Fashion Seller" } });
+    fireEvent.change(screen.getByLabelText("Verification email"), { target: { value: "seller@example.com" } });
+    fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "0800000000" } });
     fireEvent.click(screen.getByRole("button", { name: /save draft/i }));
 
     await waitFor(() => {
@@ -105,10 +97,10 @@ describe("seller onboarding frontend smoke", () => {
 
     renderWithClient(<SellerRegisterPage step="account" />);
 
-    await screen.findByLabelText("ชื่อผู้สมัคร / ชื่อนิติบุคคล");
-    fireEvent.change(screen.getByLabelText("ชื่อผู้สมัคร / ชื่อนิติบุคคล"), { target: { value: "Fashion Seller" } });
-    fireEvent.change(screen.getByLabelText("อีเมลเพื่อยืนยันตัวตน"), { target: { value: "seller@example.com" } });
-    fireEvent.change(screen.getByLabelText("เบอร์โทร"), { target: { value: "0800000000" } });
+    await screen.findByLabelText("Applicant or legal entity name");
+    fireEvent.change(screen.getByLabelText("Applicant or legal entity name"), { target: { value: "Fashion Seller" } });
+    fireEvent.change(screen.getByLabelText("Verification email"), { target: { value: "seller@example.com" } });
+    fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "0800000000" } });
 
     fireEvent.click(screen.getByRole("button", { name: /next step/i }));
 
@@ -134,6 +126,17 @@ describe("seller onboarding frontend smoke", () => {
     expect(editLink.getAttribute("href")).toBe("/seller/register/account");
   });
 
+  it("renders the registration flow in Thai", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ application: null, shop: null })));
+
+    renderWithClient(<SellerRegisterPage step="account" />, "th");
+
+    await screen.findByRole("heading", { name: "เริ่มขายสินค้า" });
+    expect(screen.getByLabelText("ชื่อผู้สมัครหรือชื่อนิติบุคคล")).toBeDefined();
+    expect(screen.getByRole("button", { name: "บันทึกร่าง" })).toBeDefined();
+    expect(screen.queryByText("Start selling")).toBeNull();
+  });
+
   it("submits successfully on terms step when KYC is already saved", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       if (String(input) === "/api/seller/application" && !init?.method) {
@@ -149,9 +152,23 @@ describe("seller onboarding frontend smoke", () => {
             contactPhone: "0800000000",
             nationalIdLast4: "1234",
             taxIdLast4: "5678",
+            bankName: "Kasikorn",
+            bankAccountName: "Fashion Seller",
+            bankAccountNumberLast4: "9999",
+            pickupAddress: {
+              name: "Fashion Seller",
+              phone: "0800000000",
+              line1: "99 Rama 1",
+              line2: null,
+              city: "Bangkok",
+              region: "Bangkok",
+              postalCode: "10330",
+              country: "TH",
+            },
             documents: [
               { id: "doc_1", documentType: "ID_CARD", uploadId: "upload_id_card" },
               { id: "doc_2", documentType: "TAX_DOCUMENT", uploadId: "upload_tax" },
+              { id: "doc_3", documentType: "BANK_BOOK", uploadId: "upload_bank" },
             ],
           },
           shop: null,

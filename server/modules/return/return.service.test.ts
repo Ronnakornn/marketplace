@@ -27,6 +27,7 @@ function createRepoMock(): IReturnRepository {
   return {
     transaction: vi.fn(async (callback) => callback(repo)),
     findOrderItemForReturn: vi.fn(),
+    findUploadsByIds: vi.fn(),
     createReturn: vi.fn(),
     findBuyerReturns: vi.fn(),
     findBuyerReturnById: vi.fn(),
@@ -180,6 +181,7 @@ function setup() {
   eventPublisher = { publish: vi.fn().mockResolvedValue(undefined) }
   service = new ReturnService(createAppContext(), repo, undefined, eventPublisher as any)
   vi.mocked(repo.findOrderItemForReturn).mockResolvedValue(createOrderItem())
+  vi.mocked(repo.findUploadsByIds).mockResolvedValue([])
   vi.mocked(repo.createReturn).mockResolvedValue(createReturnRecord())
   vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
   vi.mocked(repo.findSellerReturns).mockResolvedValue([createReturnRecord()])
@@ -196,23 +198,53 @@ describe('ReturnService', () => {
   })
 
   it('lets a buyer request a return for a delivered order item', async () => {
+    vi.mocked(repo.findUploadsByIds).mockResolvedValue([{
+      id: '77777777-7777-4777-8777-777777777777',
+      userId: 'user-1',
+      usage: 'REVIEW_IMAGE',
+      status: 'COMPLETED',
+      contentType: 'image/jpeg',
+      publicUrl: '/uploads/review_image/user-1/a.jpg',
+    }] as any)
     const result = await service.createReturn(createActor(), {
       orderId: '11111111-1111-4111-8111-111111111111',
       orderItemId: '22222222-2222-4222-8222-222222222222',
       reason: ' Damaged ',
       description: ' Box was crushed ',
-      images: [' https://example.com/a.jpg '],
+      uploadIds: ['77777777-7777-4777-8777-777777777777'],
     })
 
     expect(result).toMatchObject({ status: 'requested', reason: 'Damaged' })
     expect(repo.createReturn).toHaveBeenCalledWith(expect.objectContaining({
       reason: 'Damaged',
       description: 'Box was crushed',
-      images: ['https://example.com/a.jpg'],
+      images: ['/uploads/review_image/user-1/a.jpg'],
       quantity: 2,
     }))
     expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({
       eventName: 'return.requested', aggregateId: '66666666-6666-4666-8666-666666666666',
+    }))
+  })
+
+  it('accepts only completed buyer-owned evidence uploads', async () => {
+    vi.mocked(repo.findUploadsByIds).mockResolvedValue([{
+      id: '77777777-7777-4777-8777-777777777777',
+      userId: 'user-1',
+      usage: 'REVIEW_IMAGE',
+      status: 'COMPLETED',
+      contentType: 'image/jpeg',
+      publicUrl: '/uploads/review_image/user-1/a.jpg',
+    }] as any)
+
+    await service.createReturn(createActor(), {
+      orderId: '11111111-1111-4111-8111-111111111111',
+      orderItemId: '22222222-2222-4222-8222-222222222222',
+      reason: 'Damaged',
+      uploadIds: ['77777777-7777-4777-8777-777777777777'],
+    })
+
+    expect(repo.createReturn).toHaveBeenCalledWith(expect.objectContaining({
+      images: ['/uploads/review_image/user-1/a.jpg'],
     }))
   })
 

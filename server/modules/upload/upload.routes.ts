@@ -26,6 +26,13 @@ const LocalPutQuerySchema = t.Object({
   signature: t.String({ minLength: 1 }),
 })
 
+const LocalGetQuerySchema = t.Object({
+  key: t.String({ minLength: 1 }),
+  contentType: t.String({ minLength: 1 }),
+  expires: t.Numeric({ minimum: 1 }),
+  signature: t.String({ minLength: 1 }),
+})
+
 export function createUploadRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
@@ -62,6 +69,31 @@ export function createUploadRoutes(container: ServiceContainer) {
       })
     }, {
       query: LocalPutQuerySchema,
+    })
+    .get('/api/uploads/local-get', async ({ query }: any) => {
+      const result = await container.uploadService.readLocalUpload({
+        key: query.key,
+        contentType: query.contentType,
+        expires: Number(query.expires),
+        signature: query.signature,
+      })
+      return new Response(result.body.slice().buffer, {
+        headers: {
+          'content-type': result.contentType,
+          'cache-control': 'private, no-store',
+          'content-disposition': 'inline',
+          'x-content-type-options': 'nosniff',
+        },
+      })
+    }, {
+      query: LocalGetQuerySchema,
+    })
+    .get('/api/uploads/:fileId/content', async ({ authContext, params, request }: any) => {
+      const downloadUrl = await container.uploadService.getDownloadUrl(authContext!.user, params.fileId)
+      return Response.redirect(new URL(downloadUrl, request.url), 302)
+    }, {
+      withAuth: true,
+      params: UploadParamsSchema,
     })
     .get('/api/uploads/:fileId', ({ authContext, params }: any) =>
       container.uploadService.getUpload(authContext!.user, params.fileId), {

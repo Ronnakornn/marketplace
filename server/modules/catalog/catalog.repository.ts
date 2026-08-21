@@ -1,4 +1,4 @@
-import type { Brand, Category, CategoryAttributeDefinition, ModerationAction, ModerationCase, Prisma, PrismaClient, Product, ProductAttribute, ProductHighlight, ProductImage, ProductOption, ProductOptionValue, ProductVariant, ProductVariantOptionValue, ProductVideo, Shop, Upload } from '#generated/client/client.ts'
+import type { Brand, Category, CategoryAttributeDefinition, ModerationAction, ModerationCase, Prisma, PrismaClient, Product, ProductAttribute, ProductHighlight, ProductImage, ProductOption, ProductOptionValue, ProductVariant, ProductVariantOptionValue, ProductVideo, Shop, ShopAddress, Upload } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -21,6 +21,13 @@ export interface ProductListFilters {
   cursor?: string
   page?: number
   limit: number
+}
+
+export interface CatalogProductMetric {
+  productId: string
+  rating: number
+  ratingCount: number
+  soldCount: number
 }
 
 export interface ProductAttributeFilter {
@@ -317,7 +324,15 @@ export type CatalogProductListItem = Omit<Product, 'titleTh' | 'titleEn' | 'desc
   highlights: ProductHighlight[]
   attributes: ProductAttribute[]
   options: CatalogProductOptionRecord[]
-  shop: Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'>
+  shop: Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'> & {
+    addresses?: Array<Pick<ShopAddress, 'city' | 'region' | 'country'>>
+  }
+  rating?: number
+  ratingSummary?: {
+    averageRating: number
+    totalReviewCount: number
+  }
+  soldCount?: number
   variants: Array<(Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
     titleTh?: string | null
     titleEn?: string | null
@@ -383,6 +398,7 @@ export interface ICatalogRepository {
   findShopById(id: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findFirstShopByOwnerId(ownerId: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findProductById(id: string): Promise<CatalogProductDetail | null>
+  findProductMetrics(productIds: string[]): Promise<CatalogProductMetric[]>
   findRelatedProducts(product: Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'>, limit: number): Promise<CatalogProductListItem[]>
   findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>>
   findProductFacets(filters: ProductListFilters): Promise<ProductListingFacets>
@@ -481,6 +497,12 @@ const productInclude = {
       ratingCount: true,
       followerCount: true,
       productCount: true,
+      addresses: {
+        where: { type: 'PICKUP' },
+        select: { city: true, region: true, country: true },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+        take: 1,
+      },
     },
   },
   variants: {
@@ -761,6 +783,55 @@ export class PrismaCatalogRepository implements ICatalogRepository {
         ],
       },
       include: productInclude,
+    })
+  }
+
+  async findProductMetrics(productIds: string[]): Promise<CatalogProductMetric[]> {
+    const uniqueProductIds = [...new Set(productIds)]
+    if (uniqueProductIds.length === 0) return []
+    this.logger.debug('PrismaCatalogRepository.findProductMetrics', { productCount: uniqueProductIds.length })
+
+    const [ratingRows, variants] = await Promise.all([
+      this.prisma.review.groupBy({
+        by: ['productId'],
+        where: { productId: { in: uniqueProductIds }, status: 'PUBLISHED' },
+        _avg: { rating: true },
+        _count: { rating: true },
+      }),
+      this.prisma.productVariant.findMany({
+        where: { productId: { in: uniqueProductIds } },
+        select: { id: true, productId: true },
+      }),
+    ])
+    const variantProductIds = new Map(variants.map((variant) => [variant.id, variant.productId]))
+    const salesRows = variants.length === 0
+      ? []
+      : await this.prisma.orderItem.groupBy({
+          by: ['variantId'],
+          where: {
+            variantId: { in: variants.map((variant) => variant.id) },
+            order: { paymentStatus: 'SUCCEEDED' },
+          },
+          _sum: { quantity: true },
+        })
+    const ratingByProductId = new Map(ratingRows.map((row) => [row.productId, row]))
+    const soldByProductId = new Map<string, number>()
+    for (const row of salesRows) {
+      const productId = variantProductIds.get(row.variantId)
+      if (!productId) continue
+      soldByProductId.set(productId, (soldByProductId.get(productId) ?? 0) + (row._sum.quantity ?? 0))
+    }
+
+    return uniqueProductIds.map((productId) => {
+      const rating = ratingByProductId.get(productId)
+      return {
+        productId,
+        rating: rating?._avg.rating === null || rating?._avg.rating === undefined
+          ? 0
+          : Number(Number(rating._avg.rating).toFixed(2)),
+        ratingCount: rating?._count.rating ?? 0,
+        soldCount: soldByProductId.get(productId) ?? 0,
+      }
     })
   }
 

@@ -1,4 +1,4 @@
-import type { Cart, CartItem, Coupon, CouponRedemptionStatus, PrismaClient, ProductVariant, Shop } from '#generated/client/client.ts'
+import type { Cart, CartItem, Coupon, CouponClaim, CouponRedemptionStatus, PrismaClient, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -13,6 +13,10 @@ export type PromotionCoupon = Omit<Coupon, 'titleTh' | 'titleEn' | 'descriptionT
   _count: {
     redemptions: number
   }
+}
+
+export type BuyerPromotionCoupon = PromotionCoupon & {
+  claims: Array<Pick<CouponClaim, 'id' | 'claimedAt'>>
 }
 
 export type PromotionCart = Cart & {
@@ -51,6 +55,9 @@ export interface IPromotionRepository extends IPromotionValidationRepository {
   findCartForCouponValidation(cartId: string, userId: string): Promise<PromotionCart | null>
   findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'ownerId'>>>
   listPublicCoupons(): Promise<PromotionCoupon[]>
+  listBuyerCoupons(userId: string): Promise<BuyerPromotionCoupon[]>
+  findCouponForClaim(couponId: string): Promise<PromotionCoupon | null>
+  createCouponClaim(couponId: string, userId: string): Promise<CouponClaim>
   listAdminCoupons(): Promise<Coupon[]>
   listSellerCoupons(shopIds: string[]): Promise<Coupon[]>
   findCouponById(couponId: string): Promise<Coupon | null>
@@ -138,6 +145,46 @@ export class PrismaPromotionRepository implements IPromotionRepository {
       },
       include: couponCountInclude,
       orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  listBuyerCoupons(userId: string): Promise<BuyerPromotionCoupon[]> {
+    this.logger.debug('PrismaPromotionRepository.listBuyerCoupons', { userId })
+    const now = new Date()
+    return this.prisma.coupon.findMany({
+      where: {
+        isActive: true,
+        AND: [
+          { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+          { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+        ],
+      },
+      include: {
+        ...couponCountInclude,
+        claims: {
+          where: { userId },
+          select: { id: true, claimedAt: true },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  findCouponForClaim(couponId: string): Promise<PromotionCoupon | null> {
+    this.logger.debug('PrismaPromotionRepository.findCouponForClaim', { couponId })
+    return this.prisma.coupon.findUnique({
+      where: { id: couponId },
+      include: couponCountInclude,
+    })
+  }
+
+  createCouponClaim(couponId: string, userId: string): Promise<CouponClaim> {
+    this.logger.info('PrismaPromotionRepository.createCouponClaim', { couponId, userId })
+    return this.prisma.couponClaim.upsert({
+      where: { couponId_userId: { couponId, userId } },
+      create: { couponId, userId },
+      update: {},
     })
   }
 

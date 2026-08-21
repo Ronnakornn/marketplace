@@ -49,6 +49,17 @@ export function createPromotionRoutes(container: ServiceContainer) {
     .get('/api/coupons', ({ query }: any) => container.promotionService.listPublicCoupons(query.locale), {
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
     })
+    .get('/api/me/coupons', ({ authContext, query }: any) =>
+      container.promotionService.listBuyerCoupons(authContext!.user, query.locale), {
+      withAuth: true,
+      query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
+    })
+    .post('/api/coupons/:couponId/claim', ({ authContext, params, query }: any) =>
+      container.promotionService.claimCoupon(authContext!.user, params.couponId, query.locale), {
+      withAuth: true,
+      params: CouponParamsSchema,
+      query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
+    })
     .post('/api/coupons/validate', ({ authContext, body }: any) =>
       container.promotionService.validateCoupon(authContext!.user, body), {
       withAuth: true,

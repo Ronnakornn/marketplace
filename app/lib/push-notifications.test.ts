@@ -36,7 +36,7 @@ beforeEach(() => {
       getRegistration: vi.fn().mockResolvedValue(registration),
     },
   });
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
 });
 
 describe("push notification browser helpers", () => {

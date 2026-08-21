@@ -22,6 +22,15 @@ describe('createEmailService', () => {
       .toThrow(/Unsupported email provider/)
   })
 
+  it('fails closed when email delivery is disabled', async () => {
+    const service = createEmailService(
+      context('production'),
+      { EMAIL_PROVIDER: 'disabled' } as unknown as NodeJS.ProcessEnv,
+    )
+    await expect(service.sendMessage({ to: 'buyer@example.com', subject: 'Test', text: 'Test' }))
+      .rejects.toThrow(/not configured/)
+  })
+
   it('sends OTP messages through the configured Resend endpoint', async () => {
     const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
       new Response(null, { status: 202 }))

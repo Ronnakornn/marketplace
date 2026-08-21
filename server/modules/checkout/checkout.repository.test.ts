@@ -27,6 +27,7 @@ describe('PrismaCheckoutRepository', () => {
       },
       inventoryReservation: {
         create: vi.fn().mockResolvedValue({ id: 'reservation-1' }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       order: {
         create: vi.fn().mockResolvedValue(order),
@@ -111,5 +112,9 @@ describe('PrismaCheckoutRepository', () => {
         },
       }),
     }))
+    expect(prisma.inventoryReservation.updateMany).toHaveBeenCalledWith({
+      where: { checkoutId: 'checkout-1', status: 'ACTIVE' },
+      data: { orderId: 'order-1' },
+    })
   })
 })

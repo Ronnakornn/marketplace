@@ -30,6 +30,10 @@ The Admin domain owns platform operations and exception management.
 - `PATCH /api/admin/products/:productId/moderation`
 - `GET /api/admin/orders`
 - `GET /api/admin/reports`
+- `GET /api/admin/commissions`
+- `PATCH /api/admin/commissions/:commissionId/status`
+- `GET /api/admin/settings`
+- `PUT /api/admin/settings/:key`
 - `POST /api/admin/returns/:returnId/decision`
 
 ## Frontend Surfaces

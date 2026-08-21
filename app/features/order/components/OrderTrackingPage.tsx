@@ -17,6 +17,11 @@ export function OrderTrackingPage({ orderId }: { orderId: string }) {
     <>
       <BuyerTopBar title={t("order.tracking")} />
       <div className="mx-auto max-w-4xl space-y-4 px-3 py-4">
+        {trackingQuery.data?.shipments.length ? (
+          <p className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            {t("order.trackingSourceNotice")}
+          </p>
+        ) : null}
         {trackingQuery.isLoading ? <BuyerLoadingList /> : null}
         {trackingQuery.isError ? <BuyerErrorState message={trackingQuery.error.message} onRetry={() => void trackingQuery.refetch()} /> : null}
         {trackingQuery.data?.shipments.length === 0 ? <BuyerEmptyState title={t("order.noTrackingTitle")} description={t("order.noTrackingDescription")} /> : null}

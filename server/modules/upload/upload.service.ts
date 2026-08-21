@@ -13,6 +13,8 @@ import type {
   UploadUsageInput,
   LocalPresignedPutInput,
   LocalPresignedPutResponse,
+  LocalPresignedGetInput,
+  LocalPresignedGetResponse,
 } from './upload.types.ts'
 
 const allowedContentTypesByUsage: Record<UploadUsageInput, string[]> = {
@@ -48,6 +50,7 @@ const recordToUsage: Partial<Record<UploadUsage, UploadUsageInput>> = {
   KYC_DOCUMENT: 'kyc_document',
 }
 const presignedUrlExpiresIn = 900
+const downloadUrlExpiresIn = 300
 
 export class UploadService {
   private logger: ILogger
@@ -67,10 +70,10 @@ export class UploadService {
     this.assertContentType(input.usage, input.contentType)
     this.assertFileSize(input.usage, input.fileSize)
 
-    const safeFileName = this.toStoredFileName(input.fileName, input.contentType)
-    const storedContentType = this.toStoredContentType(input.contentType)
+    const safeFileName = this.toSafeFileName(input.fileName)
+    const storedContentType = input.contentType
     const key = this.createStorageKey(input.usage, actor.id, safeFileName)
-    const publicUrl = this.storage!.getPublicUrl(key)
+    const publicUrl = input.usage === 'kyc_document' ? undefined : this.storage!.getPublicUrl(key)
     const upload = await this.repo.createUpload({
       userId: actor.id,
       usage: usageToRecord[input.usage],
@@ -85,7 +88,9 @@ export class UploadService {
       contentType: input.contentType,
       fileSize: input.fileSize,
       expiresIn: presignedUrlExpiresIn,
-      cacheControl: 'public, max-age=604800, stale-while-revalidate=86400',
+      cacheControl: input.usage === 'kyc_document'
+        ? 'private, no-store'
+        : 'public, max-age=604800, stale-while-revalidate=86400',
     })
 
     this.logger.info('UploadService.createPresignedUrl', {
@@ -122,6 +127,21 @@ export class UploadService {
     return this.toResponse(upload)
   }
 
+  async getDownloadUrl(actor: UploadActor, fileId: string): Promise<string> {
+    this.assertStorageConfigured()
+    const upload = await this.repo.findUploadById(fileId)
+    if (!upload) throw new UploadServiceError('Upload not found', 404, 'UPLOAD_NOT_FOUND')
+    this.assertCanAccess(actor, upload)
+    if (upload.status !== 'COMPLETED') {
+      throw new UploadServiceError('Upload is not completed', 409, 'UPLOAD_NOT_COMPLETED')
+    }
+    return this.storage!.createPresignedGetUrl({
+      key: upload.key,
+      contentType: upload.contentType,
+      expiresIn: downloadUrlExpiresIn,
+    })
+  }
+
   async writeLocalUpload(input: LocalPresignedPutInput): Promise<LocalPresignedPutResponse> {
     this.assertStorageConfigured()
     if (!this.storage!.writePresignedPutUrl) {
@@ -135,6 +155,22 @@ export class UploadService {
         error instanceof Error ? error.message : 'Local upload failed',
         400,
         'LOCAL_UPLOAD_FAILED',
+      )
+    }
+  }
+
+  async readLocalUpload(input: LocalPresignedGetInput): Promise<LocalPresignedGetResponse> {
+    this.assertStorageConfigured()
+    if (!this.storage!.readPresignedGetUrl) {
+      throw new UploadServiceError('Local upload storage is not enabled', 400, 'LOCAL_STORAGE_NOT_ENABLED')
+    }
+    try {
+      return await this.storage!.readPresignedGetUrl(input)
+    } catch (error) {
+      throw new UploadServiceError(
+        error instanceof Error ? error.message : 'Local download failed',
+        400,
+        'LOCAL_DOWNLOAD_FAILED',
       )
     }
   }
@@ -189,7 +225,8 @@ export class UploadService {
     const year = String(now.getUTCFullYear())
     const month = String(now.getUTCMonth() + 1).padStart(2, '0')
     const fileId = uuidv4()
-    return `uploads/${usage}/${userId}/${year}/${month}/${fileId}-${safeFileName}`
+    const prefix = usage === 'kyc_document' ? 'private/kyc' : `uploads/${usage}`
+    return `${prefix}/${userId}/${year}/${month}/${fileId}-${safeFileName}`
   }
 
   private toSafeFileName(fileName: string): string {
@@ -203,21 +240,6 @@ export class UploadService {
       .slice(0, 120)
 
     return safe || 'upload'
-  }
-
-  private toStoredFileName(fileName: string, contentType: string): string {
-    const safeFileName = this.toSafeFileName(fileName)
-    if (!this.shouldConvertToAvif(contentType)) return safeFileName
-    const withoutExtension = safeFileName.replace(/\.[a-zA-Z0-9]+$/, '')
-    return `${withoutExtension || 'upload'}.avif`
-  }
-
-  private toStoredContentType(contentType: string): string {
-    return this.shouldConvertToAvif(contentType) ? 'image/avif' : contentType
-  }
-
-  private shouldConvertToAvif(contentType: string): boolean {
-    return contentType === 'image/jpeg' || contentType === 'image/png' || contentType === 'image/webp'
   }
 
   private toResponse(upload: UploadRecord): UploadResponse {
@@ -234,7 +256,7 @@ export class UploadService {
       contentType: upload.contentType,
       fileSize: upload.fileSize,
       key: upload.key,
-      publicUrl: upload.publicUrl ?? undefined,
+      publicUrl: upload.usage === 'KYC_DOCUMENT' ? undefined : upload.publicUrl ?? undefined,
       completedAt: upload.completedAt,
       createdAt: upload.createdAt,
       updatedAt: upload.updatedAt,

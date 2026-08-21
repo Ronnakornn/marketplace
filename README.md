@@ -189,6 +189,24 @@ projects, database safety, debugging, and CI order.
 | `RATE_LIMIT_ADMIN_MAX_REQUESTS` | Admin route request limit per client IP per window | `300` |
 | `REQUEST_BODY_LIMIT_BYTES` | Maximum accepted request body size | `1048576` |
 | `REDIS_URL` | Redis connection URL for cache and optional queues | `redis://localhost:6379` |
+| `PAYMENT_PROVIDER` | External payment bridge name; `mock` is rejected in production and `disabled` explicitly disables checkout | `mock` |
+| `PAYMENT_CHECKOUT_BASE_URL` | HTTPS checkout endpoint for the external payment bridge | - |
+| `PAYMENT_CHECKOUT_SECRET` | Secret used to sign checkout handoff payloads | - |
+| `PAYMENT_WEBHOOK_SECRET` | Secret used to authenticate payment status webhooks | - |
+| `EMAIL_PROVIDER` | Email delivery provider; production uses `resend` or explicitly `disabled` | `console` |
+| `RESEND_API_KEY` | Resend credential when email delivery is enabled | - |
+| `EMAIL_FROM` | Verified sender address | - |
+| `KYC_ENCRYPTION_KEY` | Encrypts sensitive seller onboarding values; minimum 32 characters in production | - |
+| `UPLOAD_STORAGE` | Upload backend; defaults to `local`, set `s3` explicitly to opt in | `local` |
+| `LOCAL_UPLOAD_DIR` | Public local-upload root served by the frontend | `public` |
+| `LOCAL_PRIVATE_UPLOAD_DIR` | Private local-upload root kept outside `public` | `.data/uploads` |
+| `LOCAL_UPLOAD_SECRET` | Signs local upload/download URLs; falls back to `BETTER_AUTH_SECRET` | - |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET` | S3-compatible object storage location | - |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Server-only object storage credentials | - |
+| `S3_PUBLIC_BASE_URL` | Public origin for intended product assets only; never expose `private/kyc/*` | - |
+| `MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED` | Confirms MFA, two-person finance operation, and reconciliation procedures are active | `false` |
+| `AFFILIATE_ENABLED` | Affiliate attribution/settlement switch; production currently requires `false` | `false` |
+| `AI_SEARCH_ENABLED` | AI search switch; production currently requires `false` while pgvector storage is disabled | `false` |
 | `CACHE_ENABLED` | Enables Redis-backed application cache when `REDIS_URL` is configured | `true` |
 | `CACHE_DEFAULT_TTL_SECONDS` | Default cache TTL in seconds | `300` |
 | `CACHE_PRODUCT_TTL_SECONDS` | Product/category cache TTL in seconds | `600` |

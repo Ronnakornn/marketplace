@@ -30,14 +30,15 @@ const COUPON_REASON_KEYS = {
 } as const;
 
 export function CheckoutPage() {
-  const [couponInput, setCouponInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const searchParams = useSearchParams();
+  const requestedVoucher = searchParams?.get("voucher")?.trim().slice(0, 64) ?? "";
+  const [couponInput, setCouponInput] = useState(requestedVoucher);
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(requestedVoucher || null);
+  const paymentMethod = "card";
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const localePath = useLocalePath();
   const locale = useLocale();
   const t = useTranslations();
-  const searchParams = useSearchParams();
   const cartQuery = useQuery({ queryKey: ["buyer-cart", locale], queryFn: () => fetchCart(locale) });
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
   const defaultAddress = addressesQuery.data?.find((address) => address.isDefault) ?? addressesQuery.data?.[0];
@@ -200,14 +201,10 @@ export function CheckoutPage() {
                 ) : null}
               </CheckoutBlock>
               <CheckoutBlock icon={<CreditCardIcon className="size-5" />} title={t("checkout.paymentMethod")}>
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                <RadioGroup value={paymentMethod}>
                   <div className="flex items-center justify-between rounded-2xl border border-slate-200 p-3">
                     <Label htmlFor="card" className="font-semibold">{t("checkout.cardGateway")}</Label>
                     <RadioGroupItem id="card" value="card" />
-                  </div>
-                  <div className="flex items-center justify-between rounded-2xl border border-slate-200 p-3">
-                    <Label htmlFor="cod" className="font-semibold">{t("checkout.cashOnDelivery")}</Label>
-                    <RadioGroupItem id="cod" value="cod" />
                   </div>
                 </RadioGroup>
               </CheckoutBlock>

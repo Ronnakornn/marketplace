@@ -21,8 +21,23 @@ const reviewDocumentState: { isPending: boolean; isSuccess: boolean; error: unkn
 };
 
 vi.mock("#/i18n/client", () => ({
+  useFormatters: () => ({ date: (value: string | Date) => new Date(value).toLocaleString("en-US") }),
   useTranslations: () => (key: string) => {
     const labels: Record<string, string> = {
+      "admin.sellerApplications.title": "Seller Application Queue",
+      "admin.sellerApplications.submitted": "Submitted",
+      "admin.sellerApplications.business": "Business",
+      "admin.sellerApplications.legalName": "Legal name",
+      "admin.sellerApplications.email": "Email",
+      "admin.sellerApplications.phone": "Phone",
+      "admin.sellerApplications.nationalId": "National ID",
+      "admin.sellerApplications.company": "Company",
+      "admin.sellerApplications.taxId": "Tax ID",
+      "admin.sellerApplications.bankAccount": "Bank account",
+      "admin.sellerApplications.upload": "Upload",
+      "admin.sellerApplications.viewDocument": "View document",
+      "admin.sellerApplications.rejectApplicationDescription": "Provide a reason for {shop}. The seller will see this message on their status page.",
+      "admin.sellerApplications.rejectApplicationPlaceholder": "Explain what must be corrected before resubmission.",
       "admin.sellerApplications.approveDocument": "Approve document",
       "admin.sellerApplications.rejectDocument": "Reject document",
       "admin.sellerApplications.documentReviewSaved": "Document review saved.",

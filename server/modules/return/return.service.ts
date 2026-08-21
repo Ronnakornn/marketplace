@@ -5,7 +5,9 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import { ReturnServiceError } from './return.errors.ts'
-import type { IReturnRepository, ReturnRecord } from './return.repository.ts'
+import type { IReturnRepository, ReturnRecord, ReturnUpload } from './return.repository.ts'
+
+const MAX_RETURN_IMAGE_COUNT = 5
 
 export interface ReturnActor {
   id: string
@@ -17,7 +19,7 @@ export interface CreateReturnInput {
   orderItemId: string
   reason: string
   description?: string
-  images?: string[]
+  uploadIds?: string[]
 }
 
 export interface ReturnResponse {
@@ -82,6 +84,7 @@ export class ReturnService {
       if (orderItem.returnItems.some((item) => ACTIVE_RETURN_STATUSES.has(item.returnRequest.status))) {
         throw new ReturnServiceError('Order item already has an active return', 409, 'RETURN_ALREADY_EXISTS')
       }
+      const images = await this.resolveReturnImages(txRepo, actor, input.uploadIds)
 
       const returnRecord = await txRepo.createReturn({
         orderId: orderItem.orderId,
@@ -91,7 +94,7 @@ export class ReturnService {
         quantity: orderItem.quantity,
         reason,
         description: this.normalizeOptionalText(input.description),
-        images: this.normalizeImages(input.images),
+        images,
       })
       return this.toResponse(returnRecord)
     })
@@ -227,8 +230,33 @@ export class ReturnService {
     return trimmed ? trimmed : null
   }
 
-  private normalizeImages(images: string[] | undefined): string[] {
-    return images?.map((image) => image.trim()).filter(Boolean) ?? []
+  private async resolveReturnImages(repo: IReturnRepository, actor: ReturnActor, uploadIds: string[] | undefined): Promise<string[]> {
+    const normalizedUploadIds = [...new Set(uploadIds?.map((uploadId) => uploadId.trim()).filter(Boolean) ?? [])]
+    if (normalizedUploadIds.length > MAX_RETURN_IMAGE_COUNT) {
+      throw new ReturnServiceError('A return request can include at most 5 images', 400, 'RETURN_MEDIA_LIMIT_EXCEEDED')
+    }
+    if (normalizedUploadIds.length === 0) return []
+
+    const uploads = await repo.findUploadsByIds(normalizedUploadIds)
+    const uploadsById = new Map(uploads.map((upload) => [upload.id, upload]))
+    return normalizedUploadIds.map((uploadId) => {
+      const upload = uploadsById.get(uploadId)
+      if (!upload) throw new ReturnServiceError('Return image upload not found', 404, 'UPLOAD_NOT_FOUND')
+      this.assertValidReturnUpload(actor, upload)
+      return upload.publicUrl!
+    })
+  }
+
+  private assertValidReturnUpload(actor: ReturnActor, upload: ReturnUpload): void {
+    if (upload.userId !== actor.id) {
+      throw new ReturnServiceError('Return image upload does not belong to buyer', 403, 'RETURN_MEDIA_FORBIDDEN')
+    }
+    if (upload.status !== 'COMPLETED') {
+      throw new ReturnServiceError('Return image upload must be completed', 400, 'RETURN_MEDIA_UPLOAD_INCOMPLETE')
+    }
+    if (upload.usage !== 'REVIEW_IMAGE' || !upload.contentType.startsWith('image/') || !upload.publicUrl) {
+      throw new ReturnServiceError('Return evidence must use a completed review image upload', 400, 'RETURN_MEDIA_UPLOAD_INVALID')
+    }
   }
 
   private toResponse(returnRecord: ReturnRecord): ReturnResponse {

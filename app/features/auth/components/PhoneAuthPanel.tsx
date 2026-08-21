@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { completePhoneSignup, requestPhoneAuthOtp, verifyPhoneAuthOtp } from "#/features/auth/api";
+import { useTranslations } from "#/i18n/client";
 import { resolveNextPath } from "../redirect";
 
 type Step = "PHONE" | "OTP" | "SIGNUP";
 
 export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; mode: "login" | "signup" }) {
+  const t = useTranslations();
   const router = useRouter();
   const [step, setStep] = useState<Step>("PHONE");
   const [phone, setPhone] = useState("");
@@ -33,9 +35,9 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
       const result = await requestOtpMutation.mutateAsync(phone);
       setResendAvailableAt(result.resendAvailableAt);
       setStep("OTP");
-      setMessage("Verification code sent.");
+      setMessage(t("auth.phoneCodeSent"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to send verification code");
+      setError(err instanceof Error ? err.message : t("auth.phoneCodeSendFailed"));
     }
   }
 
@@ -53,10 +55,10 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
         setPhone(result.phone);
         setPendingSignupToken(result.pendingSignupToken);
         setStep("SIGNUP");
-        setMessage("Phone verified. Complete your account with email and password.");
+        setMessage(t("auth.phoneVerifiedCompleteAccount"));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to verify phone code");
+      setError(err instanceof Error ? err.message : t("auth.phoneCodeVerifyFailed"));
     }
   }
 
@@ -68,17 +70,17 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
       await completeSignupMutation.mutateAsync({ phone, pendingSignupToken, email, name, password });
       router.push(resolveNextPath(nextPath ?? null));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to complete signup");
+      setError(err instanceof Error ? err.message : t("auth.phoneSignupFailed"));
     }
   }
 
-  const resendText = resendAvailableAt ? `You can request another code after ${formatTime(resendAvailableAt)}.` : null;
+  const resendText = resendAvailableAt ? t("auth.phoneResendAt").replace("{time}", formatTime(resendAvailableAt)) : null;
 
   return (
     <section className="mb-6 rounded-xl border border-[var(--line)] bg-white/60 p-4">
-      <h2 className="text-sm font-semibold text-[var(--sea-ink)]">Continue with phone</h2>
+      <h2 className="text-sm font-semibold text-[var(--sea-ink)]">{t("auth.continueWithPhone")}</h2>
       <p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-        {mode === "signup" ? "Verify your phone, then add email and password." : "Sign in with a verified phone number."}
+        {mode === "signup" ? t("auth.phoneSignupDescription") : t("auth.phoneLoginDescription")}
       </p>
       {message ? <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
       {error ? <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
@@ -86,7 +88,7 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
       {step === "PHONE" ? (
         <form onSubmit={handleRequestOtp} className="mt-3 space-y-3">
           <div>
-            <label htmlFor={`phone-auth-${mode}`} className="mb-1.5 block text-sm font-medium text-[var(--sea-ink)]">Phone</label>
+            <label htmlFor={`phone-auth-${mode}`} className="mb-1.5 block text-sm font-medium text-[var(--sea-ink)]">{t("auth.phone")}</label>
             <input
               id={`phone-auth-${mode}`}
               value={phone}
@@ -98,7 +100,7 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
             />
           </div>
           <button type="submit" disabled={loading || !phone.trim()} className="w-full rounded-full border border-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-[var(--lagoon-deep)] transition disabled:cursor-not-allowed disabled:opacity-50">
-            {loading ? "Sending code..." : "Send phone code"}
+            {loading ? t("auth.sendingCode") : t("auth.sendPhoneCode")}
           </button>
         </form>
       ) : null}
@@ -106,7 +108,7 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
       {step === "OTP" ? (
         <form onSubmit={handleVerifyOtp} className="mt-3 space-y-3">
           <div>
-            <label htmlFor={`phone-otp-${mode}`} className="mb-1.5 block text-sm font-medium text-[var(--sea-ink)]">Phone code</label>
+            <label htmlFor={`phone-otp-${mode}`} className="mb-1.5 block text-sm font-medium text-[var(--sea-ink)]">{t("auth.phoneCode")}</label>
             <input
               id={`phone-otp-${mode}`}
               value={otp}
@@ -120,10 +122,10 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button type="submit" disabled={loading || !otp.trim()} className="flex-1 rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50">
-              {loading ? "Verifying..." : "Verify phone code"}
+              {loading ? t("auth.verifying") : t("auth.verifyPhoneCode")}
             </button>
             <button type="button" disabled={loading} onClick={() => { setOtp(""); setStep("PHONE"); }} className="flex-1 rounded-full border border-[var(--line)] px-5 py-2.5 text-sm font-semibold text-[var(--sea-ink)] transition disabled:cursor-not-allowed disabled:opacity-50">
-              Change phone
+              {t("auth.changePhone")}
             </button>
           </div>
         </form>
@@ -131,12 +133,12 @@ export function PhoneAuthPanel({ nextPath, mode }: { nextPath?: string | null; m
 
       {step === "SIGNUP" ? (
         <form onSubmit={handleCompleteSignup} className="mt-3 space-y-3">
-          <p className="text-xs text-[var(--sea-ink-soft)]">Verified phone: {phone}</p>
-          <Field id={`phone-signup-name-${mode}`} label="Name" value={name} onChange={setName} />
-          <Field id={`phone-signup-email-${mode}`} label="Email" value={email} onChange={setEmail} type="email" />
-          <Field id={`phone-signup-password-${mode}`} label="Password" value={password} onChange={setPassword} type="password" minLength={8} />
+          <p className="text-xs text-[var(--sea-ink-soft)]">{t("auth.verifiedPhone").replace("{phone}", phone)}</p>
+          <Field id={`phone-signup-name-${mode}`} label={t("auth.name")} value={name} onChange={setName} />
+          <Field id={`phone-signup-email-${mode}`} label={t("auth.email")} value={email} onChange={setEmail} type="email" />
+          <Field id={`phone-signup-password-${mode}`} label={t("auth.password")} value={password} onChange={setPassword} type="password" minLength={8} />
           <button type="submit" disabled={loading || !name.trim() || !email.trim() || password.length < 8} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50">
-            {loading ? "Creating account..." : "Complete phone signup"}
+            {loading ? t("auth.creatingAccount") : t("auth.completePhoneSignup")}
           </button>
         </form>
       ) : null}

@@ -20,6 +20,10 @@ export interface RejectPayoutInput {
   reason?: string
 }
 
+export interface MarkPayoutPaidInput {
+  externalReference: string
+}
+
 export interface PayoutResponse {
   id: string
   walletId: string
@@ -30,6 +34,8 @@ export interface PayoutResponse {
   amount: number
   currency: string
   status: string
+  approvedById: string | null
+  externalReference: string | null
   rejectionReason: string | null
   requestedAt: Date
   approvedAt: Date | null
@@ -58,8 +64,12 @@ export class PayoutService {
     return this.repo.transaction(async (txRepo) => {
       const shop = (await txRepo.findSellerShops(actor.id))[0]
       if (!shop) throw new WalletServiceError('Wallet not found', 404, 'WALLET_NOT_FOUND')
-      const wallet = await txRepo.ensureWallet(shop.id, 'USD')
-      const balance = await txRepo.sumLedger(wallet.id)
+      const wallet = await txRepo.ensureWallet(shop.id, 'THB')
+      if (wallet.currency !== 'THB') {
+        throw new WalletServiceError('Wallet currency must be THB', 409, 'WALLET_CURRENCY_MISMATCH')
+      }
+      await txRepo.lockWallet(wallet.id)
+      const balance = await txRepo.sumLedger(wallet.id, wallet.currency)
       if (input.amount > balance) {
         throw new WalletServiceError('Payout request cannot exceed available balance', 409, 'INSUFFICIENT_BALANCE', {
           availableBalanceCents: balance,
@@ -165,16 +175,24 @@ export class PayoutService {
     return result.response
   }
 
-  async markAdminPayoutPaid(actor: PayoutActor, payoutId: string): Promise<PayoutResponse> {
+  async markAdminPayoutPaid(actor: PayoutActor, payoutId: string, input: MarkPayoutPaidInput): Promise<PayoutResponse> {
     this.assertAdmin(actor)
+    const externalReference = input.externalReference?.trim()
+    if (!externalReference) {
+      throw new WalletServiceError('External transfer reference is required', 400, 'INVALID_PAYOUT_STATE')
+    }
     const result = await this.repo.transaction(async (txRepo) => {
       const payout = await this.getPayoutForUpdate(txRepo, payoutId)
       if (payout.status !== 'approved') {
         throw new WalletServiceError('Only approved payouts can be marked paid', 409, 'INVALID_PAYOUT_STATE')
       }
+      if (payout.approvedById === actor.id) {
+        throw new WalletServiceError('Payout must be paid by a different administrator', 409, 'INVALID_PAYOUT_STATE')
+      }
       const updated = await txRepo.updatePayout(payout.id, {
         status: 'paid',
         paidById: actor.id,
+        externalReference,
         paidAt: new Date(),
       })
       await txRepo.createLedgerEntry({
@@ -192,14 +210,18 @@ export class PayoutService {
         shopId: response.shop.id,
         sellerUserId: payout.requestedById,
         amount: response.amount,
+        externalReference,
       })
       return { response, beforeStatus: payout.status }
     })
-    await this.auditPayoutStatus(actor, payoutId, result.beforeStatus, result.response.status)
+    await this.auditPayoutStatus(actor, payoutId, result.beforeStatus, result.response.status, {
+      externalReference,
+    })
     return result.response
   }
 
   private async getPayoutForUpdate(repo: IPayoutRepository, payoutId: string): Promise<PayoutRecord> {
+    await repo.lockPayout(payoutId)
     const payout = await repo.findPayoutById(payoutId)
     if (!payout) throw new WalletServiceError('Payout not found', 404, 'PAYOUT_NOT_FOUND')
     return payout
@@ -228,6 +250,8 @@ export class PayoutService {
       amount: Number(payout.amount),
       currency: payout.currency,
       status: payout.status,
+      approvedById: payout.approvedById,
+      externalReference: payout.externalReference,
       rejectionReason: payout.rejectionReason,
       requestedAt: payout.requestedAt,
       approvedAt: payout.approvedAt,
@@ -264,6 +288,7 @@ export class PayoutService {
     payoutId: string,
     beforeStatus: string,
     afterStatus: string,
+    details: Record<string, unknown> = {},
   ): Promise<void> {
     await this.auditLogService?.createAuditLogBestEffort({
       actorUserId: actor.id,
@@ -272,7 +297,7 @@ export class PayoutService {
       entityType: 'payout',
       entityId: payoutId,
       before: { status: beforeStatus },
-      after: { status: afterStatus },
+      after: { status: afterStatus, ...details },
       nonCritical: false,
     })
   }

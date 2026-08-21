@@ -297,7 +297,7 @@ function withBuyerProduct(
       shop: {
         id: product.shop.id,
         name: product.shop.name,
-        location: product.shop.location ?? "Local",
+        location: product.shop.location ?? "",
       },
       brand: null,
       metaTitle: null,

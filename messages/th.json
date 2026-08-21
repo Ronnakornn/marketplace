@@ -84,7 +84,52 @@
     "socialSignInFailed": "เข้าสู่ระบบผ่านโซเชียลไม่สำเร็จ",
     "signInFailed": "เข้าสู่ระบบไม่สำเร็จ",
     "signUpFailed": "สมัครสมาชิกไม่สำเร็จ",
-    "unexpectedError": "เกิดข้อผิดพลาดที่ไม่คาดคิด"
+    "unexpectedError": "เกิดข้อผิดพลาดที่ไม่คาดคิด",
+    "verifyEmailTitle": "ยืนยันอีเมล",
+    "verifyEmailDescription": "กรอกรหัสที่ส่งไปยังอีเมลของคุณ",
+    "emailVerifiedSuccess": "ยืนยันอีเมลแล้ว คุณสามารถใช้งานบัญชีต่อได้",
+    "verificationFailed": "ยืนยันอีเมลไม่สำเร็จ",
+    "verificationCode": "รหัสยืนยัน",
+    "verificationCodeSent": "ระบบส่งรหัสยืนยันใหม่แล้วหากบัญชีของคุณเข้าเงื่อนไข",
+    "resendVerificationFailed": "ส่งรหัสยืนยันใหม่ไม่สำเร็จ",
+    "verifying": "กำลังยืนยัน...",
+    "sending": "กำลังส่ง...",
+    "resendCode": "ส่งรหัสอีกครั้ง",
+    "resetPasswordTitle": "รีเซ็ตรหัสผ่าน",
+    "resetPasswordDescription": "ขอรหัสเพื่อกำหนดรหัสผ่านใหม่",
+    "resetCodeSent": "หากอีเมลนี้มีบัญชี ระบบจะส่งรหัสรีเซ็ตให้แล้ว",
+    "resetRequestFailed": "ขอรหัสรีเซ็ตไม่สำเร็จ",
+    "sendResetCode": "ส่งรหัสรีเซ็ต",
+    "haveResetCode": "มีรหัสแล้ว?",
+    "setNewPassword": "ตั้งรหัสผ่านใหม่",
+    "setNewPasswordDescription": "ใช้รหัสรีเซ็ตที่ได้รับทางอีเมล",
+    "resetCode": "รหัสรีเซ็ต",
+    "newPassword": "รหัสผ่านใหม่",
+    "resetPasswordFailed": "รีเซ็ตรหัสผ่านไม่สำเร็จ",
+    "saveNewPassword": "บันทึกรหัสผ่านใหม่",
+    "changePasswordTitle": "เปลี่ยนรหัสผ่าน",
+    "changePasswordDescription": "ยืนยันรหัสผ่านปัจจุบันก่อนตั้งรหัสผ่านใหม่",
+    "currentPassword": "รหัสผ่านปัจจุบัน",
+    "passwordChanged": "เปลี่ยนรหัสผ่านแล้ว",
+    "changePasswordFailed": "เปลี่ยนรหัสผ่านไม่สำเร็จ",
+    "changePasswordAction": "เปลี่ยนรหัสผ่าน",
+    "phoneCodeSent": "ส่งรหัสยืนยันแล้ว",
+    "phoneCodeSendFailed": "ส่งรหัสยืนยันไม่สำเร็จ",
+    "phoneVerifiedCompleteAccount": "ยืนยันเบอร์โทรแล้ว กรุณากรอกอีเมลและรหัสผ่านให้ครบ",
+    "phoneCodeVerifyFailed": "ยืนยันรหัสโทรศัพท์ไม่สำเร็จ",
+    "phoneSignupFailed": "สมัครสมาชิกด้วยเบอร์โทรไม่สำเร็จ",
+    "phoneResendAt": "ขอรหัสใหม่ได้หลัง {time}",
+    "continueWithPhone": "ดำเนินการต่อด้วยเบอร์โทร",
+    "phoneSignupDescription": "ยืนยันเบอร์โทร แล้วเพิ่มอีเมลและรหัสผ่าน",
+    "phoneLoginDescription": "เข้าสู่ระบบด้วยเบอร์โทรที่ยืนยันแล้ว",
+    "phone": "เบอร์โทร",
+    "sendingCode": "กำลังส่งรหัส...",
+    "sendPhoneCode": "ส่งรหัสทางโทรศัพท์",
+    "phoneCode": "รหัสยืนยันทางโทรศัพท์",
+    "verifyPhoneCode": "ยืนยันรหัสโทรศัพท์",
+    "changePhone": "เปลี่ยนเบอร์โทร",
+    "verifiedPhone": "เบอร์โทรที่ยืนยันแล้ว: {phone}",
+    "completePhoneSignup": "สมัครสมาชิกด้วยเบอร์โทรให้เสร็จ"
   },
   "nav": {
     "admin": "ผู้ดูแลระบบ",
@@ -159,6 +204,7 @@
     "freeShip": "ส่งฟรี",
     "freeShipping": "ส่งฟรี",
     "itemsFound": "พบ {count} รายการ",
+    "itemsShown": "กำลังแสดง {visible} จาก {total} รายการ",
     "inStock": "พร้อมขาย",
     "latest": "ล่าสุด",
     "loadingResults": "กำลังโหลดผลลัพธ์มาร์เก็ตเพลส",
@@ -410,6 +456,7 @@
     "details": "รายละเอียด",
     "items": "สินค้า",
     "carrierPending": "รอบริษัทขนส่ง",
+    "trackingSourceNotice": "ข้อมูลนี้มาจากสถานะพัสดุในมาร์เก็ตเพลส โปรดใช้ชื่อบริษัทขนส่งและเลขติดตามเพื่อตรวจสอบการเคลื่อนไหวล่าสุดกับบริษัทขนส่ง",
     "noTrackingDescription": "เมื่อร้านค้าแยกพัสดุแล้ว ไทม์ไลน์จะแสดงที่นี่",
     "noTrackingTitle": "ยังไม่มีข้อมูลติดตาม",
     "order": "คำสั่งซื้อ",
@@ -477,11 +524,13 @@
     "subdistrict": "ตำบล",
     "selectOption": "เลือกตัวเลือก",
     "addresses": "ที่อยู่",
+    "amountOff": "ลด {amount}",
     "affiliates": "แอฟฟิลิเอต",
     "back": "กลับ",
     "buyerShortcuts": "ทางลัดผู้ซื้อ",
     "city": "เมือง",
     "comment": "ความคิดเห็น",
+    "claimVoucher": "เก็บคูปอง",
     "country": "ประเทศ",
     "damagedItem": "สินค้าเสียหาย",
     "details": "รายละเอียด",
@@ -490,6 +539,7 @@
     "endsAt": "สิ้นสุด {time}",
     "endsSoon": "ใกล้หมดเวลา",
     "evidenceImageUrls": "URL รูปหลักฐาน",
+    "evidenceImages": "รูปหลักฐาน",
     "flashSale": "แฟลชเซล",
     "filterMore": "กรองเพิ่มเติม",
     "followedShops": "ร้านที่ติดตาม",
@@ -524,6 +574,7 @@
     "paymentRefunded": "คืนเงินแล้ว",
     "paymentRefundedDescription": "มีการบันทึกสถานะคืนเงินสำหรับคำสั่งซื้อนี้",
     "paymentStatus": "สถานะการชำระเงิน",
+    "percentOff": "ลด {percent}%",
     "postalCode": "รหัสไปรษณีย์",
     "profile": "โปรไฟล์",
     "productsCount": "{count} สินค้า",
@@ -538,10 +589,12 @@
     "returnSubmitted": "ส่งคำขอคืนสินค้าแล้ว",
     "reviewEligibilityDescription": "รีวิวได้หลังได้รับสินค้าแล้ว",
     "reviewDeliveredItem": "รีวิวสินค้าที่ได้รับ",
+    "reviewImages": "รูปประกอบรีวิว",
     "reviewSubmitted": "ส่งรีวิวแล้ว",
     "savedAddressCount": "ที่อยู่ที่บันทึกไว้ {count} รายการ",
     "saveAddress": "บันทึกที่อยู่",
     "sellingFast": "ขายเร็ว",
+    "selectedImageCount": "เลือกแล้ว {count} จาก 5 รูป",
     "shippingAddress": "ที่อยู่จัดส่ง",
     "shareReviewPlaceholder": "แชร์คุณภาพสินค้า การจัดส่ง และประสบการณ์กับผู้ขาย",
     "shopMore": "ช้อปต่อ",
@@ -552,6 +605,7 @@
     "useAsDefaultAddress": "ใช้เป็นที่อยู่เริ่มต้น",
     "useInCart": "ใช้ในตะกร้า",
     "useVoucher": "ใช้คูปอง",
+    "uploadFailed": "อัปโหลดรูปที่เลือกไม่สำเร็จ",
     "viewOrder": "ดูคำสั่งซื้อ",
     "viewProduct": "ดูสินค้า",
     "viewShop": "ดูร้านค้า",
@@ -693,12 +747,14 @@
   "admin": {
     "brand": "แผงควบคุมผู้ดูแล",
     "search": { "users": "ค้นหาผู้ใช้", "shops": "ค้นหาร้านค้า", "products": "ค้นหาสินค้า ร้านค้า หรือหมวดหมู่", "orders": "ค้นหาคำสั่งซื้อ", "refunds": "ค้นหารายการคืนเงิน", "affiliates": "ค้นหาพาร์ตเนอร์", "returns": "ค้นหาคำขอคืนสินค้า", "payouts": "ค้นหารายการจ่ายเงิน", "cases": "ค้นหาเคส", "applications": "ค้นหาใบสมัคร", "content": "ค้นหาเนื้อหา สินค้า ร้านค้า หรือผู้ใช้" },
-    "filters": { "roles": "บทบาท", "statuses": "สถานะ", "risk": "ความเสี่ยง", "shops": "ร้านค้า" },
+    "filters": { "roles": "บทบาท", "statuses": "สถานะ", "risk": "ความเสี่ยง", "shops": "ร้านค้า", "paymentExceptions": "ปัญหาการชำระเงิน", "shipmentExceptions": "ปัญหาการจัดส่ง" },
     "ui": {
       "action": "การทำงาน", "actions": "การทำงาน", "activity": "กิจกรรม", "allActions": "ทุกการทำงาน", "allStates": "ทุกสถานะ", "activeOnly": "เฉพาะที่ใช้งาน", "inactiveOnly": "เฉพาะที่ไม่ใช้งาน", "amount": "จำนวนเงิน", "answer": "คำตอบ", "applicant": "ผู้สมัคร", "approve": "อนุมัติ", "author": "ผู้เขียน", "backToQueue": "กลับไปยังคิว", "brand": "แบรนด์", "buyer": "ผู้ซื้อ", "cancel": "ยกเลิก", "category": "หมวดหมู่", "columns": "คอลัมน์", "confirm": "ยืนยัน", "country": "ประเทศ", "created": "สร้างเมื่อ", "creator": "ครีเอเตอร์", "dates": "วันที่", "delete": "ลบ", "detail": "รายละเอียด", "dismiss": "ปิดเรื่อง", "edit": "แก้ไข", "entity": "รายการ", "filterable": "ใช้กรองได้", "inventory": "คลังสินค้า", "items": "สินค้า", "kycPayout": "KYC และการรับเงิน", "links": "ลิงก์", "moderationNote": "หมายเหตุการตรวจสอบ", "order": "คำสั่งซื้อ", "owner": "เจ้าของ", "paid": "ชำระแล้ว", "parent": "หมวดหมู่หลัก", "payment": "การชำระเงิน", "pickupDocuments": "ที่อยู่รับสินค้าและเอกสาร", "price": "ราคา", "primary": "รูปหลัก", "product": "สินค้า", "question": "คำถาม", "readiness": "ความพร้อม", "reason": "เหตุผล", "refund": "คืนเงิน", "reject": "ปฏิเสธ", "report": "รายงาน", "reporter": "ผู้รายงาน", "required": "จำเป็น", "resolve": "แก้ไขแล้ว", "review": "รีวิว", "risk": "ความเสี่ยง", "rules": "กฎ", "save": "บันทึก", "search": "ค้นหา", "select": "เลือก", "selectedCategory": "หมวดหมู่ที่เลือก", "shop": "ร้านค้า", "shopProfile": "ข้อมูลร้านค้า", "signal": "สัญญาณ", "sort": "ลำดับ", "spec": "สเปก", "status": "สถานะ", "suspend": "ระงับ", "total": "ยอดรวม", "type": "ประเภท", "value": "ค่า", "variant": "ตัวเลือกสินค้า", "variants": "ตัวเลือกสินค้า",
       "noRecords": "ไม่พบรายการที่ตรงกับตัวกรอง", "noLinks": "ยังไม่มีลิงก์", "noDocuments": "ยังไม่ได้แนบเอกสาร", "noMedia": "ยังไม่ได้อัปโหลดสื่อสินค้า", "noSpecs": "ยังไม่ได้ส่งสเปกหมวดหมู่", "noVariants": "ยังไม่ได้ตั้งค่าตัวเลือกสินค้า", "noModeration": "ยังไม่มีเคสตรวจสอบหรือสัญญาณการตรวจสอบสำหรับสินค้านี้", "reasonRequired": "กรุณาระบุเหตุผล", "moderationNoteRequired": "การดำเนินการนี้ต้องระบุหมายเหตุ", "confirmModeration": "ยืนยันการตรวจสอบเนื้อหา", "saving": "กำลังบันทึกการเปลี่ยนแปลง...", "loading": "กำลังโหลด...", "deactivate": "ปิดใช้งาน", "reactivate": "เปิดใช้งานอีกครั้ง", "displayOnly": "แสดงผลเท่านั้น", "deleteShop": "ลบร้านค้า", "shopOwnerRule": "เจ้าของต้องเป็นบัญชีที่ใช้งานอยู่ และลบร้านค้าได้เมื่อไม่มีข้อมูลมาร์เก็ตเพลสที่เกี่ยวข้อง"
     },
     "common": {
+      "noReason": "ไม่ระบุเหตุผล",
+      "returnCounts": "สินค้า {items} รายการ การคืนเงิน {refunds} รายการ",
       "allStatuses": "ทุกสถานะ",
       "cancel": "ยกเลิก",
       "confirm": "ยืนยัน",
@@ -719,7 +775,7 @@
       ,"category": "หมวดหมู่", "parent": "หมวดหมู่หลัก", "sort": "ลำดับ", "select": "เลือก", "active": "ใช้งาน", "inactive": "ไม่ใช้งาน", "required": "จำเป็น", "filterable": "ใช้กรองได้", "edit": "แก้ไข", "save": "บันทึก", "create": "สร้าง", "new": "ใหม่", "root": "ระดับบนสุด", "buyer": "ผู้ซื้อ", "items": "สินค้า", "reason": "เหตุผล", "requested": "ร้องขอเมื่อ", "risk": "ความเสี่ยง"
     },
     "nav": {
-      "affiliates": "แอฟฟิลิเอต", "auditLogs": "บันทึกการตรวจสอบ", "contentModeration": "ตรวจสอบเนื้อหา", "dashboard": "แดชบอร์ด", "fraud": "ทุจริต", "orders": "คำสั่งซื้อ", "payouts": "การจ่ายเงิน", "products": "สินค้า", "refunds": "คืนเงิน", "reports": "รายงาน", "returns": "คืนสินค้า", "settings": "ตั้งค่า", "shops": "ร้านค้า", "users": "ผู้ใช้"
+      "affiliates": "แอฟฟิลิเอต", "auditLogs": "บันทึกการตรวจสอบ", "contentModeration": "ตรวจสอบเนื้อหา", "commissions": "ค่าคอมมิชชัน", "dashboard": "แดชบอร์ด", "fraud": "ทุจริต", "orders": "คำสั่งซื้อ", "payouts": "การจ่ายเงิน", "products": "สินค้า", "refunds": "คืนเงิน", "reports": "รายงาน", "returns": "คืนสินค้า", "settings": "ตั้งค่า", "shops": "ร้านค้า", "users": "ผู้ใช้"
     },
     "pages": {
       "affiliates": { "eyebrow": "เครือข่ายครีเอเตอร์", "title": "จัดการบัญชีแอฟฟิลิเอต", "description": "ตรวจสอบกิจกรรมการติดตามของครีเอเตอร์ และปิดใช้งานบัญชีที่ไม่ควรสร้างการระบุแหล่งที่มาใหม่" },
@@ -730,16 +786,19 @@
       "fraud": { "eyebrow": "ความเสี่ยง", "title": "เคสทุจริต", "description": "ตรวจสอบเคสความเสี่ยงที่สร้างจากกฎก่อนส่งผลต่อการดำเนินงานของมาร์เก็ตเพลส" },
       "orders": { "eyebrow": "ควบคุมคำสั่งซื้อ", "title": "คำสั่งซื้อ", "description": "ติดตามสถานะการชำระเงินและการจัดส่งของคำสั่งซื้อจากผู้ขายทั้งหมด" },
       "payouts": { "eyebrow": "การเงิน", "title": "การจ่ายเงินและค่าคอมมิชชัน", "description": "อนุมัติการจ่ายเงินให้ผู้ขาย และติดตามการชำระค่าคอมมิชชันจากคิวเดียว" },
+      "commissions": { "eyebrow": "การเงิน", "title": "จัดการค่าคอมมิชชัน", "description": "ตรวจสอบค่าคอมมิชชัน Affiliate จริง อนุมัติรายการที่เข้าเกณฑ์ และยกเลิกรายการผิดปกติพร้อมบันทึกเหตุผล" },
       "products": { "eyebrow": "การตรวจสอบ", "title": "สินค้า", "description": "ตรวจสอบการแสดงสินค้าของทุกร้านในมาร์เก็ตเพลส" },
       "productReview": { "eyebrow": "การตรวจสอบ", "title": "ตรวจสอบสินค้า", "description": "ตรวจสอบความพร้อมของสินค้า บริบทของร้าน สต็อก และประวัติการตรวจสอบก่อนดำเนินการ" },
       "refunds": { "eyebrow": "การชำระเงิน", "title": "คืนเงิน", "description": "ตรวจสอบสถานะการคืนเงินและดำเนินคำขอตามขั้นตอนที่รองรับ" },
       "reports": { "eyebrow": "ตัวชี้วัด", "title": "รายงาน", "description": "ตัวชี้วัดการดำเนินงานของมาร์เก็ตเพลสจากคำสั่งซื้อ การคืนเงิน การจ่ายเงิน และค่าคอมมิชชัน" },
       "returns": { "eyebrow": "การยกระดับเรื่อง", "title": "คืนสินค้า", "description": "ตรวจสอบคำขอคืนสินค้าของผู้ซื้อ และให้การตัดสินใจคืนเงินสอดคล้องกับสถานะคำสั่งซื้อ" },
-      "settings": { "eyebrow": "การกำหนดค่า", "title": "ตั้งค่า", "description": "ตรวจสอบส่วนการตั้งค่าผู้ดูแลที่มีอยู่", "cardTitle": "การตั้งค่ามาร์เก็ตเพลส" },
+      "settings": { "eyebrow": "การกำหนดค่า", "title": "ตั้งค่า", "description": "จัดการค่ากำหนดมาร์เก็ตเพลสที่ไม่ใช่ข้อมูลลับและจัดเก็บโดยแพลตฟอร์ม", "cardTitle": "การตั้งค่ามาร์เก็ตเพลส" },
       "shops": { "eyebrow": "การดำเนินงานมาร์เก็ตเพลส", "title": "ร้านค้า", "description": "ตรวจสอบสถานะหน้าร้านของผู้ขายและสัญญาณความเป็นเจ้าของ" },
       "users": { "eyebrow": "สิทธิ์ทีมงาน", "title": "จัดการบัญชีผู้ใช้", "description": "สร้างบัญชี ปรับบทบาท และลบสิทธิ์การเข้าถึงได้จากหน้าควบคุม" }
     },
     "reports": { "grossPaidSales": "ยอดขายที่ชำระแล้ว", "paidOrders": "คำสั่งซื้อที่ชำระแล้ว {count} รายการ", "averageOrder": "ยอดเฉลี่ยต่อคำสั่งซื้อ", "paidOrdersOnly": "เฉพาะคำสั่งซื้อที่ชำระแล้ว", "refundExposure": "ยอดคืนเงิน", "pendingCount": "รอดำเนินการ {count} รายการ", "requestedPayouts": "ยอดขอรับเงิน", "requestCount": "คำขอ {count} รายการ", "approvedCommissions": "ค่าคอมมิชชันที่อนุมัติ", "pendingAmount": "รอดำเนินการ {amount}", "activeProducts": "สินค้าที่ใช้งาน", "totalProducts": "สินค้าทั้งหมด {count} รายการ" },
+    "commissions": { "title": "ค่าคอมมิชชัน Affiliate", "description": "ค่าทั้งหมดอ่านจากข้อมูล attribution ของคำสั่งซื้อที่ชำระแล้วโดยตรง", "search": "ค้นหา Affiliate คำสั่งซื้อ หรือรหัสลิงก์", "affiliate": "Affiliate", "eligible": "ยอดที่ใช้คำนวณ", "commission": "ค่าคอมมิชชัน", "reasonPrompt": "ระบุเหตุผลสำหรับบันทึกการตรวจสอบ", "void": "ยกเลิก", "empty": "ไม่พบค่าคอมมิชชันที่ตรงกับตัวกรอง" },
+    "settingsEditor": { "create": "สร้างการตั้งค่า", "edit": "แก้ไขการตั้งค่า", "description": "ใช้ส่วนนี้กับค่ากำหนดที่ไม่ใช่ข้อมูลลับ ส่วน credential ต้องเก็บใน deployment secrets", "key": "คีย์", "type": "ชนิดข้อมูล", "value": "ค่า", "fieldDescription": "คำอธิบาย", "public": "เปิดเผยได้", "publicHint": "ระบุว่าค่านี้ปลอดภัยสำหรับ API อ่านค่าการตั้งค่าสาธารณะในอนาคต", "invalidValue": "ค่าไม่ตรงกับชนิดข้อมูลที่เลือก", "saveFailed": "ไม่สามารถบันทึกการตั้งค่านี้ได้", "listTitle": "การตั้งค่าที่จัดเก็บ", "listDescription": "รายการเหล่านี้มาจาก SystemSetting API", "search": "ค้นหาการตั้งค่า", "new": "สร้างใหม่", "updated": "อัปเดตเมื่อ", "noDescription": "ไม่มีคำอธิบาย", "empty": "ไม่พบการตั้งค่าระบบที่ตรงกับคำค้นหา" },
     "contentModeration": { "queues": { "reviews": "รีวิว", "reports": "รายงานรีวิว", "questions": "คำถาม", "answers": "คำตอบ" }, "empty": "ไม่พบเนื้อหาที่ตรงกับตัวกรอง", "reviewSummary": "{rating} ดาว · ถูกรายงาน {count} ครั้ง", "noReviewBody": "ไม่มีข้อความรีวิว", "noDetail": "ไม่ได้ระบุรายละเอียด", "reviewRemoved": "รีวิวถูกลบแล้ว", "reviewReport": "รายงานรีวิว", "answerCount": "{count} คำตอบ", "askedBy": "ถามโดย {email}", "confirmDescription": "เปลี่ยน {title} เป็น {status}", "content": "เนื้อหา", "selectedStatus": "สถานะที่เลือก", "requiredNote": "การดำเนินการนี้ต้องระบุหมายเหตุ", "optionalNote": "หมายเหตุภายใน (ไม่บังคับ)" },
     "overview": {
       "eyebrow": "การดำเนินงาน", "welcome": "ยินดีต้อนรับกลับ {name}", "description": "จัดลำดับความสำคัญของข้อยกเว้นในมาร์เก็ตเพลสก่อนตรวจสอบยอดรวม", "marketplaceTotal": "ยอดรวมมาร์เก็ตเพลส", "unableToLoad": "ไม่สามารถโหลดข้อมูลรวมได้",
@@ -748,7 +807,7 @@
     },
     "userManagement": { "title": "จัดการผู้ใช้", "description": "แยกบัญชีลูกค้าออกจากบัญชีผู้ดูแลระบบ", "createUser": "สร้างผู้ใช้", "customers": "ลูกค้า", "customersDescription": "บัญชีผู้ซื้อสำหรับเลือกซื้อ ชำระเงิน รีวิว และขอคืนสินค้า", "systemUsers": "ผู้ใช้ระบบ", "systemUsersDescription": "บัญชีผู้ดูแลที่จัดการมาร์เก็ตเพลสและการดำเนินงานที่มีสิทธิ์จำกัด", "noCustomers": "ไม่พบผู้ใช้ลูกค้า", "noSystemUsers": "ไม่พบผู้ใช้ระบบ", "name": "ชื่อ", "email": "อีเมล", "created": "สร้างเมื่อ", "actions": "การทำงาน", "edit": "แก้ไข", "delete": "ลบ", "filter": "กรองผู้ใช้...", "results": "{count} รายการ", "you": "คุณ", "password": "รหัสผ่าน", "createTitle": "สร้างผู้ใช้", "createDescription": "สร้างบัญชีที่สามารถเข้าสู่ระบบได้ทันที", "editTitle": "แก้ไขผู้ใช้", "editDescription": "อัปเดตข้อมูลส่วนตัวและบทบาทของบัญชีนี้", "saveChanges": "บันทึกการเปลี่ยนแปลง", "saving": "กำลังบันทึก...", "deleting": "กำลังลบ...", "deleteTitle": "ลบผู้ใช้", "deleteDescription": "การดำเนินการนี้จะลบบัญชีและข้อมูลที่เกี่ยวข้องอย่างถาวร", "deleteConfirm": "ลบ {email}?", "selfRoleHint": "ไม่สามารถลบสิทธิ์ผู้ดูแลของคุณจากหน้านี้ได้", "loadFailed": "ไม่สามารถโหลดผู้ใช้ได้", "createFailed": "ไม่สามารถสร้างผู้ใช้ได้", "updateFailed": "ไม่สามารถอัปเดตผู้ใช้ได้", "deleteFailed": "ไม่สามารถลบผู้ใช้ได้" },
     "statuses": {
-      "ACTIVE": "ใช้งาน", "APPROVED": "อนุมัติแล้ว", "ARCHIVED": "เก็บถาวร", "CANCELED": "ยกเลิกแล้ว", "CANCELLED": "ยกเลิกแล้ว", "COMPLETED": "เสร็จสิ้น", "DELIVERED": "จัดส่งแล้ว", "DISABLED": "ปิดใช้งาน", "DISMISSED": "ปิดเรื่อง", "DRAFT": "ฉบับร่าง", "FAILED": "ไม่สำเร็จ", "FULFILLED": "ดำเนินการแล้ว", "HIDDEN": "ซ่อนแล้ว", "OPEN": "เปิดอยู่", "PAID": "ชำระแล้ว", "PENDING": "รอดำเนินการ", "PENDING_PAYMENT": "รอชำระเงิน", "PENDING_REVIEW": "รอตรวจสอบ", "PROCESSING": "กำลังดำเนินการ", "PUBLISHED": "เผยแพร่แล้ว", "RECEIVED": "ได้รับแล้ว", "REFUNDED": "คืนเงินแล้ว", "REJECTED": "ปฏิเสธแล้ว", "RESOLVED": "แก้ไขแล้ว", "RESOLVED_DISMISSED": "ปิดเรื่อง: ไม่ดำเนินการ", "RESOLVED_REMOVED": "ปิดเรื่อง: นำออกแล้ว", "REVIEWED": "ตรวจสอบแล้ว", "SHIPPED": "จัดส่งแล้ว", "SUSPENDED": "ระงับ", "SUCCESS": "สำเร็จ", "SUCCEEDED": "สำเร็จ", "UNDER_REVIEW": "กำลังตรวจสอบ", "PARTIALLY_FULFILLED": "ดำเนินการบางส่วน", "UNKNOWN": "ไม่ทราบสถานะ", "requested": "ร้องขอแล้ว", "approved": "อนุมัติแล้ว", "rejected": "ปฏิเสธแล้ว", "paid": "ชำระแล้ว", "cancelled": "ยกเลิกแล้ว", "low": "ต่ำ", "medium": "ปานกลาง", "high": "สูง", "critical": "วิกฤต"
+      "ACTIVE": "ใช้งาน", "APPROVED": "อนุมัติแล้ว", "ARCHIVED": "เก็บถาวร", "CANCELED": "ยกเลิกแล้ว", "CANCELLED": "ยกเลิกแล้ว", "COMPLETED": "เสร็จสิ้น", "DELAYED": "ล่าช้า", "DELIVERED": "จัดส่งแล้ว", "DISABLED": "ปิดใช้งาน", "DISMISSED": "ปิดเรื่อง", "DRAFT": "ฉบับร่าง", "FAILED": "ไม่สำเร็จ", "FULFILLED": "ดำเนินการแล้ว", "HIDDEN": "ซ่อนแล้ว", "OPEN": "เปิดอยู่", "PAID": "ชำระแล้ว", "PENDING": "รอดำเนินการ", "PENDING_PAYMENT": "รอชำระเงิน", "PENDING_REVIEW": "รอตรวจสอบ", "PROCESSING": "กำลังดำเนินการ", "PUBLISHED": "เผยแพร่แล้ว", "RECEIVED": "ได้รับแล้ว", "REFUNDED": "คืนเงินแล้ว", "REJECTED": "ปฏิเสธแล้ว", "RESOLVED": "แก้ไขแล้ว", "RESOLVED_DISMISSED": "ปิดเรื่อง: ไม่ดำเนินการ", "RESOLVED_REMOVED": "ปิดเรื่อง: นำออกแล้ว", "REVIEWED": "ตรวจสอบแล้ว", "SHIPPED": "จัดส่งแล้ว", "SUSPENDED": "ระงับ", "SUCCESS": "สำเร็จ", "SUCCEEDED": "สำเร็จ", "UNDER_REVIEW": "กำลังตรวจสอบ", "VOID": "ยกเลิก", "PARTIALLY_FULFILLED": "ดำเนินการบางส่วน", "UNKNOWN": "ไม่ทราบสถานะ", "requested": "ร้องขอแล้ว", "approved": "อนุมัติแล้ว", "rejected": "ปฏิเสธแล้ว", "paid": "ชำระแล้ว", "cancelled": "ยกเลิกแล้ว", "low": "ต่ำ", "medium": "ปานกลาง", "high": "สูง", "critical": "วิกฤต"
     },
     "access": "สิทธิ์เข้าถึง",
     "action": "การดำเนินการ",
@@ -793,9 +852,24 @@
     "variants": "ตัวเลือกสินค้า",
     "you": "คุณ",
     "sellerApplications": {
+      "title": "คิวตรวจสอบใบสมัครผู้ขาย",
       "description": "ตรวจสอบ KYC จุดรับสินค้า และข้อมูลรับเงินของผู้ขายก่อนเปิดใช้งานร้านค้า",
+      "submitted": "ส่งใบสมัครเมื่อ",
+      "business": "ประเภทธุรกิจ",
+      "legalName": "ชื่อตามกฎหมาย",
+      "email": "อีเมล",
+      "phone": "โทรศัพท์",
+      "nationalId": "เลขบัตรประชาชน",
+      "company": "เลขทะเบียนบริษัท",
+      "taxId": "เลขประจำตัวผู้เสียภาษี",
+      "bankAccount": "บัญชีธนาคาร",
+      "upload": "ไฟล์อัปโหลด",
+      "notSet": "ยังไม่ระบุ",
+      "empty": "ไม่พบใบสมัครผู้ขายที่ส่งแล้วตรงกับคำค้นหา",
       "applicationReviewSaved": "บันทึกผลตรวจสอบใบสมัครผู้ขายแล้ว",
       "rejectApplicationTitle": "ปฏิเสธใบสมัครผู้ขาย",
+      "rejectApplicationDescription": "ระบุเหตุผลสำหรับ {shop} ผู้ขายจะเห็นข้อความนี้ในหน้าสถานะ",
+      "rejectApplicationPlaceholder": "อธิบายสิ่งที่ต้องแก้ไขก่อนส่งใบสมัครอีกครั้ง",
       "approveDocument": "อนุมัติเอกสาร",
       "rejectDocument": "ปฏิเสธเอกสาร",
       "documentReviewSaved": "บันทึกผลตรวจสอบเอกสารแล้ว",
@@ -804,9 +878,80 @@
       "rejectDocumentTitle": "ปฏิเสธเอกสารผู้ขาย",
       "rejectDocumentDescription": "ระบุเหตุผลสำหรับเอกสารนี้",
       "rejectDocumentPlaceholder": "อธิบายสิ่งที่ต้องแก้ไขในเอกสารนี้",
-      "rejectionReasonRequired": "กรุณาระบุเหตุผลที่ปฏิเสธ"
+      "rejectionReasonRequired": "กรุณาระบุเหตุผลที่ปฏิเสธ",
+      "viewDocument": "ดูเอกสาร"
+    },
+    "payouts": {
+      "externalReferencePrompt": "กรอกเลขอ้างอิงการโอนเงิน ผู้ดูแลที่กดจ่ายแล้วต้องเป็นคนละคนกับผู้อนุมัติ",
+      "rejectionReasonPrompt": "กรอกเหตุผลที่ปฏิเสธการถอนเงิน"
+    },
+    "shipments": {
+      "evidenceReferencePrompt": "กรอกเลขอ้างอิงเหตุการณ์ส่งสำเร็จหรือหลักฐานจากขนส่งที่เชื่อถือได้",
+      "confirmDelivered": "ยืนยันส่งสำเร็จ"
+    },
+    "refunds": {
+      "requestFallback": "คำขอคืนเงิน",
+      "externalReferencePrompt": "กรอกเลขอ้างอิงการคืนเงิน ผู้ดูแลที่ยืนยันสำเร็จต้องเป็นคนละคนกับผู้เริ่มดำเนินการ"
+    },
+    "operations": {
+      "shopName": "ชื่อร้านค้า",
+      "ownerEmail": "อีเมลเจ้าของร้าน",
+      "saveShop": "บันทึกร้านค้า",
+      "createShop": "สร้างร้านค้า",
+      "deleteShopDescription": "ลบ {shop} ได้เมื่อร้านไม่มีสินค้า คำสั่งซื้อ การจัดส่ง คูปอง ผู้ติดตาม แชท กระเป๋าเงิน หรือรายการถอนเงิน",
+      "media": "สื่อ",
+      "stock": "สต็อก",
+      "moderationDescription": "ระบุเหตุผลสำหรับ {title} ผู้ขายจะเห็นหมายเหตุการตรวจสอบนี้",
+      "moderationPlaceholder": "อธิบายสิ่งที่ผู้ขายต้องแก้ไข",
+      "orderActivity": "สินค้า {items} รายการ พัสดุ {shipments} รายการ คืนเงิน {refunds} รายการ"
     },
     "productModeration": { "loadError": "ไม่สามารถโหลดรายละเอียดการตรวจสอบสินค้าได้" },
+    "productModerationDetail": {
+      "title": "ตรวจสอบสินค้า",
+      "noDescription": "ผู้ขายยังไม่ได้ระบุรายละเอียดสินค้า",
+      "approved": "อนุมัติ {title} แล้ว",
+      "rejected": "ปฏิเสธ {title} แล้ว",
+      "suspended": "ระงับ {title} แล้ว",
+      "restored": "กู้คืน {title} แล้ว",
+      "approving": "กำลังอนุมัติ...",
+      "restore": "กู้คืน",
+      "restoring": "กำลังกู้คืน...",
+      "rejectReason": "เหตุผลที่ปฏิเสธ",
+      "suspendReason": "เหตุผลที่ระงับ",
+      "reasonPlaceholder": "อธิบายนโยบายหรือปัญหาของรายการสินค้าที่ผู้ขายต้องแก้ไข",
+      "submitting": "กำลังส่ง...",
+      "rejectProduct": "ปฏิเสธสินค้า",
+      "suspendProduct": "ระงับสินค้า",
+      "mediaPreview": "ตัวอย่างสื่อ",
+      "basicsAndSpecs": "ข้อมูลพื้นฐานและสเปกหมวดหมู่",
+      "slug": "Slug",
+      "updated": "อัปเดตเมื่อ",
+      "unassigned": "ยังไม่กำหนด",
+      "variantsAndInventory": "ตัวเลือกสินค้าและสต็อก",
+      "fromPrice": "ราคาเริ่มต้น",
+      "totalStock": "สต็อกรวม",
+      "none": "ไม่มี",
+      "inventoryCounts": "พร้อมขาย {onHand} ชิ้น จองแล้ว {reserved} ชิ้น",
+      "shopContext": "ข้อมูลร้านค้า",
+      "shopSlug": "Slug ร้านค้า",
+      "shopStatus": "สถานะร้านค้า",
+      "readinessChecklist": "รายการตรวจความพร้อม",
+      "moderationHistory": "ประวัติการตรวจสอบ",
+      "caseStatus": "สถานะเคส",
+      "severity": "ระดับความรุนแรง",
+      "categoryAssigned": "กำหนดหมวดหมู่แล้ว",
+      "noCategory": "ไม่มีหมวดหมู่",
+      "mediaAvailable": "มีรูปสินค้า",
+      "imageCount": "{count} รูป",
+      "primaryImage": "รูปหลัก",
+      "set": "ตั้งค่าแล้ว",
+      "missing": "ยังไม่มี",
+      "activePricedVariant": "มีตัวเลือกสินค้าที่เปิดขายและตั้งราคาแล้ว",
+      "variantCount": "{count} ตัวเลือก",
+      "availableInventory": "มีสต็อกพร้อมขาย",
+      "onHandCount": "พร้อมขาย {count} ชิ้น",
+      "notAvailable": "ไม่มีข้อมูล"
+    },
     "categoryManager": { "workspace": "พื้นที่จัดการหมวดหมู่", "description": "ค้นหา เลือก แก้ไข และจัดลำดับหมวดหมู่ที่ผู้ดูแลมองเห็น", "search": "ค้นหาหมวดหมู่", "specDefinitions": "การกำหนดสเปก", "specDescription": "จัดการสเปกที่จำเป็น ใช้กรองได้ เปิดใช้งาน และปิดใช้งานสำหรับหมวดหมู่ที่เลือก", "categoryName": "ชื่อหมวดหมู่", "slug": "Slug", "sortOrder": "ลำดับการแสดง", "thaiName": "ชื่อภาษาไทย", "englishName": "ชื่อภาษาอังกฤษ", "parentCategory": "หมวดหมู่หลัก", "saveCategory": "บันทึกหมวดหมู่", "createCategory": "สร้างหมวดหมู่", "newCategory": "หมวดหมู่ใหม่", "attributeKey": "คีย์คุณสมบัติ", "displayName": "ชื่อที่แสดง", "thaiDisplayName": "ชื่อที่แสดงภาษาไทย", "englishDisplayName": "ชื่อที่แสดงภาษาอังกฤษ", "unit": "หน่วย", "saveSpec": "บันทึกสเปก", "addSpec": "เพิ่มสเปก", "clearSpec": "ล้างสเปก", "visibility": "การแสดงหมวดหมู่", "categoryUpdated": "อัปเดตหมวดหมู่แล้ว", "categoryCreated": "สร้างหมวดหมู่แล้ว", "categoryOrderUpdated": "อัปเดตลำดับหมวดหมู่แล้ว", "specUpdated": "อัปเดตสเปกแล้ว", "specCreated": "สร้างสเปกแล้ว", "specOrderUpdated": "อัปเดตลำดับสเปกแล้ว", "categoryForbidden": "ต้องมีสิทธิ์ผู้ดูแลเพื่อจัดการหมวดหมู่", "categoryDeactivated": "ปิดใช้งานหมวดหมู่แล้ว", "categoryReactivated": "เปิดใช้งานหมวดหมู่อีกครั้งแล้ว", "loadingCategories": "กำลังโหลดหมวดหมู่...", "emptyCategories": "ไม่พบหมวดหมู่ที่ตรงกับตัวกรอง", "noCategorySelected": "ยังไม่ได้เลือกหมวดหมู่", "selectCategoryHint": "เลือกหรือสร้างหมวดหมู่ก่อนแก้ไขสเปก", "specForbidden": "ต้องมีสิทธิ์ผู้ดูแลเพื่อจัดการสเปก", "specDeactivated": "ปิดใช้งานสเปกแล้ว", "specReactivated": "เปิดใช้งานสเปกอีกครั้งแล้ว", "selectCategory": "เลือกหมวดหมู่เพื่อจัดการสเปก", "loadingSpecs": "กำลังโหลดสเปก...", "emptySpecs": "หมวดหมู่นี้ยังไม่มีสเปก" },
     "brandManager": { "title": "จัดการแบรนด์", "description": "สร้างและดูแลข้อมูลแบรนด์ส่วนกลางสำหรับผู้ขายและตัวกรองของผู้ซื้อ", "search": "ค้นหาแบรนด์", "featured": "แนะนำ", "save": "บันทึกแบรนด์", "create": "สร้างแบรนด์", "name": "ชื่อแบรนด์", "code": "รหัส", "logoUrl": "URL โลโก้", "websiteUrl": "URL เว็บไซต์", "notSet": "ยังไม่กำหนด", "loading": "กำลังโหลดแบรนด์...", "empty": "ไม่พบแบรนด์ที่ตรงกับตัวกรอง", "count": "{count} แบรนด์" },
     "catalogManager": { "activeProducts": "สินค้าที่ใช้งาน", "activeDetail": "ผู้ซื้อสามารถมองเห็น", "draftProducts": "สินค้าฉบับร่าง", "draftDetail": "ไม่แสดงในหน้าร้าน", "archivedProducts": "สินค้าที่เก็บถาวร", "archivedDetail": "ซ่อนจากรายการสาธารณะ" },
@@ -894,8 +1039,10 @@
       "assets": "สื่อประกอบ",
       "priceStock": "ราคา / สต็อก",
       "actions": "การดำเนินการ",
-      "edit": "แก้ไข",
-      "archive": "เก็บถาวร",
+    "edit": "แก้ไข",
+    "editLabel": "แก้ไข {title}",
+    "archive": "เก็บถาวร",
+    "archiveLabel": "เก็บ {title} ไว้ถาวร",
       "archived": "เก็บสินค้าเข้าคลังแล้ว",
       "archiveError": "ไม่สามารถเก็บสินค้าเข้าคลังได้",
       "archiveTitle": "เก็บสินค้าเข้าคลัง",
@@ -952,13 +1099,14 @@
       "submitting": "กำลังส่ง...",
       "submitAnswer": "ส่งคำตอบ"
     },
-    "analytics": {"title":"วิเคราะห์สินค้า","description":"วัดความต้องการสินค้า ยอดขาย SKU และสัญญาณการเปลี่ยนเป็นคำสั่งซื้อของสินค้าร้านคุณ","dateRange":"ช่วงวันที่วิเคราะห์","startDate":"วันที่เริ่มต้น","endDate":"วันที่สิ้นสุด","searchAnalytics":"ค้นหาการวิเคราะห์สินค้า","searchProduct":"ค้นหาสินค้า","search":"ค้นหา","days7":"7 วัน","days30":"30 วัน","days90":"90 วัน","custom":"กำหนดเอง","views":"การเข้าชม","addToCart":"เพิ่มลงรถเข็น","orders":"คำสั่งซื้อ","unitsSold":"จำนวนขาย","units":"จำนวน","revenue":"รายได้","conversion":"อัตราเปลี่ยนเป็นคำสั่งซื้อ","dailyTrend":"แนวโน้มรายวัน","loadingChart":"กำลังโหลดกราฟ...","topSkus":"SKU ยอดนิยม","performance":"ประสิทธิภาพสินค้า","product":"สินค้า","lowPerforming":"สินค้าประสิทธิภาพต่ำ","emptyRange":"ไม่พบข้อมูลวิเคราะห์สินค้าในช่วงวันที่นี้","loadingDailyTrend":"กำลังโหลดแนวโน้มรายวัน...","emptyDailyTrend":"ไม่มีข้อมูลวิเคราะห์รายวัน","loadingSkus":"กำลังโหลด SKU...","emptySkus":"ยังไม่มีข้อมูลประสิทธิภาพ SKU","loadingProducts":"กำลังโหลดข้อมูลวิเคราะห์สินค้า...","emptyProducts":"ไม่พบสินค้า","loadingLowPerformers":"กำลังโหลดสินค้าประสิทธิภาพต่ำ...","emptyLowPerformers":"ไม่พบสินค้าประสิทธิภาพต่ำในช่วงนี้"},
+    "analytics": {"title":"วิเคราะห์สินค้า","description":"วัดความต้องการสินค้า ยอดขาย SKU และสัญญาณการเปลี่ยนเป็นคำสั่งซื้อของสินค้าร้านคุณ","dateRange":"ช่วงวันที่วิเคราะห์","startDate":"วันที่เริ่มต้น","endDate":"วันที่สิ้นสุด","searchAnalytics":"ค้นหาการวิเคราะห์สินค้า","searchProduct":"ค้นหาสินค้า","search":"ค้นหา","days7":"7 วัน","days30":"30 วัน","days90":"90 วัน","custom":"กำหนดเอง","views":"การเข้าชม","addToCart":"เพิ่มลงรถเข็น","orders":"คำสั่งซื้อ","unitsSold":"จำนวนขาย","units":"จำนวน","revenue":"รายได้","conversion":"อัตราเปลี่ยนเป็นคำสั่งซื้อ","dailyTrend":"แนวโน้มรายวัน","loadingChart":"กำลังโหลดกราฟ...","topSkus":"SKU ยอดนิยม","performance":"ประสิทธิภาพสินค้า","product":"สินค้า","lowPerforming":"สินค้าประสิทธิภาพต่ำ","emptyRange":"ไม่พบข้อมูลวิเคราะห์สินค้าในช่วงวันที่นี้","loadingDailyTrend":"กำลังโหลดแนวโน้มรายวัน...","emptyDailyTrend":"ไม่มีข้อมูลวิเคราะห์รายวัน","loadingSkus":"กำลังโหลด SKU...","emptySkus":"ยังไม่มีข้อมูลประสิทธิภาพ SKU","loadingProducts":"กำลังโหลดข้อมูลวิเคราะห์สินค้า...","emptyProducts":"ไม่พบสินค้า","loadingLowPerformers":"กำลังโหลดสินค้าประสิทธิภาพต่ำ...","emptyLowPerformers":"ไม่พบสินค้าประสิทธิภาพต่ำในช่วงนี้","trendViews":"{date} การเข้าชม","trendAddToCart":"{date} การเพิ่มลงรถเข็น","trendOrders":"{date} คำสั่งซื้อ","lowPerformerSummary":"เข้าชม {views} ครั้ง / อัตราเปลี่ยนเป็นยอดขาย {conversion}","tune":"ปรับปรุง","skuSummary":"ขาย {units} ชิ้น / {orders} คำสั่งซื้อ","loadError":"ไม่สามารถโหลดข้อมูลวิเคราะห์สินค้าได้"},
     "editor": {"createTitle":"เพิ่มสินค้า","createDescription":"กำลังเตรียมฉบับร่างก่อนเปิดสตูดิโอสินค้า","creatingDraft":"กำลังสร้างฉบับร่าง...","draftPreparation":"เตรียมฉบับร่าง","draftPreparationDescription":"สตูดิโอสินค้าจะเปิดหลังจากสร้างฉบับร่างเรียบร้อย","untitledDraft":"ฉบับร่างสินค้าที่ยังไม่มีชื่อ","editTitle":"แก้ไขสินค้า","editDescription":"อัปเดตรายละเอียดรายการและเตรียมส่วนตั้งค่าสินค้า","loading":"กำลังโหลดสินค้า...","notFound":"ไม่พบสินค้าหรือคุณไม่มีสิทธิ์เข้าถึง","retry":"ลองอีกครั้ง","studioTitle":"สตูดิโอสินค้า","studioDescription":"แก้ไขเนื้อหา การตั้งค่าแคตตาล็อก สื่อ ตัวเลือกสินค้า สต็อก และความพร้อมส่งตรวจในที่เดียว","saveState":"สถานะการบันทึก","saving":"กำลังบันทึก...","unsaved":"มีการเปลี่ยนแปลงที่ยังไม่บันทึก","saved":"บันทึกแล้ว","saveDraft":"บันทึกฉบับร่าง","submitReview":"ส่งตรวจสอบ","sections":"ส่วนต่าง ๆ ของสตูดิโอสินค้า","section":{"basics":"ข้อมูลพื้นฐาน","category-specs":"หมวดหมู่และสเปก","media":"สื่อ","variants":"ตัวเลือกสินค้า","inventory":"คลังสินค้า","review":"ตรวจสอบ"},"sectionDescription":{"basics":"ข้อมูลหลัก รายละเอียดสำหรับผู้ซื้อ SEO แบรนด์ สภาพ การรับประกัน และแหล่งกำเนิด","category-specs":"เลือกหมวดหมู่หลักและกรอกสเปกเฉพาะหมวดหมู่","media":"อัปโหลดรูปภาพได้สูงสุด 10 รูป และวิดีโอ MP4 หรือ WebM หนึ่งรายการหลังจากบันทึกฉบับร่าง","variants":"กำหนดแกนตัวเลือก ค่าตัวเลือก และแถวตัวเลือกสินค้าที่ขายได้","inventory":"ตรวจสอบจำนวนในคลัง จำนวนที่ถูกจอง จำนวนพร้อมขาย ระดับสั่งซื้อเพิ่ม และสถานะสต็อกต่ำ","review":"บันทึกฉบับร่างได้ทันที ส่วนการส่งตรวจต้องมีข้อมูลแคตตาล็อก สื่อ และตัวเลือกสินค้าที่พร้อมขาย"},"confirm":{"discardTitle":"ละทิ้งการเปลี่ยนแปลงที่ยังไม่บันทึกหรือไม่","discardDescription":"การเปลี่ยนแปลงหลังการบันทึกครั้งล่าสุดจะหายไป","discardAction":"ละทิ้งการเปลี่ยนแปลง","removeOptionTitle":"ลบตัวเลือกหรือไม่","removeOptionDescription":"ลบ {name} หรือไม่ แถวตัวเลือกสินค้า {count} แถวจะสูญเสียตัวเลือกนี้","removeValueTitle":"ลบค่าตัวเลือกหรือไม่","removeValueDescription":"ลบ {name} หรือไม่ แถวตัวเลือกสินค้าที่ได้รับผลกระทบ {count} แถวจะถูกปรับปรุง","removeAction":"ลบ","deleteVariantTitle":"ลบตัวเลือกสินค้าหรือไม่","deleteVariantDescription":"ลบ {name} หรือไม่ การดำเนินการนี้ย้อนกลับไม่ได้","deleteVariantAction":"ลบตัวเลือกสินค้า","thisOption":"ตัวเลือกนี้","thisValue":"ค่านี้"},"error":{"load":"โหลดข้อมูลผู้ขายไม่สำเร็จ","draftCreate":"สร้างฉบับร่างสินค้าไม่สำเร็จ","axesLimit":"กำหนดแกนตัวเลือกได้สูงสุดสองแกน","draftBeforeOptions":"บันทึกสินค้าเป็นฉบับร่างก่อนแก้ไขตัวเลือกสินค้า","optionRequirements":"แต่ละตัวเลือกต้องมีชื่อและค่าอย่างน้อยหนึ่งค่า","optionsSave":"บันทึกตัวเลือกสินค้าไม่สำเร็จ","draftBeforeReorder":"บันทึกสินค้าเป็นฉบับร่างก่อนจัดลำดับสื่อ","imageOrderSave":"บันทึกลำดับรูปภาพไม่สำเร็จ","draftBeforeReview":"บันทึกสินค้าเป็นฉบับร่างก่อนส่งตรวจสอบ","reviewNeeds":"การส่งตรวจสอบต้องมี {items}","reviewSubmit":"ส่งสินค้าตรวจสอบไม่สำเร็จ","titleRequired":"กรุณากรอกชื่อสินค้า","activeNeeds":"สินค้าที่เปิดขายต้องมี {items} ก่อนเผยแพร่","productSave":"บันทึกสินค้าไม่สำเร็จ","imageLimit":"เพิ่มรูปภาพสินค้าได้สูงสุด {max} รูป โปรดลบรูปเดิมก่อนเพิ่มรูปใหม่","videoSingle":"เพิ่มวิดีโอสินค้าได้หนึ่งรายการ โปรดลบวิดีโอปัจจุบันก่อนอัปโหลดรายการใหม่","videoType":"วิดีโอสินค้าต้องเป็นไฟล์ MP4 หรือ WebM","videoSize":"วิดีโอสินค้าต้องมีขนาดไม่เกิน 25 MB","imageRemove":"ลบรูปภาพไม่สำเร็จ","draftBeforeMedia":"บันทึกสินค้าเป็นฉบับร่างก่อนอัปโหลดสื่อ","imageSave":"บันทึกรูปภาพไม่สำเร็จ","imageUpload":"อัปโหลดรูปภาพไม่สำเร็จ","videoRemove":"ลบวิดีโอไม่สำเร็จ","videoUpload":"อัปโหลดวิดีโอไม่สำเร็จ","optionValueBeforeRows":"เพิ่มค่าตัวเลือกอย่างน้อยหนึ่งค่าก่อนสร้างแถวตัวเลือกสินค้า","duplicateCombination":"ชุดตัวเลือกสินค้าซ้ำกัน โปรดเลือกชุดค่าตัวเลือกที่ไม่ซ้ำกันในแต่ละแถว","draftBeforeVariants":"บันทึกสินค้าเป็นฉบับร่างก่อนเพิ่มตัวเลือกสินค้า","variantRequired":"กรุณากรอก SKU และชื่อตัวเลือกสินค้า","variantNegative":"ราคาและจำนวนสต็อกต้องไม่ติดลบ","variantStockSave":"บันทึกสต็อกของตัวเลือกสินค้าไม่สำเร็จ","variantSave":"บันทึกตัวเลือกสินค้าไม่สำเร็จ","variantDelete":"ลบตัวเลือกสินค้าไม่สำเร็จ","skuRequired":"กรุณากรอก SKU","duplicateSku":"SKU ซ้ำกัน","duplicateOptionCombination":"ชุดค่าตัวเลือกซ้ำกัน","priceNegative":"ราคาต้องไม่ติดลบ","stockNegative":"สต็อกต้องไม่ติดลบ"},"success":{"draftCreated":"สร้างฉบับร่างแล้ว","optionsSaved":"บันทึกตัวเลือกสินค้าแล้ว","imageOrderSaved":"บันทึกลำดับรูปภาพแล้ว","reviewSubmitted":"ส่งสินค้าตรวจสอบแล้ว","productUpdated":"อัปเดตสินค้าแล้ว","productCreated":"สร้างสินค้าแล้ว","imageRemoved":"ลบรูปภาพแล้ว","imageUpdated":"อัปเดตรูปภาพแล้ว","imageUploaded":"อัปโหลดรูปภาพแล้ว","videoRemoved":"ลบวิดีโอแล้ว","videoUploaded":"อัปโหลดวิดีโอแล้ว","variantDeleted":"ลบตัวเลือกสินค้าแล้ว","variantUpdated":"อัปเดตตัวเลือกสินค้าแล้ว","variantCreated":"สร้างตัวเลือกสินค้าแล้ว"},"spec":{"numericWithUnit":"กรอกตัวเลขในหน่วย {unit}","numeric":"กรอกค่าเป็นตัวเลข","boolean":"เลือกใช่หรือไม่ใช่","multiSelect":"กรอกหนึ่งค่าหรือหลายค่าโดยคั่นด้วยจุลภาค","selectValue":"เลือกค่า","noValue":"ไม่มีค่า","true":"ใช่","false":"ไม่ใช่","required":"กรุณากรอก {name}"},"readiness":{"category":"เลือกหมวดหมู่หลักแล้ว","requiredSpecs":"กรอกสเปกหมวดหมู่ที่จำเป็นครบแล้ว","primaryImage":"เลือกรูปภาพสินค้าหลักแล้ว","activeVariant":"มีตัวเลือกสินค้าที่เปิดขายและมีราคาอย่างน้อยหนึ่งรายการ","missingCategory":"หมวดหมู่","missingRequiredSpecs":"สเปกที่จำเป็น: {items}","missingRequiredSpecsFallback":"สเปกหมวดหมู่ที่จำเป็น","missingPrimaryImage":"รูปภาพสินค้าหลัก","missingActiveVariant":"ตัวเลือกสินค้าที่เปิดขายและมีราคามากกว่าศูนย์หนึ่งรายการ"},"media":{"dropImages":"ลากรูปภาพสินค้ามาวางที่นี่ หรือใช้ปุ่มอัปโหลด","addImages":"เพิ่มรูปภาพ","addVideo":"เพิ่มวิดีโอ","imagePreviewAlt":"ตัวอย่างรูปภาพสินค้า","pending":"รอดำเนินการ","uploading":"กำลังอัปโหลด...","error":"เกิดข้อผิดพลาด","moveImageUp":"เลื่อนรูปภาพ {index} ขึ้น","moveImageDown":"เลื่อนรูปภาพ {index} ลง","removeImageLabel":"ลบรูปภาพ {name}","videoTypeFallback":"วิดีโอ","retryVideo":"ลองอัปโหลดวิดีโออีกครั้ง","saveVideo":"บันทึกวิดีโอ","videoPreviewLabel":"ตัวอย่างวิดีโอสินค้า"},"variant":{"optionFallback":"ตัวเลือก","valueFallback":"ค่า","baseVariant":"ตัวเลือกสินค้าหลัก","generatedName":"ตัวเลือกสินค้า {index}","optionValueLabel":"ค่าที่ {value} ของตัวเลือกที่ {option}","optionValueThaiLabel":"ค่าภาษาไทยที่ {value} ของตัวเลือกที่ {option}","optionValueColorLabel":"สีของค่าที่ {value} ในตัวเลือกที่ {option}","moveValueUp":"เลื่อนค่าที่ {value} ของตัวเลือกที่ {option} ขึ้น","moveValueDown":"เลื่อนค่าที่ {value} ของตัวเลือกที่ {option} ลง","optionValues":"ค่าตัวเลือก","noSku":"ไม่มี SKU"},"inventory":{"onHand":"จำนวนในคลัง","reserved":"จำนวนที่ถูกจอง","available":"จำนวนพร้อมขาย","movementPreview":"ตัวอย่างการเคลื่อนไหวล่าสุด: ระบบจะบันทึกการอัปเดตจำนวนในคลังหรือระดับสั่งซื้อเพิ่มลงในประวัติคลังสินค้าหลังบันทึกแต่ละครั้ง"},"placeholder":{"condition":"ใหม่","additionalSpecs":"care|วิธีดูแล|ซักเครื่องด้วยน้ำเย็น","highlights":"หนึ่งจุดเด่นต่อหนึ่งบรรทัด","optionName":"สี","optionValue":"ดำ"}},
     "dashboard": "แดชบอร์ดผู้ขาย",
     "verifiedMarketplaceShop": "ร้านค้ามาร์เก็ตเพลสที่ยืนยันแล้ว",
     "activeItemsCount": "{count} รายการพร้อมขาย",
     "fastChatAvailable": "พร้อมแชทอย่างรวดเร็ว",
     "manage": {
+      "loadError": "ไม่สามารถโหลดข้อมูลผู้ขายได้",
       "dashboardTitle": "แดชบอร์ด",
       "dashboardDescription": "ติดตามงานจัดส่งที่ชำระเงินแล้ว สต็อกต่ำ รีวิว และการดำเนินงานร้านค้า",
       "cards": {
@@ -1045,31 +1193,164 @@
       },
       "retry": "ลองอีกครั้ง",
       "pages": {
-        "inventory": {"title":"คลังสินค้า","description":"จัดการสต็อกโดยไม่กระทบสินค้าที่ถูกจอง","search":"ค้นหาสินค้า SKU หรือตัวเลือก","filterStock":"กรองสต็อก","allStock":"สต็อกทั้งหมด","lowStockOnly":"เฉพาะสต็อกต่ำ","outOfStock":"สินค้าหมดสต็อก","saving":"กำลังบันทึกสต็อก...","save":"บันทึก","loading":"กำลังโหลดคลังสินค้า...","empty":"ไม่พบตัวเลือกสินค้า","variant":"ตัวเลือกสินค้า","onHand":"ในคลัง","reserved":"ถูกจอง","available":"พร้อมขาย","reorder":"จุดสั่งซื้อเพิ่ม","update":"อัปเดต","updateFailed":"ไม่สามารถอัปเดตคลังสินค้าได้"},
+        "inventory": {"title":"คลังสินค้า","description":"จัดการสต็อกโดยไม่กระทบสินค้าที่ถูกจอง","search":"ค้นหาสินค้า SKU หรือตัวเลือก","filterStock":"กรองสต็อก","allStock":"สต็อกทั้งหมด","lowStockOnly":"เฉพาะสต็อกต่ำ","outOfStock":"สินค้าหมดสต็อก","saving":"กำลังบันทึกสต็อก...","save":"บันทึก","loading":"กำลังโหลดคลังสินค้า...","empty":"ไม่พบตัวเลือกสินค้า","variant":"ตัวเลือกสินค้า","onHand":"ในคลัง","reserved":"ถูกจอง","available":"พร้อมขาย","reorder":"จุดสั่งซื้อเพิ่ม","update":"อัปเดต","updateFailed":"ไม่สามารถอัปเดตคลังสินค้าได้","product":"สินค้า","reservedStock":"สต็อกที่ถูกจอง {sku}","quantityOnHand":"จำนวนในคลัง","reorderLevel":"จุดสั่งซื้อเพิ่ม"},
         "orders": {"title":"คำสั่งซื้อและการจัดส่ง","description":"ดำเนินการจัดส่งที่ชำระเงินแล้วแยกตามการจัดส่ง","order":"คำสั่งซื้อ","recipient":"ผู้รับ","items":"สินค้า","status":"สถานะ","actions":"การดำเนินการ","search":"ค้นหาคำสั่งซื้อ","filterStatus":"กรองตามสถานะ","allStatuses":"ทุกสถานะ","markPacked":"ทำเครื่องหมายว่าแพ็กแล้ว","carrier":"ผู้ให้บริการขนส่ง","tracking":"เลขติดตาม","ship":"จัดส่ง","markDelivered":"ทำเครื่องหมายว่าส่งแล้ว","loading":"กำลังโหลดการจัดส่ง...","empty":"ไม่มีการจัดส่งที่ต้องดำเนินการ"},
         "returns": {"title":"คืนสินค้า","description":"อนุมัติหรือปฏิเสธคำขอคืนสินค้าจากร้านของคุณ","request":"คำขอคืนสินค้า","approve":"อนุมัติ","reject":"ปฏิเสธ","loading":"กำลังโหลดคำขอคืนสินค้า...","empty":"ไม่พบคำขอคืนสินค้า","return":"การคืนสินค้า","items":"รายการสินค้า","status":"สถานะ","actions":"การดำเนินการ","search":"ค้นหาคำขอคืนสินค้า","filterStatus":"กรองสถานะ","allStatuses":"สถานะทั้งหมด"},
         "promotions": {"title":"โปรโมชั่น","description":"สร้างและจัดการคูปองของร้าน","code":"โค้ด","titleField":"ชื่อโปรโมชั่น","fixed":"จำนวนเงินคงที่","percent":"เปอร์เซ็นต์","amount":"จำนวนเงิน","create":"สร้าง","untitled":"ไม่มีชื่อ","disable":"ปิดใช้งาน","enable":"เปิดใช้งาน","delete":"ลบ","loading":"กำลังโหลดคูปอง...","empty":"ไม่พบคูปอง","coupon":"คูปอง","discount":"ส่วนลด","active":"ใช้งาน","actions":"การดำเนินการ","search":"ค้นหาคูปอง","filterStatus":"กรองสถานะ","allStatuses":"สถานะทั้งหมด"},
         "finance": {"title":"การเงิน","description":"ตรวจสอบยอดเงิน บัญชีรายการ และคำขอถอนเงิน","available":"ยอดคงเหลือที่ใช้ได้","shop":"ร้านค้าผู้ขาย","requestPayout":"ขอถอนเงิน","amount":"จำนวนเงิน","request":"ส่งคำขอ","transactions":"รายการธุรกรรม","transactionTypes":{"orderEarning":"รายได้จากคำสั่งซื้อ","commissionFee":"ค่าคอมมิชชันแพลตฟอร์ม","payoutReserved":"กันยอดสำหรับการถอนเงิน","payoutPaid":"จ่ายเงินแล้ว","payoutRejected":"ปฏิเสธการถอนเงิน","refundAdjustment":"ปรับยอดจากการคืนเงิน","manualAdjustment":"ปรับยอดด้วยตนเอง"},"transactionDescriptions":{"orderEarning":"รายได้จากคำสั่งซื้อ {orderNo}","commissionFee":"ค่าคอมมิชชันแพลตฟอร์มสำหรับคำสั่งซื้อ {orderNo}","payoutReserved":"กันยอดสำหรับการถอนเงิน","payoutPaid":"บันทึกว่าจ่ายเงินแล้ว","payoutRejected":"คืนยอดที่กันไว้หลังปฏิเสธคำขอถอนเงิน","refundAdjustment":"ปรับยอดจากการคืนเงิน","manualAdjustment":"ปรับยอดด้วยตนเอง"},"loadingTransactions":"กำลังโหลดธุรกรรม...","emptyTransactions":"ไม่พบธุรกรรม","payoutHistory":"ประวัติการถอนเงิน","loadingPayouts":"กำลังโหลดประวัติการถอนเงิน...","emptyPayouts":"ไม่พบประวัติการถอนเงิน","notSet":"ไม่ได้ระบุ"}
       }
     },
+    "onboarding": {
+      "header": {
+        "title": "เริ่มขายสินค้า",
+        "description": "ลงทะเบียนบัญชีผู้ขาย ทำ KYC และส่งคำขอให้ตรวจสอบ"
+      },
+      "steps": {
+        "account": {
+          "title": "บัญชีผู้ขาย",
+          "description": "ข้อมูลติดต่อผู้สมัคร"
+        },
+        "shop": {
+          "title": "ข้อมูลร้านและประเภทผู้ขาย",
+          "description": "ชื่อร้านและประเภทธุรกิจ"
+        },
+        "kyc": {
+          "title": "การยืนยันตัวตน (KYC)",
+          "description": "กรอกข้อมูลและอัปโหลดเอกสารยืนยันตัวตน"
+        },
+        "terms": {
+          "title": "ยืนยันข้อมูล",
+          "description": "ตรวจสอบข้อมูลและส่งคำขอ"
+        }
+      },
+      "sections": {
+        "pickup": "ที่อยู่รับสินค้า"
+      },
+      "fields": {
+        "legalName": "ชื่อผู้สมัครหรือชื่อนิติบุคคล",
+        "contactEmail": "อีเมลเพื่อยืนยันตัวตน",
+        "contactPhone": "เบอร์โทรศัพท์",
+        "shopName": "ชื่อร้านค้า",
+        "shopSlug": "รหัส URL ร้านค้า",
+        "businessType": "ประเภทผู้ขาย",
+        "companyName": "ชื่อบริษัท",
+        "companyRegistration": "เลขทะเบียนนิติบุคคล",
+        "companyRegisteredAddress": "ที่อยู่จดทะเบียนบริษัท",
+        "nationalId": "เลขบัตรประชาชน",
+        "taxId": "เลขประจำตัวผู้เสียภาษี",
+        "bankName": "ชื่อธนาคาร",
+        "bankAccountName": "ชื่อเจ้าของบัญชี",
+        "bankAccountNumber": "เลขที่บัญชีธนาคาร",
+        "pickupName": "ชื่อผู้ติดต่อรับสินค้า",
+        "pickupPhone": "เบอร์โทรจุดรับสินค้า",
+        "pickupLine1": "ที่อยู่รับสินค้า",
+        "pickupLine2": "ที่อยู่บรรทัดที่ 2 (ถ้ามี)",
+        "pickupCity": "เขต / อำเภอ / เมือง",
+        "pickupRegion": "จังหวัด / ภูมิภาค (ถ้ามี)",
+        "pickupPostalCode": "รหัสไปรษณีย์",
+        "pickupCountry": "ประเทศ"
+      },
+      "businessType": {
+        "individual": "บุคคลธรรมดา",
+        "company": "นิติบุคคล"
+      },
+      "documentsRequired": "เอกสารที่ต้องใช้:",
+      "review": {
+        "title": "ตรวจสอบและยืนยันข้อมูล",
+        "shopName": "ชื่อร้าน",
+        "businessType": "ประเภทผู้ขาย",
+        "contact": "ข้อมูลติดต่อ",
+        "bankAccount": "บัญชีรับเงิน",
+        "pickupAddress": "ที่อยู่รับสินค้า",
+        "kycDocuments": "เอกสาร KYC",
+        "missingCount": "ยังขาด {count} รายการ",
+        "complete": "ครบถ้วน",
+        "missingDocuments": "เอกสารที่ยังขาด:",
+        "confirmation": "ฉันยืนยันคำขอเป็นผู้ขายและรับรองว่าข้อมูล KYC ที่ให้ไว้ถูกต้อง"
+      },
+      "currentApplication": "คำขอปัจจุบัน",
+      "rejectionReason": "เหตุผลที่ปฏิเสธ:",
+      "stepLabel": "ขั้นตอนที่ {step}",
+      "currentStep": "ขั้นตอนปัจจุบัน",
+      "messages": {
+        "draftSaved": "บันทึกร่างแล้ว",
+        "completeCurrentStep": "กรอกข้อมูลที่จำเป็นในขั้นตอนนี้ให้ครบก่อนดำเนินการต่อ",
+        "completeBeforeSubmit": "กรอกข้อมูลที่จำเป็นให้ครบและยืนยันข้อมูลก่อนส่งคำขอ",
+        "previousRejected": "คำขอก่อนหน้าถูกปฏิเสธ โปรดแก้ไขข้อมูลแล้วส่งอีกครั้ง",
+        "applicationLocked": "คำขอนี้ถูกส่งแล้ว จะแก้ไขได้เมื่อผู้ดูแลระบบปฏิเสธคำขอเท่านั้น"
+      },
+      "actions": {
+        "back": "ย้อนกลับ",
+        "next": "ขั้นตอนถัดไป",
+        "saveDraft": "บันทึกร่าง",
+        "submit": "ส่งคำขอให้ตรวจสอบ",
+        "resubmit": "ส่งคำขอให้ตรวจสอบอีกครั้ง"
+      },
+      "checklist": {
+        "title": "รายการตรวจสอบก่อนอนุมัติ",
+        "uploads": "เอกสารที่อัปโหลดแล้ว:",
+        "accountAndShop": "กรอกข้อมูลบัญชีผู้ขายและร้านค้าแล้ว",
+        "kyc": "กรอกข้อมูลและแนบเอกสาร KYC ที่จำเป็นแล้ว",
+        "terms": "ยืนยันเงื่อนไขแล้ว",
+        "adminApproval": "ต้องได้รับอนุมัติจากผู้ดูแลระบบก่อนใช้เครื่องมือผู้ขาย"
+      },
+      "status": {
+        "title": "สถานะคำขอเป็นผู้ขาย",
+        "description": "ติดตามผลการตรวจสอบและแก้ไขคำขอที่ถูกปฏิเสธก่อนส่งอีกครั้ง",
+        "loading": "กำลังโหลดคำขอ...",
+        "loadError": "ไม่สามารถโหลดคำขอเป็นผู้ขายได้",
+        "rejected": "ถูกปฏิเสธ",
+        "rejectedFallback": "โปรดแก้ไขคำขอแล้วส่งอีกครั้ง",
+        "editApplication": "แก้ไขคำขอ",
+        "submitted": "คำขอกำลังรอผู้ดูแลระบบตรวจสอบ ระบบจะเปิดใช้เครื่องมือผู้ขายหลังได้รับอนุมัติ",
+        "continueRegistration": "ลงทะเบียนต่อทีละขั้นตอน",
+        "cancelled": "ยกเลิกแล้ว",
+        "cancelledDescription": "คำขอนี้ถูกยกเลิก โปรดเริ่มร่างใหม่เพื่อลงทะเบียนเป็นผู้ขายต่อ",
+        "startAgain": "เริ่มใหม่",
+        "startRegistration": "เริ่มลงทะเบียนเป็นผู้ขาย"
+      },
+      "applicationStatus": {
+        "draft": "ฉบับร่าง",
+        "submitted": "ส่งแล้ว",
+        "approved": "อนุมัติแล้ว",
+        "rejected": "ปฏิเสธแล้ว",
+        "cancelled": "ยกเลิกแล้ว"
+      },
+      "shopStatus": {
+        "pending": "รอดำเนินการ",
+        "active": "ใช้งานอยู่",
+        "suspended": "ระงับชั่วคราว",
+        "rejected": "ถูกปฏิเสธ",
+        "banned": "ถูกระงับถาวร",
+        "vacation": "โหมดพักร้าน"
+      },
+      "errors": {
+        "saveDraft": "บันทึกร่างไม่สำเร็จ โปรดลองอีกครั้ง",
+        "submit": "ส่งคำขอไม่สำเร็จ โปรดลองอีกครั้ง"
+      }
+    },
     "kyc": {
-      "required": "Required",
-      "optional": "Optional",
-      "uploading": "Uploading...",
-      "uploadId": "Upload ID:",
-      "reviewLabel": "Review:",
-      "rejectionReason": "Reason:",
-      "requiredBeforeSubmit": "This document is required before submit.",
+      "required": "จำเป็น",
+      "optional": "ไม่บังคับ",
+      "uploading": "กำลังอัปโหลด...",
+      "uploadId": "รหัสไฟล์อัปโหลด:",
+      "uploadFailed": "อัปโหลดไม่สำเร็จ โปรดลองอีกครั้ง",
+      "reviewLabel": "ผลตรวจ:",
+      "rejectionReason": "เหตุผล:",
+      "requiredBeforeSubmit": "ต้องแนบเอกสารนี้ก่อนส่งคำขอ",
       "reviewStatus": {
-        "pending": "Pending",
-        "approved": "Approved",
-        "rejected": "Rejected"
+        "pending": "รอตรวจสอบ",
+        "approved": "อนุมัติแล้ว",
+        "rejected": "ปฏิเสธแล้ว"
       },
       "documentType": {
-        "idCard": "ID card",
-        "businessCertificate": "Business certificate",
-        "bankBook": "Bank book",
-        "taxDocument": "Tax document"
+        "idCard": "บัตรประชาชนหรือหนังสือเดินทาง",
+        "companyDirectorIdCard": "สำเนาบัตรประชาชนกรรมการ",
+        "businessCertificate": "สำเนาหนังสือรับรองบริษัท",
+        "bankBook": "สมุดบัญชีธนาคาร",
+        "taxDocument": "เอกสารภาษี",
+        "authorizedCompanySignatory": "กรรมการผู้มีอำนาจลงนาม",
+        "faceVerification": "การยืนยันตัวตนด้วยใบหน้า"
       }
     }
   },

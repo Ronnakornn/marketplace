@@ -46,6 +46,7 @@ export interface ReleaseReservationInput {
 export interface PaymentStateTransitionInput {
   paymentId: string
   orderId: string
+  checkoutId: string
   eventType: 'payment.paid' | 'payment.failed' | 'payment.expired'
   reservations: ReleaseReservationInput[]
   occurredAt: Date
@@ -375,6 +376,38 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
 
   async applyPaymentStateTransition(input: PaymentStateTransitionInput): Promise<void> {
     if (input.eventType === 'payment.paid') {
+      for (const reservation of input.reservations) {
+        const reservationResult = await this.prisma.inventoryReservation.updateMany({
+          where: {
+            id: reservation.reservationId,
+            status: 'ACTIVE',
+          },
+          data: {
+            status: 'COMMITTED',
+            orderId: input.orderId,
+          },
+        })
+        if (reservationResult.count !== 1) {
+          throw new Error(`Inventory reservation ${reservation.reservationId} is no longer active`)
+        }
+
+        const inventoryResult = await this.prisma.inventory.updateMany({
+          where: {
+            id: reservation.inventoryId,
+            quantityOnHand: { gte: reservation.quantity },
+            quantityReserved: { gte: reservation.quantity },
+          },
+          data: {
+            quantityOnHand: { decrement: reservation.quantity },
+            quantityReserved: { decrement: reservation.quantity },
+            version: { increment: 1 },
+          },
+        })
+        if (inventoryResult.count !== 1) {
+          throw new Error(`Inventory ${reservation.inventoryId} cannot commit reserved stock`)
+        }
+      }
+
       await this.prisma.payment.update({
         where: { id: input.paymentId },
         data: { status: 'SUCCEEDED', paidAt: input.occurredAt },
@@ -382,6 +415,14 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
       await this.prisma.order.update({
         where: { id: input.orderId },
         data: { status: 'PAID', paymentStatus: 'SUCCEEDED' },
+      })
+      await this.prisma.shopOrder.updateMany({
+        where: { orderId: input.orderId },
+        data: { status: 'PAID', version: { increment: 1 } },
+      })
+      await this.prisma.checkout.update({
+        where: { id: input.checkoutId },
+        data: { status: 'COMPLETED' },
       })
       await this.prisma.couponRedemption.updateMany({
         where: { orderId: input.orderId, status: 'RESERVED' },
@@ -401,14 +442,21 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
 
       if (updateResult.count !== 1) continue
 
-      await this.prisma.inventory.update({
-        where: { id: reservation.inventoryId },
+      const inventoryResult = await this.prisma.inventory.updateMany({
+        where: {
+          id: reservation.inventoryId,
+          quantityReserved: { gte: reservation.quantity },
+        },
         data: {
           quantityReserved: {
             decrement: reservation.quantity,
           },
+          version: { increment: 1 },
         },
       })
+      if (inventoryResult.count !== 1) {
+        throw new Error(`Inventory ${reservation.inventoryId} cannot release reserved stock`)
+      }
     }
 
     const paymentStatus = input.eventType === 'payment.failed' ? 'FAILED' : 'CANCELED'
@@ -419,6 +467,14 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
     await this.prisma.order.update({
       where: { id: input.orderId },
       data: { status: 'CANCELED', paymentStatus },
+    })
+    await this.prisma.shopOrder.updateMany({
+      where: { orderId: input.orderId },
+      data: { status: 'CANCELED', version: { increment: 1 } },
+    })
+    await this.prisma.checkout.update({
+      where: { id: input.checkoutId },
+      data: { status: input.eventType === 'payment.expired' ? 'EXPIRED' : 'CANCELED' },
     })
     await this.prisma.couponRedemption.updateMany({
       where: { orderId: input.orderId, status: 'RESERVED' },

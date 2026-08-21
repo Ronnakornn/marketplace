@@ -15,14 +15,12 @@ export interface CreateReviewInput {
   orderItemId: string
   rating: number
   comment?: string
-  images?: string[]
   uploadIds?: string[]
 }
 
 export interface UpdateReviewInput {
   rating?: number
   comment?: string | null
-  images?: string[]
   uploadIds?: string[]
 }
 

@@ -8,6 +8,7 @@ import type {
   ReturnRequest,
   ReturnStatus,
   Shop,
+  Upload,
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -36,6 +37,8 @@ export type ReturnRecord = ReturnRequest & {
   refunds: Refund[]
 }
 
+export type ReturnUpload = Pick<Upload, 'id' | 'userId' | 'usage' | 'status' | 'contentType' | 'publicUrl'>
+
 export interface CreateReturnInput {
   orderId: string
   userId: string
@@ -50,6 +53,7 @@ export interface CreateReturnInput {
 export interface IReturnRepository {
   transaction<T>(callback: (repo: IReturnRepository) => Promise<T>): Promise<T>
   findOrderItemForReturn(orderItemId: string): Promise<ReturnOrderItem | null>
+  findUploadsByIds(uploadIds: string[]): Promise<ReturnUpload[]>
   createReturn(input: CreateReturnInput): Promise<ReturnRecord>
   findBuyerReturns(userId: string): Promise<ReturnRecord[]>
   findBuyerReturnById(returnId: string, userId: string): Promise<ReturnRecord | null>
@@ -120,6 +124,21 @@ export class PrismaReturnRepository implements IReturnRepository {
             },
           },
         },
+      },
+    })
+  }
+
+  findUploadsByIds(uploadIds: string[]): Promise<ReturnUpload[]> {
+    this.logger.debug('PrismaReturnRepository.findUploadsByIds', { count: uploadIds.length })
+    return this.prisma.upload.findMany({
+      where: { id: { in: uploadIds } },
+      select: {
+        id: true,
+        userId: true,
+        usage: true,
+        status: true,
+        contentType: true,
+        publicUrl: true,
       },
     })
   }

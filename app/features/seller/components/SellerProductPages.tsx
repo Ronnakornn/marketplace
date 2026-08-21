@@ -261,7 +261,7 @@ const emptyVariantForm: VariantFormState = {
   titleTh: "",
   titleEn: "",
   price: "",
-  currency: "USD",
+  currency: "THB",
   status: "ACTIVE",
   quantityOnHand: "0",
   quantityReserved: 0,
@@ -421,7 +421,7 @@ function productVariantsToForms(product?: SellerProduct | null): VariantFormStat
     titleTh: variant.titleTh ?? "",
     titleEn: variant.titleEn ?? "",
     price: String(Number(variant.price ?? 0) / 100),
-    currency: variant.currency ?? "USD",
+    currency: variant.currency ?? "THB",
     status: (variant.status ?? "ACTIVE") as VariantStatus,
     quantityOnHand: String(variant.inventory?.quantityOnHand ?? 0),
     quantityReserved: variant.inventory?.quantityReserved ?? 0,
@@ -465,7 +465,7 @@ function toVariantInput(variant: VariantFormState): SellerVariantInput & { statu
     titleTh: optionalText(variant.titleTh),
     titleEn: optionalText(variant.titleEn),
     price: Math.round(Number(variant.price || "0") * 100),
-    currency: variant.currency.trim() || "USD",
+    currency: variant.currency.trim() || "THB",
     status: variant.status,
     quantityOnHand: Number(variant.quantityOnHand || "0"),
     reorderLevel: Number(variant.reorderLevel || "0"),
@@ -732,7 +732,7 @@ function toProductInput(form: ProductFormState): SellerProductInput {
   };
 }
 
-function formatMoney(cents: number | bigint | undefined, currency = "USD") {
+function formatMoney(cents: number | bigint | undefined, currency = "THB") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(cents ?? 0) / 100);
 }
 
@@ -814,7 +814,7 @@ function getVariantPriceContext(product: SellerProduct) {
   const prices = variants.map((variant) => Number(variant.price ?? 0));
   const min = Math.min(...prices);
   const max = Math.max(...prices);
-  const currency = variants[0]?.currency ?? "USD";
+  const currency = variants[0]?.currency ?? "THB";
   return min === max ? formatMoney(min, currency) : `${formatMoney(min, currency)} - ${formatMoney(max, currency)}`;
 }
 
@@ -854,7 +854,7 @@ export function SellerProductsPage() {
         <div className="min-w-52">
           <p className="font-medium text-slate-950">{row.original.title}</p>
           <p className="text-xs text-slate-500">{row.original.slug}</p>
-          <p className="mt-1 text-xs text-slate-500">{row.original.category?.name ?? "No category"} · {row.original.brand?.name ?? "No brand"}</p>
+          <p className="mt-1 text-xs text-slate-500">{row.original.category?.name ?? t("seller.products.noCategory")} · {row.original.brand?.name ?? t("seller.products.noBrand")}</p>
         </div>
       ),
     },
@@ -874,13 +874,13 @@ export function SellerProductsPage() {
       header: () => <span className="sr-only">{t("seller.products.actions")}</span>,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
-          <Button asChild variant="outline" size="sm" aria-label={`Edit ${row.original.title}`}>
+          <Button asChild variant="outline" size="sm" aria-label={t("seller.products.editLabel").replace("{title}", row.original.title)}>
             <Link href={`/seller/products/${row.original.id}`}>
               <EditIcon className="size-4" />
               <span className="sr-only">{t("seller.products.edit")}</span>
             </Link>
           </Button>
-          <Button type="button" variant="outline" size="sm" aria-label={`Archive ${row.original.title}`} onClick={() => setArchiveTarget(row.original)} disabled={row.original.status === "ARCHIVED"}>
+          <Button type="button" variant="outline" size="sm" aria-label={t("seller.products.archiveLabel").replace("{title}", row.original.title)} onClick={() => setArchiveTarget(row.original)} disabled={row.original.status === "ARCHIVED"}>
             <ArchiveIcon className="size-4" />
             <span className="sr-only">{t("seller.products.archive")}</span>
           </Button>
@@ -1825,18 +1825,18 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
         <div className="space-y-4">
           <ProductSection id="basics">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Title" htmlFor="product-title"><Input id="product-title" name="title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required aria-describedby={formError ? "product-form-error" : undefined} /></Field>
-              <Field label="Slug" htmlFor="product-slug"><Input id="product-slug" name="slug" value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="optional-slug" /></Field>
+              <Field label={t("seller.products.labels.title")} htmlFor="product-title"><Input id="product-title" name="title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required aria-describedby={formError ? "product-form-error" : undefined} /></Field>
+              <Field label={t("seller.products.labels.slug")} htmlFor="product-slug"><Input id="product-slug" name="slug" value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="optional-slug" /></Field>
             </div>
-            <Field label="Description" htmlFor="product-description"><Textarea id="product-description" name="description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={4} /></Field>
+            <Field label={t("seller.products.labels.description")} htmlFor="product-description"><Textarea id="product-description" name="description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} rows={4} /></Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Thai title" htmlFor="product-title-th"><Input id="product-title-th" name="titleTh" value={form.titleTh} onChange={(event) => setForm((current) => ({ ...current, titleTh: event.target.value }))} /></Field>
-              <Field label="English title" htmlFor="product-title-en"><Input id="product-title-en" name="titleEn" value={form.titleEn} onChange={(event) => setForm((current) => ({ ...current, titleEn: event.target.value }))} /></Field>
-              <Field label="Thai description" htmlFor="product-description-th"><Textarea id="product-description-th" name="descriptionTh" value={form.descriptionTh} onChange={(event) => setForm((current) => ({ ...current, descriptionTh: event.target.value }))} rows={3} /></Field>
-              <Field label="English description" htmlFor="product-description-en"><Textarea id="product-description-en" name="descriptionEn" value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} rows={3} /></Field>
+              <Field label={t("seller.products.labels.thaiTitle")} htmlFor="product-title-th"><Input id="product-title-th" name="titleTh" value={form.titleTh} onChange={(event) => setForm((current) => ({ ...current, titleTh: event.target.value }))} /></Field>
+              <Field label={t("seller.products.labels.englishTitle")} htmlFor="product-title-en"><Input id="product-title-en" name="titleEn" value={form.titleEn} onChange={(event) => setForm((current) => ({ ...current, titleEn: event.target.value }))} /></Field>
+              <Field label={t("seller.products.labels.thaiDescription")} htmlFor="product-description-th"><Textarea id="product-description-th" name="descriptionTh" value={form.descriptionTh} onChange={(event) => setForm((current) => ({ ...current, descriptionTh: event.target.value }))} rows={3} /></Field>
+              <Field label={t("seller.products.labels.englishDescription")} htmlFor="product-description-en"><Textarea id="product-description-en" name="descriptionEn" value={form.descriptionEn} onChange={(event) => setForm((current) => ({ ...current, descriptionEn: event.target.value }))} rows={3} /></Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Brand" htmlFor="product-brand">
+              <Field label={t("seller.products.labels.brand")} htmlFor="product-brand">
                 <Select name="brandId" value={form.brandId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, brandId: value === "NONE" ? "" : value }))}>
                   <SelectTrigger id="product-brand" aria-label={t("seller.products.labels.brand" as never)}><SelectValue placeholder={t("seller.products.editorActions.selectBrand" as never)} /></SelectTrigger>
                   <SelectContent>
@@ -1845,18 +1845,18 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="SEO title" htmlFor="product-meta-title"><Input id="product-meta-title" name="metaTitle" value={form.metaTitle} onChange={(event) => setForm((current) => ({ ...current, metaTitle: event.target.value }))} /></Field>
+              <Field label={t("seller.products.labels.seoTitle")} htmlFor="product-meta-title"><Input id="product-meta-title" name="metaTitle" value={form.metaTitle} onChange={(event) => setForm((current) => ({ ...current, metaTitle: event.target.value }))} /></Field>
             </div>
-            <Field label="SEO description" htmlFor="product-meta-description"><Textarea id="product-meta-description" name="metaDescription" value={form.metaDescription} onChange={(event) => setForm((current) => ({ ...current, metaDescription: event.target.value }))} rows={2} /></Field>
+            <Field label={t("seller.products.labels.seoDescription")} htmlFor="product-meta-description"><Textarea id="product-meta-description" name="metaDescription" value={form.metaDescription} onChange={(event) => setForm((current) => ({ ...current, metaDescription: event.target.value }))} rows={2} /></Field>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Condition" htmlFor="product-condition"><Input id="product-condition" name="condition" value={form.condition} onChange={(event) => setForm((current) => ({ ...current, condition: event.target.value }))} placeholder={t("seller.editor.placeholder.condition")} /></Field>
-              <Field label="Warranty info" htmlFor="product-warranty"><Input id="product-warranty" name="warrantyInfo" value={form.warrantyInfo} onChange={(event) => setForm((current) => ({ ...current, warrantyInfo: event.target.value }))} /></Field>
-              <Field label="Country of origin" htmlFor="product-origin"><Input id="product-origin" name="countryOfOrigin" value={form.countryOfOrigin} onChange={(event) => setForm((current) => ({ ...current, countryOfOrigin: event.target.value }))} placeholder="TH" /></Field>
+              <Field label={t("seller.products.labels.condition")} htmlFor="product-condition"><Input id="product-condition" name="condition" value={form.condition} onChange={(event) => setForm((current) => ({ ...current, condition: event.target.value }))} placeholder={t("seller.editor.placeholder.condition")} /></Field>
+              <Field label={t("seller.products.labels.warranty")} htmlFor="product-warranty"><Input id="product-warranty" name="warrantyInfo" value={form.warrantyInfo} onChange={(event) => setForm((current) => ({ ...current, warrantyInfo: event.target.value }))} /></Field>
+              <Field label={t("seller.products.labels.origin")} htmlFor="product-origin"><Input id="product-origin" name="countryOfOrigin" value={form.countryOfOrigin} onChange={(event) => setForm((current) => ({ ...current, countryOfOrigin: event.target.value }))} placeholder="TH" /></Field>
             </div>
           </ProductSection>
           <ProductSection id="category-specs">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Category" htmlFor="product-category">
+              <Field label={t("seller.products.labels.category")} htmlFor="product-category">
                 <Select name="categoryId" value={form.categoryId || "NONE"} onValueChange={(value) => setForm((current) => ({ ...current, categoryId: value === "NONE" ? "" : value }))}>
                   <SelectTrigger id="product-category" aria-label={t("seller.products.labels.category" as never)}><SelectValue placeholder={t("seller.products.editorActions.selectCategory" as never)} /></SelectTrigger>
                   <SelectContent>
@@ -1865,7 +1865,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Status" htmlFor="product-status">
+              <Field label={t("seller.products.labels.status")} htmlFor="product-status">
                 <Select name="status" value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as ProductStatus }))}>
                   <SelectTrigger id="product-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -1929,8 +1929,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                 </div>
               ) : <p className="text-sm text-slate-500">{t("seller.products.editorActions.noOptionalSpecs" as never)}</p>}
             </div>
-            <Field label="Additional specifications" htmlFor="product-attributes"><Textarea id="product-attributes" name="additionalSpecifications" value={getAdditionalAttributesText(form, categorySpecs)} onChange={(event) => setForm((current) => updateAdditionalAttributesText(current, categorySpecs, event.target.value))} rows={3} placeholder={t("seller.editor.placeholder.additionalSpecs")} /></Field>
-            <Field label="Highlights" htmlFor="product-highlights"><Textarea id="product-highlights" name="highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder={t("seller.editor.placeholder.highlights")} /></Field>
+            <Field label={t("seller.products.labels.additionalSpecs")} htmlFor="product-attributes"><Textarea id="product-attributes" name="additionalSpecifications" value={getAdditionalAttributesText(form, categorySpecs)} onChange={(event) => setForm((current) => updateAdditionalAttributesText(current, categorySpecs, event.target.value))} rows={3} placeholder={t("seller.editor.placeholder.additionalSpecs")} /></Field>
+            <Field label={t("seller.products.labels.highlights")} htmlFor="product-highlights"><Textarea id="product-highlights" name="highlights" value={form.highlightsText} onChange={(event) => setForm((current) => ({ ...current, highlightsText: event.target.value }))} rows={3} placeholder={t("seller.editor.placeholder.highlights")} /></Field>
           </ProductSection>
         </div>
         <div className="space-y-4">
@@ -1972,11 +1972,11 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                     </span>
                     {image.isPrimary ? <span className="rounded-full bg-slate-900 px-2 py-1 font-semibold text-white">{t("seller.products.primary" as never)}</span> : null}
                   </div>
-                  <Field label="Alt text" htmlFor={`image-alt-${image.id}`}>
+                  <Field label={t("seller.products.labels.altText")} htmlFor={`image-alt-${image.id}`}>
                     <Input id={`image-alt-${image.id}`} name={`images.${imageIndex}.altText`} value={image.altText} onChange={(event) => updateImageDraft(image.id, { altText: event.target.value })} />
                   </Field>
                   <div className="grid grid-cols-2 gap-2">
-                    <Field label="Order" htmlFor={`image-order-${image.id}`}>
+                    <Field label={t("seller.products.labels.order")} htmlFor={`image-order-${image.id}`}>
                       <Input id={`image-order-${image.id}`} name={`images.${imageIndex}.sortOrder`} type="number" min="0" value={image.sortOrder} onChange={(event) => updateImageDraft(image.id, { sortOrder: Number(event.target.value) })} className="tabular-nums" />
                     </Field>
                     <label className="flex items-end gap-2 pb-2 text-sm text-slate-700">
@@ -2025,8 +2025,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               {options.length ? options.map((option, optionIndex) => (
                 <div key={option.id} className="space-y-3 rounded-lg border border-slate-200 p-3">
                   <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                    <Field label="Option name" htmlFor={`option-name-${optionIndex}`}><Input id={`option-name-${optionIndex}`} name={`options.${optionIndex}.name`} value={option.name} onChange={(event) => updateOptionDraft(optionIndex, { name: event.target.value })} placeholder={t("seller.editor.placeholder.optionName")} /></Field>
-                    <Field label="Thai name" htmlFor={`option-name-th-${optionIndex}`}><Input id={`option-name-th-${optionIndex}`} name={`options.${optionIndex}.nameTh`} value={option.nameTh} onChange={(event) => updateOptionDraft(optionIndex, { nameTh: event.target.value })} /></Field>
+                    <Field label={t("seller.products.labels.optionName")} htmlFor={`option-name-${optionIndex}`}><Input id={`option-name-${optionIndex}`} name={`options.${optionIndex}.name`} value={option.name} onChange={(event) => updateOptionDraft(optionIndex, { name: event.target.value })} placeholder={t("seller.editor.placeholder.optionName")} /></Field>
+                    <Field label={t("seller.products.labels.thaiName")} htmlFor={`option-name-th-${optionIndex}`}><Input id={`option-name-th-${optionIndex}`} name={`options.${optionIndex}.nameTh`} value={option.nameTh} onChange={(event) => updateOptionDraft(optionIndex, { nameTh: event.target.value })} /></Field>
                     <div className="flex items-end"><Button type="button" variant="outline" onClick={() => removeOption(optionIndex)}>{t("seller.products.editorActions.remove" as never)}</Button></div>
                   </div>
                   <div className="space-y-2">
@@ -2052,9 +2052,9 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
             {!workingProductId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.editor.error.draftBeforeVariants")}</p> : null}
             {variantError ? <p role="alert" className="text-sm text-red-600">{variantError}</p> : null}
             <div className="grid gap-2 rounded-lg border border-slate-200 p-3 sm:grid-cols-[1fr_1fr_1fr_auto_auto_auto]">
-              <Field label="Bulk price" htmlFor="bulk-price"><Input id="bulk-price" name="bulkPrice" type="number" min="0" step="0.01" value={bulk.price} onChange={(event) => setBulk((current) => ({ ...current, price: event.target.value }))} className="tabular-nums" /></Field>
-              <Field label="Bulk stock" htmlFor="bulk-stock"><Input id="bulk-stock" name="bulkStock" type="number" min="0" value={bulk.stock} onChange={(event) => setBulk((current) => ({ ...current, stock: event.target.value }))} className="tabular-nums" /></Field>
-              <Field label="Bulk status" htmlFor="bulk-status">
+              <Field label={t("seller.products.labels.bulkPrice")} htmlFor="bulk-price"><Input id="bulk-price" name="bulkPrice" type="number" min="0" step="0.01" value={bulk.price} onChange={(event) => setBulk((current) => ({ ...current, price: event.target.value }))} className="tabular-nums" /></Field>
+              <Field label={t("seller.products.labels.bulkStock")} htmlFor="bulk-stock"><Input id="bulk-stock" name="bulkStock" type="number" min="0" value={bulk.stock} onChange={(event) => setBulk((current) => ({ ...current, stock: event.target.value }))} className="tabular-nums" /></Field>
+              <Field label={t("seller.products.labels.bulkStatus")} htmlFor="bulk-status">
                 <Select name="bulkStatus" value={bulk.status} onValueChange={(value) => setBulk((current) => ({ ...current, status: value as VariantStatus }))}>
                   <SelectTrigger id="bulk-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -2083,13 +2083,13 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                   </div>
                   {rowErrors.length ? <p role="alert" className="text-sm text-red-700">{rowErrors.join(" ")}</p> : null}
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="SKU" htmlFor={`variant-sku-${index}`}><Input id={`variant-sku-${index}`} name={`variants.${index}.sku`} value={variant.sku} onChange={(event) => updateVariantDraft(index, { sku: event.target.value })} /></Field>
-                    <Field label="Variant title" htmlFor={`variant-title-${index}`}><Input id={`variant-title-${index}`} name={`variants.${index}.title`} value={variant.title} onChange={(event) => updateVariantDraft(index, { title: event.target.value })} /></Field>
-                    <Field label="Thai variant title" htmlFor={`variant-title-th-${index}`}><Input id={`variant-title-th-${index}`} name={`variants.${index}.titleTh`} value={variant.titleTh} onChange={(event) => updateVariantDraft(index, { titleTh: event.target.value })} /></Field>
-                    <Field label="English variant title" htmlFor={`variant-title-en-${index}`}><Input id={`variant-title-en-${index}`} name={`variants.${index}.titleEn`} value={variant.titleEn} onChange={(event) => updateVariantDraft(index, { titleEn: event.target.value })} /></Field>
-                    <Field label="Price" htmlFor={`variant-price-${index}`}><Input id={`variant-price-${index}`} name={`variants.${index}.price`} type="number" min="0" step="0.01" value={variant.price} onChange={(event) => updateVariantDraft(index, { price: event.target.value })} className="tabular-nums" /></Field>
-                    <Field label="Currency" htmlFor={`variant-currency-${index}`}><Input id={`variant-currency-${index}`} name={`variants.${index}.currency`} value={variant.currency} onChange={(event) => updateVariantDraft(index, { currency: event.target.value.toUpperCase() })} /></Field>
-                    <Field label="Variant status" htmlFor={`variant-status-${index}`}>
+                    <Field label={t("seller.products.labels.sku")} htmlFor={`variant-sku-${index}`}><Input id={`variant-sku-${index}`} name={`variants.${index}.sku`} value={variant.sku} onChange={(event) => updateVariantDraft(index, { sku: event.target.value })} /></Field>
+                    <Field label={t("seller.products.labels.variantTitle")} htmlFor={`variant-title-${index}`}><Input id={`variant-title-${index}`} name={`variants.${index}.title`} value={variant.title} onChange={(event) => updateVariantDraft(index, { title: event.target.value })} /></Field>
+                    <Field label={t("seller.products.labels.thaiVariantTitle")} htmlFor={`variant-title-th-${index}`}><Input id={`variant-title-th-${index}`} name={`variants.${index}.titleTh`} value={variant.titleTh} onChange={(event) => updateVariantDraft(index, { titleTh: event.target.value })} /></Field>
+                    <Field label={t("seller.products.labels.englishVariantTitle")} htmlFor={`variant-title-en-${index}`}><Input id={`variant-title-en-${index}`} name={`variants.${index}.titleEn`} value={variant.titleEn} onChange={(event) => updateVariantDraft(index, { titleEn: event.target.value })} /></Field>
+                    <Field label={t("seller.products.labels.price")} htmlFor={`variant-price-${index}`}><Input id={`variant-price-${index}`} name={`variants.${index}.price`} type="number" min="0" step="0.01" value={variant.price} onChange={(event) => updateVariantDraft(index, { price: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label={t("seller.products.labels.currency")} htmlFor={`variant-currency-${index}`}><Input id={`variant-currency-${index}`} name={`variants.${index}.currency`} value={variant.currency} onChange={(event) => updateVariantDraft(index, { currency: event.target.value.toUpperCase() })} /></Field>
+                    <Field label={t("seller.products.labels.variantStatus")} htmlFor={`variant-status-${index}`}>
                       <Select name={`variants.${index}.status`} value={variant.status} onValueChange={(value) => updateVariantDraft(index, { status: value as VariantStatus })}>
                         <SelectTrigger id={`variant-status-${index}`}><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -2132,16 +2132,16 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                     </div>
                   ) : null}
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Quantity on hand" htmlFor={`variant-on-hand-${index}`}><Input id={`variant-on-hand-${index}`} name={`variants.${index}.quantityOnHand`} type="number" min="0" value={variant.quantityOnHand} onChange={(event) => updateVariantDraft(index, { quantityOnHand: event.target.value })} className="tabular-nums" /></Field>
-                    <Field label="Reorder level" htmlFor={`variant-reorder-${index}`}><Input id={`variant-reorder-${index}`} name={`variants.${index}.reorderLevel`} type="number" min="0" value={variant.reorderLevel} onChange={(event) => updateVariantDraft(index, { reorderLevel: event.target.value })} className="tabular-nums" /></Field>
-                    <Field label="Quantity reserved" htmlFor={`variant-reserved-${index}`}><Input id={`variant-reserved-${index}`} name={`variants.${index}.quantityReserved`} value={variant.quantityReserved} readOnly className="tabular-nums" /></Field>
-                    <Field label="Available stock" htmlFor={`variant-available-${index}`}><Input id={`variant-available-${index}`} name={`variants.${index}.availableStock`} value={getAvailableStock(variant)} readOnly className="tabular-nums" /></Field>
+                    <Field label={t("seller.products.labels.quantityOnHand")} htmlFor={`variant-on-hand-${index}`}><Input id={`variant-on-hand-${index}`} name={`variants.${index}.quantityOnHand`} type="number" min="0" value={variant.quantityOnHand} onChange={(event) => updateVariantDraft(index, { quantityOnHand: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label={t("seller.products.labels.reorderLevel")} htmlFor={`variant-reorder-${index}`}><Input id={`variant-reorder-${index}`} name={`variants.${index}.reorderLevel`} type="number" min="0" value={variant.reorderLevel} onChange={(event) => updateVariantDraft(index, { reorderLevel: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label={t("seller.products.labels.quantityReserved")} htmlFor={`variant-reserved-${index}`}><Input id={`variant-reserved-${index}`} name={`variants.${index}.quantityReserved`} value={variant.quantityReserved} readOnly className="tabular-nums" /></Field>
+                    <Field label={t("seller.products.labels.availableStock")} htmlFor={`variant-available-${index}`}><Input id={`variant-available-${index}`} name={`variants.${index}.availableStock`} value={getAvailableStock(variant)} readOnly className="tabular-nums" /></Field>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Weight grams" htmlFor={`variant-weight-${index}`}><Input id={`variant-weight-${index}`} name={`variants.${index}.weightGrams`} type="number" min="0" value={variant.weightGrams} onChange={(event) => updateVariantDraft(index, { weightGrams: event.target.value })} className="tabular-nums" /></Field>
-                    <Field label="Length mm" htmlFor={`variant-length-${index}`}><Input id={`variant-length-${index}`} name={`variants.${index}.lengthMm`} type="number" min="0" value={variant.lengthMm} onChange={(event) => updateVariantDraft(index, { lengthMm: event.target.value })} className="tabular-nums" /></Field>
-                    <Field label="Width mm" htmlFor={`variant-width-${index}`}><Input id={`variant-width-${index}`} name={`variants.${index}.widthMm`} type="number" min="0" value={variant.widthMm} onChange={(event) => updateVariantDraft(index, { widthMm: event.target.value })} className="tabular-nums" /></Field>
-                    <Field label="Height mm" htmlFor={`variant-height-${index}`}><Input id={`variant-height-${index}`} name={`variants.${index}.heightMm`} type="number" min="0" value={variant.heightMm} onChange={(event) => updateVariantDraft(index, { heightMm: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label={t("seller.products.labels.weightGrams")} htmlFor={`variant-weight-${index}`}><Input id={`variant-weight-${index}`} name={`variants.${index}.weightGrams`} type="number" min="0" value={variant.weightGrams} onChange={(event) => updateVariantDraft(index, { weightGrams: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label={t("seller.products.labels.lengthMm")} htmlFor={`variant-length-${index}`}><Input id={`variant-length-${index}`} name={`variants.${index}.lengthMm`} type="number" min="0" value={variant.lengthMm} onChange={(event) => updateVariantDraft(index, { lengthMm: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label={t("seller.products.labels.widthMm")} htmlFor={`variant-width-${index}`}><Input id={`variant-width-${index}`} name={`variants.${index}.widthMm`} type="number" min="0" value={variant.widthMm} onChange={(event) => updateVariantDraft(index, { widthMm: event.target.value })} className="tabular-nums" /></Field>
+                    <Field label={t("seller.products.labels.heightMm")} htmlFor={`variant-height-${index}`}><Input id={`variant-height-${index}`} name={`variants.${index}.heightMm`} type="number" min="0" value={variant.heightMm} onChange={(event) => updateVariantDraft(index, { heightMm: event.target.value })} className="tabular-nums" /></Field>
                   </div>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" onClick={() => saveVariant(variant, index)} disabled={isSaving}>{t("seller.products.editorActions.saveVariant" as never)}</Button>

@@ -24,6 +24,7 @@ function productionEnv(overrides: Record<string, string | undefined> = {}): Node
     PAYMENT_CHECKOUT_BASE_URL: 'https://payments.example.com/checkout',
     PAYMENT_CHECKOUT_SECRET: 'production-checkout-secret-at-least-32-characters',
     KYC_ENCRYPTION_KEY: 'production-kyc-secret-at-least-32-characters',
+    UPLOAD_STORAGE: 'local',
     S3_ENDPOINT: 'https://s3.example.com',
     S3_REGION: 'ap-southeast-1',
     S3_BUCKET: 'marketplace-production',
@@ -31,6 +32,8 @@ function productionEnv(overrides: Record<string, string | undefined> = {}): Node
     S3_SECRET_ACCESS_KEY: 'production-secret-access-key',
     S3_PUBLIC_BASE_URL: 'https://cdn.example.com',
     MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED: 'true',
+    AFFILIATE_ENABLED: 'false',
+    AI_SEARCH_ENABLED: 'false',
     PHONE_OTP_ENABLED: 'false',
     ...overrides,
   } as NodeJS.ProcessEnv
@@ -62,6 +65,44 @@ describe('production environment', () => {
   it('requires push secrets only when push is enabled', () => {
     expect(() => validateProductionRuntimeEnv(productionEnv({ PUSH_NOTIFICATIONS_ENABLED: 'false' }))).not.toThrow()
     expect(() => validateProductionRuntimeEnv(productionEnv({ PUSH_NOTIFICATIONS_ENABLED: 'true' }))).toThrow(/VAPID/)
+  })
+
+  it('allows unavailable integrations to be explicitly disabled', () => {
+    expect(() => validateProductionRuntimeEnv(productionEnv({
+      EMAIL_PROVIDER: 'disabled',
+      RESEND_API_KEY: undefined,
+      EMAIL_FROM: undefined,
+      PAYMENT_PROVIDER: 'disabled',
+      PAYMENT_CHECKOUT_BASE_URL: undefined,
+      PAYMENT_CHECKOUT_SECRET: undefined,
+    }))).not.toThrow()
+  })
+
+  it('uses local upload storage by default in production', () => {
+    expect(() => validateProductionRuntimeEnv(productionEnv({
+      UPLOAD_STORAGE: undefined,
+      S3_ENDPOINT: undefined,
+      S3_REGION: undefined,
+      S3_BUCKET: undefined,
+      S3_ACCESS_KEY_ID: undefined,
+      S3_SECRET_ACCESS_KEY: undefined,
+      S3_PUBLIC_BASE_URL: undefined,
+    }))).not.toThrow()
+  })
+
+  it('requires complete S3 configuration only when S3 is selected', () => {
+    expect(() => validateProductionRuntimeEnv(productionEnv({
+      UPLOAD_STORAGE: 's3',
+      S3_BUCKET: undefined,
+    }))).toThrow(/S3_BUCKET/)
+  })
+
+  it('keeps affiliate commissions disabled until settlement is available', () => {
+    expect(() => validateProductionRuntimeEnv(productionEnv({ AFFILIATE_ENABLED: 'true' }))).toThrow(/AFFILIATE_ENABLED/)
+  })
+
+  it('keeps pgvector-backed AI search disabled while its storage is omitted', () => {
+    expect(() => validateProductionRuntimeEnv(productionEnv({ AI_SEARCH_ENABLED: 'true' }))).toThrow(/AI_SEARCH_ENABLED/)
   })
 
   it('accepts complete push configuration', () => {

@@ -12,7 +12,7 @@ const CreateReturnBodySchema = t.Object({
   orderItemId: t.String({ format: 'uuid' }),
   reason: t.String({ minLength: 1 }),
   description: t.Optional(t.String()),
-  images: t.Optional(t.Array(t.String())),
+  uploadIds: t.Optional(t.Array(t.String({ format: 'uuid' }), { maxItems: 5 })),
 })
 
 export function createReturnRoutes(container: ServiceContainer) {

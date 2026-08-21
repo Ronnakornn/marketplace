@@ -112,7 +112,7 @@ function textMatch(values: Array<unknown>, query: string) {
   );
 }
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object") {
     const record = error as {
@@ -124,10 +124,10 @@ function readErrorMessage(error: unknown) {
       record.value?.error?.message ??
       record.error?.message ??
       record.message ??
-      "Operation failed."
+      fallback
     );
   }
-  return "Operation failed.";
+  return fallback;
 }
 
 function FilterSelect(props: {
@@ -442,7 +442,7 @@ export function AdminContentModerationQueues() {
         ) : null}
         {mutationError ? (
           <div className="border-b border-red-300/20 bg-red-500/10 px-5 py-3 text-sm text-red-200">
-            {readErrorMessage(mutationError)}
+            {readErrorMessage(mutationError, t("admin.sellerApplications.operationFailed"))}
           </div>
         ) : null}
         <Tabs

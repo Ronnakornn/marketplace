@@ -776,18 +776,6 @@ export function useShipShipment() {
   });
 }
 
-export function useDeliverShipment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (shipmentId: string) => {
-      const { data, error } = await api.api.seller.shipments({ shipmentId }).deliver.patch();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
-  });
-}
-
 export function useApproveReturn() {
   const queryClient = useQueryClient();
   return useMutation({

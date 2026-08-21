@@ -7,9 +7,11 @@ import { StarIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { createReview, fetchOrder } from "#/features/buyer/api";
+import { uploadBuyerImage } from "#/features/buyer/upload-helper";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -19,6 +21,7 @@ export function OrderReviewPage({ orderId }: { orderId: string }) {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const orderQuery = useQuery({ queryKey: ["buyer-order", orderId], queryFn: () => fetchOrder(orderId) });
   const eligibleItems = useMemo(
     () => (orderQuery.data?.items ?? []).filter((item) => item.fulfillmentStatus.toLowerCase() === "delivered"),
@@ -26,7 +29,10 @@ export function OrderReviewPage({ orderId }: { orderId: string }) {
   );
   const selected = selectedItemId || eligibleItems[0]?.id || "";
   const reviewMutation = useMutation({
-    mutationFn: () => createReview({ orderItemId: selected, rating, comment }),
+    mutationFn: async () => {
+      const uploads = await Promise.all(imageFiles.map((file) => uploadBuyerImage(file, t("buyer.uploadFailed"))));
+      return createReview({ orderItemId: selected, rating, comment, uploadIds: uploads.map((upload) => upload.id) });
+    },
   });
 
   return (
@@ -65,6 +71,17 @@ export function OrderReviewPage({ orderId }: { orderId: string }) {
             <div className="mt-4 space-y-2">
               <Label htmlFor="review-comment">{t("buyer.comment")}</Label>
               <Textarea id="review-comment" value={comment} onChange={(event) => setComment(event.target.value)} className="min-h-28 rounded-2xl" placeholder={t("buyer.shareReviewPlaceholder")} />
+            </div>
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="review-images">{t("buyer.reviewImages")}</Label>
+              <Input
+                id="review-images"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={(event) => setImageFiles(Array.from(event.currentTarget.files ?? []).slice(0, 5))}
+              />
+              <p className="text-xs text-slate-500">{t("buyer.selectedImageCount").replace("{count}", String(imageFiles.length))}</p>
             </div>
             {reviewMutation.isError ? <p className="mt-3 text-sm text-red-600">{reviewMutation.error.message}</p> : null}
             {reviewMutation.isSuccess ? <p className="mt-3 text-sm text-emerald-700">{t("buyer.reviewSubmitted")}</p> : null}

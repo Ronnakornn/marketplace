@@ -11,6 +11,10 @@ const RejectBody = t.Object({
   reason: t.Optional(t.String()),
 })
 
+const MarkPaidBody = t.Object({
+  externalReference: t.String({ minLength: 1, maxLength: 200 }),
+})
+
 function actor(authContext: any) {
   return { id: authContext!.user.id, role: authContext!.user.role }
 }
@@ -57,9 +61,10 @@ export function createPayoutRoutes(container: ServiceContainer) {
       params: t.Object({ payoutId: t.String({ format: 'uuid' }) }),
       body: RejectBody,
     })
-    .patch('/api/admin/payouts/:payoutId/mark-paid', ({ authContext, params }: any) =>
-      container.payoutService.markAdminPayoutPaid(actor(authContext), params.payoutId), {
+    .patch('/api/admin/payouts/:payoutId/mark-paid', ({ authContext, params, body }: any) =>
+      container.payoutService.markAdminPayoutPaid(actor(authContext), params.payoutId, body), {
       withRole: 'ADMIN',
       params: t.Object({ payoutId: t.String({ format: 'uuid' }) }),
+      body: MarkPaidBody,
     })
 }

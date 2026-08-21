@@ -330,22 +330,22 @@ export class SellerOnboardingService {
       companyRegistrationLast4: companyRegistration === undefined ? existing?.companyRegistrationLast4 ?? null : maskLast4(companyRegistration),
       taxIdEncrypted: taxId === undefined ? existing?.taxIdEncrypted ?? null : encryptKycValue(taxId),
       taxIdLast4: taxId === undefined ? existing?.taxIdLast4 ?? null : maskLast4(taxId),
-      bankName: this.normalizeText(input.bankName, existing?.bankName, 'Bank name', false),
-      bankAccountName: this.normalizeText(input.bankAccountName, existing?.bankAccountName, 'Bank account name', false),
+      bankName: this.normalizeText(input.bankName, existing?.bankName, 'Bank name', requireComplete),
+      bankAccountName: this.normalizeText(input.bankAccountName, existing?.bankAccountName, 'Bank account name', requireComplete),
       bankAccountNumberEncrypted: bankAccountNumber === undefined
         ? existing?.bankAccountNumberEncrypted ?? ''
         : encryptKycValue(bankAccountNumber) ?? '',
       bankAccountNumberLast4: bankAccountNumber === undefined
         ? existing?.bankAccountNumberLast4 ?? ''
         : maskLast4(bankAccountNumber) ?? '',
-      pickupName: this.normalizeText(input.pickupName, existing?.pickupName, 'Pickup name', false),
+      pickupName: this.normalizeText(input.pickupName, existing?.pickupName, 'Pickup name', requireComplete),
       pickupPhone: input.pickupPhone === undefined ? existing?.pickupPhone ?? null : this.normalizeNullableText(input.pickupPhone),
-      pickupLine1: this.normalizeText(input.pickupLine1, existing?.pickupLine1, 'Pickup address line 1', false),
+      pickupLine1: this.normalizeText(input.pickupLine1, existing?.pickupLine1, 'Pickup address line 1', requireComplete),
       pickupLine2: input.pickupLine2 === undefined ? existing?.pickupLine2 ?? null : this.normalizeNullableText(input.pickupLine2),
-      pickupCity: this.normalizeText(input.pickupCity, existing?.pickupCity, 'Pickup city', false),
+      pickupCity: this.normalizeText(input.pickupCity, existing?.pickupCity, 'Pickup city', requireComplete),
       pickupRegion: input.pickupRegion === undefined ? existing?.pickupRegion ?? null : this.normalizeNullableText(input.pickupRegion),
-      pickupPostalCode: this.normalizeText(input.pickupPostalCode, existing?.pickupPostalCode, 'Pickup postal code', false),
-      pickupCountry: this.normalizeText(input.pickupCountry, existing?.pickupCountry ?? 'TH', 'Pickup country', false),
+      pickupPostalCode: this.normalizeText(input.pickupPostalCode, existing?.pickupPostalCode, 'Pickup postal code', requireComplete),
+      pickupCountry: this.normalizeText(input.pickupCountry, existing?.pickupCountry ?? 'TH', 'Pickup country', requireComplete),
     }
 
     if (requireComplete) this.assertComplete(normalized)
@@ -365,6 +365,16 @@ export class SellerOnboardingService {
     if (input.businessType === 'INDIVIDUAL') required.push(['National ID', input.nationalIdEncrypted])
     if (input.businessType === 'COMPANY') required.push(['Company registration', input.companyRegistrationEncrypted])
     required.push(['Tax ID', input.taxIdEncrypted])
+    required.push(
+      ['Bank name', input.bankName],
+      ['Bank account name', input.bankAccountName],
+      ['Bank account number', input.bankAccountNumberEncrypted],
+      ['Pickup name', input.pickupName],
+      ['Pickup address line 1', input.pickupLine1],
+      ['Pickup city', input.pickupCity],
+      ['Pickup postal code', input.pickupPostalCode],
+      ['Pickup country', input.pickupCountry],
+    )
     const missing = required.filter(([, value]) => !value).map(([label]) => label)
     if (missing.length > 0) {
       throw new SellerOnboardingServiceError('Seller application is incomplete', 400, 'SELLER_APPLICATION_INCOMPLETE', { missing })
@@ -405,8 +415,8 @@ export class SellerOnboardingService {
 
     if (requireComplete) {
       const required: SellerKycDocumentType[] = businessType === 'COMPANY'
-        ? ['BUSINESS_CERTIFICATE', 'ID_CARD', 'TAX_DOCUMENT']
-        : ['ID_CARD', 'TAX_DOCUMENT']
+        ? ['BUSINESS_CERTIFICATE', 'ID_CARD', 'TAX_DOCUMENT', 'BANK_BOOK']
+        : ['ID_CARD', 'TAX_DOCUMENT', 'BANK_BOOK']
       const missing = required.filter((type) => !documentTypes.has(type))
       if (missing.length > 0) {
         throw new SellerOnboardingServiceError('Required KYC documents are missing', 400, 'SELLER_DOCUMENTS_REQUIRED', { missing })

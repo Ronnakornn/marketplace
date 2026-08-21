@@ -21,6 +21,7 @@ type Baseline = {
 const rootDir = process.cwd();
 const baselinePath = path.join(rootDir, "scripts", "i18n-audit-baseline.json");
 const updateBaseline = process.argv.includes("--update-baseline");
+const verbose = process.argv.includes("--verbose");
 
 const scopedMessageNamespaces = new Set([
   "common",
@@ -38,13 +39,24 @@ const scopedMessageNamespaces = new Set([
   "ui",
 ]);
 
+const scopedMessagePrefixes = [
+  "seller.onboarding.",
+  "seller.kyc.",
+];
+
 const scopedProductionRoots = [
   "app/[locale]/(buyer)",
   "app/[locale]/(public)",
+  "app/[locale]/admin",
+  "app/[locale]/seller",
+  "app/features/admin",
+  "app/features/auth",
   "app/features/buyer",
   "app/features/cart",
   "app/features/checkout",
   "app/features/order",
+  "app/features/payment",
+  "app/features/seller",
   "app/features/chat",
   "app/features/affiliate",
   "app/features/home",
@@ -52,7 +64,7 @@ const scopedProductionRoots = [
   "app/features/product",
 ];
 
-const sharedBuyerFiles = [
+const additionalScopedFiles = [
   "app/components/BuyerShell.tsx",
   "app/components/BuyerState.tsx",
   "app/components/LanguageSwitcher.tsx",
@@ -61,6 +73,7 @@ const sharedBuyerFiles = [
   "app/i18n/config.ts",
   "app/i18n/navigation.ts",
   "app/i18n/server.ts",
+  "app/features/seller/components/SellerOnboardingPages.tsx",
 ];
 
 const documentedExceptions = [
@@ -69,6 +82,7 @@ const documentedExceptions = [
   "CSS class names and style-only attributes are excluded",
   "URLs, route templates, and query keys are excluded",
   "analytics event names and machine identifiers are excluded",
+  "provider brand names such as Google and Facebook are excluded",
   "enum/status raw values and API normalizer fallback data are excluded when they are not JSX-visible literals",
   "product, shop, order, address, notification, chat, review, and other user/API-provided data is not translated by this audit",
 ];
@@ -169,7 +183,7 @@ function scopedProductionFiles(): string[] {
       files.add(path.relative(rootDir, file).replaceAll("\\", "/"));
     }
   }
-  for (const file of sharedBuyerFiles) {
+  for (const file of additionalScopedFiles) {
     if (existsSync(path.join(rootDir, file)) && !/\.test\.(ts|tsx)$/.test(file)) {
       files.add(file);
     }
@@ -195,27 +209,37 @@ function isProbablyUiString(source: string, matchIndex: number, raw: string, val
   const trimmedBefore = before.trimEnd();
   const keyMatch = trimmedBefore.match(/([A-Za-z0-9_$-]+)\s*[:=]\s*$/);
   const key = keyMatch?.[1];
+  if (trimmedBefore.endsWith("new Error(")) return false;
 
-  if (!englishWordPattern.test(value)) return false;
+  const literalText = value.replace(/\$\{[^}]+\}/g, "");
+  if (!englishWordPattern.test(literalText)) return false;
   if (value.length > 140) return false;
   if (/^(undefined|null|true|false)$/i.test(value)) return false;
-  if (/^[a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)+$/.test(value)) return false;
+  if (/^[a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*\.?$/.test(value) && value.includes(".")) return false;
   if (/^[a-z][a-z0-9_-]*$/.test(value)) return false;
   if (/^[A-Z0-9_./:-]+$/.test(value)) return false;
   if (/^(GET|POST|PUT|PATCH|DELETE|ACTIVE|INACTIVE|PENDING|PAID|FAILED|THB|USD)$/i.test(value)) return false;
   if (/^(#[0-9A-Fa-f]{3,8}|[a-z]+-[a-z0-9- ]+)$/.test(value)) return false;
+  if (/^(?:blur|scale|translate|rotate)\([^)]*\)$/.test(value)) return false;
+  if (/^\d+-digit$/.test(value)) return false;
+  if (/^(?:Google|Facebook)$/.test(value)) return false;
+  if (value.includes("${") && !/\s/.test(value)) return false;
+  if (/^[a-z]+\/[a-z0-9.+-]*$/i.test(value)) return false;
+  if (literalText.startsWith("/") && !/\s/.test(literalText)) return false;
   if (/^(https?:|#\/|\/api\/|\/[A-Za-z0-9_/[?=&:${}().-]+$)/.test(value)) return false;
   if (/\$\{[^}]*className[^}]*\}/.test(value)) return false;
   if (/\b(?:size|rounded|flex|items|justify|border|bg|text|fill|grid|gap|px|py|mt|mb|mx|my)-/.test(value)) return false;
   if (/(?:^|\s)(?:import|from|export)\s*$/.test(before)) return false;
   if (/\b(?:t|common|home|product|cart|checkout|order|buyer|notification|affiliate|state|ui)\s*\(\s*$/.test(before)) return false;
+  if (/(?:===|!==)\s*$/.test(before)) return false;
   if (key && nonUiStringKeys.has(key)) return false;
+  if (key && /(?:Id|Url|Key)$/.test(key)) return false;
   if (/className\s*=\s*$/.test(before)) return false;
 
   if (key && textBearingAttributes.has(key)) return true;
   if (/[<>]\s*$/.test(before) || /^\s*[<})\]]/.test(after)) return true;
   if (/\btoast\.(success|error|message|info|warning)\s*\(\s*$/.test(before)) return true;
-  if (/\bthrow\s+new\s+Error\s*\(\s*$/.test(before)) return false;
+  if (/\bnew\s+Error\s*\(\s*$/.test(before)) return false;
   if (/=\s*$/.test(before) && !key) return false;
 
   return Boolean(key && /(?:title|label|description|message|empty|error|aria|placeholder|text|button|cta)/i.test(key));
@@ -247,7 +271,9 @@ function thaiReadabilityFindings(thMessages: Map<string, string>): Finding[] {
   const findings: Finding[] = [];
   for (const [key, value] of thMessages) {
     const namespace = key.split(".")[0];
-    if (!scopedMessageNamespaces.has(namespace)) continue;
+    const isScoped = scopedMessageNamespaces.has(namespace)
+      || scopedMessagePrefixes.some((prefix) => key.startsWith(prefix));
+    if (!isScoped) continue;
     if (!value.trim()) continue;
     const hasThai = thaiPattern.test(value);
     const hasMojibake = mojibakePattern.test(value);
@@ -335,8 +361,11 @@ if (parity.length > 0 || newFindings.length > 0) {
   }
   if (newFindings.length > 0) {
     console.error("\nNew unbaselined scoped i18n findings:");
-    for (const finding of newFindings.slice(0, 50)) printFinding(finding);
-    if (newFindings.length > 50) console.error(`- ...and ${newFindings.length - 50} more`);
+    const counts = new Map<string, number>();
+    for (const finding of newFindings) counts.set(finding.file, (counts.get(finding.file) ?? 0) + 1);
+    console.error(`By file: ${[...counts.entries()].sort((a, b) => b[1] - a[1]).map(([file, count]) => `${file} (${count})`).join(", ")}`);
+    for (const finding of newFindings.slice(0, 200)) printFinding(finding);
+    if (newFindings.length > 200) console.error(`- ...and ${newFindings.length - 200} more`);
   }
   process.exit(1);
 }
@@ -345,6 +374,9 @@ console.log("i18n audit passed.");
 console.log(`Key parity: ${enMessages.size} en keys, ${thMessages.size} th keys.`);
 console.log(`Placeholder parity: ok.`);
 console.log(`Scoped Thai/hardcoded findings covered by baseline: ${findings.length}.`);
+if (verbose && findings.length > 0) {
+  for (const finding of findings) printFinding(finding);
+}
 if (staleFindings.length > 0) {
   console.log(`Baseline can be reduced by ${staleFindings.length} stale finding(s). Run bun run audit:i18n -- --update-baseline after intentional fixes.`);
 }

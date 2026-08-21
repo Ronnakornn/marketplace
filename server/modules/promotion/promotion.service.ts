@@ -11,6 +11,7 @@ import type {
   IPromotionValidationRepository,
   PromotionCart,
   PromotionCoupon,
+  BuyerPromotionCoupon,
   UpdateCouponInput,
 } from './promotion.repository.ts'
 
@@ -50,6 +51,8 @@ export interface PublicCoupon {
   maxDiscountCents: number | null
   startsAt: string | null
   endsAt: string | null
+  claimed?: boolean
+  claimedAt?: string | null
 }
 
 export interface CouponPayload {
@@ -63,7 +66,9 @@ export interface CouponPayload {
   discountValueCents?: number | null
   discountPercentBps?: number | null
   minOrder?: number | null
+  minOrderCents?: number | null
   maxDiscount?: number | null
+  maxDiscountCents?: number | null
   startsAt?: string | Date | null
   endsAt?: string | Date | null
   usageLimit?: number | null
@@ -87,21 +92,26 @@ export class PromotionService {
     const coupons = await this.repo.listPublicCoupons()
     return coupons
       .filter((coupon) => coupon.usageLimit === null || coupon._count.redemptions < coupon.usageLimit)
-      .map((coupon) => {
-        return {
-          id: coupon.id,
-          code: coupon.code,
-          title: localizedText(locale, { th: coupon.titleTh, en: coupon.titleEn, fallback: coupon.code }) ?? coupon.code,
-          description: localizedText(locale, { th: coupon.descriptionTh, en: coupon.descriptionEn }),
-          discountType: coupon.discountType,
-          discountValueCents: coupon.discountValue === null ? null : this.toMoneyNumber(coupon.discountValue),
-          discountPercentBps: coupon.discountPercentBps,
-          minOrderCents: coupon.minOrder === null ? null : this.toMoneyNumber(coupon.minOrder),
-          maxDiscountCents: coupon.maxDiscount === null ? null : this.toMoneyNumber(coupon.maxDiscount),
-          startsAt: this.toIsoDate(coupon.startsAt),
-          endsAt: this.toIsoDate(coupon.endsAt),
-        }
-      })
+      .map((coupon) => this.toPublicCoupon(coupon, locale))
+  }
+
+  async listBuyerCoupons(actor: PromotionActor, localeInput?: string): Promise<PublicCoupon[]> {
+    this.assertBuyer(actor)
+    const locale = resolveContentLocale(localeInput)
+    const coupons = await this.repo.listBuyerCoupons(actor.id)
+    return coupons
+      .filter((coupon) => coupon.usageLimit === null || coupon._count.redemptions < coupon.usageLimit)
+      .sort((left, right) => Number(Boolean(right.claims[0])) - Number(Boolean(left.claims[0])))
+      .map((coupon) => this.toPublicCoupon(coupon, locale, coupon.claims[0]))
+  }
+
+  async claimCoupon(actor: PromotionActor, couponId: string, localeInput?: string): Promise<PublicCoupon> {
+    this.assertBuyer(actor)
+    const coupon = await this.repo.findCouponForClaim(couponId)
+    if (!coupon) throw new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND')
+    this.assertCouponClaimable(coupon)
+    const claim = await this.repo.createCouponClaim(coupon.id, actor.id)
+    return this.toPublicCoupon(coupon, resolveContentLocale(localeInput), claim)
   }
 
   listAdminCoupons(actor: PromotionActor): Promise<Coupon[]> {
@@ -239,6 +249,18 @@ export class PromotionService {
     }
   }
 
+  private assertCouponClaimable(coupon: PromotionCoupon): void {
+    const now = new Date()
+    const startsAt = this.toDate(coupon.startsAt)
+    const endsAt = this.toDate(coupon.endsAt)
+    if (!coupon.isActive) throw new PromotionServiceError('Coupon is inactive', 400, 'COUPON_INACTIVE')
+    if (startsAt && startsAt > now) throw new PromotionServiceError('Coupon has not started', 400, 'COUPON_NOT_STARTED')
+    if (endsAt && endsAt <= now) throw new PromotionServiceError('Coupon has expired', 400, 'COUPON_EXPIRED')
+    if (coupon.usageLimit !== null && coupon._count.redemptions >= coupon.usageLimit) {
+      throw new PromotionServiceError('Coupon usage limit reached', 400, 'COUPON_USAGE_LIMIT_REACHED')
+    }
+  }
+
   private calculateDiscount(coupon: PromotionCoupon, subtotal: number): number {
     let discount = 0
     if (coupon.discountType === 'FIXED_AMOUNT') {
@@ -277,8 +299,12 @@ export class PromotionService {
       data.discountValue = payload.discountValue ?? payload.discountValueCents ?? null
     }
     if (payload.discountPercentBps !== undefined) data.discountPercentBps = payload.discountPercentBps
-    if (payload.minOrder !== undefined) data.minOrder = payload.minOrder
-    if (payload.maxDiscount !== undefined) data.maxDiscount = payload.maxDiscount
+    if (payload.minOrder !== undefined || payload.minOrderCents !== undefined) {
+      data.minOrder = payload.minOrder ?? payload.minOrderCents ?? null
+    }
+    if (payload.maxDiscount !== undefined || payload.maxDiscountCents !== undefined) {
+      data.maxDiscount = payload.maxDiscount ?? payload.maxDiscountCents ?? null
+    }
     if (payload.startsAt !== undefined) data.startsAt = this.normalizeDate(payload.startsAt)
     if (payload.endsAt !== undefined) data.endsAt = this.normalizeDate(payload.endsAt)
     if (payload.usageLimit !== undefined) data.usageLimit = payload.usageLimit
@@ -306,6 +332,28 @@ export class PromotionService {
 
   private toIsoDate(value: Date | string | null | undefined): string | null {
     return this.toDate(value)?.toISOString() ?? null
+  }
+
+  private toPublicCoupon(
+    coupon: PromotionCoupon,
+    locale: ReturnType<typeof resolveContentLocale>,
+    claim?: BuyerPromotionCoupon['claims'][number],
+  ): PublicCoupon {
+    return {
+      id: coupon.id,
+      code: coupon.code,
+      title: localizedText(locale, { th: coupon.titleTh, en: coupon.titleEn, fallback: coupon.code }) ?? coupon.code,
+      description: localizedText(locale, { th: coupon.descriptionTh, en: coupon.descriptionEn }),
+      discountType: coupon.discountType,
+      discountValueCents: coupon.discountValue === null ? null : this.toMoneyNumber(coupon.discountValue),
+      discountPercentBps: coupon.discountPercentBps,
+      minOrderCents: coupon.minOrder === null ? null : this.toMoneyNumber(coupon.minOrder),
+      maxDiscountCents: coupon.maxDiscount === null ? null : this.toMoneyNumber(coupon.maxDiscount),
+      startsAt: this.toIsoDate(coupon.startsAt),
+      endsAt: this.toIsoDate(coupon.endsAt),
+      claimed: Boolean(claim),
+      claimedAt: this.toIsoDate(claim?.claimedAt),
+    }
   }
 
   private normalizeNullableText(value?: string | null): string | null {

@@ -5,6 +5,7 @@ export type WalletErrorCode =
   | 'PAYOUT_NOT_FOUND'
   | 'PAYOUT_FORBIDDEN'
   | 'INVALID_PAYOUT_STATE'
+  | 'WALLET_CURRENCY_MISMATCH'
   | 'COMMISSION_RULE_NOT_FOUND'
 
 export class WalletServiceError extends Error {

@@ -37,8 +37,6 @@ export default async function SearchPage({
     sort?: string;
     rating?: string;
     inStock?: string;
-    freeShipping?: string;
-    onSale?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -54,8 +52,6 @@ export default async function SearchPage({
       sort={params.sort}
       rating={params.rating}
       inStock={params.inStock}
-      freeShipping={params.freeShipping}
-      onSale={params.onSale}
     />
   );
 }

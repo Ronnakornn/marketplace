@@ -3,7 +3,13 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
-import { getLocalStorageConfigFromEnv, getStorageConfigFromEnv, LocalUploadStorage, S3UploadStorage } from './upload.storage.ts'
+import {
+  createUploadStorageFromEnv,
+  getLocalStorageConfigFromEnv,
+  getStorageConfigFromEnv,
+  LocalUploadStorage,
+  S3UploadStorage,
+} from './upload.storage.ts'
 
 const baseEnv = {
   NODE_ENV: 'test' as const,
@@ -16,6 +22,21 @@ const baseEnv = {
 }
 
 describe('upload storage config', () => {
+  it('defaults to local storage even when S3 credentials are present', () => {
+    expect(createUploadStorageFromEnv(baseEnv)).toBeInstanceOf(LocalUploadStorage)
+  })
+
+  it('uses S3 only when explicitly selected', () => {
+    expect(createUploadStorageFromEnv({ ...baseEnv, UPLOAD_STORAGE: 's3' })).toBeInstanceOf(S3UploadStorage)
+  })
+
+  it('rejects an incomplete explicit S3 configuration', () => {
+    expect(() => createUploadStorageFromEnv({
+      NODE_ENV: 'test',
+      UPLOAD_STORAGE: 's3',
+    })).toThrow(/incomplete/)
+  })
+
   it('prefers the CDN URL for public uploaded image URLs', () => {
     const config = getStorageConfigFromEnv({
       ...baseEnv,
@@ -49,14 +70,16 @@ describe('local upload storage', () => {
     })
 
     expect(config.rootDir).toBe(path.resolve('public'))
+    expect(config.privateRootDir).toBe(path.resolve('.data/uploads'))
     expect(config.signingSecret).toBe('test-secret')
   })
 
-  it('writes uploaded images as AVIF files', async () => {
+  it('writes uploaded images without changing their declared type', async () => {
     const rootDir = await mkdtemp(path.join(tmpdir(), 'marketplace-upload-'))
     try {
       const storage = new LocalUploadStorage({
         rootDir,
+        privateRootDir: rootDir,
         signingSecret: 'test-secret',
       })
       const body = await sharp({
@@ -68,7 +91,7 @@ describe('local upload storage', () => {
         },
       }).png().toBuffer()
       const uploadUrl = await storage.createPresignedPutUrl({
-        key: 'uploads/product_image/seller-1/image.avif',
+        key: 'uploads/product_image/seller-1/image.png',
         contentType: 'image/png',
         fileSize: body.byteLength,
         expiresIn: 900,
@@ -84,12 +107,11 @@ describe('local upload storage', () => {
         signature: parsedUrl.searchParams.get('signature')!,
         body: uploadBody,
       })
-      const saved = await readFile(path.join(rootDir, 'uploads/product_image/seller-1/image.avif'))
+      const saved = await readFile(path.join(rootDir, 'uploads/product_image/seller-1/image.png'))
       const metadata = await sharp(saved).metadata()
 
-      expect(result.contentType).toBe('image/avif')
-      expect(metadata.format).toBe('heif')
-      expect(metadata.compression).toBe('av1')
+      expect(result.contentType).toBe('image/png')
+      expect(metadata.format).toBe('png')
     } finally {
       await rm(rootDir, { recursive: true, force: true })
     }
@@ -98,6 +120,7 @@ describe('local upload storage', () => {
   it('rejects uploaded bytes that do not match the signed content type', async () => {
     const storage = new LocalUploadStorage({
       rootDir: tmpdir(),
+      privateRootDir: tmpdir(),
       signingSecret: 'test-secret',
     })
     const body = Buffer.from('not an image')
@@ -117,5 +140,47 @@ describe('local upload storage', () => {
       signature: parsedUrl.searchParams.get('signature')!,
       body: body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
     })).rejects.toThrow()
+  })
+
+  it('serves local private files only through a valid signed URL', async () => {
+    const rootDir = await mkdtemp(path.join(tmpdir(), 'marketplace-public-'))
+    const privateRootDir = await mkdtemp(path.join(tmpdir(), 'marketplace-private-'))
+    try {
+      const storage = new LocalUploadStorage({ rootDir, privateRootDir, signingSecret: 'test-secret' })
+      const body = Buffer.from('%PDF-private')
+      const putUrl = new URL(await storage.createPresignedPutUrl({
+        key: 'private/kyc/seller-1/id.pdf',
+        contentType: 'application/pdf',
+        fileSize: body.byteLength,
+        expiresIn: 900,
+      }), 'http://localhost')
+      await storage.writePresignedPutUrl!({
+        key: putUrl.searchParams.get('key')!,
+        contentType: putUrl.searchParams.get('contentType')!,
+        fileSize: Number(putUrl.searchParams.get('fileSize')),
+        expires: Number(putUrl.searchParams.get('expires')),
+        signature: putUrl.searchParams.get('signature')!,
+        body: body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
+      })
+      const getUrl = new URL(await storage.createPresignedGetUrl({
+        key: 'private/kyc/seller-1/id.pdf',
+        contentType: 'application/pdf',
+        expiresIn: 300,
+      }), 'http://localhost')
+      const result = await storage.readPresignedGetUrl!({
+        key: getUrl.searchParams.get('key')!,
+        contentType: getUrl.searchParams.get('contentType')!,
+        expires: Number(getUrl.searchParams.get('expires')),
+        signature: getUrl.searchParams.get('signature')!,
+      })
+
+      expect(Buffer.from(result.body).toString()).toBe('%PDF-private')
+      expect(result.contentType).toBe('application/pdf')
+      await expect(readFile(path.join(rootDir, 'private/kyc/seller-1/id.pdf'))).rejects.toThrow()
+      expect(await readFile(path.join(privateRootDir, 'private/kyc/seller-1/id.pdf'), 'utf8')).toBe('%PDF-private')
+    } finally {
+      await rm(rootDir, { recursive: true, force: true })
+      await rm(privateRootDir, { recursive: true, force: true })
+    }
   })
 })

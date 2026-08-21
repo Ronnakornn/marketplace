@@ -65,7 +65,16 @@ export type SearchProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'descr
       valueEn?: string | null
     }>
   }>
-  shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
+  shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'> & {
+    addresses: Array<{
+      city: string
+      region: string | null
+      country: string
+    }>
+  }
+  images: Array<{
+    url: string
+  }>
   variants: SearchProductVariant[]
   reviews: Array<Pick<Review, 'rating' | 'status'>>
 }
@@ -115,7 +124,18 @@ const searchProductSelect = {
       name: true,
       slug: true,
       status: true,
+      addresses: {
+        where: { type: 'PICKUP' },
+        select: { city: true, region: true, country: true },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+        take: 1,
+      },
     },
+  },
+  images: {
+    select: { url: true },
+    orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+    take: 1,
   },
   category: {
     select: {
@@ -159,6 +179,9 @@ const searchProductSelect = {
         },
       },
       orderItems: {
+        where: {
+          order: { paymentStatus: 'SUCCEEDED' },
+        },
         select: {
           quantity: true,
         },
@@ -196,7 +219,7 @@ const searchProductSelect = {
       status: true,
     },
   },
-} as const
+} satisfies Prisma.ProductSelect
 
 export class PrismaSearchRepository implements ISearchRepository {
   private logger: ILogger

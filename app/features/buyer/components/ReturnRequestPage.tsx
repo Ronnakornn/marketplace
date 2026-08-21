@@ -7,9 +7,11 @@ import { RotateCcwIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { createReturnRequest, fetchOrder } from "#/features/buyer/api";
+import { uploadBuyerImage } from "#/features/buyer/upload-helper";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -22,7 +24,7 @@ export function ReturnRequestPage({ orderId }: { orderId: string }) {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [reason, setReason] = useState<ReturnReasonKey>(reasonKeys[0]);
   const [description, setDescription] = useState("");
-  const [imageText, setImageText] = useState("");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const orderQuery = useQuery({ queryKey: ["buyer-order", orderId], queryFn: () => fetchOrder(orderId) });
   const eligibleItems = useMemo(
     () => (orderQuery.data?.items ?? []).filter((item) => item.fulfillmentStatus.toLowerCase() === "delivered"),
@@ -30,13 +32,16 @@ export function ReturnRequestPage({ orderId }: { orderId: string }) {
   );
   const selected = selectedItemId || eligibleItems[0]?.id || "";
   const returnMutation = useMutation({
-    mutationFn: () => createReturnRequest({
-      orderId,
-      orderItemId: selected,
-      reason: t(reason),
-      description,
-      images: imageText.split(/\r?\n/).map((item) => item.trim()).filter(Boolean),
-    }),
+    mutationFn: async () => {
+      const uploads = await Promise.all(imageFiles.map((file) => uploadBuyerImage(file, t("buyer.uploadFailed"))));
+      return createReturnRequest({
+        orderId,
+        orderItemId: selected,
+        reason: t(reason),
+        description,
+        uploadIds: uploads.map((upload) => upload.id),
+      });
+    },
   });
 
   return (
@@ -73,8 +78,15 @@ export function ReturnRequestPage({ orderId }: { orderId: string }) {
               <Textarea id="return-description" value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-28 rounded-2xl" placeholder={t("buyer.returnEligibilityDescription")} />
             </div>
             <div className="mt-4 space-y-2">
-              <Label htmlFor="return-images">{t("buyer.evidenceImageUrls")}</Label>
-              <Textarea id="return-images" value={imageText} onChange={(event) => setImageText(event.target.value)} className="min-h-20 rounded-2xl" placeholder={t("buyer.oneImageUrlPerLine")} />
+              <Label htmlFor="return-images">{t("buyer.evidenceImages")}</Label>
+              <Input
+                id="return-images"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={(event) => setImageFiles(Array.from(event.currentTarget.files ?? []).slice(0, 5))}
+              />
+              <p className="text-xs text-slate-500">{t("buyer.selectedImageCount").replace("{count}", String(imageFiles.length))}</p>
             </div>
             {returnMutation.isError ? <p className="mt-3 text-sm text-red-600">{returnMutation.error.message}</p> : null}
             {returnMutation.isSuccess ? <p className="mt-3 text-sm text-emerald-700">{t("buyer.returnSubmitted")}</p> : null}

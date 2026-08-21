@@ -46,8 +46,6 @@ export interface PublicProductListInput {
   maxPrice?: number | string;
   rating?: number | string;
   inStock?: boolean | string;
-  freeShipping?: boolean | string;
-  onSale?: boolean | string;
   sort?: ProductSort;
   cursor?: string;
   page?: number;
@@ -754,8 +752,6 @@ export function cleanPublicProductListInput(input: PublicProductListInput = {}):
     maxPrice: input.maxPrice,
     rating: input.rating,
     inStock: input.inStock,
-    freeShipping: input.freeShipping,
-    onSale: input.onSale,
     sort: input.sort,
     cursor: input.cursor,
     page: input.page,
@@ -894,8 +890,6 @@ function cleanSearchProductInput(input: PublicProductListInput = {}): CleanQuery
     maxPrice: input.maxPrice,
     rating: input.rating,
     inStock: input.inStock,
-    freeShipping: input.freeShipping,
-    onSale: input.onSale,
     sort: input.sort === "relevance" ? "newest" : input.sort,
     page: input.page,
     limit: input.limit ?? PUBLIC_PRODUCT_PAGE_SIZE,
@@ -1015,6 +1009,7 @@ function normalizeListingFacets(facetsInput: unknown): BuyerListingFacets {
 export function normalizePublicProduct(input: PublicProductDetailResponse | unknown, index = 0): BuyerProduct {
   const record = toRecord(input);
   const shop = toRecord(record.shop);
+  const shopAddress = toRecord(readArray(shop.addresses)[0]);
   const brand = toRecord(record.brand);
   const variants = readArray(record.variants).map((variantInput, variantIndex) => {
     const variant = toRecord(variantInput);
@@ -1047,7 +1042,7 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
     minPrice,
     maxPrice,
     currency: firstVariant?.currency ?? readString(record.currency, defaultCurrency),
-    rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 4.7)),
+    rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 0)),
     soldCount: readNumber(record.soldCount, readNumber(record.sold, 0)),
     stock,
     originalPrice,
@@ -1056,7 +1051,7 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
     shop: {
       id: readString(shop.id),
       name: readString(shop.name, "Marketplace shop"),
-      location: readString(shop.location, readString(shop.city, "Local")),
+      location: readString(shop.location, readString(shop.city, readString(shopAddress.city, readString(shopAddress.region)))),
     },
     brand: readString(brand.id) ? {
       id: readString(brand.id),

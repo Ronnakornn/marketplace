@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { BoxesIcon, Building2Icon, CheckCircle2Icon, ClockIcon, Edit3Icon, ImageIcon, LinkIcon, PlusIcon, RotateCcwIcon, ShoppingBagIcon, Trash2Icon, UsersIcon, XCircleIcon } from "lucide-react";
 import {
@@ -37,6 +38,7 @@ import {
   useAdminAffiliatesList,
   useAdminCatalogModerationList,
   useAdminOrdersList,
+  useConfirmShipmentDelivery,
   useAdminRefundsList,
   useAdminShopsList,
   useAdminUsersList,
@@ -58,6 +60,8 @@ const USER_STATUSES = ["ACTIVE", "SUSPENDED"] as const;
 const SHOP_STATUSES = ["PENDING", "ACTIVE", "SUSPENDED"] as const;
 const PRODUCT_STATUSES = ["PENDING_REVIEW", "ACTIVE", "REJECTED", "SUSPENDED", "ARCHIVED", "DRAFT"] as const;
 const ORDER_STATUSES = ["PENDING_PAYMENT", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "PARTIALLY_FULFILLED", "FULFILLED", "CANCELED", "REFUNDED"] as const;
+const PAYMENT_EXCEPTION_STATES = ["PENDING", "FAILED"] as const;
+const SHIPMENT_EXCEPTION_STATES = ["DELAYED"] as const;
 const REFUND_STATUSES = ["PENDING", "PROCESSING", "SUCCESS", "FAILED"] as const;
 const AFFILIATE_STATUSES = ["ACTIVE", "DISABLED"] as const;
 const emptyShopForm = { name: "", slug: "", ownerEmail: "", status: "PENDING" };
@@ -148,25 +152,25 @@ function AdminShopField(props: {
   );
 }
 
-function readErrorMessage(error: unknown) {
+function readErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object") {
     const record = error as { value?: { error?: { message?: string } }; error?: { message?: string }; message?: string };
-    return record.value?.error?.message ?? record.error?.message ?? record.message ?? "Operation failed.";
+    return record.value?.error?.message ?? record.error?.message ?? record.message ?? fallback;
   }
-  return "Operation failed.";
+  return fallback;
 }
 
-function readinessFlags(product: AdminCatalogModerationProduct) {
+function readinessFlags(product: AdminCatalogModerationProduct, labels: { category: string; media: string; variant: string; stock: string }) {
   const hasPrimaryImage = product.images.some((image) => image.isPrimary) || product.images.length > 0;
   const hasVariant = product.variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price) > 0);
   const hasCategory = Boolean(product.category);
   const hasStock = product.variants.some((variant) => (variant.inventory?.quantityOnHand ?? 0) > 0);
   return [
-    { label: "Category", ready: hasCategory },
-    { label: "Media", ready: hasPrimaryImage },
-    { label: "Variant", ready: hasVariant },
-    { label: "Stock", ready: hasStock },
+    { label: labels.category, ready: hasCategory },
+    { label: labels.media, ready: hasPrimaryImage },
+    { label: labels.variant, ready: hasVariant },
+    { label: labels.stock, ready: hasStock },
   ];
 }
 
@@ -175,11 +179,11 @@ function readProductDate(product: AdminCatalogModerationProduct, key: "submitted
   return typeof value === "string" || value instanceof Date ? value : null;
 }
 
-function ModerationActionError(props: { error: unknown }) {
+function ModerationActionError(props: { error: unknown; fallback: string }) {
   if (!props.error) return null;
   return (
     <div className="border-t border-white/10 bg-red-500/10 px-5 py-3 text-sm text-red-200">
-      {readErrorMessage(props.error)}
+      {readErrorMessage(props.error, props.fallback)}
     </div>
   );
 }
@@ -265,9 +269,9 @@ export function AdminShopsTable() {
         <form onSubmit={submitShop} className="rounded-lg border border-white/10 bg-slate-950/50 p-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
             <div className="grid flex-1 gap-3 md:grid-cols-4">
-              <AdminShopField id="shop-name" label="Shop name" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} required />
-              <AdminShopField id="shop-slug" label="Slug" value={form.slug} onChange={(value) => setForm((current) => ({ ...current, slug: value }))} placeholder="auto-from-name" />
-              <AdminShopField id="shop-owner" label="Owner email" value={form.ownerEmail} onChange={(value) => setForm((current) => ({ ...current, ownerEmail: value }))} required />
+              <AdminShopField id="shop-name" label={t("admin.operations.shopName")} value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} required />
+              <AdminShopField id="shop-slug" label={t("admin.productModerationDetail.slug")} value={form.slug} onChange={(value) => setForm((current) => ({ ...current, slug: value }))} placeholder="auto-from-name" />
+              <AdminShopField id="shop-owner" label={t("admin.operations.ownerEmail")} value={form.ownerEmail} onChange={(value) => setForm((current) => ({ ...current, ownerEmail: value }))} required />
               <div className="space-y-2">
                 <Label htmlFor="shop-status" className="text-slate-300">{t("admin.ui.status")}</Label>
                 <Select value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value }))}>
@@ -283,12 +287,12 @@ export function AdminShopsTable() {
             <div className="flex gap-2">
               <Button type="submit" disabled={isMutating} className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
                 <PlusIcon className="size-4" />
-                {editingShop ? "Save shop" : "Create shop"}
+                {t(editingShop ? "admin.operations.saveShop" : "admin.operations.createShop")}
               </Button>
               {editingShop ? <Button type="button" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={resetForm}>{t("admin.ui.cancel")}</Button> : null}
             </div>
           </div>
-          {mutationError ? <p className="mt-3 text-sm text-red-300">{readErrorMessage(mutationError)}</p> : null}
+          {mutationError ? <p className="mt-3 text-sm text-red-300">{readErrorMessage(mutationError, t("admin.sellerApplications.operationFailed"))}</p> : null}
           <p className="mt-2 text-xs text-slate-500">{t("admin.ui.shopOwnerRule")}</p>
         </form>
 
@@ -303,7 +307,7 @@ export function AdminShopsTable() {
             <AlertDialogHeader>
               <AlertDialogTitle>{t("admin.ui.deleteShop")}</AlertDialogTitle>
               <AlertDialogDescription>
-                Delete {deleteTarget?.name}. This only succeeds when the shop has no products, orders, shipments, coupons, followers, chat, wallet, or payout records.
+                {t("admin.operations.deleteShopDescription").replace("{shop}", deleteTarget?.name ?? "-")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -317,7 +321,7 @@ export function AdminShopsTable() {
                     deleteShop.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) });
                   }}
                 >
-                  Delete
+                  {t("admin.ui.delete")}
                 </Button>
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -358,7 +362,7 @@ export function AdminProductsModerationTable() {
     if (reasonAction.type === "reject") {
       reject.mutate(payload, {
         onSuccess: () => {
-          setActionMessage(`${reasonAction.product.title} rejected.`);
+          setActionMessage(t("admin.productModerationDetail.rejected").replace("{title}", reasonAction.product.title));
           closeReasonDialog();
         },
       });
@@ -366,7 +370,7 @@ export function AdminProductsModerationTable() {
     }
     suspend.mutate(payload, {
       onSuccess: () => {
-        setActionMessage(`${reasonAction.product.title} suspended.`);
+        setActionMessage(t("admin.productModerationDetail.suspended").replace("{title}", reasonAction.product.title));
         closeReasonDialog();
       },
     });
@@ -380,7 +384,7 @@ export function AdminProductsModerationTable() {
             {actionMessage}
           </div>
         ) : null}
-        <ModerationActionError error={mutationError} />
+        <ModerationActionError error={mutationError} fallback={t("admin.sellerApplications.operationFailed")} />
         <Table>
           <TableHeader>
             <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
@@ -396,7 +400,12 @@ export function AdminProductsModerationTable() {
           <TableBody>
             {rows.length ? rows.map((product) => {
               const primaryImage = product.images.find((image) => image.isPrimary) ?? product.images[0] ?? null;
-              const flags = readinessFlags(product);
+              const flags = readinessFlags(product, {
+                category: t("admin.ui.category"),
+                media: t("admin.operations.media"),
+                variant: t("admin.ui.variant"),
+                stock: t("admin.operations.stock"),
+              });
               const isRowPending = pendingProductId === product.id;
               return (
                 <TableRow key={product.id} className="border-white/8 hover:bg-white/4">
@@ -421,8 +430,8 @@ export function AdminProductsModerationTable() {
                     <p className="text-xs text-slate-500">{product.shop.slug}</p>
                   </TableCell>
                   <TableCell className="text-sm text-slate-200">
-                    <p>{product.category?.name ?? "Unassigned"}</p>
-                    <p className="text-xs text-slate-500">{product.category?.slug ?? "No category"}</p>
+                    <p>{product.category?.name ?? t("admin.productModerationDetail.unassigned")}</p>
+                    <p className="text-xs text-slate-500">{product.category?.slug ?? t("admin.productModerationDetail.noCategory")}</p>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1.5">
@@ -435,8 +444,8 @@ export function AdminProductsModerationTable() {
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-slate-400">
-                    <p className="flex items-center gap-1"><ClockIcon className="size-3" /> Submitted {formatOptionalDate(readProductDate(product, "submittedAt") ?? product.updatedAt)}</p>
-                    <p className="mt-1 text-slate-500">Updated {formatOptionalDate(readProductDate(product, "updatedAt"))}</p>
+                    <p className="flex items-center gap-1"><ClockIcon className="size-3" /> {t("admin.sellerApplications.submitted")} {formatOptionalDate(readProductDate(product, "submittedAt") ?? product.updatedAt)}</p>
+                    <p className="mt-1 text-slate-500">{t("admin.productModerationDetail.updated")} {formatOptionalDate(readProductDate(product, "updatedAt"))}</p>
                   </TableCell>
                   <TableCell><AdminStatusBadge status={product.status} /></TableCell>
                   <TableCell>
@@ -444,10 +453,10 @@ export function AdminProductsModerationTable() {
                       <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100">
                         <Link href={`/admin/products/${product.id}`}>{t("admin.ui.detail")}</Link>
                       </Button>
-                      <Button size="sm" variant="outline" className="border-emerald-400/30 bg-emerald-500/10 text-emerald-100" disabled={isAnyMutationPending || product.status !== "PENDING_REVIEW"} onClick={() => approve.mutate(product.id, { onSuccess: () => setActionMessage(`${product.title} approved.`) })}>{isRowPending && approve.isPending ? "Approving..." : "Approve"}</Button>
+                      <Button size="sm" variant="outline" className="border-emerald-400/30 bg-emerald-500/10 text-emerald-100" disabled={isAnyMutationPending || product.status !== "PENDING_REVIEW"} onClick={() => approve.mutate(product.id, { onSuccess: () => setActionMessage(t("admin.productModerationDetail.approved").replace("{title}", product.title)) })}>{isRowPending && approve.isPending ? t("admin.productModerationDetail.approving") : t("admin.ui.approve")}</Button>
                       <Button size="sm" variant="outline" className="border-amber-400/30 bg-amber-500/10 text-amber-100" disabled={isAnyMutationPending || product.status !== "PENDING_REVIEW"} onClick={() => setReasonAction({ type: "reject", product })}>{t("admin.ui.reject")}</Button>
                       <Button size="sm" variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isAnyMutationPending || product.status === "SUSPENDED"} onClick={() => setReasonAction({ type: "suspend", product })}>{t("admin.ui.suspend")}</Button>
-                      <Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isAnyMutationPending || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setActionMessage(`${product.title} restored.`) })}>{isRowPending && restore.isPending ? "Restoring..." : "Restore"}</Button>
+                      <Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isAnyMutationPending || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setActionMessage(t("admin.productModerationDetail.restored").replace("{title}", product.title)) })}>{isRowPending && restore.isPending ? t("admin.productModerationDetail.restoring") : t("admin.productModerationDetail.restore")}</Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -459,9 +468,9 @@ export function AdminProductsModerationTable() {
         <AlertDialog open={Boolean(reasonAction)} onOpenChange={(open) => { if (!open) closeReasonDialog(); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{reasonAction?.type === "reject" ? "Reject product" : "Suspend product"}</AlertDialogTitle>
+              <AlertDialogTitle>{t(reasonAction?.type === "reject" ? "admin.productModerationDetail.rejectProduct" : "admin.productModerationDetail.suspendProduct")}</AlertDialogTitle>
               <AlertDialogDescription>
-                Provide a reason for {reasonAction?.product.title}. The seller will see this moderation note.
+                {t("admin.operations.moderationDescription").replace("{title}", reasonAction?.product.title ?? "-")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-2">
@@ -471,7 +480,7 @@ export function AdminProductsModerationTable() {
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 className="min-h-28 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950"
-                placeholder="Explain what the seller must fix."
+                placeholder={t("admin.operations.moderationPlaceholder")}
               />
               {isReasonMissing ? <p className="text-sm font-medium text-red-600">{t("admin.ui.reasonRequired")}</p> : null}
             </div>
@@ -479,7 +488,7 @@ export function AdminProductsModerationTable() {
               <AlertDialogCancel>{t("admin.ui.cancel")}</AlertDialogCancel>
               <AlertDialogAction asChild>
                 <Button variant={reasonAction?.type === "reject" ? "default" : "destructive"} disabled={!reasonAction || reason.trim().length === 0 || reject.isPending || suspend.isPending} onClick={submitReasonAction}>
-                  {reject.isPending || suspend.isPending ? "Submitting..." : reasonAction?.type === "reject" ? "Reject" : "Suspend"}
+                  {reject.isPending || suspend.isPending ? t("admin.productModerationDetail.submitting") : t(reasonAction?.type === "reject" ? "admin.ui.reject" : "admin.ui.suspend")}
                 </Button>
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -492,18 +501,22 @@ export function AdminProductsModerationTable() {
 
 export function AdminOrdersMonitoringTable() {
   const t = useTranslations();
+  const searchParams = useSearchParams();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [shopId, setShopId] = useState("");
+  const [paymentState, setPaymentState] = useState(searchParams.get("paymentState") ?? "");
+  const [shipmentState, setShipmentState] = useState(searchParams.get("shipmentState") ?? "");
   const [search, setSearch] = useState("");
-  const query = useAdminOrdersList({ page, limit: PAGE_SIZE, status, shopId });
+  const query = useAdminOrdersList({ page, limit: PAGE_SIZE, status, shopId, paymentState, shipmentState });
   const shopsQuery = useAdminShopsList({ page: 1, limit: 50 });
+  const confirmDelivery = useConfirmShipmentDelivery();
   const rows = useMemo(() => (query.data?.items ?? []).filter((order: AdminOrder) => textMatch([order.orderNumber, order.status, order.paymentStatus, order.userId, ...order.items.map((item) => item.shopName)], search)), [query.data, search]);
 
   return (
-    <AdminDataShell title={t("admin.pages.orders.title")} description={t("admin.pages.orders.description")} icon={ShoppingBagIcon} search={search} searchPlaceholder={t("admin.search.orders")} onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<><FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder={t("admin.filters.statuses")} options={ORDER_STATUSES} /><ShopFilterSelect value={shopId} onChange={(value) => { setShopId(value); setPage(1); }} shops={shopsQuery.data?.items ?? []} placeholder={t("admin.filters.shops")} /></>}>
-      <CardContent className="p-0"><Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">{t("admin.ui.order")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.shop")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.status")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.payment")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.total")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.activity")}</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((order: AdminOrder) => <TableRow key={order.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{order.orderNumber}</p><p className="text-xs text-slate-500">{formatDate(order.createdAt)}</p></TableCell><TableCell className="text-sm text-slate-200">{Array.from(new Set(order.items.map((item) => item.shopName))).join(", ") || "—"}</TableCell><TableCell><AdminStatusBadge status={order.status} /></TableCell><TableCell><AdminStatusBadge status={order.paymentStatus} /></TableCell><TableCell className="text-sm text-slate-200">{formatMoney(order.grandTotal, order.currency)}</TableCell><TableCell className="text-sm text-slate-300">{order.items.length} items, {order.shipments.length} shipments, {order.refunds.length} refunds</TableCell></TableRow>) : <EmptyRow colSpan={6} />}
+    <AdminDataShell title={t("admin.pages.orders.title")} description={t("admin.pages.orders.description")} icon={ShoppingBagIcon} search={search} searchPlaceholder={t("admin.search.orders")} onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<><FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder={t("admin.filters.statuses")} options={ORDER_STATUSES} /><FilterSelect value={paymentState} onChange={(value) => { setPaymentState(value); setPage(1); }} placeholder={t("admin.filters.paymentExceptions")} options={PAYMENT_EXCEPTION_STATES} /><FilterSelect value={shipmentState} onChange={(value) => { setShipmentState(value); setPage(1); }} placeholder={t("admin.filters.shipmentExceptions")} options={SHIPMENT_EXCEPTION_STATES} /><ShopFilterSelect value={shopId} onChange={(value) => { setShopId(value); setPage(1); }} shops={shopsQuery.data?.items ?? []} placeholder={t("admin.filters.shops")} /></>}>
+      <CardContent className="p-0"><Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">{t("admin.ui.order")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.shop")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.status")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.payment")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.total")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.activity")}</TableHead><TableHead className="text-right text-slate-300">{t("admin.ui.action")}</TableHead></TableRow></TableHeader><TableBody>
+        {rows.length ? rows.map((order: AdminOrder) => <TableRow key={order.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{order.orderNumber}</p><p className="text-xs text-slate-500">{formatDate(order.createdAt)}</p></TableCell><TableCell className="text-sm text-slate-200">{Array.from(new Set(order.items.map((item) => item.shopName))).join(", ") || "—"}</TableCell><TableCell><AdminStatusBadge status={order.status} /></TableCell><TableCell><AdminStatusBadge status={order.paymentStatus} /></TableCell><TableCell className="text-sm text-slate-200">{formatMoney(order.grandTotal, order.currency)}</TableCell><TableCell className="text-sm text-slate-300">{t("admin.operations.orderActivity").replace("{items}", String(order.items.length)).replace("{shipments}", String(order.shipments.length)).replace("{refunds}", String(order.refunds.length))}</TableCell><TableCell><div className="flex flex-wrap justify-end gap-2">{order.shipments.filter((shipment) => shipment.status === "SHIPPED").map((shipment) => <Button key={shipment.id} size="sm" variant="outline" disabled={confirmDelivery.isPending} onClick={() => { const evidenceReference = window.prompt(t("admin.shipments.evidenceReferencePrompt"), shipment.trackingNumber ?? "")?.trim(); if (evidenceReference) confirmDelivery.mutate({ shipmentId: shipment.id, evidenceReference }); }}>{t("admin.shipments.confirmDelivered")}</Button>)}</div></TableCell></TableRow>) : <EmptyRow colSpan={7} />}
       </TableBody></Table><AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} /></CardContent>
     </AdminDataShell>
   );
@@ -521,7 +534,7 @@ export function AdminRefundsTable() {
   return (
     <AdminDataShell title={t("admin.pages.refunds.title")} description={t("admin.pages.refunds.description")} icon={RotateCcwIcon} search={search} searchPlaceholder={t("admin.search.refunds")} onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<FilterSelect value={status} onChange={(value) => { setStatus(value); setPage(1); }} placeholder={t("admin.filters.statuses")} options={REFUND_STATUSES} />}>
       <CardContent className="p-0"><Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">{t("admin.ui.refund")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.order")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.amount")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.status")}</TableHead><TableHead className="text-right text-slate-300">{t("admin.ui.action")}</TableHead></TableRow></TableHeader><TableBody>
-        {rows.length ? rows.map((refund: AdminRefund) => <TableRow key={refund.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{refund.reason ?? "Refund request"}</p><p className="text-xs text-slate-500">{formatDate(refund.createdAt)}</p></TableCell><TableCell><p className="text-sm text-slate-200">{refund.order.orderNumber}</p><p className="text-xs text-slate-500">{refund.payment.provider}</p></TableCell><TableCell className="text-sm text-slate-200">{formatMoney(refund.amount, refund.payment.currency)}</TableCell><TableCell><AdminStatusBadge status={refund.status} /></TableCell><TableCell className="flex justify-end"><AdminStatusAction label={refund.order.orderNumber} currentStatus={refund.status} options={REFUND_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: refund.id, status: next })} /></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
+        {rows.length ? rows.map((refund: AdminRefund) => <TableRow key={refund.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{refund.reason ?? t("admin.refunds.requestFallback")}</p><p className="text-xs text-slate-500">{formatDate(refund.createdAt)}</p></TableCell><TableCell><p className="text-sm text-slate-200">{refund.order.orderNumber}</p><p className="text-xs text-slate-500">{refund.payment.provider}</p></TableCell><TableCell className="text-sm text-slate-200">{formatMoney(refund.amount, refund.payment.currency)}</TableCell><TableCell><AdminStatusBadge status={refund.status} /></TableCell><TableCell className="flex justify-end"><AdminStatusAction label={refund.order.orderNumber} currentStatus={refund.status} options={REFUND_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => { const externalReference = next === "SUCCESS" ? window.prompt(t("admin.refunds.externalReferencePrompt"))?.trim() : undefined; if (next !== "SUCCESS" || externalReference) updateStatus.mutate({ id: refund.id, status: next, externalReference }); }} /></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
       </TableBody></Table><AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} /></CardContent>
     </AdminDataShell>
   );

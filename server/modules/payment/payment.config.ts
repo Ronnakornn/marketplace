@@ -34,7 +34,7 @@ export function getPaymentProviderConfigFromEnv(
   if (productionRuntime && (mockEnabled || provider === 'mock')) {
     throw new Error('Mock payments must be disabled in production')
   }
-  if (provider !== 'mock') {
+  if (provider !== 'mock' && provider !== 'disabled') {
     assertExternalCheckoutConfig(checkoutBaseUrl, checkoutSecret, productionRuntime && !allowInsecureHttp)
   }
 
@@ -54,6 +54,9 @@ export function createPaymentCheckoutUrl(
   if (config.provider === 'mock') {
     if (!config.mockEnabled) throw new Error('Mock payments are disabled')
     return `/${locale}/payment/mock/${input.paymentId}`
+  }
+  if (config.provider === 'disabled') {
+    throw new Error('Payment checkout is not configured')
   }
 
   if (!config.checkoutBaseUrl || !config.checkoutSecret) {

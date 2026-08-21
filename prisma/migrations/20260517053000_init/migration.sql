@@ -1,8 +1,8 @@
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
--- Required by ProductEmbedding.embedding vector(1536).
-CREATE EXTENSION IF NOT EXISTS vector;
+-- pgvector is temporarily disabled together with ProductEmbedding.
+-- CREATE EXTENSION IF NOT EXISTS vector;
 
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('USER', 'SELLER', 'ADMIN');
@@ -217,19 +217,19 @@ CREATE TABLE "Product" (
     CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "ProductEmbedding" (
-    "id" UUID NOT NULL,
-    "productId" UUID NOT NULL,
-    "locale" TEXT NOT NULL DEFAULT 'default',
-    "model" TEXT NOT NULL,
-    "contentHash" TEXT NOT NULL,
-    "embedding" vector(1536) NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "ProductEmbedding_pkey" PRIMARY KEY ("id")
-);
+-- pgvector-backed ProductEmbedding is temporarily disabled.
+-- CREATE TABLE "ProductEmbedding" (
+--     "id" UUID NOT NULL,
+--     "productId" UUID NOT NULL,
+--     "locale" TEXT NOT NULL DEFAULT 'default',
+--     "model" TEXT NOT NULL,
+--     "contentHash" TEXT NOT NULL,
+--     "embedding" vector(1536) NOT NULL,
+--     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+--     "updatedAt" TIMESTAMP(3) NOT NULL,
+--
+--     CONSTRAINT "ProductEmbedding_pkey" PRIMARY KEY ("id")
+-- );
 
 -- CreateTable
 CREATE TABLE "FavoriteProduct" (
@@ -785,14 +785,10 @@ CREATE INDEX "Product_shopId_status_idx" ON "Product"("shopId", "status");
 -- CreateIndex
 CREATE UNIQUE INDEX "Product_shopId_slug_key" ON "Product"("shopId", "slug");
 
--- CreateIndex
-CREATE INDEX "ProductEmbedding_productId_idx" ON "ProductEmbedding"("productId");
-
--- CreateIndex
-CREATE INDEX "ProductEmbedding_model_locale_idx" ON "ProductEmbedding"("model", "locale");
-
--- CreateIndex
-CREATE UNIQUE INDEX "ProductEmbedding_productId_locale_model_key" ON "ProductEmbedding"("productId", "locale", "model");
+-- pgvector-backed ProductEmbedding indexes are temporarily disabled.
+-- CREATE INDEX "ProductEmbedding_productId_idx" ON "ProductEmbedding"("productId");
+-- CREATE INDEX "ProductEmbedding_model_locale_idx" ON "ProductEmbedding"("model", "locale");
+-- CREATE UNIQUE INDEX "ProductEmbedding_productId_locale_model_key" ON "ProductEmbedding"("productId", "locale", "model");
 
 -- CreateIndex
 CREATE INDEX "FavoriteProduct_userId_createdAt_idx" ON "FavoriteProduct"("userId", "createdAt");
@@ -1109,8 +1105,8 @@ ALTER TABLE "Product" ADD CONSTRAINT "Product_categoryId_fkey" FOREIGN KEY ("cat
 -- AddForeignKey
 ALTER TABLE "Product" ADD CONSTRAINT "Product_shopId_fkey" FOREIGN KEY ("shopId") REFERENCES "Shop"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- AddForeignKey
-ALTER TABLE "ProductEmbedding" ADD CONSTRAINT "ProductEmbedding_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- pgvector-backed ProductEmbedding foreign key is temporarily disabled.
+-- ALTER TABLE "ProductEmbedding" ADD CONSTRAINT "ProductEmbedding_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FavoriteProduct" ADD CONSTRAINT "FavoriteProduct_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

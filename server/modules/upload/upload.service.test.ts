@@ -41,6 +41,7 @@ function createRepoMock(): IUploadRepository {
 function createStorageMock(): UploadStorage {
   return {
     createPresignedPutUrl: vi.fn(async (input) => `https://storage.example.com/presigned/${input.key}`),
+    createPresignedGetUrl: vi.fn(async (input) => `https://storage.example.com/private/${input.key}`),
     getPublicUrl: vi.fn((key) => `https://cdn.example.com/${key}`),
   }
 }
@@ -96,10 +97,10 @@ describe('UploadService', () => {
     expect(repo.createUpload).toHaveBeenCalledWith(expect.objectContaining({
       userId: 'seller-1',
       usage: 'PRODUCT_IMAGE',
-      fileName: 'shirt.avif',
-      contentType: 'image/avif',
-      key: expect.stringMatching(/\.avif$/),
-      publicUrl: expect.stringMatching(/^https:\/\/cdn\.example\.com\/uploads\/product_image\/.*\.avif$/),
+      fileName: 'shirt.png',
+      contentType: 'image/png',
+      key: expect.stringMatching(/\.png$/),
+      publicUrl: expect.stringMatching(/^https:\/\/cdn\.example\.com\/uploads\/product_image\/.*\.png$/),
     }))
     expect(storage.createPresignedPutUrl).toHaveBeenCalledWith(expect.objectContaining({
       cacheControl: 'public, max-age=604800, stale-while-revalidate=86400',
@@ -123,11 +124,15 @@ describe('UploadService', () => {
       usage: 'kyc_document',
     })
 
-    expect(result.key).toContain('uploads/kyc_document/buyer-1/')
+    expect(result.key).toContain('private/kyc/buyer-1/')
     expect(repo.createUpload).toHaveBeenCalledWith(expect.objectContaining({
       userId: 'buyer-1',
       usage: 'KYC_DOCUMENT',
       contentType: 'application/pdf',
+      publicUrl: undefined,
+    }))
+    expect(storage.createPresignedPutUrl).toHaveBeenCalledWith(expect.objectContaining({
+      cacheControl: 'private, no-store',
     }))
   })
 
@@ -226,8 +231,8 @@ describe('UploadService', () => {
     })
 
     expect(repo.createUpload).toHaveBeenCalledWith(expect.objectContaining({
-      fileName: 'summer-shirt-final-.avif',
-      key: expect.stringMatching(/^uploads\/shop_image\/seller-1\/\d{4}\/\d{2}\/[0-9a-f-]+-summer-shirt-final-\.avif$/),
+      fileName: 'summer-shirt-final-.png',
+      key: expect.stringMatching(/^uploads\/shop_image\/seller-1\/\d{4}\/\d{2}\/[0-9a-f-]+-summer-shirt-final-\.png$/),
     }))
   })
 
@@ -264,6 +269,34 @@ describe('UploadService', () => {
 
     await expect(service.completeUpload(sellerActor(), '11111111-1111-4111-8111-111111111111'))
       .rejects.toMatchObject({ code: 'UPLOAD_FORBIDDEN' })
+  })
+
+  it('creates a short-lived download URL only for completed accessible uploads', async () => {
+    ;(repo.findUploadById as ReturnType<typeof vi.fn>).mockResolvedValue(createUpload({
+      usage: 'KYC_DOCUMENT' as UploadUsage,
+      status: 'COMPLETED' as UploadStatus,
+      key: 'private/kyc/seller-1/id-card.pdf',
+      contentType: 'application/pdf',
+      publicUrl: null,
+    }))
+
+    const result = await service.getDownloadUrl(sellerActor(), '11111111-1111-4111-8111-111111111111')
+
+    expect(result).toContain('/private/private/kyc/seller-1/id-card.pdf')
+    expect(storage.createPresignedGetUrl).toHaveBeenCalledWith({
+      key: 'private/kyc/seller-1/id-card.pdf',
+      contentType: 'application/pdf',
+      expiresIn: 300,
+    })
+  })
+
+  it('rejects download URLs for pending uploads', async () => {
+    ;(repo.findUploadById as ReturnType<typeof vi.fn>).mockResolvedValue(createUpload({
+      status: 'PENDING' as UploadStatus,
+    }))
+
+    await expect(service.getDownloadUrl(sellerActor(), '11111111-1111-4111-8111-111111111111'))
+      .rejects.toMatchObject({ code: 'UPLOAD_NOT_COMPLETED' })
   })
 
   it('completes a pending upload', async () => {

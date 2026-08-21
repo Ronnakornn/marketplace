@@ -840,6 +840,19 @@ Table coupon_redemptions {
   redeemed_at timestamp [not null]
 }
 
+Table coupon_claims {
+  id uuid [pk]
+  coupon_id uuid [not null, ref: > coupons.id]
+  user_id uuid [not null, ref: > users.id]
+  claimed_at timestamp [not null]
+
+  indexes {
+    (coupon_id, user_id) [unique]
+    (user_id, claimed_at)
+    (coupon_id, claimed_at)
+  }
+}
+
 Table reviews {
   id uuid [pk]
   user_id uuid [not null, ref: > users.id]

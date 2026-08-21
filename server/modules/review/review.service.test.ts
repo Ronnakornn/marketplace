@@ -157,7 +157,6 @@ describe('ReviewService', () => {
       orderItemId: 'item-1',
       rating: 5,
       comment: ' Great fit ',
-      images: [' https://example.com/untrusted.jpg '],
       uploadIds: ['11111111-1111-4111-8111-111111111111'],
     })
 

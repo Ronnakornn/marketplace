@@ -30,6 +30,9 @@ function createRepoMock(): IPromotionRepository {
     findCartForCouponValidation: vi.fn(),
     findSellerShops: vi.fn(),
     listPublicCoupons: vi.fn(),
+    listBuyerCoupons: vi.fn(),
+    findCouponForClaim: vi.fn(),
+    createCouponClaim: vi.fn(),
     listAdminCoupons: vi.fn(),
     listSellerCoupons: vi.fn(),
     findCouponById: vi.fn(),
@@ -142,6 +145,32 @@ describe('PromotionService', () => {
     })])
   })
 
+  it('returns buyer coupon claim state and claims an active coupon', async () => {
+    const coupon = {
+      ...createCoupon(),
+      discountValue: 500n,
+      minOrder: null,
+      maxDiscount: null,
+      titleTh: 'ลดห้าบาท',
+      titleEn: 'Five off',
+      descriptionTh: null,
+      descriptionEn: null,
+      claims: [{ id: 'claim-1', claimedAt: new Date('2026-05-13T00:00:00.000Z') }],
+    }
+    vi.mocked(repo.listBuyerCoupons).mockResolvedValue([coupon] as any)
+    vi.mocked(repo.findCouponForClaim).mockResolvedValue(coupon as any)
+    vi.mocked(repo.createCouponClaim).mockResolvedValue(coupon.claims[0] as any)
+
+    await expect(service.listBuyerCoupons({ id: 'user-1', role: 'USER' }, 'en')).resolves.toEqual([
+      expect.objectContaining({ code: 'SAVE', claimed: true, claimedAt: '2026-05-13T00:00:00.000Z' }),
+    ])
+    await expect(service.claimCoupon({ id: 'user-1', role: 'USER' }, coupon.id, 'en')).resolves.toMatchObject({
+      code: 'SAVE',
+      claimed: true,
+    })
+    expect(repo.createCouponClaim).toHaveBeenCalledWith(coupon.id, 'user-1')
+  })
+
   it('applies a valid percent coupon discount', async () => {
     vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({
       discountType: 'PERCENT',
@@ -218,11 +247,15 @@ describe('PromotionService', () => {
       code: 'seller10',
       discountType: 'fixed',
       discountValueCents: 1000,
+      minOrderCents: 2_000,
+      maxDiscountCents: 500,
     })
     expect(repo.createCoupon).toHaveBeenCalledWith(expect.objectContaining({
       shopId: 'shop-1',
       code: 'SELLER10',
       discountType: 'FIXED_AMOUNT',
+      minOrder: 2_000,
+      maxDiscount: 500,
     }))
   })
 

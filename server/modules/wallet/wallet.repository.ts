@@ -35,7 +35,7 @@ export interface IWalletRepository {
   findWalletByShopId(shopId: string): Promise<WalletRecord | null>
   ensureWallet(shopId: string, currency: string): Promise<ShopWallet>
   listEntries(walletId: string, limit: number, offset: number): Promise<WalletEntryRecord[]>
-  sumLedger(walletId: string): Promise<number>
+  sumLedger(walletId: string, currency: string): Promise<number>
   createLedgerEntry(input: CreateLedgerEntryInput): Promise<WalletLedgerEntry>
   findCompletedOrder(orderId: string): Promise<CompletedOrderRecord | null>
   hasOrderEarnings(orderId: string, shopId: string): Promise<boolean>
@@ -95,9 +95,9 @@ export class PrismaWalletRepository implements IWalletRepository {
     })
   }
 
-  async sumLedger(walletId: string): Promise<number> {
+  async sumLedger(walletId: string, currency: string): Promise<number> {
     const result = await this.prisma.walletLedgerEntry.aggregate({
-      where: { walletId },
+      where: { walletId, currency },
       _sum: { amount: true },
     })
     return Number(result._sum.amount ?? 0)

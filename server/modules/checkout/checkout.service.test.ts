@@ -91,7 +91,7 @@ function createItem(overrides: Partial<{
     variantId,
     quantity: overrides.quantity ?? 2,
     unitPrice: 1000,
-    currency: overrides.currency ?? 'USD',
+    currency: overrides.currency ?? 'THB',
     createdAt: now,
     updatedAt: now,
     variant: {
@@ -100,7 +100,7 @@ function createItem(overrides: Partial<{
       sku: 'TEE-BLK-M',
       title: 'Black / M',
       price: overrides.price ?? 1200,
-      currency: overrides.currency ?? 'USD',
+      currency: overrides.currency ?? 'THB',
       status: overrides.variantStatus ?? 'ACTIVE',
       createdAt: now,
       updatedAt: now,
@@ -165,7 +165,7 @@ function createCreatedOrder(input?: Partial<CreatePendingOrderInput>): any {
       shippingTotal: input?.totals?.shippingTotal ?? 500,
       taxTotal: input?.totals?.taxTotal ?? 0,
       grandTotal: input?.totals?.grandTotal ?? 2900,
-      currency: input?.totals?.currency ?? 'USD',
+      currency: input?.totals?.currency ?? 'THB',
       shippingName: 'Jane Buyer',
       shippingPhone: '0800000000',
       shippingLine1: '123 Market Road',
@@ -184,7 +184,7 @@ function createCreatedOrder(input?: Partial<CreatePendingOrderInput>): any {
       providerIntentId: `pending_${input?.orderNumber ?? 'ORD-TEST'}`,
       status: 'PENDING',
       amount: input?.totals?.grandTotal ?? 2900,
-      currency: input?.totals?.currency ?? 'USD',
+      currency: input?.totals?.currency ?? 'THB',
       paidAt: null,
       createdAt: now,
       updatedAt: now,
@@ -260,7 +260,7 @@ describe('CheckoutService', () => {
         shippingTotal: 500,
         taxTotal: 0,
         grandTotal: 2660,
-        currency: 'USD',
+        currency: 'THB',
       },
     }))
   })
@@ -276,6 +276,18 @@ describe('CheckoutService', () => {
     })
 
     expect(result.paymentUrl).toBe('/en/payment/mock/14141414-1414-4141-8141-141414141414')
+  })
+
+  it('rejects cash on delivery because fulfillment does not support COD settlement', async () => {
+    const service = await setupSuccess()
+
+    await expect(service.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      paymentMethod: 'cod',
+    })).rejects.toMatchObject({ code: 'PAYMENT_METHOD_UNAVAILABLE' })
+
+    expect(repo.transaction).not.toHaveBeenCalled()
   })
 
   it('creates an order from only the explicitly selected cart items', async () => {

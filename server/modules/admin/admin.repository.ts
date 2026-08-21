@@ -11,10 +11,21 @@ import type {
   ReturnRequest,
   Shipment,
   Shop,
+  SystemSetting,
   User,
   Brand,
 } from '#generated/client/client.ts'
-import type { OrderStatus, ProductStatus, RefundStatus, ReturnStatus, Role, ShopStatus, UserStatus } from '#generated/client/enums.ts'
+import type {
+  AffiliateCommissionStatus,
+  OrderStatus,
+  ProductStatus,
+  RefundStatus,
+  ReturnStatus,
+  Role,
+  SettingValueType,
+  ShopStatus,
+  UserStatus,
+} from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -97,7 +108,7 @@ export type AdminOrderRecord = Order & {
   shipments: Shipment[]
   refunds: Array<Pick<Refund, 'id' | 'status' | 'amount' | 'reason' | 'createdAt'>>
 }
-export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 'status' | 'amount' | 'reason' | 'createdAt'> & {
+export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 'status' | 'amount' | 'reason' | 'processingById' | 'completedById' | 'externalReference' | 'processingAt' | 'completedAt' | 'createdAt'> & {
   order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId'>
   payment: Pick<Payment, 'id' | 'provider' | 'status' | 'amount' | 'currency'>
 }
@@ -138,9 +149,53 @@ export interface AdminReportMetrics {
   marketplace: { users: number; sellers: number; shops: number; products: number; activeProducts: number }
 }
 
+export interface AdminCommissionRecord {
+  id: string
+  affiliateId: string
+  affiliateName: string
+  affiliateEmail: string
+  linkId: string
+  linkCode: string
+  targetType: string
+  targetId: string
+  orderId: string
+  orderNumber: string
+  eligibleSubtotalCents: number
+  commissionBps: number
+  commissionCents: number
+  currency: string
+  status: AffiliateCommissionStatus
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type AdminSystemSettingRecord = SystemSetting
+
+export interface AdminSystemSettingWriteInput {
+  key: string
+  value: Prisma.InputJsonValue
+  valueType: SettingValueType
+  description: string | null
+  isPublic: boolean
+  updatedById: string
+}
+
 export interface IAdminRepository {
   getDashboardCounts(): Promise<AdminDashboardCounts>
   getReportMetrics(): Promise<AdminReportMetrics>
+  listCommissions(
+    filters: { status?: AffiliateCommissionStatus; q?: string },
+    pagination: AdminPaginationInput,
+  ): Promise<AdminPaginatedResult<AdminCommissionRecord>>
+  findCommissionById(commissionId: string): Promise<AdminCommissionRecord | null>
+  updateCommissionStatus(
+    commissionId: string,
+    expectedStatus: AffiliateCommissionStatus,
+    status: AffiliateCommissionStatus,
+  ): Promise<AdminCommissionRecord | null>
+  listSystemSettings(): Promise<AdminSystemSettingRecord[]>
+  findSystemSettingByKey(key: string): Promise<AdminSystemSettingRecord | null>
+  upsertSystemSetting(input: AdminSystemSettingWriteInput): Promise<AdminSystemSettingRecord>
   listUsers(filters: { role?: Role; status?: UserStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminUserRecord>>
   findUserById(userId: string): Promise<User | null>
   findUserByEmail(email: string): Promise<User | null>
@@ -168,11 +223,18 @@ export interface IAdminRepository {
   listProducts(filters: { status?: ProductStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminProductRecord>>
   findProductById(productId: string): Promise<AdminProductRecord | null>
   updateProductStatus(productId: string, status: ProductStatus): Promise<AdminProductRecord>
-  listOrders(filters: { status?: OrderStatus; shopId?: string }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminOrderRecord>>
+  listOrders(
+    filters: { status?: OrderStatus; shopId?: string; paymentState?: 'PENDING' | 'FAILED'; shipmentState?: 'DELAYED' },
+    pagination: AdminPaginationInput,
+  ): Promise<AdminPaginatedResult<AdminOrderRecord>>
   findOrderById(orderId: string): Promise<AdminOrderRecord | null>
   listRefunds(filters: { status?: RefundStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminRefundRecord>>
   findRefundById(refundId: string): Promise<AdminRefundRecord | null>
-  updateRefundStatus(refundId: string, status: RefundStatus): Promise<AdminRefundRecord>
+  updateRefundStatus(
+    refundId: string,
+    expectedStatus: RefundStatus,
+    data: Partial<Pick<Refund, 'status' | 'processingById' | 'completedById' | 'externalReference' | 'processingAt' | 'completedAt'>>,
+  ): Promise<AdminRefundRecord | null>
   listReturns(filters: { status?: ReturnStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminReturnRecord>>
   findReturnById(returnId: string): Promise<AdminReturnRecord | null>
   updateReturnStatus(returnId: string, status: ReturnStatus): Promise<AdminReturnRecord>
@@ -244,6 +306,11 @@ const refundInclude = {
   status: true,
   amount: true,
   reason: true,
+  processingById: true,
+  completedById: true,
+  externalReference: true,
+  processingAt: true,
+  completedAt: true,
   createdAt: true,
   order: {
     select: {
@@ -313,6 +380,55 @@ const returnInclude = {
   },
 } as const
 
+const commissionSelect = {
+  id: true,
+  affiliateId: true,
+  linkId: true,
+  orderId: true,
+  eligiblesubtotal: true,
+  commissionBps: true,
+  commission: true,
+  currency: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  affiliate: {
+    select: {
+      user: { select: { name: true, email: true } },
+    },
+  },
+  link: {
+    select: { code: true, targetType: true, targetId: true },
+  },
+  order: {
+    select: { orderNumber: true },
+  },
+} satisfies Prisma.AffiliateCommissionSelect
+
+type AdminCommissionRow = Prisma.AffiliateCommissionGetPayload<{ select: typeof commissionSelect }>
+
+function toAdminCommissionRecord(row: AdminCommissionRow): AdminCommissionRecord {
+  return {
+    id: row.id,
+    affiliateId: row.affiliateId,
+    affiliateName: row.affiliate.user.name,
+    affiliateEmail: row.affiliate.user.email,
+    linkId: row.linkId,
+    linkCode: row.link.code,
+    targetType: row.link.targetType,
+    targetId: row.link.targetId,
+    orderId: row.orderId,
+    orderNumber: row.order.orderNumber,
+    eligibleSubtotalCents: Number(row.eligiblesubtotal),
+    commissionBps: row.commissionBps,
+    commissionCents: Number(row.commission),
+    currency: row.currency,
+    status: row.status,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  }
+}
+
 const shipmentDelayCutoff = () => new Date(Date.now() - 72 * 60 * 60 * 1000)
 
 export class PrismaAdminRepository implements IAdminRepository {
@@ -370,8 +486,8 @@ export class PrismaAdminRepository implements IAdminRepository {
       this.prisma.refund.count({ where: { status: 'PENDING' } }),
       this.prisma.refund.count({ where: { status: 'SUCCESS' } }),
       this.prisma.refund.count({ where: { status: 'FAILED' } }),
-      this.prisma.payment.count({ where: { status: { in: ['PENDING', 'REQUIRES_ACTION'] } } }),
-      this.prisma.payment.count({ where: { status: 'FAILED' } }),
+      this.prisma.order.count({ where: { paymentStatus: { in: ['PENDING', 'REQUIRES_ACTION'] } } }),
+      this.prisma.order.count({ where: { paymentStatus: 'FAILED' } }),
       this.prisma.shipment.count({ where: { status: { in: ['PENDING_PACK', 'PACKED', 'PENDING', 'READY'] }, createdAt: { lt: shipmentDelayCutoff() } } }),
       this.prisma.returnRequest.count({ where: { status: { in: ['REQUESTED', 'APPROVED', 'RECEIVED'] } } }),
       this.prisma.refund.count({ where: { status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } }),
@@ -480,6 +596,76 @@ export class PrismaAdminRepository implements IAdminRepository {
       },
       marketplace: { users: totalUsers, sellers, shops: totalShops, products: totalProducts, activeProducts },
     }
+  }
+
+  async listCommissions(
+    filters: { status?: AffiliateCommissionStatus; q?: string },
+    pagination: AdminPaginationInput,
+  ): Promise<AdminPaginatedResult<AdminCommissionRecord>> {
+    const where: Prisma.AffiliateCommissionWhereInput = {
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.q
+        ? {
+            OR: [
+              { order: { orderNumber: { contains: filters.q, mode: 'insensitive' } } },
+              { link: { code: { contains: filters.q, mode: 'insensitive' } } },
+              { affiliate: { user: { name: { contains: filters.q, mode: 'insensitive' } } } },
+              { affiliate: { user: { email: { contains: filters.q, mode: 'insensitive' } } } },
+            ],
+          }
+        : {}),
+    }
+    const [rows, total] = await Promise.all([
+      this.prisma.affiliateCommission.findMany({
+        where,
+        select: commissionSelect,
+        orderBy: { createdAt: 'desc' },
+        ...this.toSkipTake(pagination),
+      }),
+      this.prisma.affiliateCommission.count({ where }),
+    ])
+    return { items: rows.map(toAdminCommissionRecord), total }
+  }
+
+  async findCommissionById(commissionId: string): Promise<AdminCommissionRecord | null> {
+    const row = await this.prisma.affiliateCommission.findUnique({ where: { id: commissionId }, select: commissionSelect })
+    return row ? toAdminCommissionRecord(row) : null
+  }
+
+  async updateCommissionStatus(
+    commissionId: string,
+    expectedStatus: AffiliateCommissionStatus,
+    status: AffiliateCommissionStatus,
+  ): Promise<AdminCommissionRecord | null> {
+    const result = await this.prisma.affiliateCommission.updateMany({
+      where: { id: commissionId, status: expectedStatus },
+      data: { status },
+    })
+    if (result.count !== 1) return null
+    return this.findCommissionById(commissionId)
+  }
+
+  listSystemSettings(): Promise<AdminSystemSettingRecord[]> {
+    return this.prisma.systemSetting.findMany({ orderBy: { key: 'asc' } })
+  }
+
+  findSystemSettingByKey(key: string): Promise<AdminSystemSettingRecord | null> {
+    return this.prisma.systemSetting.findUnique({ where: { key } })
+  }
+
+  upsertSystemSetting(input: AdminSystemSettingWriteInput): Promise<AdminSystemSettingRecord> {
+    const data = {
+      value: input.value,
+      valueType: input.valueType,
+      description: input.description,
+      isPublic: input.isPublic,
+      updatedById: input.updatedById,
+    }
+    return this.prisma.systemSetting.upsert({
+      where: { key: input.key },
+      update: data,
+      create: { key: input.key, ...data },
+    })
   }
 
   listUsers(filters: { role?: Role; status?: UserStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminUserRecord>> {
@@ -682,10 +868,18 @@ export class PrismaAdminRepository implements IAdminRepository {
     return this.prisma.product.update({ where: { id: productId }, data: { status }, include: productInclude })
   }
 
-  listOrders(filters: { status?: OrderStatus; shopId?: string }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminOrderRecord>> {
+  listOrders(
+    filters: { status?: OrderStatus; shopId?: string; paymentState?: 'PENDING' | 'FAILED'; shipmentState?: 'DELAYED' },
+    pagination: AdminPaginationInput,
+  ): Promise<AdminPaginatedResult<AdminOrderRecord>> {
     const where: Prisma.OrderWhereInput = {
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.shopId ? { items: { some: { shopId: filters.shopId } } } : {}),
+      ...(filters.paymentState === 'PENDING' ? { paymentStatus: { in: ['PENDING', 'REQUIRES_ACTION'] } } : {}),
+      ...(filters.paymentState === 'FAILED' ? { paymentStatus: 'FAILED' } : {}),
+      ...(filters.shipmentState === 'DELAYED'
+        ? { shipments: { some: { status: { in: ['PENDING_PACK', 'PACKED', 'PENDING', 'READY'] }, createdAt: { lt: shipmentDelayCutoff() } } } }
+        : {}),
     }
     return this.paginate(
       this.prisma.order.findMany({ where, include: orderInclude, orderBy: { createdAt: 'desc' }, ...this.toSkipTake(pagination) }),
@@ -709,8 +903,14 @@ export class PrismaAdminRepository implements IAdminRepository {
     return this.prisma.refund.findUnique({ where: { id: refundId }, select: refundInclude })
   }
 
-  updateRefundStatus(refundId: string, status: RefundStatus): Promise<AdminRefundRecord> {
-    return this.prisma.refund.update({ where: { id: refundId }, data: { status }, select: refundInclude })
+  async updateRefundStatus(
+    refundId: string,
+    expectedStatus: RefundStatus,
+    data: Partial<Pick<Refund, 'status' | 'processingById' | 'completedById' | 'externalReference' | 'processingAt' | 'completedAt'>>,
+  ): Promise<AdminRefundRecord | null> {
+    const result = await this.prisma.refund.updateMany({ where: { id: refundId, status: expectedStatus }, data })
+    if (result.count !== 1) return null
+    return this.findRefundById(refundId)
   }
 
   listReturns(filters: { status?: ReturnStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminReturnRecord>> {

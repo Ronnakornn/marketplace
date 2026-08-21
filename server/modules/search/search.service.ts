@@ -45,6 +45,7 @@ export interface ProductSearchItem {
     id: string
     name: string
     slug: string
+    location: string | null
   }
   variants: Array<{
     id: string
@@ -169,6 +170,7 @@ export class SearchService {
     const items = products
       .map((product) => this.toSearchItem(product, filters.locale))
       .filter((item) => filters.rating === undefined || item.ratingSummary.averageRating >= filters.rating)
+      .filter((item) => !filters.inStock || item.variants.some((variant) => variant.stock > 0))
       .filter((item) => filters.badges.length === 0 || filters.badges.every((badge) => item.badges.includes(badge)))
 
     const sorted = this.sortItems(items, filters.sort)
@@ -333,7 +335,7 @@ export class SearchService {
     return {
       productId: product.id,
       title: localizedText(locale, { th: product.titleTh, en: product.titleEn, fallback: product.title }) ?? product.title,
-      coverImage: null,
+      coverImage: product.images[0]?.url ?? null,
       minPrice,
       maxPrice: maxPrice === minPrice ? null : maxPrice,
       ratingSummary: {
@@ -345,6 +347,7 @@ export class SearchService {
         id: product.shop.id,
         name: product.shop.name,
         slug: product.shop.slug,
+        location: this.formatShopLocation(product.shop.addresses[0]),
       },
       variants: product.variants.map((variant) => ({
         id: variant.id,
@@ -386,6 +389,12 @@ export class SearchService {
       })),
       badges: this.buildBadges(product, soldCount, hasStock),
     }
+  }
+
+  private formatShopLocation(address: SearchProductRecord['shop']['addresses'][number] | undefined): string | null {
+    if (!address) return null
+    const parts = [address.city, address.region, address.country].map((part) => part?.trim()).filter(Boolean)
+    return parts.length > 0 ? [...new Set(parts)].join(', ') : null
   }
 
   private buildBadges(product: SearchProductRecord, soldCount: number, hasStock: boolean): string[] {

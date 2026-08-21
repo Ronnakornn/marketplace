@@ -1,0 +1,2547 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="คู่มือใช้งาน Marketplace ภาษาไทยสำหรับผู้ซื้อ ผู้ขาย และผู้ดูแลระบบ"
+    />
+    <title>คู่มือใช้งาน Marketplace</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172033;
+        --muted: #667085;
+        --line: #e4e7ec;
+        --paper: #ffffff;
+        --canvas: #f7f8fa;
+        --orange: #e8590c;
+        --orange-soft: #fff4e6;
+        --green: #087f5b;
+        --green-soft: #e6fcf5;
+        --navy: #273469;
+        --navy-soft: #eef2ff;
+        --amber: #9a6700;
+        --amber-soft: #fff8db;
+        --red: #b42318;
+        --red-soft: #fff1f0;
+        --shadow: 0 18px 48px rgba(23, 32, 51, 0.08);
+        font-family:
+          "Noto Sans Thai", "Leelawadee UI", Tahoma, system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        line-height: 1.65;
+      }
+      a {
+        color: inherit;
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      code {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.4rem;
+        background: #f8fafc;
+        padding: 0.08rem 0.38rem;
+        color: #344054;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 0.88em;
+        overflow-wrap: anywhere;
+      }
+
+      .skip-link {
+        position: fixed;
+        left: 1rem;
+        top: -5rem;
+        z-index: 100;
+        border-radius: 0.6rem;
+        background: var(--ink);
+        color: white;
+        padding: 0.7rem 1rem;
+      }
+      .skip-link:focus {
+        top: 1rem;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        min-height: 4rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        border-bottom: 1px solid rgba(228, 231, 236, 0.9);
+        background: rgba(255, 255, 255, 0.94);
+        padding: 0.75rem 1.25rem;
+        backdrop-filter: blur(14px);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
+      }
+      .brand-mark {
+        display: grid;
+        width: 2.4rem;
+        height: 2.4rem;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 0.8rem;
+        background: var(--orange);
+        color: white;
+        font-weight: 900;
+      }
+      .brand strong,
+      .brand small {
+        display: block;
+      }
+      .brand small {
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .action-button {
+        cursor: pointer;
+        border: 1px solid var(--line);
+        border-radius: 0.65rem;
+        background: white;
+        padding: 0.55rem 0.8rem;
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .action-button:hover,
+      .action-button:focus-visible {
+        border-color: #b9c0cc;
+        background: #f8fafc;
+      }
+      .menu-button {
+        display: none;
+      }
+
+      .page-shell {
+        display: grid;
+        grid-template-columns: 19rem minmax(0, 1fr);
+        min-height: calc(100vh - 4rem);
+      }
+      .sidebar {
+        position: sticky;
+        top: 4rem;
+        height: calc(100vh - 4rem);
+        overflow-y: auto;
+        border-right: 1px solid var(--line);
+        background: #fbfcfe;
+        padding: 1.2rem;
+      }
+      .search-label {
+        display: block;
+        margin-bottom: 0.4rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+      .search-input {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 0.7rem;
+        background: white;
+        padding: 0.72rem 0.8rem;
+        outline: none;
+      }
+      .search-input:focus {
+        border-color: var(--orange);
+        box-shadow: 0 0 0 3px rgba(232, 89, 12, 0.12);
+      }
+      .search-result {
+        min-height: 1.4rem;
+        margin: 0.35rem 0 1rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+      .toc-title {
+        margin: 1.1rem 0 0.45rem;
+        color: #98a2b3;
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .toc {
+        display: grid;
+        gap: 0.18rem;
+      }
+      .toc a {
+        border-radius: 0.55rem;
+        padding: 0.5rem 0.65rem;
+        color: #475467;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 650;
+      }
+      .toc a:hover,
+      .toc a:focus-visible {
+        background: #eef1f6;
+        color: var(--ink);
+      }
+      .toc a.buyer-link {
+        border-left: 3px solid var(--orange);
+      }
+      .toc a.seller-link {
+        border-left: 3px solid var(--green);
+      }
+      .toc a.admin-link {
+        border-left: 3px solid var(--navy);
+      }
+
+      main {
+        width: 100%;
+        max-width: 76rem;
+        margin: 0 auto;
+        padding: 2.25rem clamp(1rem, 4vw, 3.5rem) 5rem;
+      }
+      .hero {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #f2d3bb;
+        border-radius: 1.5rem;
+        background: linear-gradient(135deg, #fffaf5 0%, #fff 48%, #f4f7ff 100%);
+        padding: clamp(1.5rem, 4vw, 3.3rem);
+        box-shadow: var(--shadow);
+      }
+      .hero::after {
+        position: absolute;
+        right: -4rem;
+        top: -5rem;
+        width: 15rem;
+        height: 15rem;
+        border-radius: 999px;
+        background: rgba(232, 89, 12, 0.08);
+        content: "";
+      }
+      .eyebrow {
+        margin: 0 0 0.55rem;
+        color: var(--orange);
+        font-size: 0.78rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      h1 {
+        max-width: 54rem;
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 4.5rem);
+        line-height: 1.08;
+        letter-spacing: -0.045em;
+      }
+      .hero-copy {
+        max-width: 52rem;
+        margin: 1rem 0 0;
+        color: #475467;
+        font-size: 1.05rem;
+      }
+      .meta-row,
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 1.3rem;
+      }
+      .pill,
+      .status-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: white;
+        padding: 0.35rem 0.65rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+      .status-tag.live {
+        border-color: #a6e4d2;
+        background: var(--green-soft);
+        color: #05603f;
+      }
+      .status-tag.mock {
+        border-color: #ffd59a;
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+      .status-tag.manual {
+        border-color: #b9c7ff;
+        background: var(--navy-soft);
+        color: var(--navy);
+      }
+      .status-tag.limit {
+        border-color: #f0b7b2;
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .role-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-top: 1.3rem;
+      }
+      .role-card {
+        border: 1px solid var(--line);
+        border-top: 4px solid var(--role-color);
+        border-radius: 1rem;
+        background: white;
+        padding: 1rem;
+        text-decoration: none;
+        transition:
+          transform 160ms ease,
+          box-shadow 160ms ease;
+      }
+      .role-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(23, 32, 51, 0.09);
+      }
+      .role-card strong {
+        display: block;
+        font-size: 1.05rem;
+      }
+      .role-card span {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .guide-section {
+        scroll-margin-top: 5.3rem;
+        margin-top: 3.2rem;
+      }
+      .section-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .section-heading h2 {
+        margin: 0;
+        font-size: clamp(1.55rem, 3vw, 2.35rem);
+        line-height: 1.2;
+        letter-spacing: -0.025em;
+      }
+      .section-heading p {
+        max-width: 46rem;
+        margin: 0.4rem 0 0;
+        color: var(--muted);
+      }
+      .role-marker {
+        width: 0.7rem;
+        min-height: 4.2rem;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: var(--role-color);
+      }
+      .section-title-row {
+        display: flex;
+        gap: 0.85rem;
+      }
+
+      .notice {
+        margin: 1rem 0;
+        border: 1px solid var(--notice-line, var(--line));
+        border-left: 5px solid var(--notice-color, var(--ink));
+        border-radius: 0.85rem;
+        background: var(--notice-bg, white);
+        padding: 0.9rem 1rem;
+      }
+      .notice strong {
+        display: block;
+        margin-bottom: 0.18rem;
+      }
+      .notice p {
+        margin: 0.25rem 0;
+      }
+      .notice.info {
+        --notice-color: var(--navy);
+        --notice-line: #c8d1ff;
+        --notice-bg: #f5f7ff;
+      }
+      .notice.warning {
+        --notice-color: var(--amber);
+        --notice-line: #efd492;
+        --notice-bg: #fffaf0;
+      }
+      .notice.danger {
+        --notice-color: var(--red);
+        --notice-line: #efb6b1;
+        --notice-bg: #fff8f7;
+      }
+      .notice.success {
+        --notice-color: var(--green);
+        --notice-line: #a6e4d2;
+        --notice-bg: #f3fffb;
+      }
+
+      .flow-line {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 1rem 0 1.2rem;
+      }
+      .flow-step {
+        border: 1px solid var(--line);
+        border-radius: 0.65rem;
+        background: white;
+        padding: 0.45rem 0.7rem;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+      .flow-arrow {
+        color: #98a2b3;
+        font-weight: 900;
+      }
+
+      .guide-list {
+        display: grid;
+        gap: 0.75rem;
+      }
+      details.guide-card {
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        background: var(--paper);
+        box-shadow: 0 8px 28px rgba(23, 32, 51, 0.035);
+      }
+      details.guide-card[open] {
+        border-color: #cdd3dd;
+        box-shadow: 0 10px 30px rgba(23, 32, 51, 0.06);
+      }
+      details.guide-card > summary {
+        display: flex;
+        cursor: pointer;
+        list-style: none;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.1rem;
+        font-weight: 900;
+      }
+      details.guide-card > summary::-webkit-details-marker {
+        display: none;
+      }
+      details.guide-card > summary::after {
+        margin-left: auto;
+        color: #98a2b3;
+        content: "+";
+        font-size: 1.25rem;
+      }
+      details.guide-card[open] > summary::after {
+        content: "−";
+      }
+      .step-number {
+        display: grid;
+        width: 2rem;
+        height: 2rem;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 0.6rem;
+        background: var(--role-soft, #f2f4f7);
+        color: var(--role-color, var(--ink));
+        font-size: 0.78rem;
+      }
+      .card-body {
+        border-top: 1px solid var(--line);
+        padding: 0.3rem 1.2rem 1.2rem;
+      }
+      .route {
+        margin: 0.85rem 0 0;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+      .steps {
+        counter-reset: guide-step;
+        margin: 0.8rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .steps > li {
+        position: relative;
+        min-height: 2.5rem;
+        margin-left: 1rem;
+        padding: 0 0 1rem 2.3rem;
+        border-left: 2px solid #e9ecf1;
+      }
+      .steps > li:last-child {
+        border-left-color: transparent;
+        padding-bottom: 0.2rem;
+      }
+      .steps > li::before {
+        position: absolute;
+        left: -1rem;
+        top: -0.05rem;
+        display: grid;
+        width: 1.9rem;
+        height: 1.9rem;
+        place-items: center;
+        border: 2px solid white;
+        border-radius: 999px;
+        background: var(--role-color, var(--ink));
+        color: white;
+        content: counter(guide-step);
+        counter-increment: guide-step;
+        font-size: 0.72rem;
+        font-weight: 900;
+        box-shadow: 0 0 0 1px var(--role-color, var(--ink));
+      }
+      .steps strong {
+        color: #344054;
+      }
+      .compact-list {
+        margin: 0.6rem 0;
+        padding-left: 1.25rem;
+      }
+      .compact-list li {
+        margin: 0.25rem 0;
+      }
+
+      .status-table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.9rem;
+        background: white;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.86rem;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 0.72rem 0.8rem;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #f8fafc;
+        color: #475467;
+        font-size: 0.75rem;
+        letter-spacing: 0.03em;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .two-column {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      .plain-card {
+        border: 1px solid var(--line);
+        border-radius: 0.95rem;
+        background: white;
+        padding: 1rem;
+      }
+      .plain-card h3 {
+        margin: 0 0 0.5rem;
+      }
+      .plain-card p {
+        margin: 0.3rem 0;
+        color: #475467;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+      .back-top {
+        display: inline-block;
+        margin-top: 2rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      footer {
+        margin-top: 4rem;
+        border-top: 1px solid var(--line);
+        padding-top: 1.2rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .buyer {
+        --role-color: var(--orange);
+        --role-soft: var(--orange-soft);
+      }
+      .seller {
+        --role-color: var(--green);
+        --role-soft: var(--green-soft);
+      }
+      .admin {
+        --role-color: var(--navy);
+        --role-soft: var(--navy-soft);
+      }
+
+      @media (max-width: 900px) {
+        .page-shell {
+          grid-template-columns: 1fr;
+        }
+        .menu-button {
+          display: inline-flex;
+        }
+        .sidebar {
+          position: fixed;
+          inset: 4rem auto 0 0;
+          z-index: 25;
+          width: min(20rem, 88vw);
+          height: calc(100vh - 4rem);
+          transform: translateX(-105%);
+          box-shadow: var(--shadow);
+          transition: transform 180ms ease;
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .role-grid,
+        .two-column {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .topbar {
+          padding-inline: 0.8rem;
+        }
+        .brand small,
+        .print-button {
+          display: none;
+        }
+        main {
+          padding-inline: 0.8rem;
+          padding-top: 1rem;
+        }
+        .hero {
+          border-radius: 1rem;
+          padding: 1.25rem;
+        }
+        .section-heading {
+          display: block;
+        }
+        .flow-arrow {
+          transform: rotate(90deg);
+        }
+        .flow-line {
+          align-items: flex-start;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+          font-size: 10.5pt;
+        }
+        .topbar,
+        .sidebar,
+        .back-top,
+        footer {
+          display: none !important;
+        }
+        .page-shell {
+          display: block;
+        }
+        main {
+          max-width: none;
+          padding: 0;
+        }
+        .hero,
+        details.guide-card,
+        .plain-card,
+        .status-table-wrap {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+        .guide-section {
+          margin-top: 1.5rem;
+          break-before: page;
+        }
+        details.guide-card > summary::after {
+          display: none;
+        }
+        .card-body {
+          display: block !important;
+        }
+      }
+    </style>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#main-content">ข้ามไปยังเนื้อหา</a>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span>
+          <strong>คู่มือ Marketplace</strong>
+          <small>Buyer · Seller · Admin</small>
+        </span>
+      </div>
+      <div class="top-actions">
+        <button
+          class="action-button menu-button"
+          id="menu-button"
+          type="button"
+          aria-controls="sidebar"
+          aria-expanded="false"
+        >
+          สารบัญ
+        </button>
+        <button
+          class="action-button print-button"
+          id="print-button"
+          type="button"
+        >
+          พิมพ์ / บันทึก PDF
+        </button>
+      </div>
+    </header>
+
+    <div class="page-shell">
+      <aside class="sidebar" id="sidebar" aria-label="สารบัญคู่มือ">
+        <label class="search-label" for="guide-search">ค้นหาในคู่มือ</label>
+        <input
+          class="search-input"
+          id="guide-search"
+          type="search"
+          placeholder="เช่น ชำระเงิน, KYC, คืนสินค้า"
+          autocomplete="off"
+        />
+        <p class="search-result" id="search-result" aria-live="polite"></p>
+
+        <p class="toc-title">เริ่มต้น</p>
+        <nav class="toc">
+          <a href="#overview">ภาพรวมและสัญลักษณ์</a>
+          <a href="#common">บัญชีและการเข้าสู่ระบบ</a>
+        </nav>
+        <p class="toc-title">บทบาท</p>
+        <nav class="toc">
+          <a class="buyer-link" href="#buyer">ผู้ซื้อ (Buyer)</a>
+          <a class="seller-link" href="#seller">ผู้ขาย (Seller)</a>
+          <a class="admin-link" href="#admin">ผู้ดูแลระบบ (Admin)</a>
+        </nav>
+        <p class="toc-title">อ้างอิง</p>
+        <nav class="toc">
+          <a href="#mock-manual">Mock และงาน Manual</a>
+          <a href="#troubleshooting">แก้ปัญหาเบื้องต้น</a>
+          <a href="#routes">เส้นทางหน้าจอ</a>
+        </nav>
+      </aside>
+
+      <main id="main-content">
+        <section class="hero" id="overview">
+          <p class="eyebrow">คู่มือผู้ใช้งาน · ฉบับภาษาไทย</p>
+          <h1>ใช้งาน Marketplace ได้ครบทุกบทบาท แบบทีละขั้นตอน</h1>
+          <p class="hero-copy">
+            คู่มือนี้ยึดหน้าจอและการทำงานที่มีอยู่จริงในระบบ ณ วันที่ 19 สิงหาคม
+            2026 ครอบคลุมผู้ซื้อ ผู้ขาย และผู้ดูแลระบบ
+            พร้อมแยกส่วนทดสอบและงานที่ยังต้องดำเนินการด้วยคนอย่างชัดเจน
+          </p>
+          <div class="meta-row">
+            <span class="pill">ภาษาเริ่มต้น <strong>ไทย</strong></span>
+            <span class="pill">เส้นทางตัวอย่าง <code>/th/...</code></span>
+            <span class="pill">ไม่มีภาพหน้าจอ</span>
+          </div>
+          <div class="legend" aria-label="ความหมายของป้ายสถานะ">
+            <span class="status-tag live">ใช้งานจริง</span>
+            <span class="status-tag mock">Mock / โหมดทดสอบ</span>
+            <span class="status-tag manual">ดำเนินการด้วยคน</span>
+            <span class="status-tag limit">ข้อจำกัดปัจจุบัน</span>
+          </div>
+          <div class="role-grid">
+            <a
+              class="role-card"
+              href="#buyer"
+              style="--role-color: var(--orange)"
+            >
+              <strong>ผู้ซื้อ</strong>
+              <span>ค้นหา ซื้อ ชำระเงิน ติดตาม รีวิว และคืนสินค้า</span>
+            </a>
+            <a
+              class="role-card"
+              href="#seller"
+              style="--role-color: var(--green)"
+            >
+              <strong>ผู้ขาย</strong>
+              <span>สมัครร้าน จัดการสินค้า สต็อก ออเดอร์ และการเงิน</span>
+            </a>
+            <a
+              class="role-card"
+              href="#admin"
+              style="--role-color: var(--navy)"
+            >
+              <strong>ผู้ดูแลระบบ</strong>
+              <span>อนุมัติ ตรวจสอบ ดูแลเนื้อหา และติดตามความเสี่ยง</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="guide-section" id="common">
+          <div class="section-heading">
+            <div class="section-title-row">
+              <span
+                class="role-marker"
+                style="--role-color: #667085"
+                aria-hidden="true"
+              ></span>
+              <div>
+                <h2>บัญชี ภาษา และการเข้าสู่ระบบ</h2>
+                <p>พื้นฐานร่วมก่อนเริ่มใช้งานแต่ละบทบาท</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="notice info searchable">
+            <strong>หนึ่งบัญชีเป็นได้ทั้งผู้ซื้อและผู้ขาย</strong>
+            <p>
+              ระบบมี role ระดับแพลตฟอร์มเพียง <code>USER</code> และ
+              <code>ADMIN</code> เท่านั้น
+              ผู้ขายคือผู้ใช้ทั่วไปที่สมัครร้านและมีร้านสถานะ
+              <code>ACTIVE</code> จึงยังใช้ฟังก์ชันผู้ซื้อด้วยบัญชีเดิมได้
+            </p>
+          </div>
+
+          <div class="guide-list">
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">A1</span>สมัครบัญชีใหม่และยืนยันอีเมล
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/signup</code> →
+                  <code>/th/verify-email</code>
+                </p>
+                <ol class="steps" style="--role-color: #667085">
+                  <li>
+                    เปิดหน้า <strong>สมัครสมาชิก</strong> แล้วกรอกชื่อ อีเมล
+                    และรหัสผ่านอย่างน้อย 8 ตัวอักษร
+                  </li>
+                  <li>กดปุ่มสมัคร ระบบจะสร้างบัญชีและพาไปขั้นตอนยืนยันอีเมล</li>
+                  <li>
+                    ตรวจอีเมลเพื่อรับ OTP แล้วกรอกรหัสในหน้า
+                    <strong>ยืนยันอีเมล</strong>
+                  </li>
+                  <li>
+                    เมื่อยืนยันสำเร็จ ให้เข้าสู่ระบบด้วยอีเมลและรหัสผ่านเดิม
+                  </li>
+                </ol>
+                <div class="notice warning">
+                  <strong>สภาพแวดล้อม Local</strong>
+                  <p>
+                    ค่าเริ่มต้นส่งอีเมลเข้า server log
+                    ไม่ได้ส่งไปยังกล่องจดหมายจริง ผู้ดูแลระบบทดสอบต้องนำ OTP จาก
+                    log มาให้ผู้ใช้
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">A2</span>เข้าสู่ระบบ ออกจากระบบ
+                และกู้รหัสผ่าน
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/login</code>,
+                  <code>/th/forgot-password</code>,
+                  <code>/th/reset-password</code>
+                </p>
+                <ol class="steps" style="--role-color: #667085">
+                  <li>
+                    เปิดหน้า <strong>เข้าสู่ระบบ</strong> กรอกอีเมลและรหัสผ่าน
+                    แล้วกดเข้าสู่ระบบ
+                  </li>
+                  <li>
+                    หากเปิดหน้าที่ต้องล็อกอินมาก่อน
+                    ระบบจะพากลับไปหน้าดังกล่าวหลังเข้าสู่ระบบสำเร็จ
+                  </li>
+                  <li>
+                    หากลืมรหัสผ่าน เลือก <strong>ลืมรหัสผ่าน</strong> กรอกอีเมล
+                    รับ OTP และตั้งรหัสผ่านใหม่
+                  </li>
+                  <li>
+                    เมื่อต้องการออกจากระบบ
+                    ใช้เมนูบัญชีบนแถบด้านบนหรือเมนูด้านข้าง แล้วเลือก
+                    <strong>ออกจากระบบ</strong>
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">A3</span>เลือกภาษาและเข้าใจรูปแบบ URL
+              </summary>
+              <div class="card-body">
+                <ol class="steps" style="--role-color: #667085">
+                  <li>
+                    ใช้ตัวเลือกภาษาบนส่วนหัวของเว็บไซต์เพื่อสลับระหว่างไทยและอังกฤษ
+                  </li>
+                  <li>
+                    หน้าไทยขึ้นต้นด้วย <code>/th</code> เช่น
+                    <code>/th/orders</code>
+                  </li>
+                  <li>
+                    หน้าอังกฤษขึ้นต้นด้วย <code>/en</code> เช่น
+                    <code>/en/orders</code>
+                  </li>
+                  <li>
+                    คู่มือนี้ใช้เส้นทางภาษาไทยทั้งหมด
+                    หากระบบอยู่ภาษาอังกฤษให้เปลี่ยน <code>/th</code> เป็น
+                    <code>/en</code>
+                  </li>
+                </ol>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="guide-section buyer" id="buyer">
+          <div class="section-heading">
+            <div class="section-title-row">
+              <span class="role-marker" aria-hidden="true"></span>
+              <div>
+                <p class="eyebrow">Buyer guide</p>
+                <h2>คู่มือผู้ซื้อ</h2>
+                <p>ตั้งแต่ค้นหาสินค้าจนถึงรีวิวหรือขอคืนสินค้า</p>
+              </div>
+            </div>
+            <span class="status-tag live">ใช้งานจริง</span>
+          </div>
+
+          <div class="flow-line" aria-label="ลำดับการซื้อสินค้า">
+            <span class="flow-step">ค้นหาสินค้า</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">เลือกตัวเลือก</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">รถเข็น</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">Checkout</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">ชำระเงิน</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">ติดตามออเดอร์</span>
+          </div>
+
+          <div class="guide-list">
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">B1</span>ค้นหา กรอง และเปิดดูสินค้า
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th</code>, <code>/th/search</code>,
+                  <code>/th/categories/{categoryId}</code>,
+                  <code>/th/deals</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    เริ่มจากหน้าแรก เลือกหมวดหมู่ ดีล หรือแตะช่องค้นหาด้านบน
+                  </li>
+                  <li>
+                    พิมพ์คำค้นแล้วกดค้นหา
+                    ระบบจะแสดงสินค้าและบันทึกคำค้นล่าสุดไว้ในอุปกรณ์
+                  </li>
+                  <li>
+                    ใช้ <strong>ตัวกรองและเรียงลำดับ</strong> เพื่อเลือกหมวดหมู่
+                    แบรนด์ ช่วงราคา คะแนน สินค้ามีสต็อก ส่งฟรี หรือสินค้าลดราคา
+                  </li>
+                  <li>
+                    เลือกการเรียงตามความเกี่ยวข้อง ราคา ยอดขาย หรือคะแนน
+                    แล้วแตะการ์ดสินค้าเพื่อเปิดรายละเอียด
+                  </li>
+                  <li>
+                    ในหน้าร้านค้า สามารถดูข้อมูลร้าน สินค้าทั้งหมด
+                    และกดติดตามร้านได้
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">B2</span>เลือกตัวเลือกสินค้า
+                เพิ่มรถเข็น และซื้อทันที
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/products/{productId}</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    ตรวจชื่อ ราคา คะแนน รีวิว รายละเอียดร้าน และจำนวนคงเหลือ
+                  </li>
+                  <li>
+                    หากสินค้ามีสี ขนาด หรือตัวเลือกอื่น ให้เลือกให้ครบจนระบบระบุ
+                    variant ที่ต้องการ
+                  </li>
+                  <li>ปรับจำนวนโดยไม่เกินสต็อกที่แสดง</li>
+                  <li>
+                    กดรูปหัวใจเพื่อเพิ่ม Wishlist, กด
+                    <strong>ติดตามร้าน</strong> หรือ
+                    <strong>แชตกับผู้ขาย</strong> ได้เมื่อล็อกอินแล้ว
+                  </li>
+                  <li>
+                    กด <strong>เพิ่มลงรถเข็น</strong> เพื่อซื้อภายหลัง หรือกด
+                    <strong>ซื้อทันที</strong> เพื่อเพิ่มสินค้าแล้วไปหน้ารถเข็น
+                  </li>
+                  <li>
+                    หากต้องการถามรายละเอียด ใช้ส่วนคำถามสินค้า
+                    พิมพ์คำถามแล้วกดส่ง ผู้ขายจะตอบจากหน้าจัดการสินค้า
+                  </li>
+                </ol>
+                <div class="notice info">
+                  <strong>ซื้อทันทีในระบบปัจจุบัน</strong>
+                  <p>
+                    ปุ่มนี้เพิ่มสินค้าลงรถเข็นและเปิดหน้ารถเข็น ยังไม่ข้ามไป
+                    Checkout โดยตรง
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">B3</span
+                >จัดการรถเข็นและเลือกสินค้าที่จะชำระ
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/cart</code></p>
+                <ol class="steps">
+                  <li>
+                    เปิดเมนู
+                    <strong>รถเข็น</strong> สินค้าจะถูกจัดกลุ่มตามร้านค้า
+                  </li>
+                  <li>
+                    เลือก checkbox เฉพาะรายการที่ต้องการซื้อ หรือเลือกทั้งร้าน
+                  </li>
+                  <li>
+                    ใช้ปุ่ม − / + เพื่อแก้จำนวน หรือปุ่มถังขยะเพื่อลบรายการ
+                  </li>
+                  <li>
+                    ตรวจยอดรวมของรายการที่เลือก หากยังไม่เลือกรายการ ปุ่ม
+                    Checkout จะถูกปิด
+                  </li>
+                  <li>
+                    กด <strong>Checkout</strong> เพื่อไปหน้าตรวจสอบคำสั่งซื้อ
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">B4</span>เพิ่มที่อยู่และทำ Checkout
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/account/addresses</code> →
+                  <code>/th/checkout?items=...</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    หากยังไม่มีที่อยู่ ให้เปิด
+                    <strong>โปรไฟล์ → ที่อยู่</strong> กรอกผู้รับ เบอร์โทร
+                    ที่อยู่ เมือง จังหวัด รหัสไปรษณีย์ และประเทศ แล้วบันทึก
+                  </li>
+                  <li>
+                    ตั้งที่อยู่ที่ใช้บ่อยเป็น
+                    <strong>ค่าเริ่มต้น</strong> หรือเลือกที่อยู่อื่นบนหน้า
+                    Checkout
+                  </li>
+                  <li>
+                    ตรวจรายการแยกตามร้าน วิธีส่งมาตรฐาน
+                    และยอดสรุปที่ระบบคำนวณจากข้อมูลฝั่งเซิร์ฟเวอร์
+                  </li>
+                  <li>
+                    หากมีคูปอง ให้กรอกรหัสแล้วกด
+                    <strong>ใช้คูปอง</strong>
+                    ตรวจข้อความว่าถูกใช้หรือถูกปฏิเสธเพราะเหตุใด
+                  </li>
+                  <li>
+                    เลือกช่องทางชำระเงิน จากนั้นกด <strong>สั่งซื้อ</strong>
+                  </li>
+                  <li>
+                    ระบบจะตรวจราคาและสต็อกอีกครั้ง สำรองสต็อก
+                    สร้างออเดอร์สถานะรอชำระ และแสดงลิงก์ไปหน้าชำระเงิน
+                  </li>
+                </ol>
+                <div class="notice danger">
+                  <strong>ข้อจำกัด COD</strong>
+                  <p>
+                    หน้าจอมีตัวเลือกเก็บเงินปลายทาง แต่ backend ปัจจุบันยังสร้าง
+                    payment flow แบบเดียวกัน แนะนำให้ใช้ตัวเลือกบัตร/Payment
+                    Gateway จนกว่า COD จะเชื่อมครบ
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">B5</span>ชำระเงินและตรวจผล
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง:
+                  <code>/th/payment/mock/{paymentId}</code>
+                  หรือผู้ให้บริการภายนอก →
+                  <code>/th/payment/return?orderId=...</code>
+                </p>
+                <ol class="steps">
+                  <li>เปิดลิงก์ชำระเงินจากหน้า Checkout</li>
+                  <li>
+                    ใน Local/โหมดทดสอบ เลือก <strong>ชำระสำเร็จ</strong> หรือ
+                    <strong>ชำระไม่สำเร็จ</strong> บนหน้า Mock Payment
+                  </li>
+                  <li>
+                    ในระบบจริง ให้ดำเนินการบนหน้าผู้ให้บริการชำระเงิน
+                    แล้วกลับมายังหน้า Payment Return
+                  </li>
+                  <li>
+                    รอระบบตรวจ webhook หน้า Return อาจแสดง
+                    <strong>กำลังตรวจสอบ</strong> ชั่วคราว
+                  </li>
+                  <li>
+                    เมื่อสถานะเปลี่ยนเป็นสำเร็จ กด
+                    <strong>ดูคำสั่งซื้อ</strong>
+                    หากล้มเหลวให้ตรวจออเดอร์และลองดำเนินการตามข้อความที่ระบบแสดง
+                  </li>
+                </ol>
+                <div class="notice warning">
+                  <strong>อย่าปิดความหมายของ Pending ว่า “จ่ายสำเร็จ”</strong>
+                  <p>
+                    การกลับจากหน้าชำระเงินไม่ใช่หลักฐานสำเร็จ ระบบเชื่อเฉพาะ
+                    webhook ที่ตรวจลายเซ็นแล้ว
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">B6</span>ดูออเดอร์ ติดตามพัสดุ
+                และแชตกับร้าน
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/orders</code>,
+                  <code>/th/orders/{orderId}</code>,
+                  <code>/th/orders/{orderId}/tracking</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    เปิดเมนู <strong>คำสั่งซื้อ</strong> แล้วกรองตามรอชำระ
+                    ชำระแล้ว จัดส่งแล้ว ส่งสำเร็จ หรือยกเลิก
+                  </li>
+                  <li>
+                    กด <strong>รายละเอียด</strong> เพื่อดูยอด สถานะชำระเงิน
+                    รายการสินค้า และ shipment แยกตามร้าน
+                  </li>
+                  <li>
+                    กด <strong>ติดตามคำสั่งซื้อ</strong> เพื่อดูบริษัทขนส่ง
+                    เลขพัสดุ และ timeline ของแต่ละ shipment
+                  </li>
+                  <li>
+                    กด <strong>แชตกับผู้ขาย</strong> บน shipment ที่ต้องการ
+                    ระบบจะเปิดห้องสนทนาที่ผูกกับออเดอร์นั้น
+                  </li>
+                  <li>
+                    ตรวจการแจ้งเตือนจากเมนูกระดิ่ง และกด
+                    <strong>อ่านทั้งหมด</strong> เมื่อต้องการล้างสถานะยังไม่อ่าน
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">B7</span>รีวิวสินค้าที่ได้รับแล้ว
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/orders/{orderId}/review</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    เปิดรายละเอียดออเดอร์แล้วกด <strong>รีวิวสินค้า</strong>
+                  </li>
+                  <li>
+                    เลือกสินค้าที่มีสถานะส่งถึงแล้ว รายการที่ยังไม่ Delivered
+                    จะไม่แสดงเป็นตัวเลือก
+                  </li>
+                  <li>เลือกคะแนน 1–5 ดาวและกรอกความคิดเห็น</li>
+                  <li>
+                    กด
+                    <strong>ส่งรีวิว</strong>
+                    รีวิวจะเข้าสู่สถานะตรวจสอบก่อนเผยแพร่ตามกฎของระบบ
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">B8</span>ขอคืนสินค้า/คืนเงิน
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/orders/{orderId}/returns/new</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    เปิดรายละเอียดออเดอร์แล้วกด
+                    <strong>คืนสินค้า/คืนเงิน</strong>
+                  </li>
+                  <li>
+                    เลือกสินค้าที่ส่งถึงแล้ว
+                    ระบบปัจจุบันสร้างคำขอครั้งละหนึ่งรายการ
+                  </li>
+                  <li>
+                    เลือกเหตุผล เช่น สินค้าเสียหาย สินค้าผิด ชิ้นส่วนไม่ครบ
+                    หรือปัญหาคุณภาพ
+                  </li>
+                  <li>
+                    กรอกรายละเอียด และหากมีหลักฐานให้ใส่ URL
+                    รูปภาพหนึ่งรายการต่อบรรทัด
+                  </li>
+                  <li>
+                    กด <strong>ส่งคำขอ</strong> แล้วรอผู้ขายหรือ Admin
+                    ตรวจสอบสถานะ
+                  </li>
+                </ol>
+                <div class="notice info">
+                  <strong>หลักฐานรูปภาพ</strong>
+                  <p>
+                    หน้าปัจจุบันรับ URL รูปภาพ ไม่ได้อัปโหลดไฟล์จากเครื่องโดยตรง
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">B9</span>จัดการโปรไฟล์ ที่อยู่
+                Wishlist คูปอง และร้านที่ติดตาม
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/profile</code>, <code>/th/wishlist</code>,
+                  <code>/th/vouchers</code>, <code>/th/followed-shops</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    เปิด <strong>โปรไฟล์</strong> เพื่อแก้ชื่อ ตรวจอีเมล
+                    เชื่อมและยืนยันเบอร์โทร หรือเปลี่ยนรหัสผ่าน
+                  </li>
+                  <li>
+                    เปิด <strong>Wishlist</strong> เพื่อดูสินค้าที่บันทึก
+                    เพิ่มลงรถเข็น หรือลบออก
+                  </li>
+                  <li>
+                    เปิด <strong>คูปอง</strong> เพื่อดูโค้ดที่ใช้ได้
+                    แล้วกดใช้ในรถเข็น
+                  </li>
+                  <li>
+                    เปิด
+                    <strong>ร้านที่ติดตาม</strong>
+                    เพื่อดูสินค้าใหม่ของร้านและกลับเข้าหน้าร้าน
+                  </li>
+                  <li>
+                    เปิด <strong>แชต</strong> เพื่อดูห้องสนทนา อ่านข้อความ
+                    และส่งข้อความใหม่
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">B10</span>สร้างลิงก์ Affiliate/Creator
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/affiliates</code> หรือ
+                  <code>/th/creator</code>
+                </p>
+                <ol class="steps">
+                  <li>เปิดเมนู Affiliate จากหน้าโปรไฟล์</li>
+                  <li>เลือกเป้าหมายของลิงก์ เช่น สินค้าหรือร้านค้า</li>
+                  <li>ใส่รหัสที่ต้องการ หรือปล่อยว่างให้ระบบสร้างรหัส</li>
+                  <li>
+                    กดสร้างลิงก์ แล้วใช้ปุ่ม
+                    <strong>คัดลอก</strong> เพื่อนำลิงก์ไปเผยแพร่
+                  </li>
+                  <li>ดูจำนวนคลิก conversion และ commission จากการ์ดสถิติ</li>
+                </ol>
+              </div>
+            </details>
+          </div>
+
+          <h3>สถานะที่ผู้ซื้อพบบ่อย</h3>
+          <div class="status-table-wrap searchable">
+            <table>
+              <thead>
+                <tr>
+                  <th>สถานะ</th>
+                  <th>ความหมาย</th>
+                  <th>สิ่งที่ควรทำ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>PENDING_PAYMENT</code></td>
+                  <td>สร้างออเดอร์แล้วแต่ยังไม่ยืนยันการชำระ</td>
+                  <td>ไปหน้าชำระเงินและรอผล webhook</td>
+                </tr>
+                <tr>
+                  <td><code>PAID</code></td>
+                  <td>ชำระเงินสำเร็จ</td>
+                  <td>รอร้านแพ็กสินค้า</td>
+                </tr>
+                <tr>
+                  <td><code>PENDING_PACK</code> / <code>PACKED</code></td>
+                  <td>ร้านกำลังเตรียมสินค้า</td>
+                  <td>ติดตามจากรายละเอียดออเดอร์</td>
+                </tr>
+                <tr>
+                  <td><code>SHIPPED</code></td>
+                  <td>ร้านกรอกบริษัทขนส่งและเลขพัสดุแล้ว</td>
+                  <td>เปิดหน้าติดตาม</td>
+                </tr>
+                <tr>
+                  <td><code>DELIVERED</code></td>
+                  <td>ส่งถึงแล้ว</td>
+                  <td>รีวิวหรือขอคืนสินค้าหากมีปัญหา</td>
+                </tr>
+                <tr>
+                  <td><code>REQUESTED</code></td>
+                  <td>ส่งคำขอคืนสินค้าแล้ว</td>
+                  <td>รอผู้ขาย/Admin พิจารณา</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <a class="back-top" href="#top">กลับด้านบน ↑</a>
+        </section>
+
+        <section class="guide-section seller" id="seller">
+          <div class="section-heading">
+            <div class="section-title-row">
+              <span class="role-marker" aria-hidden="true"></span>
+              <div>
+                <p class="eyebrow" style="color: var(--green)">Seller guide</p>
+                <h2>คู่มือผู้ขาย</h2>
+                <p>สมัครร้าน ผ่านการอนุมัติ และจัดการงานขายประจำวัน</p>
+              </div>
+            </div>
+            <span class="status-tag live">ต้องมีร้าน ACTIVE</span>
+          </div>
+
+          <div class="notice success searchable">
+            <strong>สิทธิ์ Seller ไม่ได้มาจากการเปลี่ยน role</strong>
+            <p>
+              ต้องเข้าสู่ระบบด้วยบัญชี USER สมัครผู้ขาย และรอ Admin
+              อนุมัติจนร้านเป็น
+              <code>ACTIVE</code> เมนูปฏิบัติการของผู้ขายจึงจะใช้งานได้
+            </p>
+          </div>
+
+          <div class="flow-line" aria-label="ลำดับการเริ่มขาย">
+            <span class="flow-step">สมัครผู้ขาย</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">อัปโหลด KYC</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">Admin อนุมัติ</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">สร้างสินค้า</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">ตรวจสต็อก</span
+            ><span class="flow-arrow">→</span>
+            <span class="flow-step">แพ็กและส่ง</span>
+          </div>
+
+          <div class="guide-list">
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">S1</span>สมัครผู้ขายแบบ 4 ขั้นตอน
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/seller/register/account</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    <strong>สร้างบัญชีผู้ขาย:</strong>
+                    กรอกชื่อจริง/ชื่อนิติบุคคล อีเมล และเบอร์โทรติดต่อ
+                  </li>
+                  <li>
+                    <strong>ข้อมูลร้าน:</strong> กรอกชื่อร้าน slug
+                    และเลือกบุคคลธรรมดาหรือนิติบุคคล
+                    หากเป็นบริษัทต้องกรอกเลขทะเบียนและที่อยู่จดทะเบียน
+                  </li>
+                  <li>
+                    <strong>KYC:</strong> กรอกเลขประจำตัว/เลขภาษีและอัปโหลด PDF,
+                    JPG หรือ PNG ตามประเภทผู้ขาย
+                    บุคคลธรรมดาใช้เอกสารยืนยันตัวตนและยืนยันใบหน้า;
+                    บริษัทเพิ่มหนังสือรับรองบริษัท
+                  </li>
+                  <li>
+                    <strong>ยืนยันข้อมูล:</strong> ตรวจสรุป ยอมรับเงื่อนไข
+                    แล้วกด <strong>Submit for review</strong>
+                  </li>
+                  <li>
+                    ระบบพาไปหน้า
+                    <strong>สถานะคำขอผู้ขาย</strong> และล็อกการแก้ไขระหว่างสถานะ
+                    <code>SUBMITTED</code>
+                  </li>
+                </ol>
+                <div class="notice warning">
+                  <strong>คำขอถูกปฏิเสธ</strong>
+                  <p>
+                    เปิด <code>/th/seller/status</code> อ่านเหตุผล กดแก้ไข
+                    อัปเดตข้อมูลหรือเอกสาร แล้วส่งคำขอใหม่
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">S2</span>เลือกหน้าร้านและใช้ Dashboard
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/seller</code></p>
+                <ol class="steps">
+                  <li>
+                    หลังร้าน Active เปิดหน้า Seller Dashboard
+                    จากเมนูบัญชีผู้ซื้อหรือเข้าเส้นทาง Seller
+                  </li>
+                  <li>
+                    หากเป็นเจ้าของหลายร้าน ใช้ตัวเลือก
+                    <strong>ร้านที่ใช้งาน</strong> บน sidebar เพื่อสลับร้าน
+                    ข้อมูลทุกหน้าจะเปลี่ยนตามร้านที่เลือก
+                  </li>
+                  <li>
+                    ตรวจ KPI, งานจัดส่งค้าง, สินค้าใกล้หมด, รีวิวล่าสุด
+                    และข้อมูลภาพรวมร้าน
+                  </li>
+                  <li>
+                    ตั้ง <strong>Vacation mode</strong> หรือเปิด/ปิด Chat
+                    ได้จากส่วนตั้งค่าร้าน
+                  </li>
+                  <li>
+                    แก้คำอธิบายร้าน นโยบายการจัดส่ง
+                    และนโยบายคืนสินค้าทั้งภาษาไทย/อังกฤษ แล้วบันทึก
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">S3</span>สร้างสินค้า ตัวเลือก รูปภาพ
+                และส่งตรวจ
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/seller/products</code> →
+                  <code>/th/seller/products/new</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    เปิดเมนู <strong>สินค้า</strong> แล้วกดสร้างสินค้าใหม่
+                  </li>
+                  <li>
+                    กรอกชื่อ slug คำอธิบาย หมวดหมู่ แบรนด์ สภาพสินค้า แหล่งผลิต
+                    highlights และสเปกที่หมวดหมู่กำหนด
+                  </li>
+                  <li>
+                    บันทึกเป็น <code>DRAFT</code> ก่อน จากนั้นอัปโหลดรูป/วิดีโอ
+                    จัดลำดับรูป และเลือกรูปหลัก
+                  </li>
+                  <li>
+                    เพิ่มชื่อตัวเลือกและค่าตัวเลือกได้สูงสุด 2 กลุ่ม เช่น
+                    สีและขนาด แล้วสร้างแถว variant จากชุดตัวเลือก
+                  </li>
+                  <li>
+                    กรอก SKU ราคา และสถานะของแต่ละ variant
+                    ตรวจว่าไม่มีชุดตัวเลือกซ้ำ
+                  </li>
+                  <li>
+                    ตรวจรายการ Readiness ให้ผ่าน: หมวดหมู่ สเปกที่จำเป็น รูปภาพ
+                    และ variant ที่พร้อมขาย
+                  </li>
+                  <li>
+                    กด <strong>Submit for review</strong> สินค้าจะเป็น
+                    <code>PENDING_REVIEW</code> รอ Admin อนุมัติ
+                  </li>
+                  <li>
+                    หากถูก Reject ให้อ่านเหตุผล แก้ข้อมูล แล้วส่งตรวจใหม่;
+                    หากไม่ขายแล้วให้ Archive แทนการลบประวัติ
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">S4</span>ตอบคำถามสินค้าและดู Product
+                Analytics
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/seller/products/{productId}</code>,
+                  <code>/th/seller/analytics/products</code>
+                </p>
+                <ol class="steps">
+                  <li>เปิดรายละเอียดสินค้าเพื่อดูคำถามจากผู้ซื้อ</li>
+                  <li>พิมพ์คำตอบและกดส่ง คำตอบจะปรากฏในหน้ารายละเอียดสินค้า</li>
+                  <li>
+                    เปิดเมนู
+                    <strong>Product Analytics</strong>
+                    เพื่อดูข้อมูลการมองเห็นและผลการทำงานของสินค้า
+                  </li>
+                  <li>
+                    ใช้ข้อมูลร่วมกับยอดขายและสต็อกในการปรับราคา เนื้อหา
+                    และโปรโมชัน
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">S5</span>ปรับสต็อกและจุดสั่งซื้อซ้ำ
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/seller/inventory</code></p>
+                <ol class="steps">
+                  <li>ค้นหาสินค้าหรือ variant ที่ต้องการ</li>
+                  <li>ตรวจจำนวนคงเหลือ จำนวนที่ถูกจอง และจำนวนพร้อมขาย</li>
+                  <li>
+                    กรอก <strong>Quantity on hand</strong> และ
+                    <strong>Reorder level</strong> ด้วยจำนวนตั้งแต่ 0 ขึ้นไป
+                  </li>
+                  <li>
+                    กด
+                    <strong>บันทึก</strong>
+                    ระบบจะตรวจสิทธิ์ว่ารายการเป็นของร้านที่เลือก
+                  </li>
+                  <li>
+                    หากเกิด conflict ให้โหลดข้อมูลใหม่ก่อนแก้อีกครั้ง
+                    เพราะสต็อกอาจถูกจองจาก Checkout ระหว่างที่เปิดหน้า
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">S6</span>แพ็ก ส่ง และปิดงานจัดส่ง
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/seller/orders</code></p>
+                <ol class="steps">
+                  <li>
+                    เปิดเมนู <strong>ออเดอร์</strong> ค้นหาจากเลขออเดอร์
+                    ชื่อลูกค้า หรือชื่อสินค้า และกรองสถานะ
+                  </li>
+                  <li>
+                    รายการ <code>PENDING_PACK</code>: ตรวจที่อยู่และสินค้า
+                    แล้วกด <strong>Pack</strong>
+                  </li>
+                  <li>
+                    รายการ <code>PACKED</code>: กรอกบริษัทขนส่งและเลขพัสดุ
+                    แล้วกด <strong>Ship</strong>
+                  </li>
+                  <li>
+                    รายการ <code>SHIPPED</code>: เมื่อตรวจว่าขนส่งส่งถึงแล้ว กด
+                    <strong>Deliver</strong>
+                  </li>
+                  <li>Buyer จะเห็นสถานะและเลขพัสดุในหน้าติดตามของตน</li>
+                </ol>
+                <div class="notice info">
+                  <strong>ขั้นตอนขนส่งเป็น Manual</strong>
+                  <p>
+                    ผู้ขายเป็นผู้กรอก tracking และกด Delivered เอง
+                    ระบบยังไม่ได้ดึงสถานะจาก carrier API อัตโนมัติ
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">S7</span
+                >อนุมัติหรือปฏิเสธคำขอคืนสินค้า
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/seller/returns</code></p>
+                <ol class="steps">
+                  <li>
+                    เปิดเมนู <strong>คืนสินค้า</strong> ค้นหาและกรองตามสถานะ
+                  </li>
+                  <li>ตรวจเลขออเดอร์ ผู้ซื้อ รายการสินค้า เหตุผล และหลักฐาน</li>
+                  <li>
+                    เมื่อสถานะเป็น <code>REQUESTED</code> กด
+                    <strong>Approve</strong> หากยอมรับ หรือ
+                    <strong>Reject</strong> หากไม่เข้าเงื่อนไข
+                  </li>
+                  <li>
+                    การคืนเงินจริงเป็นกระบวนการแยกและต้องให้ Admin
+                    ตรวจการชำระจากภายนอก
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">S8</span>สร้างและจัดการคูปองร้าน
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/seller/promotions</code></p>
+                <ol class="steps">
+                  <li>
+                    กรอกโค้ด ชื่อคูปอง และเลือกส่วนลดแบบจำนวนเงินหรือเปอร์เซ็นต์
+                  </li>
+                  <li>กรอกมูลค่าส่วนลดแล้วกด <strong>สร้าง</strong></li>
+                  <li>ค้นหาคูปองเดิมและกรอง Active/Inactive</li>
+                  <li>
+                    กด Disable/Enable เพื่อเปลี่ยนการใช้งาน หรือ Delete
+                    เพื่อลบคูปอง
+                  </li>
+                  <li>
+                    ผู้ซื้อใช้โค้ดบนหน้า Checkout
+                    ระบบจะตรวจสถานะและเงื่อนไขอีกครั้ง
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">S9</span>ดูการเงินและขอ Payout
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/seller/finance</code></p>
+                <ol class="steps">
+                  <li>
+                    ตรวจยอดคงเหลือ ยอดรอเคลียร์ ยอดถอนได้ และรายการ ledger
+                  </li>
+                  <li>
+                    กรอกจำนวนเงินในส่วน
+                    <strong>Request payout</strong> โดยไม่เกินยอดถอนได้
+                  </li>
+                  <li>
+                    กดส่งคำขอ ยอดจะถูกสำรองและคำขอเป็น <code>requested</code>
+                  </li>
+                  <li>
+                    ติดตามประวัติ: <code>approved</code>,
+                    <code>rejected</code> หรือ <code>paid</code>
+                  </li>
+                </ol>
+                <div class="notice warning">
+                  <strong>Payout เป็น Manual</strong>
+                  <p>
+                    สถานะ Paid หมายถึง Admin ยืนยันว่าดำเนินการโอนภายนอกแล้ว
+                    ระบบยังไม่มี Bank API
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">S10</span>แชตและติดตามการแจ้งเตือน
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/seller/chat</code>,
+                  <code>/th/seller/notifications</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    เปิดเมนู <strong>แชต</strong> เลือกห้องจากชื่อผู้ซื้อ ร้าน
+                    สินค้า หรือออเดอร์ที่ผูกไว้
+                  </li>
+                  <li>
+                    อ่านประวัติ พิมพ์ข้อความ แล้วกดส่ง
+                    ระบบทำเครื่องหมายห้องว่าอ่านแล้ว
+                  </li>
+                  <li>
+                    เปิด <strong>การแจ้งเตือน</strong> เพื่อตรวจออเดอร์ชำระแล้ว
+                    Payout สำเร็จ/ถูกปฏิเสธ และเหตุการณ์ร้าน
+                  </li>
+                  <li>
+                    หากเปิด Web Push ไว้และ browser รองรับ
+                    สามารถอนุญาตการแจ้งเตือนจาก browser ได้
+                  </li>
+                </ol>
+              </div>
+            </details>
+          </div>
+
+          <h3>สถานะสำคัญของผู้ขาย</h3>
+          <div class="status-table-wrap searchable">
+            <table>
+              <thead>
+                <tr>
+                  <th>รายการ</th>
+                  <th>สถานะ</th>
+                  <th>การทำงานถัดไป</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>คำขอผู้ขาย</td>
+                  <td>
+                    <code>DRAFT</code> / <code>SUBMITTED</code> /
+                    <code>APPROVED</code> / <code>REJECTED</code>
+                  </td>
+                  <td>กรอกต่อ, รอตรวจ, เริ่มขาย หรือแก้แล้วส่งใหม่</td>
+                </tr>
+                <tr>
+                  <td>สินค้า</td>
+                  <td>
+                    <code>DRAFT</code> / <code>PENDING_REVIEW</code> /
+                    <code>ACTIVE</code> / <code>REJECTED</code> /
+                    <code>SUSPENDED</code> / <code>ARCHIVED</code>
+                  </td>
+                  <td>เตรียมข้อมูล, รอตรวจ, เปิดขาย, แก้ไข หรือหยุดขาย</td>
+                </tr>
+                <tr>
+                  <td>Shipment</td>
+                  <td>
+                    <code>PENDING_PACK</code> → <code>PACKED</code> →
+                    <code>SHIPPED</code> → <code>DELIVERED</code>
+                  </td>
+                  <td>กดปุ่มตามลำดับเท่านั้น</td>
+                </tr>
+                <tr>
+                  <td>Payout</td>
+                  <td>
+                    <code>requested</code> / <code>approved</code> /
+                    <code>rejected</code> / <code>paid</code>
+                  </td>
+                  <td>รอ Admin ตรวจและยืนยันการโอนภายนอก</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <a class="back-top" href="#top">กลับด้านบน ↑</a>
+        </section>
+
+        <section class="guide-section admin" id="admin">
+          <div class="section-heading">
+            <div class="section-title-row">
+              <span class="role-marker" aria-hidden="true"></span>
+              <div>
+                <p class="eyebrow" style="color: var(--navy)">Admin guide</p>
+                <h2>คู่มือผู้ดูแลระบบ</h2>
+                <p>ดูแลผู้ใช้ ร้าน สินค้า การเงิน เนื้อหา และความเสี่ยง</p>
+              </div>
+            </div>
+            <span class="status-tag live">ต้องมี role ADMIN</span>
+          </div>
+
+          <div class="notice danger searchable">
+            <strong>Admin ไม่ใช่บัญชีซื้อขาย</strong>
+            <p>
+              บัญชี Admin ใช้ back office เท่านั้น ระบบบล็อก Cart และ Checkout
+              สำหรับ role นี้ งานเปลี่ยนสถานะสำคัญควรตรวจหลักฐานและ audit log
+              ทุกครั้ง
+            </p>
+          </div>
+
+          <div class="guide-list">
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">M1</span>เข้าสู่ Admin Dashboard
+                และอ่านงานค้าง
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/admin</code> หรือ
+                  <code>/th/admin/dashboard</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    เข้าสู่ระบบด้วยบัญชี role <code>ADMIN</code> หากไม่มีสิทธิ์
+                    ระบบจะไม่แสดงหน้า Admin
+                  </li>
+                  <li>
+                    ตรวจการ์ด KPI และ exception เช่นร้านรออนุมัติ สินค้ารอตรวจ
+                    คืนสินค้า และ Payout
+                  </li>
+                  <li>
+                    เปิดงานจากเมนู sidebar ตามประเภท ไม่ควรตัดสินจากยอดรวมบน
+                    Dashboard เพียงอย่างเดียว
+                  </li>
+                  <li>
+                    ใช้เมนูบัญชีด้านล่างเพื่อดู Profile, Billing/Payouts,
+                    Settings หรือออกจากระบบ
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">M2</span>ตรวจ KYC และอนุมัติคำขอผู้ขาย
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/admin/shops</code></p>
+                <ol class="steps">
+                  <li>
+                    เปิดเมนู <strong>ร้านค้า</strong> แล้วดูส่วน Seller
+                    Applications
+                  </li>
+                  <li>
+                    ขยายคำขอเพื่อตรวจข้อมูลผู้สมัคร ร้าน ประเภทธุรกิจ
+                    บัญชีรับเงิน ที่อยู่รับสินค้า และเอกสาร
+                  </li>
+                  <li>
+                    ตรวจเอกสารทีละรายการ แล้วกด
+                    <strong>Approve document</strong> หรือ
+                    <strong>Reject document</strong> พร้อมเหตุผล
+                  </li>
+                  <li>
+                    เมื่อเอกสารบังคับทุกชิ้นถูกตัดสินแล้ว กด
+                    <strong>Approve application</strong>
+                    เพื่อสร้าง/เปิดร้านและปลดล็อก Seller
+                  </li>
+                  <li>
+                    หากข้อมูลไม่ผ่าน กด Reject application
+                    กรอกเหตุผลที่ผู้สมัครแก้ไขได้ แล้วส่งกลับ
+                  </li>
+                </ol>
+                <div class="notice info">
+                  <strong>ระบบป้องกันการอนุมัติเร็วเกินไป</strong>
+                  <p>
+                    หากเอกสารบังคับยังมีสถานะ Pending ปุ่มอนุมัติคำขอจะไม่ผ่าน
+                    และระบบจะแสดงประเภทเอกสารที่ยังไม่ตัดสิน
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">M3</span>จัดการร้านค้า
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/admin/shops</code></p>
+                <ol class="steps">
+                  <li>ค้นหาร้านจากชื่อ slug หรือเจ้าของ และกรองตามสถานะ</li>
+                  <li>ใช้ Edit เพื่อแก้ข้อมูลที่ Admin ดูแลได้</li>
+                  <li>
+                    ใช้ Update status เพื่อเปลี่ยนเป็น Active, Suspended,
+                    Rejected, Banned หรือ Vacation ตามเหตุผล
+                  </li>
+                  <li>
+                    ใช้ Delete เฉพาะกรณีที่ตรวจผลกระทบกับสินค้า ออเดอร์
+                    และข้อมูลการเงินแล้ว
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">M4</span>ตรวจและอนุมัติสินค้า
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/admin/products</code>,
+                  <code>/th/admin/products/{productId}</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    เปิดเมนู <strong>สินค้า</strong> ค่าเริ่มต้นแสดงคิว
+                    <code>PENDING_REVIEW</code>
+                  </li>
+                  <li>
+                    เปิด Detail เพื่อตรวจชื่อ รายละเอียด รูป หมวดหมู่ ราคา
+                    variant สต็อก สเปก และ readiness
+                  </li>
+                  <li>หากผ่าน กด <strong>Approve</strong> สินค้าจะเปิดขาย</li>
+                  <li>
+                    หากต้องแก้ กด <strong>Reject</strong> และกรอกเหตุผลที่ชัดเจน
+                    ผู้ขายจะเห็น note นี้
+                  </li>
+                  <li>
+                    หากสินค้าที่เปิดอยู่ฝ่าฝืนนโยบาย กด
+                    <strong>Suspend</strong> พร้อมเหตุผล; เมื่อแก้แล้วใช้
+                    <strong>Restore</strong>
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">M5</span>จัดการผู้ใช้และสิทธิ์
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/admin/users</code></p>
+                <ol class="steps">
+                  <li>ค้นหาและกรองผู้ใช้ตาม role หรือสถานะ</li>
+                  <li>
+                    กดสร้างผู้ใช้ใหม่ กรอกชื่อ อีเมล รหัสผ่าน และเลือก
+                    <code>USER</code> หรือ <code>ADMIN</code>
+                  </li>
+                  <li>กด Edit เพื่อแก้ชื่อ อีเมล หรือ role</li>
+                  <li>
+                    กด Delete แล้วตรวจอีเมลในกล่องยืนยันก่อนลบ ระบบไม่ให้ลบบัญชี
+                    Admin ที่กำลังใช้งานเอง
+                  </li>
+                  <li>
+                    การเป็น Seller ต้องมาจากร้าน Active ห้ามเปลี่ยน role เป็น
+                    Seller เพราะไม่มี role ดังกล่าว
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">M6</span>ติดตามออเดอร์และ Payment
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/admin/orders</code></p>
+                <ol class="steps">
+                  <li>
+                    ค้นหาจากเลขออเดอร์หรือข้อมูลสินค้า
+                    และกรองตามสถานะออเดอร์หรือร้าน
+                  </li>
+                  <li>
+                    ตรวจสถานะออเดอร์ สถานะชำระ ยอดรวม จำนวนสินค้า shipment และ
+                    refund
+                  </li>
+                  <li>
+                    ใช้หน้านี้สำหรับ monitoring ปัจจุบันไม่มีปุ่มให้ Admin
+                    บังคับ Payment สำเร็จ
+                  </li>
+                  <li>
+                    หากพบ Payment ค้าง ให้ตรวจ provider/webhook และ audit
+                    ก่อนดำเนินการด้าน Refund หรือ Fulfillment
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">M7</span>จัดการ Return และ Refund
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/admin/returns</code>,
+                  <code>/th/admin/refunds</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    ที่หน้า Returns ค้นหาคำขอ ตรวจผู้ซื้อ ออเดอร์ รายการ เหตุผล
+                    และสถานะ
+                  </li>
+                  <li>
+                    ใช้ Update status เพื่อสะท้อนผลการตรวจ เช่น Approved,
+                    Rejected, Received หรือ Completed
+                  </li>
+                  <li>
+                    ที่หน้า Refunds ตรวจเลขออเดอร์ provider จำนวนเงิน และสถานะ
+                  </li>
+                  <li>
+                    เปลี่ยน Refund เป็น Processing ก่อน และเปลี่ยนเป็น Success
+                    เฉพาะหลังผู้ให้บริการยืนยันว่าเงินคืนสำเร็จ
+                  </li>
+                  <li>
+                    หากผู้ให้บริการปฏิเสธหรือผิดพลาด ให้เปลี่ยนเป็น Failed
+                    และบันทึกหลักฐานภายนอกตาม runbook
+                  </li>
+                </ol>
+                <div class="notice warning">
+                  <strong>Refund เป็น Manual</strong>
+                  <p>
+                    ปุ่มใน Admin เปลี่ยนสถานะฐานข้อมูล ไม่ได้เรียก Payment
+                    Provider เพื่อคืนเงินโดยอัตโนมัติ
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable" open>
+              <summary>
+                <span class="step-number">M8</span>อนุมัติ ปฏิเสธ และยืนยัน
+                Payout
+              </summary>
+              <div class="card-body">
+                <p class="route">เส้นทาง: <code>/th/admin/payouts</code></p>
+                <ol class="steps">
+                  <li>
+                    กรองรายการตาม requested, approved, rejected, paid หรือ
+                    cancelled
+                  </li>
+                  <li>ตรวจร้าน จำนวนเงิน สกุลเงิน ยอดใน wallet และคำขอซ้ำ</li>
+                  <li>
+                    รายการ <code>requested</code>: กด Approve เมื่อตรวจผ่าน หรือ
+                    Reject เมื่อต้องคืนยอดที่สำรอง
+                  </li>
+                  <li>
+                    หลังดำเนินการโอนเงินนอกระบบและตรวจผลแล้ว รายการ
+                    <code>approved</code> จึงกด Paid
+                  </li>
+                  <li>ตรวจ Audit Logs เพื่อยืนยันผู้อนุมัติและผู้กดจ่าย</li>
+                </ol>
+                <div class="notice danger">
+                  <strong>ควรใช้การอนุมัติสองคน</strong>
+                  <p>
+                    ระบบยังไม่บังคับ Bank API หรือ two-person approval ใน UI
+                    ผู้ปฏิบัติงานต้องทำตามกระบวนการองค์กร
+                  </p>
+                </div>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">M9</span>Moderate รีวิว รายงาน คำถาม
+                และคำตอบ
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/admin/content-moderation</code>
+                </p>
+                <ol class="steps">
+                  <li>เลือกคิว Reviews, Reports, Questions หรือ Answers</li>
+                  <li>
+                    กรองสถานะและตรวจเนื้อหา เจ้าของ รายการที่เกี่ยวข้อง
+                    และเหตุผลการรายงาน
+                  </li>
+                  <li>เลือกสถานะใหม่จากปุ่ม Action</li>
+                  <li>
+                    เมื่อตั้ง Review เป็น Rejected/Hidden, Report เป็น Resolved
+                    dismissed หรือ Question/Answer เป็น Hidden ให้กรอก note
+                    ก่อนยืนยัน
+                  </li>
+                  <li>
+                    แจ้งเหตุผลที่กระชับและอ้างอิงนโยบาย เพื่อให้ Audit
+                    ตรวจย้อนหลังได้
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">M10</span>จัดการ Catalog, หมวดหมู่,
+                แบรนด์ และสเปก
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/admin/catalog</code>,
+                  <code>/th/admin/categories</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    หน้า Catalog ใช้ดูรายการสินค้าและแก้รายละเอียดรายการที่เลือก
+                  </li>
+                  <li>ส่วน Brands ใช้สร้าง แก้ไข เปิด หรือปิดแบรนด์</li>
+                  <li>
+                    หน้า Categories ใช้สร้าง/แก้หมวดหมู่ กำหนด slug ลำดับ
+                    และสถานะ Active
+                  </li>
+                  <li>
+                    เลือกหมวดหมู่แล้วเพิ่ม Category Specs ระบุชื่อ ชนิดข้อมูล
+                    ตัวเลือก และบังคับกรอกหรือไม่
+                  </li>
+                  <li>
+                    ปิดหมวดหมู่/สเปกด้วย Deactivate แทนการลบ หากมีสินค้าผูกอยู่
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">M11</span>ดูแล Affiliate, Fraud และ
+                Audit Logs
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/admin/affiliates</code>,
+                  <code>/th/admin/fraud</code>,
+                  <code>/th/admin/audit-logs</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    Affiliate: ค้นหาผู้สร้างลิงก์ ตรวจโค้ด/สถิติ และเปลี่ยนสถานะ
+                    Active หรือ Disabled
+                  </li>
+                  <li>
+                    Fraud: กรองตามสถานะและระดับความเสี่ยง ตรวจ risk score
+                    และเหตุผล
+                  </li>
+                  <li>
+                    กด Review เพื่อรับเคส จากนั้นเลือก Resolve เมื่อจัดการแล้ว
+                    หรือ Dismiss เมื่อไม่ใช่ความเสี่ยงจริง
+                  </li>
+                  <li>
+                    Audit Logs: ค้นและกรองเหตุการณ์เพื่อดู actor, action, entity
+                    และเวลาที่เกิด
+                  </li>
+                  <li>
+                    ใช้ Audit Logs ตรวจการเปลี่ยน Seller application, Product,
+                    Refund และ Payout โดยเฉพาะ
+                  </li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">M12</span>อ่าน Reports, Profile และ
+                Settings
+              </summary>
+              <div class="card-body">
+                <p class="route">
+                  เส้นทาง: <code>/th/admin/reports</code>,
+                  <code>/th/admin/profile</code>,
+                  <code>/th/admin/settings</code>
+                </p>
+                <ol class="steps">
+                  <li>
+                    Reports แสดงยอดขายที่ชำระแล้ว มูลค่าออเดอร์เฉลี่ย Refund
+                    exposure Payout Commission และจำนวนสินค้า
+                  </li>
+                  <li>
+                    Profile แสดงชื่อ อีเมล role รหัสผู้ใช้ และข้อมูล session
+                    แบบอ่านอย่างเดียว
+                  </li>
+                  <li>
+                    Settings อ่านและแก้ไขค่ากำหนดที่ไม่ใช่ข้อมูลลับผ่าน
+                    SystemSetting API ส่วน credential ยังจัดการผ่าน deployment secrets
+                  </li>
+                  <li>
+                    ใช้เมนูเปลี่ยนธีมบน sidebar หากต้องการสลับรูปแบบการแสดงผล
+                    Admin
+                  </li>
+                </ol>
+                <div class="notice info">
+                  <strong>สิ่งที่ยังไม่มีใน UI</strong>
+                  <p>
+                    Reports ยังไม่มีปุ่ม export/date range และอัตรา commission
+                    ยังจัดการผ่าน deployment configuration โดยหน้า
+                    <code>/admin/commissions</code> ใช้ตรวจสอบ อนุมัติ
+                    หรือยกเลิกรายการจริงพร้อมบันทึกเหตุผล
+                  </p>
+                </div>
+              </div>
+            </details>
+          </div>
+          <a class="back-top" href="#top">กลับด้านบน ↑</a>
+        </section>
+
+        <section class="guide-section" id="mock-manual">
+          <div class="section-heading">
+            <div class="section-title-row">
+              <span
+                class="role-marker"
+                style="--role-color: var(--amber)"
+                aria-hidden="true"
+              ></span>
+              <div>
+                <h2>สรุป Mock, Dev substitute และงาน Manual</h2>
+                <p>
+                  ส่วนที่ต้องระวังเมื่อนำคู่มือไปใช้กับ Local, Staging หรือ
+                  Production
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="two-column">
+            <article class="plain-card searchable">
+              <span class="status-tag mock">Mock / Dev</span>
+              <h3>Payment Gateway</h3>
+              <p>
+                Local ใช้หน้า Mock Payment ให้ผู้ซื้อกดจำลองสำเร็จหรือล้มเหลว
+                Production บังคับปิด mock และต้องใช้ gateway bridge ภายนอก
+              </p>
+            </article>
+            <article class="plain-card searchable">
+              <span class="status-tag mock">Mock / Dev</span>
+              <h3>Phone OTP</h3>
+              <p>
+                ค่าเริ่มต้น Local ใช้ provider แบบ deterministic และไม่ส่ง SMS
+                จริง Production ต้องใช้ HTTP SMS provider หรือปิดฟังก์ชัน
+              </p>
+            </article>
+            <article class="plain-card searchable">
+              <span class="status-tag mock">Mock / Dev</span>
+              <h3>Email</h3>
+              <p>
+                Local ส่งเนื้อหาอีเมลเข้า server log; การส่งจริงใช้ Resend
+                เมื่อกำหนด provider และ credentials
+              </p>
+            </article>
+            <article class="plain-card searchable">
+              <span class="status-tag mock">Demo data</span>
+              <h3>Seeded accounts and commerce</h3>
+              <p>
+                บัญชี สินค้า ออเดอร์ Payment Return Chat Wallet และ Payout ใน
+                Local อาจมาจาก seed แต่หน้าเว็บยังอ่านผ่าน API/ฐานข้อมูลจริง
+                ไม่ใช่ array จำลองในหน้า UI
+              </p>
+            </article>
+            <article class="plain-card searchable">
+              <span class="status-tag mock">Dev substitute</span>
+              <h3>Local Upload Storage</h3>
+              <p>
+                ไฟล์อัปโหลดทำงานจริงแต่เก็บบนเครื่องเซิร์ฟเวอร์ Production
+                สามารถเปลี่ยนเป็น S3-compatible storage
+              </p>
+            </article>
+            <article class="plain-card searchable">
+              <span class="status-tag manual">Manual</span>
+              <h3>Refund, Payout, Carrier</h3>
+              <p>
+                การคืนเงิน การโอนเงินให้ร้าน
+                และการยืนยันสถานะขนส่งต้องดำเนินการกับระบบภายนอกก่อน
+                แล้วจึงเปลี่ยนสถานะใน Marketplace
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="guide-section" id="troubleshooting">
+          <div class="section-heading">
+            <div class="section-title-row">
+              <span
+                class="role-marker"
+                style="--role-color: #667085"
+                aria-hidden="true"
+              ></span>
+              <div>
+                <h2>แก้ปัญหาเบื้องต้น</h2>
+                <p>ตรวจตามลำดับก่อนแจ้งผู้ดูแลระบบ</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="guide-list">
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">01</span>เข้า Checkout
+                ไม่ได้หรือปุ่มถูกปิด
+              </summary>
+              <div class="card-body">
+                <ul class="compact-list">
+                  <li>ตรวจว่าเข้าสู่ระบบและยืนยันอีเมลแล้ว</li>
+                  <li>เลือกรายการในรถเข็นอย่างน้อยหนึ่งรายการ</li>
+                  <li>เพิ่มที่อยู่และเลือกที่อยู่สำหรับจัดส่ง</li>
+                  <li>ตรวจว่าสินค้า ร้าน และ variant ยัง Active และมีสต็อก</li>
+                </ul>
+              </div>
+            </details>
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">02</span>Payment ค้าง Pending
+              </summary>
+              <div class="card-body">
+                <ul class="compact-list">
+                  <li>อย่ากดเปลี่ยนสถานะจาก browser</li>
+                  <li>รีเฟรชหน้า Return หรือเปิดรายละเอียดออเดอร์</li>
+                  <li>Local: ตรวจว่ากด event บน Mock Payment แล้ว</li>
+                  <li>
+                    Production: ให้ผู้ดูแลตรวจ webhook signature, provider
+                    reference และ audit log
+                  </li>
+                </ul>
+              </div>
+            </details>
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">03</span>เมนู Seller ใช้งานไม่ได้
+              </summary>
+              <div class="card-body">
+                <ul class="compact-list">
+                  <li>ตรวจว่าล็อกอินด้วยบัญชีผู้สมัคร</li>
+                  <li>เปิด <code>/th/seller/status</code> ดูสถานะล่าสุด</li>
+                  <li>
+                    <code>SUBMITTED</code> ต้องรอ Admin;
+                    <code>REJECTED</code> ต้องแก้และส่งใหม่
+                  </li>
+                  <li>ต้องมีร้าน <code>ACTIVE</code> อย่างน้อยหนึ่งร้าน</li>
+                </ul>
+              </div>
+            </details>
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">04</span>ส่งสินค้าเข้าตรวจไม่ได้
+              </summary>
+              <div class="card-body">
+                <ul class="compact-list">
+                  <li>ตรวจ Readiness ทุกข้อ</li>
+                  <li>เลือกหมวดหมู่และกรอกสเปกบังคับ</li>
+                  <li>มีรูปอย่างน้อยหนึ่งรูปและกำหนดรูปหลัก</li>
+                  <li>
+                    มี variant Active ราคาเกิน 0, SKU ไม่ซ้ำ
+                    และชุดตัวเลือกไม่ซ้ำ
+                  </li>
+                </ul>
+              </div>
+            </details>
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">05</span>ปุ่ม Pack, Ship หรือ Deliver
+                ถูกปิด
+              </summary>
+              <div class="card-body">
+                <ul class="compact-list">
+                  <li>
+                    ปุ่มทำงานตามลำดับสถานะเท่านั้น: Pending pack → Packed →
+                    Shipped → Delivered
+                  </li>
+                  <li>Ship ต้องกรอกบริษัทขนส่งและเลขพัสดุ</li>
+                  <li>ตรวจว่าเลือกหน้าร้านถูกต้องเมื่อบัญชีมีหลายร้าน</li>
+                </ul>
+              </div>
+            </details>
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">06</span>Admin อนุมัติ Seller ไม่ผ่าน
+              </summary>
+              <div class="card-body">
+                <ul class="compact-list">
+                  <li>เปิดเอกสารทุกชิ้นและตัดสิน Approve/Reject</li>
+                  <li>ตรวจรายการ unresolved required documents</li>
+                  <li>
+                    หากเอกสารถูก Reject
+                    ให้ปฏิเสธคำขอพร้อมเหตุผลเพื่อให้ผู้สมัครอัปโหลดใหม่
+                  </li>
+                </ul>
+              </div>
+            </details>
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">07</span>Upload หรือ Push Notification
+                ใช้ไม่ได้
+              </summary>
+              <div class="card-body">
+                <ul class="compact-list">
+                  <li>
+                    Upload: ตรวจชนิดไฟล์ ขนาดไฟล์ และการตั้งค่า Local/S3 storage
+                  </li>
+                  <li>
+                    Push: ตรวจว่าเปิด Push ในระบบ browser อนุญาต และเว็บไซต์ใช้
+                    HTTPS; iOS ต้องติดตั้ง PWA ก่อน
+                  </li>
+                  <li>
+                    หาก Push ใช้ไม่ได้
+                    การแจ้งเตือนในหน้าระบบยังเป็นแหล่งข้อมูลหลัก
+                  </li>
+                </ul>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="guide-section" id="routes">
+          <div class="section-heading">
+            <div class="section-title-row">
+              <span
+                class="role-marker"
+                style="--role-color: #667085"
+                aria-hidden="true"
+              ></span>
+              <div>
+                <h2>เส้นทางหน้าจอแบบย่อ</h2>
+                <p>ใช้ตรวจว่ากำลังอยู่ในหน้าที่ถูกต้อง</p>
+              </div>
+            </div>
+          </div>
+          <div class="status-table-wrap searchable">
+            <table>
+              <thead>
+                <tr>
+                  <th>พื้นที่</th>
+                  <th>เส้นทางหลัก</th>
+                  <th>งานที่รองรับ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Public</td>
+                  <td>
+                    <code>/th</code>, <code>/th/search</code>,
+                    <code>/th/categories/{id}</code>,
+                    <code>/th/products/{id}</code>, <code>/th/shops/{id}</code>
+                  </td>
+                  <td>ค้นหาและดูสินค้า/ร้าน</td>
+                </tr>
+                <tr>
+                  <td>Buyer</td>
+                  <td>
+                    <code>/th/cart</code>, <code>/th/checkout</code>,
+                    <code>/th/orders</code>, <code>/th/profile</code>
+                  </td>
+                  <td>ซื้อ ชำระ ติดตาม และจัดการบัญชี</td>
+                </tr>
+                <tr>
+                  <td>Buyer extras</td>
+                  <td>
+                    <code>/th/wishlist</code>, <code>/th/vouchers</code>,
+                    <code>/th/followed-shops</code>, <code>/th/chat</code>,
+                    <code>/th/affiliates</code>
+                  </td>
+                  <td>บันทึก ติดตาม สนทนา และสร้างลิงก์</td>
+                </tr>
+                <tr>
+                  <td>Seller onboarding</td>
+                  <td>
+                    <code>/th/seller/register/{step}</code>,
+                    <code>/th/seller/status</code>
+                  </td>
+                  <td>สมัคร KYC และติดตามผล</td>
+                </tr>
+                <tr>
+                  <td>Seller operations</td>
+                  <td>
+                    <code>/th/seller/products</code>,
+                    <code>/th/seller/inventory</code>,
+                    <code>/th/seller/orders</code>,
+                    <code>/th/seller/returns</code>
+                  </td>
+                  <td>สินค้า สต็อก การจัดส่ง และคืนสินค้า</td>
+                </tr>
+                <tr>
+                  <td>Seller engagement</td>
+                  <td>
+                    <code>/th/seller/promotions</code>,
+                    <code>/th/seller/finance</code>,
+                    <code>/th/seller/chat</code>,
+                    <code>/th/seller/analytics/products</code>
+                  </td>
+                  <td>คูปอง การเงิน สนทนา และสถิติ</td>
+                </tr>
+                <tr>
+                  <td>Admin core</td>
+                  <td>
+                    <code>/th/admin/users</code>, <code>/th/admin/shops</code>,
+                    <code>/th/admin/products</code>,
+                    <code>/th/admin/orders</code>
+                  </td>
+                  <td>ผู้ใช้ ร้าน สินค้า และ monitoring</td>
+                </tr>
+                <tr>
+                  <td>Admin operations</td>
+                  <td>
+                    <code>/th/admin/returns</code>,
+                    <code>/th/admin/refunds</code>,
+                    <code>/th/admin/payouts</code>, <code>/th/admin/fraud</code>
+                  </td>
+                  <td>งานหลังการขาย การเงิน และความเสี่ยง</td>
+                </tr>
+                <tr>
+                  <td>Admin governance</td>
+                  <td>
+                    <code>/th/admin/content-moderation</code>,
+                    <code>/th/admin/audit-logs</code>,
+                    <code>/th/admin/reports</code>
+                  </td>
+                  <td>ตรวจเนื้อหา ประวัติ และรายงาน</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <footer>
+          คู่มือนี้อธิบายพฤติกรรมจากหน้าจอและ API ปัจจุบัน หากฟีเจอร์เปลี่ยน
+          ควรอัปเดตขั้นตอนและป้าย Mock/Manual พร้อมกัน
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      const sidebar = document.querySelector("#sidebar");
+      const menuButton = document.querySelector("#menu-button");
+      const searchInput = document.querySelector("#guide-search");
+      const searchResult = document.querySelector("#search-result");
+      const searchableItems = [...document.querySelectorAll(".searchable")];
+      const details = [...document.querySelectorAll("details")];
+
+      menuButton?.addEventListener("click", () => {
+        const open = sidebar?.classList.toggle("open") ?? false;
+        menuButton.setAttribute("aria-expanded", String(open));
+      });
+
+      document.querySelectorAll(".toc a").forEach((link) => {
+        link.addEventListener("click", () => {
+          sidebar?.classList.remove("open");
+          menuButton?.setAttribute("aria-expanded", "false");
+        });
+      });
+
+      searchInput?.addEventListener("input", () => {
+        const query = searchInput.value.trim().toLocaleLowerCase("th");
+        let matches = 0;
+
+        searchableItems.forEach((item) => {
+          const match =
+            !query ||
+            (item.textContent ?? "").toLocaleLowerCase("th").includes(query);
+          item.hidden = !match;
+          if (query && match) {
+            matches += 1;
+            if (item instanceof HTMLDetailsElement) item.open = true;
+          }
+        });
+
+        searchResult.textContent = query ? `พบ ${matches} หัวข้อ` : "";
+      });
+
+      document
+        .querySelector("#print-button")
+        ?.addEventListener("click", () => window.print());
+
+      let detailsState = [];
+      window.addEventListener("beforeprint", () => {
+        detailsState = details.map((item) => item.open);
+        details.forEach((item) => {
+          item.open = true;
+        });
+      });
+      window.addEventListener("afterprint", () => {
+        details.forEach((item, index) => {
+          item.open = detailsState[index] ?? false;
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -28,6 +28,12 @@ function createRepoMock(): IAdminRepository {
   return {
     getDashboardCounts: vi.fn(),
     getReportMetrics: vi.fn(),
+    listCommissions: vi.fn(),
+    findCommissionById: vi.fn(),
+    updateCommissionStatus: vi.fn(),
+    listSystemSettings: vi.fn(),
+    findSystemSettingByKey: vi.fn(),
+    upsertSystemSetting: vi.fn(),
     listUsers: vi.fn(),
     findUserById: vi.fn(),
     findUserByEmail: vi.fn(),
@@ -182,6 +188,11 @@ function refund(status: RefundStatus = 'PENDING'): AdminRefundRecord {
     status,
     amount: 1000,
     reason: 'Return',
+    processingById: null,
+    completedById: null,
+    externalReference: null,
+    processingAt: null,
+    completedAt: null,
     createdAt: now,
     updatedAt: now,
     order: { id: 'order-1', orderNumber: 'ORD-1', status: 'PAID', paymentStatus: 'SUCCEEDED', userId: 'user-1' },
@@ -204,6 +215,44 @@ function returnRecord(overrides: Record<string, unknown> = {}) {
     user: { id: 'user-1', name: 'User', email: 'user@example.com' },
     items: [],
     refunds: [],
+    ...overrides,
+  } as any
+}
+
+function commission(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'commission-1',
+    affiliateId: 'affiliate-1',
+    affiliateName: 'Creator',
+    affiliateEmail: 'creator@example.com',
+    linkId: 'link-1',
+    linkCode: 'CREATOR',
+    targetType: 'product',
+    targetId: 'product-1',
+    orderId: 'order-1',
+    orderNumber: 'ORD-1',
+    eligibleSubtotalCents: 9000,
+    commissionBps: 500,
+    commissionCents: 450,
+    currency: 'THB',
+    status: 'PENDING',
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  } as any
+}
+
+function setting(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'setting-1',
+    key: 'checkout.max_items',
+    value: 50,
+    valueType: 'NUMBER',
+    description: 'Maximum checkout items',
+    isPublic: false,
+    updatedById: 'admin-1',
+    createdAt: now,
+    updatedAt: now,
     ...overrides,
   } as any
 }
@@ -241,6 +290,60 @@ describe('AdminService', () => {
     vi.mocked(repo.getReportMetrics).mockResolvedValue(reports)
 
     await expect(service.getReports(actor())).resolves.toEqual(reports)
+  })
+
+  it('lists real commissions with server filters and pagination', async () => {
+    vi.mocked(repo.listCommissions).mockResolvedValue({ items: [commission()], total: 11 })
+
+    const result = await service.listCommissions(actor(), { status: 'PENDING', q: ' creator ', page: 2, limit: 10 })
+
+    expect(repo.listCommissions).toHaveBeenCalledWith({ status: 'PENDING', q: 'creator' }, { page: 2, limit: 10 })
+    expect(result.pagination).toEqual({ page: 2, limit: 10, total: 11, totalPages: 2 })
+  })
+
+  it('approves and voids commissions through guarded transitions', async () => {
+    vi.mocked(repo.findCommissionById).mockResolvedValue(commission())
+    vi.mocked(repo.updateCommissionStatus).mockResolvedValue(commission({ status: 'APPROVED' }))
+
+    await expect(service.updateCommissionStatus(actor(), 'commission-1', {
+      status: 'APPROVED',
+      reason: 'Order passed the validation window',
+    })).resolves.toMatchObject({ status: 'APPROVED' })
+    expect(repo.updateCommissionStatus).toHaveBeenCalledWith('commission-1', 'PENDING', 'APPROVED')
+
+    vi.mocked(repo.findCommissionById).mockResolvedValue(commission({ status: 'VOID' }))
+    await expect(service.updateCommissionStatus(actor(), 'commission-1', {
+      status: 'APPROVED',
+      reason: 'Trying to reopen a void entry',
+    })).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+  })
+
+  it('reads and upserts typed system settings', async () => {
+    vi.mocked(repo.listSystemSettings).mockResolvedValue([setting()])
+    vi.mocked(repo.findSystemSettingByKey).mockResolvedValue(null)
+    vi.mocked(repo.upsertSystemSetting).mockResolvedValue(setting())
+
+    await expect(service.listSystemSettings(actor())).resolves.toHaveLength(1)
+    await expect(service.upsertSystemSetting(actor(), ' Checkout.Max_Items ', {
+      value: 50,
+      valueType: 'NUMBER',
+      description: ' Maximum checkout items ',
+      isPublic: false,
+    })).resolves.toMatchObject({ key: 'checkout.max_items', value: 50 })
+    expect(repo.upsertSystemSetting).toHaveBeenCalledWith(expect.objectContaining({
+      key: 'checkout.max_items',
+      value: 50,
+      valueType: 'NUMBER',
+      description: 'Maximum checkout items',
+      updatedById: 'admin-1',
+    }))
+  })
+
+  it('rejects invalid system setting values', async () => {
+    await expect(service.upsertSystemSetting(actor(), 'checkout.max_items', {
+      value: 'fifty',
+      valueType: 'NUMBER',
+    })).rejects.toMatchObject({ code: 'INVALID_ADMIN_INPUT' })
   })
 
   it('lists users with role/status filters and pagination metadata', async () => {
@@ -387,8 +490,17 @@ describe('AdminService', () => {
     vi.mocked(repo.findOrderById).mockResolvedValue(order())
 
     await service.listOrders(actor(), { status: 'PAID' })
-    expect(repo.listOrders).toHaveBeenCalledWith({ status: 'PAID' }, { page: 1, limit: 20 })
-    await expect(service.getOrder(actor(), 'order-1')).resolves.toMatchObject({ id: 'order-1' })
+      expect(repo.listOrders).toHaveBeenCalledWith(
+        { status: 'PAID', shopId: undefined, paymentState: undefined, shipmentState: undefined },
+        { page: 1, limit: 20 },
+      )
+      await service.listOrders(actor(), { paymentState: 'FAILED', shipmentState: 'DELAYED' })
+      expect(repo.listOrders).toHaveBeenLastCalledWith(
+        { status: undefined, shopId: undefined, paymentState: 'FAILED', shipmentState: 'DELAYED' },
+        { page: 1, limit: 20 },
+      )
+      await expect(service.listOrders(actor(), { paymentState: 'UNKNOWN' })).rejects.toMatchObject({ status: 400 })
+      await expect(service.getOrder(actor(), 'order-1')).resolves.toMatchObject({ id: 'order-1' })
   })
 
   it('lists and gets refunds with status filters', async () => {
@@ -404,14 +516,39 @@ describe('AdminService', () => {
     vi.mocked(repo.findRefundById).mockResolvedValueOnce(refund('PENDING'))
     vi.mocked(repo.updateRefundStatus).mockResolvedValue(refund('PROCESSING'))
 
-    await expect(service.updateRefundStatus(actor(), 'refund-1', 'PROCESSING')).resolves.toMatchObject({ status: 'PROCESSING' })
-    await expect(service.updateRefundStatus(actor(), 'refund-1', 'BAD')).rejects.toMatchObject({ code: 'INVALID_STATUS' })
+    await expect(service.updateRefundStatus(actor(), 'refund-1', { status: 'PROCESSING' })).resolves.toMatchObject({ status: 'PROCESSING' })
+    await expect(service.updateRefundStatus(actor(), 'refund-1', { status: 'BAD' })).rejects.toMatchObject({ code: 'INVALID_STATUS' })
 
     vi.mocked(repo.findRefundById).mockResolvedValueOnce(refund('PENDING'))
-    await expect(service.updateRefundStatus(actor(), 'refund-1', 'SUCCESS')).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+    await expect(service.updateRefundStatus(actor(), 'refund-1', { status: 'SUCCESS', externalReference: 'REF-1' })).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
 
     vi.mocked(repo.findRefundById).mockResolvedValueOnce(refund('SUCCESS'))
-    await expect(service.updateRefundStatus(actor(), 'refund-1', 'PROCESSING')).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+    await expect(service.updateRefundStatus(actor(), 'refund-1', { status: 'PROCESSING' })).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+  })
+
+  it('requires two administrators and an external reference to complete a refund', async () => {
+    vi.mocked(repo.findRefundById).mockResolvedValueOnce({ ...refund('PROCESSING'), processingById: 'admin-1' })
+    await expect(service.updateRefundStatus(actor(), 'refund-1', {
+      status: 'SUCCESS',
+      externalReference: 'REF-1',
+    })).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+
+    vi.mocked(repo.findRefundById).mockResolvedValueOnce({ ...refund('PROCESSING'), processingById: 'admin-2' })
+    await expect(service.updateRefundStatus(actor(), 'refund-1', {
+      status: 'SUCCESS',
+    })).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
+
+    vi.mocked(repo.findRefundById).mockResolvedValueOnce({ ...refund('PROCESSING'), processingById: 'admin-2' })
+    vi.mocked(repo.updateRefundStatus).mockResolvedValueOnce({
+      ...refund('SUCCESS'),
+      processingById: 'admin-2',
+      completedById: 'admin-1',
+      externalReference: 'REF-1',
+    })
+    await expect(service.updateRefundStatus(actor(), 'refund-1', {
+      status: 'SUCCESS',
+      externalReference: 'REF-1',
+    })).resolves.toMatchObject({ status: 'SUCCESS', externalReference: 'REF-1' })
   })
 
   it('lists and updates return escalations', async () => {
