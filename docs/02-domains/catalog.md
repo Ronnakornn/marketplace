@@ -9,7 +9,7 @@ The Catalog domain owns product discovery and seller product content.
 - Product images/media references
 - Categories
 - Shop product ownership
-- Product status and moderation status
+- Product publication status
 - Product listing/search read models
 
 ## Core Models
@@ -28,7 +28,10 @@ The Catalog domain owns product discovery and seller product content.
 - Product cards must expose price in integer cents and currency.
 - Product detail must show variant availability.
 - Product status controls buyer visibility.
-- Product moderation can prevent public listing.
+- Sellers may publish complete drafts without admin approval.
+- Publishing requires an active category, required category attributes, a primary image, and an active priced variant.
+- Admins may suspend and restore published products after publication.
+- Sellers cannot override an admin suspension.
 - Product updates must not rewrite historical order item snapshots.
 
 ## Statuses
@@ -37,13 +40,9 @@ Product statuses:
 - Draft
 - Active
 - Archived
-- Rejected
+- Suspended
 
-Moderation statuses:
-- Pending
-- Approved
-- Rejected
-- Flagged
+`Pending Review` and `Rejected` are legacy statuses and are not seller-controlled lifecycle states.
 
 ## API Surface
 
@@ -54,8 +53,10 @@ Moderation statuses:
 - `GET /api/seller/products`
 - `POST /api/seller/products`
 - `PATCH /api/seller/products/:productId`
-- `GET /api/admin/products/moderation`
-- `PATCH /api/admin/products/:productId/moderation`
+- `POST /api/seller/products/:productId/publish`
+- `POST /api/seller/products/:productId/archive`
+- `PATCH /api/admin/catalog/products/:productId/suspend`
+- `PATCH /api/admin/catalog/products/:productId/restore`
 
 ## Frontend Surfaces
 
@@ -65,13 +66,13 @@ Moderation statuses:
 - Deals feed
 - Product detail
 - Seller product management
-- Admin product moderation
+- Admin product oversight
 
 ## Edge Cases
 
 - Product archived while in cart.
 - Variant out of stock.
-- Product rejected by moderation.
+- Product suspended after publication.
 - Shop suspended.
 - Price changed before checkout.
 
@@ -79,6 +80,6 @@ Moderation statuses:
 
 - Buyers only see public active products.
 - Sellers only manage their own products.
-- Admins can inspect and moderate products.
+- Admins can inspect, suspend, and restore products.
 - Product detail exposes variants and inventory availability.
 - Order history uses snapshots, not current product fields.

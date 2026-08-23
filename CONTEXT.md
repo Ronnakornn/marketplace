@@ -5,6 +5,21 @@ details, no specs, no decisions. Decisions belong in `docs/adr/`.
 
 ## Commerce
 
+### Product Draft
+
+A seller-owned product listing that is not visible to buyers and is still being prepared for publication.
+_Avoid_: Pending product, unapproved product
+
+### Published Product
+
+A seller-owned product listing made publicly available by its seller without pre-publication admin approval. It remains subject to marketplace moderation.
+_Avoid_: Approved product
+
+### Product Suspension
+
+An admin decision that removes a Published Product from sale until an admin restores it. Suspension is reactive moderation, not pre-publication approval.
+_Avoid_: Product rejection, pending review
+
 ### Checkout Quote
 
 An estimate of the amount payable for one [[Cart]] at a point in time.

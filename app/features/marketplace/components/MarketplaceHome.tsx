@@ -39,6 +39,7 @@ import { resolveUploadedImageUrl } from "#/lib/assets";
 
 interface MarketplaceHomeProps {
   initialHome?: DiscoveryHomeResponse;
+
   user?: {
     name?: string;
     email?: string;
@@ -112,6 +113,7 @@ export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomePro
   });
   const [visibleCount, setVisibleCount] = useState(8);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
 
   const home = homeQuery.data ?? emptyMarketplaceHome;
   const visibleProducts = home.recommendedProducts.slice(0, visibleCount);
@@ -266,7 +268,7 @@ function HeroPromo({ banners }: { banners: MarketplaceBanner[] }) {
               </Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-              <Link href={localePath("/vouchers")}>{t("home.claimVoucher")}</Link>
+              <Link href={localePath("/vouchers")} prefetch={false}>{t("home.claimVoucher")}</Link>
             </Button>
           </div>
         </div>
@@ -290,7 +292,7 @@ function VoucherStrip({ promotions, isLoading }: { promotions: MarketplacePromot
   return (
     <section className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {promotions.slice(0, 3).map((promotion) => (
-        <Link key={promotion.id} href={localePath("/vouchers")} className="flex min-w-[154px] items-center gap-2 rounded-2xl border border-orange-100 bg-white px-3 py-2 shadow-sm transition hover:border-orange-200 hover:bg-orange-50">
+        <Link key={promotion.id} href={localePath("/vouchers")} prefetch={false} className="flex min-w-[154px] items-center gap-2 rounded-2xl border border-orange-100 bg-white px-3 py-2 shadow-sm transition hover:border-orange-200 hover:bg-orange-50">
           <div className="flex size-9 items-center justify-center rounded-full bg-orange-50 text-orange-700">
             <TicketPercentIcon className="size-4" />
           </div>

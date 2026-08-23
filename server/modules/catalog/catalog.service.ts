@@ -57,7 +57,6 @@ export interface CreateProductData {
   countryOfOrigin?: string | null
   highlights?: ProductHighlightData[]
   attributes?: ProductAttributeData[]
-  status?: ProductStatus
 }
 
 export interface UpdateProductData {
@@ -77,7 +76,6 @@ export interface UpdateProductData {
   countryOfOrigin?: string | null
   highlights?: ProductHighlightData[]
   attributes?: ProductAttributeData[]
-  status?: ProductStatus
 }
 
 export interface ProductHighlightData {
@@ -178,10 +176,6 @@ export interface UpdateImageOrderData {
     sortOrder?: number
   }>
   primaryImageId?: string | null
-}
-
-export interface ModerationListData extends SellerListProductsData {
-  status?: ProductStatus
 }
 
 export interface ModerationReasonData {
@@ -625,8 +619,6 @@ export class CatalogService {
       throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
     }
     await this.validateBrand(data.brandId)
-    await this.assertPublishReady(product, data)
-
     const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateProduct(product.id, {
         ...(data.categoryId === undefined ? {} : { categoryId: this.normalizeNullableText(data.categoryId) }),
@@ -639,7 +631,6 @@ export class CatalogService {
         ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
         ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
         ...this.normalizeProductEnrichment(data, true),
-        ...(data.status === undefined ? {} : { status: data.status }),
       }),
     )
     await this.cacheInvalidation?.invalidateProduct(updated.id)
@@ -649,25 +640,6 @@ export class CatalogService {
       changedFields: Object.keys(data),
     })
     return updated
-  }
-
-  listModerationProducts(filters: ModerationListData): Promise<PaginatedResult<CatalogProductListItem>> {
-    this.logger.debug('CatalogService.listModerationProducts', { filters })
-    return this.repo.findProducts({
-      ...this.normalizeListFilters(filters),
-      status: filters.status ?? 'PENDING_REVIEW',
-    })
-  }
-
-  async approveProduct(actor: CatalogActor, productId: string): Promise<CatalogProductDetail> {
-    this.assertAdmin(actor)
-    return this.transitionProductStatus(actor, productId, 'ACTIVE', 'APPROVE')
-  }
-
-  async rejectProduct(actor: CatalogActor, productId: string, data: ModerationReasonData): Promise<CatalogProductDetail> {
-    this.assertAdmin(actor)
-    const reason = this.requireModerationReason(data.reason, 'Reject reason is required')
-    return this.transitionProductStatus(actor, productId, 'REJECTED', 'REJECT', reason)
   }
 
   async suspendProduct(actor: CatalogActor, productId: string, data: ModerationReasonData): Promise<CatalogProductDetail> {
@@ -785,7 +757,7 @@ export class CatalogService {
         ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
         ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
         ...enrichment,
-        status: data.status ?? 'DRAFT',
+        status: 'DRAFT',
       }),
     )
     await this.cacheInvalidation?.invalidateProductListsAndSearch()
@@ -818,7 +790,7 @@ export class CatalogService {
       categoryId,
       attributes: readinessAttributes,
     } as CatalogProductDetail
-    await this.assertPublishReady(productForReadiness, data)
+    if (product.status === 'ACTIVE') await this.assertPublishReady(productForReadiness)
 
     const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateProduct(product.id, {
@@ -832,7 +804,6 @@ export class CatalogService {
         ...(data.descriptionTh === undefined ? {} : { descriptionTh: this.normalizeNullableText(data.descriptionTh) }),
         ...(data.descriptionEn === undefined ? {} : { descriptionEn: this.normalizeNullableText(data.descriptionEn) }),
         ...enrichment,
-        ...(data.status === undefined ? {} : { status: data.status }),
       }),
     )
     await this.cacheInvalidation?.invalidateProduct(updated.id)
@@ -859,17 +830,17 @@ export class CatalogService {
     return updated
   }
 
-  async submitProductReview(actor: CatalogActor, productId: string): Promise<CatalogProductDetail> {
-    this.logger.info('CatalogService.submitProductReview', { actorId: actor.id, productId })
+  async publishProduct(actor: CatalogActor, productId: string): Promise<CatalogProductDetail> {
+    this.logger.info('CatalogService.publishProduct', { actorId: actor.id, productId })
     const product = await this.getManageableProduct(actor, productId)
-    if (product.status !== 'DRAFT' && product.status !== 'REJECTED') {
-      throw new CatalogServiceError('Only draft or rejected products can be submitted for review', 400, 'PRODUCT_REVIEW_STATUS_INVALID')
+    if (!['DRAFT', 'ARCHIVED', 'REJECTED'].includes(product.status)) {
+      throw new CatalogServiceError('Only draft, archived, or legacy rejected products can be published', 400, 'PRODUCT_PUBLISH_STATUS_INVALID')
     }
     await this.validateProductAttributesForCategory(product.categoryId, this.toProductAttributeData(product.attributes))
-    await this.assertPublishReady(product, { status: 'ACTIVE' })
-    const updated = await this.repo.updateProduct(product.id, { status: 'PENDING_REVIEW' })
-    await this.repo.createModerationAction(product.id, actor.id, 'ESCALATE', 'Submitted for review')
+    await this.assertPublishReady(product)
+    const updated = await this.repo.updateProduct(product.id, { status: 'ACTIVE' })
     await this.cacheInvalidation?.invalidateProduct(updated.id)
+    await this.invalidateSellerDashboardForShop(updated.shopId)
     await this.publishBestEffort('product.updated', updated.id, actor.id, {
       productId: updated.id,
       shopId: updated.shopId,
@@ -1217,9 +1188,6 @@ export class CatalogService {
 
   private validateProductInput(data: CreateProductData): void {
     if (!data.title.trim()) throw new CatalogServiceError('Product title is required', 400, 'PRODUCT_VALIDATION_FAILED')
-    if (data.status === 'ACTIVE') {
-      throw new CatalogServiceError('Create product as draft before publishing', 400, 'PRODUCT_PUBLISH_NOT_READY')
-    }
   }
 
   private validateCategoryName(name: string): void {
@@ -1531,9 +1499,8 @@ export class CatalogService {
     }
   }
 
-  private async assertPublishReady(existing: CatalogProductDetail, data: UpdateProductData): Promise<void> {
-    if (data.status !== 'ACTIVE') return
-    const categoryId = data.categoryId === undefined ? existing.categoryId : this.normalizeNullableText(data.categoryId)
+  private async assertPublishReady(existing: CatalogProductDetail): Promise<void> {
+    const categoryId = existing.categoryId
     if (!categoryId) {
       throw new CatalogServiceError('Active products require a category', 400, 'PRODUCT_PUBLISH_NOT_READY')
     }
@@ -1731,9 +1698,7 @@ export class CatalogService {
   ): Promise<ProductAttributeWriteRecord[]> {
     const shouldValidateAttributes =
       data.attributes !== undefined ||
-      data.categoryId !== undefined ||
-      data.status === 'ACTIVE' ||
-      data.status === 'PENDING_REVIEW'
+      data.categoryId !== undefined
     if (!shouldValidateAttributes) return product.attributes
     return this.validateProductAttributesForCategory(categoryId, data.attributes ?? this.toProductAttributeData(product.attributes))
   }
@@ -1845,8 +1810,8 @@ export class CatalogService {
   ): Promise<CatalogProductDetail> {
     const existing = await this.repo.findProductById(productId)
     if (!existing) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
-    if (moderationAction === 'APPROVE' && existing.status !== 'PENDING_REVIEW') {
-      throw new CatalogServiceError('Only pending review products can be approved', 400, 'PRODUCT_MODERATION_STATUS_INVALID')
+    if (moderationAction === 'SUSPEND' && existing.status !== 'ACTIVE') {
+      throw new CatalogServiceError('Only active products can be suspended', 400, 'PRODUCT_MODERATION_STATUS_INVALID')
     }
     if (moderationAction === 'RESTORE' && existing.status !== 'SUSPENDED') {
       throw new CatalogServiceError('Only suspended products can be restored', 400, 'PRODUCT_MODERATION_STATUS_INVALID')

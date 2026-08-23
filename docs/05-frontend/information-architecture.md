@@ -192,7 +192,7 @@ flowchart TD
 Seller dashboard priority:
 1. Paid shipments waiting to be processed.
 2. Low-stock variants.
-3. Product moderation issues.
+3. Flagged or suspended product issues.
 4. Unread chats.
 5. Sales and refund summary.
 
@@ -207,7 +207,7 @@ Admin top-level areas:
 - Dashboard
 - User management
 - Shop management
-- Product moderation
+- Product policy monitoring
 - Order monitoring
 - Refund/return management
 - Commission management
@@ -218,7 +218,7 @@ flowchart TD
   Admin[Admin] --> Dashboard[Dashboard]
   Dashboard --> Users[User management]
   Dashboard --> Shops[Shop management]
-  Dashboard --> Products[Product moderation]
+  Dashboard --> Products[Product policy monitoring]
   Dashboard --> Orders[Order monitoring]
   Dashboard --> Refunds[Refund/return management]
   Dashboard --> Commissions[Commission management]
@@ -238,7 +238,7 @@ Admin dashboard priority:
 1. Payment and webhook exceptions.
 2. Shipment delays and fulfillment SLA issues.
 3. Refund/return escalations.
-4. Product moderation queue.
+4. Flagged product queue.
 5. Shop approval/suspension issues.
 6. Sales and conversion reports.
 

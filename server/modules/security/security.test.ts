@@ -1,6 +1,31 @@
 import { Elysia } from 'elysia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const redisInstances: Array<{
+  status: string
+  connect: ReturnType<typeof vi.fn>
+  eval: ReturnType<typeof vi.fn>
+  on: ReturnType<typeof vi.fn>
+}> = []
+
+vi.mock('ioredis', () => ({
+  default: vi.fn().mockImplementation(function RedisMock(redisUrl: string) {
+    const instance = {
+      status: 'wait',
+      connect: vi.fn(async () => {
+        if (redisUrl === 'redis://127.0.0.1:1') {
+          throw new Error('connect ECONNREFUSED 127.0.0.1:1')
+        }
+        instance.status = 'ready'
+      }),
+      eval: vi.fn(async () => 1),
+      on: vi.fn(),
+    }
+    redisInstances.push(instance)
+    return instance
+  }),
+}))
+
 vi.mock('#server/modules/auth/auth.context.ts', () => ({
   getAuthContext: vi.fn(),
 }))
@@ -58,7 +83,7 @@ function createSecurityApp(appContext = createAppContext()) {
     .get('/api/seller/products', () => ({ ok: true }))
     .post('/api/seller/products', () => ({ ok: true }))
     .post('/api/seller/products/:productId/images', () => ({ ok: true }))
-    .post('/api/seller/products/:productId/submit-review', () => ({ ok: true }))
+    .post('/api/seller/products/:productId/publish', () => ({ ok: true }))
     .post('/api/public', () => ({ ok: true }))
     .get('/api/error', () => {
       throw new Error('internal failure token=abc123')
@@ -80,6 +105,7 @@ function createOwnershipRepo(overrides: Partial<Record<keyof OwnershipGuardRepos
 describe('security hardening', () => {
   beforeEach(() => {
     resetSecurityRateLimitBuckets()
+    redisInstances.length = 0
     vi.clearAllMocks()
     vi.mocked(getAuthContext).mockResolvedValue(null)
   })
@@ -118,6 +144,22 @@ describe('security hardening', () => {
         .handle(new Request('http://localhost/api/public'))
 
       expect(response.status).toBe(200)
+    } finally {
+      if (originalRedisUrl === undefined) delete process.env['REDIS_URL']
+      else process.env['REDIS_URL'] = originalRedisUrl
+    }
+  })
+
+  it('connects to Redis before evaluating a rate-limit command', async () => {
+    const originalRedisUrl = process.env['REDIS_URL']
+    process.env['REDIS_URL'] = 'redis://localhost:6379'
+    try {
+      const response = await createSecurityApp(createAppContext('development'))
+        .handle(new Request('http://localhost/api/public'))
+
+      expect(response.status).toBe(200)
+      expect(redisInstances[0]?.connect).toHaveBeenCalledTimes(1)
+      expect(redisInstances[0]?.eval).toHaveBeenCalledTimes(1)
     } finally {
       if (originalRedisUrl === undefined) delete process.env['REDIS_URL']
       else process.env['REDIS_URL'] = originalRedisUrl
@@ -177,7 +219,7 @@ describe('security hardening', () => {
     expect(response.status).toBe(429)
   })
 
-  it('seller product writes, media uploads, and review submissions use separate limits', async () => {
+  it('seller product writes, media uploads, and publishing use separate limits', async () => {
     vi.mocked(getAuthContext).mockResolvedValue({ user: { id: 'seller-1' } } as never)
     const app = createSecurityApp()
 
@@ -190,9 +232,9 @@ describe('security hardening', () => {
     const mediaResponse = await app.handle(new Request('http://localhost/api/seller/products/product-1/images', { method: 'POST' }))
     expect(mediaResponse.status).toBe(429)
 
-    await app.handle(new Request('http://localhost/api/seller/products/product-1/submit-review', { method: 'POST' }))
-    const reviewResponse = await app.handle(new Request('http://localhost/api/seller/products/product-1/submit-review', { method: 'POST' }))
-    expect(reviewResponse.status).toBe(429)
+    await app.handle(new Request('http://localhost/api/seller/products/product-1/publish', { method: 'POST' }))
+    const publishResponse = await app.handle(new Request('http://localhost/api/seller/products/product-1/publish', { method: 'POST' }))
+    expect(publishResponse.status).toBe(429)
   })
 
   it('seller ownership guard blocks wrong seller', async () => {

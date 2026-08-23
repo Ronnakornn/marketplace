@@ -396,7 +396,7 @@ Component principles:
 
 - **Purpose**: Seller product management list with status, stock, and edit actions.
 - **Used in pages**: `/seller/products`.
-- **Props/data needed**: products, status filters, search query, pagination/cursor, stock summary, moderation status.
+- **Props/data needed**: products, status filters, search query, pagination/cursor, stock summary, listing status.
 - **Loading state**: Product row/card skeletons.
 - **Empty state**: Create first product CTA.
 - **Mobile behavior**: Cards instead of dense table; status tabs stay reachable.
@@ -478,13 +478,13 @@ Component principles:
 
 ### `ModerationPanel`
 
-- **Purpose**: Product/shop review panel for approve/reject decisions.
+- **Purpose**: Product suspension/restore panel and shop approval panel.
 - **Used in pages**: `/admin/products`, `/admin/shops`.
 - **Props/data needed**: entity details, submitted content, flags, decision options, reason input, audit history.
 - **Loading state**: Detail skeleton.
-- **Empty state**: No pending moderation items.
+- **Empty state**: No policy issues or pending shop applications.
 - **Mobile behavior**: Decision actions stay sticky at bottom for active review.
-- **Interactions**: Approve, reject, request changes, enter reason.
+- **Interactions**: Suspend or restore products; approve or reject shops; enter reason.
 - **MVP priority**: P1.
 
 ### `AdminOrderMonitorCard`

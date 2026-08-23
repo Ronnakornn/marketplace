@@ -106,7 +106,7 @@ function getRateLimitCategory(pathname: string, method: string): RateLimitCatego
   if (pathname.startsWith('/api/auth') || pathname.includes('/login') || pathname.includes('/signup')) return 'auth'
   if (pathname.startsWith('/api/checkout') || pathname.startsWith('/api/payment')) return 'checkout'
   if (pathname.startsWith('/api/admin')) return 'admin'
-  if (pathname.startsWith('/api/seller/products/') && pathname.endsWith('/submit-review')) return 'sellerReview'
+  if (pathname.startsWith('/api/seller/products/') && pathname.endsWith('/publish')) return 'sellerReview'
   if (pathname.startsWith('/api/seller/products/') && (pathname.includes('/images') || pathname.endsWith('/video')) && method !== 'GET') return 'sellerMedia'
   if (pathname.startsWith('/api/seller/products') || pathname.startsWith('/api/seller/variants/')) {
     return method === 'GET' ? 'sellerRead' : 'sellerWrite'
@@ -170,12 +170,25 @@ class RedisRateLimitStore implements RateLimitStore {
   private fallbackWarningLogged = false
 
   constructor(redisUrl: string, private appContext: AppContext) {
-    this.redis = new IORedis(redisUrl, { maxRetriesPerRequest: 1, enableOfflineQueue: false })
+    this.redis = new IORedis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1, enableOfflineQueue: false })
     this.redis.on('error', () => undefined)
+  }
+
+  private async ensureConnected(): Promise<void> {
+    if (this.redis.status === 'ready') return
+    if (this.redis.status === 'wait') {
+      await this.redis.connect()
+      return
+    }
+    await new Promise<void>((resolve, reject) => {
+      this.redis.once('ready', resolve)
+      this.redis.once('error', reject)
+    })
   }
 
   async increment(key: string, windowMs: number): Promise<number> {
     try {
+      await this.ensureConnected()
       return Number(await this.redis.eval(
         "local current = redis.call('INCR', KEYS[1]); if current == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return current",
         1,

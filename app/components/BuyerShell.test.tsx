@@ -4,7 +4,7 @@
 import { type ReactNode } from "react";
 import type * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BuyerTopBar, MobileBottomNavigation } from "./BuyerShell";
 
@@ -114,6 +114,12 @@ describe("buyer shell smoke", () => {
     });
 
     expect(document.querySelector('a[href="/en/signup"]')).toBeTruthy();
+  });
+
+  it("gives the profile icon link a discernible name", () => {
+    renderWithClient(<BuyerTopBar title="Seller Products" />);
+
+    expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/en/profile");
   });
 
   it("does not mark a marketplace mobile item active on shop routes", () => {

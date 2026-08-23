@@ -169,8 +169,8 @@ export function ChangePasswordForm() {
 
 function AuthShell({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="page-wrap flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
-      <div className="island-shell w-full max-w-md rounded-2xl p-8">
+    <div className="page-wrap auth-page flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
+      <div className="island-shell auth-card w-full max-w-md rounded-2xl p-8">
         <h1 className="mb-2 text-2xl font-bold text-[var(--sea-ink)]">{title}</h1>
         <p className="mb-6 text-sm text-[var(--sea-ink-soft)]">{description}</p>
         {children}

@@ -1,38 +1,20 @@
-"use client";
-
-import { useEffect, useState, type ReactNode } from "react";
-import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { headers } from "next/headers";
+import type { ReactNode } from "react";
 import { isLocale, stripLocale } from "#/i18n/config";
 
 interface AppChromeProps {
   children: ReactNode;
 }
 
-const Header = dynamic(() => import("#/components/Header"), { ssr: false });
-const Footer = dynamic(() => import("#/components/Footer"), { ssr: false });
-
-export default function AppChrome({ children }: AppChromeProps) {
-  const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
+export default async function AppChrome({ children }: AppChromeProps) {
+  const pathname = (await headers()).get("x-pathname") ?? "";
   const hasLocaleSegment = isLocale(pathname.split("/")[1]);
-  if (!hasLocaleSegment) {
-    return <>{children}</>;
-  }
+  if (!hasLocaleSegment) return <>{children}</>;
 
   const pathWithoutLocale = stripLocale(pathname);
   const isAdminRoute = pathWithoutLocale.startsWith("/admin");
   const isSellerRoute = pathWithoutLocale.startsWith("/seller");
-  const isAuthRoute = ["/login", "/signup"].some(
+  const isAuthRoute = ["/login", "/signup", "/forgot-password", "/reset-password", "/verify-email", "/change-password"].some(
     (route) => pathWithoutLocale === route || pathWithoutLocale.startsWith(`${route}/`),
   );
   const isMarketplaceHome = pathWithoutLocale === "/";
@@ -58,6 +40,11 @@ export default function AppChrome({ children }: AppChromeProps) {
   if (isAdminRoute || isSellerRoute || isAuthRoute || isMarketplaceHome || isShopRoute || isBuyerRoute) {
     return <>{children}</>;
   }
+
+  const [{ default: Header }, { default: Footer }] = await Promise.all([
+    import("#/components/Header"),
+    import("#/components/Footer"),
+  ]);
 
   return (
     <>

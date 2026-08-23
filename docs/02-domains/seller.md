@@ -36,6 +36,7 @@ Detailed seller manage implementation rules live in [seller-manage.md](seller-ma
 - `GET /api/seller/products`
 - `POST /api/seller/products`
 - `PATCH /api/seller/products/:productId`
+- `POST /api/seller/products/:productId/publish`
 - `PATCH /api/seller/variants/:variantId/inventory`
 - `GET /api/seller/shipments`
 - `POST /api/seller/shipments/:shipmentId/ship`
@@ -62,7 +63,7 @@ Detailed seller manage implementation rules live in [seller-manage.md](seller-ma
 - User owns multiple shops within `SellerProfile.maxShopCount`.
 - Shop staff account can manage only permitted shop surfaces.
 - Shop suspended.
-- Product rejected by moderation.
+- Product suspended by admin after publication.
 - Low stock with reserved inventory.
 - Shipment canceled/refunded.
 

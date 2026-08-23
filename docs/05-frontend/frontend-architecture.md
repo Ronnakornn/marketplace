@@ -386,7 +386,7 @@ Seller UI must be shipment-based for order processing because one buyer order ca
 Owns operational management:
 - users
 - shops
-- product moderation
+- reactive product policy enforcement
 - order monitoring
 - refunds/returns
 - commissions

@@ -534,19 +534,6 @@ export class AdminService {
     return product
   }
 
-  async updateProductStatus(actor: AdminActor, productId: string, statusValue: string): Promise<AdminProductRecord> {
-    this.assertAdmin(actor)
-    const status = this.parseEnum<ProductStatus>(statusValue, PRODUCT_STATUSES)
-    const existing = await this.repository.findProductById(productId)
-    if (!existing) {
-      throw new AdminServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
-    }
-    this.logger.info('AdminService.updateProductStatus', { actorId: actor.id, productId, status })
-    const updated = await this.repository.updateProductStatus(productId, status)
-    await this.auditStatusChange(actor, 'PRODUCT_STATUS_CHANGED', 'Product', productId, existing, updated)
-    return updated
-  }
-
   async listOrders(actor: AdminActor, input: AdminListByStatusInput = {}): Promise<AdminListResponse<AdminOrderRecord>> {
     this.assertAdmin(actor)
     const pagination = this.normalizePagination(input)

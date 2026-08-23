@@ -24,7 +24,7 @@ const deleteImageMutate = vi.fn();
 const uploadVideoMutate = vi.fn();
 const deleteVideoMutate = vi.fn();
 const updateOptionsMutate = vi.fn();
-const submitReviewMutate = vi.fn();
+const publishMutate = vi.fn();
 const answerQuestionMutate = vi.fn();
 
 const products: Array<any> = [
@@ -294,7 +294,7 @@ vi.mock("../hooks/useSellerManage", () => ({
   useUploadAndUpsertSellerProductVideo: vi.fn(() => ({ mutate: uploadVideoMutate, isPending: false })),
   useDeleteSellerProductVideo: vi.fn(() => ({ mutate: deleteVideoMutate, isPending: false })),
   useUpdateSellerProductOptions: vi.fn(() => ({ mutate: updateOptionsMutate, isPending: false })),
-  useSubmitSellerProductReview: vi.fn(() => ({ mutate: submitReviewMutate, isPending: false })),
+  usePublishSellerProduct: vi.fn(() => ({ mutate: publishMutate, isPending: false })),
   useAnswerSellerProductQuestion: vi.fn(() => ({
     mutate: answerQuestionMutate,
     isPending: sellerQuestionPending,
@@ -406,7 +406,7 @@ describe("Seller product pages", () => {
     expect(screen.getByRole("heading", { name: "Create product" })).toBeTruthy();
     expect(screen.getByText("Draft preparation")).toBeTruthy();
     expect(createMutate).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Untitled product draft", status: "DRAFT" }),
+      expect.objectContaining({ title: "Untitled product draft" }),
       expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
     );
   });
@@ -424,7 +424,7 @@ describe("Seller product pages", () => {
     expect(screen.getByRole("heading", { name: "Product Studio" })).toBeTruthy();
     expect(screen.getAllByDisplayValue("Cotton Shirt").length).toBeGreaterThan(0);
     expect(screen.getByText("1/10 images. Video limit: one MP4 or WebM up to 25MB.")).toBeTruthy();
-    for (const section of ["Basics", "Category & Specs", "Media", "Variants", "Inventory", "Review"]) {
+    for (const section of ["Basics", "Category & Specs", "Media", "Variants", "Inventory", "Publish"]) {
       expect(screen.getByRole("link", { name: section })).toBeTruthy();
       expect(screen.getByRole("heading", { name: section })).toBeTruthy();
     }
@@ -451,11 +451,11 @@ describe("Seller product pages", () => {
     expect(screen.getByText("Optional specs")).toBeTruthy();
     expect(screen.getByText("Color is required.")).toBeTruthy();
     expect(screen.getByText(/Missing: required specs: Color/i)).toBeTruthy();
-    expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getAllByRole("button", { name: /publish/i }).every((button) => button.hasAttribute("disabled"))).toBe(true);
 
     fireEvent.change(screen.getByLabelText(/Color/), { target: { value: "Blue" } });
     expect(screen.queryByText("Color is required.")).toBeNull();
-    expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(false);
+    expect(screen.getAllByRole("button", { name: /publish/i }).every((button) => !button.hasAttribute("disabled"))).toBe(true);
   });
 
   it("renders number, boolean, and multi-select category specs with helper text", () => {
@@ -666,18 +666,18 @@ describe("Seller product pages", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 
-  it("submits a ready draft for review and shows moderation rejection reasons", () => {
+  it("publishes a ready draft directly and shows legacy moderation reasons", () => {
     render(<SellerProductEditPage productId="prod_1" />);
 
-    fireEvent.click(screen.getByRole("button", { name: /submit for review/i }));
-    expect(submitReviewMutate).toHaveBeenCalledWith("prod_1", expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }));
+    fireEvent.click(screen.getAllByRole("button", { name: /publish/i })[0]);
+    expect(publishMutate).toHaveBeenCalledWith("prod_1", expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }));
 
     cleanup();
     render(<SellerProductEditPage productId="prod_2" />);
     expect(screen.getByText("Reason: Missing image proof")).toBeTruthy();
   });
 
-  it("blocks submit review when variant option combinations are duplicated", () => {
+  it("blocks publish when variant option combinations are duplicated", () => {
     const duplicateProduct = {
       ...products[0],
       variants: [
@@ -689,7 +689,7 @@ describe("Seller product pages", () => {
     render(<SellerProductEditPage productId="prod_1" />);
 
     expect(screen.getAllByText("Duplicate variant option combination. Choose a unique option value set for each variant.").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: /submit for review/i }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getAllByRole("button", { name: /publish/i }).every((button) => button.hasAttribute("disabled"))).toBe(true);
   });
 
   it("warns before unloading when any studio field has unsaved changes", () => {

@@ -13,8 +13,6 @@ import { Textarea } from "#/components/ui/textarea";
 import { useAdminCatalogProductDetail } from "#/features/catalog";
 import type { CatalogProduct } from "#/features/catalog";
 import {
-  useApproveCatalogProduct,
-  useRejectCatalogProduct,
   useRestoreCatalogProduct,
   useSuspendCatalogProduct,
 } from "../hooks/useAdminOperations";
@@ -85,15 +83,13 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
   const t = useTranslations();
   const formatters = useFormatters();
   const { data: productData, isLoading, error, refetch } = useAdminCatalogProductDetail(productId);
-  const approve = useApproveCatalogProduct();
-  const reject = useRejectCatalogProduct();
   const suspend = useSuspendCatalogProduct();
   const restore = useRestoreCatalogProduct();
-  const [reasonAction, setReasonAction] = useState<"reject" | "suspend" | null>(null);
+  const [reasonAction, setReasonAction] = useState(false);
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const mutationError = approve.error ?? reject.error ?? suspend.error ?? restore.error;
-  const isMutating = approve.isPending || reject.isPending || suspend.isPending || restore.isPending;
+  const mutationError = suspend.error ?? restore.error;
+  const isMutating = suspend.isPending || restore.isPending;
 
   const moderationProduct = productData as ModerationProduct | undefined;
   const primaryImage = useMemo(() => moderationProduct?.images.find((image) => image.isPrimary) ?? moderationProduct?.images[0] ?? null, [moderationProduct]);
@@ -128,12 +124,11 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
     if (!moderationProduct || !reasonAction || !reason.trim()) return;
     const payload = { id: moderationProduct.id, reason: reason.trim() };
     const onSuccess = () => {
-      setMessage(t(reasonAction === "reject" ? "admin.productModerationDetail.rejected" : "admin.productModerationDetail.suspended").replace("{title}", moderationProduct.title));
-      setReasonAction(null);
+      setMessage(t("admin.productModerationDetail.suspended").replace("{title}", moderationProduct.title));
+      setReasonAction(false);
       setReason("");
     };
-    if (reasonAction === "reject") reject.mutate(payload, { onSuccess });
-    if (reasonAction === "suspend") suspend.mutate(payload, { onSuccess });
+    suspend.mutate(payload, { onSuccess });
   }
 
   const product = moderationProduct;
@@ -165,9 +160,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
             <p className="mt-3 font-mono text-xs text-slate-500">{product.id}</p>
           </div>
           <div className="flex flex-wrap gap-2 xl:justify-end">
-            <Button variant="outline" className="border-emerald-400/30 bg-emerald-500/10 text-emerald-100" disabled={isMutating || product.status !== "PENDING_REVIEW"} onClick={() => approve.mutate(product.id, { onSuccess: () => setMessage(t("admin.productModerationDetail.approved").replace("{title}", product.title)) })}>{approve.isPending ? t("admin.productModerationDetail.approving") : t("admin.ui.approve")}</Button>
-            <Button variant="outline" className="border-amber-400/30 bg-amber-500/10 text-amber-100" disabled={isMutating || product.status !== "PENDING_REVIEW"} onClick={() => setReasonAction("reject")}>{t("admin.ui.reject")}</Button>
-            <Button variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isMutating || product.status === "SUSPENDED"} onClick={() => setReasonAction("suspend")}>{t("admin.ui.suspend")}</Button>
+            <Button variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isMutating || product.status !== "ACTIVE"} onClick={() => setReasonAction(true)}>{t("admin.ui.suspend")}</Button>
             <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setMessage(t("admin.productModerationDetail.restored").replace("{title}", product.title)) })}>
               <RotateCcwIcon className="size-4" />
               {restore.isPending ? t("admin.productModerationDetail.restoring") : t("admin.productModerationDetail.restore")}
@@ -182,7 +175,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
         <section className="admin-panel rounded-xl border border-white/10 bg-white/5 p-5">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="space-y-2">
-              <Label htmlFor="moderation-detail-reason" className="text-slate-200">{t(reasonAction === "reject" ? "admin.productModerationDetail.rejectReason" : "admin.productModerationDetail.suspendReason")}</Label>
+              <Label htmlFor="moderation-detail-reason" className="text-slate-200">{t("admin.productModerationDetail.suspendReason")}</Label>
               <Textarea
                 id="moderation-detail-reason"
                 value={reason}
@@ -194,8 +187,8 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
               {reason.trim().length === 0 ? <p className="text-sm font-medium text-red-200">{t("admin.ui.reasonRequired")}</p> : null}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating} onClick={() => { setReasonAction(null); setReason(""); }}>{t("admin.ui.cancel")}</Button>
-              <Button variant={reasonAction === "suspend" ? "destructive" : "default"} disabled={isMutating || reason.trim().length === 0} onClick={submitReasonAction}>{isMutating ? t("admin.productModerationDetail.submitting") : t(reasonAction === "reject" ? "admin.productModerationDetail.rejectProduct" : "admin.productModerationDetail.suspendProduct")}</Button>
+              <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating} onClick={() => { setReasonAction(false); setReason(""); }}>{t("admin.ui.cancel")}</Button>
+              <Button variant="destructive" disabled={isMutating || reason.trim().length === 0} onClick={submitReasonAction}>{isMutating ? t("admin.productModerationDetail.submitting") : t("admin.productModerationDetail.suspendProduct")}</Button>
             </div>
           </div>
         </section>

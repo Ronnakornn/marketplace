@@ -77,7 +77,7 @@ function createContainer() {
       listPublicShopProducts: vi.fn(),
       listSellerProducts: vi.fn(),
       getSellerProductDetail: vi.fn(),
-      submitProductReview: vi.fn(),
+      publishProduct: vi.fn(),
       listAdminCategories: vi.fn(async () => [createCategory({ isActive: false })]),
       createAdminCategory: vi.fn(async (body) => createCategory({ ...body, slug: body.slug ?? 'fashion' })),
       updateAdminCategory: vi.fn(async (_id, body) => createCategory(body)),
@@ -91,14 +91,11 @@ function createContainer() {
       reactivateAdminCategorySpec: vi.fn(async (categoryId, id) => createCategorySpec({ categoryId, id, isActive: true })),
       reorderAdminCategorySpecs: vi.fn(async () => [createCategorySpec()]),
       listAdminProducts: vi.fn(),
-      listModerationProducts: vi.fn(),
       getAdminProductDetail: vi.fn(),
       updateAdminProduct: vi.fn(),
       createAdminVariant: vi.fn(),
       updateAdminVariant: vi.fn(),
       deleteAdminVariant: vi.fn(),
-      approveProduct: vi.fn(),
-      rejectProduct: vi.fn(),
       suspendProduct: vi.fn(),
       restoreProduct: vi.fn(),
       createProduct: vi.fn(async (_actor, body) => ({ id: '22222222-2222-4222-8222-222222222222', ...body })),
@@ -293,7 +290,7 @@ describe('catalog admin category routes', () => {
     expect(response.status).toBe(422)
   })
 
-  it('routes seller product create, update, and submit-review requests to the service', async () => {
+  it('routes seller product create, update, and publish requests to the service', async () => {
     const container = createContainer()
     vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext({ id: 'seller-1', role: 'SELLER' }) as any)
     const app = createApp(container)
@@ -316,11 +313,11 @@ describe('catalog admin category routes', () => {
       }),
       headers: { 'content-type': 'application/json' },
     }))
-    const submitted = await app.handle(new Request(`http://localhost/api/seller/products/${productId}/submit-review`, { method: 'POST' }))
+    const published = await app.handle(new Request(`http://localhost/api/seller/products/${productId}/publish`, { method: 'POST' }))
 
     expect(created.status).toBe(200)
     expect(updated.status).toBe(200)
-    expect(submitted.status).toBe(200)
+    expect(published.status).toBe(200)
     expect(container.catalogService.createProduct).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }), expect.objectContaining({
       categoryId: '55555555-5555-4555-8555-555555555555',
       attributes: [{ attributeKey: 'Weight', displayName: 'Weight', value: '1.5' }],
@@ -328,7 +325,28 @@ describe('catalog admin category routes', () => {
     expect(container.catalogService.updateProduct).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }), productId, expect.objectContaining({
       attributes: [{ attributeKey: 'Waterproof', displayName: 'Waterproof', value: 'yes' }],
     }))
-    expect(container.catalogService.submitProductReview).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }), productId)
+    expect(container.catalogService.publishProduct).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }), productId)
+  })
+
+  it('strips seller attempts to assign product moderation status', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext({ id: 'seller-1', role: 'SELLER' }) as any)
+
+    const response = await createApp(container).handle(new Request('http://localhost/api/seller/products', {
+      method: 'POST',
+      body: JSON.stringify({
+        shopId: '11111111-1111-4111-8111-111111111111',
+        title: 'Phone',
+        status: 'SUSPENDED',
+      }),
+      headers: { 'content-type': 'application/json' },
+    }))
+
+    expect(response.status).toBe(200)
+    expect(container.catalogService.createProduct).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'seller-1' }),
+      expect.not.objectContaining({ status: expect.anything() }),
+    )
   })
 
   it('returns stable seller product spec validation errors from service failures', async () => {
@@ -340,7 +358,7 @@ describe('catalog admin category routes', () => {
     vi.mocked(container.catalogService.updateProduct).mockRejectedValueOnce(
       new CatalogServiceError('Product spec value is invalid', 400, 'PRODUCT_SPEC_TYPE_INVALID', { attributeKey: 'weight' }),
     )
-    vi.mocked(container.catalogService.submitProductReview).mockRejectedValueOnce(
+    vi.mocked(container.catalogService.publishProduct).mockRejectedValueOnce(
       new CatalogServiceError('Product attribute does not match an active spec for this category', 400, 'PRODUCT_SPEC_ATTRIBUTE_INVALID', { attributeKey: 'archived_spec' }),
     )
     const app = createApp(container)
@@ -356,14 +374,14 @@ describe('catalog admin category routes', () => {
       body: JSON.stringify({ attributes: [{ attributeKey: 'Weight', displayName: 'Weight', value: 'heavy' }] }),
       headers: { 'content-type': 'application/json' },
     }))
-    const submitResponse = await app.handle(new Request(`http://localhost/api/seller/products/${productId}/submit-review`, { method: 'POST' }))
+    const publishResponse = await app.handle(new Request(`http://localhost/api/seller/products/${productId}/publish`, { method: 'POST' }))
 
     await expect(createResponse.json()).resolves.toMatchObject({ error: { code: 'PRODUCT_SPEC_REQUIRED_MISSING' } })
     await expect(updateResponse.json()).resolves.toMatchObject({ error: { code: 'PRODUCT_SPEC_TYPE_INVALID' } })
-    await expect(submitResponse.json()).resolves.toMatchObject({ error: { code: 'PRODUCT_SPEC_ATTRIBUTE_INVALID' } })
+    await expect(publishResponse.json()).resolves.toMatchObject({ error: { code: 'PRODUCT_SPEC_ATTRIBUTE_INVALID' } })
     expect(createResponse.status).toBe(400)
     expect(updateResponse.status).toBe(400)
-    expect(submitResponse.status).toBe(400)
+    expect(publishResponse.status).toBe(400)
   })
 
   it('routes category-scoped public product filters with parsed attribute filters', async () => {

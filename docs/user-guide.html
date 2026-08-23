@@ -1463,7 +1463,7 @@
             <details class="guide-card searchable" open>
               <summary>
                 <span class="step-number">S3</span>สร้างสินค้า ตัวเลือก รูปภาพ
-                และส่งตรวจ
+                และเผยแพร่
               </summary>
               <div class="card-body">
                 <p class="route">
@@ -1495,12 +1495,12 @@
                     และ variant ที่พร้อมขาย
                   </li>
                   <li>
-                    กด <strong>Submit for review</strong> สินค้าจะเป็น
-                    <code>PENDING_REVIEW</code> รอ Admin อนุมัติ
+                    กด <strong>Publish</strong> สินค้าจะเป็น
+                    <code>ACTIVE</code> และเปิดขายทันที
                   </li>
                   <li>
-                    หากถูก Reject ให้อ่านเหตุผล แก้ข้อมูล แล้วส่งตรวจใหม่;
                     หากไม่ขายแล้วให้ Archive แทนการลบประวัติ
+                    ส่วน Admin ยังระงับสินค้าที่ผิดนโยบายได้
                   </li>
                 </ol>
               </div>
@@ -1727,11 +1727,10 @@
                 <tr>
                   <td>สินค้า</td>
                   <td>
-                    <code>DRAFT</code> / <code>PENDING_REVIEW</code> /
-                    <code>ACTIVE</code> / <code>REJECTED</code> /
+                    <code>DRAFT</code> / <code>ACTIVE</code> /
                     <code>SUSPENDED</code> / <code>ARCHIVED</code>
                   </td>
-                  <td>เตรียมข้อมูล, รอตรวจ, เปิดขาย, แก้ไข หรือหยุดขาย</td>
+                  <td>เตรียมข้อมูล, เปิดขาย, ถูกระงับ หรือหยุดขาย</td>
                 </tr>
                 <tr>
                   <td>Shipment</td>
@@ -1872,7 +1871,7 @@
 
             <details class="guide-card searchable" open>
               <summary>
-                <span class="step-number">M4</span>ตรวจและอนุมัติสินค้า
+                <span class="step-number">M4</span>ตรวจนโยบายและระงับสินค้า
               </summary>
               <div class="card-body">
                 <p class="route">
@@ -1881,17 +1880,12 @@
                 </p>
                 <ol class="steps">
                   <li>
-                    เปิดเมนู <strong>สินค้า</strong> ค่าเริ่มต้นแสดงคิว
-                    <code>PENDING_REVIEW</code>
+                    เปิดเมนู <strong>สินค้า</strong> เพื่อค้นหาสินค้าที่เปิดขาย
+                    หรือถูกระงับ
                   </li>
                   <li>
                     เปิด Detail เพื่อตรวจชื่อ รายละเอียด รูป หมวดหมู่ ราคา
                     variant สต็อก สเปก และ readiness
-                  </li>
-                  <li>หากผ่าน กด <strong>Approve</strong> สินค้าจะเปิดขาย</li>
-                  <li>
-                    หากต้องแก้ กด <strong>Reject</strong> และกรอกเหตุผลที่ชัดเจน
-                    ผู้ขายจะเห็น note นี้
                   </li>
                   <li>
                     หากสินค้าที่เปิดอยู่ฝ่าฝืนนโยบาย กด

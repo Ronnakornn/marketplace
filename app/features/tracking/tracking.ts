@@ -1,6 +1,5 @@
 "use client";
 
-import { v4 as uuidv4 } from "uuid";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { requestApi } from "#/lib/api-client";
 
@@ -63,7 +62,7 @@ export function getAnonymousSessionId(): string {
   if (typeof window === "undefined") return "";
   const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
   if (existing) return existing;
-  const generated = uuidv4();
+  const generated = window.crypto.randomUUID();
   window.localStorage.setItem(SESSION_STORAGE_KEY, generated);
   return generated;
 }

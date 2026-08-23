@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "#/components/JsonLd";
-import {
-  HomeAuthenticatedSection,
-  HomeGuestSection,
-} from "#/features/home";
+import { HomeGuestSection } from "#/features/home/components/HomeGuestSection";
 import { getInitialMarketplaceHome } from "#/features/home/home-data.server";
 import { isLocale } from "#/i18n/config";
 import { createTranslator } from "#/i18n/server";
@@ -30,10 +27,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   ]);
 
   if (session) {
+    const { HomeAuthenticatedSection } = await import("#/features/home/components/HomeAuthenticatedSection");
     return (
       <>
         <JsonLd data={websiteJsonLd()} />
-        <HomeAuthenticatedSection initialHome={initialHome} user={session.user} />
+        <HomeAuthenticatedSection initialHome={initialHome} user={session.user} locale={locale} />
       </>
     );
   }
@@ -41,7 +39,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   return (
     <>
       <JsonLd data={websiteJsonLd()} />
-      <HomeGuestSection initialHome={initialHome} />
+      <HomeGuestSection initialHome={initialHome} locale={locale} />
     </>
   );
 }

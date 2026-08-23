@@ -7,7 +7,7 @@ The Admin domain owns platform operations and exception management.
 - Admin dashboard
 - User management
 - Shop management
-- Product moderation
+- Reactive product policy enforcement
 - Order monitoring
 - Refund/return management
 - Commission management
@@ -26,8 +26,9 @@ The Admin domain owns platform operations and exception management.
 - `GET /api/admin/users`
 - `GET /api/admin/shops`
 - `PATCH /api/admin/shops/:shopId/status`
-- `GET /api/admin/products/moderation`
-- `PATCH /api/admin/products/:productId/moderation`
+- `GET /api/admin/catalog/products`
+- `PATCH /api/admin/catalog/products/:productId/suspend`
+- `PATCH /api/admin/catalog/products/:productId/restore`
 - `GET /api/admin/orders`
 - `GET /api/admin/reports`
 - `GET /api/admin/commissions`

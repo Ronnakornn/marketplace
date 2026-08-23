@@ -1,0 +1,5 @@
+package.json text eol=lf
+bun.lock text eol=lf
+server/modules/security/security.test.ts text eol=lf
+server/plugins/security.plugin.ts text eol=lf
+app/features/chat/components/ChatPages.test.tsx text eol=lf

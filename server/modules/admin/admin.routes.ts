@@ -228,15 +228,6 @@ export function createAdminRoutes(container: ServiceContainer) {
         params: t.Object({ productId: t.String() }),
       },
     )
-    .patch(
-      '/api/admin/products/:productId/status',
-      ({ authContext, params: { productId }, body }: any) => container.adminService.updateProductStatus(adminActor(authContext), productId, body.status),
-      {
-        withRole: 'ADMIN',
-        params: t.Object({ productId: t.String() }),
-        body: StatusBody,
-      },
-    )
     .get('/api/admin/orders', ({ authContext, query }: any) => container.adminService.listOrders(adminActor(authContext), query), {
       withRole: 'ADMIN',
       query: t.Composite([

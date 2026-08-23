@@ -1126,7 +1126,7 @@ describe('CatalogService', () => {
     }))
   })
 
-  it('submit review rejects missing active required specs with stable spec error code', async () => {
+  it('publish rejects missing active required specs with stable spec error code', async () => {
     const repo = createRepoMock()
     const categoryId = '55555555-5555-4555-8555-555555555555'
     const product = createProduct({
@@ -1140,7 +1140,7 @@ describe('CatalogService', () => {
     vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({ id: categoryId, isActive: true, attributeDefinitions: [requiredSpec] })
     const service = new CatalogService(createAppContext(), repo)
 
-    await expect(service.submitProductReview(createActor(), product.id))
+    await expect(service.publishProduct(createActor(), product.id))
       .rejects.toMatchObject({ code: 'PRODUCT_SPEC_REQUIRED_MISSING' })
     expect(repo.updateProduct).not.toHaveBeenCalled()
   })
@@ -1227,7 +1227,7 @@ describe('CatalogService', () => {
     vi.mocked(repo.findProductById).mockResolvedValue(product)
     const service = new CatalogService(createAppContext(), repo)
 
-    await expect(service.updateProduct(createActor(), product.id, { status: 'ACTIVE' })).rejects.toMatchObject({
+    await expect(service.publishProduct(createActor(), product.id)).rejects.toMatchObject({
       status: 400,
       code: 'PRODUCT_PUBLISH_NOT_READY',
     })
@@ -1246,12 +1246,12 @@ describe('CatalogService', () => {
     vi.mocked(repo.updateProduct).mockResolvedValue({ ...product, status: 'ACTIVE' })
     const service = new CatalogService(createAppContext(), repo)
 
-    await service.updateProduct(createActor(), product.id, { status: 'ACTIVE' })
+    await service.publishProduct(createActor(), product.id)
 
     expect(repo.updateProduct).toHaveBeenCalledWith(product.id, { status: 'ACTIVE' })
   })
 
-  it('submit review moves ready draft products to pending review', async () => {
+  it('publishes ready draft products without admin approval', async () => {
     const repo = createRepoMock()
     const product = createProduct({
       ownerId: 'seller-1',
@@ -1261,14 +1261,25 @@ describe('CatalogService', () => {
     product.variants = [createVariant({ productId: product.id, price: BigInt(1299) })]
     vi.mocked(repo.findProductById).mockResolvedValue(product)
     vi.mocked(repo.findCategoryWithSpecs).mockResolvedValue({ id: product.categoryId, isActive: true, attributeDefinitions: [] } as any)
-    vi.mocked(repo.updateProduct).mockResolvedValue({ ...product, status: 'PENDING_REVIEW' })
-    vi.mocked(repo.createModerationAction).mockResolvedValue({} as any)
+    vi.mocked(repo.updateProduct).mockResolvedValue({ ...product, status: 'ACTIVE' })
     const service = new CatalogService(createAppContext(), repo)
 
-    await service.submitProductReview(createActor(), product.id)
+    await service.publishProduct(createActor(), product.id)
 
-    expect(repo.updateProduct).toHaveBeenCalledWith(product.id, { status: 'PENDING_REVIEW' })
-    expect(repo.createModerationAction).toHaveBeenCalledWith(product.id, 'seller-1', 'ESCALATE', 'Submitted for review')
+    expect(repo.updateProduct).toHaveBeenCalledWith(product.id, { status: 'ACTIVE' })
+    expect(repo.createModerationAction).not.toHaveBeenCalled()
+  })
+
+  it('does not let sellers republish an admin-suspended product', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1', status: 'SUSPENDED' })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    const service = new CatalogService(createAppContext(), repo)
+
+    await expect(service.publishProduct(createActor(), product.id)).rejects.toMatchObject({
+      code: 'PRODUCT_PUBLISH_STATUS_INVALID',
+    })
+    expect(repo.updateProduct).not.toHaveBeenCalled()
   })
 
   it('publish readiness requires required category specs and a primary image', async () => {
@@ -1287,7 +1298,7 @@ describe('CatalogService', () => {
     } as any)
     const service = new CatalogService(createAppContext(), repo)
 
-    await expect(service.submitProductReview(createActor(), product.id)).rejects.toMatchObject({
+    await expect(service.publishProduct(createActor(), product.id)).rejects.toMatchObject({
       code: 'PRODUCT_PUBLISH_NOT_READY',
     })
   })
@@ -1306,11 +1317,10 @@ describe('CatalogService', () => {
       isActive: true,
       attributeDefinitions: [],
     } as any)
-    vi.mocked(repo.updateProduct).mockResolvedValue({ ...product, status: 'PENDING_REVIEW' })
-    vi.mocked(repo.createModerationAction).mockResolvedValue({} as any)
+    vi.mocked(repo.updateProduct).mockResolvedValue({ ...product, status: 'ACTIVE' })
     const service = new CatalogService(createAppContext(), repo)
 
-    await expect(service.submitProductReview(createActor(), product.id)).resolves.toMatchObject({ status: 'PENDING_REVIEW' })
+    await expect(service.publishProduct(createActor(), product.id)).resolves.toMatchObject({ status: 'ACTIVE' })
   })
 
   it('creates product images only after seller ownership validation', async () => {
@@ -1766,20 +1776,14 @@ describe('CatalogService', () => {
     })
   })
 
-  it('admin moderation approve, reject, suspend, and restore update status with reasons where required', async () => {
+  it('admin moderation suspends active products and restores suspended products', async () => {
     const repo = createRepoMock()
     const admin = createActor({ id: 'admin-1', role: 'ADMIN' })
-    vi.mocked(repo.findProductById).mockResolvedValueOnce(createProduct({ status: 'PENDING_REVIEW' }))
-    vi.mocked(repo.updateProduct).mockResolvedValueOnce(createProduct({ status: 'ACTIVE' }))
-    vi.mocked(repo.createModerationAction).mockResolvedValue({} as any)
     const service = new CatalogService(createAppContext(), repo)
-
-    await service.approveProduct(admin, '22222222-2222-4222-8222-222222222222')
-    await expect(service.rejectProduct(admin, '22222222-2222-4222-8222-222222222222', { reason: ' ' }))
-      .rejects.toMatchObject({ code: 'PRODUCT_MODERATION_REASON_REQUIRED' })
 
     vi.mocked(repo.findProductById).mockResolvedValueOnce(createProduct({ status: 'ACTIVE' }))
     vi.mocked(repo.updateProduct).mockResolvedValueOnce(createProduct({ status: 'SUSPENDED' }))
+    vi.mocked(repo.createModerationAction).mockResolvedValue({} as any)
     await service.suspendProduct(admin, '22222222-2222-4222-8222-222222222222', { reason: 'Policy' })
 
     vi.mocked(repo.findProductById).mockResolvedValueOnce(createProduct({ status: 'SUSPENDED' }))

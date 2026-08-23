@@ -42,10 +42,8 @@ import {
   useAdminRefundsList,
   useAdminShopsList,
   useAdminUsersList,
-  useApproveCatalogProduct,
   useCreateAdminShop,
   useDeleteAdminShop,
-  useRejectCatalogProduct,
   useRestoreCatalogProduct,
   useSuspendCatalogProduct,
   useUpdateAdminShop,
@@ -335,21 +333,19 @@ export function AdminShopsTable() {
 export function AdminProductsModerationTable() {
   const t = useTranslations();
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState("PENDING_REVIEW");
+  const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
-  const [reasonAction, setReasonAction] = useState<{ type: "reject" | "suspend"; product: AdminCatalogModerationProduct } | null>(null);
+  const [reasonAction, setReasonAction] = useState<AdminCatalogModerationProduct | null>(null);
   const [reason, setReason] = useState("");
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const query = useAdminCatalogModerationList({ page, limit: PAGE_SIZE, status, q: search });
-  const approve = useApproveCatalogProduct();
-  const reject = useRejectCatalogProduct();
   const suspend = useSuspendCatalogProduct();
   const restore = useRestoreCatalogProduct();
   const rows = useMemo(() => (query.data?.data ?? []).filter((product: AdminCatalogModerationProduct) => textMatch([product.title, product.slug, product.shop.name, product.shop.slug, product.status, product.category?.name, product.category?.slug], search)), [query.data, search]);
   const isReasonMissing = Boolean(reasonAction) && reason.trim().length === 0;
-  const pendingProductId = approve.variables ?? restore.variables ?? reject.variables?.id ?? suspend.variables?.id ?? null;
-  const mutationError = approve.error ?? reject.error ?? suspend.error ?? restore.error;
-  const isAnyMutationPending = approve.isPending || reject.isPending || suspend.isPending || restore.isPending;
+  const pendingProductId = restore.variables ?? suspend.variables?.id ?? null;
+  const mutationError = suspend.error ?? restore.error;
+  const isAnyMutationPending = suspend.isPending || restore.isPending;
 
   function closeReasonDialog() {
     setReasonAction(null);
@@ -358,19 +354,10 @@ export function AdminProductsModerationTable() {
 
   function submitReasonAction() {
     if (!reasonAction || !reason.trim()) return;
-    const payload = { id: reasonAction.product.id, reason: reason.trim() };
-    if (reasonAction.type === "reject") {
-      reject.mutate(payload, {
-        onSuccess: () => {
-          setActionMessage(t("admin.productModerationDetail.rejected").replace("{title}", reasonAction.product.title));
-          closeReasonDialog();
-        },
-      });
-      return;
-    }
+    const payload = { id: reasonAction.id, reason: reason.trim() };
     suspend.mutate(payload, {
       onSuccess: () => {
-        setActionMessage(t("admin.productModerationDetail.suspended").replace("{title}", reasonAction.product.title));
+        setActionMessage(t("admin.productModerationDetail.suspended").replace("{title}", reasonAction.title));
         closeReasonDialog();
       },
     });
@@ -453,9 +440,7 @@ export function AdminProductsModerationTable() {
                       <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100">
                         <Link href={`/admin/products/${product.id}`}>{t("admin.ui.detail")}</Link>
                       </Button>
-                      <Button size="sm" variant="outline" className="border-emerald-400/30 bg-emerald-500/10 text-emerald-100" disabled={isAnyMutationPending || product.status !== "PENDING_REVIEW"} onClick={() => approve.mutate(product.id, { onSuccess: () => setActionMessage(t("admin.productModerationDetail.approved").replace("{title}", product.title)) })}>{isRowPending && approve.isPending ? t("admin.productModerationDetail.approving") : t("admin.ui.approve")}</Button>
-                      <Button size="sm" variant="outline" className="border-amber-400/30 bg-amber-500/10 text-amber-100" disabled={isAnyMutationPending || product.status !== "PENDING_REVIEW"} onClick={() => setReasonAction({ type: "reject", product })}>{t("admin.ui.reject")}</Button>
-                      <Button size="sm" variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isAnyMutationPending || product.status === "SUSPENDED"} onClick={() => setReasonAction({ type: "suspend", product })}>{t("admin.ui.suspend")}</Button>
+                      <Button size="sm" variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isAnyMutationPending || product.status !== "ACTIVE"} onClick={() => setReasonAction(product)}>{t("admin.ui.suspend")}</Button>
                       <Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isAnyMutationPending || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setActionMessage(t("admin.productModerationDetail.restored").replace("{title}", product.title)) })}>{isRowPending && restore.isPending ? t("admin.productModerationDetail.restoring") : t("admin.productModerationDetail.restore")}</Button>
                     </div>
                   </TableCell>
@@ -468,9 +453,9 @@ export function AdminProductsModerationTable() {
         <AlertDialog open={Boolean(reasonAction)} onOpenChange={(open) => { if (!open) closeReasonDialog(); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{t(reasonAction?.type === "reject" ? "admin.productModerationDetail.rejectProduct" : "admin.productModerationDetail.suspendProduct")}</AlertDialogTitle>
+              <AlertDialogTitle>{t("admin.productModerationDetail.suspendProduct")}</AlertDialogTitle>
               <AlertDialogDescription>
-                {t("admin.operations.moderationDescription").replace("{title}", reasonAction?.product.title ?? "-")}
+                {t("admin.operations.moderationDescription").replace("{title}", reasonAction?.title ?? "-")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-2">
@@ -487,8 +472,8 @@ export function AdminProductsModerationTable() {
             <AlertDialogFooter>
               <AlertDialogCancel>{t("admin.ui.cancel")}</AlertDialogCancel>
               <AlertDialogAction asChild>
-                <Button variant={reasonAction?.type === "reject" ? "default" : "destructive"} disabled={!reasonAction || reason.trim().length === 0 || reject.isPending || suspend.isPending} onClick={submitReasonAction}>
-                  {reject.isPending || suspend.isPending ? t("admin.productModerationDetail.submitting") : t(reasonAction?.type === "reject" ? "admin.ui.reject" : "admin.ui.suspend")}
+                <Button variant="destructive" disabled={!reasonAction || reason.trim().length === 0 || suspend.isPending} onClick={submitReasonAction}>
+                  {suspend.isPending ? t("admin.productModerationDetail.submitting") : t("admin.ui.suspend")}
                 </Button>
               </AlertDialogAction>
             </AlertDialogFooter>

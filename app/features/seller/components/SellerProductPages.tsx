@@ -46,7 +46,7 @@ import {
   useSellerProduct,
   useSellerProductQuestions,
   useSellerProducts,
-  useSubmitSellerProductReview,
+  usePublishSellerProduct,
   useUpdateSellerProductImagesOrder,
   useUpdateSellerProductImage,
   useUpdateSellerProductOptions,
@@ -715,7 +715,6 @@ function toProductInput(form: ProductFormState): SellerProductInput {
     title: form.title.trim(),
     slug: form.slug.trim() || undefined,
     description: optionalText(form.description),
-    status: form.status,
     categoryId: optionalText(form.categoryId),
     brandId: optionalText(form.brandId),
     titleTh: optionalText(form.titleTh),
@@ -1096,7 +1095,6 @@ export function SellerProductCreatePage() {
     createProduct.mutate(
       {
         title: t("seller.editor.untitledDraft"),
-        status: "DRAFT",
       },
       {
         onSuccess: (product) => {
@@ -1125,7 +1123,7 @@ export function SellerProductCreatePage() {
               <Button type="button" variant="outline" onClick={() => {
                 setError("");
                 createProduct.mutate(
-                  { title: t("seller.editor.untitledDraft"), status: "DRAFT" },
+                  { title: t("seller.editor.untitledDraft") },
                   {
                     onSuccess: (product) => router.push(`/seller/products/${product.id}`),
                     onError: (mutationError: unknown) => setError(mutationError instanceof Error ? mutationError.message : t("seller.editor.error.draftCreate")),
@@ -1177,7 +1175,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const uploadVideo = useUploadAndUpsertSellerProductVideo();
   const deleteVideo = useDeleteSellerProductVideo();
   const updateOptions = useUpdateSellerProductOptions();
-  const submitReview = useSubmitSellerProductReview();
+  const publishProduct = usePublishSellerProduct();
   const product = mode === "edit" ? (productQuery.data ?? (productsQuery.data?.data ?? []).find((item) => item.id === productId)) : null;
   const initialForm = useMemo(() => product ? productToForm(product) : emptyProductForm, [product]);
   const [form, setForm] = useState<ProductFormState>(initialForm);
@@ -1240,7 +1238,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const moderationReason = getLatestModerationReason(workingProduct);
   const currentStudioSnapshot = createProductStudioBaseline(form, images, video, variants, options);
   const dirty = JSON.stringify(currentStudioSnapshot) !== JSON.stringify(baseline);
-  const isSaving = createProduct.isPending || updateProduct.isPending || createVariant.isPending || updateVariant.isPending || updateVariantStock.isPending || uploadImage.isPending || updateImage.isPending || updateImageOrder.isPending || deleteImage.isPending || uploadVideo.isPending || deleteVideo.isPending || deleteVariant.isPending || updateOptions.isPending || submitReview.isPending;
+  const isSaving = createProduct.isPending || updateProduct.isPending || createVariant.isPending || updateVariant.isPending || updateVariantStock.isPending || uploadImage.isPending || updateImage.isPending || updateImageOrder.isPending || deleteImage.isPending || uploadVideo.isPending || deleteVideo.isPending || deleteVariant.isPending || updateOptions.isPending || publishProduct.isPending;
   const saveState = isSaving ? t("seller.editor.saving") : dirty ? t("seller.editor.unsaved") : t("seller.editor.saved");
 
   useEffect(() => {
@@ -1394,7 +1392,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     });
   }
 
-  function submitForReview() {
+  function publishListing() {
     setFormError("");
     if (!workingProductId) {
       setFormError(t("seller.editor.error.draftBeforeReview"));
@@ -1408,8 +1406,13 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       setVariantError(duplicateCombinationError);
       return;
     }
-    submitReview.mutate(workingProductId, {
-      onSuccess: () => toast.success(t("seller.editor.success.reviewSubmitted")),
+    publishProduct.mutate(workingProductId, {
+      onSuccess: (savedProduct) => {
+        const savedForm = productToForm(savedProduct);
+        setForm(savedForm);
+        setBaseline((current) => ({ ...current, form: savedForm }));
+        toast.success(t("seller.editor.success.reviewSubmitted"));
+      },
       onError: (error: unknown) => setFormError(error instanceof Error ? error.message : t("seller.editor.error.reviewSubmit")),
     });
   }
@@ -1816,8 +1819,8 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
         productStatus={form.status}
         saveState={saveState}
         isSaving={isSaving}
-        canSubmitReview={Boolean(workingProductId) && readinessMissing.length === 0 && !duplicateCombinationError && form.status !== "PENDING_REVIEW"}
-        onSubmitReview={submitForReview}
+        canPublish={Boolean(workingProductId) && readinessMissing.length === 0 && !duplicateCombinationError && !["ACTIVE", "SUSPENDED", "PENDING_REVIEW"].includes(form.status)}
+        onPublish={publishListing}
         onCancel={cancel}
       />
       <ProductStudioNav />
@@ -1866,17 +1869,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                 </Select>
               </Field>
               <Field label={t("seller.products.labels.status")} htmlFor="product-status">
-                <Select name="status" value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as ProductStatus }))}>
-                  <SelectTrigger id="product-status"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DRAFT">{t("seller.products.statusDraft" as never)}</SelectItem>
-                    <SelectItem value="PENDING_REVIEW">{t("seller.products.statusPendingReview" as never)}</SelectItem>
-                    <SelectItem value="ACTIVE">{t("seller.manage.status.active")}</SelectItem>
-                    <SelectItem value="REJECTED">{t("seller.manage.status.rejected")}</SelectItem>
-                    <SelectItem value="SUSPENDED">{t("seller.products.suspended")}</SelectItem>
-                    <SelectItem value="ARCHIVED">{t("seller.products.archivedStatus")}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div id="product-status" className="flex h-10 items-center"><StatusPill value={form.status} /></div>
               </Field>
             </div>
             {!form.categoryId ? <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{t("seller.products.editorActions.chooseCategory" as never)}</p> : null}
@@ -2232,9 +2225,9 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
               <p className="text-sm text-green-700">{t("seller.products.reviewSetupReady" as never)}</p>
             )}
             {duplicateCombinationError ? <p role="alert" className="text-sm text-red-600">{duplicateCombinationError}</p> : null}
-            <Button type="button" variant="outline" onClick={submitForReview} disabled={isSaving || readinessMissing.length > 0 || Boolean(duplicateCombinationError) || form.status === "PENDING_REVIEW"}>
+            <Button type="button" variant="outline" onClick={publishListing} disabled={isSaving || readinessMissing.length > 0 || Boolean(duplicateCombinationError) || ["ACTIVE", "SUSPENDED", "PENDING_REVIEW"].includes(form.status)}>
               <SendIcon className="size-4" />
-              {submitReview.isPending ? t("seller.products.submitting") : t("seller.products.submitForReview" as never)}
+              {publishProduct.isPending ? t("seller.products.submitting") : t("seller.products.submitForReview" as never)}
             </Button>
           </ProductSection>
           {formError ? <p id="product-form-error" role="alert" className="text-sm text-red-600">{formError}</p> : null}
@@ -2267,16 +2260,16 @@ function ProductStudioHeader({
   productStatus,
   saveState,
   isSaving,
-  canSubmitReview,
-  onSubmitReview,
+  canPublish,
+  onPublish,
   onCancel,
 }: {
   productTitle: string;
   productStatus: ProductStatus;
   saveState: string;
   isSaving: boolean;
-  canSubmitReview: boolean;
-  onSubmitReview: () => void;
+  canPublish: boolean;
+  onPublish: () => void;
   onCancel: () => void;
 }) {
   const t = useTranslations();
@@ -2296,7 +2289,7 @@ function ProductStudioHeader({
             <SaveIcon className="size-4" />
             {isSaving ? t("seller.editor.saving") : t("seller.editor.saveDraft")}
           </Button>
-          <Button type="button" variant="outline" onClick={onSubmitReview} disabled={isSaving || !canSubmitReview}>
+          <Button type="button" variant="outline" onClick={onPublish} disabled={isSaving || !canPublish}>
             <SendIcon className="size-4" />
             {t("seller.editor.submitReview")}
           </Button>

@@ -3,7 +3,7 @@ import { ResetPasswordForm } from "#/features/auth";
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<div className="page-wrap auth-page flex min-h-screen items-center justify-center">Loading...</div>}>
       <ResetPasswordForm />
     </Suspense>
   );

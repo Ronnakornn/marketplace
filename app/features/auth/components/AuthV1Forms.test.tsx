@@ -39,6 +39,16 @@ describe("Auth v1 forms", () => {
     vi.clearAllMocks();
   });
 
+  it.each([
+    ["verify email", VerifyEmailForm],
+    ["forgot password", ForgotPasswordForm],
+  ])("uses the shared auth theme for %s", (_name, Form) => {
+    render(<Form />);
+
+    expect(document.querySelector(".auth-page")).toBeTruthy();
+    expect(document.querySelector(".auth-card")).toBeTruthy();
+  });
+
   it("preserves OTP form input and shows verification errors", async () => {
     vi.mocked(verifyEmailOtp).mockRejectedValue(new Error("Invalid or expired verification code"));
     render(<VerifyEmailForm />);

@@ -152,7 +152,7 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
                 {t("buyer.sellerChat")}
               </Link>
             ) : null}
-            <Link href={localePath("/profile")} prefetch={prefetchLinks} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+            <Link aria-label={t("common.profile")} href={localePath("/profile")} prefetch={prefetchLinks} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
               <UserCircleIcon className="size-5" />
              
             </Link>
@@ -191,7 +191,7 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
       </div>
       <div className="mx-auto mt-1 flex max-w-6xl items-center justify-between gap-2 px-1">
         <p className="min-w-0 truncate text-xs font-semibold text-orange-700">{title ?? t("common.marketplace")}</p>
-        <LanguageSwitcher />
+        <LanguageSwitcher prefetch={prefetchLinks} />
       </div>
     </header>
   );

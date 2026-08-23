@@ -12,7 +12,7 @@ const localeLabels: Record<Locale, string> = {
   en: "EN",
 };
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ prefetch = true }: { prefetch?: boolean }) {
   const locale = useLocale();
   const pathname = usePathname();
   const t = useTranslations();
@@ -28,6 +28,7 @@ export function LanguageSwitcher() {
         <Link
           key={targetLocale}
           href={`${withLocale(pathname, targetLocale)}${queryString ? `?${queryString}` : ""}`}
+          prefetch={prefetch}
           className={cn(
             "rounded-full px-2 py-1 text-xs font-bold no-underline transition",
             locale === targetLocale

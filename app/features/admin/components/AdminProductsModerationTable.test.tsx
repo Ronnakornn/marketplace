@@ -13,8 +13,6 @@ function renderPage() {
   return render(<I18nProvider locale="en" messages={enMessages} fallbackMessages={enMessages}><AdminProductsModerationTable /></I18nProvider>);
 }
 
-const approveMutate = vi.fn();
-const rejectMutate = vi.fn();
 const suspendMutate = vi.fn();
 const restoreMutate = vi.fn();
 
@@ -23,7 +21,7 @@ const product = {
   title: "Cotton Shirt",
   slug: "cotton-shirt",
   description: "Soft shirt",
-  status: "PENDING_REVIEW",
+  status: "ACTIVE",
   createdAt: "2026-05-21T08:00:00.000Z",
   updatedAt: "2026-05-22T08:00:00.000Z",
   category: { id: "cat_1", name: "Fashion", slug: "fashion" },
@@ -107,8 +105,6 @@ vi.mock("../hooks/useAdminOperations", () => ({
     error: null,
     refetch: vi.fn(),
   }),
-  useApproveCatalogProduct: () => ({ mutate: approveMutate, isPending: false, error: null, variables: null }),
-  useRejectCatalogProduct: () => ({ mutate: rejectMutate, isPending: false, error: null, variables: null }),
   useSuspendCatalogProduct: () => ({ mutate: suspendMutate, isPending: false, error: null, variables: null }),
   useRestoreCatalogProduct: () => ({ mutate: restoreMutate, isPending: false, error: null, variables: null }),
   useAdminAffiliatesList: vi.fn(),
@@ -131,31 +127,11 @@ afterEach(() => {
 });
 
 describe("AdminProductsModerationTable", () => {
-  it("requires a reject reason before submitting moderation action", async () => {
+  it("requires a suspend reason before submitting moderation action", async () => {
     renderPage();
 
     expect(screen.getByText("Cotton Shirt")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Detail" }).getAttribute("href")).toBe("/admin/products/prod_1");
-
-    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
-
-    const dialogRejectButton = screen.getAllByRole("button", { name: "Reject" }).at(-1)!;
-    expect(dialogRejectButton).toHaveProperty("disabled", true);
-    expect(screen.getByText("Reason is required.")).toBeTruthy();
-
-    fireEvent.change(screen.getByLabelText("Reason"), { target: { value: "Missing safety documentation." } });
-
-    await waitFor(() => expect(dialogRejectButton).toHaveProperty("disabled", false));
-    fireEvent.click(dialogRejectButton);
-
-    expect(rejectMutate).toHaveBeenCalledWith(
-      { id: "prod_1", reason: "Missing safety documentation." },
-      expect.objectContaining({ onSuccess: expect.any(Function) }),
-    );
-  });
-
-  it("requires a suspend reason before submitting moderation action", async () => {
-    renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "Suspend" }));
 

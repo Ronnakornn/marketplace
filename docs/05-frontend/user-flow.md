@@ -294,7 +294,7 @@ Admin journey:
 - Dashboard
 - User Management
 - Shop Management
-- Product Moderation
+- Product Policy Monitoring
 - Order Monitoring
 - Refund/Return Management
 - Commission Management
@@ -303,14 +303,14 @@ Admin journey:
 Admin UX expectations:
 - Dashboard highlights operational exceptions.
 - Admin can inspect users, shops, products, orders, refunds, and reports.
-- Product moderation should prioritize flagged or newly submitted products.
+- Product policy monitoring should prioritize flagged active products.
 - Order monitoring should make payment/shipment failures visible quickly.
 
 ```mermaid
 flowchart TD
   A[Admin Dashboard] --> B[User Management]
   A --> C[Shop Management]
-  A --> D[Product Moderation]
+  A --> D[Product Policy Monitoring]
   A --> E[Order Monitoring]
   A --> F[Refund/Return Management]
   A --> G[Commission Management]
@@ -439,7 +439,7 @@ Admin routes:
 - `/admin` - Admin dashboard.
 - `/admin/users` - User management.
 - `/admin/shops` - Shop approval and suspension.
-- `/admin/products` - Product moderation.
+- `/admin/products` - Product policy monitoring and enforcement.
 - `/admin/orders` - Order monitoring.
 - `/admin/refunds` - Refund/return management.
 - `/admin/commissions` - Commission configuration.
@@ -536,8 +536,8 @@ System/API-only callbacks:
 - **Shop Management**
   - Sections: pending shops, active shops, suspended shops, verification detail.
 
-- **Product Moderation**
-  - Sections: flagged products, new submissions, moderation decision panel.
+- **Product Policy Monitoring**
+  - Sections: flagged products, active listings, suspension decision panel.
 
 - **Order Monitoring**
   - Sections: order search, payment status, shipment status, exception filters.
@@ -794,11 +794,14 @@ Implementation rules:
 - `PATCH /api/admin/shops/:shopId/status`
   - Updates shop status.
 
-- `GET /api/admin/products/moderation`
-  - Returns: flagged/pending products.
+- `GET /api/admin/catalog/products`
+  - Returns: products for reactive policy monitoring.
 
-- `PATCH /api/admin/products/:productId/moderation`
-  - Body: approve/reject/reason.
+- `PATCH /api/admin/catalog/products/:productId/suspend`
+  - Body: reason.
+
+- `PATCH /api/admin/catalog/products/:productId/restore`
+  - Restores a suspended product after remediation.
 
 - `GET /api/admin/orders`
   - Query: status, paymentStatus, shipmentStatus, q.

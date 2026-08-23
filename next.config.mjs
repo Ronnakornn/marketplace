@@ -1,5 +1,6 @@
 const staticAssetCacheControl = 'public, max-age=31536000, immutable'
 const publicImageCacheControl = 'public, max-age=604800, stale-while-revalidate=86400'
+const manifestCacheControl = 'public, max-age=86400, stale-while-revalidate=604800'
 const noStoreCacheControl = 'no-store'
 const isProduction = process.env.NODE_ENV === 'production'
 const enforceHttps = isProduction && process.env.ALLOW_INSECURE_HTTP !== 'true'
@@ -102,6 +103,10 @@ const nextConfig = {
         headers: securityHeaders,
       },
       ...productionStaticHeaders,
+      {
+        source: '/manifest.webmanifest',
+        headers: [{ key: 'Cache-Control', value: manifestCacheControl }],
+      },
       {
         source: '/uploads/:path*',
         headers: [{ key: 'Cache-Control', value: publicImageCacheControl }],

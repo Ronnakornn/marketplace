@@ -445,7 +445,7 @@ Purpose: help sellers act on operational priorities quickly.
 ├──────────────────────────────┤
 │ Alert: low-stock variants    │
 ├──────────────────────────────┤
-│ Product/moderation status    │
+│ Product/listing status       │
 ├──────────────────────────────┤
 │ Seller mobile nav            │
 └──────────────────────────────┘

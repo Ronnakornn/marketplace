@@ -252,10 +252,11 @@ async function ensureCredentialAccount(prisma: Prisma, userId: string) {
         accountId: userId,
       },
     },
-    update: { userId, password },
+    update: { userId, password, issuer: "local:credential" },
     create: {
       userId,
       providerId: "credential",
+      issuer: "local:credential",
       accountId: userId,
       password,
     },

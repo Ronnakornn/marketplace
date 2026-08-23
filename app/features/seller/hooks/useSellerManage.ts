@@ -87,7 +87,6 @@ export interface SellerProductInput {
   description?: string | null;
   descriptionTh?: string | null;
   descriptionEn?: string | null;
-  status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
   categoryId?: string | null;
   brandId?: string | null;
   metaTitle?: string | null;
@@ -444,9 +443,9 @@ export function useCreateSellerProduct() {
       if (error) throw error;
       return data;
     },
-    onSuccess: async (_data, variables) => {
+    onSuccess: async () => {
       await invalidateProductMutationQueries(queryClient, {
-        affectsPublic: variables.status === "ACTIVE",
+        affectsPublic: false,
         affectsAffiliateTargets: true,
       });
     },
@@ -707,18 +706,19 @@ export function useUpdateSellerProductOptions() {
   });
 }
 
-export function useSubmitSellerProductReview() {
+export function usePublishSellerProduct() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (productId: string) => {
-      const { data, error } = await api.api.seller.products({ productId })["submit-review"].post();
+      const { data, error } = await api.api.seller.products({ productId }).publish.post();
       if (error) throw error;
       return data;
     },
     onSuccess: async (_data, productId) => {
       await invalidateProductMutationQueries(queryClient, {
         productId,
-        affectsPublic: false,
+        affectsPublic: true,
+        affectsAffiliateTargets: true,
       });
     },
   });

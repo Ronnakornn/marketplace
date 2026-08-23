@@ -1,5 +1,7 @@
 "use client";
 
+import "../styles.css";
+
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type enMessages from "../../messages/en.json";
 import type { Locale } from "./config";

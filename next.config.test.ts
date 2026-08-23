@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import config, { allowedDevOrigins, imageRemotePatterns } from "./next.config.mjs";
 
 const originalEnv = { ...process.env };
@@ -62,6 +62,20 @@ describe("Next CDN and cache config", () => {
         headers: expect.arrayContaining([
           { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
         ]),
+      }),
+    ]));
+  });
+
+  it("caches the PWA manifest while allowing timely refreshes", async () => {
+    process.env = { ...process.env, NODE_ENV: "production" };
+    vi.resetModules();
+    const productionConfig = (await import("./next.config.mjs")).default;
+    const headers = await productionConfig.headers!();
+
+    expect(headers).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        source: "/manifest.webmanifest",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
       }),
     ]));
   });

@@ -51,8 +51,9 @@ Seller manage is the shop-scoped backoffice for sellers. It covers daily operati
 ### Products
 
 - Uses seller catalog APIs under `/api/seller/products`.
-- Supports list, search, status filters, create/edit product, archive product, and variant create/edit/delete.
-- Product moderation status must be visible.
+- Supports list, search, status filters, create/edit product, publish/archive product, and variant create/edit/delete.
+- A seller may publish a complete draft directly; admin product approval is not required.
+- A seller cannot publish an admin-suspended product.
 
 ### Inventory
 

@@ -60,7 +60,6 @@ function createRepoMock(): IAdminRepository {
     deleteShop: vi.fn(),
     listProducts: vi.fn(),
     findProductById: vi.fn(),
-    updateProductStatus: vi.fn(),
     listOrders: vi.fn(),
     findOrderById: vi.fn(),
     listRefunds: vi.fn(),
@@ -475,14 +474,10 @@ describe('AdminService', () => {
     expect(repo.deleteShop).toHaveBeenCalledWith('shop-1')
   })
 
-  it('lists products and updates product status', async () => {
+  it('lists products with status filters', async () => {
     vi.mocked(repo.listProducts).mockResolvedValue({ items: [product()], total: 1 })
-    vi.mocked(repo.findProductById).mockResolvedValue(product())
-    vi.mocked(repo.updateProductStatus).mockResolvedValue(product({ status: 'ARCHIVED' }))
-
     await service.listProducts(actor(), { status: 'ACTIVE' })
     expect(repo.listProducts).toHaveBeenCalledWith({ status: 'ACTIVE' }, { page: 1, limit: 20 })
-    await expect(service.updateProductStatus(actor(), 'product-1', 'ARCHIVED')).resolves.toMatchObject({ status: 'ARCHIVED' })
   })
 
   it('lists and gets orders with status filters', async () => {

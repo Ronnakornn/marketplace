@@ -20,7 +20,7 @@ export type AdminShopsResponse = Treaty.Data<ReturnType<typeof api.api.admin.sho
 export type AdminShop = AdminShopsResponse extends { items: Array<infer T> } ? T : never;
 export type AdminProductsResponse = Treaty.Data<ReturnType<typeof api.api.admin.products.get>>;
 export type AdminProduct = AdminProductsResponse extends { items: Array<infer T> } ? T : never;
-export type AdminCatalogModerationResponse = Treaty.Data<ReturnType<typeof api.api.admin.catalog.products.moderation.get>>;
+export type AdminCatalogModerationResponse = Treaty.Data<ReturnType<typeof api.api.admin.catalog.products.get>>;
 export type AdminCatalogModerationProduct = AdminCatalogModerationResponse extends { data: Array<infer T> } ? T : never;
 export type AdminModerationReviewsResponse = Treaty.Data<ReturnType<(typeof api.api.admin)["content-moderation"]["reviews"]["get"]>>;
 export type AdminModerationReview = AdminModerationReviewsResponse extends { items: Array<infer T> } ? T : never;
@@ -168,7 +168,7 @@ export function useAdminCatalogModerationList(filters: AdminListFilters & { q?: 
   return useQuery({
     queryKey: ["admin", "catalog", "moderation", query],
     queryFn: async () => {
-      const { data, error } = await api.api.admin.catalog.products.moderation.get({ query });
+      const { data, error } = await api.api.admin.catalog.products.get({ query });
       if (error) throw error;
       return data;
     },
@@ -409,58 +409,6 @@ export function useDeleteAdminShop() {
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
-  });
-}
-
-export function useUpdateProductStatus() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { data, error } = await api.api.admin.products({ productId: id }).status.patch({ status });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: async (_data, variables) => {
-      await invalidateProductMutationQueries(queryClient, {
-        productId: variables.id,
-        affectsPublic: true,
-        affectsAffiliateTargets: true,
-      });
-    },
-  });
-}
-
-export function useApproveCatalogProduct() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await api.api.admin.catalog.products({ productId: id }).approve.patch();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: async (data) => {
-      await invalidateProductMutationQueries(queryClient, {
-        productId: data.id,
-        affectsPublic: true,
-        affectsAffiliateTargets: true,
-      });
-      await queryClient.invalidateQueries({ queryKey: ["admin", "catalog", "moderation"] });
-    },
-  });
-}
-
-export function useRejectCatalogProduct() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-      const { data, error } = await api.api.admin.catalog.products({ productId: id }).reject.patch({ reason });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: async (data) => {
-      await invalidateProductMutationQueries(queryClient, { productId: data.id });
-      await queryClient.invalidateQueries({ queryKey: ["admin", "catalog", "moderation"] });
-    },
   });
 }
 

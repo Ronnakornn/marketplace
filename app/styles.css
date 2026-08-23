@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -39,7 +38,7 @@
 }
 
 @theme {
-  --font-sans: var(--font-noto-sans-thai), sans-serif;
+  --font-sans: "Leelawadee UI", Tahoma, Arial, sans-serif;
 }
 
 :root {
@@ -357,7 +356,7 @@ pre code {
 /* Auth surfaces stay light even when user selects the global dark theme. */
 
 .display-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-fraunces), Georgia, serif;
 }
 
 .island-shell {

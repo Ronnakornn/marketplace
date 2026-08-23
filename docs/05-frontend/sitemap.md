@@ -114,7 +114,7 @@ flowchart TD
 | `/admin` | Admin | Admin dashboard with operational exceptions | Review exceptions | Admin sidebar |
 | `/admin/users` | Admin | Customer and system user management | Update role/status | Admin sidebar |
 | `/admin/shops` | Admin | Seller application review, shop approval, suspension | Approve / Reject / Suspend | Admin sidebar |
-| `/admin/products` | Admin | Product moderation queue | Approve / Reject | Admin sidebar |
+| `/admin/products` | Admin | Product policy monitoring | Suspend / Restore | Admin sidebar |
 | `/admin/orders` | Admin | Order, payment, shipment monitoring | Inspect order | Admin sidebar |
 | `/admin/refunds` | Admin | Refund and return escalation queue | Decide case | Admin sidebar |
 | `/admin/commissions` | Admin | Commission configuration | Save rate | Admin sidebar |

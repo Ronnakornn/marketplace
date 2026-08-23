@@ -222,7 +222,6 @@ export interface IAdminRepository {
   deleteShop(shopId: string): Promise<AdminShopRecord>
   listProducts(filters: { status?: ProductStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminProductRecord>>
   findProductById(productId: string): Promise<AdminProductRecord | null>
-  updateProductStatus(productId: string, status: ProductStatus): Promise<AdminProductRecord>
   listOrders(
     filters: { status?: OrderStatus; shopId?: string; paymentState?: 'PENDING' | 'FAILED'; shipmentState?: 'DELAYED' },
     pagination: AdminPaginationInput,
@@ -862,10 +861,6 @@ export class PrismaAdminRepository implements IAdminRepository {
 
   findProductById(productId: string): Promise<AdminProductRecord | null> {
     return this.prisma.product.findUnique({ where: { id: productId }, include: productInclude })
-  }
-
-  updateProductStatus(productId: string, status: ProductStatus): Promise<AdminProductRecord> {
-    return this.prisma.product.update({ where: { id: productId }, data: { status }, include: productInclude })
   }
 
   listOrders(

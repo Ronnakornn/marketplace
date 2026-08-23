@@ -81,8 +81,8 @@ vi.mock("#/components/ui/alert-dialog", () => ({
 }));
 
 vi.mock("#/components/ui/button", () => ({
-  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) => (
-    <button {...props}>{children}</button>
+  Button: ({ children, asChild, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean; children: ReactNode }) => (
+    asChild ? <>{children}</> : <button {...props}>{children}</button>
   ),
 }));
 
@@ -203,6 +203,17 @@ describe("admin seller application queue smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Approve$/i }));
 
     expect(mutate).toHaveBeenCalledWith({ id: "app_1", decision: "APPROVED" });
+  });
+
+  it("does not forward composition-only Button props to the DOM", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    render(<AdminSellerApplicationsTable />);
+
+    expect(
+      consoleError.mock.calls.some(([message]) => String(message).includes("React does not recognize the `asChild` prop")),
+    ).toBe(false);
+    consoleError.mockRestore();
   });
 
   it("requires a rejection reason before rejecting", async () => {

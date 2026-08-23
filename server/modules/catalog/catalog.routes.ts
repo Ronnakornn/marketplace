@@ -176,7 +176,7 @@ const LocalizedVariantFieldsSchema = t.Object({
 })
 
 const CreateProductBodySchema = t.Composite([
-  t.Pick(ProductPlainInputCreate, ['title', 'description', 'status']),
+  t.Pick(ProductPlainInputCreate, ['title', 'description']),
   LocalizedProductFieldsSchema,
   ProductEnrichmentFieldsSchema,
   t.Object({
@@ -188,7 +188,7 @@ const CreateProductBodySchema = t.Composite([
 ])
 
 const UpdateProductBodySchema = t.Partial(t.Composite([
-  t.Pick(ProductPlainInputUpdate, ['title', 'slug', 'description', 'status']),
+  t.Pick(ProductPlainInputUpdate, ['title', 'slug', 'description']),
   LocalizedProductFieldsSchema,
   ProductEnrichmentFieldsSchema,
   t.Object({
@@ -532,9 +532,10 @@ export function createCatalogRoutes(container: ServiceContainer) {
       withAuth: true,
       params: ProductParamsSchema,
     })
-    .post('/api/seller/products/:productId/submit-review', ({ authContext, params }: any) =>
-      container.catalogService.submitProductReview(authContext.user, params.productId), {
+    .post('/api/seller/products/:productId/publish', ({ authContext, params }: any) =>
+      container.catalogService.publishProduct(authContext.user, params.productId), {
       withAuth: true,
+      withSellerOperational: true,
       params: ProductParamsSchema,
     })
     .get('/api/admin/catalog/products', ({ query }: any) =>
@@ -550,22 +551,6 @@ export function createCatalogRoutes(container: ServiceContainer) {
         sort: query.sort,
         cursor: query.cursor,
         page: query.page,
-        limit: query.limit,
-      }), {
-      withRole: 'ADMIN',
-      query: SellerListQuerySchema,
-    })
-    .get('/api/admin/catalog/products/moderation', ({ query }: any) =>
-      container.catalogService.listModerationProducts({
-        keyword: query.keyword ?? query.q,
-        categoryId: query.categoryId,
-        brandId: query.brandId,
-        attributes: parseAttributeFilters(query.attributeFilters),
-        shopId: query.shopId,
-        status: query.status,
-        minPrice: query.minPrice ?? query.minPrice,
-        maxPrice: query.maxPrice ?? query.maxPrice,
-        cursor: query.cursor,
         limit: query.limit,
       }), {
       withRole: 'ADMIN',
@@ -598,17 +583,6 @@ export function createCatalogRoutes(container: ServiceContainer) {
       container.catalogService.deleteAdminVariant(params.productId, params.variantId), {
       withRole: 'ADMIN',
       params: ProductVariantParamsSchema,
-    })
-    .patch('/api/admin/catalog/products/:productId/approve', ({ authContext, params }: any) =>
-      container.catalogService.approveProduct(authContext.user, params.productId), {
-      withRole: 'ADMIN',
-      params: ProductParamsSchema,
-    })
-    .patch('/api/admin/catalog/products/:productId/reject', ({ authContext, params, body }: any) =>
-      container.catalogService.rejectProduct(authContext.user, params.productId, body), {
-      withRole: 'ADMIN',
-      params: ProductParamsSchema,
-      body: ModerationReasonBodySchema,
     })
     .patch('/api/admin/catalog/products/:productId/suspend', ({ authContext, params, body }: any) =>
       container.catalogService.suspendProduct(authContext.user, params.productId, body), {
