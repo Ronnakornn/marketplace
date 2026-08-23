@@ -22,6 +22,7 @@ export const StorefrontResponseSchema = t.Object({
 }, { additionalProperties: false })
 
 const OptionalLocalizedTextSchema = t.Optional(t.Union([t.String({ maxLength: 5000 }), t.Null()]))
+const ShippingFeeBahtSchema = t.Optional(t.Number({ minimum: 0, maximum: 100000 }))
 
 const UpdateShopProfileBodySchema = t.Intersect([t.Partial(t.Pick(ShopPlainInputUpdate, [
   'name',
@@ -51,6 +52,7 @@ const UpdateShopSettingsBodySchema = t.Intersect([t.Partial(t.Pick(ShopSettingPl
   returnPolicyEn: OptionalLocalizedTextSchema,
   shippingPolicyTh: OptionalLocalizedTextSchema,
   shippingPolicyEn: OptionalLocalizedTextSchema,
+  shippingFeeBaht: ShippingFeeBahtSchema,
 })])
 
 function actor(authContext: any) {

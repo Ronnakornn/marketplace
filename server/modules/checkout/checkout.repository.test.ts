@@ -61,9 +61,9 @@ describe('PrismaCheckoutRepository', () => {
       totals: {
         subtotal: 2400,
         discountTotal: 0,
-        shippingTotal: 0,
+        shippingTotal: 350,
         taxTotal: 0,
-        grandTotal: 2400,
+        grandTotal: 2750,
         currency: 'THB',
       },
       items: [{
@@ -89,6 +89,7 @@ describe('PrismaCheckoutRepository', () => {
               id: 'shop-1',
               name: 'Home Shop',
               slug: 'home-shop',
+              settings: { shippingFee: 350 },
             },
           },
         },
@@ -104,6 +105,14 @@ describe('PrismaCheckoutRepository', () => {
     })
     expect(prisma.order.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
+        shopOrders: {
+          create: [expect.objectContaining({
+            shopId: 'shop-1',
+            subtotal: 2400,
+            shippingTotal: 350,
+            grandTotal: 2750,
+          })],
+        },
         items: {
           create: [expect.objectContaining({
             unitPrice: 1200n,

@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { render, screen, fireEvent, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, fireEvent, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SellerDashboardPage } from "./SellerManagePages";
 
 const dashboardRefetch = vi.fn();
@@ -124,6 +124,8 @@ vi.mock("../hooks/useSellerManage", () => ({
 }));
 
 describe("SellerDashboardPage", () => {
+  afterEach(cleanup);
+
   beforeEach(() => {
     dashboardRefetch.mockReset();
     reviewsRefetch.mockReset();
@@ -242,6 +244,7 @@ describe("SellerDashboardPage", () => {
         chatEnabled: true,
         vacationMode: false,
         defaultShippingProvider: null,
+        shippingFeeBaht: 35,
         returnPolicy: null,
         shippingPolicy: null,
         returnPolicyTh: null,
@@ -282,6 +285,19 @@ describe("SellerDashboardPage", () => {
     fireEvent.click(within(form).getByRole("button", { name: "seller.manage.saveLocalizedContent" }));
     expect(updateProfileMutation.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ shopId: "shop-1", description: "Base copy" }));
     expect(updateSettingsMutation.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ shopId: "shop-1", shippingPolicyTh: null }));
+  });
+
+  it("submits the shop shipping fee in baht", () => {
+    render(<SellerDashboardPage />);
+
+    const input = screen.getByLabelText("seller.manage.shippingFeeBaht");
+    fireEvent.change(input, { target: { value: "89.50" } });
+    fireEvent.submit(input.closest("form")!);
+
+    expect(updateSettingsMutation.mutate).toHaveBeenCalledWith(
+      { shopId: "shop-1", shippingFeeBaht: 89.5 },
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
   });
 
   it("shows review error state and retries review fetch", () => {

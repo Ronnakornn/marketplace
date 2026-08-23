@@ -171,6 +171,44 @@ function LocalizedShopContentForm({ shopId, profile, settings }: {
   </form>;
 }
 
+function ShippingFeeForm({ shopId, shippingFeeBaht }: { shopId: string; shippingFeeBaht: number }) {
+  const t = useTranslations();
+  const updateSettings = useUpdateSellerShopSettings();
+
+  function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    updateSettings.mutate({
+      shopId,
+      shippingFeeBaht: Number(data.get("shippingFeeBaht")),
+    }, {
+      onSuccess: () => toast.success(t("seller.manage.shippingFeeSaved")),
+      onError: () => toast.error(t("seller.manage.shippingFeeFailed")),
+    });
+  }
+
+  return (
+    <form className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end" onSubmit={save}>
+      <div className="w-full space-y-2 sm:max-w-56">
+        <Label htmlFor="shop-shipping-fee">{t("seller.manage.shippingFeeBaht")}</Label>
+        <Input
+          id="shop-shipping-fee"
+          name="shippingFeeBaht"
+          type="number"
+          min="0"
+          max="100000"
+          step="0.01"
+          defaultValue={shippingFeeBaht}
+          required
+        />
+      </div>
+      <Button type="submit" size="sm" disabled={updateSettings.isPending}>
+        {t("seller.manage.saveShippingFee")}
+      </Button>
+    </form>
+  );
+}
+
 export function SellerDashboardPage() {
   const t = useTranslations();
   const searchParams = useSearchParams();
@@ -368,6 +406,7 @@ export function SellerDashboardPage() {
                       {settingsQuery.data.chatEnabled ? t("seller.manage.disableChat") : t("seller.manage.enableChat")}
                     </Button>
                   </div>
+                  <ShippingFeeForm shopId={resolvedShopId} shippingFeeBaht={settingsQuery.data.shippingFeeBaht} />
                 </div>
 
                 <LocalizedShopContentForm key={resolvedShopId} shopId={resolvedShopId} profile={profileQuery.data} settings={settingsQuery.data} />

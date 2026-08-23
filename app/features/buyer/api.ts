@@ -560,14 +560,15 @@ function normalizeCart(input: unknown): BuyerCart {
     const items = readArray(shop.items).map((itemInput) => {
       const item = toRecord(itemInput);
       const variant = toRecord(item.variant);
-      const product = toRecord(variant.product);
+      const product = toRecord(item.product);
+      const variantProduct = toRecord(variant.product);
       return {
         id: readString(item.id),
         variantId: readString(item.variantId, readString(variant.id)),
-        productId: readString(product.id),
-        title: readString(product.title, readString(item.productTitle, "Product")),
+        productId: readString(product.id, readString(variantProduct.id, readString(item.productId))),
+        title: readString(product.title, readString(variantProduct.title, readString(item.productTitle, "Product"))),
         variantTitle: readString(variant.title, readString(item.variantTitle, "Default")),
-        imageUrl: optionalString(product.imageUrl),
+        imageUrl: optionalString(product.imageUrl ?? variantProduct.imageUrl),
         quantity: readNumber(item.quantity, 1),
         unitPrice: readNumber(item.unitPrice, readNumber(variant.price)),
         currency: readString(item.currency, readString(variant.currency, defaultCurrency)),

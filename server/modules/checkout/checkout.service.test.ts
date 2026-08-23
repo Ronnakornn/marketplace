@@ -80,6 +80,8 @@ function createItem(overrides: Partial<{
   productStatus: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
   variantStatus: 'ACTIVE' | 'INACTIVE'
   shopStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
+  shopId: string
+  shippingFee: number
   quantityOnHand: number
   quantityReserved: number
 }> = {}): any {
@@ -114,7 +116,7 @@ function createItem(overrides: Partial<{
       },
       product: {
         id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
-        shopId: '11111111-1111-4111-8111-111111111111',
+        shopId: overrides.shopId ?? '11111111-1111-4111-8111-111111111111',
         categoryId: null,
         title: 'Oversized Cotton Tee',
         slug: 'oversized-cotton-tee',
@@ -123,10 +125,11 @@ function createItem(overrides: Partial<{
         createdAt: now,
         updatedAt: now,
         shop: {
-          id: '11111111-1111-4111-8111-111111111111',
+          id: overrides.shopId ?? '11111111-1111-4111-8111-111111111111',
           name: 'Everyday Studio',
           slug: 'everyday-studio',
           status: overrides.shopStatus ?? 'ACTIVE',
+          settings: { shippingFee: overrides.shippingFee ?? 500 },
         },
       },
     },
@@ -450,6 +453,28 @@ describe('CheckoutService', () => {
 
     expect(quote.shippingTotal).toBeGreaterThan(0)
     expect(quote.grandTotal).toBeGreaterThan(quote.subtotal - quote.discountTotal)
+  })
+
+  it('charges each selected shop shipping fee once', async () => {
+    const firstShopItem = createItem({ shippingFee: 500 })
+    const sameShopItem = createItem({
+      id: 'abababab-abab-4bab-8bab-abababababab',
+      variantId: 'bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc',
+      shippingFee: 500,
+    })
+    const secondShopItem = createItem({
+      id: 'dededede-dede-4ded-8ded-dededededede',
+      variantId: 'edededed-eded-4ede-8ede-edededededed',
+      shopId: '22222222-2222-4222-8222-222222222222',
+      shippingFee: 750,
+    })
+    const service = await setupSuccess({ cart: createCart({ items: [firstShopItem, sameShopItem, secondShopItem] }) })
+
+    const quote = await service.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    })
+
+    expect(quote.shippingTotal).toBe(1250)
   })
 
   it('does not fail the quote when the coupon is unusable', async () => {

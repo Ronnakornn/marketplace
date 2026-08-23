@@ -31,7 +31,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     return (
       <>
         <JsonLd data={websiteJsonLd()} />
-        <HomeAuthenticatedSection initialHome={initialHome} user={session.user} locale={locale} />
+        <HomeAuthenticatedSection initialHome={initialHome} user={session.user} />
       </>
     );
   }

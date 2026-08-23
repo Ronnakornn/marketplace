@@ -1,5 +1,3 @@
-"use client";
-
 import { queryOptions } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import type { BuyerProduct } from "#/features/product/queries";

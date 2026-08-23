@@ -10,8 +10,9 @@ flowchart TD
 
   D --> E[Calculate item totals<br/>by shop]
   E --> F[Apply coupons]
-  F --> G[Calculate shipping, tax,<br/>and grand total]
-  G --> H[Reserve inventory in transaction]
+  F --> G[Add each selected shop's<br/>seller-defined shipping fee once]
+  G --> G1[Calculate tax and grand total]
+  G1 --> H[Reserve inventory in transaction]
 
   H --> I{Enough stock after<br/>existing reservations?}
   I -- No --> I1[Fail checkout reservation]
@@ -50,3 +51,4 @@ Rules:
 - The browser return page can show pending status, but it must not mark payment successful.
 - Payment success is accepted only from a verified provider webhook.
 - Order items store shop and price snapshots because catalog data can change later.
+- Manual shipping fees are configured by each seller in baht, stored in minor units, and charged once per selected shop.

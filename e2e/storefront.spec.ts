@@ -113,10 +113,15 @@ test("anonymous login return, buyer follow/chat, and owner management actions ar
 });
 
 test("shared homepage and non-shop chrome remain available", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto("/en", { waitUntil: "domcontentloaded" });
   await expect(page.locator("header").first()).toBeVisible();
   await expect(page.locator("nav.fixed.bottom-0")).toBeAttached();
   await expect(page.locator('a[href*="/shops/"]').first()).toBeAttached();
+  await page.locator('a[href*="/products/"]').first().click();
+  await expect(page).toHaveURL(/\/en\/products\//);
+  expect(pageErrors.filter((message) => message.includes("useI18n must be used inside I18nProvider"))).toEqual([]);
   await page.goto("/en/about", { waitUntil: "domcontentloaded" });
   await expect(page.locator("header").first()).toBeVisible();
   await expect(page.locator("footer").first()).toBeVisible();

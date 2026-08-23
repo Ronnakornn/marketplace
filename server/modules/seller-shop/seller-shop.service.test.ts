@@ -51,6 +51,7 @@ function createSettings(overrides: Partial<SellerShopSettingRecord> = {}): Selle
     chatEnabled: true,
     vacationMode: false,
     defaultShippingProvider: null,
+    shippingFee: 0n,
     returnPolicy: null,
     shippingPolicy: null,
     returnPolicyTh: null,
@@ -72,7 +73,10 @@ function createRepo(): ISellerShopRepository {
     findShopBySlug: vi.fn(async () => null),
     updateShopProfile: vi.fn(async (_shopId, input) => createShop({ ...input })),
     findShopSettings: vi.fn(async () => createSettings()),
-    upsertShopSettings: vi.fn(async (_shopId, input) => createSettings({ ...input })),
+    upsertShopSettings: vi.fn(async (_shopId, input) => createSettings({
+      ...input,
+      ...(input.shippingFee === undefined ? {} : { shippingFee: BigInt(input.shippingFee) }),
+    })),
     findPublicStorefront: vi.fn(async () => null),
   }
 }
@@ -151,6 +155,25 @@ describe('SellerShopService', () => {
     expect(repo.upsertShopSettings).toHaveBeenCalledWith('shop-1', expect.objectContaining({
       shippingPolicyTh: null, returnPolicyEn: 'English returns',
     }))
+  })
+
+  it('accepts a seller shipping fee in baht and stores minor units', async () => {
+    const result = await service.updateShopSettings({ id: 'seller-1', role: 'USER' }, 'shop-1', {
+      shippingFeeBaht: 89.5,
+    })
+
+    expect(repo.upsertShopSettings).toHaveBeenCalledWith('shop-1', { shippingFee: 8950 })
+    expect(result.shippingFeeBaht).toBe(89.5)
+  })
+
+  it('rejects negative shipping fees and more than two decimal places', async () => {
+    await expect(service.updateShopSettings({ id: 'seller-1', role: 'USER' }, 'shop-1', {
+      shippingFeeBaht: -1,
+    })).rejects.toMatchObject({ code: 'SHOP_SETTINGS_INVALID' })
+
+    await expect(service.updateShopSettings({ id: 'seller-1', role: 'USER' }, 'shop-1', {
+      shippingFeeBaht: 10.001,
+    })).rejects.toMatchObject({ code: 'SHOP_SETTINGS_INVALID' })
   })
 
   it('rejects cross-shop profile updates', async () => {

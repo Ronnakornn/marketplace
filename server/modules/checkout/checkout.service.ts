@@ -18,7 +18,6 @@ import type {
   ICheckoutRepository,
 } from './checkout.repository.ts'
 
-const FLAT_SHIPPING_CENTS = 500
 const CHECKOUT_RESERVATION_MINUTES = 15
 
 export interface CheckoutActor {
@@ -271,7 +270,14 @@ export class CheckoutService {
     }
 
     const subtotal = items.reduce((total, item) => total + Number(item.variant.price) * item.quantity, 0)
-    const shippingTotal = items.length > 0 ? FLAT_SHIPPING_CENTS : 0
+    const shippingByShop = new Map<string, number>()
+    for (const item of items) {
+      const shop = item.variant.product.shop
+      if (!shippingByShop.has(shop.id)) {
+        shippingByShop.set(shop.id, Math.max(0, Number(shop.settings?.shippingFee ?? 0)))
+      }
+    }
+    const shippingTotal = [...shippingByShop.values()].reduce((total, fee) => total + fee, 0)
     const taxTotal = 0
     const discountTotal = Math.min(Math.max(0, discountCents), subtotal)
     const grandTotal = Math.max(0, subtotal - discountTotal + shippingTotal + taxTotal)

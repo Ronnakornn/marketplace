@@ -460,6 +460,7 @@ Table shop_settings {
   chat_enabled boolean [not null, default: true]
   vacation_mode boolean [not null, default: false]
   default_shipping_provider varchar
+  shipping_fee bigint [not null, default: 0]
   return_policy text
   shipping_policy text
   created_at timestamp [not null]

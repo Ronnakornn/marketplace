@@ -71,6 +71,7 @@ export interface SellerShopSettingsUpdateInput {
   chatEnabled?: boolean;
   vacationMode?: boolean;
   defaultShippingProvider?: string | null;
+  shippingFeeBaht?: number;
   returnPolicy?: string | null;
   shippingPolicy?: string | null;
   returnPolicyTh?: string | null;

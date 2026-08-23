@@ -38,7 +38,7 @@
 }
 
 @theme {
-  --font-sans: "Leelawadee UI", Tahoma, Arial, sans-serif;
+  --font-sans: var(--font-noto-sans-thai), sans-serif;
 }
 
 :root {
@@ -356,7 +356,7 @@ pre code {
 /* Auth surfaces stay light even when user selects the global dark theme. */
 
 .display-title {
-  font-family: var(--font-fraunces), Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
 }
 
 .island-shell {

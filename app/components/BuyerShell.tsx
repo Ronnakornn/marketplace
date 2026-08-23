@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -35,6 +35,12 @@ const navItems = [
   { href: "/profile", labelKey: "nav.profile", icon: UserCircleIcon },
 ] as const;
 
+const subscribeToHydration = () => () => undefined;
+
+function useHasHydrated(): boolean {
+  return useSyncExternalStore(subscribeToHydration, () => true, () => false);
+}
+
 export function BuyerPageShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[#f7f8fb] pb-20 text-slate-950">
@@ -46,6 +52,9 @@ export function BuyerPageShell({ children }: { children: ReactNode }) {
 
 export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: { title?: string; searchQuery?: string; prefetchLinks?: boolean }) {
   const { data: session, isPending: isSessionPending } = useSession();
+  const hasHydrated = useHasHydrated();
+  const hydratedSession = hasHydrated ? session : null;
+  const isHydratingSession = !hasHydrated || isSessionPending;
   const router = useRouter();
   const t = useTranslations();
   const locale = useLocale();
@@ -54,8 +63,8 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
   const isSellerRoute = pathname.includes("/seller/");
   const notificationHref = isSellerRoute ? "/seller/notifications" : "/notifications";
   const notificationScope = isSellerRoute ? "seller" : "all";
-  const canUseBuyerCart = Boolean(session && session.user.role !== "ADMIN");
-  const canUseChat = Boolean(session && session.user.role !== "ADMIN");
+  const canUseBuyerCart = Boolean(hydratedSession && hydratedSession.user.role !== "ADMIN");
+  const canUseChat = Boolean(hydratedSession && hydratedSession.user.role !== "ADMIN");
   const chatHref = "/chat";
   const sellerChatHref = "/seller/chat";
   const cartQuery = useQuery({
@@ -64,7 +73,7 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
     enabled: canUseBuyerCart,
   });
   const chatRoomsQuery = useQuery({
-    queryKey: ["chat-rooms", session?.user.role],
+    queryKey: ["chat-rooms", hydratedSession?.user.role],
     queryFn: () => fetchChatRooms("buyer"),
     enabled: canUseChat,
     refetchInterval: 30_000,
@@ -72,7 +81,7 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
   const notificationsQuery = useQuery({
     queryKey: ["notifications", notificationScope],
     queryFn: () => fetchNotifications(notificationScope),
-    enabled: Boolean(session),
+    enabled: Boolean(hydratedSession),
     refetchInterval: 30_000,
   });
   const cartItemCount = cartQuery.data?.shops.reduce(
@@ -138,15 +147,15 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
             <span className="sr-only">{t("common.cart")}</span>
           </Link>
         ) : null}
-        {session ? (
+        {hydratedSession ? (
           <>
-            {session.user.role !== "ADMIN" ? (
+            {hydratedSession.user.role !== "ADMIN" ? (
               <Link href={localePath("/seller/register")} prefetch={false} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900 sm:flex">
                 <StoreIcon className="size-4" />
                 {t("buyer.startSelling")}
               </Link>
             ) : null}
-            {session.user.role !== "ADMIN" && !isSellerRoute ? (
+            {hydratedSession.user.role !== "ADMIN" && !isSellerRoute ? (
               <Link href={localePath(sellerChatHref)} prefetch={prefetchLinks} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900 lg:flex">
                 <StoreIcon className="size-4" />
                 {t("buyer.sellerChat")}
@@ -165,7 +174,7 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
               <span className="sr-only">{t("common.logout")}</span>
             </button>
           </>
-        ) : isSessionPending ? (
+        ) : isHydratingSession ? (
           // The session resolves client-side, so it is null during SSR and until
           // hydration settles. Rendering the signed-out controls here would flash
           // "sign in" at buyers who are already signed in.

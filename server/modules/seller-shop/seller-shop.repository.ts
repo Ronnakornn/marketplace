@@ -39,6 +39,7 @@ export type SellerShopSettingRecord = Pick<
   | 'chatEnabled'
   | 'vacationMode'
   | 'defaultShippingProvider'
+  | 'shippingFee'
   | 'returnPolicy'
   | 'shippingPolicy'
   | 'returnPolicyTh'
@@ -69,6 +70,7 @@ export interface SellerShopSettingUpdateInput {
   chatEnabled?: boolean
   vacationMode?: boolean
   defaultShippingProvider?: string | null
+  shippingFee?: number
   returnPolicy?: string | null
   shippingPolicy?: string | null
   returnPolicyTh?: string | null
@@ -116,6 +118,7 @@ const shopSettingSelect = {
   chatEnabled: true,
   vacationMode: true,
   defaultShippingProvider: true,
+  shippingFee: true,
   returnPolicy: true,
   shippingPolicy: true,
   returnPolicyTh: true,

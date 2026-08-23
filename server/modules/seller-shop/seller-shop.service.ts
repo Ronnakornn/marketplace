@@ -11,6 +11,7 @@ import type {
 } from './seller-shop.repository.ts'
 
 const SLUG_MIN_LENGTH = 2
+const MAX_SHIPPING_FEE_BAHT = 100_000
 
 export function resolveLocalizedSellerText(
   locale: 'th' | 'en',
@@ -68,6 +69,7 @@ export interface SellerShopSettingsResponse {
   chatEnabled: boolean
   vacationMode: boolean
   defaultShippingProvider: string | null
+  shippingFeeBaht: number
   returnPolicy: string | null
   shippingPolicy: string | null
   returnPolicyTh: string | null
@@ -76,6 +78,10 @@ export interface SellerShopSettingsResponse {
   shippingPolicyEn: string | null
   version: number
   updatedAt: Date
+}
+
+export type SellerShopSettingsUpdateRequest = Omit<SellerShopSettingUpdateInput, 'shippingFee'> & {
+  shippingFeeBaht?: number
 }
 
 export interface PublicStorefrontProfile {
@@ -177,7 +183,7 @@ export class SellerShopService {
   async updateShopSettings(
     actor: SellerShopActor,
     shopId: string,
-    input: SellerShopSettingUpdateInput,
+    input: SellerShopSettingsUpdateRequest,
   ): Promise<SellerShopSettingsResponse> {
     const shop = await this.requireOwnedActiveShop(actor.id, shopId)
     const normalized = this.normalizeSettingsInput(input)
@@ -234,7 +240,7 @@ export class SellerShopService {
     return next
   }
 
-  private normalizeSettingsInput(input: SellerShopSettingUpdateInput): SellerShopSettingUpdateInput {
+  private normalizeSettingsInput(input: SellerShopSettingsUpdateRequest): SellerShopSettingUpdateInput {
     const next: SellerShopSettingUpdateInput = {}
 
     if (input.autoAcceptOrder !== undefined) next.autoAcceptOrder = input.autoAcceptOrder
@@ -242,6 +248,7 @@ export class SellerShopService {
     if (input.chatEnabled !== undefined) next.chatEnabled = input.chatEnabled
     if (input.vacationMode !== undefined) next.vacationMode = input.vacationMode
     if (input.defaultShippingProvider !== undefined) next.defaultShippingProvider = this.normalizeNullableText(input.defaultShippingProvider)
+    if (input.shippingFeeBaht !== undefined) next.shippingFee = this.shippingFeeToMinorUnits(input.shippingFeeBaht)
     if (input.returnPolicy !== undefined) next.returnPolicy = this.normalizeNullableText(input.returnPolicy)
     if (input.shippingPolicy !== undefined) next.shippingPolicy = this.normalizeNullableText(input.shippingPolicy)
     if (input.returnPolicyTh !== undefined) next.returnPolicyTh = this.normalizeNullableText(input.returnPolicyTh)
@@ -250,6 +257,17 @@ export class SellerShopService {
     if (input.shippingPolicyEn !== undefined) next.shippingPolicyEn = this.normalizeNullableText(input.shippingPolicyEn)
 
     return next
+  }
+
+  private shippingFeeToMinorUnits(value: number): number {
+    if (!Number.isFinite(value) || value < 0 || value > MAX_SHIPPING_FEE_BAHT) {
+      throw new SellerShopServiceError('Shipping fee must be between 0 and 100,000 baht', 400, 'SHOP_SETTINGS_INVALID')
+    }
+    const minorUnits = Math.round(value * 100)
+    if (Math.abs(value * 100 - minorUnits) > 0.000_001) {
+      throw new SellerShopServiceError('Shipping fee supports at most two decimal places', 400, 'SHOP_SETTINGS_INVALID')
+    }
+    return minorUnits
   }
 
   private normalizeRequiredText(value: string, label: string): string {
@@ -349,6 +367,7 @@ export class SellerShopService {
       chatEnabled: settings.chatEnabled,
       vacationMode: settings.vacationMode,
       defaultShippingProvider: settings.defaultShippingProvider,
+      shippingFeeBaht: Number(settings.shippingFee) / 100,
       returnPolicy: settings.returnPolicy,
       shippingPolicy: settings.shippingPolicy,
       returnPolicyTh: settings.returnPolicyTh,

@@ -1227,6 +1227,7 @@ model ShopSetting {
   chatEnabled             Boolean  @default(true)
   vacationMode            Boolean  @default(false)
   defaultShippingProvider String?
+  shippingFee             BigInt   @default(0)
   returnPolicy            String?
   shippingPolicy          String?
   returnPolicyTh          String?

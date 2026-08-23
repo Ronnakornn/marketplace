@@ -3,8 +3,10 @@
  */
 import { type ReactNode } from "react";
 import type * as React from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BuyerTopBar, MobileBottomNavigation } from "./BuyerShell";
 
@@ -63,10 +65,14 @@ vi.mock("#/components/ui/input", () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
-function renderWithClient(ui: ReactNode) {
-  const client = new QueryClient({
+function createTestClient() {
+  return new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+}
+
+function renderWithClient(ui: ReactNode) {
+  const client = createTestClient();
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 
@@ -77,6 +83,41 @@ afterEach(() => {
 });
 
 describe("buyer shell smoke", () => {
+  it("keeps the server session placeholder stable while hydrating a cached session", async () => {
+    sessionState = { data: null, isPending: true };
+    const serverHtml = renderToString(
+      <QueryClientProvider client={createTestClient()}>
+        <BuyerTopBar title="Seller Products" />
+      </QueryClientProvider>,
+    );
+    expect(serverHtml).toContain("h-10 w-[185px]");
+
+    sessionState = signedInSession;
+    const container = document.createElement("div");
+    container.innerHTML = serverHtml;
+    document.body.append(container);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+
+    try {
+      await act(async () => {
+        root = hydrateRoot(
+          container,
+          <QueryClientProvider client={createTestClient()}>
+            <BuyerTopBar title="Seller Products" />
+          </QueryClientProvider>,
+        );
+      });
+
+      expect(consoleError.mock.calls.flat().join(" ")).not.toContain("Hydration failed");
+      expect(container.querySelector('a[href="/en/chat"]')).toBeTruthy();
+    } finally {
+      await act(async () => root?.unmount());
+      consoleError.mockRestore();
+      container.remove();
+    }
+  });
+
   it("keeps buyer cart and start selling entry visible for active sellers", async () => {
     renderWithClient(<BuyerTopBar title="Seller Products" />);
 

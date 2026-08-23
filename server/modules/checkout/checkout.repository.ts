@@ -10,6 +10,7 @@ import type {
   Product,
   ProductVariant,
   Shop,
+  ShopSetting,
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -34,7 +35,9 @@ export type CheckoutCartItem = CartItem & {
       descriptionTh?: string | null
       descriptionEn?: string | null
     }) & {
-      shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
+      shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'> & {
+        settings: Pick<ShopSetting, 'shippingFee'> | null
+      }
     }
   }
 }
@@ -97,6 +100,9 @@ const checkoutCartInclude = {
                   name: true,
                   slug: true,
                   status: true,
+                  settings: {
+                    select: { shippingFee: true },
+                  },
                 },
               },
             },
@@ -226,6 +232,38 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     }
 
     const locale = resolveContentLocale(input.locale)
+    const shopOrderGroups = new Map<string, { subtotal: number; shippingTotal: number }>()
+    for (const item of input.items) {
+      const shop = item.variant.product.shop
+      const current = shopOrderGroups.get(shop.id) ?? {
+        subtotal: 0,
+        shippingTotal: Math.max(0, Number(shop.settings?.shippingFee ?? 0)),
+      }
+      current.subtotal += Number(item.variant.price) * item.quantity
+      shopOrderGroups.set(shop.id, current)
+    }
+
+    let remainingDiscount = input.totals.discountTotal
+    const shopOrderCreates = [...shopOrderGroups.entries()].map(([shopId, group], index, groups) => {
+      const isLast = index === groups.length - 1
+      const proportionalDiscount = input.totals.subtotal > 0
+        ? Math.floor(input.totals.discountTotal * group.subtotal / input.totals.subtotal)
+        : 0
+      const discountTotal = Math.min(group.subtotal, isLast ? remainingDiscount : proportionalDiscount)
+      remainingDiscount -= discountTotal
+      return {
+        shopId,
+        status: 'PENDING_PAYMENT' as const,
+        fulfillmentStatus: 'PENDING' as const,
+        subtotal: group.subtotal,
+        discountTotal,
+        shippingTotal: group.shippingTotal,
+        taxTotal: 0,
+        grandTotal: group.subtotal - discountTotal + group.shippingTotal,
+        currency: input.totals.currency,
+      }
+    })
+
     const order = await this.prisma.order.create({
       data: {
         checkoutId: checkout.id,
@@ -247,6 +285,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         shippingRegion: input.address.region,
         shippingPostalCode: input.address.postalCode,
         shippingCountry: input.address.country,
+        shopOrders: { create: shopOrderCreates },
         items: {
           create: input.items.map((item) => {
             const unitPrice = BigInt(item.variant.price)

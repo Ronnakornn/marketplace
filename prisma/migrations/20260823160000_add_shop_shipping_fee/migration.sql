@@ -1,0 +1,2 @@
+ALTER TABLE "ShopSetting"
+ADD COLUMN "shippingFee" BIGINT NOT NULL DEFAULT 0;
