@@ -113,11 +113,14 @@ function renderCheckoutPage() {
     },
   });
 
-  return render(
+  return {
+    queryClient,
+    ...render(
     <QueryClientProvider client={queryClient}>
       <CheckoutPage />
     </QueryClientProvider>,
-  );
+    ),
+  };
 }
 
 describe("CheckoutPage", () => {
@@ -179,7 +182,8 @@ describe("CheckoutPage", () => {
   });
 
   it("uses the server-provided payment URL after checkout succeeds", async () => {
-    renderCheckoutPage();
+    const { queryClient } = renderCheckoutPage();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
     const placeOrderButton = await screen.findByRole("button", { name: "Place order" }) as HTMLButtonElement;
     await waitFor(() => expect(placeOrderButton.disabled).toBe(false));
@@ -192,6 +196,7 @@ describe("CheckoutPage", () => {
     })));
     const paymentLink = await screen.findByRole("link", { name: "Continue to payment" });
     expect(paymentLink.getAttribute("href")).toBe("/en/payment/mock/payment-1");
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["buyer-cart"] }));
   });
 
   it("shows selected product details in the order summary", async () => {

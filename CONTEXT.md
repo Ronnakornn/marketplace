@@ -42,10 +42,26 @@ A buyer's collection of items awaiting purchase. A Cart knows its items and
 their prices. It does not know about coupons or shipping — the same Cart
 yields different amounts under different [[Checkout Quote]]s.
 
+### Guest Cart
+
+A browser-local collection of variant quantities before sign-in. It is merged
+into the buyer's Cart after sign-in and is not a server-side cart.
+
+### Unavailable Cart Item
+
+A Cart Item whose product, shop, or stock no longer permits purchase. It
+remains visible and removable but cannot be selected for Checkout.
+
 ### Checkout Selection
 
 The subset of Cart Items a buyer explicitly chooses to purchase in one
 Checkout. Items outside a Checkout Selection remain in the Cart.
+
+### Buyer Order Cancellation
+
+A buyer's cancellation of an entire unpaid Order before payment completes.
+It releases the checkout's inventory reservation and does not restore items
+to the Cart. Paid or fulfilled Orders use the Return and Refund flow.
 
 ### Return Approval
 
@@ -56,3 +72,25 @@ return or refund step. Return Approval is not Refund Completion.
 
 A decision declining a seller's Payout Request. A Payout Rejection includes a
 reason the requester can act on and is not a failed transfer.
+
+## Seller Operations
+
+### Shop Owner
+
+The user who owns a Shop and exclusively controls its settings, finance, and staff.
+_Avoid_: Admin staff, super seller
+
+### Shop Staff Member
+
+An existing platform user assigned to one Shop with an accepted operational preset.
+_Avoid_: Shop owner, global seller
+
+### Staff Invitation
+
+A pending assignment from a Shop Owner to an existing platform user; it becomes a Shop Staff Member only when accepted.
+_Avoid_: Email invite, external invite
+
+### Staff Preset
+
+A fixed set of operational permissions for one Shop: Manager, Fulfillment, or Support.
+_Avoid_: Custom role, policy graph

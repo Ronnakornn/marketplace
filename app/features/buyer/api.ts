@@ -15,6 +15,8 @@ export interface BuyerCart {
       title: string;
       variantTitle: string;
       imageUrl?: string | null;
+      productStatus?: string;
+      availableQuantity?: number;
       quantity: number;
       unitPrice: number;
       currency: string;
@@ -455,6 +457,10 @@ export async function fetchOrder(orderId: string): Promise<BuyerOrder> {
   return normalizeOrder(await apiFetch(`/api/orders/${orderId}`));
 }
 
+export async function cancelOrder(orderId: string): Promise<void> {
+  await apiFetch(`/api/orders/${orderId}/cancel`, { method: "POST" });
+}
+
 export async function fetchOrderTracking(orderId: string): Promise<BuyerOrder> {
   return normalizeOrder(await apiFetch(`/api/orders/${orderId}/tracking`));
 }
@@ -552,6 +558,10 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<unknown> 
   return requestApi(path, { ...init, headers: { "content-type": "application/json", ...init.headers } });
 }
 
+export async function clearCart(): Promise<void> {
+  await apiFetch("/api/cart", { method: "DELETE" });
+}
+
 function normalizeCart(input: unknown): BuyerCart {
   const record = toRecord(input);
   const shops = readArray(record.shops).map((shopInput) => {
@@ -569,6 +579,8 @@ function normalizeCart(input: unknown): BuyerCart {
         title: readString(product.title, readString(variantProduct.title, readString(item.productTitle, "Product"))),
         variantTitle: readString(variant.title, readString(item.variantTitle, "Default")),
         imageUrl: optionalString(product.imageUrl ?? variantProduct.imageUrl),
+        productStatus: readString(product.status, readString(variantProduct.status, "ACTIVE")),
+        availableQuantity: readNumber(item.availableQuantity, Number.MAX_SAFE_INTEGER),
         quantity: readNumber(item.quantity, 1),
         unitPrice: readNumber(item.unitPrice, readNumber(variant.price)),
         currency: readString(item.currency, readString(variant.currency, defaultCurrency)),

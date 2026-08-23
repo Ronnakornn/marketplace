@@ -20,6 +20,7 @@ import {
   type SellerPayout,
   type SellerReturn,
   type SellerShipment,
+  type SellerShopStaff,
   useApproveReturn,
   useCreateSellerCoupon,
   useCreateSellerPayout,
@@ -35,12 +36,16 @@ import {
   useSellerShopList,
   useSellerShopProfile,
   useSellerShopSettings,
+  useSellerShopStaff,
   useSellerShipments,
   useSellerTransactions,
   useSellerWallet,
   useShipShipment,
   useUpdateSellerShopSettings,
   useUpdateSellerShopProfile,
+  useInviteSellerShopStaff,
+  useRemoveSellerShopStaff,
+  useUpdateSellerShopStaff,
   useUpdateSellerCoupon,
   useUpdateSellerInventory,
 } from "../hooks/useSellerManage";
@@ -121,11 +126,12 @@ function StatusPill({ value }: { value: string }) {
 
 function ErrorState({ error, retry }: { error: unknown; retry: () => void }) {
   const t = useTranslations();
+  const message = error instanceof Error && error.message !== '[object Object]' ? error.message : t("seller.manage.loadError");
   return (
     <Card className="border-red-200 bg-red-50">
       <CardContent className="flex items-center justify-between gap-3 pt-6">
-        <p className="text-sm text-red-700">{error instanceof Error ? error.message : t("seller.manage.loadError")}</p>
-        <Button type="button" variant="outline" onClick={retry}>{t("common.retry")}</Button>
+        <p className="text-sm text-red-700">{message}</p>
+        <Button type="button" variant="outline" onClick={retry}>{t("seller.manage.retry")}</Button>
       </CardContent>
     </Card>
   );
@@ -207,6 +213,87 @@ function ShippingFeeForm({ shopId, shippingFeeBaht }: { shopId: string; shipping
       </Button>
     </form>
   );
+}
+
+function ShopProfileForm({ shopId, profile }: { shopId: string; profile: { name: string; slug: string; contactEmail: string; contactPhone: string; logoUrl: string | null; coverUrl: string | null } }) {
+  const t = useTranslations(); const update = useUpdateSellerShopProfile();
+  function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); const data = new FormData(event.currentTarget); const nullable = (name: string) => String(data.get(name) ?? '').trim() || null;
+    update.mutate({ shopId, name: String(data.get('name') ?? ''), slug: String(data.get('slug') ?? ''), contactEmail: String(data.get('contactEmail') ?? ''), contactPhone: String(data.get('contactPhone') ?? ''), logoUrl: nullable('logoUrl'), coverUrl: nullable('coverUrl') }, { onSuccess: () => toast.success(t('seller.manage.profileSaved')), onError: () => toast.error(t('seller.manage.profileSaveFailed')) });
+  }
+  return <form className="grid gap-3 rounded-lg border border-slate-200 px-3 py-3 sm:grid-cols-2" onSubmit={save}>
+    <div className="space-y-2"><Label htmlFor="shop-name">{t('seller.manage.shopName')}</Label><Input id="shop-name" name="name" defaultValue={profile.name} required /></div>
+    <div className="space-y-2"><Label htmlFor="shop-slug">{t('seller.manage.shopSlug')}</Label><Input id="shop-slug" name="slug" defaultValue={profile.slug} required /></div>
+    <div className="space-y-2"><Label htmlFor="shop-email">{t('seller.manage.contactEmail')}</Label><Input id="shop-email" name="contactEmail" type="email" defaultValue={profile.contactEmail} required /></div>
+    <div className="space-y-2"><Label htmlFor="shop-phone">{t('seller.manage.contactPhone')}</Label><Input id="shop-phone" name="contactPhone" defaultValue={profile.contactPhone} required /></div>
+    <div className="space-y-2"><Label htmlFor="shop-logo">{t('seller.manage.logoUrl')}</Label><Input id="shop-logo" name="logoUrl" defaultValue={profile.logoUrl ?? ''} /></div>
+    <div className="space-y-2"><Label htmlFor="shop-cover">{t('seller.manage.coverUrl')}</Label><Input id="shop-cover" name="coverUrl" defaultValue={profile.coverUrl ?? ''} /></div>
+    <Button type="submit" size="sm" className="w-fit" disabled={update.isPending}>{t('seller.manage.saveProfile')}</Button>
+  </form>
+}
+
+function ShopStaffPanel({ shopId }: { shopId: string }) {
+  const t = useTranslations();
+  const staffQuery = useSellerShopStaff(shopId);
+  const invite = useInviteSellerShopStaff();
+  const update = useUpdateSellerShopStaff();
+  const remove = useRemoveSellerShopStaff();
+  const [staffRole, setStaffRole] = useState<'MANAGER' | 'WAREHOUSE' | 'SUPPORT'>('MANAGER');
+
+  function inviteStaff(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    invite.mutate({ shopId, email: String(data.get('staffEmail') ?? ''), role: staffRole }, {
+      onSuccess: () => { event.currentTarget.reset(); toast.success(t('seller.manage.staffInviteSaved')); },
+      onError: () => toast.error(t('seller.manage.staffInviteFailed')),
+    });
+  }
+
+  return <div className="space-y-3 rounded-lg border border-slate-200 px-3 py-3">
+    <div><p className="text-sm font-semibold text-slate-900">{t('seller.manage.staffTitle')}</p><p className="mt-1 text-xs text-slate-600">{t('seller.manage.staffDescription')}</p></div>
+    <form className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]" onSubmit={inviteStaff}>
+      <Input name="staffEmail" type="email" required placeholder={t('seller.manage.staffEmail')} aria-label={t('seller.manage.staffEmail')} />
+      <Select value={staffRole} onValueChange={(role) => setStaffRole(role as 'MANAGER' | 'WAREHOUSE' | 'SUPPORT')}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="MANAGER">{t('seller.manage.staffRoles.manager')}</SelectItem><SelectItem value="WAREHOUSE">{t('seller.manage.staffRoles.warehouse')}</SelectItem><SelectItem value="SUPPORT">{t('seller.manage.staffRoles.support')}</SelectItem></SelectContent></Select>
+      <Button type="submit" size="sm" disabled={invite.isPending}>{t('seller.manage.inviteStaff')}</Button>
+    </form>
+    {staffQuery.isLoading ? <p className="text-xs text-slate-500">{t('seller.manage.loadingStaff')}</p> : null}
+    {staffQuery.error ? <p className="text-xs text-red-700">{t('seller.manage.staffLoadError')}</p> : null}
+    <div className="space-y-2">
+      {staffQuery.data?.map((staff: SellerShopStaff) => <div key={staff.id} className="flex flex-wrap items-center gap-2 rounded-md bg-slate-50 px-3 py-2">
+        <div className="min-w-40 flex-1"><p className="text-sm font-medium text-slate-900">{staff.user.name}</p><p className="text-xs text-slate-500">{staff.user.email} · {staff.permissions.join(', ')}</p></div>
+        <Select value={staff.role} onValueChange={(role) => update.mutate({ shopId, staffId: staff.id, role: role as 'MANAGER' | 'WAREHOUSE' | 'SUPPORT' })}><SelectTrigger className="w-32"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="MANAGER">{t('seller.manage.staffRoles.manager')}</SelectItem><SelectItem value="WAREHOUSE">{t('seller.manage.staffRoles.warehouse')}</SelectItem><SelectItem value="SUPPORT">{t('seller.manage.staffRoles.support')}</SelectItem></SelectContent></Select>
+        <Button type="button" size="sm" variant="outline" disabled={update.isPending} onClick={() => update.mutate({ shopId, staffId: staff.id, status: staff.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED' })}>{staff.status === 'SUSPENDED' ? t('seller.manage.activateStaff') : t('seller.manage.suspendStaff')}</Button>
+        <Button type="button" size="sm" variant="ghost" disabled={remove.isPending} onClick={() => remove.mutate({ shopId, staffId: staff.id })}>{t('seller.manage.removeStaff')}</Button>
+      </div>)}
+      {!staffQuery.isLoading && !staffQuery.error && !staffQuery.data?.length ? <p className="text-xs text-slate-500">{t('seller.manage.noStaff')}</p> : null}
+    </div>
+  </div>
+}
+
+export function SellerStaffPage() {
+  const t = useTranslations();
+  const searchParams = useSearchParams();
+  const shopsQuery = useSellerShopList();
+  const shopId = searchParams.get('shopId') ?? shopsQuery.data?.activeShopId ?? shopsQuery.data?.shops[0]?.id;
+  return <><SellerPageHeader title={t('seller.nav.staff')} description={t('seller.manage.staffDescription')} />{shopId ? <ShopStaffPanel shopId={shopId} /> : <EmptyState message={t('seller.manage.noShopContext')} />}</>;
+}
+
+export function SellerShopProfilePage({ shopId: selectedShopId }: { shopId?: string }) {
+  const t = useTranslations();
+  const shopsQuery = useSellerShopList();
+  const shopId = selectedShopId ?? shopsQuery.data?.activeShopId ?? shopsQuery.data?.shops[0]?.id;
+  const profileQuery = useSellerShopProfile(shopId); const settingsQuery = useSellerShopSettings(shopId); const updateSettings = useUpdateSellerShopSettings();
+  const retry = () => { void profileQuery.refetch(); void settingsQuery.refetch(); };
+  const toggle = (field: 'vacationMode' | 'chatEnabled') => {
+    if (!shopId || !settingsQuery.data) return;
+    updateSettings.mutate({ shopId, [field]: !settingsQuery.data[field] }, { onSuccess: () => toast.success(t('seller.manage.shopSettingsSaved')), onError: () => toast.error(t('seller.manage.shopSettingsFailed')) });
+  };
+  return <><SellerPageHeader title={t('seller.nav.shopProfile')} description={t('seller.manage.shopProfileDescription')} />
+    {!shopId ? <EmptyState message={t('seller.manage.noShopContext')} /> : null}
+    {shopId && (profileQuery.isLoading || settingsQuery.isLoading) ? <EmptyState message={t('seller.manage.loadingShopProfile')} /> : null}
+    {shopId && (profileQuery.error || settingsQuery.error) ? <ErrorState error={profileQuery.error ?? settingsQuery.error} retry={retry} /> : null}
+    {shopId && profileQuery.data && settingsQuery.data ? <div className="space-y-4"><ShopProfileForm key={`profile-${shopId}`} shopId={shopId} profile={profileQuery.data} /><section className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-sm font-semibold text-slate-900">{t('seller.manage.shopSettingsLabel')}</p><div className="mt-3 flex flex-wrap gap-2"><Button type="button" size="sm" variant="outline" disabled={updateSettings.isPending} onClick={() => toggle('vacationMode')}>{settingsQuery.data.vacationMode ? t('seller.manage.disableVacation') : t('seller.manage.enableVacation')}</Button><Button type="button" size="sm" variant="outline" disabled={updateSettings.isPending} onClick={() => toggle('chatEnabled')}>{settingsQuery.data.chatEnabled ? t('seller.manage.disableChat') : t('seller.manage.enableChat')}</Button></div><ShippingFeeForm shopId={shopId} shippingFeeBaht={settingsQuery.data.shippingFeeBaht} /></section><LocalizedShopContentForm key={`content-${shopId}`} shopId={shopId} profile={profileQuery.data} settings={settingsQuery.data} /></div> : null}
+  </>;
 }
 
 export function SellerDashboardPage() {
@@ -408,17 +495,11 @@ export function SellerDashboardPage() {
                   </div>
                   <ShippingFeeForm shopId={resolvedShopId} shippingFeeBaht={settingsQuery.data.shippingFeeBaht} />
                 </div>
+                <ShopProfileForm key={`profile-${resolvedShopId}`} shopId={resolvedShopId} profile={profileQuery.data} />
 
                 <LocalizedShopContentForm key={resolvedShopId} shopId={resolvedShopId} profile={profileQuery.data} settings={settingsQuery.data} />
 
-                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-3">
-                  <p className="text-sm font-semibold text-slate-900">{t("seller.manage.staffTitle")}</p>
-                  <p className="mt-1 text-xs text-slate-600">{t("seller.manage.staffDescription")}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <StatusPill value={t("seller.manage.staffStatus.owner") as string} />
-                    <StatusPill value={t("seller.manage.staffStatus.comingSoon") as string} />
-                  </div>
-                </div>
+                <ShopStaffPanel shopId={resolvedShopId} />
               </>
             ) : null}
           </CardContent>

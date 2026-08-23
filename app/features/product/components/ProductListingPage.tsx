@@ -33,6 +33,7 @@ interface ProductListingPageProps {
   mode: "home" | "search" | "category";
   query?: string;
   categoryId?: string;
+  categoryName?: string;
   brandId?: string;
   attributeFilters?: string;
   minPrice?: string;
@@ -46,6 +47,7 @@ export function ProductListingPage({
   mode,
   query = "",
   categoryId,
+  categoryName,
   brandId,
   attributeFilters,
   minPrice,
@@ -132,7 +134,8 @@ export function ProductListingPage({
     setAccumulatedListing((current) => mergeListingPages(current, productsQuery.data, page));
   }, [productsQuery.data, page]);
 
-  const title = mode === "home" ? t("product.discover") : mode === "category" ? categoryId ?? t("product.category") : t("common.search");
+  const displayCategoryName = categoryName ?? categoryId ?? t("product.category");
+  const title = mode === "home" ? t("product.discover") : mode === "category" ? displayCategoryName : t("common.search");
   const listing = accumulatedListing ?? productsQuery.data ?? null;
   const products = listing?.products ?? [];
   const hasAccumulatedProducts = (accumulatedListing?.products.length ?? 0) > 0;
@@ -200,7 +203,7 @@ export function ProductListingPage({
   const resultTitle = query
     ? t("product.searchResultsFor").replace("{query}", query)
     : mode === "category"
-      ? `${categoryId} ${t("product.products")}`
+      ? `${displayCategoryName} ${t("product.products")}`
       : t("product.products");
 
   return (
@@ -212,7 +215,7 @@ export function ProductListingPage({
         {mode === "category" ? (
           <div className="rounded-3xl border border-orange-100 bg-white p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase text-orange-600">{t("product.category")}</p>
-            <h1 className="mt-1 text-xl font-bold capitalize text-slate-950">{categoryId}</h1>
+            <h1 className="mt-1 text-xl font-bold text-slate-950">{displayCategoryName}</h1>
           </div>
         ) : null}
 

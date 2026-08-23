@@ -8,6 +8,8 @@ export {
   SellerOrdersPage,
   SellerPromotionsPage,
   SellerReturnsPage,
+  SellerStaffPage,
+  SellerShopProfilePage,
 } from "./components/SellerManagePages";
 export {
   SellerProductCreatePage,

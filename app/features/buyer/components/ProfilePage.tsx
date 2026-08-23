@@ -12,6 +12,7 @@ import { Button } from "#/components/ui/button";
 import { fetchAddresses, fetchProfile, fetchSellerApplicationSummary, requestProfilePhoneOtp, updateProfile, verifyProfilePhoneOtp } from "#/features/buyer/api";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { api } from "#/lib/eden";
 
 export function ProfilePage() {
   const localePath = useLocalePath();
@@ -19,6 +20,7 @@ export function ProfilePage() {
   const profileQuery = useQuery({ queryKey: ["buyer-profile"], queryFn: fetchProfile });
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
   const sellerApplicationQuery = useQuery({ queryKey: ["seller", "application"], queryFn: fetchSellerApplicationSummary });
+  const staffInvitationsQuery = useQuery({ queryKey: ["shop-staff-invitations"], queryFn: async () => { const { data, error } = await api.api.seller.staff.invitations.get(); if (error) throw error; return data; } });
   const defaultAddress = addressesQuery.data?.find((address) => address.isDefault) ?? addressesQuery.data?.[0];
 
   return (
@@ -71,6 +73,7 @@ export function ProfilePage() {
               application={sellerApplicationQuery.data?.application ?? null}
               shop={sellerApplicationQuery.data?.shop ?? null}
             />
+            <ShopStaffInvitations invitations={staffInvitationsQuery.data ?? []} />
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-3">
@@ -100,6 +103,13 @@ export function ProfilePage() {
       </div>
     </>
   );
+}
+
+function ShopStaffInvitations({ invitations }: { invitations: Array<{ id: string; role: string; permissions: string[]; user: { name: string } }> }) {
+  const t = useTranslations(); const queryClient = useQueryClient();
+  const accept = useMutation({ mutationFn: async (staffId: string) => { const { data, error } = await api.api.seller.staff.invitations({ staffId }).accept.post(); if (error) throw error; return data; }, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shop-staff-invitations'] }) });
+  if (!invitations.length) return null;
+  return <section className="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm"><h2 className="font-bold text-slate-950">{t('buyer.shopStaffInvitations')}</h2>{invitations.map((invitation) => <div key={invitation.id} className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-slate-700">{t('buyer.shopStaffInvitationDescription').replace('{role}', invitation.role).replace('{permissions}', invitation.permissions.join(', '))}</p><Button type="button" disabled={accept.isPending} onClick={() => accept.mutate(invitation.id)} className="rounded-full bg-orange-600 hover:bg-orange-700">{t('buyer.acceptShopStaffInvitation')}</Button></div>)}</section>
 }
 
 function ProfileIdentityForm({

@@ -77,4 +77,13 @@ export class PrismaOwnershipGuardRepository implements OwnershipGuardRepository 
       select: { id: true, ownerId: true, status: true },
     })
   }
+
+  async findActiveStaffShopAccessesForUser(userId: string): Promise<Array<{ shop: Pick<Shop, 'id' | 'ownerId' | 'status'>; permissions: string[] }>> {
+    const memberships = await this.prisma.shopStaff.findMany({
+      where: { userId, status: 'ACTIVE', deletedAt: null, shop: { status: 'ACTIVE' } },
+      select: { permissions: { select: { permission: true } }, shop: { select: { id: true, ownerId: true, status: true } } },
+      orderBy: { createdAt: 'asc' },
+    })
+    return memberships.map(({ shop, permissions }) => ({ shop, permissions: permissions.map(({ permission }) => permission) }))
+  }
 }

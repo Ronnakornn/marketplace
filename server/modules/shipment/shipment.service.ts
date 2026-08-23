@@ -268,10 +268,10 @@ export class ShipmentService {
 
   private async getSellerShopIds(ownerId: string): Promise<string[]> {
     const shops = this.activeShopResolver
-      ? await this.activeShopResolver.resolveActiveShops(ownerId)
+      ? await this.activeShopResolver.resolveActiveShopAccesses(ownerId, { permissions: ['shipments'] })
       : await this.repo.findSellerShops(ownerId)
     if (shops.length === 0) throw new ShipmentServiceError('Active seller shop not found', 403, 'SHIPMENT_FORBIDDEN')
-    return shops.map((shop) => shop.id)
+    return shops.map((shop) => 'shop' in shop ? shop.shop.id : shop.id)
   }
 
   private async findSellerShipment(
@@ -279,7 +279,7 @@ export class ShipmentService {
     ownerId: string,
     shipmentId: string,
   ): Promise<SellerShipment> {
-    const shopIds = (await repo.findSellerShops(ownerId)).map((shop) => shop.id)
+    const shopIds = await this.getSellerShopIds(ownerId)
     if (shopIds.length === 0) throw new ShipmentServiceError('Active seller shop not found', 403, 'SHIPMENT_FORBIDDEN')
     const shipment = await repo.findSellerShipmentById(shipmentId, shopIds)
     if (!shipment) throw new ShipmentServiceError('Shipment not found', 404, 'SHIPMENT_NOT_FOUND')

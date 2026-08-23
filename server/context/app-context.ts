@@ -45,7 +45,7 @@ import { SearchService } from '#server/modules/search/search.service.ts'
 import { PrismaTrackingRepository, TrackingService } from '#server/modules/tracking'
 import { PrismaSellerDashboardRepository } from '#server/modules/seller/seller-dashboard.repository.ts'
 import { SellerDashboardService } from '#server/modules/seller/seller-dashboard.service.ts'
-import { PrismaSellerShopRepository, SellerShopService } from '#server/modules/seller-shop'
+import { PrismaSellerShopRepository, PrismaShopStaffRepository, SellerShopService, ShopStaffService } from '#server/modules/seller-shop'
 import { PrismaSellerOnboardingRepository, SellerOnboardingService } from '#server/modules/seller-onboarding'
 import { PrismaShipmentRepository } from '#server/modules/shipment/shipment.repository.ts'
 import { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
@@ -130,6 +130,7 @@ export interface ServiceContainer {
   ownershipGuards: OwnershipGuards
   sellerDashboardService: SellerDashboardService
   sellerShopService: SellerShopService
+  shopStaffService: ShopStaffService
   sellerOnboardingService: SellerOnboardingService
   shipmentService: ShipmentService
   shoppingAssistantService: ShoppingAssistantService
@@ -246,6 +247,8 @@ export function createContainer(): ServiceContainer {
   const sellerDashboardService = new SellerDashboardService(appContext, sellerDashboardRepo, cacheService, activeShopResolver)
   const sellerShopRepo = new PrismaSellerShopRepository(appContext, prisma)
   const sellerShopService = new SellerShopService(appContext, sellerShopRepo)
+  const shopStaffRepo = new PrismaShopStaffRepository(appContext, prisma)
+  const shopStaffService = new ShopStaffService(appContext, shopStaffRepo)
   const sellerOnboardingRepo = new PrismaSellerOnboardingRepository(appContext, prisma)
   const sellerOnboardingService = new SellerOnboardingService(appContext, sellerOnboardingRepo)
   const uploadRepo = new PrismaUploadRepository(appContext, prisma)
@@ -324,6 +327,7 @@ export function createContainer(): ServiceContainer {
     ownershipGuards,
     sellerDashboardService,
     sellerShopService,
+    shopStaffService,
     sellerOnboardingService,
     shipmentService,
     shoppingAssistantService,

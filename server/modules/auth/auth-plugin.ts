@@ -9,12 +9,15 @@ import { auth, getSocialProviderAvailability } from "./auth.ts";
 import { getAuthContext } from "./auth.context.ts";
 
 async function getSellerReadinessState(userId: string) {
-  const [activeShopCount, application] = await Promise.all([
+  const [activeShopCount, activeStaffMembershipCount, application] = await Promise.all([
     prisma.shop.count({
       where: {
         ownerId: userId,
         status: "ACTIVE",
       },
+    }),
+    prisma.shopStaff.count({
+      where: { userId, status: "ACTIVE", deletedAt: null, shop: { status: "ACTIVE" } },
     }),
     prisma.sellerApplication.findFirst({
       where: { userId },
@@ -24,7 +27,7 @@ async function getSellerReadinessState(userId: string) {
   ]);
 
   return {
-    hasActiveShop: activeShopCount > 0,
+    hasActiveShop: activeShopCount > 0 || activeStaffMembershipCount > 0,
     applicationStatus: application?.status ?? null,
   };
 }

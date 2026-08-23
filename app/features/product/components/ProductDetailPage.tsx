@@ -22,6 +22,7 @@ import {
 } from "#/features/buyer/api";
 import { createChatRoom } from "#/features/chat";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import { addGuestCartItem } from "#/features/cart/guest-cart";
 import {
   normalizePublicProduct,
   normalizePublicProductQuestionsPage,
@@ -268,11 +269,13 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   }
 
   function handlePurchaseAction(action: "cart" | "buy-now") {
+    if (!product || !selectedVariant || displayedStock < 1) return;
     if (!session) {
-      router.push(getProductLoginPath());
+      addGuestCartItem(selectedVariant.id, quantity, { productId: product.id, title: product.title, variantTitle: selectedVariant.title, imageUrl: resolveUploadedImageUrl(product.images[0]), unitPrice: selectedVariant.price, currency: selectedVariant.currency });
+      showAddToCartSuccess({ copy: { successTitle: t("cart.handoffAddedTitle"), successDescription: t("cart.handoffAddedDescription"), viewCart: t("cart.viewCart"), continueShopping: t("cart.continueShopping") }, context: { productTitle: product?.title, variantTitle: selectedVariant.title }, onViewCart: () => router.push(localePath("/cart")) });
       return;
     }
-    if (!canFetchBuyerState || !selectedVariant || displayedStock < 1) return;
+    if (!canFetchBuyerState) return;
     addCartMutation.mutate({ variantId: selectedVariant.id, itemQuantity: quantity }, {
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });

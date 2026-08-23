@@ -16,6 +16,7 @@ import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
+import { addGuestCartItem } from "#/features/cart/guest-cart";
 
 const subscribeToHydration = () => () => undefined;
 
@@ -54,7 +55,11 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
     },
   });
   const addToCartMutation = useMutation({
-    mutationFn: () => quickAddVariant ? addCartItem(quickAddVariant.id, 1) : Promise.resolve(null),
+    mutationFn: () => {
+      if (!quickAddVariant) return Promise.resolve(null);
+      if (!hydratedSession) { addGuestCartItem(quickAddVariant.id, 1, { productId: product.id, title: product.title, variantTitle: quickAddVariant.title, imageUrl: image, unitPrice: quickAddVariant.price, currency: quickAddVariant.currency }); return Promise.resolve(null); }
+      return addCartItem(quickAddVariant.id, 1);
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
       showAddToCartSuccess({
@@ -82,7 +87,6 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
   const favoriteUnavailableLabel = canFetchBuyerState ? t("product.wishlistUnavailable") : t("product.signInBuyerWishlist");
   const quickAddDisabledReason = (() => {
     if (!quickAddVariant) return null;
-    if (!hydratedSession) return t("product.loginToAddToCart");
     if (!canFetchBuyerState) return t("product.onlyBuyerAccountsCanPurchase");
     if (product.stock <= 0 || quickAddVariant.stock <= 0) return t("product.itemOutOfStock");
     return null;
@@ -129,7 +133,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
         <div className="absolute left-2 top-2 flex min-h-5 max-w-[calc(100%-3.5rem)] flex-wrap gap-1">
           {cardBadges.slice(0, 2).map((badge) => (
             <Badge key={badge} className="rounded-md bg-orange-700 px-1.5 py-0.5 text-[10px] leading-none text-white">
-              {badge}
+              {formatProductBadge(badge, t)}
             </Badge>
           ))}
         </div>
@@ -232,6 +236,21 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
       </div>
     </article>
   );
+}
+
+function formatProductBadge(badge: string, t: ReturnType<typeof useTranslations>): string {
+  switch (badge.trim().toLowerCase().replaceAll("-", "_")) {
+    case "new":
+      return t("product.new");
+    case "in_stock":
+      return t("product.inStock");
+    case "out_of_stock":
+      return t("product.outOfStock");
+    case "best_seller":
+      return t("product.bestSeller");
+    default:
+      return badge;
+  }
 }
 
 function getCartHandoffCopy(t: ReturnType<typeof useTranslations>) {

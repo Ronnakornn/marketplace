@@ -5,6 +5,4 @@
   <rect x="120" y="180" width="560" height="440" rx="32" fill="#fff7ed" stroke="#fed7aa" stroke-width="16"/>
   <path d="M255 570h290c38 0 60-43 38-74L507 388c-19-27-58-28-78-2l-54 70-31-36c-20-23-57-20-73 7l-64 105c-11 18 2 38 48 38Z" fill="#fb923c"/>
   <circle cx="530" cy="290" r="50" fill="#fdba74"/>
-  <text x="400" y="690" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#9a3412">Image coming soon</text>
 </svg>
-

@@ -20,6 +20,8 @@ import {
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
+import { GuestAddToCartButton } from "#/features/cart/components/GuestAddToCartButton";
+import { GuestCartLink } from "#/features/cart/components/GuestCartLink";
 import type { BuyerProduct } from "#/features/product/queries";
 import {
   normalizeMarketplaceHome,
@@ -133,6 +135,7 @@ function GuestTopBar({ locale, t }: { locale: Locale; t: Translator }) {
           <BellIcon className="size-5" />
           <span className="sr-only">{t("common.notifications")}</span>
         </Link>
+        <GuestCartLink href={localePath("/cart")} label={t("nav.cart")} />
         <div className="flex items-center gap-2">
           <Link href={localePath("/login")} prefetch={false} className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 no-underline transition hover:bg-slate-50">{t("common.login")}</Link>
           <Link href={localePath("/signup")} prefetch={false} className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-3 py-1.5 text-xs font-semibold text-[var(--lagoon-deep)] no-underline transition hover:bg-[rgba(79,184,178,0.24)]">{t("common.signup")}</Link>
@@ -253,8 +256,8 @@ function GuestProductCard({ product, formatMoney, t }: { product: BuyerProduct; 
         {product.brand ? <p className="truncate text-xs font-medium text-slate-500">{product.brand.name}</p> : null}
         <div className="flex min-h-12 items-end justify-between gap-2"><div className="min-w-0 flex-1"><p className="truncate text-base font-bold text-orange-700" title={priceLabel}>{priceLabel}</p>{product.originalPrice && product.originalPrice > product.minPrice ? <p className="truncate text-xs text-slate-600 line-through" title={formatMoney(product.originalPrice, product.currency)}>{formatMoney(product.originalPrice, product.currency)}</p> : null}</div><span className="shrink-0 text-xs text-slate-500">{isOutOfStock ? t("common.unavailable") : t("product.soldCount").replace("{count}", String(product.soldCount))}</span></div>
         <div className="flex items-center justify-between gap-2 text-xs text-slate-500"><span className="flex items-center gap-1"><StarIcon className="size-3.5 fill-amber-400 text-amber-400" />{product.rating.toFixed(1)}</span><span className="flex min-w-0 items-center gap-1"><MapPinIcon className="size-3.5 shrink-0" /><span className="truncate">{product.shop.location}</span></span></div>
-        <div className="flex min-h-9 items-center justify-between gap-2"><Badge variant="outline" className="min-w-0 max-w-full truncate rounded-full border-orange-200 bg-orange-50 font-normal text-orange-700">{product.shop.name}</Badge>{quickAddVariant ? <Button type="button" size="icon" variant="outline" className="size-8 shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-orange-500" aria-label={quickAddLabel} title={quickAddLabel} disabled><ShoppingCartIcon className="size-4" /></Button> : <Link href={`/products/${product.id}`} prefetch={false} className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-orange-300 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" aria-label={quickAddLabel}>{t("common.details")}</Link>}</div>
-        <p className="min-h-4 truncate text-[11px] leading-4 text-orange-700" aria-live="polite">{quickAddVariant ? t("product.loginToAddToCart") : "\u00a0"}</p>
+        <div className="flex min-h-9 items-center justify-between gap-2"><Badge variant="outline" className="min-w-0 max-w-full truncate rounded-full border-orange-200 bg-orange-50 font-normal text-orange-700">{product.shop.name}</Badge>{quickAddVariant ? <GuestAddToCartButton variantId={quickAddVariant.id} label={quickAddLabel} addedLabel={t("cart.handoffAddedTitle")} item={{ productId: product.id, title: product.title, variantTitle: quickAddVariant.title, imageUrl: image, unitPrice: quickAddVariant.price, currency: quickAddVariant.currency }} /> : <Link href={`/products/${product.id}`} prefetch={false} className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-orange-300 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" aria-label={quickAddLabel}>{t("common.details")}</Link>}</div>
+        <p className="min-h-4 truncate text-[11px] leading-4 text-slate-500" aria-live="polite">{quickAddVariant ? "\u00a0" : "\u00a0"}</p>
       </div>
     </article>
   );

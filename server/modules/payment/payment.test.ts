@@ -29,6 +29,7 @@ function createRepoMock(): PaymentTransactionRepository {
     lockWebhookEvent: vi.fn(),
     lockPayment: vi.fn(),
     findPayment: vi.fn(),
+    findPaymentForOrder: vi.fn(),
     findOrder: vi.fn(),
     findOrCreateAffiliate: vi.fn(),
     findAffiliateByUserId: vi.fn(),
@@ -161,6 +162,7 @@ function createPayment(status: PaymentStatus = 'PENDING', overrides: Partial<Pay
 async function setup(payment: PaymentWithOrder | null = createPayment()) {
   repo = createRepoMock()
   vi.mocked(repo.findPayment).mockResolvedValue(payment)
+  vi.mocked(repo.findPaymentForOrder).mockResolvedValue(payment)
   vi.mocked(repo.findOrder).mockResolvedValue(payment?.order ?? null)
   vi.mocked(repo.findWebhookEvent).mockResolvedValue(null)
   vi.mocked(repo.createWebhookEvent).mockResolvedValue({} as never)
@@ -196,6 +198,28 @@ describe('PaymentService', () => {
       occurredAt: expect.any(Date),
     })
     expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({ eventName: 'order.paid' }))
+  })
+
+  it('lets an owner cancel an unpaid order and releases its reservation', async () => {
+    const service = await setup()
+
+    await expect(service.cancelBuyerOrder({ id: 'user-1', role: 'USER' } as any, baseBody.orderId)).resolves.toEqual({ ok: true })
+
+    expect(repo.lockPayment).toHaveBeenCalledWith(baseBody.paymentId)
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledWith(expect.objectContaining({
+      paymentId: baseBody.paymentId,
+      orderId: baseBody.orderId,
+      eventType: 'buyer.cancelled',
+    }))
+    expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({ eventName: 'order.cancelled', data: expect.objectContaining({ cause: 'buyer_cancelled' }) }))
+  })
+
+  it('refuses cancellation after payment or for another buyer', async () => {
+    const paidService = await setup(createPayment('SUCCEEDED'))
+    await expect(paidService.cancelBuyerOrder({ id: 'user-1', role: 'USER' } as any, baseBody.orderId)).rejects.toMatchObject({ code: 'ORDER_CANCELLATION_NOT_ALLOWED' })
+
+    const otherBuyerService = await setup()
+    await expect(otherBuyerService.cancelBuyerOrder({ id: 'other-user', role: 'USER' } as any, baseBody.orderId)).rejects.toMatchObject({ code: 'ORDER_NOT_FOUND' })
   })
 
   it('creates mock paid events from trusted server payment facts', async () => {

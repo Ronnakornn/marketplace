@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import { LanguageSwitcher } from "#/components/LanguageSwitcher";
 import { Input } from "#/components/ui/input";
-import { fetchCart, fetchNotifications } from "#/features/buyer/api";
+import { addCartItem, fetchCart, fetchNotifications } from "#/features/buyer/api";
+import { clearGuestCart, readGuestCart, writeGuestCart } from "#/features/cart/guest-cart";
 import { fetchChatRooms } from "#/features/chat/api";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
@@ -72,6 +73,23 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
     queryFn: () => fetchCart(locale),
     enabled: canUseBuyerCart,
   });
+  useEffect(() => {
+    if (!canUseBuyerCart) return;
+    const items = readGuestCart();
+    if (!items.length) return;
+    void (async () => {
+      const remaining = [] as typeof items;
+      for (const item of items) {
+        let merged = 0;
+        for (; merged < item.quantity; merged += 1) {
+          try { await addCartItem(item.variantId, 1); } catch { break; }
+        }
+        if (merged < item.quantity) remaining.push({ ...item, quantity: item.quantity - merged });
+      }
+      if (remaining.length) writeGuestCart(remaining); else clearGuestCart();
+      void cartQuery.refetch();
+    })();
+  }, [canUseBuyerCart]);
   const chatRoomsQuery = useQuery({
     queryKey: ["chat-rooms", hydratedSession?.user.role],
     queryFn: () => fetchChatRooms("buyer"),

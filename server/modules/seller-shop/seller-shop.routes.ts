@@ -23,6 +23,10 @@ export const StorefrontResponseSchema = t.Object({
 
 const OptionalLocalizedTextSchema = t.Optional(t.Union([t.String({ maxLength: 5000 }), t.Null()]))
 const ShippingFeeBahtSchema = t.Optional(t.Number({ minimum: 0, maximum: 100000 }))
+const StaffParamsSchema = t.Intersect([ShopParamsSchema, t.Object({ staffId: t.String({ format: 'uuid' }) })])
+const StaffInviteBodySchema = t.Object({ email: t.String({ format: 'email', maxLength: 320 }), role: t.Union([t.Literal('MANAGER'), t.Literal('WAREHOUSE'), t.Literal('SUPPORT')]) })
+const StaffUpdateBodySchema = t.Object({ role: t.Optional(t.Union([t.Literal('MANAGER'), t.Literal('WAREHOUSE'), t.Literal('SUPPORT')])), status: t.Optional(t.Union([t.Literal('INVITED'), t.Literal('ACTIVE'), t.Literal('SUSPENDED')])) })
+const StaffInviteParamsSchema = t.Object({ staffId: t.String({ format: 'uuid' }) })
 
 const UpdateShopProfileBodySchema = t.Intersect([t.Partial(t.Pick(ShopPlainInputUpdate, [
   'name',
@@ -113,4 +117,32 @@ export function createSellerShopRoutes(container: ServiceContainer) {
       params: ShopParamsSchema,
       body: UpdateShopSettingsBodySchema,
     })
+    .get('/api/seller/shops/:shopId/staff', ({ authContext, params }: any) =>
+      container.shopStaffService.list(actor(authContext), params.shopId), {
+      withAuth: true,
+      params: ShopParamsSchema,
+    })
+    .post('/api/seller/shops/:shopId/staff', ({ authContext, params, body }: any) =>
+      container.shopStaffService.invite(actor(authContext), params.shopId, body.email, body.role), {
+      withAuth: true,
+      params: ShopParamsSchema,
+      body: StaffInviteBodySchema,
+    })
+    .patch('/api/seller/shops/:shopId/staff/:staffId', ({ authContext, params, body }: any) =>
+      container.shopStaffService.update(actor(authContext), params.shopId, params.staffId, body), {
+      withAuth: true,
+      params: StaffParamsSchema,
+      body: StaffUpdateBodySchema,
+    })
+    .delete('/api/seller/shops/:shopId/staff/:staffId', async ({ authContext, params }: any) =>
+      container.shopStaffService.remove(actor(authContext), params.shopId, params.staffId), {
+      withAuth: true,
+      params: StaffParamsSchema,
+    })
+    .post('/api/seller/staff/invitations/:staffId/accept', ({ authContext, params }: any) =>
+      container.shopStaffService.accept(actor(authContext), params.staffId), {
+      withAuth: true,
+      params: StaffInviteParamsSchema,
+    })
+    .get('/api/seller/staff/invitations', ({ authContext }: any) => container.shopStaffService.listInvitations(actor(authContext)), { withAuth: true })
 }

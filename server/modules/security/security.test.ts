@@ -99,6 +99,7 @@ function createOwnershipRepo(overrides: Partial<Record<keyof OwnershipGuardRepos
     shipmentBelongsToActiveShop: vi.fn(async () => overrides.shipmentBelongsToActiveShop ?? true),
     findActiveShopsForUser: vi.fn(async () => [{ id: 'shop-1', ownerId: 'seller-1', status: 'ACTIVE' as const }]),
     findActiveShopForUser: vi.fn(async () => ({ id: 'shop-1', ownerId: 'seller-1', status: 'ACTIVE' as const })),
+    findActiveStaffShopAccessesForUser: vi.fn(async () => []),
   }
 }
 
@@ -253,7 +254,7 @@ describe('security hardening', () => {
     expect(repo.activeShopBelongsToUser).toHaveBeenCalledWith('seller-1', 'shop-1')
   })
 
-  it('active shop resolver authorizes only active shops owned by the user', async () => {
+  it('active shop resolver authorizes active owner shops and enforces staff permissions', async () => {
     const repo = createOwnershipRepo()
     const resolver = new ActiveShopResolver(repo)
 
@@ -268,10 +269,15 @@ describe('security hardening', () => {
     await expect(resolver.requireAnyActiveShop('pending-seller'))
       .rejects.toMatchObject({ status: 403, code: 'SELLER_SHOP_NOT_ACTIVE' })
 
-    vi.mocked(repo.findActiveShopForUser).mockResolvedValueOnce(null)
-    await expect(resolver.requireActiveShop('seller-1', 'other-shop'))
+    vi.mocked(repo.findActiveShopsForUser).mockResolvedValueOnce([])
+    vi.mocked(repo.findActiveStaffShopAccessesForUser).mockResolvedValueOnce([{ shop: { id: 'staff-shop', ownerId: 'owner-2', status: 'ACTIVE' }, permissions: ['shipments'] }])
+    await expect(resolver.requireActiveShopAccess('seller-1', 'staff-shop', { permissions: ['shipments'] }))
+      .resolves.toMatchObject({ access: { kind: 'STAFF', permissions: ['shipments'] } })
+
+    vi.mocked(repo.findActiveShopsForUser).mockResolvedValueOnce([])
+    vi.mocked(repo.findActiveStaffShopAccessesForUser).mockResolvedValueOnce([{ shop: { id: 'staff-shop', ownerId: 'owner-2', status: 'ACTIVE' }, permissions: ['inventory'] }])
+    await expect(resolver.requireActiveShopAccess('seller-1', 'staff-shop', { permissions: ['shipments'] }))
       .rejects.toMatchObject({ status: 403, code: 'SELLER_SHOP_NOT_ACTIVE' })
-    expect(repo.findActiveShopForUser).toHaveBeenCalledWith('seller-1', 'other-shop')
   })
 
   it('buyer ownership guard blocks wrong buyer', async () => {

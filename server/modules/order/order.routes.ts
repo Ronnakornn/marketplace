@@ -2,16 +2,19 @@ import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
 import { OrderServiceError } from './order.errors.ts'
+import { PaymentServiceError } from '#server/modules/payment/payment.errors.ts'
 
 const OrderParamsSchema = t.Object({
   orderId: t.String({ format: 'uuid' }),
 })
 
+const CancelOrderResponseSchema = t.Object({ ok: t.Literal(true) })
+
 export function createOrderRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
-      if (error instanceof OrderServiceError) {
+      if (error instanceof OrderServiceError || error instanceof PaymentServiceError) {
         return httpStatus(error.status, {
           error: {
             code: error.code,
@@ -33,6 +36,12 @@ export function createOrderRoutes(container: ServiceContainer) {
       container.orderService.getBuyerOrderTracking(authContext!.user, params.orderId), {
       withAuth: true,
       params: OrderParamsSchema,
+    })
+    .post('/api/orders/:orderId/cancel', ({ authContext, params }: any) =>
+      container.paymentService.cancelBuyerOrder(authContext!.user, params.orderId), {
+      withAuth: true,
+      params: OrderParamsSchema,
+      response: CancelOrderResponseSchema,
     })
     .get('/api/seller/orders', ({ authContext }: any) => container.orderService.listSellerOrders(authContext!.user), {
       withAuth: true,

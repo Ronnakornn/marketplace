@@ -6,6 +6,10 @@ export type SellerShopErrorCode =
   | 'SHOP_PROFILE_INVALID'
   | 'SHOP_SETTINGS_INVALID'
   | 'SHOP_NOT_FOUND'
+  | 'SHOP_STAFF_INVALID'
+  | 'SHOP_STAFF_USER_NOT_FOUND'
+  | 'SHOP_STAFF_EXISTS'
+  | 'SHOP_STAFF_NOT_FOUND'
 
 export class SellerShopServiceError extends Error {
   constructor(

@@ -38,6 +38,9 @@ describe('PrismaCheckoutRepository', () => {
       cart: {
         update: vi.fn().mockResolvedValue({ id: 'cart-1' }),
       },
+      cartItem: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
     }
     const repository = new PrismaCheckoutRepository(
       { logger: createLogger(), config: { environment: 'test' } },
@@ -67,6 +70,7 @@ describe('PrismaCheckoutRepository', () => {
         currency: 'THB',
       },
       items: [{
+        id: 'cart-item-1',
         variantId: 'variant-1',
         quantity: 2,
         variant: {
@@ -124,6 +128,9 @@ describe('PrismaCheckoutRepository', () => {
     expect(prisma.inventoryReservation.updateMany).toHaveBeenCalledWith({
       where: { checkoutId: 'checkout-1', status: 'ACTIVE' },
       data: { orderId: 'order-1' },
+    })
+    expect(prisma.cartItem.deleteMany).toHaveBeenCalledWith({
+      where: { cartId: 'cart-1', id: { in: ['cart-item-1'] } },
     })
   })
 })

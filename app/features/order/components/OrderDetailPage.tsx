@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageCircleIcon, PackageCheckIcon, TruckIcon } from "lucide-react";
 import { BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { fetchOrder, formatMoney } from "#/features/buyer/api";
+import { cancelOrder, fetchOrder, formatMoney } from "#/features/buyer/api";
 import { createChatRoom } from "#/features/chat";
 import { useFormatters, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
@@ -20,6 +20,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
   const t = useTranslations();
   const formatters = useFormatters();
   const localePath = useLocalePath();
+  const queryClient = useQueryClient();
   const { data: session } = useSession();
   const canUseBuyerChat = session?.user.role === "USER";
   const orderQuery = useQuery({ queryKey: ["buyer-order", orderId], queryFn: () => fetchOrder(orderId) });
@@ -27,6 +28,13 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
     mutationFn: (shopId: string) => createChatRoom({ shopId, orderId }),
     onSuccess: (room) => {
       router.push(localePath(`/chat/${room.roomId}`));
+    },
+  });
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelOrder(orderId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["buyer-order", orderId] });
+      await queryClient.invalidateQueries({ queryKey: ["buyer-orders"] });
     },
   });
 
@@ -50,6 +58,12 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
                 <Info label={t("order.payment")} value={formatOrderStatus(orderQuery.data.paymentStatus, t)} />
                 <Info label={t("common.total")} value={formatMoney(orderQuery.data.totalCents, orderQuery.data.currency)} />
               </div>
+              {orderQuery.data.status === "PENDING_PAYMENT" && ["PENDING", "REQUIRES_ACTION"].includes(orderQuery.data.paymentStatus) ? (
+                <div className="mt-4 border-t border-slate-100 pt-4">
+                  <Button variant="outline" className="rounded-full text-red-700 hover:bg-red-50 hover:text-red-800" disabled={cancelMutation.isPending} onClick={() => { if (window.confirm(t("order.cancelConfirm"))) cancelMutation.mutate(); }}>{t("order.cancel")}</Button>
+                  {cancelMutation.isError ? <p className="mt-2 text-sm text-red-600">{t("order.cancelError")}</p> : null}
+                </div>
+              ) : null}
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4">

@@ -19,7 +19,7 @@ Detailed seller manage implementation rules live in [seller-manage.md](seller-ma
 
 ## Business Rules
 
-- `User.role` has no `SELLER` value. Seller access is scoped to an authenticated user's seller profile and active owned shops.
+- `User.role` has no `SELLER` value. Seller access is scoped to an authenticated user's active owned shop or active shop-staff membership.
 - A user can remain a buyer and become a seller after shop onboarding and admin approval.
 - Operational seller APIs require an `ACTIVE` shop. `PENDING`, `REJECTED`, `BANNED`, `SUSPENDED`, and `VACATION` shops cannot use full seller operations.
 - Seller order processing is shipment-based, not whole-order based.
@@ -42,6 +42,10 @@ Detailed seller manage implementation rules live in [seller-manage.md](seller-ma
 - `POST /api/seller/shipments/:shipmentId/ship`
 - `GET /api/seller/finance`
 - `GET /api/seller/promotions`
+- `GET|POST /api/seller/shops/:shopId/staff`
+- `PATCH|DELETE /api/seller/shops/:shopId/staff/:staffId`
+- `GET /api/seller/staff/invitations`
+- `POST /api/seller/staff/invitations/:staffId/accept`
 
 ## Frontend Surfaces
 
@@ -66,6 +70,14 @@ Detailed seller manage implementation rules live in [seller-manage.md](seller-ma
 - Product suspended by admin after publication.
 - Low stock with reserved inventory.
 - Shipment canceled/refunded.
+
+## Shop Staff
+
+- Only an active shop owner can invite, change, suspend, or remove staff.
+- Invites target an existing platform account. Account accepts from profile before membership becomes active.
+- Presets: Manager (`products`, `inventory`, `shipments`, `promotions`, `chat`), Fulfillment (`inventory`, `shipments`), Support (`chat`, `returns`).
+- Staff access is one-shop scoped; invite/update/remove create `ShopActivityLog` entries.
+- Shipment list, pack, and ship require `shipments` permission for staff.
 
 ## Acceptance Criteria
 

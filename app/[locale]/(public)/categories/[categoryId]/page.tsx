@@ -15,11 +15,12 @@ export async function generateMetadata({
   const query = await searchParams;
   const category = await requirePublicCategorySeo(categoryId);
   const t = createTranslator(locale);
+  const categoryName = localizedCategoryName(category.slug, category.name, t);
 
   return publicPageMetadata({
-    title: t("seo.categoryProductsTitle").replace("{category}", category.name),
+    title: t("seo.categoryProductsTitle").replace("{category}", categoryName),
     description: t("seo.categoryProductsDescription")
-      .replace("{category}", category.name)
+      .replace("{category}", categoryName)
       .replace("{site}", getSiteName()),
     path: `/categories/${category.slug}`,
     locale,
@@ -46,17 +47,19 @@ export default async function CategoryPage({
   const query = await searchParams;
   const category = await requirePublicCategorySeo(categoryId);
   const t = createTranslator(locale);
+  const categoryName = localizedCategoryName(category.slug, category.name, t);
 
   return (
     <>
       <JsonLd data={collectionPageJsonLd(category)} />
       <JsonLd data={breadcrumbJsonLd([
         { name: t("common.home"), path: "/" },
-        { name: category.name, path: `/categories/${category.slug}` },
+        { name: categoryName, path: `/categories/${category.slug}` },
       ])} />
       <ProductListingPage
         mode="category"
         categoryId={category.slug}
+        categoryName={categoryName}
         brandId={query.brandId}
         attributeFilters={query.attributeFilters}
         minPrice={query.minPrice}
@@ -67,6 +70,11 @@ export default async function CategoryPage({
       />
     </>
   );
+}
+
+function localizedCategoryName(slug: string, fallback: string, t: ReturnType<typeof createTranslator>) {
+  if (slug === "fashion") return t("product.categoryFashion");
+  return fallback;
 }
 
 function hasIndexUnsafeCategoryFilters(query: Record<string, string | undefined>) {

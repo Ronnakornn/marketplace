@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreditCardIcon, MapPinIcon, PackageCheckIcon, TicketIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
@@ -39,6 +39,7 @@ export function CheckoutPage() {
   const localePath = useLocalePath();
   const locale = useLocale();
   const t = useTranslations();
+  const queryClient = useQueryClient();
   const cartQuery = useQuery({ queryKey: ["buyer-cart", locale], queryFn: () => fetchCart(locale) });
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
   const defaultAddress = addressesQuery.data?.find((address) => address.isDefault) ?? addressesQuery.data?.[0];
@@ -70,6 +71,9 @@ export function CheckoutPage() {
         shippingMethod: "standard",
         locale,
       });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
     },
   });
   const handleApplyCoupon = () => {

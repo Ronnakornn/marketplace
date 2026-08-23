@@ -20,6 +20,7 @@ import {
   PanelLeftCloseIcon,
   RotateCcwIcon,
   StoreIcon,
+  UsersIcon,
 } from "lucide-react";
 import { stripLocale } from "#/i18n/config";
 import { useLocalePath } from "#/i18n/navigation";
@@ -53,6 +54,7 @@ import {
 
 const navItems = [
   { href: "/seller", labelKey: "seller.nav.dashboard", icon: LayoutDashboardIcon },
+  { href: "/seller/shop", labelKey: "seller.nav.shopProfile", icon: StoreIcon },
   { href: "/seller/products", labelKey: "seller.nav.products", icon: BoxesIcon },
   { href: "/seller/analytics/products", labelKey: "seller.nav.productAnalytics", icon: ChartNoAxesCombinedIcon },
   { href: "/seller/inventory", labelKey: "seller.nav.inventory", icon: ClipboardListIcon },
@@ -62,6 +64,7 @@ const navItems = [
   { href: "/seller/finance", labelKey: "seller.nav.finance", icon: BanknoteIcon },
   { href: "/seller/chat", labelKey: "seller.nav.chat", icon: MessageCircleIcon },
   { href: "/seller/notifications", labelKey: "seller.nav.notifications", icon: BellIcon },
+  { href: "/seller/staff", labelKey: "seller.nav.staff", icon: UsersIcon },
 ] as const;
 
 interface SellerShellProps {

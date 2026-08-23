@@ -166,6 +166,36 @@ export class PaymentService {
     return response
   }
 
+  async cancelBuyerOrder(actor: SessionUser, orderId: string): Promise<{ ok: true }> {
+    if (actor.role === 'ADMIN') throw new PaymentServiceError('Buyer order APIs are only available to buyer accounts', 403, 'ORDER_FORBIDDEN')
+    this.logger.info('PaymentService.cancelBuyerOrder', { actorId: actor.id, orderId })
+
+    const payment = await this.repo.transaction(async (txRepo) => {
+      const initialPayment = await txRepo.findPaymentForOrder(orderId)
+      if (!initialPayment || initialPayment.order.userId !== actor.id) throw new PaymentServiceError('Order not found', 404, 'ORDER_NOT_FOUND')
+      await txRepo.lockPayment(initialPayment.id)
+      const lockedPayment = await txRepo.findPayment(initialPayment.id)
+      if (!lockedPayment || lockedPayment.order.userId !== actor.id) throw new PaymentServiceError('Order not found', 404, 'ORDER_NOT_FOUND')
+      if (!['PENDING', 'REQUIRES_ACTION'].includes(lockedPayment.status) || lockedPayment.order.status !== 'PENDING_PAYMENT') {
+        throw new PaymentServiceError('Order can no longer be cancelled', 409, 'ORDER_CANCELLATION_NOT_ALLOWED')
+      }
+
+      await txRepo.applyPaymentStateTransition({
+        paymentId: lockedPayment.id,
+        orderId: lockedPayment.orderId,
+        checkoutId: lockedPayment.order.checkoutId,
+        eventType: 'buyer.cancelled',
+        reservations: this.getActiveReservations(lockedPayment),
+        occurredAt: new Date(),
+      })
+      return lockedPayment
+    })
+
+    await this.invalidateOrderAffectedCaches(payment)
+    await this.publishBestEffort('order.cancelled', orderId, { orderId, paymentId: payment.id, cause: 'buyer_cancelled' })
+    return { ok: true }
+  }
+
   private validateInput(input: PaymentWebhookBody): void {
     if (input.provider !== this.paymentConfig.provider) {
       throw new PaymentServiceError('Unsupported webhook provider', 400, 'INVALID_WEBHOOK_EVENT')

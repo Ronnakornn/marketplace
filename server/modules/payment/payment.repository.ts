@@ -47,7 +47,7 @@ export interface PaymentStateTransitionInput {
   paymentId: string
   orderId: string
   checkoutId: string
-  eventType: 'payment.paid' | 'payment.failed' | 'payment.expired'
+  eventType: 'payment.paid' | 'payment.failed' | 'payment.expired' | 'buyer.cancelled'
   reservations: ReleaseReservationInput[]
   occurredAt: Date
 }
@@ -59,6 +59,7 @@ export interface IPaymentRepository {
   lockWebhookEvent(providerRef: string): Promise<void>
   lockPayment(paymentId: string): Promise<void>
   findPayment(paymentId: string): Promise<PaymentWithOrder | null>
+  findPaymentForOrder(orderId: string): Promise<PaymentWithOrder | null>
   findOrder(orderId: string): Promise<Order | null>
   findWebhookEvent(providerRef: string): Promise<PaymentEvent | null>
   createWebhookEvent(input: PaymentWebhookBody): Promise<PaymentEvent>
@@ -105,6 +106,15 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
     return this.prisma.payment.findUnique({
       where: { id: paymentId },
       include: paymentInclude,
+    })
+  }
+
+  findPaymentForOrder(orderId: string): Promise<PaymentWithOrder | null> {
+    this.logger.debug('PrismaPaymentRepository.findPaymentForOrder', { orderId })
+    return this.prisma.payment.findFirst({
+      where: { orderId },
+      include: paymentInclude,
+      orderBy: { createdAt: 'desc' },
     })
   }
 

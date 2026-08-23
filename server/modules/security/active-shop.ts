@@ -18,6 +18,7 @@ export interface ActiveShopAccess {
 export interface ActiveShopRepository {
   findActiveShopsForUser(userId: string): Promise<ActiveSellerShop[]>
   findActiveShopForUser(userId: string, shopId: string): Promise<ActiveSellerShop | null>
+  findActiveStaffShopAccessesForUser(userId: string): Promise<Array<{ shop: ActiveSellerShop; permissions: string[] }>>
 }
 
 export class ActiveShopResolver {
@@ -25,6 +26,21 @@ export class ActiveShopResolver {
 
   async resolveActiveShops(userId: string): Promise<ActiveSellerShop[]> {
     return this.repo.findActiveShopsForUser(userId)
+  }
+
+  async resolveActiveShopAccesses(userId: string, options: ActiveShopAccessOptions = {}): Promise<ActiveShopAccess[]> {
+    const [owned, staff] = await Promise.all([
+      this.repo.findActiveShopsForUser(userId),
+      this.repo.findActiveStaffShopAccessesForUser(userId),
+    ])
+    const required = options.permissions ?? []
+    return [
+      ...owned.map((shop) => this.toOwnerAccess(shop, options)),
+      ...staff
+        .filter(({ shop }) => !owned.some((ownedShop) => ownedShop.id === shop.id))
+        .filter(({ permissions }) => required.every((permission) => permissions.includes(permission)))
+        .map(({ shop, permissions }) => ({ shop, access: { kind: 'STAFF' as const, permissions } })),
+    ]
   }
 
   async requireAnyActiveShop(userId: string): Promise<ActiveSellerShop> {
@@ -48,9 +64,9 @@ export class ActiveShopResolver {
     shopId: string,
     options: ActiveShopAccessOptions = {},
   ): Promise<ActiveShopAccess> {
-    const shop = await this.repo.findActiveShopForUser(userId, shopId)
-    if (!shop) throw new SecurityError('Active seller shop access required', 403, 'SELLER_SHOP_NOT_ACTIVE')
-    return this.toOwnerAccess(shop, options)
+    const access = (await this.resolveActiveShopAccesses(userId, options)).find(({ shop }) => shop.id === shopId)
+    if (!access) throw new SecurityError('Active seller shop access required', 403, 'SELLER_SHOP_NOT_ACTIVE')
+    return access
   }
 
   async hasActiveShop(userId: string, shopId: string): Promise<boolean> {

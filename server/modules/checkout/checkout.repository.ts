@@ -345,9 +345,8 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
       },
     })
 
-    await this.prisma.cart.update({
-      where: { id: input.cartId },
-      data: { status: 'CHECKED_OUT' },
+    await this.prisma.cartItem.deleteMany({
+      where: { cartId: input.cartId, id: { in: input.items.map((item) => item.id) } },
     })
 
     return {

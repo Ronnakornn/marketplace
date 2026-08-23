@@ -21,7 +21,7 @@ Seller authorization must not depend on a user role. A seller is a user who owns
 - Verified email is required for trusted protected marketplace flows and admin access.
 - Suspended users are blocked at the auth boundary.
 - Seller onboarding/status requires authentication.
-- Seller operations require authentication plus an `ACTIVE` shop where `Shop.ownerId` equals the authenticated user id.
+- Seller operations require authentication plus an `ACTIVE` owned shop or active staff membership with the operation's required permission.
 - Admin role is required for admin routes.
 - Provider webhooks use signature verification, not user sessions.
 - Phone OTP auth supports login for users with `phoneVerified = true`, pending signup for verified new phones, and authenticated profile phone linking.

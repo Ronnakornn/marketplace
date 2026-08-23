@@ -92,10 +92,13 @@ vi.mock("#/i18n/client", () => ({
     "product.addingProductToCart": "Adding {title} to cart",
     "product.addingToCart": "Adding to cart...",
     "product.addToWishlistWithTitle": "Add {title} to wishlist",
+    "product.bestSeller": "Best seller",
     "product.discountPercentOff": "{percent}% off",
     "product.itemOutOfStock": "This item is out of stock.",
+    "product.inStock": "in stock",
     "product.loginToAddToCart": "Log in to add this item to your cart.",
     "product.onlyBuyerAccountsCanPurchase": "Only buyer accounts can purchase.",
+    "product.new": "New",
     "product.openProductDetails": "Open {title} details",
     "product.outOfStock": "Out of stock",
     "product.quickAddToCart": "Quick add {title} to cart",
@@ -179,6 +182,15 @@ describe("ProductCard", () => {
     expect(screen.getByText("21 sold")).toBeTruthy();
     expect(screen.getByText("Demo Shop")).toBeTruthy();
     expect(screen.getByText("Bangkok")).toBeTruthy();
+  });
+
+  it("localizes system-generated product badges", () => {
+    renderWithClient(createProductFixture({ badges: ["new", "in_stock", "best_seller"] }));
+
+    expect(screen.getByText("New")).toBeTruthy();
+    expect(screen.getByText("in stock")).toBeTruthy();
+    expect(screen.queryByText("new")).toBeNull();
+    expect(screen.queryByText("in_stock")).toBeNull();
   });
 
   it("can omit redundant shop identity without changing the default", () => {
@@ -326,27 +338,13 @@ describe("ProductCard", () => {
     expect(cardMocks.trackProductClick).not.toHaveBeenCalled();
   });
 
-  it("disables quick add with login and non-buyer reasons", () => {
-    cardMocks.session = null;
+  it("disables quick add for non-buyer accounts", () => {
+    cardMocks.session = { user: { role: "SELLER" } };
     const product = createProductFixture({
       variants: [{ ...createVariant("variant-safe", 1200, 4), optionValues: [] }],
       options: [],
     });
-    const { rerender } = renderWithClient(product);
-
-    const anonymousQuickAdd = screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ });
-    expect(anonymousQuickAdd).toHaveProperty("disabled", true);
-    expect(screen.getByText("Log in to add this item to your cart.")).toBeTruthy();
-
-    cardMocks.session = { user: { role: "SELLER" } };
-    const client = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-    });
-    rerender(
-      <QueryClientProvider client={client}>
-        <ProductCard product={product} />
-      </QueryClientProvider>,
-    );
+    renderWithClient(product);
 
     const sellerQuickAdd = screen.getByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ });
     expect(sellerQuickAdd).toHaveProperty("disabled", true);

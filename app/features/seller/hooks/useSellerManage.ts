@@ -36,6 +36,7 @@ export type SellerCoupon = Treaty.Data<ReturnType<typeof api.api.seller.coupons.
 export type SellerWallet = Treaty.Data<ReturnType<typeof api.api.seller.wallet.get>>;
 export type SellerTransactions = Treaty.Data<ReturnType<typeof api.api.seller.wallet.transactions.get>>;
 export type SellerPayout = Treaty.Data<ReturnType<typeof api.api.seller.payouts.get>> extends Array<infer T> ? T : never;
+export type SellerShopStaff = Treaty.Data<ReturnType<ReturnType<typeof api.api.seller.shops>['staff']['get']>> extends Array<infer T> ? T : never;
 
 export interface ProductFilters {
   q?: string;
@@ -290,6 +291,55 @@ export function useUpdateSellerShopSettings() {
       await queryClient.invalidateQueries({ queryKey: sellerKey("shop-settings", { shopId: variables.shopId }) });
       await queryClient.invalidateQueries({ queryKey: sellerKey("dashboard") });
     },
+  });
+}
+
+export function useSellerShopStaff(shopId?: string) {
+  return useQuery({
+    queryKey: sellerKey('shop-staff', { shopId: shopId ?? null }),
+    enabled: Boolean(shopId),
+    queryFn: async () => {
+      if (!shopId) throw new Error('Shop is required.');
+      const { data, error } = await api.api.seller.shops({ shopId }).staff.get();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useInviteSellerShopStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ shopId, email, role }: { shopId: string; email: string; role: 'MANAGER' | 'WAREHOUSE' | 'SUPPORT' }) => {
+      const { data, error } = await api.api.seller.shops({ shopId }).staff.post({ email, role });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, variables) => queryClient.invalidateQueries({ queryKey: sellerKey('shop-staff', { shopId: variables.shopId }) }),
+  });
+}
+
+export function useUpdateSellerShopStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ shopId, staffId, role, status }: { shopId: string; staffId: string; role?: 'MANAGER' | 'WAREHOUSE' | 'SUPPORT'; status?: 'INVITED' | 'ACTIVE' | 'SUSPENDED' }) => {
+      const { data, error } = await api.api.seller.shops({ shopId }).staff({ staffId }).patch({ role, status });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, variables) => queryClient.invalidateQueries({ queryKey: sellerKey('shop-staff', { shopId: variables.shopId }) }),
+  });
+}
+
+export function useRemoveSellerShopStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ shopId, staffId }: { shopId: string; staffId: string }) => {
+      const { data, error } = await api.api.seller.shops({ shopId }).staff({ staffId }).delete();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (_data, variables) => queryClient.invalidateQueries({ queryKey: sellerKey('shop-staff', { shopId: variables.shopId }) }),
   });
 }
 

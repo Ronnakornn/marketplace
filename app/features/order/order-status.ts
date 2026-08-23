@@ -1,23 +1,23 @@
 const statusKeys: Record<string, string> = {
-  PENDING_PAYMENT: "order.status.pendingPayment",
-  PAID: "order.status.paid",
-  PROCESSING: "order.status.processing",
-  PARTIALLY_SHIPPED: "order.status.partiallyShipped",
-  SHIPPED: "order.status.shipped",
-  DELIVERED: "order.status.delivered",
-  PARTIALLY_FULFILLED: "order.status.partiallyFulfilled",
-  FULFILLED: "order.status.fulfilled",
-  CANCELED: "order.status.canceled",
-  REFUNDED: "order.status.refunded",
-  REQUIRES_ACTION: "order.status.requiresAction",
-  PENDING: "order.status.pending",
-  SUCCEEDED: "order.status.succeeded",
-  FAILED: "order.status.failed",
-  PENDING_PACK: "order.status.pendingPack",
-  PACKED: "order.status.packed",
-  READY: "order.status.ready",
+  PENDING_PAYMENT: "order.statuses.pendingPayment",
+  PAID: "order.statuses.paid",
+  PROCESSING: "order.statuses.processing",
+  PARTIALLY_SHIPPED: "order.statuses.partiallyShipped",
+  SHIPPED: "order.statuses.shipped",
+  DELIVERED: "order.statuses.delivered",
+  PARTIALLY_FULFILLED: "order.statuses.partiallyFulfilled",
+  FULFILLED: "order.statuses.fulfilled",
+  CANCELED: "order.statuses.canceled",
+  REFUNDED: "order.statuses.refunded",
+  REQUIRES_ACTION: "order.statuses.requiresAction",
+  PENDING: "order.statuses.pending",
+  SUCCEEDED: "order.statuses.succeeded",
+  FAILED: "order.statuses.failed",
+  PENDING_PACK: "order.statuses.pendingPack",
+  PACKED: "order.statuses.packed",
+  READY: "order.statuses.ready",
 };
 
 export function formatOrderStatus(status: string, t: (key: never) => string): string {
-  return t((statusKeys[status.toUpperCase()] ?? "order.status.unknown") as never);
+  return t((statusKeys[status.toUpperCase()] ?? "order.statuses.unknown") as never);
 }
