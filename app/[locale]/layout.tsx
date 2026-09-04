@@ -4,7 +4,6 @@ import AppChrome from "#/components/AppChrome";
 import { I18nProvider } from "#/i18n/client";
 import { fallbackLocale, isLocale, locales, type Locale } from "#/i18n/config";
 import { getMessages } from "#/i18n/server";
-import { isAnonymousMarketplaceHomeRequest } from "#/lib/request-rendering.server";
 
 interface LocaleLayoutProps {
   children: ReactNode;
@@ -18,10 +17,6 @@ export function generateStaticParams() {
 export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-
-  if (await isAnonymousMarketplaceHomeRequest()) {
-    return <AppChrome>{children}</AppChrome>;
-  }
 
   const [messages, fallbackMessages] = await Promise.all([
     getMessages(locale),

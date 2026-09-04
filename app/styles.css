@@ -38,7 +38,7 @@
 }
 
 @theme {
-  --font-sans: var(--font-noto-sans-thai, Arial), Tahoma, sans-serif;
+  --font-sans: var(--font-noto-sans-thai), sans-serif;
 }
 
 :root {
