@@ -10,6 +10,7 @@ import type {
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CreateNotificationInput } from '#server/modules/notification/notification.repository.ts'
+import { releasePendingBuyerCoins } from '#server/modules/promotion/buyer-coin.transitions.ts'
 
 type JobTx = Omit<
   PrismaClient,
@@ -137,6 +138,7 @@ export class PrismaJobRepository implements IJobRepository {
       where: { orderId, status: 'RESERVED' },
       data: { status: 'RELEASED' },
     })
+    await releasePendingBuyerCoins(this.prisma, orderId)
   }
 
   async markCheckoutExpired(checkoutId: string): Promise<void> {
@@ -144,6 +146,7 @@ export class PrismaJobRepository implements IJobRepository {
       where: { id: checkoutId },
       data: { status: 'EXPIRED' },
     })
+    await this.prisma.flashSaleReservation.updateMany({ where: { checkoutId, status: 'ACTIVE' }, data: { status: 'EXPIRED' } })
   }
 
   async releaseReservations(reservations: ReleaseReservationInput[]): Promise<void> {

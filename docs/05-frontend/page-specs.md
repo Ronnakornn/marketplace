@@ -17,6 +17,13 @@ Acceptance:
 - Product feed supports loading, error, empty, and infinite-scroll states.
 - Product cards show image, title, price, shop/free shipping signal, rating/sold count where available.
 
+## Buyer Coins `/coins`
+
+Required sections:
+- available, pending, and lifetime-earned balances from `GET /api/me/coins`
+- ledger history with type, status, reason, amount, and timestamp
+- checkout redemption entry point; the server remains authoritative for balance and the 20% cap
+
 ## Product Detail `/products/:productId`
 
 Required sections:
@@ -48,6 +55,7 @@ Acceptance:
 - Items are grouped by shop.
 - Checkout CTA enables only for valid selected items.
 - Empty cart shows continue shopping CTA.
+- Guests can inspect and remove their browser-local items, see the live item count in the header, and are directed to sign in before checkout.
 
 ## Checkout `/checkout`
 
@@ -91,6 +99,7 @@ Required sections:
 Acceptance:
 - Shows order-level and shipment-level status separately.
 - Displays per-shop shipments.
+- Allows cancellation only for an unpaid order; successful cancellation refreshes the order detail and order list.
 
 ## Seller Register `/seller/register`
 

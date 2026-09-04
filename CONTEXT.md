@@ -44,8 +44,9 @@ yields different amounts under different [[Checkout Quote]]s.
 
 ### Guest Cart
 
-A browser-local collection of variant quantities before sign-in. It is merged
-into the buyer's Cart after sign-in and is not a server-side cart.
+A browser-local collection of variant quantities and display snapshots before
+sign-in. It is not a server-side cart; checkout requires sign-in and a future
+merge/import flow must revalidate every item.
 
 ### Unavailable Cart Item
 

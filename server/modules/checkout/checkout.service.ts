@@ -14,6 +14,7 @@ import { CheckoutServiceError } from './checkout.errors.ts'
 import type {
   CheckoutCart,
   CheckoutCartItem,
+  CheckoutPricedItem,
   CreatePendingOrderInput,
   ICheckoutRepository,
 } from './checkout.repository.ts'
@@ -30,6 +31,7 @@ export interface CreateCheckoutData {
   cartItemIds?: string[]
   addressId: string
   couponCode?: string
+  coinsToUse?: number
   paymentMethod: string
   shippingMethod?: string
   locale?: string
@@ -39,6 +41,7 @@ export interface QuoteCheckoutData {
   cartId: string
   cartItemIds?: string[]
   couponCode?: string
+  coinsToUse?: number
 }
 
 export interface CheckoutResponse {
@@ -62,6 +65,7 @@ export interface CheckoutQuote {
   grandTotal: number
   currency: string
   coupon: CouponOutcome | null
+  coinsApplied: number
 }
 
 interface CalculatedTotals {
@@ -102,9 +106,10 @@ export class CheckoutService {
       if (!address) throw new CheckoutServiceError('Address not found', 404, 'ADDRESS_NOT_FOUND')
 
       this.validateItems(items)
-      const baseTotals = this.calculateTotals(items)
+      const pricedItems = await this.priceItems(txRepo, items)
+      const baseTotals = this.calculateTotals(pricedItems)
       let couponValidation = data.couponCode
-        ? await this.validateCouponForCheckout(txRepo, actor.id, data.couponCode, baseTotals.subtotal)
+        ? await this.validateCouponForCheckout(txRepo, actor.id, data.couponCode, pricedItems)
         : null
       if (couponValidation) {
         await txRepo.lockCouponForCheckout(couponValidation.couponId)
@@ -112,10 +117,15 @@ export class CheckoutService {
           txRepo,
           actor.id,
           data.couponCode!,
-          baseTotals.subtotal,
+          pricedItems,
         )
       }
-      const totals = this.calculateTotals(items, couponValidation?.discount ?? 0)
+      const coinsToUse = await this.resolveCoinRedemption(txRepo, actor.id, data.coinsToUse, baseTotals.subtotal, couponValidation?.discount ?? 0)
+      const totals = this.calculateTotals(
+        pricedItems,
+        (couponValidation?.discount ?? 0) + coinsToUse * 100,
+        couponValidation?.freeShippingShopIds ?? [],
+      )
       const orderNumber = this.createOrderNumber()
       const checkoutExpiresAt = new Date(Date.now() + CHECKOUT_RESERVATION_MINUTES * 60 * 1000)
 
@@ -126,10 +136,15 @@ export class CheckoutService {
           checkoutExpiresAt,
           address,
           totals,
-          items,
+          items: pricedItems,
           paymentProvider: this.paymentConfig.provider,
           locale: data.locale,
           coupon: couponValidation ? { id: couponValidation.couponId } : null,
+          couponDiscount: couponValidation?.discount ?? 0,
+          couponShopId: couponValidation?.couponShopId ?? null,
+          coinDiscount: coinsToUse * 100,
+          freeShippingShopIds: couponValidation?.freeShippingShopIds ?? [],
+          coinsToUse,
         })
 
       await this.cacheInvalidation?.invalidateInventory()
@@ -161,14 +176,17 @@ export class CheckoutService {
     this.assertCart(actor, cart)
     const items = this.selectCartItems(cart.items, data.cartItemIds)
 
-    const baseTotals = this.calculateTotals(items)
+    const pricedItems = await this.priceItems(this.repo, items)
+    const baseTotals = this.calculateTotals(pricedItems)
     let coupon: CouponOutcome | null = null
     let discountCents = 0
+    let freeShippingShopIds: string[] = []
 
     if (data.couponCode) {
       try {
-        const couponValidation = await this.validateCouponForCheckout(this.repo, actor.id, data.couponCode, baseTotals.subtotal)
+        const couponValidation = await this.validateCouponForCheckout(this.repo, actor.id, data.couponCode, pricedItems)
         discountCents = couponValidation.discount
+        freeShippingShopIds = couponValidation.freeShippingShopIds
         coupon = { code: couponValidation.couponCode, applied: true }
       } catch (error) {
         if (error instanceof CheckoutServiceError && error.code === 'INVALID_COUPON') {
@@ -183,11 +201,13 @@ export class CheckoutService {
       }
     }
 
-    const totals = this.calculateTotals(items, discountCents)
+    const coinsApplied = await this.resolveCoinRedemption(this.repo, actor.id, data.coinsToUse, baseTotals.subtotal, discountCents)
+    const totals = this.calculateTotals(pricedItems, discountCents + coinsApplied * 100, freeShippingShopIds)
 
     return {
       ...totals,
       coupon,
+      coinsApplied,
     }
   }
 
@@ -260,7 +280,7 @@ export class CheckoutService {
     return items
   }
 
-  private calculateTotals(items: CheckoutCartItem[], discountCents = 0): CalculatedTotals {
+  private calculateTotals(items: CheckoutPricedItem[], discountCents = 0, freeShippingShopIds: string[] = []): CalculatedTotals {
     const currency = items[0]?.variant.currency ?? 'THB'
     if (items.some((item) => item.variant.currency !== currency)) {
       throw new CheckoutServiceError('Mixed currencies are not supported in checkout', 400, 'CHECKOUT_FAILED')
@@ -269,7 +289,7 @@ export class CheckoutService {
       throw new CheckoutServiceError('Checkout supports THB only', 400, 'CHECKOUT_FAILED')
     }
 
-    const subtotal = items.reduce((total, item) => total + Number(item.variant.price) * item.quantity, 0)
+    const subtotal = items.reduce((total, item) => total + item.unitPrice * item.quantity, 0)
     const shippingByShop = new Map<string, number>()
     for (const item of items) {
       const shop = item.variant.product.shop
@@ -277,7 +297,11 @@ export class CheckoutService {
         shippingByShop.set(shop.id, Math.max(0, Number(shop.settings?.shippingFee ?? 0)))
       }
     }
-    const shippingTotal = [...shippingByShop.values()].reduce((total, fee) => total + fee, 0)
+    const waivedShopIds = new Set(freeShippingShopIds)
+    const shippingTotal = [...shippingByShop].reduce(
+      (total, [shopId, fee]) => total + (waivedShopIds.has(shopId) ? 0 : fee),
+      0,
+    )
     const taxTotal = 0
     const discountTotal = Math.min(Math.max(0, discountCents), subtotal)
     const grandTotal = Math.max(0, subtotal - discountTotal + shippingTotal + taxTotal)
@@ -296,13 +320,16 @@ export class CheckoutService {
     repo: ICheckoutRepository,
     userId: string,
     couponCode: string,
-    subtotal: number,
+    items: CheckoutPricedItem[],
   ) {
+    const shopSubtotals = this.calculateShopSubtotals(items)
+    const subtotal = shopSubtotals.reduce((total, shop) => total + shop.subtotal, 0)
     try {
       return await this.promotionService.validateCouponForsubtotal(repo, {
         userId,
         couponCode,
         subtotal,
+        shopSubtotals,
       })
     } catch (error) {
       if (error instanceof PromotionServiceError) {
@@ -319,6 +346,39 @@ export class CheckoutService {
     const inventory = item.variant.inventory
     if (!inventory) return 0
     return Math.max(0, inventory.quantityOnHand - inventory.quantityReserved)
+  }
+
+  private calculateShopSubtotals(items: CheckoutPricedItem[]): Array<{ shopId: string; subtotal: number }> {
+    const subtotals = new Map<string, number>()
+    for (const item of items) {
+      const shopId = item.variant.product.shop.id
+      subtotals.set(shopId, (subtotals.get(shopId) ?? 0) + item.unitPrice * item.quantity)
+    }
+    return [...subtotals].map(([shopId, subtotal]) => ({ shopId, subtotal }))
+  }
+
+  private async priceItems(repo: ICheckoutRepository, items: CheckoutCartItem[]): Promise<CheckoutPricedItem[]> {
+    const now = new Date()
+    return Promise.all(items.map(async (item) => {
+      const flashSaleItem = await repo.findActiveFlashSaleItemForCheckout(item.variantId, now)
+      const regularPrice = Number(item.variant.price)
+      if (!flashSaleItem || Number(flashSaleItem.salePrice) <= 0 || Number(flashSaleItem.salePrice) >= regularPrice) {
+        return { ...item, unitPrice: regularPrice }
+      }
+      return { ...item, unitPrice: Number(flashSaleItem.salePrice), flashSaleItemId: flashSaleItem.id }
+    }))
+  }
+
+  private async resolveCoinRedemption(repo: ICheckoutRepository, userId: string, requested: number | undefined, subtotal: number, existingDiscount = 0): Promise<number> {
+    const coins = Math.max(0, Math.floor(requested ?? 0))
+    if (!coins) return 0
+    await repo.lockBuyerCoinWallet(userId)
+    const balance = await repo.findBuyerCoinBalance(userId)
+    const maximum = Math.min(Math.floor(subtotal * 0.2 / 100), Math.floor(Math.max(0, subtotal - existingDiscount) / 100))
+    if (coins > balance || coins > maximum) {
+      throw new CheckoutServiceError('Coin redemption exceeds available balance or the 20% item subtotal cap', 400, 'CHECKOUT_FAILED')
+    }
+    return coins
   }
 
   private createOrderNumber(): string {

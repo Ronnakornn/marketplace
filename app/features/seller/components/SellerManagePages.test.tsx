@@ -3,7 +3,7 @@
  */
 import { cleanup, render, screen, fireEvent, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SellerDashboardPage } from "./SellerManagePages";
+import { SellerDashboardPage, SellerShopProfilePage } from "./SellerManagePages";
 
 const dashboardRefetch = vi.fn();
 const reviewsRefetch = vi.fn();
@@ -273,11 +273,11 @@ describe("SellerDashboardPage", () => {
     expect(screen.getByText("seller.manage.shopInsightsTitle")).toBeTruthy();
     expect(screen.getByText("seller.manage.recentShopReviewsTitle")).toBeTruthy();
     expect(screen.getByText(/seller.manage.reviewModerationReason/)).toBeTruthy();
-    expect(screen.getByText("seller.manage.staffDescription")).toBeTruthy();
+    expect(screen.queryByText("seller.manage.staffDescription")).toBeNull();
   });
 
   it("submits localized shop content while preserving base fields", async () => {
-    render(<SellerDashboardPage />);
+    render(<SellerShopProfilePage shopId="shop-1" />);
     const description = screen.getAllByLabelText("seller.manage.baseDescription").at(-1)!;
     const form = description.closest("form")!;
     fireEvent.change(description, { target: { value: "Base copy" } });
@@ -288,7 +288,7 @@ describe("SellerDashboardPage", () => {
   });
 
   it("submits the shop shipping fee in baht", () => {
-    render(<SellerDashboardPage />);
+    render(<SellerShopProfilePage shopId="shop-1" />);
 
     const input = screen.getByLabelText("seller.manage.shippingFeeBaht");
     fireEvent.change(input, { target: { value: "89.50" } });

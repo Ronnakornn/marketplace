@@ -15,7 +15,9 @@ The Cart domain owns buyer cart state before checkout.
 ## Business Rules
 
 - Cart belongs to one buyer.
-- Guest buyers must log in before persistent cart checkout.
+- Guest cart items are stored browser-locally and include a product snapshot for display.
+- Guest buyers can add, view, and remove browser-local cart items; the header cart count updates immediately.
+- Guest buyers must sign in before persistent-cart checkout. The local guest cart is not a server cart and must be revalidated before any future merge/import flow.
 - Cart items are grouped by shop.
 - Adding to cart validates product and variant availability.
 - Cart does not reserve stock.
@@ -60,3 +62,4 @@ The Cart domain owns buyer cart state before checkout.
 - Buyer can select/remove items per item and per shop.
 - Checkout CTA only enables for valid selected items.
 - Backend revalidates cart before checkout draft creation.
+- Guest cart remains available after refresh in the same browser and never exposes a checkout CTA.

@@ -76,8 +76,9 @@ flowchart TD
 | `/categories/:slug` | Public | Category product feed | Open product | Sticky compact | Visible |
 | `/deals` | Public | Flash sale and campaign feed | Open deal product | Sticky compact | Visible |
 | `/products/:productId` | Public | Product detail with variants, reviews, shop card | Add to Cart / Buy Now | Compact back/search | Hidden behind sticky CTA |
-| `/cart` | Buyer | Cart grouped by shop | Checkout selected | Optional compact | Visible |
+| `/cart` | Public / Buyer | Guest cart or persistent cart grouped by shop | Sign in / Checkout selected | Optional compact | Visible |
 | `/checkout` | Buyer | Single-page checkout | Place order | Hidden | Hidden behind checkout CTA |
+| `/coins` | Buyer | Coin balance and ledger history | Use at checkout | Compact | Visible |
 | `/payment/return` | Buyer | Payment pending/result after gateway return | View order / Retry payment | Hidden | Hidden |
 | `/orders` | Buyer | Buyer order list | Track order | Optional compact | Visible |
 | `/orders/:orderId` | Buyer | Order detail with per-shop shipment tracking | Track / Review / Return | Hidden | Visible |
@@ -96,6 +97,7 @@ flowchart TD
 | `/seller/register` | User | Shop onboarding, KYC, payout, pickup address, document upload | Submit for review | Seller onboarding |
 | `/seller/status` | User | Pending/rejected seller application state | Edit / resubmit | Seller onboarding |
 | `/seller` | Active shop owner | Seller dashboard with operational alerts | Process orders | Seller sidebar or mobile tabs |
+| `/seller/shop?shopId=:shopId` | Active shop owner | Shop profile, policies, manual shipping fee, and team | Save shop settings / Invite staff | Seller nav |
 | `/seller/products` | Active shop owner | Seller product list and status filters | Create product | Seller nav |
 | `/seller/products/new` | Active shop owner | Create product and variants | Save draft / Submit | Step header |
 | `/seller/products/:productId` | Active shop owner | Edit product, variants, content, status | Save changes | Step header |

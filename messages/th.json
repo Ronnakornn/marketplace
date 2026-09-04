@@ -434,6 +434,11 @@
     "couponReasonUsageLimitReached": "คูปองนี้ถูกใช้ครบจำนวนแล้ว",
     "couponReasonUserLimitReached": "คุณใช้คูปองนี้ครบจำนวนสิทธิ์แล้ว",
     "couponRemove": "ยกเลิกคูปอง",
+    "coins": "คอยน์",
+    "coinsAvailable": "มี {count} คอยน์",
+    "coinsApply": "ใช้คอยน์",
+    "coinsApplied": "ใช้แล้ว {count} คอยน์",
+    "coinsHistory": "ประวัติ",
     "discount": "ส่วนลด",
     "emptyDescription": "เพิ่มสินค้าลงตะกร้าก่อนเริ่มชำระเงิน",
     "emptyTitle": "ไม่มีสินค้าสำหรับชำระเงิน",
@@ -454,6 +459,22 @@
     "total": "ยอดรวม",
     "viewPaymentStatus": "ดูสถานะการชำระเงิน",
     "couponNotApplied": "ยังไม่ได้ใช้คูปอง: {code}"
+  },
+  "coins": {
+    "title": "คอยน์ของฉัน",
+    "loadError": "ไม่สามารถโหลดกระเป๋าคอยน์ได้",
+    "available": "คอยน์ที่ใช้ได้",
+    "pending": "รอดำเนินการ",
+    "debt": "หนี้คอยน์คงค้าง",
+    "debtDescription": "คอยน์เงินคืนครั้งถัดไปจะนำมาตัดยอดนี้ก่อนนำไปใช้ได้",
+    "lifetimeEarned": "ได้รับทั้งหมด",
+    "history": "ประวัติคอยน์",
+    "emptyTitle": "ยังไม่มีรายการคอยน์",
+    "emptyDescription": "คอยน์ที่ได้รับและใช้จะแสดงที่นี่",
+    "loadMore": "โหลดเพิ่มเติม",
+    "loadingMore": "กำลังโหลด...",
+    "types": { "EARNED": "ได้รับคอยน์", "SPENT": "ใช้คอยน์", "EXPIRED": "คอยน์หมดอายุ", "REFUNDED": "คืนคอยน์", "ADJUSTMENT": "ปรับยอดคอยน์" },
+    "statuses": { "PENDING": "รอดำเนินการ", "AVAILABLE": "ใช้ได้", "USED": "ใช้แล้ว", "EXPIRED": "หมดอายุ", "CANCELLED": "ยกเลิก" }
   },
   "order": {
     "cancel": "ยกเลิกคำสั่งซื้อ",
@@ -787,7 +808,7 @@
       ,"category": "หมวดหมู่", "parent": "หมวดหมู่หลัก", "sort": "ลำดับ", "select": "เลือก", "active": "ใช้งาน", "inactive": "ไม่ใช้งาน", "required": "จำเป็น", "filterable": "ใช้กรองได้", "edit": "แก้ไข", "save": "บันทึก", "create": "สร้าง", "new": "ใหม่", "root": "ระดับบนสุด", "buyer": "ผู้ซื้อ", "items": "สินค้า", "reason": "เหตุผล", "requested": "ร้องขอเมื่อ", "risk": "ความเสี่ยง"
     },
     "nav": {
-      "affiliates": "แอฟฟิลิเอต", "auditLogs": "บันทึกการตรวจสอบ", "contentModeration": "ตรวจสอบเนื้อหา", "commissions": "ค่าคอมมิชชัน", "dashboard": "แดชบอร์ด", "fraud": "ทุจริต", "orders": "คำสั่งซื้อ", "payouts": "การจ่ายเงิน", "products": "สินค้า", "refunds": "คืนเงิน", "reports": "รายงาน", "returns": "คืนสินค้า", "settings": "ตั้งค่า", "shops": "ร้านค้า", "users": "ผู้ใช้"
+      "affiliates": "แอฟฟิลิเอต", "auditLogs": "บันทึกการตรวจสอบ", "contentModeration": "ตรวจสอบเนื้อหา", "commissions": "ค่าคอมมิชชัน", "dashboard": "แดชบอร์ด", "fraud": "ทุจริต", "flashSales": "แฟลชเซล", "orders": "คำสั่งซื้อ", "payouts": "การจ่ายเงิน", "products": "สินค้า", "refunds": "คืนเงิน", "reports": "รายงาน", "returns": "คืนสินค้า", "settings": "ตั้งค่า", "shops": "ร้านค้า", "users": "ผู้ใช้"
     },
     "pages": {
       "affiliates": { "eyebrow": "เครือข่ายครีเอเตอร์", "title": "จัดการบัญชีแอฟฟิลิเอต", "description": "ตรวจสอบกิจกรรมการติดตามของครีเอเตอร์ และปิดใช้งานบัญชีที่ไม่ควรสร้างการระบุแหล่งที่มาใหม่" },
@@ -810,6 +831,7 @@
     },
     "reports": { "grossPaidSales": "ยอดขายที่ชำระแล้ว", "paidOrders": "คำสั่งซื้อที่ชำระแล้ว {count} รายการ", "averageOrder": "ยอดเฉลี่ยต่อคำสั่งซื้อ", "paidOrdersOnly": "เฉพาะคำสั่งซื้อที่ชำระแล้ว", "refundExposure": "ยอดคืนเงิน", "pendingCount": "รอดำเนินการ {count} รายการ", "requestedPayouts": "ยอดขอรับเงิน", "requestCount": "คำขอ {count} รายการ", "approvedCommissions": "ค่าคอมมิชชันที่อนุมัติ", "pendingAmount": "รอดำเนินการ {amount}", "activeProducts": "สินค้าที่ใช้งาน", "totalProducts": "สินค้าทั้งหมด {count} รายการ" },
     "commissions": { "title": "ค่าคอมมิชชัน Affiliate", "description": "ค่าทั้งหมดอ่านจากข้อมูล attribution ของคำสั่งซื้อที่ชำระแล้วโดยตรง", "search": "ค้นหา Affiliate คำสั่งซื้อ หรือรหัสลิงก์", "affiliate": "Affiliate", "eligible": "ยอดที่ใช้คำนวณ", "commission": "ค่าคอมมิชชัน", "reasonPrompt": "ระบุเหตุผลสำหรับบันทึกการตรวจสอบ", "void": "ยกเลิก", "empty": "ไม่พบค่าคอมมิชชันที่ตรงกับตัวกรอง" },
+    "flashSales": { "eyebrow": "ควบคุมแคมเปญ", "title": "แฟลชเซล", "description": "กำหนดช่วงเวลาแฟลชเซลและโควตาสินค้าที่ป้องกันการขายเกิน", "search": "ค้นหาแคมเปญ", "name": "ชื่อแคมเปญ", "startsAt": "เริ่ม", "endsAt": "สิ้นสุด", "selectProduct": "เลือกตัวเลือกสินค้า", "salePrice": "ราคาดีล (บาท)", "stockLimit": "โควตา", "perUserLimit": "สิทธิ์ต่อผู้ซื้อ", "create": "สร้างแคมเปญ", "addItem": "เพิ่มสินค้า", "removeItem": "ลบ", "createFailed": "สร้างแคมเปญไม่สำเร็จ", "saveFailed": "บันทึกการเปลี่ยนแปลงแฟลชเซลไม่สำเร็จ", "empty": "ไม่พบแคมเปญแฟลชเซลที่ตรงกับคำค้นหา", "items": "สินค้า {count} รายการ", "status": { "DRAFT": "ฉบับร่าง", "SCHEDULED": "ตั้งเวลาแล้ว", "ACTIVE": "กำลังใช้งาน", "PAUSED": "หยุดชั่วคราว", "ENDED": "สิ้นสุดแล้ว", "CANCELLED": "ยกเลิกแล้ว" } },
     "settingsEditor": { "create": "สร้างการตั้งค่า", "edit": "แก้ไขการตั้งค่า", "description": "ใช้ส่วนนี้กับค่ากำหนดที่ไม่ใช่ข้อมูลลับ ส่วน credential ต้องเก็บใน deployment secrets", "key": "คีย์", "type": "ชนิดข้อมูล", "value": "ค่า", "fieldDescription": "คำอธิบาย", "public": "เปิดเผยได้", "publicHint": "ระบุว่าค่านี้ปลอดภัยสำหรับ API อ่านค่าการตั้งค่าสาธารณะในอนาคต", "invalidValue": "ค่าไม่ตรงกับชนิดข้อมูลที่เลือก", "saveFailed": "ไม่สามารถบันทึกการตั้งค่านี้ได้", "listTitle": "การตั้งค่าที่จัดเก็บ", "listDescription": "รายการเหล่านี้มาจาก SystemSetting API", "search": "ค้นหาการตั้งค่า", "new": "สร้างใหม่", "updated": "อัปเดตเมื่อ", "noDescription": "ไม่มีคำอธิบาย", "empty": "ไม่พบการตั้งค่าระบบที่ตรงกับคำค้นหา" },
     "contentModeration": { "queues": { "reviews": "รีวิว", "reports": "รายงานรีวิว", "questions": "คำถาม", "answers": "คำตอบ" }, "empty": "ไม่พบเนื้อหาที่ตรงกับตัวกรอง", "reviewSummary": "{rating} ดาว · ถูกรายงาน {count} ครั้ง", "noReviewBody": "ไม่มีข้อความรีวิว", "noDetail": "ไม่ได้ระบุรายละเอียด", "reviewRemoved": "รีวิวถูกลบแล้ว", "reviewReport": "รายงานรีวิว", "answerCount": "{count} คำตอบ", "askedBy": "ถามโดย {email}", "confirmDescription": "เปลี่ยน {title} เป็น {status}", "content": "เนื้อหา", "selectedStatus": "สถานะที่เลือก", "requiredNote": "การดำเนินการนี้ต้องระบุหมายเหตุ", "optionalNote": "หมายเหตุภายใน (ไม่บังคับ)" },
     "overview": {
@@ -1231,7 +1253,7 @@
         "inventory": {"title":"คลังสินค้า","description":"จัดการสต็อกโดยไม่กระทบสินค้าที่ถูกจอง","search":"ค้นหาสินค้า SKU หรือตัวเลือก","filterStock":"กรองสต็อก","allStock":"สต็อกทั้งหมด","lowStockOnly":"เฉพาะสต็อกต่ำ","outOfStock":"สินค้าหมดสต็อก","saving":"กำลังบันทึกสต็อก...","save":"บันทึก","loading":"กำลังโหลดคลังสินค้า...","empty":"ไม่พบตัวเลือกสินค้า","variant":"ตัวเลือกสินค้า","onHand":"ในคลัง","reserved":"ถูกจอง","available":"พร้อมขาย","reorder":"จุดสั่งซื้อเพิ่ม","update":"อัปเดต","updateFailed":"ไม่สามารถอัปเดตคลังสินค้าได้","product":"สินค้า","reservedStock":"สต็อกที่ถูกจอง {sku}","quantityOnHand":"จำนวนในคลัง","reorderLevel":"จุดสั่งซื้อเพิ่ม"},
         "orders": {"title":"คำสั่งซื้อและการจัดส่ง","description":"ดำเนินการจัดส่งที่ชำระเงินแล้วแยกตามการจัดส่ง","order":"คำสั่งซื้อ","recipient":"ผู้รับ","items":"สินค้า","status":"สถานะ","actions":"การดำเนินการ","search":"ค้นหาคำสั่งซื้อ","filterStatus":"กรองตามสถานะ","allStatuses":"ทุกสถานะ","markPacked":"ทำเครื่องหมายว่าแพ็กแล้ว","carrier":"ผู้ให้บริการขนส่ง","tracking":"เลขติดตาม","ship":"จัดส่ง","markDelivered":"ทำเครื่องหมายว่าส่งแล้ว","loading":"กำลังโหลดการจัดส่ง...","empty":"ไม่มีการจัดส่งที่ต้องดำเนินการ"},
         "returns": {"title":"คืนสินค้า","description":"อนุมัติหรือปฏิเสธคำขอคืนสินค้าจากร้านของคุณ","request":"คำขอคืนสินค้า","approve":"อนุมัติ","reject":"ปฏิเสธ","loading":"กำลังโหลดคำขอคืนสินค้า...","empty":"ไม่พบคำขอคืนสินค้า","return":"การคืนสินค้า","items":"รายการสินค้า","status":"สถานะ","actions":"การดำเนินการ","search":"ค้นหาคำขอคืนสินค้า","filterStatus":"กรองสถานะ","allStatuses":"สถานะทั้งหมด"},
-        "promotions": {"title":"โปรโมชั่น","description":"สร้างและจัดการคูปองของร้าน","code":"โค้ด","titleField":"ชื่อโปรโมชั่น","fixed":"จำนวนเงินคงที่","percent":"เปอร์เซ็นต์","amount":"จำนวนเงิน","create":"สร้าง","untitled":"ไม่มีชื่อ","disable":"ปิดใช้งาน","enable":"เปิดใช้งาน","delete":"ลบ","loading":"กำลังโหลดคูปอง...","empty":"ไม่พบคูปอง","coupon":"คูปอง","discount":"ส่วนลด","active":"ใช้งาน","actions":"การดำเนินการ","search":"ค้นหาคูปอง","filterStatus":"กรองสถานะ","allStatuses":"สถานะทั้งหมด"},
+        "promotions": {"title":"โปรโมชั่น","description":"สร้างและจัดการคูปองของร้าน","code":"โค้ด","titleField":"ชื่อโปรโมชั่น","fixed":"จำนวนเงินคงที่","percent":"เปอร์เซ็นต์","amount":"จำนวนเงิน","create":"สร้าง","untitled":"ไม่มีชื่อ","disable":"ปิดใช้งาน","enable":"เปิดใช้งาน","delete":"ลบ","loading":"กำลังโหลดคูปอง...","empty":"ไม่พบคูปอง","coupon":"คูปอง","discount":"ส่วนลด","active":"ใช้งาน","actions":"การดำเนินการ","search":"ค้นหาคูปอง","filterStatus":"กรองสถานะ","allStatuses":"สถานะทั้งหมด","flashSalesTitle":"เข้าร่วมแฟลชเซล","flashSalesLoading":"กำลังโหลดแคมเปญแฟลชเซล...","flashSalesEmpty":"ยังไม่มีแคมเปญที่เปิดให้เข้าร่วม","selectProduct":"เลือกตัวเลือกสินค้า","salePriceBaht":"ราคาดีล (บาท)","stockLimit":"โควตา","perUserLimit":"สิทธิ์ต่อผู้ซื้อ","enroll":"เข้าร่วม","flashSaleSaveFailed":"บันทึกสินค้าแฟลชเซลไม่สำเร็จ"},
         "finance": {"title":"การเงิน","description":"ตรวจสอบยอดเงิน บัญชีรายการ และคำขอถอนเงิน","available":"ยอดคงเหลือที่ใช้ได้","shop":"ร้านค้าผู้ขาย","requestPayout":"ขอถอนเงิน","amount":"จำนวนเงิน","request":"ส่งคำขอ","transactions":"รายการธุรกรรม","transactionTypes":{"orderEarning":"รายได้จากคำสั่งซื้อ","commissionFee":"ค่าคอมมิชชันแพลตฟอร์ม","payoutReserved":"กันยอดสำหรับการถอนเงิน","payoutPaid":"จ่ายเงินแล้ว","payoutRejected":"ปฏิเสธการถอนเงิน","refundAdjustment":"ปรับยอดจากการคืนเงิน","manualAdjustment":"ปรับยอดด้วยตนเอง"},"transactionDescriptions":{"orderEarning":"รายได้จากคำสั่งซื้อ {orderNo}","commissionFee":"ค่าคอมมิชชันแพลตฟอร์มสำหรับคำสั่งซื้อ {orderNo}","payoutReserved":"กันยอดสำหรับการถอนเงิน","payoutPaid":"บันทึกว่าจ่ายเงินแล้ว","payoutRejected":"คืนยอดที่กันไว้หลังปฏิเสธคำขอถอนเงิน","refundAdjustment":"ปรับยอดจากการคืนเงิน","manualAdjustment":"ปรับยอดด้วยตนเอง"},"loadingTransactions":"กำลังโหลดธุรกรรม...","emptyTransactions":"ไม่พบธุรกรรม","payoutHistory":"ประวัติการถอนเงิน","loadingPayouts":"กำลังโหลดประวัติการถอนเงิน...","emptyPayouts":"ไม่พบประวัติการถอนเงิน","notSet":"ไม่ได้ระบุ"}
       }
     },

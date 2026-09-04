@@ -70,6 +70,10 @@ Database:
 - confirm backup exists before production migration
 - confirm rollback plan
 - confirm PostgreSQL 17 is available and the target database is empty or migration-compatible
+- fresh databases run the complete migration chain normally
+- `20260904160000_reconcile_schema` is baseline-only and deliberately aborts when legacy business data exists
+- databases that already matched the current schema before that reconciliation must be backed up, checked for expected drift only, and have it marked applied with `prisma migrate resolve --applied 20260904160000_reconcile_schema` before `migrate deploy`; never resolve it on an older or drifting database
+- populated legacy databases that do not already match the current schema require a separately reviewed staged rename/backfill migration; never run or resolve the baseline reconciliation on them
 
 Security:
 - verify auth secret length and rotation plan

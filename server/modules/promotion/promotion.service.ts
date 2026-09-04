@@ -13,6 +13,7 @@ import type {
   PromotionCoupon,
   BuyerPromotionCoupon,
   UpdateCouponInput,
+  FlashSalePayload,
 } from './promotion.repository.ts'
 
 export interface PromotionActor {
@@ -29,6 +30,7 @@ export interface CouponValidationContext {
   userId: string
   couponCode: string
   subtotal: number
+  shopSubtotals: Array<{ shopId: string; subtotal: number }>
 }
 
 export interface CouponValidationResult {
@@ -37,6 +39,9 @@ export interface CouponValidationResult {
   discount: number
   discountCents: number
   subtotal: number
+  freeShipping: boolean
+  couponShopId: string | null
+  freeShippingShopIds: string[]
 }
 
 export interface PublicCoupon {
@@ -61,7 +66,7 @@ export interface CouponPayload {
   titleEn?: string | null
   descriptionTh?: string | null
   descriptionEn?: string | null
-  discountType: 'fixed' | 'percent'
+  discountType: 'fixed' | 'percent' | 'free_shipping'
   discountValue?: number | null
   discountValueCents?: number | null
   discountPercentBps?: number | null
@@ -75,6 +80,24 @@ export interface CouponPayload {
   perUserLimit?: number | null
   isActive?: boolean
 }
+
+export interface FlashSaleCampaignPayload {
+  title: string
+  description?: string | null
+  status: FlashSalePayload['status']
+  startsAt: string | Date
+  endsAt: string | Date
+}
+
+export interface FlashSaleCampaignItemPayload {
+  productId: string
+  variantId: string
+  salePriceBaht: number
+  stockLimit: number
+  perUserLimit?: number | null
+}
+
+export type FlashSaleCampaignItemUpdatePayload = Partial<Pick<FlashSaleCampaignItemPayload, 'salePriceBaht' | 'stockLimit' | 'perUserLimit'>>
 
 export class PromotionService {
   private logger: ILogger
@@ -105,6 +128,26 @@ export class PromotionService {
       .map((coupon) => this.toPublicCoupon(coupon, locale, coupon.claims[0]))
   }
 
+  async getBuyerCoins(actor: PromotionActor, limitInput = 20, cursor?: string) {
+    this.assertBuyer(actor)
+    const limit = Number.isInteger(limitInput) ? Math.min(Math.max(limitInput, 1), 100) : 20
+    const [wallet, entries] = await Promise.all([
+      this.repo.findBuyerCoinWallet(actor.id),
+      this.repo.listBuyerCoinLedger(actor.id, limit + 1, cursor),
+    ])
+    const hasMore = entries.length > limit
+    const pageEntries = entries.slice(0, limit)
+    return {
+      balance: Number(wallet?.balance ?? 0),
+      pendingBalance: Number(wallet?.pendingBalance ?? 0),
+      debtBalance: Number(wallet?.debtBalance ?? 0),
+      lifetimeEarned: Number(wallet?.lifetimeEarned ?? 0),
+      lifetimeSpent: Number(wallet?.lifetimeSpent ?? 0),
+      entries: pageEntries.map((entry) => ({ ...entry, amount: Number(entry.amount) })),
+      nextCursor: hasMore ? pageEntries.at(-1)?.id ?? null : null,
+    }
+  }
+
   async claimCoupon(actor: PromotionActor, couponId: string, localeInput?: string): Promise<PublicCoupon> {
     this.assertBuyer(actor)
     const coupon = await this.repo.findCouponForClaim(couponId)
@@ -129,8 +172,9 @@ export class PromotionService {
     const code = this.normalizeCode(input.couponCode)
     const cart = await this.repo.findCartForCouponValidation(input.cartId, actor.id)
     if (!cart) throw new PromotionServiceError('Cart not found', 404, 'INVALID_COUPON')
-    const subtotal = this.calculateCartsubtotal(cart)
-    return this.validateCouponForsubtotal(this.repo, { userId: actor.id, couponCode: code, subtotal })
+    const shopSubtotals = this.calculateCartShopSubtotals(cart)
+    const subtotal = shopSubtotals.reduce((total, shop) => total + shop.subtotal, 0)
+    return this.validateCouponForsubtotal(this.repo, { userId: actor.id, couponCode: code, subtotal, shopSubtotals })
   }
 
   async validateCouponForsubtotal(
@@ -145,14 +189,23 @@ export class PromotionService {
     })
     const coupon = await repo.findCouponByCode(code)
     if (!coupon) throw new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND')
-    await this.assertCouponUsable(repo, coupon, context.userId, context.subtotal)
-    const discount = this.calculateDiscount(coupon, context.subtotal)
+    const eligibleSubtotal = this.resolveCouponEligibleSubtotal(coupon, context)
+    await this.assertCouponUsable(repo, coupon, context.userId, eligibleSubtotal)
+    const discount = this.calculateDiscount(coupon, eligibleSubtotal)
+    const freeShippingShopIds = coupon.discountType === 'FREE_SHIPPING'
+      ? coupon.shopId
+        ? [coupon.shopId]
+        : context.shopSubtotals.map((shop) => shop.shopId)
+      : []
     return {
       couponId: coupon.id,
       couponCode: coupon.code,
       discount,
       discountCents: discount,
       subtotal: context.subtotal,
+      freeShipping: coupon.discountType === 'FREE_SHIPPING',
+      couponShopId: coupon.shopId,
+      freeShippingShopIds,
     }
   }
 
@@ -193,6 +246,110 @@ export class PromotionService {
     return { ok: true }
   }
 
+  async listAdminFlashSales(actor: PromotionActor) {
+    this.assertAdmin(actor)
+    return this.repo.listAdminFlashSales()
+  }
+
+  async listSellerFlashSales(actor: PromotionActor) {
+    const shopIds = await this.getSellerShopIds(actor)
+    return this.repo.listSellerFlashSales(shopIds)
+  }
+
+  async createFlashSale(actor: PromotionActor, payload: FlashSaleCampaignPayload) {
+    this.assertAdmin(actor)
+    return this.repo.createFlashSale(this.normalizeFlashSalePayload(payload))
+  }
+
+  async updateFlashSale(actor: PromotionActor, flashSaleId: string, payload: Partial<FlashSaleCampaignPayload>) {
+    this.assertAdmin(actor)
+    const sale = await this.repo.findFlashSaleById(flashSaleId)
+    if (!sale) throw new PromotionServiceError('Flash sale not found', 404, 'COUPON_NOT_FOUND')
+    const normalized = this.normalizeFlashSalePayload({
+      title: payload.title ?? sale.title,
+      description: payload.description ?? sale.description,
+      status: payload.status ?? sale.status,
+      startsAt: payload.startsAt ?? sale.startsAt,
+      endsAt: payload.endsAt ?? sale.endsAt,
+    })
+    const updated = await this.repo.updateFlashSaleSafely(flashSaleId, normalized)
+    if (!updated) throw new PromotionServiceError('Campaign schedule overlaps another flash sale', 409, 'FLASH_SALE_OVERLAP')
+    return updated
+  }
+
+  async addFlashSaleItem(actor: PromotionActor, flashSaleId: string, payload: FlashSaleCampaignItemPayload) {
+    this.assertAdmin(actor)
+    const sale = await this.repo.findFlashSaleById(flashSaleId)
+    if (!sale) throw new PromotionServiceError('Flash sale not found', 404, 'COUPON_NOT_FOUND')
+    this.assertFlashSaleItemsMutable(sale)
+    const variant = await this.repo.findActiveProductVariant(payload.variantId)
+    if (!variant || variant.product.id !== payload.productId) throw new PromotionServiceError('Product variant is unavailable', 400, 'INVALID_COUPON')
+    const normalized = this.normalizeFlashSaleItemPayload(payload)
+    this.assertFlashSaleItemCreatePayload(normalized, Number(variant.price))
+    if (['SCHEDULED', 'ACTIVE'].includes(sale.status)) await this.assertNoOverlappingFlashSale(payload.variantId, sale.startsAt, sale.endsAt, sale.id)
+    const created = await this.repo.createFlashSaleItem(flashSaleId, { ...normalized, shopId: variant.product.shopId, originalPrice: Number(variant.price) })
+    if (!created) throw new PromotionServiceError('Variant is already enrolled in an overlapping flash sale', 409, 'FLASH_SALE_OVERLAP')
+    return created
+  }
+
+  async addSellerFlashSaleItem(actor: PromotionActor, flashSaleId: string, payload: FlashSaleCampaignItemPayload) {
+    const shopIds = await this.getSellerShopIds(actor)
+    const sale = await this.repo.findFlashSaleById(flashSaleId)
+    if (!sale || sale.status !== 'SCHEDULED' || sale.startsAt <= new Date() || (sale.shopId !== null && !shopIds.includes(sale.shopId))) {
+      throw new PromotionServiceError('Flash sale is not open for seller participation', 404, 'FLASH_SALE_NOT_AVAILABLE')
+    }
+    const variant = await this.repo.findActiveProductVariant(payload.variantId)
+    if (!variant || variant.product.id !== payload.productId || !shopIds.includes(variant.product.shopId)) {
+      throw new PromotionServiceError('Product variant is unavailable', 404, 'FLASH_SALE_ITEM_NOT_FOUND')
+    }
+    const normalized = this.normalizeFlashSaleItemPayload(payload)
+    this.assertFlashSaleItemCreatePayload(normalized, Number(variant.price))
+    await this.assertNoOverlappingFlashSale(payload.variantId, sale.startsAt, sale.endsAt, sale.id)
+    const created = await this.repo.createFlashSaleItem(flashSaleId, {
+      ...normalized,
+      shopId: variant.product.shopId,
+      originalPrice: Number(variant.price),
+    })
+    if (!created) throw new PromotionServiceError('Variant is already enrolled in an overlapping flash sale', 409, 'FLASH_SALE_OVERLAP')
+    return created
+  }
+
+  async updateFlashSaleItem(actor: PromotionActor, itemId: string, payload: FlashSaleCampaignItemUpdatePayload) {
+    this.assertAdmin(actor)
+    const item = await this.repo.findFlashSaleItemById(itemId)
+    if (!item) throw new PromotionServiceError('Flash sale item not found', 404, 'FLASH_SALE_ITEM_NOT_FOUND')
+    this.assertFlashSaleItemsMutable(item.flashSale)
+    const normalized = this.normalizeFlashSaleItemUpdatePayload(payload)
+    await this.assertFlashSaleItemUpdatePayload(item, itemId, normalized)
+    return this.repo.updateFlashSaleItem(itemId, normalized)
+  }
+
+  async deleteFlashSaleItem(actor: PromotionActor, itemId: string): Promise<{ ok: true }> {
+    this.assertAdmin(actor)
+    const item = await this.repo.findFlashSaleItemById(itemId)
+    if (!item) throw new PromotionServiceError('Flash sale item not found', 404, 'FLASH_SALE_ITEM_NOT_FOUND')
+    this.assertFlashSaleItemsMutable(item.flashSale)
+    await this.assertFlashSaleItemDeletable(item)
+    await this.repo.deleteFlashSaleItem(itemId)
+    return { ok: true }
+  }
+
+  async updateSellerFlashSaleItem(actor: PromotionActor, itemId: string, payload: FlashSaleCampaignItemUpdatePayload) {
+    const item = await this.getSellerFlashSaleItem(actor, itemId)
+    this.assertFlashSaleItemsMutable(item.flashSale)
+    const normalized = this.normalizeFlashSaleItemUpdatePayload(payload)
+    await this.assertFlashSaleItemUpdatePayload(item, itemId, normalized)
+    return this.repo.updateFlashSaleItem(itemId, normalized)
+  }
+
+  async deleteSellerFlashSaleItem(actor: PromotionActor, itemId: string): Promise<{ ok: true }> {
+    const item = await this.getSellerFlashSaleItem(actor, itemId)
+    this.assertFlashSaleItemsMutable(item.flashSale)
+    await this.assertFlashSaleItemDeletable(item)
+    await this.repo.deleteFlashSaleItem(itemId)
+    return { ok: true }
+  }
+
   private assertBuyer(actor: PromotionActor): void {
     if (actor.role === 'ADMIN') {
       throw new PromotionServiceError('Coupon validation is only available to buyers', 403, 'INVALID_COUPON')
@@ -220,6 +377,98 @@ export class PromotionService {
       throw new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND')
     }
     return coupon
+  }
+
+  private async getSellerFlashSaleItem(actor: PromotionActor, itemId: string) {
+    const shopIds = await this.getSellerShopIds(actor)
+    const item = await this.repo.findFlashSaleItemById(itemId)
+    if (!item || !shopIds.includes(item.shopId)) {
+      throw new PromotionServiceError('Flash sale item not found', 404, 'FLASH_SALE_ITEM_NOT_FOUND')
+    }
+    return item
+  }
+
+  private assertFlashSaleItemCreatePayload(payload: import('./promotion.repository.ts').FlashSaleItemPayload, regularPrice: number): void {
+    if (!Number.isInteger(payload.salePrice) || payload.salePrice <= 0 || payload.salePrice >= regularPrice) {
+      throw new PromotionServiceError('Flash sale price must be below the active product price', 400, 'FLASH_SALE_PRICE_INVALID')
+    }
+    if (!Number.isInteger(payload.stockLimit) || payload.stockLimit < 1 || (
+      payload.perUserLimit !== undefined
+      && payload.perUserLimit !== null
+      && (!Number.isInteger(payload.perUserLimit) || payload.perUserLimit < 1)
+    )) {
+      throw new PromotionServiceError('Flash sale quota is invalid', 400, 'FLASH_SALE_QUOTA_INVALID')
+    }
+  }
+
+  private assertFlashSaleItemsMutable(sale: { status: string; startsAt: Date }): void {
+    if (!['DRAFT', 'SCHEDULED'].includes(sale.status) || sale.startsAt <= new Date()) {
+      throw new PromotionServiceError('Live or completed flash sale items cannot be changed', 409, 'FLASH_SALE_ITEM_LOCKED')
+    }
+  }
+
+  private async assertFlashSaleItemDeletable(item: Awaited<ReturnType<IPromotionRepository['findFlashSaleItemById']>> & {}): Promise<void> {
+    const activeReservations = await this.repo.sumActiveFlashSaleReservations(item.id, new Date())
+    if (item.soldCount > 0 || activeReservations > 0) {
+      throw new PromotionServiceError('Flash sale item has sold or reserved quantity', 409, 'FLASH_SALE_ITEM_LOCKED')
+    }
+  }
+
+  private async assertNoOverlappingFlashSale(variantId: string, startsAt: Date, endsAt: Date, flashSaleId: string): Promise<void> {
+    const overlap = await this.repo.findOverlappingFlashSaleItem(variantId, startsAt, endsAt, flashSaleId)
+    if (overlap) {
+      throw new PromotionServiceError('Product variant is already enrolled in an overlapping flash sale', 409, 'FLASH_SALE_OVERLAP')
+    }
+  }
+
+  private normalizeFlashSaleItemPayload(payload: FlashSaleCampaignItemPayload): import('./promotion.repository.ts').FlashSaleItemPayload {
+    return {
+      productId: payload.productId,
+      variantId: payload.variantId,
+      salePrice: this.bahtToMinorUnits(payload.salePriceBaht),
+      stockLimit: payload.stockLimit,
+      perUserLimit: payload.perUserLimit,
+    }
+  }
+
+  private normalizeFlashSaleItemUpdatePayload(payload: FlashSaleCampaignItemUpdatePayload): Partial<import('./promotion.repository.ts').FlashSaleItemPayload> {
+    return {
+      ...(payload.salePriceBaht !== undefined ? { salePrice: this.bahtToMinorUnits(payload.salePriceBaht) } : {}),
+      ...(payload.stockLimit !== undefined ? { stockLimit: payload.stockLimit } : {}),
+      ...(payload.perUserLimit !== undefined ? { perUserLimit: payload.perUserLimit } : {}),
+    }
+  }
+
+  private bahtToMinorUnits(value: number): number {
+    if (!Number.isFinite(value) || value <= 0 || Math.round(value * 100) !== value * 100) {
+      throw new PromotionServiceError('Flash sale price must be a positive amount with at most two decimal places', 400, 'FLASH_SALE_PRICE_INVALID')
+    }
+    return Math.round(value * 100)
+  }
+
+  private async assertFlashSaleItemUpdatePayload(
+    item: Awaited<ReturnType<IPromotionRepository['findFlashSaleItemById']>> & {},
+    itemId: string,
+    payload: Partial<import('./promotion.repository.ts').FlashSaleItemPayload>,
+  ): Promise<void> {
+    if (payload.salePrice !== undefined && (
+      !Number.isInteger(payload.salePrice)
+      || payload.salePrice <= 0
+      || payload.salePrice >= Number(item.variant.price)
+    )) {
+      throw new PromotionServiceError('Flash sale price must be below the active product price', 400, 'FLASH_SALE_PRICE_INVALID')
+    }
+    if (payload.perUserLimit !== undefined && payload.perUserLimit !== null && (
+      !Number.isInteger(payload.perUserLimit) || payload.perUserLimit < 1
+    )) {
+      throw new PromotionServiceError('Flash sale per-user quota is invalid', 400, 'FLASH_SALE_QUOTA_INVALID')
+    }
+    if (payload.stockLimit !== undefined) {
+      const activeReservations = await this.repo.sumActiveFlashSaleReservations(itemId, new Date())
+      if (!Number.isInteger(payload.stockLimit) || payload.stockLimit < item.soldCount + activeReservations) {
+        throw new PromotionServiceError('Flash sale quota cannot be lower than sold and reserved quantity', 400, 'FLASH_SALE_QUOTA_INVALID')
+      }
+    }
   }
 
   private async assertCouponUsable(
@@ -275,8 +524,22 @@ export class PromotionService {
     return Math.min(Math.max(0, discount), subtotal)
   }
 
-  private calculateCartsubtotal(cart: PromotionCart): number {
-    return cart.items.reduce((total, item) => total + this.toMoneyNumber(item.variant.price) * item.quantity, 0)
+  private calculateCartShopSubtotals(cart: PromotionCart): Array<{ shopId: string; subtotal: number }> {
+    const subtotals = new Map<string, number>()
+    for (const item of cart.items) {
+      const shopId = item.variant.product.shopId
+      subtotals.set(shopId, (subtotals.get(shopId) ?? 0) + this.toMoneyNumber(item.variant.price) * item.quantity)
+    }
+    return [...subtotals].map(([shopId, subtotal]) => ({ shopId, subtotal }))
+  }
+
+  private resolveCouponEligibleSubtotal(coupon: PromotionCoupon, context: CouponValidationContext): number {
+    if (!coupon.shopId) return context.subtotal
+    const shopSubtotal = context.shopSubtotals.find((shop) => shop.shopId === coupon.shopId)?.subtotal
+    if (shopSubtotal === undefined) {
+      throw new PromotionServiceError('Coupon is not valid for the selected shops', 400, 'COUPON_SHOP_MISMATCH')
+    }
+    return shopSubtotal
   }
 
   private normalizeCode(code: string): string {
@@ -316,7 +579,17 @@ export class PromotionService {
   private normalizeDiscountType(type: CouponPayload['discountType'] | undefined): CreateCouponInput['discountType'] {
     if (type === 'fixed') return 'FIXED_AMOUNT'
     if (type === 'percent') return 'PERCENT'
+    if (type === 'free_shipping') return 'FREE_SHIPPING'
     throw new PromotionServiceError('Discount type must be fixed or percent', 400, 'INVALID_COUPON')
+  }
+
+  private normalizeFlashSalePayload(payload: FlashSaleCampaignPayload): FlashSalePayload {
+    const startsAt = this.normalizeDate(payload.startsAt)
+    const endsAt = this.normalizeDate(payload.endsAt)
+    if (!payload.title.trim() || !startsAt || !endsAt || endsAt <= startsAt) {
+      throw new PromotionServiceError('Flash sale schedule is invalid', 400, 'INVALID_COUPON')
+    }
+    return { title: payload.title.trim(), description: this.normalizeNullableText(payload.description), status: payload.status, startsAt, endsAt }
   }
 
   private normalizeDate(value: string | Date | null | undefined): Date | null {

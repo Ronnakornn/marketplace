@@ -6,6 +6,10 @@ A full-stack **multi-vendor marketplace** built with Next.js App Router, Elysia 
 
 - **Authentication** - Better Auth with email/password and session management
 - **Marketplace Data Model** - Users, shops, products, variants, inventory, checkout, orders, payments, shipments, returns, refunds, chat, and notifications
+- **Guest Cart** - Browser-local cart with a live header count; sign-in is required before checkout
+- **Multi-shop Checkout** - One buyer order can be split into shop-owned shipments and seller-defined shipping fees
+- **Seller Operations** - Shop profile, settings, staff, products, inventory, shipments, promotions, finance, and chat are shop-scoped
+- **Thai/English UI** - User-facing UI labels, API status values, and fallback artwork are localized
 - **End-to-End Type Safety** - Prisma schema drives types through the entire stack via Eden Treaty
 - **Module Architecture** - Domain-centric backend modules, feature-based frontend organization
 - **Auto-Generated Validation** - Prismabox generates TypeBox schemas from Prisma models

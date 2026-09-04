@@ -23,3 +23,4 @@ export { AdminCommissionsTable, AdminSettingsManager } from "./components/AdminC
 export { AdminPageIntro } from "./components/AdminPageIntro";
 export { AdminSpaceCat } from "./components/AdminSpaceCat";
 export { AdminStatusBadge } from "./components/AdminStatusBadge";
+export { AdminFlashSaleManager } from "./components/AdminFlashSaleManager";

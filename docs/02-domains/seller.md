@@ -33,6 +33,9 @@ Detailed seller manage implementation rules live in [seller-manage.md](seller-ma
 - `POST /api/seller/application/draft`
 - `POST /api/seller/application/submit`
 - `GET /api/seller/dashboard`
+- `GET /api/seller/shops`
+- `GET|PATCH /api/seller/shops/:shopId/profile`
+- `GET|PATCH /api/seller/shops/:shopId/settings`
 - `GET /api/seller/products`
 - `POST /api/seller/products`
 - `PATCH /api/seller/products/:productId`
@@ -58,6 +61,8 @@ Detailed seller manage implementation rules live in [seller-manage.md](seller-ma
 - Seller finance
 - Seller promotions
 - Seller chat
+- Shop profile and settings
+- Shop team management
 
 ## Edge Cases
 
@@ -84,3 +89,4 @@ Detailed seller manage implementation rules live in [seller-manage.md](seller-ma
 - Seller pages enforce shop ownership.
 - Dashboard highlights pending shipments and low stock.
 - Shipment processing requires carrier and tracking number.
+- Shop profile, settings, and staff management are restricted to the owning shop.

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCardIcon, MapPinIcon, PackageCheckIcon, TicketIcon, TruckIcon } from "lucide-react";
+import { CoinsIcon, CreditCardIcon, MapPinIcon, PackageCheckIcon, TicketIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Button } from "#/components/ui/button";
@@ -14,6 +14,7 @@ import { Label } from "#/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "#/components/ui/radio-group";
 import { Skeleton } from "#/components/ui/skeleton";
 import { createCheckout, fetchAddresses, fetchCart, formatMoney, quoteCheckout } from "#/features/buyer/api";
+import { useBuyerCoins } from "#/features/promotion/hooks/useBuyerCoins";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -34,6 +35,8 @@ export function CheckoutPage() {
   const requestedVoucher = searchParams?.get("voucher")?.trim().slice(0, 64) ?? "";
   const [couponInput, setCouponInput] = useState(requestedVoucher);
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(requestedVoucher || null);
+  const [coinInput, setCoinInput] = useState("");
+  const [coinsToUse, setCoinsToUse] = useState(0);
   const paymentMethod = "card";
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const localePath = useLocalePath();
@@ -42,6 +45,7 @@ export function CheckoutPage() {
   const queryClient = useQueryClient();
   const cartQuery = useQuery({ queryKey: ["buyer-cart", locale], queryFn: () => fetchCart(locale) });
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
+  const coinsQuery = useBuyerCoins(5);
   const defaultAddress = addressesQuery.data?.find((address) => address.isDefault) ?? addressesQuery.data?.[0];
   const addressId = selectedAddressId || defaultAddress?.id || "";
   const requestedItemIds = new Set(searchParams?.get("items")?.split(",").filter(Boolean) ?? []);
@@ -54,8 +58,8 @@ export function CheckoutPage() {
   const itemCount = selectedItemIds.length;
   const cartId = cartQuery.data?.id ?? null;
   const quoteQuery = useQuery({
-    queryKey: ["checkout-quote", cartId, selectedItemIds, appliedCoupon, locale],
-    queryFn: () => quoteCheckout({ cartId: cartId as string, cartItemIds: selectedItemIds, couponCode: appliedCoupon ?? undefined }),
+    queryKey: ["checkout-quote", cartId, selectedItemIds, appliedCoupon, coinsToUse, locale],
+    queryFn: () => quoteCheckout({ cartId: cartId as string, cartItemIds: selectedItemIds, couponCode: appliedCoupon ?? undefined, coinsToUse }),
     enabled: Boolean(cartId) && itemCount > 0,
   });
   const checkoutMutation = useMutation({
@@ -67,6 +71,7 @@ export function CheckoutPage() {
         cartItemIds: selectedItemIds,
         addressId,
         couponCode: appliedCoupon || undefined,
+        coinsToUse,
         paymentMethod,
         shippingMethod: "standard",
         locale,
@@ -84,6 +89,13 @@ export function CheckoutPage() {
   const handleClearCoupon = () => {
     setAppliedCoupon(null);
     setCouponInput("");
+  };
+  const handleApplyCoins = () => {
+    const requested = Math.max(0, Math.floor(Number(coinInput) || 0));
+    const available = coinsQuery.data?.balance ?? 0;
+    const applied = Math.min(requested, available);
+    setCoinsToUse(applied);
+    setCoinInput(String(applied));
   };
   const canPlaceOrder = Boolean(addressId) && quoteQuery.isSuccess && !quoteQuery.isLoading;
   const couponRejected = quoteQuery.data?.coupon?.applied === false;
@@ -203,6 +215,14 @@ export function CheckoutPage() {
                     {t(COUPON_REASON_KEYS[quoteQuery.data.coupon.reason as keyof typeof COUPON_REASON_KEYS] ?? "checkout.couponReasonInvalid")}
                   </p>
                 ) : null}
+              </CheckoutBlock>
+              <CheckoutBlock icon={<CoinsIcon className="size-5" />} title={t("checkout.coins")}>
+                <p className="mb-2 text-sm text-slate-600">{t("checkout.coinsAvailable").replace("{count}", String(coinsQuery.data?.balance ?? 0))}</p>
+                <div className="flex gap-2">
+                  <Input id="checkout-coins" aria-label={t("checkout.coins")} type="number" min="0" max={coinsQuery.data?.balance ?? 0} step="1" value={coinInput} onChange={(event) => setCoinInput(event.target.value)} />
+                  <Button type="button" variant="outline" className="rounded-full" disabled={coinsQuery.isLoading || !coinInput} onClick={handleApplyCoins}>{t("checkout.coinsApply")}</Button>
+                </div>
+                {coinsToUse > 0 ? <div className="mt-2 flex items-center justify-between gap-2 text-sm"><span className="font-medium text-emerald-700">{t("checkout.coinsApplied").replace("{count}", String(quoteQuery.data?.coinsApplied ?? coinsToUse))}</span><Link className="font-semibold text-orange-700" href={localePath("/coins")}>{t("checkout.coinsHistory")}</Link></div> : null}
               </CheckoutBlock>
               <CheckoutBlock icon={<CreditCardIcon className="size-5" />} title={t("checkout.paymentMethod")}>
                 <RadioGroup value={paymentMethod}>

@@ -4,6 +4,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import { AdminServiceError } from './admin.errors.ts'
 import type { AdminDashboardCounts, AdminRefundRecord, IAdminRepository } from './admin.repository.ts'
 import { AdminService } from './admin.service.ts'
+import type { IRefundRepository } from '#server/modules/refund/refund.repository.ts'
 
 function createLogger() {
   return {
@@ -69,6 +70,10 @@ function createRepoMock(): IAdminRepository {
     findReturnById: vi.fn(),
     updateReturnStatus: vi.fn(),
   }
+}
+
+function createRefundRepoMock(): IRefundRepository {
+  return { listRefunds: vi.fn(), findRefundById: vi.fn(), updateRefundStatus: vi.fn(), completeRefundSuccess: vi.fn() }
 }
 
 function actor(role: Role = 'ADMIN') {
@@ -258,11 +263,13 @@ function setting(overrides: Record<string, unknown> = {}) {
 
 describe('AdminService', () => {
   let repo: IAdminRepository
+  let refundRepo: IRefundRepository
   let service: AdminService
 
   beforeEach(() => {
     repo = createRepoMock()
-    service = new AdminService(createAppContext(), repo)
+    refundRepo = createRefundRepoMock()
+    service = new AdminService(createAppContext(), repo, undefined, refundRepo)
   })
 
   it('rejects buyer and seller actors', async () => {
@@ -534,16 +541,13 @@ describe('AdminService', () => {
     })).rejects.toMatchObject({ code: 'INVALID_STATUS_TRANSITION' })
 
     vi.mocked(repo.findRefundById).mockResolvedValueOnce({ ...refund('PROCESSING'), processingById: 'admin-2' })
-    vi.mocked(repo.updateRefundStatus).mockResolvedValueOnce({
-      ...refund('SUCCESS'),
-      processingById: 'admin-2',
-      completedById: 'admin-1',
-      externalReference: 'REF-1',
-    })
+    vi.mocked(refundRepo.completeRefundSuccess).mockResolvedValueOnce({} as never)
+    vi.mocked(repo.findRefundById).mockResolvedValueOnce({ ...refund('SUCCESS'), processingById: 'admin-2', completedById: 'admin-1', externalReference: 'REF-1' })
     await expect(service.updateRefundStatus(actor(), 'refund-1', {
       status: 'SUCCESS',
       externalReference: 'REF-1',
     })).resolves.toMatchObject({ status: 'SUCCESS', externalReference: 'REF-1' })
+    expect(refundRepo.completeRefundSuccess).toHaveBeenCalledWith('refund-1', 'PROCESSING', expect.objectContaining({ completedById: 'admin-1', externalReference: 'REF-1' }))
   })
 
   it('lists and updates return escalations', async () => {

@@ -74,6 +74,9 @@ export function useFormatters() {
     date(value: Date | string | number, options?: Intl.DateTimeFormatOptions) {
       return formatDate(value, locale, options);
     },
+    number(value: number) {
+      return new Intl.NumberFormat(resolveLocale(locale)).format(value);
+    },
   };
 }
 

@@ -5,6 +5,7 @@ Seller manage is the shop-scoped backoffice for sellers. It covers daily operati
 ## Navigation
 
 - `/seller` - operational dashboard
+- `/seller/shop?shopId=:shopId` - shop profile, manual shipping fee, and team management
 - `/seller/register` - shop onboarding and Thailand KYC submission
 - `/seller/status` - pending/rejected seller application status
 - `/seller/products` - product and variant management
@@ -47,6 +48,13 @@ Seller manage is the shop-scoped backoffice for sellers. It covers daily operati
 - Uses `GET /api/seller/dashboard`.
 - Shows sales, pending shipments, product counts, low-stock items, recent orders, and entry points to chat/notifications.
 - Primary actions should route to orders and inventory.
+
+### Shop Profile And Team
+
+- Uses `GET|PATCH /api/seller/shops/:shopId/profile` and `GET|PATCH /api/seller/shops/:shopId/settings`.
+- The owner updates public shop details, policies, and the manual shipping fee in Thai baht.
+- Uses `/api/seller/shops/:shopId/staff` to invite, update, or remove staff; pending staff accept their invitation from their account surface.
+- The selected `shopId` is authorization-scoped on the server. A seller must not use the route to access another shop.
 
 ### Products
 

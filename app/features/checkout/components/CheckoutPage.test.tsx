@@ -8,6 +8,7 @@ import type { InputHTMLAttributes, LabelHTMLAttributes, ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CheckoutPage } from "./CheckoutPage";
 import { createCheckout, fetchAddresses, fetchCart, quoteCheckout } from "#/features/buyer/api";
+import { useBuyerCoins } from "#/features/promotion/hooks/useBuyerCoins";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
@@ -69,6 +70,10 @@ vi.mock("#/i18n/client", () => ({
       "checkout.couponReasonUserLimitReached": "You've already used this coupon the maximum number of times.",
       "checkout.couponRemove": "Remove",
       "checkout.discount": "Discount",
+      "checkout.coins": "Coins",
+      "checkout.coinsAvailable": "{count} coins available",
+      "checkout.coinsApply": "Use coins",
+      "checkout.coinsApplied": "{count} coins applied",
       "checkout.emptyDescription": "Your cart is empty.",
       "checkout.emptyTitle": "Empty cart",
       "checkout.loadingAddresses": "Loading addresses",
@@ -105,6 +110,10 @@ vi.mock("#/features/buyer/api", () => ({
   formatMoney: (cents: number) => `THB ${(cents / 100).toFixed(2)}`,
 }));
 
+vi.mock("#/features/promotion/hooks/useBuyerCoins", () => ({
+  useBuyerCoins: vi.fn(),
+}));
+
 function renderCheckoutPage() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -125,6 +134,7 @@ function renderCheckoutPage() {
 
 describe("CheckoutPage", () => {
   beforeEach(() => {
+    vi.mocked(useBuyerCoins).mockReturnValue({ data: { balance: 20, pendingBalance: 0, lifetimeEarned: 20, entries: [] } } as any);
     vi.mocked(fetchCart).mockResolvedValue({
       id: "cart-1",
       shops: [{
@@ -160,6 +170,7 @@ describe("CheckoutPage", () => {
     }]);
     vi.mocked(createCheckout).mockResolvedValue({
       orderId: "order-1",
+      paymentId: "payment-1",
       orderNo: "ORD-TEST",
       paymentStatus: "pending",
       paymentUrl: "/en/payment/mock/payment-1",
@@ -173,6 +184,7 @@ describe("CheckoutPage", () => {
       grandTotal: 1700,
       currency: "THB",
       coupon: null,
+      coinsApplied: 0,
     });
   });
 
@@ -220,14 +232,14 @@ describe("CheckoutPage", () => {
     expect(screen.getAllByTestId("quote-skeleton").length).toBeGreaterThan(0);
     expect(screen.queryByText("THB 17.00")).toBeNull();
 
-    resolveQuote({ subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null });
+    resolveQuote({ subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null, coinsApplied: 0 });
     await waitFor(() => expect(placeOrderButton.disabled).toBe(false));
   });
 
   it("disables place order and shows a retryable error affordance when the quote fails", async () => {
     vi.mocked(quoteCheckout).mockRejectedValueOnce(new Error("Quote request failed"));
     vi.mocked(quoteCheckout).mockResolvedValueOnce({
-      subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null,
+      subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null, coinsApplied: 0,
     });
 
     renderCheckoutPage();
@@ -284,6 +296,7 @@ describe("CheckoutPage", () => {
       grandTotal: couponCode === "SAVE10" ? 1600 : 1700,
       currency: "THB",
       coupon: couponCode ? { code: couponCode, applied: true } : null,
+      coinsApplied: 0,
     }));
 
     renderCheckoutPage();
@@ -314,6 +327,7 @@ describe("CheckoutPage", () => {
       grandTotal: 1400,
       currency: "THB",
       coupon: { code: "SAVE10", applied: true },
+      coinsApplied: 0,
     });
 
     renderCheckoutPage();
@@ -322,6 +336,28 @@ describe("CheckoutPage", () => {
     expect(screen.getByText("-THB 3.00")).toBeTruthy();
     expect(screen.getByText("Shipping")).toBeTruthy();
     expect(screen.getByText("THB 5.00")).toBeTruthy();
+  });
+
+  it("quotes and creates checkout with the buyer-selected coins", async () => {
+    vi.mocked(quoteCheckout).mockImplementation(({ coinsToUse }) => Promise.resolve({
+      subtotal: 1200,
+      discountTotal: (coinsToUse ?? 0) * 100,
+      shippingTotal: 500,
+      taxTotal: 0,
+      grandTotal: 1700 - (coinsToUse ?? 0) * 100,
+      currency: "THB",
+      coupon: null,
+      coinsApplied: coinsToUse ?? 0,
+    }));
+    renderCheckoutPage();
+
+    fireEvent.change(await screen.findByLabelText("Coins"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Use coins" }));
+    await screen.findByText("5 coins applied");
+
+    fireEvent.click(screen.getByRole("button", { name: "Place order" }));
+    await waitFor(() => expect(createCheckout).toHaveBeenCalledWith(expect.objectContaining({ coinsToUse: 5 })));
+    expect(quoteCheckout).toHaveBeenCalledWith(expect.objectContaining({ coinsToUse: 5 }));
   });
 
   it("keeps the summary and place-order button usable when the coupon is unusable", async () => {
@@ -333,6 +369,7 @@ describe("CheckoutPage", () => {
       grandTotal: 1700,
       currency: "THB",
       coupon: { code: "EXPIRED10", applied: false, reason: "COUPON_EXPIRED" },
+      coinsApplied: 0,
     });
 
     renderCheckoutPage();

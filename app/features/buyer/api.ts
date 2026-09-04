@@ -2,6 +2,8 @@
 
 import { defaultCurrency } from "#/i18n/config";
 import { requestApi } from "#/lib/api-client";
+import { api } from "#/lib/eden";
+import type { Treaty } from "@elysiajs/eden";
 
 export interface BuyerCart {
   id: string | null;
@@ -155,15 +157,7 @@ export interface BuyerFollowedShop {
   createdAt: string;
 }
 
-export interface CheckoutInput {
-  cartId: string;
-  cartItemIds: string[];
-  addressId: string;
-  couponCode?: string;
-  paymentMethod: string;
-  shippingMethod?: string;
-  locale?: string;
-}
+export type CheckoutInput = Parameters<typeof api.api.checkout.post>[0];
 
 export interface AddressInput {
   recipientName: string;
@@ -192,33 +186,9 @@ export interface ReturnRequestInput {
   uploadIds?: string[];
 }
 
-export interface CheckoutResult {
-  orderId: string;
-  orderNo: string;
-  paymentStatus: string;
-  totalCents: number;
-  paymentUrl: string;
-}
-
-export interface CheckoutQuoteInput {
-  cartId: string;
-  cartItemIds: string[];
-  couponCode?: string;
-}
-
-export type CheckoutCouponOutcome =
-  | { code: string; applied: true }
-  | { code: string; applied: false; reason: string };
-
-export interface CheckoutQuote {
-  subtotal: number;
-  discountTotal: number;
-  shippingTotal: number;
-  taxTotal: number;
-  grandTotal: number;
-  currency: string;
-  coupon: CheckoutCouponOutcome | null;
-}
+export type CheckoutResult = NonNullable<Treaty.Data<ReturnType<typeof api.api.checkout.post>>>;
+export type CheckoutQuoteInput = Parameters<typeof api.api.checkout.quote.post>[0];
+export type CheckoutQuote = NonNullable<Treaty.Data<ReturnType<typeof api.api.checkout.quote.post>>>;
 
 export async function fetchCoupons(locale?: string): Promise<BuyerCoupon[]> {
   const response = await apiFetch(`/api/me/coupons${toQuery({ locale })}`);
@@ -370,39 +340,17 @@ export async function removeCartItem(itemId: string): Promise<void> {
 }
 
 export async function createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
-  const response = await apiFetch("/api/checkout", {
-    method: "POST",
-    body: JSON.stringify(input),
-  }) as Record<string, unknown>;
-  return {
-    orderId: readString(response.orderId),
-    orderNo: readString(response.orderNo),
-    paymentStatus: readString(response.paymentStatus, "pending"),
-    totalCents: readNumber(response.totalCents),
-    paymentUrl: readString(response.paymentUrl),
-  };
+  const { data, error } = await api.api.checkout.post(input);
+  if (error) throw error;
+  if (!data) throw new Error("Checkout returned no data");
+  return data;
 }
 
 export async function quoteCheckout(input: CheckoutQuoteInput): Promise<CheckoutQuote> {
-  const response = await apiFetch("/api/checkout/quote", {
-    method: "POST",
-    body: JSON.stringify(input),
-  }) as Record<string, unknown>;
-  const couponRecord = response.coupon && typeof response.coupon === "object" ? response.coupon as Record<string, unknown> : null;
-  const coupon: CheckoutCouponOutcome | null = couponRecord
-    ? (couponRecord.applied
-      ? { code: readString(couponRecord.code), applied: true }
-      : { code: readString(couponRecord.code), applied: false, reason: readString(couponRecord.reason) })
-    : null;
-  return {
-    subtotal: readNumber(response.subtotal),
-    discountTotal: readNumber(response.discountTotal),
-    shippingTotal: readNumber(response.shippingTotal),
-    taxTotal: readNumber(response.taxTotal),
-    grandTotal: readNumber(response.grandTotal),
-    currency: readString(response.currency, defaultCurrency),
-    coupon,
-  };
+  const { data, error } = await api.api.checkout.quote.post(input);
+  if (error) throw error;
+  if (!data) throw new Error("Checkout quote returned no data");
+  return data;
 }
 
 export async function fetchAddresses(): Promise<BuyerAddress[]> {

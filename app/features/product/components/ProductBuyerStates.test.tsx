@@ -41,6 +41,7 @@ const queryMocks = vi.hoisted(() => ({
   createProductQuestion: vi.fn(async () => ({ id: "question-new" })),
   couponsQueryFn: vi.fn(async () => []),
   addCartItem: vi.fn(async () => ({})),
+  addGuestCartItem: vi.fn(),
   fetchCart: vi.fn(async (): Promise<{ shops: Array<{ items: Array<{ quantity: number }> }> }> => ({ shops: [] })),
   showAddToCartSuccess: vi.fn(),
   showAddToCartError: vi.fn(),
@@ -118,6 +119,10 @@ vi.mock("#/features/chat", () => ({
 vi.mock("#/features/product/cart-handoff", () => ({
   showAddToCartError: queryMocks.showAddToCartError,
   showAddToCartSuccess: queryMocks.showAddToCartSuccess,
+}));
+
+vi.mock("#/features/cart/guest-cart", () => ({
+  addGuestCartItem: queryMocks.addGuestCartItem,
 }));
 
 vi.mock("#/features/marketplace/queries", () => ({
@@ -499,6 +504,7 @@ beforeEach(() => {
   queryMocks.ratingSummaryError = null;
   queryMocks.session = { user: { role: "USER" } };
   queryMocks.addCartItem.mockClear();
+  queryMocks.addGuestCartItem.mockClear();
   queryMocks.fetchCart.mockClear();
   queryMocks.fetchCart.mockResolvedValue({ shops: [] });
   queryMocks.showAddToCartError.mockClear();
@@ -1052,7 +1058,7 @@ describe("ProductDetailPage buyer transaction states", () => {
     expect(screen.getAllByText("Only buyer accounts can purchase.").length).toBeGreaterThan(0);
   });
 
-  it("routes anonymous buyers to login with the current product path before mutating", async () => {
+  it("adds an anonymous buyer selection to the guest cart", async () => {
     queryMocks.session = null;
 
     renderWithClient(<ProductDetailPage productId="product-1" />);
@@ -1061,9 +1067,9 @@ describe("ProductDetailPage buyer transaction states", () => {
     fireEvent.click(screen.getByRole("button", { name: "M" }));
     fireEvent.click(screen.getByRole("button", { name: /Add to cart/ }));
 
-    expect(queryMocks.routerPush).toHaveBeenCalledWith("/en/login?next=%2Fproducts%2Fproduct-1");
+    expect(queryMocks.addGuestCartItem).toHaveBeenCalledWith("variant-red-m", 1, expect.objectContaining({ productId: "product-1" }));
     expect(queryMocks.addCartItem).not.toHaveBeenCalled();
-    expect(queryMocks.showAddToCartSuccess).not.toHaveBeenCalled();
+    expect(queryMocks.showAddToCartSuccess).toHaveBeenCalled();
     expect(queryMocks.showAddToCartError).not.toHaveBeenCalled();
   });
 

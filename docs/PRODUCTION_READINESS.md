@@ -1,24 +1,26 @@
 # Production Readiness Report
 
-**Date:** 2026-08-20
-**Status:** Production blocked. The pgvector dependency is disabled, but the historical migration chain does not yet reproduce the current Prisma schema without drift.
+**Date:** 2026-09-04
+**Status:** Application and fresh-database release gates pass locally. Infrastructure credentials, CI, and the external provider checks below remain required before deployment.
 
 ## Local verification evidence
 
-Verified on 2026-08-20:
+Verified on 2026-09-04:
 
 - Prisma generation and schema validation passed
 - TypeScript typecheck passed
-- 123 unit/integration files passed (915 tests)
-- i18n parity passed (2,104 English keys and 2,104 Thai keys, zero audited findings)
+- 135 unit/integration files passed (988 tests)
+- i18n parity passed (2,243 English keys and 2,243 Thai keys, zero audited findings)
 - Bun production dependency audit reported no vulnerabilities
-- Next.js production build passed (119 routes)
-- all 9 checked-in migrations applied to an empty standard PostgreSQL 17 database without pgvector
+- Next.js production build passed (127 localized/static routes)
+- all 18 checked-in migrations applied to an empty standard PostgreSQL 17 database without pgvector and produced zero Prisma drift
 - the verification database contained neither the `vector` extension nor the `ProductEmbedding` table
 
 The database-backed buyer golden path covers multi-shop checkout, inventory reservation, signed payment webhook, stock commit, shipment split, and duplicate-webhook idempotency. AI search and its pgvector-backed `ProductEmbedding` storage are temporarily disabled; fresh databases require standard PostgreSQL 17 only.
 
-The required Prisma migration drift check currently fails because the historical migrations omit or differ from many models, columns, indexes, and foreign keys in `prisma/schema.prisma`. A reviewed schema-baseline/reconciliation migration is required before production deployment. Do not use `prisma db push` to bypass this gate.
+The migration chain includes the promotion reconciliation and Flash Sale reservation tables/indexes. `20260823120000_restore_pending_review_status` restores the legacy enum label before the immutable publication migration, preserving applied checksums while allowing a fresh replay. Do not edit an applied migration checksum or use `prisma db push` to bypass the migration gate.
+
+The generated schema reconciliation is baseline-only and aborts on populated legacy business tables. Existing databases may mark it applied only after a backup and a verified zero-drift/current-schema check; older populated databases require a staged data-preserving migration reviewed for that exact source version.
 
 ## Required release gates
 
@@ -32,7 +34,7 @@ The workflow in `.github/workflows/production-gates.yml` must pass before deploy
 - Playwright E2E suite
 - Docker image build
 
-The zero-drift gate above is currently red and is a production blocker.
+The zero-drift gate passes on both the current development database and a freshly created PostgreSQL 17 verification database. CI must reproduce this result.
 
 ## Runtime contracts
 
@@ -41,6 +43,8 @@ The zero-drift gate above is currently red and is a production blocker.
 - Checkout accepts the configured online provider only. The previously non-functional COD choice is rejected rather than pretending to create a COD order.
 - BullMQ schedules expired-payment release every minute and abandoned-cart cleanup daily. The production process supervisor starts the API, frontend, and worker together.
 - Coupon usage follows `RESERVED -> REDEEMED | RELEASED` and checkout locks the coupon row before its final usage-limit check.
+- Flash Sale price, quota, and per-buyer limits are authoritative in the checkout transaction. Reservations commit only after payment and release on failed, cancelled, or expired payment.
+- Buyer Coins use an explicit ledger: one coin equals THB 1, can discount at most 20% of product subtotal, cannot pay shipping, and earn 1% cashback after discounts only after a paid order. Successful refunds atomically restore proportional spent coins and reverse proportional cashback.
 - Email OTP values are HMAC-digested in the database and delivered through Resend in production.
 - Readiness returns HTTP 503 when PostgreSQL, the required schema, Redis, or the queue is unavailable.
 - Rate limits and realtime fan-out use Redis in production.
@@ -63,6 +67,6 @@ The zero-drift gate above is currently red and is a production blocker.
 - persistent local upload volumes (default), or S3-compatible object storage and CDN/public base URL when explicitly selected
 - identity-provider MFA for named finance operators, daily reconciliation, and explicit operation of `docs/09-ops/manual-finance-operations.md`
 - a green `.github/workflows/production-gates.yml` run, including the database-backed buyer golden path, immediately before deployment
-- a reviewed migration baseline/reconciliation that makes the fresh-database Prisma drift comparison exit successfully
+- a green fresh-database migration replay and zero-drift result from the production gate
 
 Production startup intentionally fails when required secrets, providers, or acknowledgements are missing or use development placeholders.

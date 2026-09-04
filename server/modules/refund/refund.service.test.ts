@@ -28,6 +28,7 @@ function createRepoMock(): IRefundRepository {
     listRefunds: vi.fn(),
     findRefundById: vi.fn(),
     updateRefundStatus: vi.fn(),
+    completeRefundSuccess: vi.fn(),
   }
 }
 
@@ -101,6 +102,7 @@ describe('RefundService', () => {
     vi.mocked(repo.listRefunds).mockResolvedValue([createRefund()])
     vi.mocked(repo.findRefundById).mockResolvedValue(createRefund())
     vi.mocked(repo.updateRefundStatus).mockImplementation(async (_id, status) => createRefund(status))
+    vi.mocked(repo.completeRefundSuccess).mockResolvedValue(createRefund('SUCCESS'))
   })
 
   it('lists admin refunds and blocks non-admin users', async () => {
@@ -120,7 +122,8 @@ describe('RefundService', () => {
 
     const result = await service.processAdminRefund(createActor(), 'refund-1', 'success')
 
-    expect(repo.updateRefundStatus).toHaveBeenCalledWith('88888888-8888-4888-8888-888888888888', 'SUCCESS')
+    expect(repo.completeRefundSuccess).toHaveBeenCalledWith('88888888-8888-4888-8888-888888888888', 'PROCESSING')
+    expect(repo.updateRefundStatus).not.toHaveBeenCalled()
     expect(result.status).toBe('success')
   })
 

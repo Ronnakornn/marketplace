@@ -41,6 +41,14 @@ describe('PrismaCheckoutRepository', () => {
       cartItem: {
         deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
+      flashSaleItem: {
+        findUnique: vi.fn().mockResolvedValue({ stockLimit: 10, soldCount: 1, perUserLimit: 3 }),
+      },
+      flashSaleReservation: {
+        aggregate: vi.fn().mockResolvedValue({ _sum: { quantity: 0 } }),
+        create: vi.fn().mockResolvedValue({ id: 'flash-reservation-1' }),
+      },
+      $queryRaw: vi.fn().mockResolvedValue([]),
     }
     const repository = new PrismaCheckoutRepository(
       { logger: createLogger(), config: { environment: 'test' } },
@@ -73,6 +81,8 @@ describe('PrismaCheckoutRepository', () => {
         id: 'cart-item-1',
         variantId: 'variant-1',
         quantity: 2,
+        unitPrice: 1200,
+        flashSaleItemId: 'flash-item-1',
         variant: {
           price: 1200,
           currency: 'THB',
@@ -98,6 +108,10 @@ describe('PrismaCheckoutRepository', () => {
           },
         },
       }],
+      couponDiscount: 0,
+      couponShopId: null,
+      coinDiscount: 0,
+      freeShippingShopIds: [],
       paymentMethod: 'mock',
       locale: 'en',
     } as unknown as CreatePendingOrderInput
@@ -132,5 +146,64 @@ describe('PrismaCheckoutRepository', () => {
     expect(prisma.cartItem.deleteMany).toHaveBeenCalledWith({
       where: { cartId: 'cart-1', id: { in: ['cart-item-1'] } },
     })
+    expect(prisma.flashSaleReservation.aggregate).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      where: expect.objectContaining({
+        flashSaleItemId: 'flash-item-1',
+        status: 'ACTIVE',
+        expiresAt: { gt: expect.any(Date) },
+      }),
+    }))
+    expect(prisma.$queryRaw).toHaveBeenCalled()
+    expect(prisma.flashSaleReservation.aggregate).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      where: expect.objectContaining({
+        flashSaleItemId: 'flash-item-1',
+        userId: 'buyer-1',
+        OR: [
+          { status: 'COMMITTED' },
+          { status: 'ACTIVE', expiresAt: { gt: expect.any(Date) } },
+        ],
+      }),
+    }))
+  })
+
+  it('keeps two-shop settlement totals equal to the parent after shop, platform, and coin discounts', async () => {
+    const prisma = {
+      checkout: { create: vi.fn().mockResolvedValue({ id: 'checkout-1' }) },
+      inventory: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      inventoryReservation: { create: vi.fn().mockResolvedValue({}), updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
+      order: { create: vi.fn().mockResolvedValue({ id: 'order-1' }) },
+      payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1' }) },
+      cart: { update: vi.fn().mockResolvedValue({}) },
+      cartItem: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
+      $queryRaw: vi.fn().mockResolvedValue([]),
+    }
+    const repository = new PrismaCheckoutRepository(
+      { logger: createLogger(), config: { environment: 'test' } }, prisma as unknown as PrismaClient,
+    )
+    const item = (id: string, shopId: string, unitPrice: number, shippingFee: number) => ({
+      id, variantId: `variant-${id}`, quantity: 1, unitPrice, flashSaleItemId: null,
+      variant: {
+        price: unitPrice, currency: 'THB', title: id, titleTh: null, titleEn: id, sku: id,
+        inventory: { id: `inventory-${id}`, quantityOnHand: 10 },
+        product: { title: id, titleTh: null, titleEn: id, slug: id, shop: { id: shopId, name: shopId, slug: shopId, settings: { shippingFee } } },
+      },
+    })
+    const input = {
+      cartId: 'cart-1', userId: 'buyer-1', orderNumber: 'ORD-SPLIT', checkoutExpiresAt: new Date('2026-09-04T00:00:00.000Z'),
+      address: { recipientName: 'Buyer', phone: null, line1: '1 Road', line2: null, city: 'Bangkok', region: null, postalCode: '10110', country: 'TH' },
+      totals: { subtotal: 3000, discountTotal: 1600, shippingTotal: 300, taxTotal: 0, grandTotal: 1700, currency: 'THB' },
+      items: [item('one', 'shop-1', 1000, 100), item('two', 'shop-2', 2000, 200)],
+      couponDiscount: 1000, couponShopId: 'shop-1', coinDiscount: 600, freeShippingShopIds: [], paymentMethod: 'mock', locale: 'en',
+    } as unknown as CreatePendingOrderInput
+
+    await repository.createPendingOrder(input)
+
+    const orderData = prisma.order.create.mock.calls[0]![0].data
+    const shopOrders = orderData.shopOrders.create as Array<{ subtotal: number; discountTotal: number; shippingTotal: number; grandTotal: number }>
+    expect(shopOrders).toHaveLength(2)
+    expect(shopOrders.reduce((sum, row) => sum + row.subtotal, 0)).toBe(orderData.subtotal)
+    expect(shopOrders.reduce((sum, row) => sum + row.discountTotal, 0)).toBe(orderData.discountTotal)
+    expect(shopOrders.reduce((sum, row) => sum + row.shippingTotal, 0)).toBe(orderData.shippingTotal)
+    expect(shopOrders.reduce((sum, row) => sum + row.grandTotal, 0)).toBe(orderData.grandTotal)
   })
 })

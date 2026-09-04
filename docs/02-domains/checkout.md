@@ -18,6 +18,7 @@ The Checkout domain owns checkout drafts, trusted totals, stock reservation, and
 
 - Checkout is single-page on mobile.
 - Checkout items are grouped by shop.
+- Each selected shop contributes its seller-defined manual shipping fee once.
 - Backend recalculates all prices, discounts, shipping, and totals.
 - Stock must be reserved before payment intent creation.
 - Reservation has an expiry time.
@@ -55,6 +56,7 @@ The Checkout domain owns checkout drafts, trusted totals, stock reservation, and
 
 - Missing address.
 - Shipping unavailable for one shop.
+- Seller changes a manual shipping fee after an item was placed in the cart.
 - Coupon not applicable.
 - Stock reservation fails.
 - Price changed since cart.

@@ -8,6 +8,7 @@ import {
   CommandIcon,
   BellIcon,
   BadgePercentIcon,
+  BoltIcon,
   BanknoteIcon,
   BarChart3Icon,
   Building2Icon,
@@ -119,6 +120,12 @@ const ADMIN_NAV_ITEMS = [
     href: "/admin/returns",
     icon: Undo2Icon,
     match: (pathname: string) => pathname.startsWith("/admin/returns"),
+  },
+  {
+    title: "admin.nav.flashSales",
+    href: "/admin/flash-sales",
+    icon: BoltIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/flash-sales"),
   },
   {
     title: "admin.nav.payouts",

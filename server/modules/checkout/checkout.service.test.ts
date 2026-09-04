@@ -38,6 +38,9 @@ function createRepoMock(): ICheckoutRepository {
     findCouponByCode: vi.fn(),
     countCouponRedemptionsForUser: vi.fn(),
     lockCouponForCheckout: vi.fn(),
+    findActiveFlashSaleItemForCheckout: vi.fn().mockResolvedValue(null),
+    findBuyerCoinBalance: vi.fn().mockResolvedValue(0),
+    lockBuyerCoinWallet: vi.fn(),
     createPendingOrder: vi.fn(),
   }
 }
@@ -199,6 +202,9 @@ async function setupSuccess(overrides: {
   cart?: CheckoutCart
   address?: CheckoutAddress | null
   couponDiscountCents?: number
+  freeShipping?: boolean
+  couponShopId?: string | null
+  freeShippingShopIds?: string[]
   couponError?: PromotionServiceError
 } = {}) {
   repo = createRepoMock()
@@ -219,6 +225,10 @@ async function setupSuccess(overrides: {
       discount: overrides.couponDiscountCents ?? 0,
       discountCents: overrides.couponDiscountCents ?? 0,
       subtotal: 2400,
+      freeShipping: overrides.freeShipping ?? false,
+      couponShopId: overrides.couponShopId ?? null,
+      freeShippingShopIds: overrides.freeShippingShopIds
+        ?? (overrides.freeShipping ? ['11111111-1111-4111-8111-111111111111'] : []),
     })
   }
   return new CheckoutService(createAppContext(), repo, promotionService as PromotionService)
@@ -251,6 +261,7 @@ describe('CheckoutService', () => {
       userId: 'user-1',
       couponCode: ' save10 ',
       subtotal: 2400,
+      shopSubtotals: [{ shopId: '11111111-1111-4111-8111-111111111111', subtotal: 2400 }],
     })
     expect(repo.createPendingOrder).toHaveBeenCalledWith(expect.objectContaining({
       cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -310,7 +321,7 @@ describe('CheckoutService', () => {
     })
 
     expect(repo.createPendingOrder).toHaveBeenCalledWith(expect.objectContaining({
-      items: [selected],
+      items: [expect.objectContaining({ ...selected, unitPrice: 1200 })],
       totals: expect.objectContaining({ subtotal: 2400 }),
     }))
   })
@@ -324,7 +335,7 @@ describe('CheckoutService', () => {
     })
 
     const input = vi.mocked(repo.createPendingOrder).mock.calls[0]![0]
-    expect(input.items[0]!.unitPrice).toBe(1000)
+    expect(input.items[0]!.unitPrice).toBe(1200)
     expect(input.items[0]!.variant.price).toBe(1200)
     expect(input.items[0]!.variant.product.title).toBe('Oversized Cotton Tee')
     expect(input.items[0]!.variant.product.shop.name).toBe('Everyday Studio')
@@ -455,6 +466,62 @@ describe('CheckoutService', () => {
     expect(quote.grandTotal).toBeGreaterThan(quote.subtotal - quote.discountTotal)
   })
 
+  it('ignores a zero-priced legacy flash-sale row', async () => {
+    const service = await setupSuccess()
+    vi.mocked(repo.findActiveFlashSaleItemForCheckout).mockResolvedValue({ id: 'flash-item-1', salePrice: 0 } as never)
+
+    const quote = await service.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    })
+
+    expect(quote.subtotal).toBe(2400)
+  })
+
+  it('waives shipping only when an applied coupon grants free shipping', async () => {
+    const quoteService = await setupSuccess({ freeShipping: true })
+    const quote = await quoteService.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      couponCode: 'FREESHIP',
+    })
+
+    expect(quote.shippingTotal).toBe(0)
+    expect(quote.grandTotal).toBe(quote.subtotal)
+
+    const checkoutService = await setupSuccess({ freeShipping: true })
+    await checkoutService.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      couponCode: 'FREESHIP',
+      paymentMethod: 'stripe',
+    })
+    expect(repo.createPendingOrder).toHaveBeenCalledWith(expect.objectContaining({
+      freeShippingShopIds: ['11111111-1111-4111-8111-111111111111'],
+    }))
+  })
+
+  it('waives shipping only for the seller coupon shop in a multi-shop checkout', async () => {
+    const firstShopItem = createItem({ shippingFee: 500 })
+    const secondShopItem = createItem({
+      id: 'dededede-dede-4ded-8ded-dededededede',
+      variantId: 'edededed-eded-4ede-8ede-edededededed',
+      shopId: '22222222-2222-4222-8222-222222222222',
+      shippingFee: 750,
+    })
+    const service = await setupSuccess({
+      cart: createCart({ items: [firstShopItem, secondShopItem] }),
+      freeShipping: true,
+      couponShopId: '11111111-1111-4111-8111-111111111111',
+      freeShippingShopIds: ['11111111-1111-4111-8111-111111111111'],
+    })
+
+    const quote = await service.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      couponCode: 'SHOPSHIP',
+    })
+
+    expect(quote.shippingTotal).toBe(750)
+  })
+
   it('charges each selected shop shipping fee once', async () => {
     const firstShopItem = createItem({ shippingFee: 500 })
     const sameShopItem = createItem({
@@ -512,6 +579,31 @@ describe('CheckoutService', () => {
 
     expect(repo.createPendingOrder).not.toHaveBeenCalled()
     expect(repo.transaction).not.toHaveBeenCalled()
+  })
+
+  it('applies buyer coins within the balance and twenty-percent subtotal cap', async () => {
+    const service = await setupSuccess()
+    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(10)
+
+    const quote = await service.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      coinsToUse: 4,
+    })
+
+    expect(quote.coinsApplied).toBe(4)
+    expect(quote.discountTotal).toBe(400)
+    expect(repo.lockBuyerCoinWallet).toHaveBeenCalledWith('user-1')
+  })
+
+  it('does not spend coins that cannot reduce the post-coupon subtotal', async () => {
+    const service = await setupSuccess({ couponDiscountCents: 2400 })
+    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(10)
+
+    await expect(service.quoteCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      couponCode: 'SAVE10',
+      coinsToUse: 1,
+    })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED' })
   })
 
   it('rejects quoting a cart that belongs to another buyer', async () => {

@@ -23,6 +23,9 @@ vi.mock("#server/lib/prisma.ts", () => ({
     shop: {
       count: vi.fn(),
     },
+    shopStaff: {
+      count: vi.fn(),
+    },
     sellerApplication: {
       findFirst: vi.fn(),
     },
@@ -69,6 +72,7 @@ describe("authPlugin", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (prisma.shop.count as any).mockResolvedValue(0);
+    (prisma.shopStaff.count as any).mockResolvedValue(0);
     (prisma.sellerApplication.findFirst as any).mockResolvedValue(null);
   });
 

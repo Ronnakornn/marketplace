@@ -225,6 +225,8 @@ Errors:
 
 ## Cart
 
+Guest cart state is deliberately client-only. There is no guest-cart API: the browser stores variant quantities and display snapshots locally, while all checkout pricing and availability remain server-validated after sign-in.
+
 ### `GET /api/cart`
 
 Response data:
@@ -290,6 +292,7 @@ Response data:
 Behavior:
 - Returns active public coupons.
 - Coupon validation still uses `code`; localized display content does not affect discount calculation.
+- Coupon `discountType` accepts `fixed`, `percent`, and `free_shipping`. A valid `free_shipping` coupon sets checkout and shop-order shipping totals to zero without discounting item prices.
 
 ### `POST /api/checkout`
 
@@ -419,6 +422,19 @@ Response data:
 Errors:
 - `ORDER_NOT_FOUND`
 - `ORDER_FORBIDDEN`
+
+### `POST /api/orders/:orderId/cancel`
+
+Behavior:
+- Buyer-only operation that cancels an entire unpaid order.
+- Requires both the order and payment to remain pending and no fulfillment to have started.
+- Releases active inventory reservations in the same transaction.
+- Does not return items to the cart.
+
+Errors:
+- `ORDER_NOT_FOUND`
+- `ORDER_FORBIDDEN`
+- `ORDER_CANCELLATION_NOT_ALLOWED`
 
 ### `GET /api/seller/shipments`
 
@@ -576,6 +592,22 @@ Response data:
 - unread chats
 - finance summary
 
+### `GET|PATCH /api/seller/shops/:shopId/profile`
+
+Behavior:
+- Reads or updates the authenticated owner's shop profile.
+
+### `GET|PATCH /api/seller/shops/:shopId/settings`
+
+Behavior:
+- Reads or updates shop operating settings, including the seller-defined manual shipping fee in Thai baht.
+
+Errors:
+- `SELLER_PROFILE_NOT_FOUND`
+- `SELLER_SHOP_NOT_ACTIVE`
+- `SHOP_FORBIDDEN`
+- `SHOP_NOT_FOUND`
+
 ### `GET /api/seller/products`
 
 Response data:
@@ -687,6 +719,38 @@ Query:
 - shipmentStatus
 - cursor
 - limit
+
+### `GET|POST|PATCH /api/admin/flash-sales`
+
+Admin-only Flash Sale campaign management. Campaigns use server-side timestamps and lifecycle status (`DRAFT`, `SCHEDULED`, `ACTIVE`, `PAUSED`, `ENDED`, `CANCELLED`).
+
+### `POST /api/admin/flash-sales/:flashSaleId/items`
+
+Admin-only. Adds an active product variant using Baht `salePriceBaht`, `stockLimit`, and optional `perUserLimit`. The server converts Baht to minor units, validates the variant, and requires the sale price to be lower than its active price.
+
+### `PATCH|DELETE /api/admin/flash-sale-items/:itemId`
+
+Admin-only item maintenance. Price updates accept `salePriceBaht`; quota cannot be reduced below sold and currently reserved quantity.
+
+### `GET /api/seller/flash-sales`
+
+Lists scheduled/active platform campaigns available to the seller and the seller's enrolled items.
+
+### `POST /api/seller/flash-sales/:flashSaleId/items`
+
+Enrolls a seller-owned active product variant into a scheduled campaign. Accepts `salePriceBaht`, `stockLimit`, and optional `perUserLimit`; ownership and price are enforced server-side.
+
+### `PATCH|DELETE /api/seller/flash-sale-items/:itemId`
+
+Updates or removes only items owned by one of the authenticated seller's shops.
+
+### `GET /api/me/coins`
+
+Returns the authenticated buyer's available balance, pending balance, lifetime earned total, and cursor-paginated ledger entries. Pass the returned `nextCursor` back as `cursor` to load the next page.
+
+### `POST /api/checkout` and `POST /api/checkout/quote`
+
+Accept optional integer `coinsToUse`. One coin equals THB 1; checkout rejects use above the available balance or 20% of item subtotal. Shipping remains outside the coin discount cap.
 
 ### `GET /api/admin/reports`
 

@@ -9,6 +9,7 @@ import type {
   PrismaClient,
   Product,
   ProductVariant,
+  FlashSaleItem,
   Shop,
   ShopSetting,
 } from '#generated/client/client.ts'
@@ -42,6 +43,13 @@ export type CheckoutCartItem = CartItem & {
   }
 }
 
+export type CheckoutPricedItem = Omit<CheckoutCartItem, 'unitPrice'> & {
+  unitPrice: number
+  flashSaleItemId?: string
+}
+
+export type CheckoutFlashSaleItem = Pick<FlashSaleItem, 'id' | 'salePrice' | 'stockLimit' | 'soldCount' | 'perUserLimit'>
+
 export type CheckoutCart = Cart & {
   items: CheckoutCartItem[]
 }
@@ -66,10 +74,15 @@ export interface CreatePendingOrderInput {
   checkoutExpiresAt: Date
   address: CheckoutAddress
   totals: CheckoutTotalsRecord
-  items: CheckoutCartItem[]
+  items: CheckoutPricedItem[]
   paymentProvider: string
   locale?: string
   coupon?: CheckoutCouponRef | null
+  couponDiscount: number
+  couponShopId: string | null
+  coinDiscount: number
+  freeShippingShopIds: string[]
+  coinsToUse?: number
 }
 
 export interface CreatedCheckoutOrder {
@@ -83,6 +96,9 @@ export interface ICheckoutRepository extends IPromotionValidationRepository {
   findCartForCheckout(cartId: string): Promise<CheckoutCart | null>
   findAddressForUser(addressId: string, userId: string): Promise<CheckoutAddress | null>
   lockCouponForCheckout(couponId: string): Promise<void>
+  findActiveFlashSaleItemForCheckout(variantId: string, now: Date): Promise<CheckoutFlashSaleItem | null>
+  findBuyerCoinBalance(userId: string): Promise<number>
+  lockBuyerCoinWallet(userId: string): Promise<void>
   createPendingOrder(input: CreatePendingOrderInput): Promise<CreatedCheckoutOrder>
 }
 
@@ -174,6 +190,28 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     await this.prisma.$queryRaw`SELECT "id" FROM "Coupon" WHERE "id" = ${couponId}::uuid FOR UPDATE`
   }
 
+  async findActiveFlashSaleItemForCheckout(variantId: string, now: Date): Promise<CheckoutFlashSaleItem | null> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "FlashSaleItem" WHERE "variantId" = ${variantId}::uuid FOR UPDATE`
+    return this.prisma.flashSaleItem.findFirst({
+      where: {
+        variantId,
+        isActive: true,
+        flashSale: { status: 'ACTIVE', startsAt: { lte: now }, endsAt: { gt: now } },
+      },
+      select: { id: true, salePrice: true, stockLimit: true, soldCount: true, perUserLimit: true },
+      orderBy: { flashSale: { endsAt: 'asc' } },
+    })
+  }
+
+  async findBuyerCoinBalance(userId: string): Promise<number> {
+    const wallet = await this.prisma.buyerCoinWallet.findUnique({ where: { userId }, select: { balance: true } })
+    return Number(wallet?.balance ?? 0)
+  }
+
+  async lockBuyerCoinWallet(userId: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "BuyerCoinWallet" WHERE "userId" = ${userId}::uuid FOR UPDATE`
+  }
+
   async createPendingOrder(input: CreatePendingOrderInput): Promise<CreatedCheckoutOrder> {
     this.logger.info('PrismaCheckoutRepository.createPendingOrder', { cartId: input.cartId, userId: input.userId })
 
@@ -229,6 +267,43 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
           expiresAt: input.checkoutExpiresAt,
         },
       })
+
+      if (item.flashSaleItemId) {
+        await this.prisma.$queryRaw`SELECT "id" FROM "FlashSaleItem" WHERE "id" = ${item.flashSaleItemId}::uuid FOR UPDATE`
+        const reservationCutoff = new Date()
+        const flashSaleItem = await this.prisma.flashSaleItem.findUnique({
+          where: { id: item.flashSaleItemId },
+          select: { stockLimit: true, soldCount: true, perUserLimit: true },
+        })
+        if (!flashSaleItem) throw new CheckoutServiceError('Flash sale item not found', 409, 'CHECKOUT_FAILED')
+        const [reserved, buyerReserved] = await Promise.all([
+          this.prisma.flashSaleReservation.aggregate({
+            where: { flashSaleItemId: item.flashSaleItemId, status: 'ACTIVE', expiresAt: { gt: reservationCutoff } },
+            _sum: { quantity: true },
+          }),
+          flashSaleItem.perUserLimit === null
+            ? Promise.resolve({ _sum: { quantity: 0 } })
+            : this.prisma.flashSaleReservation.aggregate({
+              where: {
+                flashSaleItemId: item.flashSaleItemId,
+                userId: input.userId,
+                OR: [
+                  { status: 'COMMITTED' },
+                  { status: 'ACTIVE', expiresAt: { gt: reservationCutoff } },
+                ],
+              },
+              _sum: { quantity: true },
+            }),
+        ])
+        const available = flashSaleItem.stockLimit - flashSaleItem.soldCount - Number(reserved._sum.quantity ?? 0)
+        const buyerQuantity = Number(buyerReserved._sum.quantity ?? 0) + item.quantity
+        if (available < item.quantity || (flashSaleItem.perUserLimit !== null && buyerQuantity > flashSaleItem.perUserLimit)) {
+          throw new CheckoutServiceError('Flash sale quota is no longer available', 409, 'CHECKOUT_FAILED', { variantId: item.variantId })
+        }
+        await this.prisma.flashSaleReservation.create({
+          data: { checkoutId: checkout.id, flashSaleItemId: item.flashSaleItemId, userId: input.userId, quantity: item.quantity, expiresAt: input.checkoutExpiresAt },
+        })
+      }
     }
 
     const locale = resolveContentLocale(input.locale)
@@ -237,20 +312,27 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
       const shop = item.variant.product.shop
       const current = shopOrderGroups.get(shop.id) ?? {
         subtotal: 0,
-        shippingTotal: Math.max(0, Number(shop.settings?.shippingFee ?? 0)),
+        shippingTotal: input.freeShippingShopIds.includes(shop.id) ? 0 : Math.max(0, Number(shop.settings?.shippingFee ?? 0)),
       }
-      current.subtotal += Number(item.variant.price) * item.quantity
+      current.subtotal += item.unitPrice * item.quantity
       shopOrderGroups.set(shop.id, current)
     }
 
-    let remainingDiscount = input.totals.discountTotal
-    const shopOrderCreates = [...shopOrderGroups.entries()].map(([shopId, group], index, groups) => {
-      const isLast = index === groups.length - 1
-      const proportionalDiscount = input.totals.subtotal > 0
-        ? Math.floor(input.totals.discountTotal * group.subtotal / input.totals.subtotal)
+    let remainingPlatformDiscount = input.coinDiscount + (input.couponShopId ? 0 : input.couponDiscount)
+    let remainingPlatformDiscountCapacity = [...shopOrderGroups.entries()].reduce(
+      (total, [shopId, group]) => total + Math.max(0, group.subtotal - (input.couponShopId === shopId ? input.couponDiscount : 0)),
+      0,
+    )
+    const shopOrderCreates = [...shopOrderGroups.entries()].map(([shopId, group]) => {
+      const shopCouponDiscount = input.couponShopId === shopId ? Math.min(group.subtotal, input.couponDiscount) : 0
+      const availableForPlatformDiscount = group.subtotal - shopCouponDiscount
+      const proportionalPlatformDiscount = remainingPlatformDiscountCapacity > 0
+        ? Math.floor(remainingPlatformDiscount * availableForPlatformDiscount / remainingPlatformDiscountCapacity)
         : 0
-      const discountTotal = Math.min(group.subtotal, isLast ? remainingDiscount : proportionalDiscount)
-      remainingDiscount -= discountTotal
+      const platformDiscount = Math.min(availableForPlatformDiscount, proportionalPlatformDiscount)
+      remainingPlatformDiscount -= platformDiscount
+      remainingPlatformDiscountCapacity -= availableForPlatformDiscount
+      const discountTotal = platformDiscount + shopCouponDiscount
       return {
         shopId,
         status: 'PENDING_PAYMENT' as const,
@@ -288,7 +370,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         shopOrders: { create: shopOrderCreates },
         items: {
           create: input.items.map((item) => {
-            const unitPrice = BigInt(item.variant.price)
+            const unitPrice = BigInt(item.unitPrice)
 
             return {
               shopId: item.variant.product.shop.id,
@@ -322,6 +404,20 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
       where: { checkoutId: checkout.id, status: 'ACTIVE' },
       data: { orderId: order.id },
     })
+
+    if (input.coinsToUse && input.coinsToUse > 0) {
+      const wallet = await this.prisma.buyerCoinWallet.findUnique({ where: { userId: input.userId }, select: { id: true, balance: true } })
+      if (!wallet || Number(wallet.balance) < input.coinsToUse) {
+        throw new CheckoutServiceError('Insufficient coin balance', 409, 'CHECKOUT_FAILED')
+      }
+      await this.prisma.buyerCoinWallet.update({
+        where: { id: wallet.id },
+        data: { balance: { decrement: input.coinsToUse }, pendingBalance: { increment: input.coinsToUse } },
+      })
+      await this.prisma.buyerCoinLedger.create({
+        data: { walletId: wallet.id, userId: input.userId, orderId: order.id, type: 'SPENT', status: 'PENDING', amount: input.coinsToUse, reason: 'Checkout coin redemption', referenceType: 'ORDER_COIN_REDEMPTION', referenceId: order.id },
+      })
+    }
 
     if (input.coupon) {
       await this.prisma.couponRedemption.create({

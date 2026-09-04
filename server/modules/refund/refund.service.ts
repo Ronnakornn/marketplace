@@ -55,7 +55,11 @@ export class RefundService {
     if (!refund) throw new RefundServiceError('Refund not found', 404, 'REFUND_NOT_FOUND')
     const nextStatus = this.normalizeStatus(status)
     this.assertTransition(refund.status, nextStatus)
-    const response = this.toResponse(await this.repo.updateRefundStatus(refund.id, nextStatus))
+    const updated = nextStatus === 'SUCCESS'
+      ? await this.repo.completeRefundSuccess(refund.id, refund.status)
+      : await this.repo.updateRefundStatus(refund.id, nextStatus)
+    if (!updated) throw new RefundServiceError('Refund status changed concurrently', 409, 'INVALID_REFUND_STATE')
+    const response = this.toResponse(updated)
     await this.auditLogService?.createAuditLogBestEffort({
       actorUserId: actor.id,
       actorRole: actor.role,

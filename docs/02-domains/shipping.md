@@ -9,6 +9,7 @@ The Shipping domain owns shipment creation, seller shipment processing, tracking
 - Shipment split by shop
 - Seller pick/pack/ship workflow
 - Tracking numbers
+- Seller-defined manual shipping fee in Thai baht
 - Shipping provider events
 - Buyer tracking timeline
 
@@ -20,6 +21,7 @@ The Shipping domain owns shipment creation, seller shipment processing, tracking
 - Each seller can only process shipments for their shop.
 - Shipment item quantities support partial shipment.
 - Buyer tracking shows order-level status and per-shop shipment status.
+- Manual shipping is charged once per selected shop at checkout; its amount is trusted and calculated by the backend.
 
 ## Statuses
 

@@ -25,6 +25,8 @@ function createAppContext(): AppContext {
 
 function createRepoMock(): IPromotionRepository {
   return {
+    findBuyerCoinWallet: vi.fn(),
+    listBuyerCoinLedger: vi.fn(),
     findCouponByCode: vi.fn(),
     countCouponRedemptionsForUser: vi.fn(),
     findCartForCouponValidation: vi.fn(),
@@ -39,6 +41,19 @@ function createRepoMock(): IPromotionRepository {
     createCoupon: vi.fn(),
     updateCoupon: vi.fn(),
     deleteCoupon: vi.fn(),
+    listAdminFlashSales: vi.fn(),
+    listSellerFlashSales: vi.fn(),
+    findFlashSaleById: vi.fn(),
+    createFlashSale: vi.fn(),
+    updateFlashSale: vi.fn(),
+    updateFlashSaleSafely: vi.fn(),
+    findActiveProductVariant: vi.fn(),
+    createFlashSaleItem: vi.fn(),
+    findFlashSaleItemById: vi.fn(),
+    findOverlappingFlashSaleItem: vi.fn().mockResolvedValue(null),
+    sumActiveFlashSaleReservations: vi.fn(),
+    updateFlashSaleItem: vi.fn(),
+    deleteFlashSaleItem: vi.fn(),
   }
 }
 
@@ -87,6 +102,7 @@ async function validate(subtotal = 2_000) {
     userId: 'user-1',
     couponCode: ' save ',
     subtotal,
+    shopSubtotals: [{ shopId: 'shop-1', subtotal }],
   })
 }
 
@@ -181,6 +197,41 @@ describe('PromotionService', () => {
     await expect(validate(2_000)).resolves.toMatchObject({ discountCents: 300 })
   })
 
+  it('marks a free-shipping coupon without discounting product subtotal', async () => {
+    vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({
+      discountType: 'FREE_SHIPPING',
+      discountValueCents: null,
+    }))
+
+    await expect(validate(2_000)).resolves.toMatchObject({ discountCents: 0, freeShipping: true })
+  })
+
+  it('scopes a seller coupon to its own shop subtotal', async () => {
+    vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({
+      shopId: 'shop-1',
+      discountValueCents: 1_500,
+    }))
+
+    await expect(service.validateCouponForsubtotal(repo, {
+      userId: 'user-1',
+      couponCode: 'SAVE',
+      subtotal: 3_000,
+      shopSubtotals: [
+        { shopId: 'shop-1', subtotal: 1_000 },
+        { shopId: 'shop-2', subtotal: 2_000 },
+      ],
+    })).resolves.toMatchObject({
+      discountCents: 1_000,
+      couponShopId: 'shop-1',
+    })
+  })
+
+  it('rejects a seller coupon when the selected cart has no items from its shop', async () => {
+    vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({ shopId: 'shop-2' }))
+
+    await expect(validate()).rejects.toMatchObject({ code: 'COUPON_SHOP_MISMATCH' })
+  })
+
   it('respects max discount for percent coupons', async () => {
     vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({
       discountType: 'PERCENT',
@@ -266,5 +317,147 @@ describe('PromotionService', () => {
     await expect(service.updateSellerCoupon({ id: 'seller-1', role: 'USER' }, 'coupon-1', {
       isActive: false,
     })).rejects.toMatchObject({ code: 'COUPON_NOT_FOUND' })
+  })
+
+  it('rejects a flash-sale item update at or above the active variant price', async () => {
+    ;(repo as any).findFlashSaleItemById = vi.fn().mockResolvedValue({
+      id: 'flash-item-1',
+      shopId: 'shop-1',
+      salePrice: 900,
+      stockLimit: 10,
+      soldCount: 2,
+      perUserLimit: 2,
+      variant: { price: 1_200 },
+      flashSale: { id: 'flash-1', shopId: null, status: 'SCHEDULED', startsAt: new Date('2999-01-01T00:00:00.000Z'), endsAt: new Date('2999-01-02T00:00:00.000Z') },
+    })
+    ;(repo as any).sumActiveFlashSaleReservations = vi.fn().mockResolvedValue(1)
+
+    await expect(service.updateFlashSaleItem(
+      { id: 'admin-1', role: 'ADMIN' },
+      'flash-item-1',
+      { salePriceBaht: 12 },
+    )).rejects.toMatchObject({ code: 'FLASH_SALE_PRICE_INVALID' })
+    expect(repo.updateFlashSaleItem).not.toHaveBeenCalled()
+  })
+
+  it('lets a seller enroll an owned active variant in a scheduled platform flash sale', async () => {
+    vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', ownerId: 'seller-1' }])
+    vi.mocked(repo.findFlashSaleById).mockResolvedValue({
+      id: 'flash-1',
+      shopId: null,
+      title: 'Platform sale',
+      description: null,
+      status: 'SCHEDULED',
+      startsAt: new Date('2999-01-01T00:00:00.000Z'),
+      endsAt: new Date('2999-01-02T00:00:00.000Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      items: [],
+    } as any)
+    vi.mocked(repo.findActiveProductVariant).mockResolvedValue({
+      id: 'variant-1',
+      price: 1_200,
+      product: { id: 'product-1', shopId: 'shop-1' },
+    } as any)
+    vi.mocked(repo.createFlashSaleItem).mockResolvedValue({ id: 'flash-item-1' } as any)
+
+    await expect(Promise.resolve().then(() => (service as any).addSellerFlashSaleItem(
+      { id: 'seller-1', role: 'USER' },
+      'flash-1',
+      { productId: 'product-1', variantId: 'variant-1', salePriceBaht: 9, stockLimit: 10, perUserLimit: 2 },
+    ))).resolves.toMatchObject({ id: 'flash-item-1' })
+    expect(repo.createFlashSaleItem).toHaveBeenCalledWith('flash-1', expect.objectContaining({
+      shopId: 'shop-1',
+      originalPrice: 1_200,
+    }))
+  })
+
+  it('prevents a seller from enrolling in another shop scoped flash sale', async () => {
+    vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', ownerId: 'seller-1' }])
+    vi.mocked(repo.findFlashSaleById).mockResolvedValue({
+      id: 'flash-1', shopId: 'shop-2', title: 'Private sale', description: null, status: 'SCHEDULED',
+      startsAt: new Date('2999-01-01T00:00:00.000Z'), endsAt: new Date('2999-01-02T00:00:00.000Z'),
+      createdAt: new Date(), updatedAt: new Date(), items: [],
+    } as any)
+
+    await expect(service.addSellerFlashSaleItem(
+      { id: 'seller-1', role: 'USER' },
+      'flash-1',
+      { productId: 'product-1', variantId: 'variant-1', salePriceBaht: 9, stockLimit: 10, perUserLimit: 2 },
+    )).rejects.toMatchObject({ code: 'FLASH_SALE_NOT_AVAILABLE' })
+    expect(repo.createFlashSaleItem).not.toHaveBeenCalled()
+  })
+
+  it('rejects enrollment when the atomic repository overlap check loses a race', async () => {
+    vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', ownerId: 'seller-1' }] as any)
+    vi.mocked(repo.findFlashSaleById).mockResolvedValue({
+      id: 'flash-1', shopId: null, title: 'Sale', description: null, status: 'SCHEDULED',
+      startsAt: new Date(Date.now() + 60_000), endsAt: new Date(Date.now() + 120_000), items: [],
+    } as any)
+    vi.mocked(repo.findActiveProductVariant).mockResolvedValue({ id: 'variant-1', price: 1000, product: { id: 'product-1', shopId: 'shop-1' } } as any)
+    vi.mocked(repo.createFlashSaleItem).mockResolvedValue(null)
+
+    await expect(service.addSellerFlashSaleItem(
+      { id: 'seller-1', role: 'USER' }, 'flash-1',
+      { productId: 'product-1', variantId: 'variant-1', salePriceBaht: 5, stockLimit: 1 },
+    )).rejects.toMatchObject({ code: 'FLASH_SALE_OVERLAP' })
+  })
+
+  it('rejects a campaign schedule update when the atomic repository check finds overlap', async () => {
+    vi.mocked(repo.findFlashSaleById).mockResolvedValue({
+      id: 'flash-1', shopId: null, title: 'Sale', description: null, status: 'DRAFT',
+      startsAt: new Date('2999-01-01T00:00:00.000Z'), endsAt: new Date('2999-01-02T00:00:00.000Z'),
+      items: [{ variantId: 'variant-1' }],
+    } as any)
+    vi.mocked(repo.updateFlashSaleSafely).mockResolvedValue(null)
+
+    await expect(service.updateFlashSale(
+      { id: 'admin-1', role: 'ADMIN' }, 'flash-1', { status: 'SCHEDULED' },
+    )).rejects.toMatchObject({ code: 'FLASH_SALE_OVERLAP' })
+  })
+
+  it('prevents deleting live or reserved flash sale items', async () => {
+    vi.mocked(repo.findFlashSaleItemById).mockResolvedValue({
+      id: 'flash-item-1', shopId: 'shop-1', salePrice: 900, stockLimit: 10, soldCount: 0,
+      perUserLimit: 2, variant: { price: 1_200 },
+      flashSale: { id: 'flash-1', shopId: null, status: 'ACTIVE', startsAt: new Date('2000-01-01T00:00:00.000Z'), endsAt: new Date('2999-01-02T00:00:00.000Z') },
+    } as any)
+
+    await expect(service.deleteFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, 'flash-item-1'))
+      .rejects.toMatchObject({ code: 'FLASH_SALE_ITEM_LOCKED' })
+    expect(repo.deleteFlashSaleItem).not.toHaveBeenCalled()
+  })
+
+  it('returns the buyer coin wallet and recent ledger history', async () => {
+    ;(repo as any).findBuyerCoinWallet = vi.fn().mockResolvedValue({
+      balance: 25,
+      pendingBalance: 3,
+      debtBalance: 0,
+      lifetimeEarned: 40,
+      lifetimeSpent: 15,
+    })
+    ;(repo as any).listBuyerCoinLedger = vi.fn().mockResolvedValue([{
+      id: 'coin-entry-1',
+      type: 'EARNED',
+      status: 'AVAILABLE',
+      amount: 10,
+      reason: '1% order cashback',
+      orderId: 'order-1',
+      createdAt: new Date('2026-05-13T00:00:00.000Z'),
+    }])
+
+    await expect(Promise.resolve().then(() => (service as any).getBuyerCoins(
+      { id: 'user-1', role: 'USER' },
+      20,
+    ))).resolves.toEqual({
+      balance: 25,
+      pendingBalance: 3,
+      debtBalance: 0,
+      lifetimeEarned: 40,
+      lifetimeSpent: 15,
+      entries: [expect.objectContaining({ id: 'coin-entry-1', amount: 10 })],
+      nextCursor: null,
+    })
+    expect(repo.listBuyerCoinLedger).toHaveBeenCalledWith('user-1', 21, undefined)
   })
 })

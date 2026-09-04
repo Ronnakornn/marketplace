@@ -13,6 +13,7 @@ import type {
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { AuditLogService } from '#server/modules/audit-log'
+import type { IRefundRepository } from '#server/modules/refund/refund.repository.ts'
 import { isAPIError } from 'better-auth/api'
 import { auth } from '#server/lib/auth.ts'
 import { AdminServiceError } from './admin.errors.ts'
@@ -172,6 +173,7 @@ export class AdminService {
     appContext: AppContext,
     private repository: IAdminRepository,
     private auditLogService?: AuditLogService,
+    private refundRepository?: IRefundRepository,
   ) {
     this.logger = appContext.logger
   }
@@ -596,11 +598,21 @@ export class AdminService {
       throw new AdminServiceError('Refund must be completed by a different administrator', 409, 'INVALID_STATUS_TRANSITION')
     }
     this.logger.info('AdminService.updateRefundStatus', { actorId: actor.id, refundId, status })
-    const updated = await this.repository.updateRefundStatus(refundId, existing.status, {
-      status,
-      ...(status === 'PROCESSING' ? { processingById: actor.id, processingAt: new Date() } : {}),
-      ...(status === 'SUCCESS' ? { completedById: actor.id, completedAt: new Date(), externalReference } : {}),
-    })
+    let updated: AdminRefundRecord | null
+    if (status === 'SUCCESS') {
+      if (!this.refundRepository) throw new AdminServiceError('Refund completion is unavailable', 503, 'REFUND_COMPLETION_UNAVAILABLE')
+      const completed = await this.refundRepository.completeRefundSuccess(refundId, existing.status, {
+        completedById: actor.id,
+        completedAt: new Date(),
+        externalReference,
+      })
+      updated = completed ? await this.repository.findRefundById(refundId) : null
+    } else {
+      updated = await this.repository.updateRefundStatus(refundId, existing.status, {
+        status,
+        ...(status === 'PROCESSING' ? { processingById: actor.id, processingAt: new Date() } : {}),
+      })
+    }
     if (!updated) throw new AdminServiceError('Refund status changed concurrently', 409, 'INVALID_STATUS_TRANSITION')
     await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', refundId, existing, updated, {
       externalReference: status === 'SUCCESS' ? externalReference : undefined,

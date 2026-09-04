@@ -17,6 +17,7 @@ import { Textarea } from "#/components/ui/textarea";
 import { SellerPageHeader } from "./SellerShell";
 import {
   type SellerCoupon,
+  type SellerFlashSale,
   type SellerPayout,
   type SellerReturn,
   type SellerShipment,
@@ -25,13 +26,17 @@ import {
   useCreateSellerCoupon,
   useCreateSellerPayout,
   useDeleteSellerCoupon,
+  useDeleteSellerFlashSaleItem,
+  useEnrollSellerFlashSaleItem,
   usePackShipment,
   useRejectReturn,
   useSellerCoupons,
+  useSellerFlashSales,
   useSellerDashboard,
   useSellerDashboardReviews,
   useSellerInventory,
   useSellerPayouts,
+  useSellerProducts,
   useSellerReturns,
   useSellerShopList,
   useSellerShopProfile,
@@ -47,6 +52,7 @@ import {
   useRemoveSellerShopStaff,
   useUpdateSellerShopStaff,
   useUpdateSellerCoupon,
+  useUpdateSellerFlashSaleItem,
   useUpdateSellerInventory,
 } from "../hooks/useSellerManage";
 
@@ -302,11 +308,6 @@ export function SellerDashboardPage() {
   const selectedShopId = searchParams.get("shopId") || undefined;
   const dashboardQuery = useSellerDashboard(selectedShopId);
   const reviewsQuery = useSellerDashboardReviews({ shopId: selectedShopId, limit: 5 });
-  const shopListQuery = useSellerShopList();
-  const resolvedShopId = selectedShopId ?? shopListQuery.data?.activeShopId ?? shopListQuery.data?.shops[0]?.id;
-  const profileQuery = useSellerShopProfile(resolvedShopId);
-  const settingsQuery = useSellerShopSettings(resolvedShopId);
-  const updateShopSettings = useUpdateSellerShopSettings();
   const dashboard = dashboardQuery.data;
 
   if (dashboardQuery.error) return <ErrorState error={dashboardQuery.error} retry={() => void dashboardQuery.refetch()} />;
@@ -326,27 +327,6 @@ export function SellerDashboardPage() {
     return status;
   }
 
-  function retryShopSurface() {
-    void profileQuery.refetch();
-    void settingsQuery.refetch();
-  }
-
-  function toggleShopSetting(setting: "vacationMode" | "chatEnabled") {
-    if (!resolvedShopId || !settingsQuery.data) return;
-    const nextValue = !settingsQuery.data[setting];
-    updateShopSettings.mutate({
-      shopId: resolvedShopId,
-      [setting]: nextValue,
-    }, {
-      onSuccess: () => {
-        toast.success(t("seller.manage.shopSettingsSaved"));
-      },
-      onError: () => {
-        toast.error(t("seller.manage.shopSettingsFailed"));
-      },
-    });
-  }
-
   return (
     <>
       <SellerPageHeader title={t("seller.manage.dashboardTitle")} description={t("seller.manage.dashboardDescription")} />
@@ -363,7 +343,7 @@ export function SellerDashboardPage() {
           </Card>
         ))}
       </section>
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section>
         <Card className="rounded-lg border-slate-200 bg-white">
           <CardHeader><CardTitle>{t("seller.manage.lowStockTitle")}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -445,65 +425,6 @@ export function SellerDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-lg border-slate-200 bg-white">
-          <CardHeader>
-            <CardTitle>{t("seller.manage.profileAndStaffTitle")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!resolvedShopId ? <EmptyState message={t("seller.manage.noShopContext")} /> : null}
-            {resolvedShopId && (profileQuery.isLoading || settingsQuery.isLoading) ? (
-              <EmptyState message={t("seller.manage.loadingShopProfile")} />
-            ) : null}
-            {resolvedShopId && (profileQuery.error || settingsQuery.error) ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                <p className="text-sm text-red-700">{t("seller.manage.shopProfileLoadError")}</p>
-                <Button type="button" size="sm" variant="outline" className="mt-2" onClick={retryShopSurface}>
-                  {t("seller.manage.retry")}
-                </Button>
-              </div>
-            ) : null}
-            {resolvedShopId && profileQuery.data && settingsQuery.data ? (
-              <>
-                <div className="rounded-lg border border-slate-200 px-3 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("seller.manage.shopProfileLabel")}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-950">{profileQuery.data.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">{profileQuery.data.slug} · {profileQuery.data.contactEmail}</p>
-                  <p className="mt-1 text-xs text-slate-500">{profileQuery.data.contactPhone}</p>
-                </div>
-
-                <div className="rounded-lg border border-slate-200 px-3 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("seller.manage.shopSettingsLabel")}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={updateShopSettings.isPending}
-                      onClick={() => toggleShopSetting("vacationMode")}
-                    >
-                      {settingsQuery.data.vacationMode ? t("seller.manage.disableVacation") : t("seller.manage.enableVacation")}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={updateShopSettings.isPending}
-                      onClick={() => toggleShopSetting("chatEnabled")}
-                    >
-                      {settingsQuery.data.chatEnabled ? t("seller.manage.disableChat") : t("seller.manage.enableChat")}
-                    </Button>
-                  </div>
-                  <ShippingFeeForm shopId={resolvedShopId} shippingFeeBaht={settingsQuery.data.shippingFeeBaht} />
-                </div>
-                <ShopProfileForm key={`profile-${resolvedShopId}`} shopId={resolvedShopId} profile={profileQuery.data} />
-
-                <LocalizedShopContentForm key={resolvedShopId} shopId={resolvedShopId} profile={profileQuery.data} settings={settingsQuery.data} />
-
-                <ShopStaffPanel shopId={resolvedShopId} />
-              </>
-            ) : null}
-          </CardContent>
-        </Card>
       </section>
     </>
   );
@@ -786,11 +707,70 @@ export function SellerPromotionsPage() {
   return (
     <>
       <SellerPageHeader title={t("seller.manage.pages.promotions.title")} description={t("seller.manage.pages.promotions.description")} />
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6"><form className="grid gap-3 md:grid-cols-[1fr_160px_160px_160px_auto]" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); createCoupon.mutate({ code: String(data.get("code") ?? ""), titleEn: String(data.get("title") ?? ""), discountType: String(data.get("discountType")) as "fixed" | "percent", discountValueCents: Math.round(Number(data.get("amount") || 0) * 100), discountPercentBps: Math.round(Number(data.get("percent") || 0) * 100), isActive: true }); }}><Input name="code" placeholder={t("seller.manage.pages.promotions.code")} required /><Input name="title" placeholder={t("seller.manage.pages.promotions.titleField")} /><Select name="discountType" defaultValue="fixed"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="fixed">{t("seller.manage.pages.promotions.fixed")}</SelectItem><SelectItem value="percent">{t("seller.manage.pages.promotions.percent")}</SelectItem></SelectContent></Select><Input name="amount" placeholder={t("seller.manage.pages.promotions.amount")} /><Button type="submit" disabled={createCoupon.isPending}>{t("seller.manage.pages.promotions.create")}</Button></form></CardContent></Card>
+      <SellerFlashSalePanel />
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6"><form className="grid gap-3 md:grid-cols-[1fr_160px_160px_160px_auto]" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); createCoupon.mutate({ code: String(data.get("code") ?? ""), titleEn: String(data.get("title") ?? ""), discountType: String(data.get("discountType")) as "fixed" | "percent" | "free_shipping", discountValueCents: Math.round(Number(data.get("amount") || 0) * 100), discountPercentBps: Math.round(Number(data.get("percent") || 0) * 100), isActive: true }); }}><Input name="code" placeholder={t("seller.manage.pages.promotions.code")} required /><Input name="title" placeholder={t("seller.manage.pages.promotions.titleField")} /><Select name="discountType" defaultValue="fixed"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="fixed">{t("seller.manage.pages.promotions.fixed")}</SelectItem><SelectItem value="percent">{t("seller.manage.pages.promotions.percent")}</SelectItem><SelectItem value="free_shipping">{t("home.freeShipping")}</SelectItem></SelectContent></Select><Input name="amount" placeholder={t("seller.manage.pages.promotions.amount")} /><Button type="submit" disabled={createCoupon.isPending}>{t("seller.manage.pages.promotions.create")}</Button></form></CardContent></Card>
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
       <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-0"><DataTable columns={columns} data={filteredRows} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.promotions.loading")} emptyMessage={t("seller.manage.pages.promotions.empty")} pageSize={10} className="overflow-x-auto" labels={sellerTableLabels(t)} renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("seller.manage.pages.promotions.search")} aria-label={t("seller.manage.pages.promotions.search")} className="sm:max-w-sm" /><Select value={activeFilter} onValueChange={setActiveFilter}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.promotions.filterStatus")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.promotions.allStatuses")}</SelectItem><SelectItem value="active">{t("seller.manage.status.active")}</SelectItem><SelectItem value="inactive">{t("seller.manage.status.inactive")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
     </>
   );
+}
+
+function SellerFlashSalePanel() {
+  const t = useTranslations();
+  const formatters = useFormatters();
+  const campaigns = useSellerFlashSales();
+  const products = useSellerProducts({ status: "ACTIVE", limit: 100 });
+  const enroll = useEnrollSellerFlashSaleItem();
+  const update = useUpdateSellerFlashSaleItem();
+  const remove = useDeleteSellerFlashSaleItem();
+  const productOptions = (products.data?.data ?? []).flatMap((product) => product.variants
+    .filter((variant) => variant.status === "ACTIVE")
+    .map((variant) => ({ productId: product.id, variantId: variant.id, label: `${product.title} · ${variant.title} (${variant.sku})` })));
+
+  return <Card className="rounded-lg border-slate-200 bg-white">
+    <CardHeader><CardTitle>{t("seller.manage.pages.promotions.flashSalesTitle")}</CardTitle></CardHeader>
+    <CardContent className="space-y-4">
+      {campaigns.error ? <ErrorState error={campaigns.error} retry={() => void campaigns.refetch()} /> : null}
+      {campaigns.isLoading ? <EmptyState message={t("seller.manage.pages.promotions.flashSalesLoading")} /> : null}
+      {!campaigns.isLoading && !campaigns.data?.length ? <EmptyState message={t("seller.manage.pages.promotions.flashSalesEmpty")} /> : null}
+      {campaigns.data?.map((campaign: SellerFlashSale) => <section key={campaign.id} className="space-y-3 rounded-lg border border-slate-200 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div><p className="font-semibold text-slate-950">{campaign.title}</p><p className="text-xs text-slate-500">{formatters.date(campaign.startsAt)} – {formatters.date(campaign.endsAt)}</p></div>
+          <StatusPill value={campaign.status} />
+        </div>
+        {campaign.status === "SCHEDULED" ? <form className="grid gap-2 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_auto]" onSubmit={(event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const values = new FormData(form);
+          const [productId, variantId] = String(values.get("variant") ?? "").split(":");
+          if (!productId || !variantId) return;
+          enroll.mutate({ flashSaleId: campaign.id, productId, variantId, salePriceBaht: Number(values.get("salePriceBaht")), stockLimit: Number(values.get("stockLimit")), perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : null }, { onSuccess: () => form.reset() });
+        }}>
+          <Select name="variant" required><SelectTrigger><SelectValue placeholder={t("seller.manage.pages.promotions.selectProduct")} /></SelectTrigger><SelectContent>{productOptions.map((option) => <SelectItem key={option.variantId} value={`${option.productId}:${option.variantId}`}>{option.label}</SelectItem>)}</SelectContent></Select>
+          <Input name="salePriceBaht" required type="number" min="0.01" step="0.01" placeholder={t("seller.manage.pages.promotions.salePriceBaht")} />
+          <Input name="stockLimit" required type="number" min="1" placeholder={t("seller.manage.pages.promotions.stockLimit")} />
+          <Input name="perUserLimit" type="number" min="1" placeholder={t("seller.manage.pages.promotions.perUserLimit")} />
+          <Button type="submit" disabled={enroll.isPending}>{t("seller.manage.pages.promotions.enroll")}</Button>
+        </form> : null}
+        <div className="space-y-2">{campaign.items.map((item) => <form key={item.id} className="grid gap-2 rounded-md bg-slate-50 p-3 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_auto]" onSubmit={(event) => {
+          event.preventDefault();
+          const values = new FormData(event.currentTarget);
+          update.mutate({ itemId: item.id, salePriceBaht: values.get("salePriceBaht") ? Number(values.get("salePriceBaht")) : undefined, stockLimit: values.get("stockLimit") ? Number(values.get("stockLimit")) : undefined, perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : undefined });
+        }}>
+          <div><p className="text-sm font-medium">{item.productId}</p><p className="text-xs text-slate-500">{item.variantId} · {formatMoney(item.salePrice)}</p></div>
+          <Input name="salePriceBaht" disabled={!canManageSellerFlashSale(campaign)} type="number" min="0.01" step="0.01" placeholder={t("seller.manage.pages.promotions.salePriceBaht")} />
+          <Input name="stockLimit" disabled={!canManageSellerFlashSale(campaign)} type="number" min={item.soldCount} placeholder={`${t("seller.manage.pages.promotions.stockLimit")}: ${item.stockLimit}`} />
+          <Input name="perUserLimit" disabled={!canManageSellerFlashSale(campaign)} type="number" min="1" placeholder={`${t("seller.manage.pages.promotions.perUserLimit")}: ${item.perUserLimit ?? "—"}`} />
+          <div className="flex gap-2"><Button type="submit" size="sm" variant="outline" disabled={!canManageSellerFlashSale(campaign) || update.isPending}>{t("common.save")}</Button><Button type="button" size="sm" variant="destructive" disabled={!canManageSellerFlashSale(campaign) || remove.isPending} onClick={() => remove.mutate(item.id)}>{t("seller.manage.pages.promotions.delete")}</Button></div>
+        </form>)}</div>
+      </section>)}
+      {enroll.isError || update.isError || remove.isError ? <p className="text-sm text-red-700">{t("seller.manage.pages.promotions.flashSaleSaveFailed")}</p> : null}
+    </CardContent>
+  </Card>;
+}
+
+function canManageSellerFlashSale(campaign: { status: string }) {
+  return campaign.status === "SCHEDULED";
 }
 
 export function SellerFinancePage() {

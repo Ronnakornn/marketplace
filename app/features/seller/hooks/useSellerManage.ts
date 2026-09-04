@@ -33,6 +33,8 @@ export type SellerUpload = SellerCompletedUpload;
 export type SellerShipment = Treaty.Data<ReturnType<typeof api.api.seller.shipments.get>> extends Array<infer T> ? T : never;
 export type SellerReturn = Treaty.Data<ReturnType<typeof api.api.seller.returns.get>> extends Array<infer T> ? T : never;
 export type SellerCoupon = Treaty.Data<ReturnType<typeof api.api.seller.coupons.get>> extends Array<infer T> ? T : never;
+export type SellerFlashSales = Treaty.Data<ReturnType<(typeof api.api.seller)["flash-sales"]["get"]>>;
+export type SellerFlashSale = SellerFlashSales extends Array<infer T> ? T : never;
 export type SellerWallet = Treaty.Data<ReturnType<typeof api.api.seller.wallet.get>>;
 export type SellerTransactions = Treaty.Data<ReturnType<typeof api.api.seller.wallet.transactions.get>>;
 export type SellerPayout = Treaty.Data<ReturnType<typeof api.api.seller.payouts.get>> extends Array<infer T> ? T : never;
@@ -165,7 +167,7 @@ export interface SellerCouponInput {
   titleEn?: string | null;
   descriptionTh?: string | null;
   descriptionEn?: string | null;
-  discountType: "fixed" | "percent";
+  discountType: "fixed" | "percent" | "free_shipping";
   discountValueCents?: number | null;
   discountPercentBps?: number | null;
   minOrderCents?: number | null;
@@ -884,6 +886,53 @@ export function useDeleteSellerCoupon() {
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
+  });
+}
+
+export function useSellerFlashSales() {
+  return useQuery({
+    queryKey: ["seller", "flash-sales"],
+    queryFn: async () => {
+      const { data, error } = await api.api.seller["flash-sales"].get();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useEnrollSellerFlashSaleItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ flashSaleId, ...body }: { flashSaleId: string; productId: string; variantId: string; salePriceBaht: number; stockLimit: number; perUserLimit: number | null }) => {
+      const { data, error } = await api.api.seller["flash-sales"]({ flashSaleId }).items.post(body);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller", "flash-sales"] }),
+  });
+}
+
+export function useUpdateSellerFlashSaleItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ itemId, ...body }: { itemId: string; salePriceBaht?: number; stockLimit?: number; perUserLimit?: number | null }) => {
+      const { data, error } = await api.api.seller["flash-sale-items"]({ itemId }).patch(body);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller", "flash-sales"] }),
+  });
+}
+
+export function useDeleteSellerFlashSaleItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (itemId: string) => {
+      const { data, error } = await api.api.seller["flash-sale-items"]({ itemId }).delete();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller", "flash-sales"] }),
   });
 }
 

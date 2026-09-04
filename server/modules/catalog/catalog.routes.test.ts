@@ -20,6 +20,9 @@ vi.mock('#server/lib/prisma.ts', () => ({
     shop: {
       count: vi.fn(),
     },
+    shopStaff: {
+      count: vi.fn(),
+    },
     sellerApplication: {
       findFirst: vi.fn(),
     },
@@ -137,6 +140,7 @@ describe('catalog admin category routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(prisma.shop.count).mockResolvedValue(1)
+    vi.mocked(prisma.shopStaff.count).mockResolvedValue(0)
     vi.mocked(prisma.sellerApplication.findFirst).mockResolvedValue({ status: 'APPROVED' } as any)
   })
 

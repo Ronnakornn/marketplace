@@ -1,5 +1,6 @@
 import type {
   Checkout,
+  FlashSaleReservation,
   InventoryReservation,
   Order,
   OrderItem,
@@ -22,6 +23,7 @@ import type {
   ShipmentWithItems,
 } from '#server/modules/shipment/shipment.repository.ts'
 import type { PaymentWebhookBody } from './payment.types.ts'
+import { releasePendingBuyerCoins } from '#server/modules/promotion/buyer-coin.transitions.ts'
 
 type PaymentTx = Omit<
   PrismaClient,
@@ -32,8 +34,10 @@ export type PaymentWithOrder = Payment & {
   order: Order & {
     checkout: Checkout & {
       inventoryReservations: InventoryReservation[]
+      flashSaleReservations: FlashSaleReservation[]
     }
     items: OrderItem[]
+    buyerCoinLedgerEntries: Array<{ id: string; walletId: string; amount: bigint | number; status: string; type: string }>
   }
 }
 
@@ -74,8 +78,10 @@ const paymentInclude = {
       checkout: {
         include: {
           inventoryReservations: true,
+          flashSaleReservations: true,
         },
       },
+      buyerCoinLedgerEntries: true,
     },
   },
 } as const
@@ -438,6 +444,16 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
         where: { orderId: input.orderId, status: 'RESERVED' },
         data: { status: 'REDEEMED', redeemedAt: input.occurredAt },
       })
+      const flashReservations = await this.prisma.flashSaleReservation.findMany({
+        where: { checkoutId: input.checkoutId, status: 'ACTIVE' },
+        select: { id: true, flashSaleItemId: true, quantity: true },
+      })
+      for (const reservation of flashReservations) {
+        const result = await this.prisma.flashSaleReservation.updateMany({ where: { id: reservation.id, status: 'ACTIVE' }, data: { status: 'COMMITTED' } })
+        if (result.count !== 1) throw new Error(`Flash sale reservation ${reservation.id} is no longer active`)
+        await this.prisma.flashSaleItem.update({ where: { id: reservation.flashSaleItemId }, data: { soldCount: { increment: reservation.quantity } } })
+      }
+      await this.finalizeBuyerCoins(input.orderId, input.occurredAt)
       return
     }
 
@@ -490,5 +506,35 @@ export class PrismaPaymentRepository implements PaymentTransactionRepository {
       where: { orderId: input.orderId, status: 'RESERVED' },
       data: { status: 'RELEASED' },
     })
+    await this.prisma.flashSaleReservation.updateMany({ where: { checkoutId: input.checkoutId, status: 'ACTIVE' }, data: { status: 'RELEASED' } })
+    await this.releaseBuyerCoins(input.orderId)
+  }
+
+  private async finalizeBuyerCoins(orderId: string, occurredAt: Date): Promise<void> {
+    const spent = await this.prisma.buyerCoinLedger.findMany({ where: { orderId, type: 'SPENT', status: 'PENDING' }, select: { id: true, walletId: true, amount: true } })
+    for (const entry of spent) {
+      await this.prisma.buyerCoinLedger.update({ where: { id: entry.id }, data: { status: 'USED' } })
+      await this.prisma.buyerCoinWallet.update({ where: { id: entry.walletId }, data: { pendingBalance: { decrement: entry.amount }, lifetimeSpent: { increment: entry.amount } } })
+    }
+    const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { userId: true, subtotal: true, discountTotal: true } })
+    if (!order) return
+    const cashbackCoins = Math.floor(Math.max(0, Number(order.subtotal) - Number(order.discountTotal)) / 10_000)
+    if (!cashbackCoins) return
+    const wallet = await this.prisma.buyerCoinWallet.upsert({ where: { userId: order.userId }, update: { balance: { increment: cashbackCoins }, lifetimeEarned: { increment: cashbackCoins } }, create: { userId: order.userId, balance: cashbackCoins, lifetimeEarned: cashbackCoins } })
+    const debtPayment = Math.min(cashbackCoins, Number(wallet.debtBalance))
+    const settledWallet = debtPayment > 0
+      ? await this.prisma.buyerCoinWallet.update({ where: { id: wallet.id }, data: { balance: { decrement: debtPayment }, debtBalance: { decrement: debtPayment }, version: { increment: 1 } } })
+      : wallet
+    const availableCashback = cashbackCoins - debtPayment
+    if (availableCashback > 0) {
+      await this.prisma.buyerCoinLedger.create({ data: { walletId: wallet.id, userId: order.userId, orderId, type: 'EARNED', status: 'AVAILABLE', amount: availableCashback, balanceAfter: settledWallet.balance, reason: '1% order cashback', referenceType: 'ORDER_CASHBACK', referenceId: orderId, createdAt: occurredAt } })
+    }
+    if (debtPayment > 0) {
+      await this.prisma.buyerCoinLedger.create({ data: { walletId: wallet.id, userId: order.userId, orderId, type: 'ADJUSTMENT', status: 'USED', amount: -debtPayment, balanceAfter: settledWallet.balance, reason: 'Cashback applied to outstanding coin debt', referenceType: 'COIN_DEBT_SETTLEMENT', referenceId: orderId, createdAt: occurredAt } })
+    }
+  }
+
+  private async releaseBuyerCoins(orderId: string): Promise<void> {
+    await releasePendingBuyerCoins(this.prisma, orderId)
   }
 }

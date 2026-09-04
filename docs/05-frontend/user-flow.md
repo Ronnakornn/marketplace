@@ -19,6 +19,7 @@ Related frontend planning documents:
 
 - **Guest**
   - Can browse home, search, category, product list, and product detail.
+  - Can add items to a browser-local cart and review or remove them on `/cart`.
   - Must log in before cart checkout or writing reviews.
 
 - **Buyer**
@@ -62,6 +63,7 @@ Buyer UX expectations:
 - Cart is grouped by shop.
 - Checkout is a single-page flow.
 - Order tracking clearly shows per-shop shipment status.
+- Order status badges use localized display values rather than raw API enum or translation keys.
 
 ```mermaid
 flowchart TD
@@ -402,6 +404,7 @@ Recommended MVP sequencing:
 
 Buyer-facing routes:
 - `/` - Marketplace home feed, flash sale, category grid, recommendations.
+- `/coins` - Buyer coin wallet and ledger history; coins are redeemed through checkout quote/order APIs.
 - `/search` - Search input, recent searches, trending keywords.
 - `/search?q=<keyword>` - Search results with filter/sort.
 - `/categories` - Category index.

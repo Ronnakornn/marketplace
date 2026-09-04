@@ -434,6 +434,11 @@
     "couponReasonUsageLimitReached": "This coupon has reached its usage limit.",
     "couponReasonUserLimitReached": "You've already used this coupon the maximum number of times.",
     "couponRemove": "Remove",
+    "coins": "Coins",
+    "coinsAvailable": "{count} coins available",
+    "coinsApply": "Use coins",
+    "coinsApplied": "{count} coins applied",
+    "coinsHistory": "History",
     "discount": "Discount",
     "emptyDescription": "Add products to your cart before starting checkout.",
     "emptyTitle": "No items to checkout",
@@ -454,6 +459,22 @@
     "total": "Total",
     "viewPaymentStatus": "View payment status",
     "couponNotApplied": "Coupon not applied: {code}"
+  },
+  "coins": {
+    "title": "My Coins",
+    "loadError": "Could not load your coin wallet.",
+    "available": "Available coins",
+    "pending": "Pending",
+    "debt": "Outstanding coin debt",
+    "debtDescription": "Future cashback will repay this balance before becoming available.",
+    "lifetimeEarned": "Lifetime earned",
+    "history": "Coin history",
+    "emptyTitle": "No coin activity yet",
+    "emptyDescription": "Earned and redeemed coins will appear here.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading...",
+    "types": { "EARNED": "Coins earned", "SPENT": "Coins redeemed", "EXPIRED": "Coins expired", "REFUNDED": "Coins returned", "ADJUSTMENT": "Coin adjustment" },
+    "statuses": { "PENDING": "Pending", "AVAILABLE": "Available", "USED": "Used", "EXPIRED": "Expired", "CANCELLED": "Cancelled" }
   },
   "order": {
     "cancel": "Cancel order",
@@ -793,6 +814,7 @@
       "commissions": "Commissions",
       "dashboard": "Dashboard",
       "fraud": "Fraud",
+      "flashSales": "Flash Sales",
       "orders": "Orders",
       "payouts": "Payouts",
       "products": "Products",
@@ -824,6 +846,7 @@
     },
     "reports": { "grossPaidSales": "Gross paid sales", "paidOrders": "{count} paid orders", "averageOrder": "Average order", "paidOrdersOnly": "Paid orders only", "refundExposure": "Refund exposure", "pendingCount": "{count} pending", "requestedPayouts": "Requested payouts", "requestCount": "{count} requests", "approvedCommissions": "Approved commissions", "pendingAmount": "{amount} pending", "activeProducts": "Active products", "totalProducts": "{count} total products" },
     "commissions": { "title": "Affiliate commissions", "description": "Values are read directly from paid-order attribution records.", "search": "Search affiliate, order, or link code", "affiliate": "Affiliate", "eligible": "Eligible subtotal", "commission": "Commission", "reasonPrompt": "Enter the audit reason for this decision", "void": "Void", "empty": "No commissions match the current filters." },
+    "flashSales": { "eyebrow": "Campaign control", "title": "Flash Sales", "description": "Set platform flash-sale windows and protected item quotas.", "search": "Search campaigns", "name": "Campaign name", "startsAt": "Starts", "endsAt": "Ends", "selectProduct": "Select product variant", "salePrice": "Sale price (THB)", "stockLimit": "Quota", "perUserLimit": "Per-buyer cap", "create": "Create campaign", "addItem": "Add item", "removeItem": "Remove", "createFailed": "Campaign could not be created.", "saveFailed": "Flash-sale changes could not be saved.", "empty": "No flash-sale campaigns match this search.", "items": "{count} items", "status": { "DRAFT": "Draft", "SCHEDULED": "Scheduled", "ACTIVE": "Active", "PAUSED": "Paused", "ENDED": "Ended", "CANCELLED": "Cancelled" } },
     "settingsEditor": { "create": "Create setting", "edit": "Edit setting", "description": "Use this store for non-secret runtime configuration. Credentials remain in deployment secrets.", "key": "Key", "type": "Value type", "value": "Value", "fieldDescription": "Description", "public": "Public", "publicHint": "Marks the value as safe for a future public settings reader.", "invalidValue": "The value does not match the selected type.", "saveFailed": "Unable to save this setting.", "listTitle": "Stored settings", "listDescription": "These rows come from the SystemSetting API.", "search": "Search settings", "new": "New setting", "updated": "Updated", "noDescription": "No description", "empty": "No system settings match the search." },
     "contentModeration": { "queues": { "reviews": "Reviews", "reports": "Review reports", "questions": "Questions", "answers": "Answers" }, "empty": "No content matches the current filters.", "reviewSummary": "{rating} stars · {count} reports", "noReviewBody": "No review body", "noDetail": "No detail provided", "reviewRemoved": "Review removed", "reviewReport": "Review report", "answerCount": "{count} answers", "askedBy": "Asked by {email}", "confirmDescription": "Update {title} to {status}.", "content": "content", "selectedStatus": "the selected status", "requiredNote": "Required for this action.", "optionalNote": "Optional internal note." },
     "overview": {
@@ -1245,7 +1268,7 @@
         "inventory": {"title":"Inventory","description":"Manage stock without touching reserved inventory.","search":"Search product, SKU, or variant","filterStock":"Filter stock","allStock":"All stock","lowStockOnly":"Low-stock only","outOfStock":"Out of stock","saving":"Saving inventory...","save":"Save","loading":"Loading inventory...","empty":"No variants found.","variant":"Variant","onHand":"On hand","reserved":"Reserved","available":"Available","reorder":"Reorder","update":"Update","updateFailed":"Inventory could not be updated.","product":"Product","reservedStock":"Reserved stock {sku}","quantityOnHand":"Quantity on hand","reorderLevel":"Reorder level"},
         "orders": {"title":"Orders & Shipments","description":"Process paid marketplace work by shipment, not by whole buyer order.","order":"Order","recipient":"Recipient","items":"Items","status":"Status","actions":"Actions","search":"Search orders","filterStatus":"Filter status","allStatuses":"All statuses","markPacked":"Mark packed","carrier":"Carrier","tracking":"Tracking","ship":"Ship","markDelivered":"Mark delivered","loading":"Loading shipments...","empty":"No shipments need processing."},
         "returns": {"title":"Returns","description":"Approve or reject return requests for items sold by your shop.","request":"Return request","approve":"Approve","reject":"Reject","loading":"Loading returns...","empty":"No returns found.","return":"Return","items":"Items","status":"Status","actions":"Actions","search":"Search returns","filterStatus":"Filter status","allStatuses":"All statuses"},
-        "promotions": {"title":"Promotions","description":"Create and manage shop-scoped coupons.","code":"Code","titleField":"Title","fixed":"Fixed","percent":"Percent","amount":"Amount","create":"Create","untitled":"Untitled","disable":"Disable","enable":"Enable","delete":"Delete","loading":"Loading coupons...","empty":"No coupons found.","coupon":"Coupon","discount":"Discount","active":"Active","actions":"Actions","search":"Search coupons","filterStatus":"Filter status","allStatuses":"All statuses"},
+        "promotions": {"title":"Promotions","description":"Create and manage shop-scoped coupons.","code":"Code","titleField":"Title","fixed":"Fixed","percent":"Percent","amount":"Amount","create":"Create","untitled":"Untitled","disable":"Disable","enable":"Enable","delete":"Delete","loading":"Loading coupons...","empty":"No coupons found.","coupon":"Coupon","discount":"Discount","active":"Active","actions":"Actions","search":"Search coupons","filterStatus":"Filter status","allStatuses":"All statuses","flashSalesTitle":"Flash Sale participation","flashSalesLoading":"Loading flash-sale campaigns...","flashSalesEmpty":"No campaigns are open for participation.","selectProduct":"Select product variant","salePriceBaht":"Sale price (THB)","stockLimit":"Quota","perUserLimit":"Per-buyer cap","enroll":"Enroll","flashSaleSaveFailed":"Flash-sale item could not be saved."},
         "finance": {"title":"Finance","description":"Review wallet balance, ledger entries, and payout requests.","available":"Available balance","shop":"Seller shop","requestPayout":"Request payout","amount":"Amount","request":"Request","transactions":"Transactions","transactionTypes":{"orderEarning":"Order earning","commissionFee":"Platform commission","payoutReserved":"Payout reserved","payoutPaid":"Payout paid","payoutRejected":"Payout rejected","refundAdjustment":"Refund adjustment","manualAdjustment":"Manual adjustment"},"transactionDescriptions":{"orderEarning":"Order earning for {orderNo}","commissionFee":"Platform commission for {orderNo}","payoutReserved":"Payout reserved","payoutPaid":"Payout marked paid","payoutRejected":"Payout reserve released after rejection","refundAdjustment":"Refund adjustment","manualAdjustment":"Manual adjustment"},"loadingTransactions":"Loading transactions...","emptyTransactions":"No transactions found.","payoutHistory":"Payout history","loadingPayouts":"Loading payouts...","emptyPayouts":"No payouts found.","notSet":"Not set"}
       }
     },

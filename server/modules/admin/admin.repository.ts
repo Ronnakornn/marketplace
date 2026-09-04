@@ -109,7 +109,7 @@ export type AdminOrderRecord = Order & {
   refunds: Array<Pick<Refund, 'id' | 'status' | 'amount' | 'reason' | 'createdAt'>>
 }
 export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 'status' | 'amount' | 'reason' | 'processingById' | 'completedById' | 'externalReference' | 'processingAt' | 'completedAt' | 'createdAt'> & {
-  order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId'>
+  order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId' | 'grandTotal'>
   payment: Pick<Payment, 'id' | 'provider' | 'status' | 'amount' | 'currency'>
 }
 export type AdminReturnRecord = ReturnRequest & {
@@ -318,6 +318,7 @@ const refundInclude = {
       status: true,
       paymentStatus: true,
       userId: true,
+      grandTotal: true,
     },
   },
   payment: {

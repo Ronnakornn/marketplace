@@ -55,6 +55,7 @@ Authorization:
 - seller cannot access another shop product/inventory/shipment
 - admin routes require admin role
 - provider webhooks require valid signatures
+- buyer cancellation rejects paid or fulfilled orders and releases an unpaid order reservation atomically
 
 ## Frontend Test Priorities
 
@@ -64,14 +65,17 @@ Buyer:
 - product detail requires variant selection before CTA action
 - sticky buy bar remains visible on mobile
 - cart groups items by shop
+- guest cart persists browser-local snapshots and refreshes its header count after add/remove
 - checkout shows stock/price/shipping errors
 - payment return shows pending until trusted status changes
 - order detail shows per-shop shipment cards
+- order list and detail render localized API status values
 
 Seller:
 - dashboard shows pending shipments and low stock
 - seller orders list renders mobile cards and desktop table
 - shipment processing validates carrier/tracking input
+- shop profile/settings and team APIs reject cross-shop access
 
 Admin:
 - user management separates customers and system users

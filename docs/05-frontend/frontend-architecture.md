@@ -18,6 +18,9 @@ The frontend uses Next.js App Router, feature-based modules, TanStack Query, Tai
 - Use Eden Treaty and TanStack Query for typed server state.
 - Do not duplicate backend response types on the frontend.
 - Do not put marketplace business rules or trusted calculations in UI components.
+- Every user-facing label must use the translation catalog for both `th` and `en`.
+- API enum values and system-generated badges must be mapped to localized display labels before rendering; never render raw status keys such as `order.statuses.pendingPayment` or `in_stock`.
+- Seller-entered names, product titles, and identifiers remain data. Use their localized fields when supplied; do not machine-translate them in the UI.
 
 ## Routing Structure
 
