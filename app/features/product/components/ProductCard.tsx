@@ -24,7 +24,7 @@ function useHasHydrated(): boolean {
   return useSyncExternalStore(subscribeToHydration, () => true, () => false);
 }
 
-export function ProductCard({ product, showShopIdentity = true, trackingSource = "product_card", prefetch = true }: { product: BuyerProduct; showShopIdentity?: boolean; trackingSource?: string; prefetch?: boolean }) {
+export function ProductCard({ product, showShopIdentity = true, trackingSource = "product_card", prefetch = true, eagerImage = false }: { product: BuyerProduct; showShopIdentity?: boolean; trackingSource?: string; prefetch?: boolean; eagerImage?: boolean }) {
   const router = useRouter();
   const localePath = useLocalePath();
   const t = useTranslations();
@@ -127,7 +127,15 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
           aria-label={t("product.viewProduct").replace("{title}", product.title)}
         >
           <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
-            <Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition group-hover:scale-105" />
+            <Image
+              src={image}
+              alt={product.title}
+              fill
+              sizes="(max-width: 768px) 50vw, 25vw"
+              loading={eagerImage ? "eager" : undefined}
+              fetchPriority={eagerImage ? "high" : undefined}
+              className="object-cover transition group-hover:scale-105"
+            />
           </div>
         </Link>
         <div className="absolute left-2 top-2 flex min-h-5 max-w-[calc(100%-3.5rem)] flex-wrap gap-1">

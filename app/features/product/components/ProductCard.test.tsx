@@ -144,6 +144,20 @@ beforeEach(() => {
 });
 
 describe("ProductCard", () => {
+  it("eagerly loads its image when the card is marked as above the fold", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    render(
+      <QueryClientProvider client={client}>
+        <ProductCard product={createProductFixture()} eagerImage />
+      </QueryClientProvider>,
+    );
+
+    const image = screen.getByRole("img", { name: "Canvas Weekender Bag" });
+    expect(image.getAttribute("loading")).toBe("eager");
+    expect(image.getAttribute("fetchpriority")).toBe("high");
+  });
+
   it("hydrates with the anonymous server snapshot when a buyer session is already cached", async () => {
     const product = createProductFixture({
       variants: [{ ...createVariant("variant-safe", 1200, 4), optionValues: [] }],

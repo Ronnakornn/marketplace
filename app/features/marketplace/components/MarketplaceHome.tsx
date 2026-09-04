@@ -191,6 +191,7 @@ export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomePro
           pendingVariantId={addToCartMutation.variables?.variantId}
           formatMoney={formatters.currency}
           onRetry={() => void homeQuery.refetch()}
+          prioritizeFirstImage
         />
         <ProductRail
           title={t("home.newArrivalsTitle")}
@@ -395,6 +396,7 @@ function ProductRail(props: {
   pendingVariantId?: string;
   formatMoney: (cents: number, currency?: string) => string;
   onRetry?: () => void;
+  prioritizeFirstImage?: boolean;
 }) {
   const t = useTranslations();
   return (
@@ -409,7 +411,11 @@ function ProductRail(props: {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
         {props.products.map((product, index) => (
           <div key={[props.source, product.id, index].join("-")}>
-            <BuyerProductCard product={product.buyerProduct} prefetch={false} />
+            <BuyerProductCard
+              product={product.buyerProduct}
+              prefetch={false}
+              eagerImage={props.prioritizeFirstImage && index === 0}
+            />
           </div>
         ))}
         {props.isLoading ? Array.from({ length: 6 }).map((_, index) => (
