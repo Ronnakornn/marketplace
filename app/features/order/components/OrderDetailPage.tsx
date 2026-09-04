@@ -13,6 +13,7 @@ import { createChatRoom } from "#/features/chat";
 import { useFormatters, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
+import { shouldRetryQuery } from "#/lib/query-client";
 import { formatOrderStatus } from "../order-status";
 
 export function OrderDetailPage({ orderId }: { orderId: string }) {
@@ -23,7 +24,10 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const canUseBuyerChat = session?.user.role === "USER";
-  const orderQuery = useQuery({ queryKey: ["buyer-order", orderId], queryFn: () => fetchOrder(orderId) });
+  const orderQuery = useQuery({
+    queryKey: ["buyer-order", orderId],
+    queryFn: () => fetchOrder(orderId),
+  });
   const createChatMutation = useMutation({
     mutationFn: (shopId: string) => createChatRoom({ shopId, orderId }),
     onSuccess: (room) => {
@@ -43,7 +47,12 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
       <BuyerTopBar title={t("order.details")} />
       <div className="mx-auto max-w-5xl space-y-4 px-3 py-4">
         {orderQuery.isLoading ? <BuyerLoadingList /> : null}
-        {orderQuery.isError ? <BuyerErrorState message={orderQuery.error.message} onRetry={() => void orderQuery.refetch()} /> : null}
+        {orderQuery.isError ? (
+          <BuyerErrorState
+            message={orderQuery.error.message}
+            onRetry={shouldRetryQuery(0, orderQuery.error) ? () => void orderQuery.refetch() : undefined}
+          />
+        ) : null}
         {orderQuery.data ? (
           <>
             <section className="rounded-lg border border-slate-200 bg-white p-4">
