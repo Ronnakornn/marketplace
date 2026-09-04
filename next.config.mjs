@@ -88,6 +88,9 @@ const nextConfig = {
   distDir: resolveDistDir(),
   assetPrefix,
   allowedDevOrigins: allowedDevOrigins(),
+  experimental: {
+    inlineCss: true,
+  },
   images: {
     remotePatterns: imageRemotePatterns(),
     formats: ['image/avif', 'image/webp'],

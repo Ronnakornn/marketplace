@@ -225,7 +225,8 @@ function ProductRail({ title, subtitle, products, emptyTitle, emptyDescription, 
 }
 
 function GuestProductCard({ product, localePath, formatMoney, eagerImage = false, t }: { product: BuyerProduct; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; eagerImage?: boolean; t: Translator }) {
-  const image = resolveUploadedImageUrl(product.images[0]);
+  const imageSource = product.images[0];
+  const image = resolveUploadedImageUrl(imageSource);
   const hasPriceRange = product.maxPrice > product.minPrice;
   const quickAddVariant = product.options.length === 0 && product.variants.filter((variant) => variant.stock > 0).length === 1 && product.variants[0]?.optionValues.length === 0 ? product.variants[0] : null;
   const isOutOfStock = product.stock <= 0;
@@ -236,7 +237,7 @@ function GuestProductCard({ product, localePath, formatMoney, eagerImage = false
   return (
     <article className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-orange-500 focus-within:ring-offset-2">
       <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
-        <Link href={localePath(`/products/${product.id}`)} prefetch={false} className="block size-full focus-visible:outline-none" aria-label={t("product.viewProduct").replace("{title}", product.title)}><div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white"><Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" loading={eagerImage ? "eager" : undefined} fetchPriority={eagerImage ? "high" : undefined} className="object-cover transition group-hover:scale-105" /></div></Link>
+        <Link href={localePath(`/products/${product.id}`)} prefetch={false} className="block size-full focus-visible:outline-none" aria-label={t("product.viewProduct").replace("{title}", product.title)}><div className="relative flex aspect-square items-center justify-center bg-gradient-to-br from-orange-100 via-rose-100 to-white">{imageSource ? <Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" loading={eagerImage ? "eager" : undefined} fetchPriority={eagerImage ? "high" : undefined} className="object-cover transition group-hover:scale-105" /> : <ShoppingBagIcon aria-hidden="true" className="size-20 text-orange-700/45" />}</div></Link>
         <div className="absolute left-2 top-2 flex min-h-5 max-w-[calc(100%-3.5rem)] flex-wrap gap-1">{cardBadges.slice(0, 2).map((badge) => <Badge key={badge} className="rounded-md bg-orange-700 px-1.5 py-0.5 text-[10px] leading-none text-white">{badge}</Badge>)}</div>
         {discountLabel ? <Badge className="absolute bottom-2 left-2 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] leading-none text-white">{discountLabel}</Badge> : null}
         <Button type="button" variant="secondary" size="icon" className="absolute right-2 top-2 size-9 rounded-full bg-white/90 shadow-sm focus-visible:ring-2 focus-visible:ring-orange-500" aria-label={t("product.signInBuyerWishlist")} title={t("product.signInBuyerWishlist")} disabled><HeartIcon className="size-4 text-slate-700" /></Button>

@@ -4,12 +4,14 @@ import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { resolveLocale } from "#/i18n/config";
 import { getSiteName, getSiteUrl, resolveSeoImage, safeDescription } from "#/lib/seo";
+import { isAnonymousMarketplaceHomeRequest } from "#/lib/request-rendering.server";
 import { Providers } from "#/providers";
 import "./styles.css";
 
 const notoSansThai = localFont({
   src: "../public/fonts/NotoSansThai-LatinThai-Variable.woff2",
   display: "swap",
+  preload: false,
   weight: "100 900",
   variable: "--font-noto-sans-thai",
 });
@@ -52,11 +54,12 @@ interface RootLayoutProps {
 export default async function RootLayout({ children }: RootLayoutProps) {
   const pathname = (await headers()).get("x-pathname") ?? "";
   const locale = resolveLocale(pathname.split("/")[1]);
+  const renderMinimalHomepage = await isAnonymousMarketplaceHomeRequest();
 
   return (
-    <html lang={locale} className={notoSansThai.className} suppressHydrationWarning>
+    <html lang={locale} className={renderMinimalHomepage ? "font-sans" : notoSansThai.className} suppressHydrationWarning>
       <body className="min-h-screen">
-        <Providers>{children}</Providers>
+        {renderMinimalHomepage ? children : <Providers>{children}</Providers>}
       </body>
     </html>
   );

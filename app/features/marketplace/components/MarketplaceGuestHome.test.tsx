@@ -35,10 +35,10 @@ vi.mock("./MarketplaceHeroPromo", () => ({
   MarketplaceHeroPromo: () => null,
 }));
 
-const product = (id: string, title: string) => ({
+const product = (id: string, title: string, coverImage: string | null = "/uploads/product_image/test/main.avif") => ({
   productId: id,
   title,
-  coverImage: "/images/fallback-product.svg",
+  coverImage,
   minPrice: 1_000,
   maxPrice: 1_000,
   currency: "THB",
@@ -72,5 +72,19 @@ describe("MarketplaceGuestHome performance", () => {
     expect(priorityImage.getAttribute("fetchpriority")).toBe("high");
     expect(lazyImage.getAttribute("loading")).not.toBe("eager");
     expect(lazyImage.getAttribute("fetchpriority")).not.toBe("high");
+  });
+
+  it("renders an inline placeholder instead of downloading a fallback image", () => {
+    const homeWithoutImages = {
+      ...home,
+      sections: {
+        ...home.sections,
+        recommendedProducts: [product("product-without-image", "Product without image", null)],
+      },
+    } as unknown as DiscoveryHomeResponse;
+
+    render(<MarketplaceGuestHome initialHome={homeWithoutImages} locale="th" />);
+
+    expect(screen.queryByRole("img", { name: "Product without image" })).toBeNull();
   });
 });
