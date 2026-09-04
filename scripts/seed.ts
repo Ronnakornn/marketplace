@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { hashPassword } from "better-auth/crypto";
+import { buildDemoNotificationSeeds } from "./seed-notification-data.ts";
 
 function loadEnvLocal() {
   const envPath = resolve(process.cwd(), ".env.local");
@@ -956,6 +957,10 @@ async function seedReviewReturnRefund(
 async function seedChatNotificationsWallets(prisma: Prisma, ctx: SeedContext, paidOrderId: string, deliveredOrderId: string) {
   const buyerId = required(ctx.users, "buyer.demo@example.com");
   const shop = requiredShop(ctx, "urban-thread-co");
+  const [paidOrder, deliveredOrder] = await Promise.all([
+    prisma.order.findUniqueOrThrow({ where: { id: paidOrderId }, select: { id: true, orderNumber: true } }),
+    prisma.order.findUniqueOrThrow({ where: { id: deliveredOrderId }, select: { id: true, orderNumber: true } }),
+  ]);
   const thread = await prisma.chatThread.upsert({
     where: { buyerId_shopId: { buyerId, shopId: shop.id } },
     update: {},
@@ -974,15 +979,15 @@ async function seedChatNotificationsWallets(prisma: Prisma, ctx: SeedContext, pa
   );
   await seedChatMessage(prisma, thread.id, required(ctx.users, shop.ownerEmail), "We are packing it today.", "demo-chat-seller-1");
 
-  for (const [userEmail, type, title] of [
-    ["buyer.demo@example.com", "ORDER_PAID", "Payment received"],
-    [shop.ownerEmail, "SHIPMENT_READY", "New shipment ready"],
-    ["buyer.return@example.com", "REFUND_SUCCESS", "Refund completed"],
-  ] as const) {
+  for (const [userEmail, type, title, data] of buildDemoNotificationSeeds({
+    sellerEmail: shop.ownerEmail,
+    paidOrder,
+    deliveredOrder,
+  })) {
     await upsertByFindFirst(
       () => prisma.notification.findFirst({ where: { userId: required(ctx.users, userEmail), type, title } }),
-      () => prisma.notification.create({ data: { userId: required(ctx.users, userEmail), type, title, body: "Seeded demo notification.", data: { seeded: true } } }),
-      (id) => prisma.notification.update({ where: { id }, data: { body: "Seeded demo notification.", data: { seeded: true } } }),
+      () => prisma.notification.create({ data: { userId: required(ctx.users, userEmail), type, title, body: "Seeded demo notification.", data } }),
+      (id) => prisma.notification.update({ where: { id }, data: { body: "Seeded demo notification.", data } }),
       (row) => row.id,
     );
   }
