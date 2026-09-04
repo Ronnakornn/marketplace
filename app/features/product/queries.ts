@@ -2,7 +2,6 @@
 
 import { queryOptions, useQuery, type QueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
-import { defaultCurrency } from "#/i18n/config";
 import { isSecretStorageUrl } from "#/lib/assets";
 import { api } from "#/lib/eden";
 
@@ -730,9 +729,12 @@ export async function invalidateProductMutationQueries(
 export function normalizeAffiliateProductTargets(response: AffiliateTargetsResponse): AffiliateProductTargetOption[] {
   return readArray(toRecord(response).items).map((item) => {
     const record = toRecord(item);
+    const id = readString(record.id);
+    const label = readString(record.label);
+    if (!id || !label) throw new Error("Affiliate product target API response is missing required fields");
     return {
-      id: readString(record.id),
-      label: readString(record.label, "Untitled"),
+      id,
+      label,
       description: optionalString(record.description),
       type: "product",
     };
@@ -977,50 +979,69 @@ function normalizeListingFacets(facetsInput: unknown): BuyerListingFacets {
   const price = toRecord(facets.price);
 
   return {
-    categories: readArray(facets.categories).map((item) => {
+    categories: readOptionalArray(facets.categories, "facet categories").map((item) => {
       const category = toRecord(item);
+      const id = readString(category.id);
+      const slug = readString(category.slug);
+      const name = readString(category.name);
+      if (!id || !slug || !name) throw new Error("Product facets API response contains a malformed category");
       return {
-        id: readString(category.id, readString(category.slug)),
-        slug: readString(category.slug),
-        name: readString(category.name, "Category"),
+        id,
+        slug,
+        name,
         count: readNumber(category.count),
         active: category.active === true,
       };
-    }).filter((category) => category.id && category.slug),
-    brands: readArray(facets.brands).map((item) => {
+    }),
+    brands: readOptionalArray(facets.brands, "facet brands").map((item) => {
       const brand = toRecord(item);
+      const id = readString(brand.id);
+      const name = readString(brand.name);
+      if (!id || !name) throw new Error("Product facets API response contains a malformed brand");
       const slug = optionalString(brand.slug) ?? undefined;
       return {
-        id: readString(brand.id, slug ?? readString(brand.name)),
-        name: readString(brand.name, "Brand"),
+        id,
+        name,
         ...(slug ? { slug } : {}),
         count: readNumber(brand.count),
         active: brand.active === true,
       };
-    }).filter((brand) => brand.id),
+    }),
     price: {
       min: optionalNumber(price.min),
       max: optionalNumber(price.max),
-      currency: readString(price.currency, defaultCurrency),
+      currency: readString(price.currency),
     },
   };
 }
 
-export function normalizePublicProduct(input: PublicProductDetailResponse | unknown, index = 0): BuyerProduct {
+export function normalizePublicProduct(input: PublicProductDetailResponse | unknown): BuyerProduct {
   const record = toRecord(input);
   const shop = toRecord(record.shop);
   const shopAddress = toRecord(readArray(shop.addresses)[0]);
-  const brand = toRecord(record.brand);
-  const variants = readArray(record.variants).map((variantInput, variantIndex) => {
+  const id = readString(record.id, readString(record.productId));
+  const title = readString(record.title);
+  const shopId = readString(shop.id);
+  const shopName = readString(shop.name);
+  if (!id || !title || !shopId || !shopName) {
+    throw new Error("Product API response is missing required product or shop fields");
+  }
+  const variants = readArray(record.variants).map((variantInput) => {
     const variant = toRecord(variantInput);
     const inventory = toRecord(variant.inventory);
+    const variantId = readString(variant.id);
+    const variantTitle = readString(variant.title);
+    const currency = readString(variant.currency, readString(record.currency));
+    if (!variantId || !variantTitle || !currency) {
+      throw new Error("Product API response contains a malformed variant");
+    }
     const stock = Math.max(0, readNumber(inventory.quantityOnHand, readNumber(variant.stock, 0)) - readNumber(inventory.quantityReserved, 0));
     return {
-      id: readString(variant.id, `${readString(record.id)}-variant-${variantIndex}`),
-      title: readString(variant.title, "Default"),
+      id: variantId,
+      title: variantTitle,
       sku: readString(variant.sku),
       price: readNumber(variant.price, readNumber(record.price, 0)),
-      currency: readString(variant.currency, readString(record.currency, defaultCurrency)),
+      currency,
       stock,
       optionValues: normalizeVariantOptionValues(variant.optionValues),
     };
@@ -1031,17 +1052,19 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
   const minPrice = readNumber(record.minPrice, variantPrices.length ? Math.min(...variantPrices) : readNumber(record.price));
   const maxPrice = readNumber(record.maxPrice, variantPrices.length ? Math.max(...variantPrices) : minPrice);
   const stock = variants.length ? variants.reduce((total, variant) => total + variant.stock, 0) : readNumber(record.stock);
+  const currency = firstVariant?.currency ?? readString(record.currency);
+  if (!currency) throw new Error("Product API response is missing currency");
   const originalPrice = optionalNumber(record.originalPrice) ?? optionalNumber(record.compareAtPrice) ?? optionalNumber(record.listPrice);
   const discountPercent = optionalNumber(record.discountPercent) ?? calculateDiscountPercent(originalPrice, minPrice);
 
   return {
-    id: readString(record.id, readString(record.productId, `product-${index}`)),
-    title: readString(record.title, "Untitled product"),
+    id,
+    title,
     description: optionalString(record.description),
     price: firstVariant?.price ?? minPrice,
     minPrice,
     maxPrice,
-    currency: firstVariant?.currency ?? readString(record.currency, defaultCurrency),
+    currency,
     rating: readNumber(record.rating, readNumber(ratingSummary.averageRating, 0)),
     soldCount: readNumber(record.soldCount, readNumber(record.sold, 0)),
     stock,
@@ -1049,15 +1072,11 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
     discountPercent,
     badges: normalizeProductBadges(record, stock, discountPercent),
     shop: {
-      id: readString(shop.id),
-      name: readString(shop.name, "Marketplace shop"),
+      id: shopId,
+      name: shopName,
       location: readString(shop.location, readString(shop.city, readString(shopAddress.city, readString(shopAddress.region)))),
     },
-    brand: readString(brand.id) ? {
-      id: readString(brand.id),
-      name: readString(brand.name, "Brand"),
-      slug: readString(brand.slug),
-    } : null,
+    brand: normalizeProductBrand(record.brand),
     metaTitle: optionalString(record.metaTitle),
     metaDescription: optionalString(record.metaDescription),
     warrantyInfo: optionalString(record.warrantyInfo),
@@ -1066,13 +1085,17 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
     highlights: readArray(record.highlights).map((item) => readString(toRecord(item).text, readString(item))).filter(Boolean),
     attributes: readArray(record.attributes).map((item) => {
       const attribute = toRecord(item);
+      const key = readString(attribute.attributeKey, readString(attribute.key));
+      const name = readString(attribute.displayName);
+      const value = readString(attribute.value);
+      if (!key || !name || !value) throw new Error("Product API response contains a malformed attribute");
       return {
-        key: readString(attribute.attributeKey, readString(attribute.key)),
-        name: readString(attribute.displayName, "Specification"),
-        value: readString(attribute.value),
+        key,
+        name,
+        value,
         isFilterable: attribute.isFilterable === true,
       };
-    }).filter((attribute) => attribute.name && attribute.value),
+    }),
     variants,
     images: normalizeProductImages(record.images, record.coverImage),
     video: normalizeProductVideo(record.video),
@@ -1080,47 +1103,74 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
   };
 }
 
+function normalizeProductBrand(input: unknown): BuyerProduct["brand"] {
+  if (input === null || input === undefined) return null;
+  const brand = toRecord(input);
+  const id = readString(brand.id);
+  const name = readString(brand.name);
+  const slug = readString(brand.slug);
+  if (!id || !name || !slug) throw new Error("Product API response contains a malformed brand");
+  return { id, name, slug };
+}
+
 function normalizeProductOptions(optionsInput: unknown): BuyerProduct["options"] {
-  return readArray(optionsInput).map((item) => {
+  return readOptionalArray(optionsInput, "product options").map((item) => {
     const option = toRecord(item);
+    const id = readString(option.id);
+    const name = readString(option.name);
+    if (!id || !name) throw new Error("Product API response contains a malformed option");
+    const values = readOptionalArray(option.values, "product option values").map((valueInput) => {
+      const value = toRecord(valueInput);
+      const id = readString(value.id);
+      const text = readString(value.value);
+      if (!id || !text) throw new Error("Product API response contains a malformed option value");
+      return {
+        id,
+        value: text,
+        colorHex: optionalString(value.colorHex),
+      };
+    });
+    if (values.length === 0) throw new Error("Product API response contains an option without values");
     return {
-      id: readString(option.id),
-      name: readString(option.name, "Option"),
-      values: readArray(option.values).map((valueInput) => {
-        const value = toRecord(valueInput);
-        return {
-          id: readString(value.id),
-          value: readString(value.value, "Option"),
-          colorHex: optionalString(value.colorHex),
-        };
-      }).filter((value) => value.id && value.value),
+      id,
+      name,
+      values,
     };
-  }).filter((option) => option.id && option.values.length).slice(0, 2);
+  }).slice(0, 2);
 }
 
 function normalizeVariantOptionValues(optionValuesInput: unknown): BuyerProduct["variants"][number]["optionValues"] {
-  return readArray(optionValuesInput).map((item) => {
+  return readOptionalArray(optionValuesInput, "variant option values").map((item) => {
     const link = toRecord(item);
     const optionValue = toRecord(link.optionValue);
     const option = toRecord(optionValue.option);
+    const optionId = readString(option.id);
+    const optionName = readString(option.name);
+    const valueId = readString(optionValue.id, readString(link.optionValueId));
+    const value = readString(optionValue.value);
+    if (!optionId || !optionName || !valueId || !value) throw new Error("Product API response contains a malformed variant option value");
     return {
-      optionId: readString(option.id),
-      optionName: readString(option.name, "Option"),
-      valueId: readString(optionValue.id, readString(link.optionValueId)),
-      value: readString(optionValue.value, "Option"),
+      optionId,
+      optionName,
+      valueId,
+      value,
       colorHex: optionalString(optionValue.colorHex),
     };
-  }).filter((item) => item.optionId && item.valueId);
+  });
 }
 
 function normalizeProductVideo(videoInput: unknown): BuyerProduct["video"] {
+  if (videoInput === null || videoInput === undefined) return null;
   const video = toRecord(videoInput);
   const url = readString(video.url);
   if (!url || isSecretStorageUrl(url)) return null;
+  const contentType = readString(video.contentType);
+  const fileName = readString(video.fileName);
+  if (!contentType || !fileName) throw new Error("Product API response contains malformed video metadata");
   return {
     url,
-    contentType: readString(video.contentType, "video/mp4"),
-    fileName: readString(video.fileName, "Product video"),
+    contentType,
+    fileName,
   };
 }
 
@@ -1143,25 +1193,29 @@ export function normalizePublicBrands(response: PublicBrandsResponse): BuyerBran
   const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
   return rawItems.map((item) => {
     const record = toRecord(item);
-    return {
-      id: readString(record.id),
-      slug: readString(record.slug),
-      name: readString(record.name, "Brand"),
-    };
-  }).filter((brand) => brand.id);
+    const id = readString(record.id);
+    const slug = readString(record.slug);
+    const name = readString(record.name);
+    if (!id || !slug || !name) throw new Error("Brand API response is missing required fields");
+    return { id, slug, name };
+  });
 }
 
 export function normalizePublicCategories(response: PublicCategoriesResponse): BuyerCategory[] {
   const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
   return rawItems.map((item) => {
     const record = toRecord(item);
+    const id = readString(record.id);
+    const slug = readString(record.slug);
+    const name = readString(record.name);
+    if (!id || !slug || !name) throw new Error("Category API response is missing required fields");
     return {
-      id: readString(record.id, readString(record.slug)),
-      slug: readString(record.slug),
-      name: readString(record.name, "Category"),
+      id,
+      slug,
+      name,
       sortOrder: readNumber(record.sortOrder),
     };
-  }).filter((category) => category.slug);
+  });
 }
 
 export function normalizePublicSearchSuggestions(response: PublicSearchSuggestionsResponse): string[] {
@@ -1188,10 +1242,14 @@ export function normalizePublicProductReviewsPage(response: PublicProductReviews
   const items = rawItems.map((item) => {
     const record = toRecord(item);
     const snapshot = toRecord(record.snapshot);
+    const id = readString(record.id);
+    const reviewerName = readString(record.userName);
+    const rating = readNumber(record.rating);
+    if (!id || !reviewerName || rating < 1 || rating > 5) throw new Error("Review API response is missing required fields");
     return {
-      id: readString(record.id),
-      reviewerName: readString(record.userName, "Marketplace buyer"),
-      rating: Math.min(5, Math.max(1, readNumber(record.rating, 5))),
+      id,
+      reviewerName,
+      rating,
       comment: optionalString(record.comment),
       media: normalizeReviewMedia(record.media),
       createdAt: readDateString(record.createdAt),
@@ -1202,7 +1260,7 @@ export function normalizePublicProductReviewsPage(response: PublicProductReviews
         shopName: readString(snapshot.shopName),
       } : null,
     };
-  }).filter((review) => review.id);
+  });
   return {
     items,
     meta: normalizePaginatedMeta(record.meta, items.length),
@@ -1243,26 +1301,36 @@ export function normalizePublicProductQuestionsPage(response: PublicProductQuest
       : readArray(record.data);
   const items = rawItems.map((item) => {
     const record = toRecord(item);
+    const id = readString(record.id);
+    const productId = readString(record.productId);
+    const shopId = readString(record.shopId);
+    const question = readString(record.question);
+    const status = readString(record.status);
+    if (!id || !productId || !shopId || !question || !status) throw new Error("Product question API response is missing required fields");
     return {
-      id: readString(record.id),
-      productId: readString(record.productId),
-      shopId: readString(record.shopId),
-      question: readString(record.question),
-      status: readString(record.status, "PUBLISHED"),
+      id,
+      productId,
+      shopId,
+      question,
+      status,
       createdAt: readDateString(record.createdAt),
       user: normalizeQuestionUser(record.user),
       answers: readArray(record.answers).map((answerInput) => {
         const answer = toRecord(answerInput);
+        const id = readString(answer.id);
+        const text = readString(answer.answer);
+        const status = readString(answer.status);
+        if (!id || !text || !status) throw new Error("Product answer API response is missing required fields");
         return {
-          id: readString(answer.id),
-          answer: readString(answer.answer),
-          status: readString(answer.status, "PUBLISHED"),
+          id,
+          answer: text,
+          status,
           createdAt: readDateString(answer.createdAt),
           user: normalizeQuestionUser(answer.user),
         };
-      }).filter((answer) => answer.id && answer.answer),
+      }),
     };
-  }).filter((question) => question.id && question.question);
+  });
   return {
     items,
     meta: normalizePaginatedMeta(record.meta, items.length),
@@ -1280,10 +1348,10 @@ function normalizePaginatedMeta(metaInput: unknown, itemCount: number): BuyerPag
 
 function normalizeQuestionUser(input: unknown): BuyerProductQuestion["user"] {
   const user = toRecord(input);
-  return {
-    id: readString(user.id),
-    name: readString(user.name, "Marketplace user"),
-  };
+  const id = readString(user.id);
+  const name = readString(user.name);
+  if (!id || !name) throw new Error("Product question API response contains a malformed user");
+  return { id, name };
 }
 
 function normalizeReviewMedia(mediaInput: unknown): BuyerReviewMedia[] {
@@ -1312,6 +1380,12 @@ function toRecord(value: unknown): Record<string, unknown> {
 
 function readArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
+}
+
+function readOptionalArray(value: unknown, label: string): unknown[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error(`Product API response ${label} must be an array`);
+  return value;
 }
 
 function readString(value: unknown, fallback = ""): string {

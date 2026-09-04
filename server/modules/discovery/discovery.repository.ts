@@ -1,4 +1,4 @@
-import type { FlashSale, FlashSaleItem, MarketingBanner, PrismaClient, Product, ProductImage, ProductVariant, Shop } from '#generated/client/client.ts'
+import type { FlashSale, FlashSaleItem, FlashSaleReservation, Inventory, MarketingBanner, PrismaClient, Product, ProductImage, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -8,11 +8,14 @@ export type DiscoveryFeaturedShopRecord = Pick<Shop, 'id' | 'name' | 'slug' | 'l
 
 export type DiscoveryFlashSaleRecord = Pick<FlashSale, 'id' | 'title' | 'description' | 'startsAt' | 'endsAt'> & {
   items: Array<Pick<FlashSaleItem, 'id' | 'salePrice' | 'originalPrice' | 'stockLimit' | 'soldCount' | 'perUserLimit'> & {
+    reservations: Array<Pick<FlashSaleReservation, 'quantity'>>
     product: Pick<Product, 'id' | 'title' | 'slug'> & {
       images: Array<Pick<ProductImage, 'url' | 'altText' | 'isPrimary' | 'sortOrder'>>
       shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
     }
-    variant: Pick<ProductVariant, 'id' | 'sku' | 'title' | 'currency' | 'status'>
+    variant: Pick<ProductVariant, 'id' | 'sku' | 'title' | 'currency' | 'status'> & {
+      inventory: Pick<Inventory, 'quantityOnHand' | 'quantityReserved'> | null
+    }
   }>
 }
 
@@ -84,6 +87,10 @@ export class PrismaDiscoveryRepository implements IDiscoveryRepository {
             stockLimit: true,
             soldCount: true,
             perUserLimit: true,
+            reservations: {
+              where: { status: 'ACTIVE', expiresAt: { gt: now } },
+              select: { quantity: true },
+            },
             product: {
               select: {
                 id: true,
@@ -100,7 +107,14 @@ export class PrismaDiscoveryRepository implements IDiscoveryRepository {
               },
             },
             variant: {
-              select: { id: true, sku: true, title: true, currency: true, status: true },
+              select: {
+                id: true,
+                sku: true,
+                title: true,
+                currency: true,
+                status: true,
+                inventory: { select: { quantityOnHand: true, quantityReserved: true } },
+              },
             },
           },
           orderBy: [{ soldCount: 'desc' }, { createdAt: 'desc' }],

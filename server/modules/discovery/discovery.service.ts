@@ -4,6 +4,7 @@ import type { CatalogService } from '#server/modules/catalog/catalog.service.ts'
 import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import type { RecommendationService } from '#server/modules/recommendation/recommendation.service.ts'
 import type { TrackingService } from '#server/modules/tracking'
+import { publicAssetUrl } from '#server/lib/public-assets.ts'
 import { DiscoveryServiceError } from './discovery.errors.ts'
 import type { DiscoveryBannerRecord, DiscoveryFeaturedShopRecord, DiscoveryFlashSaleRecord, IDiscoveryRepository } from './discovery.repository.ts'
 
@@ -23,7 +24,7 @@ export interface DiscoveryHomeResponse {
   sections: {
     banners?: ReturnType<DiscoveryService['toBanner']>[]
     categories?: Awaited<ReturnType<CatalogService['listCategories']>>
-    flashSale?: ReturnType<DiscoveryService['toFlashSale']>
+    flashSale?: Awaited<ReturnType<DiscoveryService['toFlashSale']>>
     recommendedProducts?: Awaited<ReturnType<RecommendationService['getTrending']>>['items']
     newArrivals?: Awaited<ReturnType<RecommendationService['getHomeFeed']>>['sections']['newest']
     featuredShops?: ReturnType<DiscoveryService['toFeaturedShop']>[]
@@ -80,11 +81,15 @@ export class DiscoveryService {
       }),
     ])
 
+    const normalizedFlashSale = flashSale && flashSale.items.length > 0
+      ? await this.toFlashSale(flashSale)
+      : null
+
     return {
       sections: {
         ...(banners.length > 0 ? { banners: banners.map((banner) => this.toBanner(banner)) } : {}),
         categories,
-        ...(flashSale && flashSale.items.length > 0 ? { flashSale: this.toFlashSale(flashSale) } : {}),
+        ...(normalizedFlashSale ? { flashSale: normalizedFlashSale } : {}),
         recommendedProducts: recommended.items,
         newArrivals: homeFeed.sections.newest,
         ...(featuredShops.length > 0 ? { featuredShops: featuredShops.map((shop) => this.toFeaturedShop(shop)) } : {}),
@@ -112,45 +117,57 @@ export class DiscoveryService {
       placement: banner.placement,
       title: banner.title,
       subtitle: banner.subtitle,
-      imageUrl: banner.imageUrl,
-      mobileImageUrl: banner.mobileImageUrl,
+      imageUrl: publicAssetUrl(banner.imageUrl),
+      mobileImageUrl: publicAssetUrl(banner.mobileImageUrl),
       targetUrl: banner.targetUrl,
       sortOrder: banner.sortOrder,
     }
   }
 
-  private toFlashSale(flashSale: DiscoveryFlashSaleRecord) {
+  private async toFlashSale(flashSale: DiscoveryFlashSaleRecord) {
+    const metrics = await this.catalogService.getPublicProductMetrics(flashSale.items.map((item) => item.product.id))
+    const metricsByProductId = new Map(metrics.map((metric) => [metric.productId, metric]))
     return {
       id: flashSale.id,
       title: flashSale.title,
       description: flashSale.description,
       startsAt: flashSale.startsAt,
       endsAt: flashSale.endsAt,
-      items: flashSale.items.map((item) => ({
-        id: item.id,
-        salePrice: Number(item.salePrice),
-        originalPrice: Number(item.originalPrice),
-        stockLimit: item.stockLimit,
-        soldCount: item.soldCount,
-        perUserLimit: item.perUserLimit,
-        product: {
-          id: item.product.id,
-          title: item.product.title,
-          slug: item.product.slug,
-          coverImage: item.product.images[0]?.url ?? null,
-          shop: {
-            id: item.product.shop.id,
-            name: item.product.shop.name,
-            slug: item.product.shop.slug,
+      items: flashSale.items.map((item) => {
+        const activeReservationCount = item.reservations.reduce((total, reservation) => total + reservation.quantity, 0)
+        const campaignAvailable = Math.max(0, item.stockLimit - item.soldCount - activeReservationCount)
+        const inventoryAvailable = item.variant.inventory
+          ? Math.max(0, item.variant.inventory.quantityOnHand - item.variant.inventory.quantityReserved)
+          : 0
+        const metric = metricsByProductId.get(item.product.id)
+        return {
+          id: item.id,
+          salePrice: Number(item.salePrice),
+          originalPrice: Number(item.originalPrice),
+          stockLimit: item.stockLimit,
+          soldCount: item.soldCount,
+          availableStock: Math.min(campaignAvailable, inventoryAvailable),
+          rating: metric?.rating ?? 0,
+          perUserLimit: item.perUserLimit,
+          product: {
+            id: item.product.id,
+            title: item.product.title,
+            slug: item.product.slug,
+            coverImage: publicAssetUrl(item.product.images[0]?.url),
+            shop: {
+              id: item.product.shop.id,
+              name: item.product.shop.name,
+              slug: item.product.shop.slug,
+            },
           },
-        },
-        variant: {
-          id: item.variant.id,
-          sku: item.variant.sku,
-          title: item.variant.title,
-          currency: item.variant.currency,
-        },
-      })),
+          variant: {
+            id: item.variant.id,
+            sku: item.variant.sku,
+            title: item.variant.title,
+            currency: item.variant.currency,
+          },
+        }
+      }),
     }
   }
 
@@ -159,8 +176,8 @@ export class DiscoveryService {
       id: shop.id,
       name: shop.name,
       slug: shop.slug,
-      logoUrl: shop.logoUrl,
-      coverUrl: shop.coverUrl,
+      logoUrl: publicAssetUrl(shop.logoUrl),
+      coverUrl: publicAssetUrl(shop.coverUrl),
       ratingAverage: Number(shop.ratingAverage),
       ratingCount: shop.ratingCount,
       followerCount: shop.followerCount,

@@ -6,9 +6,11 @@ import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ActiveShopResolver } from '#server/modules/security'
 import type { AuditLogService } from '#server/modules/audit-log'
 import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
+import { isPublicAssetUrl } from '#server/lib/public-assets.ts'
 import { CatalogServiceError } from './catalog.errors.ts'
 import type {
   CatalogProductDetail,
+  CatalogProductMetric,
   CatalogProductRecord,
   CatalogVariantRecord,
   CatalogBrandListItem,
@@ -282,6 +284,10 @@ export class CatalogService {
     private auditLogService?: AuditLogService,
   ) {
     this.logger = appContext.logger
+  }
+
+  getPublicProductMetrics(productIds: string[]): Promise<CatalogProductMetric[]> {
+    return this.repo.findProductMetrics(productIds)
   }
 
   async listCategories(localeInput?: string): Promise<CatalogCategoryListItem[]> {
@@ -1414,25 +1420,8 @@ export class CatalogService {
     const localized = this.localizeProduct(product, locale)
     return {
       ...localized,
-      images: localized.images.filter((image) => this.isPublicSafeAssetUrl(image.url)),
-      video: localized.video && this.isPublicSafeAssetUrl(localized.video.url) ? localized.video : null,
-    }
-  }
-
-  private isPublicSafeAssetUrl(url: string): boolean {
-    const value = url.trim()
-    if (!value) return false
-    if (value.startsWith('/')) return true
-    try {
-      const parsed = new URL(value)
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
-      const secretIndicators = ['x-amz-signature', 'x-amz-credential', 'x-goog-signature', 'signature', 'token', 'expires']
-      for (const key of parsed.searchParams.keys()) {
-        if (secretIndicators.includes(key.toLowerCase())) return false
-      }
-      return true
-    } catch {
-      return false
+      images: localized.images.filter((image) => isPublicAssetUrl(image.url)),
+      video: localized.video && isPublicAssetUrl(localized.video.url) ? localized.video : null,
     }
   }
 
@@ -1447,7 +1436,7 @@ export class CatalogService {
   }
 
   private async attachPublicProductMetrics<T extends CatalogProductListItem>(products: T[]): Promise<T[]> {
-    const metrics = await this.repo.findProductMetrics(products.map((product) => product.id))
+    const metrics = await this.getPublicProductMetrics(products.map((product) => product.id))
     const metricsByProductId = new Map(metrics.map((metric) => [metric.productId, metric]))
     return products.map((product) => {
       const metric = metricsByProductId.get(product.id)

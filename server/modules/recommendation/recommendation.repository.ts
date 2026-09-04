@@ -1,4 +1,4 @@
-import type { Category, Inventory, Prisma, PrismaClient, Product, ProductVariant, Review, Shop } from '#generated/client/client.ts'
+import type { Category, Inventory, Prisma, PrismaClient, Product, ProductImage, ProductVariant, Review, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -25,6 +25,7 @@ export type RecommendationProductRecord = Pick<Product, 'id' | 'title' | 'create
     orderItems: Array<{ quantity: number }>
   }>
   reviews: Array<Pick<Review, 'rating' | 'status'>>
+  images?: Array<Pick<ProductImage, 'url' | 'sortOrder' | 'isPrimary'>>
 }
 
 export interface RecommendedCategory {
@@ -99,7 +100,16 @@ const recommendationProductSelect = {
       status: true,
     },
   },
-} as const
+  images: {
+    select: {
+      url: true,
+      sortOrder: true,
+      isPrimary: true,
+    },
+    orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { id: 'asc' }],
+    take: 1,
+  },
+} satisfies Prisma.ProductSelect
 
 export class PrismaRecommendationRepository implements IRecommendationRepository {
   private logger: ILogger

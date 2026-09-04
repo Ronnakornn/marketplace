@@ -4,10 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchRecentlyViewedProducts,
   getAnonymousSessionId,
-  getLocalRecentlyViewedProducts,
-  normalizeLocalRecentlyViewedProducts,
   normalizeRecentlyViewedProducts,
-  saveLocalRecentlyViewedProduct,
   trackDiscoveryEvent,
 } from "./tracking";
 
@@ -25,15 +22,6 @@ describe("tracking utilities", () => {
     expect(second).toBe(first);
   });
 
-  it("stores recently viewed products locally without duplicates", () => {
-    saveLocalRecentlyViewedProduct({ productId: "p1", title: "Tee", imageUrl: null, href: "/products/p1" });
-    saveLocalRecentlyViewedProduct({ productId: "p2", title: "Bag", imageUrl: "/bag.jpg", href: "/products/p2" });
-    saveLocalRecentlyViewedProduct({ productId: "p1", title: "Tee", imageUrl: null, href: "/products/p1" });
-
-    const items = getLocalRecentlyViewedProducts();
-    expect(items.map((item) => item.productId)).toEqual(["p1", "p2"]);
-  });
-
   it("sends tracking events with anonymous session data without awaiting navigation", () => {
     const fetchMock = vi.spyOn(window, "fetch").mockResolvedValue(new Response("{}"));
     Object.defineProperty(window.navigator, "sendBeacon", { value: undefined, configurable: true });
@@ -49,14 +37,17 @@ describe("tracking utilities", () => {
     expect(body.sessionId).toEqual(expect.any(String));
   });
 
-  it("normalizes API and local recently viewed products for compact cards", () => {
+  it("normalizes API recently viewed products for compact cards", () => {
     expect(normalizeRecentlyViewedProducts([{
       productId: "p1",
       title: "Tee",
+      slug: "tee",
       coverImage: "/tee.jpg",
-      minPrice: "1200",
+      minPrice: 1200,
       currency: "THB",
-      shop: { id: "shop-1", name: "Shop One" },
+      rating: 4.8,
+      soldCount: 34,
+      shop: { id: "shop-1", name: "Shop One", slug: "shop-one" },
     }])).toEqual([{
       productId: "p1",
       title: "Tee",
@@ -64,22 +55,12 @@ describe("tracking utilities", () => {
       href: "/products/p1",
       minPrice: 1200,
       currency: "THB",
+      rating: 4.8,
+      soldCount: 34,
       shop: { id: "shop-1", name: "Shop One" },
       viewedAt: null,
     }]);
 
-    expect(normalizeLocalRecentlyViewedProducts([{
-      productId: "p2",
-      title: "Bag",
-      imageUrl: "/bag.jpg",
-      href: "/products/p2",
-      viewedAt: "2026-01-01T00:00:00.000Z",
-    }])[0]).toMatchObject({
-      productId: "p2",
-      title: "Bag",
-      imageUrl: "/bag.jpg",
-      href: "/products/p2",
-    });
   });
 
   it("fetches recently viewed products with the anonymous session id", async () => {
@@ -92,9 +73,23 @@ describe("tracking utilities", () => {
     const result = await fetchRecentlyViewedProducts(4);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringMatching(/^\/api\/discovery\/recently-viewed\?limit=4&sessionId=/),
+      expect.stringMatching(/\/api\/discovery\/recently-viewed\?limit=4&sessionId=/),
       expect.objectContaining({ credentials: "include" }),
     );
     expect(result[0]?.productId).toBe("p1");
+  });
+
+  it("surfaces malformed recently viewed API records", () => {
+    expect(() => normalizeRecentlyViewedProducts([{
+      productId: "p1",
+      title: "Tee",
+      slug: "tee",
+      coverImage: null,
+      minPrice: 1200,
+      currency: "THB",
+      rating: 4,
+      soldCount: 2,
+      shop: { id: "", name: "Shop", slug: "shop" },
+    }])).toThrow(/recently viewed api response/i);
   });
 });

@@ -69,6 +69,7 @@ function product(overrides: Partial<{
   secondPrice: number
   rating: number
   soldCount: number
+  imageUrl: string
 }> = {}): any {
   const id = overrides.id ?? '11111111-1111-4111-8111-111111111111'
   return {
@@ -121,6 +122,7 @@ function product(overrides: Partial<{
       rating: overrides.rating,
       status: 'PUBLISHED',
     }] : [],
+    images: overrides.imageUrl ? [{ url: overrides.imageUrl, isPrimary: true, sortOrder: 0 }] : [],
   }
 }
 
@@ -233,6 +235,7 @@ describe('RecommendationService', () => {
       title: 'Cotton Tee',
       minPrice: 1000,
       maxPrice: 1500,
+      currency: 'THB',
       soldCount: 0,
       shop: {
         id: 'shop-1',
@@ -241,6 +244,16 @@ describe('RecommendationService', () => {
     })
     expect(JSON.stringify(result)).not.toContain('owner')
     expect(JSON.stringify(result)).not.toContain('user')
+  })
+
+  it('does not expose signed storage URLs as recommendation images', async () => {
+    vi.mocked(repo.findTrendingProducts).mockResolvedValue([product({
+      imageUrl: 'https://bucket.example.com/item.avif?X-Amz-Signature=secret',
+    })])
+
+    const result = await service.getTrending({})
+
+    expect(result.items[0]).not.toHaveProperty('coverImage')
   })
 
   it('returns PRODUCT_NOT_FOUND for missing related source product', async () => {

@@ -47,9 +47,6 @@ import {
 } from "#/features/product/queries";
 import {
   fetchRecentlyViewedProducts,
-  getLocalRecentlyViewedProducts,
-  normalizeLocalRecentlyViewedProducts,
-  saveLocalRecentlyViewedProduct,
   useDiscoveryTracking,
   type RecentlyViewedProductCard as RecentlyViewedProductCardData,
 } from "#/features/tracking";
@@ -105,10 +102,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   });
   const recentlyViewedQuery = useQuery({
     queryKey: ["discovery", "recently-viewed", { limit: 8, locale }],
-    queryFn: async () => {
-      const remote = await fetchRecentlyViewedProducts(8);
-      return remote.length ? remote : normalizeLocalRecentlyViewedProducts(getLocalRecentlyViewedProducts());
-    },
+    queryFn: () => fetchRecentlyViewedProducts(8),
     staleTime: 30_000,
   });
   const reviewsQuery = useQuery({
@@ -251,12 +245,6 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   useEffect(() => {
     if (!product) return;
     tracking.trackRecentlyViewed({ productId: product.id, shopId: product.shop.id });
-    saveLocalRecentlyViewedProduct({
-      productId: product.id,
-      title: product.title,
-      imageUrl: resolveUploadedImageUrl(product.images[0]),
-      href: localePath(`/products/${product.id}`),
-    });
   }, [product?.id]);
 
   function handleChatSeller() {

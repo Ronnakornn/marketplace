@@ -38,6 +38,7 @@ function createServiceMocks() {
   return {
     catalogService: {
       listCategories: vi.fn(),
+      getPublicProductMetrics: vi.fn(),
     } as unknown as CatalogService,
     recommendationService: {
       getTrending: vi.fn(),
@@ -130,6 +131,7 @@ describe('DiscoveryService', () => {
         stockLimit: 10,
         soldCount: 2,
         perUserLimit: 1,
+        reservations: [{ quantity: 3 }],
         product: {
           id: 'p1',
           title: 'Tee',
@@ -137,7 +139,14 @@ describe('DiscoveryService', () => {
           images: [{ url: '/tee.jpg', altText: null, isPrimary: true, sortOrder: 0 }],
           shop: { id: 'shop-1', name: 'Shop', slug: 'shop', status: 'ACTIVE' },
         },
-        variant: { id: 'v1', sku: 'TEE-1', title: 'Default', currency: 'THB', status: 'ACTIVE' },
+        variant: {
+          id: 'v1',
+          sku: 'TEE-1',
+          title: 'Default',
+          currency: 'THB',
+          status: 'ACTIVE',
+          inventory: { quantityOnHand: 20, quantityReserved: 4 },
+        },
       }],
     })
     vi.mocked(repo.findFeaturedShops).mockResolvedValue([{
@@ -152,6 +161,7 @@ describe('DiscoveryService', () => {
       productCount: 5,
     }])
     vi.mocked(catalogService.listCategories).mockResolvedValue([])
+    vi.mocked(catalogService.getPublicProductMetrics).mockResolvedValue([{ productId: 'p1', rating: 4.5, ratingCount: 2, soldCount: 7 }])
     vi.mocked(recommendationService.getTrending).mockResolvedValue({ items: [], pagination: { page: 1, limit: 12, hasNextPage: false } })
     vi.mocked(recommendationService.getHomeFeed).mockResolvedValue({ sections: { trending: [], newest: [], recommendedCategories: [] }, pagination: { page: 1, limit: 12 } })
     vi.mocked(promotionService.listPublicCoupons).mockResolvedValue([{ id: 'coupon-1', code: 'SAVE', title: 'SAVE', description: null } as any])
@@ -161,7 +171,12 @@ describe('DiscoveryService', () => {
     const result = await service.getHome({})
 
     expect(result.sections.banners).toHaveLength(1)
-    expect(result.sections.flashSale?.items[0]).toMatchObject({ salePrice: 900, originalPrice: 1200 })
+    expect(result.sections.flashSale?.items[0]).toMatchObject({
+      salePrice: 900,
+      originalPrice: 1200,
+      availableStock: 5,
+      rating: 4.5,
+    })
     expect(result.sections.featuredShops?.[0]).toMatchObject({ id: 'shop-1', ratingAverage: 4.5 })
     expect(result.sections.promotions).toHaveLength(1)
   })

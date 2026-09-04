@@ -13,6 +13,8 @@ import {
   normalizePublicProducts,
   normalizePublicProductListing,
   normalizePublicProduct,
+  normalizePublicBrands,
+  normalizePublicCategories,
   normalizePublicProductQuestions,
   normalizePublicProductQuestionsPage,
   normalizePublicProductRatingSummary,
@@ -262,7 +264,7 @@ describe("public product review normalization", () => {
     });
   });
 
-  it("normalizes paginated and legacy review responses", () => {
+  it("normalizes paginated reviews and rejects incomplete legacy records", () => {
     const page = normalizePublicProductReviewsPage({
       items: [{ id: "review-1", userName: "Jane", rating: 5, comment: "Great" }],
       meta: { page: 2, limit: 1, totalCount: 3, hasNextPage: true },
@@ -270,7 +272,7 @@ describe("public product review normalization", () => {
 
     expect(page.meta).toEqual({ page: 2, limit: 1, totalCount: 3, hasNextPage: true });
     expect(page.items[0]?.reviewerName).toBe("Jane");
-    expect(normalizePublicProductReviews([{ id: "review-legacy", rating: 4 }])).toHaveLength(1);
+    expect(() => normalizePublicProductReviews([{ id: "review-legacy", rating: 4 }])).toThrow(/review api response/i);
     expect(normalizePublicProductReviewsPage({ items: [], meta: { page: "bad" } }).meta).toEqual({
       page: 1,
       limit: 5,
@@ -364,13 +366,14 @@ describe("public product question normalization", () => {
     }]);
   });
 
-  it("normalizes paginated and legacy public product questions", () => {
+  it("normalizes paginated public questions and rejects incomplete legacy records", () => {
     const page = normalizePublicProductQuestionsPage({
       items: [{
         id: "question-1",
         productId: "product-1",
         shopId: "shop-1",
         question: "Answered?",
+        status: "PUBLISHED",
         user: { id: "buyer-1", name: "Buyer" },
         answers: [],
       }],
@@ -379,35 +382,58 @@ describe("public product question normalization", () => {
 
     expect(page.meta).toEqual({ page: 2, limit: 1, totalCount: 4, hasNextPage: true });
     expect(page.items[0]?.question).toBe("Answered?");
-    expect(normalizePublicProductQuestions([{
+    expect(() => normalizePublicProductQuestions([{
       id: "question-legacy",
       productId: "product-1",
       shopId: "shop-1",
       question: "Legacy?",
       user: {},
       answers: [],
-    }])).toHaveLength(1);
+    }])).toThrow(/question api response/i);
   });
 });
 
 describe("affiliate product target normalization", () => {
-  it("normalizes affiliate product targets from the shared product target response", () => {
+  it("normalizes affiliate product targets and rejects missing labels", () => {
     expect(normalizeAffiliateProductTargets({
-      items: [
-        { id: "product-1", label: "Camera", description: "Mirrorless", type: "product" },
-        { id: "product-2", label: "", description: "", type: "product" },
-      ],
+      items: [{ id: "product-1", label: "Camera", description: "Mirrorless", type: "product" }],
     })).toEqual([
       { id: "product-1", label: "Camera", description: "Mirrorless", type: "product" },
-      { id: "product-2", label: "Untitled", description: null, type: "product" },
     ]);
+    expect(() => normalizeAffiliateProductTargets({
+      items: [
+        { id: "product-2", label: "", description: "", type: "product" },
+      ],
+    })).toThrow(/affiliate product target api response/i);
   });
 });
 
 describe("public product normalization", () => {
+  it("surfaces malformed API products instead of silently hiding them", () => {
+    expect(() => normalizePublicProducts({
+      data: [{ id: "product-1", title: "Missing shop and currency" }],
+    } as unknown as Parameters<typeof normalizePublicProducts>[0])).toThrow(/missing required product or shop fields/i);
+  });
+
+  it("requires real names and ids for public brand and category filters", () => {
+    expect(() => normalizePublicBrands([{ id: "brand-1", slug: "brand", name: "" }] as never)).toThrow(/brand api response/i);
+    expect(() => normalizePublicCategories([{ id: "", slug: "fashion", name: "Fashion" }] as never)).toThrow(/category api response/i);
+  });
+
+  it("rejects malformed nested product options instead of hiding them", () => {
+    expect(() => normalizePublicProduct({
+      id: "product-1",
+      title: "Malformed options",
+      currency: "THB",
+      shop: { id: "shop-1", name: "Shop" },
+      variants: [],
+      options: [{ id: "option-1", name: "Color", values: [{ id: "", value: "Red" }] }],
+    })).toThrow(/malformed option value/i);
+  });
+
   it("normalizes listing arrays with default metadata and empty facets", () => {
     const listing = normalizePublicProductListing([
-      { id: "product-1", title: "Legacy product" },
+      { id: "product-1", title: "Legacy product", currency: "THB", shop: { id: "shop-1", name: "Shop" } },
     ] as unknown as Parameters<typeof normalizePublicProductListing>[0]);
 
     expect(listing.products).toHaveLength(1);
@@ -422,13 +448,13 @@ describe("public product normalization", () => {
     expect(listing.facets).toEqual({
       categories: [],
       brands: [],
-      price: { min: null, max: null, currency: "THB" },
+      price: { min: null, max: null, currency: "" },
     });
   });
 
   it("normalizes data/meta and items/meta/facets listing response shapes", () => {
     const dataListing = normalizePublicProductListing({
-      data: [{ id: "product-1", title: "Data product" }],
+      data: [{ id: "product-1", title: "Data product", currency: "THB", shop: { id: "shop-1", name: "Shop" } }],
       meta: {
         totalCount: 3,
         page: 1,
@@ -447,7 +473,7 @@ describe("public product normalization", () => {
     });
 
     const itemsListing = normalizePublicProductListing({
-      items: [{ id: "product-2", title: "Faceted product" }],
+      items: [{ id: "product-2", title: "Faceted product", currency: "THB", shop: { id: "shop-1", name: "Shop" } }],
       meta: { totalCount: 1, page: 1, pageSize: 40, hasNextPage: false },
       facets: {
         categories: [{ id: "cat-1", slug: "fashion", name: "Fashion", count: "8", active: true }],
@@ -479,6 +505,7 @@ describe("public product normalization", () => {
       data: [{
         id: "product-1",
         title: "Image-backed product",
+        currency: "THB",
         shop: { id: "shop-1", name: "Image Shop" },
         variants: [],
         images: [

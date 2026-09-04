@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
+import type { CatalogService } from '#server/modules/catalog/catalog.service.ts'
 import type { ITrackingRepository, TrackingProductRecord } from './tracking.repository.ts'
 import { TrackingService } from './tracking.service.ts'
 
@@ -51,12 +52,16 @@ function createViewedProduct(overrides: Partial<TrackingProductRecord> = {}): Tr
 
 let repo: ITrackingRepository
 let service: TrackingService
+let catalogService: CatalogService
 
 describe('TrackingService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     repo = createRepoMock()
-    service = new TrackingService(createAppContext(), repo)
+    catalogService = {
+      getPublicProductMetrics: vi.fn().mockResolvedValue([{ productId, rating: 4.8, ratingCount: 12, soldCount: 34 }]),
+    } as unknown as CatalogService
+    service = new TrackingService(createAppContext(), repo, catalogService)
     vi.mocked(repo.findActiveProduct).mockResolvedValue({ id: productId, shopId })
   })
 
@@ -193,6 +198,8 @@ describe('TrackingService', () => {
       coverImage: '/tee.jpg',
       minPrice: 1000,
       currency: 'THB',
+      rating: 4.8,
+      soldCount: 34,
       shop: { id: shopId, name: 'Shop One', slug: 'shop-one' },
     }])
   })

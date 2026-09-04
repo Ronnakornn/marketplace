@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { requestApi } from "#/lib/api-client";
+import { useEffect, useMemo, useRef } from "react";
+import type { Treaty } from "@elysiajs/eden";
+import { api } from "#/lib/eden";
 
 const SESSION_STORAGE_KEY = "marketplace-anonymous-session-id";
-const RECENTLY_VIEWED_STORAGE_KEY = "marketplace-recently-viewed-products";
 const IMPRESSION_DEBOUNCE_MS = 10_000;
-const MAX_LOCAL_RECENTLY_VIEWED = 24;
+type RecentlyViewedResponse = Treaty.Data<ReturnType<(typeof api.api.discovery)["recently-viewed"]["get"]>>;
 
 export type DiscoveryTrackingEvent =
   | "product_impression"
@@ -36,14 +36,6 @@ export interface TrackDiscoveryEventInput {
   referrer?: string;
 }
 
-export interface LocalRecentlyViewedProduct {
-  productId: string;
-  title: string;
-  imageUrl: string | null;
-  href: string;
-  viewedAt: string;
-}
-
 export interface RecentlyViewedProductCard {
   productId: string;
   title: string;
@@ -51,6 +43,8 @@ export interface RecentlyViewedProductCard {
   href: string;
   minPrice: number | null;
   currency: string | null;
+  rating: number;
+  soldCount: number;
   shop: {
     id: string;
     name: string;
@@ -88,32 +82,6 @@ export function trackDiscoveryEvent(input: TrackDiscoveryEventInput): void {
     body,
     keepalive: true,
   }).catch(() => undefined);
-}
-
-export function saveLocalRecentlyViewedProduct(product: Omit<LocalRecentlyViewedProduct, "viewedAt">): LocalRecentlyViewedProduct[] {
-  if (typeof window === "undefined") return [];
-  const viewedAt = new Date().toISOString();
-  const current = getLocalRecentlyViewedProducts();
-  const next = [
-    { ...product, viewedAt },
-    ...current.filter((item) => item.productId !== product.productId),
-  ].slice(0, MAX_LOCAL_RECENTLY_VIEWED);
-  window.localStorage.setItem(RECENTLY_VIEWED_STORAGE_KEY, JSON.stringify(next));
-  return next;
-}
-
-export function getLocalRecentlyViewedProducts(): LocalRecentlyViewedProduct[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(RECENTLY_VIEWED_STORAGE_KEY) ?? "[]") as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map(readLocalRecentlyViewedProduct)
-      .filter((item): item is LocalRecentlyViewedProduct => item !== null)
-      .slice(0, MAX_LOCAL_RECENTLY_VIEWED);
-  } catch {
-    return [];
-  }
 }
 
 export function useDiscoveryTracking(source: string) {
@@ -161,57 +129,43 @@ export function useTrackVisibleProducts(
   }, [seenKey, tracking, products]);
 }
 
-export function useRecentlyViewedFallback(limit = 12) {
-  const read = useCallback(() => getLocalRecentlyViewedProducts().slice(0, limit), [limit]);
-  return { read, save: saveLocalRecentlyViewedProduct };
-}
-
 export async function fetchRecentlyViewedProducts(limit = 8): Promise<RecentlyViewedProductCard[]> {
-  const params = new URLSearchParams();
-  params.set("limit", String(limit));
   const sessionId = getAnonymousSessionId();
-  if (sessionId) params.set("sessionId", sessionId);
-
-  const data = await requestApi<unknown>(`/api/discovery/recently-viewed?${params.toString()}`);
+  const { data, error } = await api.api.discovery["recently-viewed"].get({
+    query: { limit, ...(sessionId ? { sessionId } : {}) },
+  });
+  if (error) throw error;
   return normalizeRecentlyViewedProducts(data);
 }
 
-export function normalizeRecentlyViewedProducts(input: unknown): RecentlyViewedProductCard[] {
+export function normalizeRecentlyViewedProducts(input: RecentlyViewedResponse): RecentlyViewedProductCard[] {
   const rawItems = Array.isArray(input) ? input : [];
   return rawItems.map((item) => {
     const record = toRecord(item);
     const productId = readString(record.productId, readString(record.id));
+    const title = readString(record.title);
     const shop = toRecord(record.shop);
+    const shopId = readString(shop.id);
+    const shopName = readString(shop.name);
+    if (!productId || !title || !shopId || !shopName) {
+      throw new Error("Recently viewed API response is missing required fields");
+    }
     return {
       productId,
-      title: readString(record.title, "Recently viewed product"),
+      title,
       imageUrl: optionalString(record.coverImage) ?? optionalString(record.imageUrl),
       href: `/products/${productId}`,
       minPrice: readNumberOrNull(record.minPrice),
       currency: optionalString(record.currency),
+      rating: readNumber(record.rating),
+      soldCount: readNumber(record.soldCount),
       shop: {
-        id: readString(shop.id),
-        name: readString(shop.name, "Marketplace shop"),
+        id: shopId,
+        name: shopName,
       },
       viewedAt: optionalString(record.viewedAt),
     };
-  }).filter((item) => item.productId);
-}
-
-export function normalizeLocalRecentlyViewedProducts(input: LocalRecentlyViewedProduct[]): RecentlyViewedProductCard[] {
-  return input.map((item) => ({
-    productId: item.productId,
-    title: item.title,
-    imageUrl: item.imageUrl,
-    href: item.href,
-    minPrice: null,
-    currency: null,
-    shop: {
-      id: "",
-      name: "Recently viewed",
-    },
-    viewedAt: item.viewedAt,
-  }));
+  });
 }
 
 function flushImpressions(events: Map<string, TrackDiscoveryEventInput>): void {
@@ -219,23 +173,6 @@ function flushImpressions(events: Map<string, TrackDiscoveryEventInput>): void {
   const queued = [...events.values()];
   events.clear();
   queued.forEach(trackDiscoveryEvent);
-}
-
-function readLocalRecentlyViewedProduct(value: unknown): LocalRecentlyViewedProduct | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const record = value as Record<string, unknown>;
-  const productId = readString(record.productId);
-  const title = readString(record.title);
-  const href = readString(record.href);
-  const viewedAt = readString(record.viewedAt);
-  if (!productId || !title || !href || !viewedAt) return null;
-  return {
-    productId,
-    title,
-    href,
-    viewedAt,
-    imageUrl: typeof record.imageUrl === "string" ? record.imageUrl : null,
-  };
 }
 
 function toRecord(value: unknown): Record<string, unknown> {
@@ -258,4 +195,8 @@ function readNumberOrNull(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function readNumber(value: unknown): number {
+  return readNumberOrNull(value) ?? 0;
 }

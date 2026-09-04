@@ -13,10 +13,8 @@ import {
   SparklesIcon,
   StarIcon,
   TicketPercentIcon,
-  ZapIcon,
 } from "lucide-react";
 import { BuyerTopBar, MobileBottomNavigation } from "#/components/BuyerShell";
-import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Skeleton } from "#/components/ui/skeleton";
 import { addCartItem } from "#/features/buyer/api";
@@ -36,6 +34,7 @@ import { getAnonymousSessionId, trackDiscoveryEvent, useTrackVisibleProducts } f
 import { useFormatters, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
+import { MarketplaceHeroPromo } from "./MarketplaceHeroPromo";
 
 interface MarketplaceHomeProps {
   initialHome?: DiscoveryHomeResponse;
@@ -242,44 +241,16 @@ function HeroPromo({ banners }: { banners: MarketplaceBanner[] }) {
   const t = useTranslations();
   const localePath = useLocalePath();
   const banner = banners[0];
-  const href = normalizeHomepageHref(banner?.targetUrl, localePath("/search?q=deals"));
-  return (
-    <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-rose-500 to-fuchsia-600 p-4 text-white shadow-[0_18px_48px_rgba(244,63,94,0.24)] sm:p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <Badge className="mb-3 border-white/20 bg-white/20 text-white">
-            <ZapIcon className="size-3" />
-            {t("home.heroKicker")}
-          </Badge>
-          <h1 className="max-w-xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-            {banner?.title ?? t("home.heroTitle")}
-          </h1>
-          <p className="mt-2 max-w-lg text-sm text-white/85 sm:text-base">
-            {banner?.subtitle ?? t("home.heroSubtitle")}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Button asChild className="rounded-full bg-white text-rose-600 hover:bg-white/95">
-              <Link
-                href={href}
-                prefetch={false}
-                onClick={() => banner ? trackDiscoveryEvent({ eventType: "banner_clicked", bannerId: banner.id, source: "marketplace_home_hero", position: 0 }) : undefined}
-              >
-                {t("home.shopNow")}
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="rounded-full border-white/35 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-              <Link href={localePath("/vouchers")} prefetch={false}>{t("home.claimVoucher")}</Link>
-            </Button>
-          </div>
-        </div>
-        <div className="hidden aspect-square w-40 shrink-0 rounded-[2rem] bg-white/15 p-4 sm:block">
-          <div className="flex h-full items-center justify-center rounded-[1.5rem] bg-white/15">
-            <ShoppingBagIcon className="size-20 text-white" />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+  if (!banner) return null;
+  const href = normalizeHomepageHref(banner.targetUrl, localePath("/search?q=deals"));
+  return <MarketplaceHeroPromo
+    banner={banner}
+    href={href}
+    voucherHref={localePath("/vouchers")}
+    shopNowLabel={t("home.shopNow")}
+    claimVoucherLabel={t("home.claimVoucher")}
+    onBannerClick={() => trackDiscoveryEvent({ eventType: "banner_clicked", bannerId: banner.id, source: "marketplace_home_hero", position: 0 })}
+  />;
 }
 
 function VoucherStrip({ promotions, isLoading }: { promotions: MarketplacePromotion[]; isLoading: boolean }) {
@@ -322,6 +293,7 @@ function FlashSaleSection({
   const t = useTranslations();
   const localePath = useLocalePath();
   const products = flashSale?.items ?? [];
+  if (!isLoading && !flashSale) return null;
   return (
     <section className="mt-5 min-h-[286px] rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70 sm:p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -357,7 +329,7 @@ function FlashSaleSection({
               <Button
                 size="sm"
                 className="mt-2 h-8 w-full rounded-full bg-orange-700 text-white hover:bg-orange-800"
-                disabled={!product.variantId || pendingVariantId === product.variantId}
+                disabled={!product.variantId || product.stock === 0 || pendingVariantId === product.variantId}
                 onClick={() => onAddToCart(product)}
               >
                 {pendingVariantId === product.variantId ? t("product.adding") : t("product.add")}

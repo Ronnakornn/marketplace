@@ -2,6 +2,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheService } from '#server/modules/cache'
 import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
+import { publicAssetUrl } from '#server/lib/public-assets.ts'
 import { RecommendationServiceError } from './recommendation.errors.ts'
 import type { IRecommendationRepository, RecommendationProductRecord, RecommendedCategory } from './recommendation.repository.ts'
 
@@ -186,16 +187,18 @@ export class RecommendationService {
     const singleVariantStock = singleVariant?.inventory
       ? Math.max(0, singleVariant.inventory.quantityOnHand - singleVariant.inventory.quantityReserved)
       : undefined
+    const coverImage = publicAssetUrl(product.images?.[0]?.url)
 
     return {
       productId: product.id,
       title: localizedText(locale, { th: product.titleTh, en: product.titleEn, fallback: product.title }) ?? product.title,
+      ...(coverImage ? { coverImage } : {}),
       minPrice,
       ...(maxPrice !== minPrice ? { maxPrice } : {}),
       ...(singleVariant?.id ? { variantId: singleVariant.id } : {}),
       ...(singleVariant?.title ? { variantTitle: singleVariant.title } : {}),
       ...(singleVariant?.sku ? { sku: singleVariant.sku } : {}),
-      ...(singleVariant?.currency ? { currency: singleVariant.currency } : {}),
+      ...(product.variants[0]?.currency ? { currency: product.variants[0].currency } : {}),
       ...(singleVariantStock !== undefined ? { stock: singleVariantStock } : {}),
       ...(rating !== undefined ? { rating } : {}),
       soldCount,

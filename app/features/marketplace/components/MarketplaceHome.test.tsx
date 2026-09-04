@@ -14,7 +14,7 @@ const queryMocks = vi.hoisted(() => ({
         id: "banner-1",
         title: "Campaign launch",
         subtitle: "Fresh marketplace deals",
-        imageUrl: null,
+        imageUrl: "/uploads/banner/campaign.avif",
         mobileImageUrl: null,
         targetUrl: "/search?q=campaign",
       }],
@@ -30,13 +30,15 @@ const queryMocks = vi.hoisted(() => ({
           originalPrice: 4990,
           soldCount: 4,
           stockLimit: 10,
+          availableStock: 6,
+          rating: 4.6,
           product: {
             id: "product-flash",
             title: "Flash marketplace tote",
             coverImage: "/uploads/product_image/flash/main.avif",
             shop: { id: "shop-1", name: "Live Shop", slug: "live-shop" },
           },
-          variant: { id: "variant-flash", currency: "THB" },
+          variant: { id: "variant-flash", title: "Standard", currency: "THB" },
         }],
       },
       recommendedProducts: [{
@@ -45,6 +47,7 @@ const queryMocks = vi.hoisted(() => ({
         coverImage: "/uploads/product_image/product-1/main.avif",
         minPrice: 4890,
         maxPrice: 5890,
+        currency: "THB",
         rating: 4.8,
         soldCount: 16,
         shop: { id: "shop-1", name: "Live Shop" },
@@ -53,6 +56,7 @@ const queryMocks = vi.hoisted(() => ({
         productId: "product-2",
         title: "New arrival cap",
         minPrice: 2190,
+        currency: "THB",
         soldCount: 2,
         shop: { id: "shop-2", name: "Cap Shop" },
       }],
@@ -73,6 +77,8 @@ const queryMocks = vi.hoisted(() => ({
         coverImage: null,
         minPrice: 1590,
         currency: "THB",
+        rating: 4.2,
+        soldCount: 9,
         shop: { id: "shop-3", name: "Bottle Shop", slug: "bottle-shop" },
       }],
       promotions: [{
@@ -277,6 +283,7 @@ describe("MarketplaceHome", () => {
     renderWithClient(<MarketplaceHome />);
 
     expect(await screen.findByRole("heading", { name: "Campaign launch" }, { timeout: 5_000 })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Campaign launch" }).getAttribute("src")).toBe("/uploads/banner/campaign.avif");
     expect(screen.getByRole("heading", { name: "Recommended for you" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "New arrivals" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Featured shops" })).toBeTruthy();
@@ -300,12 +307,25 @@ describe("MarketplaceHome", () => {
 
     renderWithClient(<MarketplaceHome />);
 
-    expect(screen.getByRole("heading", { name: "Shop fast. Checkout faster." })).toBeTruthy();
-    expect(await screen.findByText("No flash sale right now")).toBeTruthy();
-    expect(screen.getByText("No recommendations yet")).toBeTruthy();
+    expect(await screen.findByText("No recommendations yet")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Shop fast. Checkout faster." })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Flash Sale" })).toBeNull();
+    expect(screen.queryByText("No flash sale right now")).toBeNull();
     expect(screen.getByText("No new arrivals yet")).toBeTruthy();
     expect(screen.getByText("No featured shops yet")).toBeTruthy();
     expect(screen.getByText("No recently viewed products")).toBeTruthy();
+  });
+
+  it("disables a sold-out flash sale item using API available stock", async () => {
+    const response = structuredClone(queryMocks.defaultHomeResponse);
+    const flashSale = response.sections.flashSale as { items: Array<Record<string, unknown>> };
+    flashSale.items[0]!.availableStock = 0;
+    queryMocks.homeResponse = response;
+
+    renderWithClient(<MarketplaceHome />);
+
+    await screen.findByText("Flash marketplace tote");
+    expect(screen.getAllByRole("button", { name: "Add" })[0]?.hasAttribute("disabled")).toBe(true);
   });
 
   it("shows an error state with a retry path when homepage loading fails", async () => {

@@ -109,15 +109,22 @@ export function marketplaceHomeQueryOptions(input: MarketplaceHomeQueryInput = {
 export function normalizeMarketplaceHome(response: DiscoveryHomeResponse): MarketplaceHomeData {
   const sections = toRecord(toRecord(response).sections);
   return {
-    banners: readArray(sections.banners).map(normalizeBanner).filter((item) => item.id),
-    categories: readArray(sections.categories).map(normalizeCategory).filter((item) => item.slug),
-    flashSale: normalizeFlashSale(sections.flashSale),
-    recommendedProducts: readArray(sections.recommendedProducts).map((item, index) => normalizeRecommendationProduct(item, index, "recommended")).filter((item) => item.id),
-    newArrivals: readArray(sections.newArrivals).map((item, index) => normalizeRecommendationProduct(item, index, "new")).filter((item) => item.id),
-    featuredShops: readArray(sections.featuredShops).map(normalizeShop).filter((item) => item.id),
-    recentlyViewed: readArray(sections.recentlyViewed).map((item, index) => normalizeRecentlyViewedProduct(item, index)).filter((item) => item.id),
-    promotions: readArray(sections.promotions).map(normalizePromotion).filter((item) => item.id),
+    banners: mapRequired(readSectionArray(sections, "banners"), normalizeBanner, "banner"),
+    categories: mapRequired(readSectionArray(sections, "categories"), normalizeCategory, "category"),
+    flashSale: normalizeOptionalFlashSale(sections.flashSale),
+    recommendedProducts: mapRequired(readSectionArray(sections, "recommendedProducts"), (item) => normalizeRecommendationProduct(item, "recommended"), "recommended product"),
+    newArrivals: mapRequired(readSectionArray(sections, "newArrivals"), (item) => normalizeRecommendationProduct(item, "new"), "new arrival"),
+    featuredShops: mapRequired(readSectionArray(sections, "featuredShops"), normalizeShop, "featured shop"),
+    recentlyViewed: mapRequired(readSectionArray(sections, "recentlyViewed"), normalizeRecentlyViewedProduct, "recently viewed product"),
+    promotions: mapRequired(readSectionArray(sections, "promotions"), normalizePromotion, "promotion"),
   };
+}
+
+function normalizeOptionalFlashSale(input: unknown): MarketplaceFlashSale | null {
+  if (input === undefined || input === null) return null;
+  const flashSale = normalizeFlashSale(input);
+  if (!flashSale) throw new Error("Discovery API response contains a malformed flash sale");
+  return flashSale;
 }
 
 function cleanHomeQuery(input: MarketplaceHomeQueryInput): Record<string, string | number> {
@@ -130,11 +137,14 @@ function cleanHomeQuery(input: MarketplaceHomeQueryInput): Record<string, string
   ) as Record<string, string | number>;
 }
 
-function normalizeBanner(input: unknown): MarketplaceBanner {
+function normalizeBanner(input: unknown): MarketplaceBanner | null {
   const record = toRecord(input);
+  const id = readString(record.id);
+  const title = readString(record.title);
+  if (!id || !title) return null;
   return {
-    id: readString(record.id),
-    title: readString(record.title, "Featured deal"),
+    id,
+    title,
     subtitle: optionalString(record.subtitle),
     imageUrl: optionalString(record.imageUrl),
     mobileImageUrl: optionalString(record.mobileImageUrl),
@@ -142,58 +152,73 @@ function normalizeBanner(input: unknown): MarketplaceBanner {
   };
 }
 
-function normalizeCategory(input: unknown): MarketplaceCategory {
+function normalizeCategory(input: unknown): MarketplaceCategory | null {
   const record = toRecord(input);
+  const id = readString(record.id);
+  const slug = readString(record.slug);
+  const name = readString(record.name);
+  if (!id || !slug || !name) return null;
   return {
-    id: readString(record.id, readString(record.slug)),
-    slug: readString(record.slug),
-    name: readString(record.name, "Category"),
+    id,
+    slug,
+    name,
   };
 }
 
 function normalizeFlashSale(input: unknown): MarketplaceFlashSale | null {
   const record = toRecord(input);
-  const items = readArray(record.items).map((item, index) => normalizeFlashSaleItem(item, index)).filter((item) => item.id);
-  if (!readString(record.id) && items.length === 0) return null;
+  const id = readString(record.id);
+  const title = readString(record.title);
+  if (!id || !title) return null;
+  if (!Array.isArray(record.items)) throw new Error("Discovery API response flash sale items must be an array");
+  const items = mapRequired(record.items, normalizeFlashSaleItem, "flash sale item");
   return {
-    id: readString(record.id, "flash-sale"),
-    title: readString(record.title, "Flash Sale"),
+    id,
+    title,
     description: optionalString(record.description),
     endsAt: optionalString(record.endsAt),
     items,
   };
 }
 
-function normalizeFlashSaleItem(input: unknown, index: number): MarketplaceProductCard {
+function normalizeFlashSaleItem(input: unknown): MarketplaceProductCard | null {
   const record = toRecord(input);
   const product = toRecord(record.product);
   const variant = toRecord(record.variant);
-  const salePrice = readNumber(record.salePrice);
-  const originalPrice = readNumber(record.originalPrice);
+  const salePrice = readRequiredNumber(record.salePrice, "flash sale price", 1);
+  const originalPrice = readRequiredNumber(record.originalPrice, "flash sale original price", 1);
+  const availableStock = readRequiredNumber(record.availableStock, "flash sale available stock", 0);
   const shop = toRecord(product.shop);
+  const id = readString(product.id, readString(record.productId));
+  const title = readString(product.title);
+  const currency = readString(variant.currency);
+  const shopId = readString(shop.id);
+  const shopName = readString(shop.name);
+  const variantId = optionalString(variant.id);
+  if (!id || !title || !currency || !shopId || !shopName || !variantId) return null;
   const normalized = {
-    id: readString(product.id, readString(record.productId, `flash-product-${index}`)),
-    title: readString(product.title, "Untitled product"),
+    id,
+    title,
     imageUrl: optionalString(product.coverImage),
     price: salePrice,
     originalPrice: originalPrice > salePrice ? originalPrice : null,
-    currency: readString(variant.currency, "THB"),
-    rating: 0,
+    currency,
+    rating: readNumber(record.rating),
     soldCount: readNumber(record.soldCount),
     shop: {
-      id: readString(shop.id),
-      name: readString(shop.name, "Marketplace shop"),
+      id: shopId,
+      name: shopName,
       location: null,
       slug: optionalString(shop.slug),
     },
     badges: ["Flash Sale"],
-    variantId: optionalString(variant.id),
-    stock: readNumber(record.stockLimit),
+    variantId,
+    stock: availableStock,
   };
   return withBuyerProduct(normalized, {
     variants: normalized.variantId ? [{
       id: normalized.variantId,
-      title: readString(variant.title, "Default"),
+      title: readString(variant.title),
       sku: readString(variant.sku),
       price: normalized.price,
       currency: normalized.currency,
@@ -204,23 +229,29 @@ function normalizeFlashSaleItem(input: unknown, index: number): MarketplaceProdu
   });
 }
 
-function normalizeRecommendationProduct(input: unknown, index: number, badge: string): MarketplaceProductCard {
+function normalizeRecommendationProduct(input: unknown, badge: string): MarketplaceProductCard | null {
   const record = toRecord(input);
   const shop = toRecord(record.shop);
-  const minPrice = readNumber(record.minPrice, readNumber(record.price));
+  const minPrice = readRequiredNumber(record.minPrice ?? record.price, "recommendation price", 1);
   const maxPrice = readNumber(record.maxPrice, minPrice);
+  const id = readString(record.productId, readString(record.id));
+  const title = readString(record.title);
+  const shopId = readString(shop.id);
+  const shopName = readString(shop.name);
+  const currency = readString(record.currency);
+  if (!id || !title || !shopId || !shopName || !currency) return null;
   const normalized = {
-    id: readString(record.productId, readString(record.id, `product-${index}`)),
-    title: readString(record.title, "Untitled product"),
+    id,
+    title,
     imageUrl: optionalString(record.coverImage),
     price: minPrice,
     originalPrice: maxPrice > minPrice ? maxPrice : null,
-    currency: readString(record.currency, "THB"),
+    currency,
     rating: readNumber(record.rating),
     soldCount: readNumber(record.soldCount),
     shop: {
-      id: readString(shop.id),
-      name: readString(shop.name, "Marketplace shop"),
+      id: shopId,
+      name: shopName,
       location: optionalString(shop.location),
       slug: optionalString(shop.slug),
     },
@@ -231,7 +262,7 @@ function normalizeRecommendationProduct(input: unknown, index: number, badge: st
   return withBuyerProduct(normalized, {
     variants: normalized.variantId ? [{
       id: normalized.variantId,
-      title: readString(record.variantTitle, "Default"),
+      title: readString(record.variantTitle),
       sku: readString(record.sku),
       price: normalized.price,
       currency: normalized.currency,
@@ -242,21 +273,27 @@ function normalizeRecommendationProduct(input: unknown, index: number, badge: st
   });
 }
 
-function normalizeRecentlyViewedProduct(input: unknown, index: number): MarketplaceProductCard {
+function normalizeRecentlyViewedProduct(input: unknown): MarketplaceProductCard | null {
   const record = toRecord(input);
   const shop = toRecord(record.shop);
+  const id = readString(record.productId, readString(record.id));
+  const title = readString(record.title);
+  const currency = readString(record.currency);
+  const shopId = readString(shop.id);
+  const shopName = readString(shop.name);
+  if (!id || !title || !currency || !shopId || !shopName) return null;
   const normalized = {
-    id: readString(record.productId, readString(record.id, `recent-product-${index}`)),
-    title: readString(record.title, "Untitled product"),
+    id,
+    title,
     imageUrl: optionalString(record.coverImage),
     price: readNumber(record.minPrice),
     originalPrice: null,
-    currency: readString(record.currency, "THB"),
-    rating: 0,
-    soldCount: 0,
+    currency,
+    rating: readNumber(record.rating),
+    soldCount: readNumber(record.soldCount),
     shop: {
-      id: readString(shop.id),
-      name: readString(shop.name, "Marketplace shop"),
+      id: shopId,
+      name: shopName,
       location: null,
       slug: optionalString(shop.slug),
     },
@@ -313,12 +350,16 @@ function withBuyerProduct(
   };
 }
 
-function normalizeShop(input: unknown): MarketplaceShop {
+function normalizeShop(input: unknown): MarketplaceShop | null {
   const record = toRecord(input);
+  const id = readString(record.id);
+  const name = readString(record.name);
+  const slug = readString(record.slug);
+  if (!id || !name || !slug) return null;
   return {
-    id: readString(record.id),
-    name: readString(record.name, "Shop"),
-    slug: readString(record.slug),
+    id,
+    name,
+    slug,
     logoUrl: optionalString(record.logoUrl),
     coverUrl: optionalString(record.coverUrl),
     ratingAverage: readNumber(record.ratingAverage),
@@ -328,12 +369,16 @@ function normalizeShop(input: unknown): MarketplaceShop {
   };
 }
 
-function normalizePromotion(input: unknown): MarketplacePromotion {
+function normalizePromotion(input: unknown): MarketplacePromotion | null {
   const record = toRecord(input);
+  const id = readString(record.id);
+  const code = readString(record.code);
+  const title = readString(record.title);
+  if (!id || !code || !title) return null;
   return {
-    id: readString(record.id),
-    code: readString(record.code),
-    title: readString(record.title, readString(record.code, "Voucher")),
+    id,
+    code,
+    title,
     description: optionalString(record.description),
   };
 }
@@ -342,8 +387,19 @@ function toRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function readArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
+function readSectionArray(sections: Record<string, unknown>, key: string): unknown[] {
+  const value = sections[key];
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error(`Discovery API response section ${key} must be an array`);
+  return value;
+}
+
+function mapRequired<T>(items: unknown[], normalize: (item: unknown) => T | null, label: string): T[] {
+  return items.map((item) => {
+    const normalized = normalize(item);
+    if (!normalized) throw new Error(`Discovery API response contains a malformed ${label}`);
+    return normalized;
+  });
 }
 
 function readString(value: unknown, fallback = ""): string {
@@ -362,4 +418,12 @@ function readNumber(value: unknown, fallback = 0): number {
     return Number.isFinite(parsed) ? parsed : fallback;
   }
   return fallback;
+}
+
+function readRequiredNumber(value: unknown, label: string, minimum: number): number {
+  const number = typeof value === "bigint" ? Number(value) : typeof value === "string" && value.trim() ? Number(value) : value;
+  if (typeof number !== "number" || !Number.isFinite(number) || number < minimum) {
+    throw new Error(`Discovery API response contains an invalid ${label}`);
+  }
+  return number;
 }

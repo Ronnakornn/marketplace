@@ -1,6 +1,8 @@
 import type { Prisma } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { CatalogService } from '#server/modules/catalog/catalog.service.ts'
+import { publicAssetUrl } from '#server/lib/public-assets.ts'
 import { TrackingServiceError } from './tracking.errors.ts'
 import type { ITrackingRepository, TrackingProductRecord } from './tracking.repository.ts'
 
@@ -76,6 +78,8 @@ export interface RecentlyViewedProduct {
   coverImage: string | null
   minPrice: number | null
   currency: string | null
+  rating: number
+  soldCount: number
   shop: {
     id: string
     name: string
@@ -89,6 +93,7 @@ export class TrackingService {
   constructor(
     appContext: AppContext,
     private repo: ITrackingRepository,
+    private catalogService: CatalogService,
   ) {
     this.logger = appContext.logger
   }
@@ -140,7 +145,9 @@ export class TrackingService {
       sessionId,
       limit,
     })
-    return products.map((product) => this.toRecentlyViewedProduct(product))
+    const metrics = await this.catalogService.getPublicProductMetrics(products.map((product) => product.id))
+    const metricsByProductId = new Map(metrics.map((metric) => [metric.productId, metric]))
+    return products.map((product) => this.toRecentlyViewedProduct(product, metricsByProductId.get(product.id)))
   }
 
   async recordProductAddToCart(input: ProductAddToCartTrackingInput): Promise<{ ok: true }> {
@@ -324,15 +331,20 @@ export class TrackingService {
     }
   }
 
-  private toRecentlyViewedProduct(product: TrackingProductRecord): RecentlyViewedProduct {
+  private toRecentlyViewedProduct(
+    product: TrackingProductRecord,
+    metric?: { rating: number; soldCount: number },
+  ): RecentlyViewedProduct {
     const firstVariant = product.variants[0]
     return {
       productId: product.id,
       title: product.title,
       slug: product.slug,
-      coverImage: product.images[0]?.url ?? null,
+      coverImage: publicAssetUrl(product.images[0]?.url),
       minPrice: firstVariant ? Number(firstVariant.price) : null,
       currency: firstVariant?.currency ?? null,
+      rating: metric?.rating ?? 0,
+      soldCount: metric?.soldCount ?? 0,
       shop: {
         id: product.shop.id,
         name: product.shop.name,
