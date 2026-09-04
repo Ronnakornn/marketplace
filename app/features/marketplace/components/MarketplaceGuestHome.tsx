@@ -92,6 +92,7 @@ export function MarketplaceGuestHome({ initialHome, locale }: { initialHome: Dis
           emptyDescription={t("home.recommendedEmptyDescription")}
           formatMoney={formatMoney}
           localePath={localePath}
+          prioritizeFirstImage
           t={t}
         />
         <ProductRail
@@ -212,18 +213,18 @@ function CategoryGrid({ categories, localePath, t }: { categories: Array<{ id: s
   );
 }
 
-function ProductRail({ title, subtitle, products, emptyTitle, emptyDescription, localePath, formatMoney, t }: { title: string; subtitle: string; products: MarketplaceProductCard[]; emptyTitle: string; emptyDescription: string; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; t: Translator }) {
+function ProductRail({ title, subtitle, products, emptyTitle, emptyDescription, localePath, formatMoney, prioritizeFirstImage = false, t }: { title: string; subtitle: string; products: MarketplaceProductCard[]; emptyTitle: string; emptyDescription: string; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; prioritizeFirstImage?: boolean; t: Translator }) {
   return (
     <section className="mt-5">
       <div className="mb-3 flex items-center justify-between px-1"><div><h2 className="text-lg font-extrabold text-slate-950">{title}</h2><p className="text-xs text-slate-900">{subtitle}</p></div><SparklesIcon className="size-5 text-orange-500" /></div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{products.map((product, index) => <div key={`${product.id}-${index}`}><GuestProductCard product={product.buyerProduct} localePath={localePath} formatMoney={formatMoney} t={t} /></div>)}</div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{products.map((product, index) => <div key={`${product.id}-${index}`}><GuestProductCard product={product.buyerProduct} localePath={localePath} formatMoney={formatMoney} eagerImage={prioritizeFirstImage && index === 0} t={t} /></div>)}</div>
       {!products.length ? <div className="mt-3 rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm"><p className="text-sm font-bold text-slate-950">{emptyTitle}</p><p className="mt-1 text-xs text-slate-900">{emptyDescription}</p></div> : null}
       <div className="py-6 text-center text-xs text-slate-900">{t("home.youAreCaughtUp")}</div>
     </section>
   );
 }
 
-function GuestProductCard({ product, localePath, formatMoney, t }: { product: BuyerProduct; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; t: Translator }) {
+function GuestProductCard({ product, localePath, formatMoney, eagerImage = false, t }: { product: BuyerProduct; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; eagerImage?: boolean; t: Translator }) {
   const image = resolveUploadedImageUrl(product.images[0]);
   const hasPriceRange = product.maxPrice > product.minPrice;
   const quickAddVariant = product.options.length === 0 && product.variants.filter((variant) => variant.stock > 0).length === 1 && product.variants[0]?.optionValues.length === 0 ? product.variants[0] : null;
@@ -235,7 +236,7 @@ function GuestProductCard({ product, localePath, formatMoney, t }: { product: Bu
   return (
     <article className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-orange-500 focus-within:ring-offset-2">
       <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
-        <Link href={localePath(`/products/${product.id}`)} prefetch={false} className="block size-full focus-visible:outline-none" aria-label={t("product.viewProduct").replace("{title}", product.title)}><div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white"><Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition group-hover:scale-105" /></div></Link>
+        <Link href={localePath(`/products/${product.id}`)} prefetch={false} className="block size-full focus-visible:outline-none" aria-label={t("product.viewProduct").replace("{title}", product.title)}><div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white"><Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" loading={eagerImage ? "eager" : undefined} fetchPriority={eagerImage ? "high" : undefined} className="object-cover transition group-hover:scale-105" /></div></Link>
         <div className="absolute left-2 top-2 flex min-h-5 max-w-[calc(100%-3.5rem)] flex-wrap gap-1">{cardBadges.slice(0, 2).map((badge) => <Badge key={badge} className="rounded-md bg-orange-700 px-1.5 py-0.5 text-[10px] leading-none text-white">{badge}</Badge>)}</div>
         {discountLabel ? <Badge className="absolute bottom-2 left-2 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] leading-none text-white">{discountLabel}</Badge> : null}
         <Button type="button" variant="secondary" size="icon" className="absolute right-2 top-2 size-9 rounded-full bg-white/90 shadow-sm focus-visible:ring-2 focus-visible:ring-orange-500" aria-label={t("product.signInBuyerWishlist")} title={t("product.signInBuyerWishlist")} disabled><HeartIcon className="size-4 text-slate-700" /></Button>
