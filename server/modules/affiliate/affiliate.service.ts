@@ -3,7 +3,7 @@ import type { Affiliate, AffiliateCommission, AffiliateLink } from '#generated/c
 import type { AffiliateStatus, AffiliateTargetType } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import { AffiliateServiceError } from './affiliate.errors.ts'
-import type { IAffiliateRepository } from './affiliate.repository.ts'
+import type { IAffiliateCommissionRepository, IAffiliateRepository } from './affiliate.repository.ts'
 
 const DEFAULT_ATTRIBUTION_WINDOW_DAYS = 30
 const DEFAULT_COMMISSION_BPS = 500
@@ -170,7 +170,7 @@ export class AffiliateService {
   }
 
   async createCommissionForPaidOrderWithRepo(
-    repo: IAffiliateRepository,
+    repo: IAffiliateCommissionRepository,
     input: CreateCommissionInput,
   ): Promise<AffiliateCommission | null> {
     if (!this.config.enabled) return null

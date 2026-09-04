@@ -86,6 +86,15 @@ export interface IAffiliateRepository {
   getStats(userId: string): Promise<{ clicks: number; conversions: number; commissionCents: number }>
 }
 
+export type IAffiliateCommissionRepository = Pick<
+  IAffiliateRepository,
+  | 'findLatestAttributableClick'
+  | 'findOrderForCommission'
+  | 'findCommissionByOrderId'
+  | 'findAffiliateById'
+  | 'createCommission'
+>
+
 type TxClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>
 
 const affiliateInclude = {

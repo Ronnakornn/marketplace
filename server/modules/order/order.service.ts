@@ -1,6 +1,11 @@
 import type { Role } from '#generated/client/enums.ts'
 import type { OrderItem } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
+import {
+  buildBuyerShipmentTimeline,
+  formatBuyerShipmentStatus,
+} from '#server/modules/shipment/buyer-shipment-projection.ts'
+import { adaptOrderShipmentProgress } from './buyer-shipment.adapter.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
 import { OrderServiceError } from './order.errors.ts'
@@ -279,52 +284,12 @@ export class OrderService {
       shopName: firstItem?.shopName ?? '',
       carrier: shipment.carrier,
       trackingNo: shipment.trackingNumber,
-      status: this.formatShipmentStatus(shipment.status),
+      status: formatBuyerShipmentStatus(shipment.status),
       shippedAt: shipment.shippedAt,
       deliveredAt: shipment.deliveredAt,
       items: shipment.items.map((item) => this.toItemResponse(item.orderItem)),
-      timeline: this.buildTimeline(shipment),
+      timeline: buildBuyerShipmentTimeline(adaptOrderShipmentProgress(shipment)),
     }
-  }
-
-  private buildTimeline(shipment: OrderShipment): TrackingTimelineEvent[] {
-    const timeline: TrackingTimelineEvent[] = [
-      {
-        status: 'pending_pack',
-        label: 'Seller is preparing your order',
-        timestamp: shipment.createdAt,
-      },
-    ]
-
-    if (shipment.status === 'PACKED' || shipment.status === 'SHIPPED' || shipment.status === 'DELIVERED') {
-      timeline.push({
-        status: 'packed',
-        label: 'Seller packed your order',
-        timestamp: shipment.updatedAt,
-      })
-    }
-
-    if ((shipment.status === 'SHIPPED' || shipment.status === 'DELIVERED') && shipment.shippedAt) {
-      timeline.push({
-        status: 'shipped',
-        label: 'Your parcel has been shipped',
-        timestamp: shipment.shippedAt,
-      })
-    }
-
-    if (shipment.status === 'DELIVERED' && shipment.deliveredAt) {
-      timeline.push({
-        status: 'delivered',
-        label: 'Delivered',
-        timestamp: shipment.deliveredAt,
-      })
-    }
-
-    return timeline
-  }
-
-  private formatShipmentStatus(status: OrderShipment['status']): string {
-    return status === 'PENDING_PACK' ? 'pending_pack' : status.toLowerCase()
   }
 
   private toMoneyNumber(value: bigint | number): number {

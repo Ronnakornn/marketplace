@@ -4,15 +4,15 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { SessionUser } from '#server/modules/auth'
 import type { CacheInvalidation } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
-import type { ShipmentService } from '#server/modules/shipment/shipment.service.ts'
-import type { AffiliateService } from '#server/modules/affiliate'
 import { getPaymentProviderConfigFromEnv, type PaymentProviderConfig } from './payment.config.ts'
 import { PaymentServiceError } from './payment.errors.ts'
-import type { IPaymentRepository, PaymentWithOrder, ReleaseReservationInput } from './payment.repository.ts'
+import type { IPaymentRepository, PaymentWithOrder } from './payment.repository.ts'
+import { PaymentSettlement } from './payment.settlement.ts'
 import type {
   BuyerMockPaymentDetail,
   MockPaymentEventBody,
   PaymentWebhookBody,
+  PaymentWebhookEventType,
   PaymentWebhookResponse,
 } from './payment.types.ts'
 
@@ -20,14 +20,12 @@ const VALID_EVENTS = new Set(['payment.paid', 'payment.failed', 'payment.expired
 
 export class PaymentService {
   private logger: ILogger
-
   constructor(
     appContext: AppContext,
     private repo: IPaymentRepository,
-    private shipmentService: ShipmentService,
+    private settlement: PaymentSettlement,
     private cacheInvalidation?: CacheInvalidation,
     private eventPublisher?: EventPublisherService,
-    private affiliateService?: AffiliateService,
     private paymentConfig: PaymentProviderConfig = getPaymentProviderConfigFromEnv(),
   ) {
     this.logger = appContext.logger
@@ -78,7 +76,8 @@ export class PaymentService {
       eventType: input.eventType,
     })
 
-    const response = await this.repo.transaction(async (txRepo) => {
+    const response = await this.repo.transaction(async (context) => {
+      const txRepo = context.payment
       await txRepo.lockWebhookEvent(input.providerRef)
       const existingEvent = await txRepo.findWebhookEvent(input.providerRef)
       if (existingEvent) {
@@ -109,43 +108,13 @@ export class PaymentService {
 
       this.assertAllowedTransition(payment.status, input.eventType)
       await txRepo.createWebhookEvent(input)
-
-      if (input.eventType === 'payment.paid') {
-        const reservations = this.getActiveReservations(payment)
-        if (reservations.length === 0) {
-          throw new PaymentServiceError('Paid order has no active inventory reservations', 409, 'PAYMENT_STATE_CONFLICT')
-        }
-        await txRepo.applyPaymentStateTransition({
-          paymentId: payment.id,
-          orderId: order.id,
-          checkoutId: payment.order.checkoutId,
-          eventType: input.eventType,
-          reservations,
-          occurredAt: new Date(),
-        })
-        await this.affiliateService?.createCommissionForPaidOrderWithRepo(txRepo, {
-          orderId: order.id,
-          buyerUserId: order.userId,
-        })
-        await this.shipmentService.createShipmentsForPaidOrderWithRepo(txRepo, order.id)
-        await this.invalidateOrderAffectedCaches(payment)
-        return { ok: true, code: 'PAYMENT_PAID' }
-      }
-
-      const reservations = this.getActiveReservations(payment)
-      const eventType = input.eventType === 'payment.failed' ? 'payment.failed' : 'payment.expired'
-      await txRepo.applyPaymentStateTransition({
-        paymentId: payment.id,
-        orderId: order.id,
-        checkoutId: payment.order.checkoutId,
-        eventType,
-        reservations,
+      const result = await this.settlement.settle(context, {
+        payment,
+        eventType: input.eventType,
         occurredAt: new Date(),
       })
       await this.invalidateOrderAffectedCaches(payment)
-      return eventType === 'payment.failed'
-        ? { ok: true, code: 'PAYMENT_FAILED' }
-        : { ok: true, code: 'PAYMENT_EXPIRED' }
+      return result
     })
 
     if (response.code === 'PAYMENT_PAID') {
@@ -170,7 +139,8 @@ export class PaymentService {
     if (actor.role === 'ADMIN') throw new PaymentServiceError('Buyer order APIs are only available to buyer accounts', 403, 'ORDER_FORBIDDEN')
     this.logger.info('PaymentService.cancelBuyerOrder', { actorId: actor.id, orderId })
 
-    const payment = await this.repo.transaction(async (txRepo) => {
+    const payment = await this.repo.transaction(async (context) => {
+      const txRepo = context.payment
       const initialPayment = await txRepo.findPaymentForOrder(orderId)
       if (!initialPayment || initialPayment.order.userId !== actor.id) throw new PaymentServiceError('Order not found', 404, 'ORDER_NOT_FOUND')
       await txRepo.lockPayment(initialPayment.id)
@@ -180,12 +150,9 @@ export class PaymentService {
         throw new PaymentServiceError('Order can no longer be cancelled', 409, 'ORDER_CANCELLATION_NOT_ALLOWED')
       }
 
-      await txRepo.applyPaymentStateTransition({
-        paymentId: lockedPayment.id,
-        orderId: lockedPayment.orderId,
-        checkoutId: lockedPayment.order.checkoutId,
+      await this.settlement.settle(context, {
+        payment: lockedPayment,
         eventType: 'buyer.cancelled',
-        reservations: this.getActiveReservations(lockedPayment),
         occurredAt: new Date(),
       })
       return lockedPayment
@@ -196,7 +163,9 @@ export class PaymentService {
     return { ok: true }
   }
 
-  private validateInput(input: PaymentWebhookBody): void {
+  private validateInput(
+    input: PaymentWebhookBody,
+  ): asserts input is PaymentWebhookBody & { eventType: PaymentWebhookEventType } {
     if (input.provider !== this.paymentConfig.provider) {
       throw new PaymentServiceError('Unsupported webhook provider', 400, 'INVALID_WEBHOOK_EVENT')
     }
@@ -257,16 +226,6 @@ export class PaymentService {
       throw new PaymentServiceError('Paid payment cannot be failed or expired', 409, 'PAYMENT_STATE_CONFLICT')
     }
     throw new PaymentServiceError('Payment is already in a terminal state', 409, 'PAYMENT_STATE_CONFLICT')
-  }
-
-  private getActiveReservations(payment: PaymentWithOrder): ReleaseReservationInput[] {
-    return payment.order.checkout.inventoryReservations
-      .filter((reservation) => reservation.status === 'ACTIVE')
-      .map((reservation) => ({
-        reservationId: reservation.id,
-        inventoryId: reservation.inventoryId,
-        quantity: reservation.quantity,
-      }))
   }
 
   private async invalidateOrderAffectedCaches(payment: PaymentWithOrder): Promise<void> {

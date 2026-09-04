@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PaymentStatus } from '#generated/client/enums.ts'
-import type { PaymentTransactionRepository, PaymentWithOrder, ReleaseReservationInput } from './payment.repository.ts'
+import type {
+  IPaymentRepository,
+  PaymentTransactionContext,
+  PaymentWithOrder,
+  ReleaseReservationInput,
+} from './payment.repository.ts'
 import { PaymentService } from './payment.service.ts'
+import { PaymentSettlement } from './payment.settlement.ts'
 import type { PaymentWebhookBody } from './payment.types.ts'
 
 function createLogger() {
@@ -23,43 +29,37 @@ function createAppContext() {
   }
 }
 
-function createRepoMock(): PaymentTransactionRepository {
-  return {
-    transaction: vi.fn(async (callback) => callback(repo)),
+function createRepoMock(): IPaymentRepository {
+  const payment: IPaymentRepository = {
+    transaction: vi.fn(async (callback) => callback(transactionContext)),
     lockWebhookEvent: vi.fn(),
     lockPayment: vi.fn(),
     findPayment: vi.fn(),
     findPaymentForOrder: vi.fn(),
     findOrder: vi.fn(),
-    findOrCreateAffiliate: vi.fn(),
-    findAffiliateByUserId: vi.fn(),
-    findAffiliateById: vi.fn(),
-    listAffiliates: vi.fn(),
-    updateAffiliateStatus: vi.fn(),
-    findLinkByCode: vi.fn(),
-    findLinkById: vi.fn(),
-    listLinksByUserId: vi.fn(),
-    createLink: vi.fn(),
-    updateLinkStatus: vi.fn(),
-    productExists: vi.fn(),
-    shopExists: vi.fn(),
-    campaignExists: vi.fn(),
-    searchTargets: vi.fn(),
-    createClick: vi.fn(),
-    findLatestAttributableClick: vi.fn(),
-    findOrderForCommission: vi.fn(),
-    findCommissionByOrderId: vi.fn(),
-    createCommission: vi.fn(),
-    getStats: vi.fn(),
-    findOrderForShipmentCreation: vi.fn(),
-    createShipment: vi.fn(),
     findWebhookEvent: vi.fn(),
     createWebhookEvent: vi.fn(),
     applyPaymentStateTransition: vi.fn(),
   }
+  transactionContext = {
+    payment,
+    affiliate: {
+      findAffiliateById: vi.fn(),
+      findLatestAttributableClick: vi.fn(),
+      findOrderForCommission: vi.fn(),
+      findCommissionByOrderId: vi.fn(),
+      createCommission: vi.fn(),
+    },
+    shipment: {
+      findOrderForShipmentCreation: vi.fn(),
+      createShipment: vi.fn(),
+    },
+  }
+  return payment
 }
 
-let repo: PaymentTransactionRepository
+let repo: IPaymentRepository
+let transactionContext: PaymentTransactionContext
 let eventPublisher: { publish: ReturnType<typeof vi.fn> }
 
 const baseBody: PaymentWebhookBody = {
@@ -168,9 +168,16 @@ async function setup(payment: PaymentWithOrder | null = createPayment()) {
   vi.mocked(repo.createWebhookEvent).mockResolvedValue({} as never)
   vi.mocked(repo.applyPaymentStateTransition).mockResolvedValue()
   eventPublisher = { publish: vi.fn().mockResolvedValue(undefined) }
-  return new PaymentService(createAppContext(), repo, {
+  const shipmentModule = {
     createShipmentsForPaidOrderWithRepo: vi.fn().mockResolvedValue([]),
-  } as never, undefined, eventPublisher as never)
+  }
+  return new PaymentService(
+    createAppContext(),
+    repo,
+    new PaymentSettlement(shipmentModule),
+    undefined,
+    eventPublisher as never,
+  )
 }
 
 describe('PaymentService', () => {

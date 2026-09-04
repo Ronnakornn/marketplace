@@ -7,7 +7,8 @@ export type {
   CheckoutCouponRef,
   CheckoutTotalsRecord,
   CreatedCheckoutOrder,
-  CreatePendingOrderInput,
+  AcceptedCheckoutQuote,
+  CheckoutCommitmentInput,
   ICheckoutRepository,
 } from './checkout.repository.ts'
 export { createCheckoutRoutes } from './checkout.routes.ts'

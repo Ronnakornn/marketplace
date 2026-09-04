@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { PrismaClient } from '#generated/client/client.ts'
-import { PrismaCheckoutRepository, type CreatePendingOrderInput } from './checkout.repository.ts'
+import { PrismaCheckoutRepository, type CheckoutCommitmentInput } from './checkout.repository.ts'
 
 function createLogger() {
   return {
@@ -69,15 +69,16 @@ describe('PrismaCheckoutRepository', () => {
         postalCode: '10110',
         country: 'TH',
       },
-      totals: {
-        subtotal: 2400,
-        discountTotal: 0,
-        shippingTotal: 350,
-        taxTotal: 0,
-        grandTotal: 2750,
-        currency: 'THB',
-      },
-      items: [{
+      acceptedQuote: {
+        totals: {
+          subtotal: 2400,
+          discountTotal: 0,
+          shippingTotal: 350,
+          taxTotal: 0,
+          grandTotal: 2750,
+          currency: 'THB',
+        },
+        items: [{
         id: 'cart-item-1',
         variantId: 'variant-1',
         quantity: 2,
@@ -107,16 +108,17 @@ describe('PrismaCheckoutRepository', () => {
             },
           },
         },
-      }],
-      couponDiscount: 0,
-      couponShopId: null,
-      coinDiscount: 0,
-      freeShippingShopIds: [],
-      paymentMethod: 'mock',
+        }],
+        couponDiscount: 0,
+        couponShopId: null,
+        coinDiscount: 0,
+        freeShippingShopIds: [],
+      },
+      paymentProvider: 'mock',
       locale: 'en',
-    } as unknown as CreatePendingOrderInput
+    } as unknown as CheckoutCommitmentInput
 
-    await expect(repository.createPendingOrder(input)).resolves.toMatchObject({
+    await expect(repository.commitCheckout(input)).resolves.toMatchObject({
       checkoutId: 'checkout-1',
       order,
       payment,
@@ -191,12 +193,15 @@ describe('PrismaCheckoutRepository', () => {
     const input = {
       cartId: 'cart-1', userId: 'buyer-1', orderNumber: 'ORD-SPLIT', checkoutExpiresAt: new Date('2026-09-04T00:00:00.000Z'),
       address: { recipientName: 'Buyer', phone: null, line1: '1 Road', line2: null, city: 'Bangkok', region: null, postalCode: '10110', country: 'TH' },
-      totals: { subtotal: 3000, discountTotal: 1600, shippingTotal: 300, taxTotal: 0, grandTotal: 1700, currency: 'THB' },
-      items: [item('one', 'shop-1', 1000, 100), item('two', 'shop-2', 2000, 200)],
-      couponDiscount: 1000, couponShopId: 'shop-1', coinDiscount: 600, freeShippingShopIds: [], paymentMethod: 'mock', locale: 'en',
-    } as unknown as CreatePendingOrderInput
+      acceptedQuote: {
+        totals: { subtotal: 3000, discountTotal: 1600, shippingTotal: 300, taxTotal: 0, grandTotal: 1700, currency: 'THB' },
+        items: [item('one', 'shop-1', 1000, 100), item('two', 'shop-2', 2000, 200)],
+        couponDiscount: 1000, couponShopId: 'shop-1', coinDiscount: 600, freeShippingShopIds: [],
+      },
+      paymentProvider: 'mock', locale: 'en',
+    } as unknown as CheckoutCommitmentInput
 
-    await repository.createPendingOrder(input)
+    await repository.commitCheckout(input)
 
     const orderData = prisma.order.create.mock.calls[0]![0].data
     const shopOrders = orderData.shopOrders.create as Array<{ subtotal: number; discountTotal: number; shippingTotal: number; grandTotal: number }>

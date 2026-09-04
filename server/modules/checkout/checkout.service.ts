@@ -8,14 +8,15 @@ import {
   getPaymentProviderConfigFromEnv,
   type PaymentProviderConfig,
 } from '#server/modules/payment/payment.config.ts'
-import { PromotionServiceError } from '#server/modules/promotion/promotion.errors.ts'
-import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
+import {
+  CheckoutQuoteEvaluator,
+  type CheckoutQuote,
+} from './checkout-quote.evaluator.ts'
 import { CheckoutServiceError } from './checkout.errors.ts'
 import type {
   CheckoutCart,
   CheckoutCartItem,
-  CheckoutPricedItem,
-  CreatePendingOrderInput,
+  CheckoutCommitmentInput,
   ICheckoutRepository,
 } from './checkout.repository.ts'
 
@@ -53,37 +54,12 @@ export interface CheckoutResponse {
   totalCents: number
 }
 
-export type CouponOutcome =
-  | { code: string; applied: true }
-  | { code: string; applied: false; reason: string }
-
-export interface CheckoutQuote {
-  subtotal: number
-  discountTotal: number
-  shippingTotal: number
-  taxTotal: number
-  grandTotal: number
-  currency: string
-  coupon: CouponOutcome | null
-  coinsApplied: number
-}
-
-interface CalculatedTotals {
-  subtotal: number
-  discountTotal: number
-  shippingTotal: number
-  taxTotal: number
-  grandTotal: number
-  currency: string
-}
-
 export class CheckoutService {
   private logger: ILogger
-
   constructor(
     appContext: AppContext,
     private repo: ICheckoutRepository,
-    private promotionService: PromotionService,
+    private quoteEvaluator: CheckoutQuoteEvaluator,
     private cacheInvalidation?: CacheInvalidation,
     private paymentConfig: PaymentProviderConfig = getPaymentProviderConfigFromEnv(),
   ) {
@@ -106,45 +82,26 @@ export class CheckoutService {
       if (!address) throw new CheckoutServiceError('Address not found', 404, 'ADDRESS_NOT_FOUND')
 
       this.validateItems(items)
-      const pricedItems = await this.priceItems(txRepo, items)
-      const baseTotals = this.calculateTotals(pricedItems)
-      let couponValidation = data.couponCode
-        ? await this.validateCouponForCheckout(txRepo, actor.id, data.couponCode, pricedItems)
-        : null
-      if (couponValidation) {
-        await txRepo.lockCouponForCheckout(couponValidation.couponId)
-        couponValidation = await this.validateCouponForCheckout(
-          txRepo,
-          actor.id,
-          data.couponCode!,
-          pricedItems,
-        )
-      }
-      const coinsToUse = await this.resolveCoinRedemption(txRepo, actor.id, data.coinsToUse, baseTotals.subtotal, couponValidation?.discount ?? 0)
-      const totals = this.calculateTotals(
-        pricedItems,
-        (couponValidation?.discount ?? 0) + coinsToUse * 100,
-        couponValidation?.freeShippingShopIds ?? [],
-      )
+      const evaluation = await this.quoteEvaluator.evaluate(txRepo, {
+        userId: actor.id,
+        items,
+        couponCode: data.couponCode,
+        coinsToUse: data.coinsToUse,
+        policy: 'commit',
+      })
+      const totals = evaluation.acceptedQuote.totals
       const orderNumber = this.createOrderNumber()
       const checkoutExpiresAt = new Date(Date.now() + CHECKOUT_RESERVATION_MINUTES * 60 * 1000)
 
-      const result = await this.createPendingOrder(txRepo, {
+      const result = await this.commitCheckout(txRepo, {
           cartId: cart!.id,
           userId: actor.id,
           orderNumber,
           checkoutExpiresAt,
           address,
-          totals,
-          items: pricedItems,
           paymentProvider: this.paymentConfig.provider,
           locale: data.locale,
-          coupon: couponValidation ? { id: couponValidation.couponId } : null,
-          couponDiscount: couponValidation?.discount ?? 0,
-          couponShopId: couponValidation?.couponShopId ?? null,
-          coinDiscount: coinsToUse * 100,
-          freeShippingShopIds: couponValidation?.freeShippingShopIds ?? [],
-          coinsToUse,
+          acceptedQuote: evaluation.acceptedQuote,
         })
 
       await this.cacheInvalidation?.invalidateInventory()
@@ -176,39 +133,14 @@ export class CheckoutService {
     this.assertCart(actor, cart)
     const items = this.selectCartItems(cart.items, data.cartItemIds)
 
-    const pricedItems = await this.priceItems(this.repo, items)
-    const baseTotals = this.calculateTotals(pricedItems)
-    let coupon: CouponOutcome | null = null
-    let discountCents = 0
-    let freeShippingShopIds: string[] = []
-
-    if (data.couponCode) {
-      try {
-        const couponValidation = await this.validateCouponForCheckout(this.repo, actor.id, data.couponCode, pricedItems)
-        discountCents = couponValidation.discount
-        freeShippingShopIds = couponValidation.freeShippingShopIds
-        coupon = { code: couponValidation.couponCode, applied: true }
-      } catch (error) {
-        if (error instanceof CheckoutServiceError && error.code === 'INVALID_COUPON') {
-          coupon = {
-            code: (error.details?.couponCode as string | undefined) ?? data.couponCode.trim().toUpperCase(),
-            applied: false,
-            reason: (error.details?.reason as string | undefined) ?? 'INVALID_COUPON',
-          }
-        } else {
-          throw error
-        }
-      }
-    }
-
-    const coinsApplied = await this.resolveCoinRedemption(this.repo, actor.id, data.coinsToUse, baseTotals.subtotal, discountCents)
-    const totals = this.calculateTotals(pricedItems, discountCents + coinsApplied * 100, freeShippingShopIds)
-
-    return {
-      ...totals,
-      coupon,
-      coinsApplied,
-    }
+    const evaluation = await this.quoteEvaluator.evaluate(this.repo, {
+      userId: actor.id,
+      items,
+      couponCode: data.couponCode,
+      coinsToUse: data.coinsToUse,
+      policy: 'estimate',
+    })
+    return evaluation.quote
   }
 
   private assertBuyer(actor: CheckoutActor): void {
@@ -280,105 +212,10 @@ export class CheckoutService {
     return items
   }
 
-  private calculateTotals(items: CheckoutPricedItem[], discountCents = 0, freeShippingShopIds: string[] = []): CalculatedTotals {
-    const currency = items[0]?.variant.currency ?? 'THB'
-    if (items.some((item) => item.variant.currency !== currency)) {
-      throw new CheckoutServiceError('Mixed currencies are not supported in checkout', 400, 'CHECKOUT_FAILED')
-    }
-    if (currency !== 'THB') {
-      throw new CheckoutServiceError('Checkout supports THB only', 400, 'CHECKOUT_FAILED')
-    }
-
-    const subtotal = items.reduce((total, item) => total + item.unitPrice * item.quantity, 0)
-    const shippingByShop = new Map<string, number>()
-    for (const item of items) {
-      const shop = item.variant.product.shop
-      if (!shippingByShop.has(shop.id)) {
-        shippingByShop.set(shop.id, Math.max(0, Number(shop.settings?.shippingFee ?? 0)))
-      }
-    }
-    const waivedShopIds = new Set(freeShippingShopIds)
-    const shippingTotal = [...shippingByShop].reduce(
-      (total, [shopId, fee]) => total + (waivedShopIds.has(shopId) ? 0 : fee),
-      0,
-    )
-    const taxTotal = 0
-    const discountTotal = Math.min(Math.max(0, discountCents), subtotal)
-    const grandTotal = Math.max(0, subtotal - discountTotal + shippingTotal + taxTotal)
-
-    return {
-      subtotal,
-      discountTotal,
-      shippingTotal,
-      taxTotal,
-      grandTotal,
-      currency,
-    }
-  }
-
-  private async validateCouponForCheckout(
-    repo: ICheckoutRepository,
-    userId: string,
-    couponCode: string,
-    items: CheckoutPricedItem[],
-  ) {
-    const shopSubtotals = this.calculateShopSubtotals(items)
-    const subtotal = shopSubtotals.reduce((total, shop) => total + shop.subtotal, 0)
-    try {
-      return await this.promotionService.validateCouponForsubtotal(repo, {
-        userId,
-        couponCode,
-        subtotal,
-        shopSubtotals,
-      })
-    } catch (error) {
-      if (error instanceof PromotionServiceError) {
-        throw new CheckoutServiceError('Invalid coupon', 400, 'INVALID_COUPON', {
-          couponCode: couponCode.trim().toUpperCase(),
-          reason: error.code,
-        })
-      }
-      throw error
-    }
-  }
-
   private getAvailableQuantity(item: CheckoutCartItem): number {
     const inventory = item.variant.inventory
     if (!inventory) return 0
     return Math.max(0, inventory.quantityOnHand - inventory.quantityReserved)
-  }
-
-  private calculateShopSubtotals(items: CheckoutPricedItem[]): Array<{ shopId: string; subtotal: number }> {
-    const subtotals = new Map<string, number>()
-    for (const item of items) {
-      const shopId = item.variant.product.shop.id
-      subtotals.set(shopId, (subtotals.get(shopId) ?? 0) + item.unitPrice * item.quantity)
-    }
-    return [...subtotals].map(([shopId, subtotal]) => ({ shopId, subtotal }))
-  }
-
-  private async priceItems(repo: ICheckoutRepository, items: CheckoutCartItem[]): Promise<CheckoutPricedItem[]> {
-    const now = new Date()
-    return Promise.all(items.map(async (item) => {
-      const flashSaleItem = await repo.findActiveFlashSaleItemForCheckout(item.variantId, now)
-      const regularPrice = Number(item.variant.price)
-      if (!flashSaleItem || Number(flashSaleItem.salePrice) <= 0 || Number(flashSaleItem.salePrice) >= regularPrice) {
-        return { ...item, unitPrice: regularPrice }
-      }
-      return { ...item, unitPrice: Number(flashSaleItem.salePrice), flashSaleItemId: flashSaleItem.id }
-    }))
-  }
-
-  private async resolveCoinRedemption(repo: ICheckoutRepository, userId: string, requested: number | undefined, subtotal: number, existingDiscount = 0): Promise<number> {
-    const coins = Math.max(0, Math.floor(requested ?? 0))
-    if (!coins) return 0
-    await repo.lockBuyerCoinWallet(userId)
-    const balance = await repo.findBuyerCoinBalance(userId)
-    const maximum = Math.min(Math.floor(subtotal * 0.2 / 100), Math.floor(Math.max(0, subtotal - existingDiscount) / 100))
-    if (coins > balance || coins > maximum) {
-      throw new CheckoutServiceError('Coin redemption exceeds available balance or the 20% item subtotal cap', 400, 'CHECKOUT_FAILED')
-    }
-    return coins
   }
 
   private createOrderNumber(): string {
@@ -387,12 +224,12 @@ export class CheckoutService {
     return `ORD-${timestamp}-${random}`
   }
 
-  private async createPendingOrder(
+  private async commitCheckout(
     repo: ICheckoutRepository,
-    input: CreatePendingOrderInput,
+    input: CheckoutCommitmentInput,
   ) {
     try {
-      return await repo.createPendingOrder(input)
+      return await repo.commitCheckout(input)
     } catch (error) {
       if (error instanceof CheckoutServiceError) throw error
       throw new CheckoutServiceError('Checkout failed', 500, 'CHECKOUT_FAILED', {
@@ -402,4 +239,4 @@ export class CheckoutService {
   }
 }
 
-export type { CreatePendingOrderInput }
+export type { CheckoutQuote }

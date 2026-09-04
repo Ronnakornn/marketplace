@@ -1,6 +1,11 @@
 import type { Role } from '#generated/client/enums.ts'
 import type { ShipmentStatus } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
+import {
+  buildBuyerShipmentTimeline,
+  formatBuyerShipmentStatus,
+} from './buyer-shipment-projection.ts'
+import { adaptBuyerShipmentProgress } from './buyer-shipment.adapter.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheInvalidation } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
@@ -352,7 +357,7 @@ export class ShipmentService {
       shopName: firstItem?.shopName ?? '',
       carrier: shipment.carrier,
       trackingNo: shipment.trackingNumber,
-      status: this.formatShipmentStatus(shipment.status),
+      status: formatBuyerShipmentStatus(shipment.status),
       shippedAt: shipment.shippedAt,
       deliveredAt: shipment.deliveredAt,
       items: shipment.items.map((item) => ({
@@ -368,48 +373,8 @@ export class ShipmentService {
         currency: item.orderItem.currency,
         fulfillmentStatus: item.orderItem.fulfillmentStatus,
       })),
-      timeline: this.buildTimeline(shipment),
+      timeline: buildBuyerShipmentTimeline(adaptBuyerShipmentProgress(shipment)),
     }
-  }
-
-  private buildTimeline(shipment: Pick<BuyerShipment, 'status' | 'createdAt' | 'updatedAt' | 'shippedAt' | 'deliveredAt'>): BuyerShipmentTrackingResponse['shipments'][number]['timeline'] {
-    const timeline: BuyerShipmentTrackingResponse['shipments'][number]['timeline'] = [
-      {
-        status: 'pending_pack',
-        label: 'Seller is preparing your order',
-        timestamp: shipment.createdAt,
-      },
-    ]
-
-    if (shipment.status === 'PACKED' || shipment.status === 'SHIPPED' || shipment.status === 'DELIVERED') {
-      timeline.push({
-        status: 'packed',
-        label: 'Seller packed your order',
-        timestamp: shipment.updatedAt,
-      })
-    }
-
-    if ((shipment.status === 'SHIPPED' || shipment.status === 'DELIVERED') && shipment.shippedAt) {
-      timeline.push({
-        status: 'shipped',
-        label: 'Your parcel has been shipped',
-        timestamp: shipment.shippedAt,
-      })
-    }
-
-    if (shipment.status === 'DELIVERED' && shipment.deliveredAt) {
-      timeline.push({
-        status: 'delivered',
-        label: 'Delivered',
-        timestamp: shipment.deliveredAt,
-      })
-    }
-
-    return timeline
-  }
-
-  private formatShipmentStatus(status: BuyerShipment['status']): string {
-    return status === 'PENDING_PACK' ? 'pending_pack' : status.toLowerCase()
   }
 
   private async publishBestEffort(

@@ -19,12 +19,14 @@ import {
 import { AffiliateService, PrismaAffiliateRepository } from '#server/modules/affiliate'
 import { PrismaCheckoutRepository } from '#server/modules/checkout/checkout.repository.ts'
 import { CheckoutService } from '#server/modules/checkout/checkout.service.ts'
+import { CheckoutQuoteEvaluator } from '#server/modules/checkout/checkout-quote.evaluator.ts'
 import { PrismaCatalogRepository } from '#server/modules/catalog/catalog.repository.ts'
 import { CatalogService } from '#server/modules/catalog/catalog.service.ts'
 import { DiscoveryService, PrismaDiscoveryRepository } from '#server/modules/discovery'
 import { InventoryService, PrismaInventoryRepository } from '#server/modules/inventory'
 import { PrismaPaymentRepository } from '#server/modules/payment/payment.repository.ts'
 import { PaymentService } from '#server/modules/payment/payment.service.ts'
+import { PaymentSettlement } from '#server/modules/payment/payment.settlement.ts'
 import { CommissionService } from '#server/modules/commission'
 import { PayoutService, PrismaPayoutRepository } from '#server/modules/payout'
 import { PrismaPromotionRepository } from '#server/modules/promotion/promotion.repository.ts'
@@ -183,7 +185,8 @@ export function createContainer(): ServiceContainer {
   const walletRepo = new PrismaWalletRepository(appContext, prisma)
   const walletService = new WalletService(appContext, walletRepo, commissionService, activeShopResolver)
   const checkoutRepo = new PrismaCheckoutRepository(appContext, prisma)
-  const checkoutService = new CheckoutService(appContext, checkoutRepo, promotionService, cacheInvalidation)
+  const checkoutQuoteEvaluator = new CheckoutQuoteEvaluator(promotionService)
+  const checkoutService = new CheckoutService(appContext, checkoutRepo, checkoutQuoteEvaluator, cacheInvalidation)
   const notificationRepo = new PrismaNotificationRepository(appContext, prisma)
   const pushRepo = new PrismaPushRepository(appContext, prisma)
   const pushService = new PushService(appContext, pushRepo, getPushConfigFromEnv())
@@ -212,7 +215,14 @@ export function createContainer(): ServiceContainer {
     auditLogService,
   )
   const paymentRepo = new PrismaPaymentRepository(appContext, prisma)
-  const paymentService = new PaymentService(appContext, paymentRepo, shipmentService, cacheInvalidation, eventPublisherService, affiliateService)
+  const paymentSettlement = new PaymentSettlement(shipmentService, affiliateService)
+  const paymentService = new PaymentService(
+    appContext,
+    paymentRepo,
+    paymentSettlement,
+    cacheInvalidation,
+    eventPublisherService,
+  )
   const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
   const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService, activeShopResolver, auditLogService)
   const phoneOtpRepo = new PrismaPhoneOtpRepository(appContext, prisma)

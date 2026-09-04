@@ -100,6 +100,13 @@ docs/
 
 `Notification` rows remain the source of truth. Foreground clients receive realtime events; opted-in devices may also receive best-effort Web Push for payment, shipping, and refund updates. Push subscription endpoints and keys are encrypted at rest, push failure never rolls back notification creation, and expired provider subscriptions are removed after `404` or `410` responses. The push-only service worker does not cache application or API responses.
 
+## Commerce Workflow Modules
+
+- `CheckoutQuoteEvaluator` is the single server-side calculation path for Checkout Quote preview and Order commitment. Its policy preserves the intentional difference between an unusable coupon in an estimate and in a commitment.
+- Checkout commitment accepts one evaluated quote artifact and atomically creates the checkout, reservations, Order snapshots, shop orders, coupon/coin reservations, and Payment.
+- `PaymentSettlement` concentrates verified payment transitions, inventory reservation handling, affiliate commission creation, and shipment creation behind the payment transaction seam.
+- Buyer-facing shipment status and timeline projection lives in `server/modules/shipment/buyer-shipment-projection.ts` and is shared by Order and Shipment modules.
+
 ## Database Workflow
 
 After editing `prisma/schema.prisma`:
