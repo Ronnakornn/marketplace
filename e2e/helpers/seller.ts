@@ -29,6 +29,7 @@ export async function signInSeller(page: Page, identity: SellerIdentity = demoSe
 
   const response = await page.request.post("/api/auth/sign-in/email", {
     data: identity,
+    headers: { origin: new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000").origin },
   });
   const responseBody = await response.text();
 
@@ -60,7 +61,7 @@ export async function openProductStudio(page: Page) {
     await page.goto("/th/seller/products");
     await waitForRenderedPage(page);
 
-    const editLink = page.locator('a[aria-label^="Edit "][href*="/seller/products/"]').first();
+    const editLink = page.getByRole("table").getByRole("link", { name: /แก้ไข|Edit/ }).first();
     await expect(editLink, "Seed at least one product owned by demo seller").toBeVisible();
     await editLink.click();
   }

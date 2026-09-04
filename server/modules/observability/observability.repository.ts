@@ -41,7 +41,7 @@ export class PrismaHealthCheckRepository implements IHealthCheckRepository {
         SELECT EXISTS (
           SELECT 1
           FROM "_prisma_migrations"
-          WHERE migration_name = '20260813013000_coupon_redemption_lifecycle'
+          WHERE migration_name = '20260904161000_add_buyer_coin_debt_balance'
             AND finished_at IS NOT NULL
             AND rolled_back_at IS NULL
         ) AS ready

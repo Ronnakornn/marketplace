@@ -23,7 +23,7 @@ test("localhost HTTP is a secure Web Push development context", async ({ page, r
     serviceWorker: true,
     pushManager: true,
     notification: true,
-    scope: "http://localhost:3000/",
+    scope: new URL("/", page.url()).href,
   });
 
   const [worker, manifest] = await Promise.all([

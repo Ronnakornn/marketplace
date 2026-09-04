@@ -18,6 +18,7 @@ import {
 } from "../hooks/useAdminOperations";
 import { AdminStatusBadge } from "./AdminStatusBadge";
 import { useFormatters, useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 
 interface AdminProductModerationDetailProps {
   productId: string;
@@ -81,6 +82,7 @@ function Metric(props: { label: string; value: string }) {
 
 export function AdminProductModerationDetail({ productId }: AdminProductModerationDetailProps) {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const formatters = useFormatters();
   const { data: productData, isLoading, error, refetch } = useAdminCatalogProductDetail(productId);
   const suspend = useSuspendCatalogProduct();
@@ -112,7 +114,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
           <div className="flex gap-2">
             <Button variant="outline" className="border-white/12 bg-white/5 text-slate-100" onClick={() => void refetch()}>{t("admin.common.retry")}</Button>
             <Button asChild variant="outline" className="border-white/12 bg-white/5 text-slate-100">
-              <Link href="/admin/products">{t("admin.ui.backToQueue")}</Link>
+              <Link href={localePath("/admin/products")}>{t("admin.ui.backToQueue")}</Link>
             </Button>
           </div>
         </CardContent>
@@ -148,7 +150,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
       <section className="admin-panel rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
-            <Link href="/admin/products" className="inline-flex items-center gap-1 text-sm text-cyan-100 hover:text-cyan-50">
+            <Link href={localePath("/admin/products")} className="inline-flex items-center gap-1 text-sm text-cyan-100 hover:text-cyan-50">
               <ArrowLeftIcon className="size-4" />
               {t("admin.productModerationDetail.title")}
             </Link>

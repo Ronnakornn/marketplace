@@ -151,7 +151,7 @@ export class PrismaPaymentRepository implements IPaymentRepository {
   }
 
   async lockWebhookEvent(providerRef: string): Promise<void> {
-    await this.prisma.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${providerRef}, 0))`
+    await this.prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${providerRef}, 0))`
   }
 
   findOrder(orderId: string): Promise<Order | null> {

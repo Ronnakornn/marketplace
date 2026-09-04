@@ -120,7 +120,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
     <article className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-orange-500 focus-within:ring-offset-2">
       <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
         <Link
-          href={`/products/${product.id}`}
+          href={localePath(`/products/${product.id}`)}
           prefetch={prefetch}
           onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
           className="block size-full focus-visible:outline-none"
@@ -162,7 +162,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
       </div>
       <div className="space-y-2 p-3">
         <Link
-          href={`/products/${product.id}`}
+          href={localePath(`/products/${product.id}`)}
           prefetch={prefetch}
           onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
           className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
@@ -211,7 +211,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
             </Button>
           ) : (
             <Link
-              href={`/products/${product.id}`}
+              href={localePath(`/products/${product.id}`)}
               prefetch={prefetch}
               onClick={() => tracking.trackProductClick({ productId: product.id, shopId: product.shop.id })}
               className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-orange-300 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"

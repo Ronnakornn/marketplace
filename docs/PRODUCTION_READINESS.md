@@ -9,7 +9,8 @@ Verified on 2026-09-04:
 
 - Prisma generation and schema validation passed
 - TypeScript typecheck passed
-- 135 unit/integration files passed (988 tests)
+- 138 unit/integration files passed (996 tests)
+- 43 Playwright tests passed across Buyer, Seller, Admin, Chromium, Firefox, WebKit, and mobile Chromium projects
 - i18n parity passed (2,243 English keys and 2,243 Thai keys, zero audited findings)
 - Bun production dependency audit reported no vulnerabilities
 - Next.js production build passed (127 localized/static routes)
@@ -17,6 +18,18 @@ Verified on 2026-09-04:
 - the verification database contained neither the `vector` extension nor the `ProductEmbedding` table
 
 The database-backed buyer golden path covers multi-shop checkout, inventory reservation, signed payment webhook, stock commit, shipment split, and duplicate-webhook idempotency. AI search and its pgvector-backed `ProductEmbedding` storage are temporarily disabled; fresh databases require standard PostgreSQL 17 only.
+
+Browser evidence covers the Buyer checkout/payment return/order tracking and
+delivered-order review/return flows; Seller product studio, ownership,
+inventory, state-safe order/return actions, promotion/finance validation,
+notification/chat UI, and routes; and Admin access control, locale-safe
+navigation, product moderation, and two-person payout approval. Deeper mutation
+rules remain covered by repository, service, and route tests. Playwright can run
+on isolated ports without reusing or modifying an active development server.
+
+The lockfile pins patched transitive `fast-uri` and `mysql2` versions because
+the production dependency audit previously reported high-severity advisories
+through optional tooling dependencies; the application remains PostgreSQL-only.
 
 The migration chain includes the promotion reconciliation and Flash Sale reservation tables/indexes. `20260823120000_restore_pending_review_status` restores the legacy enum label before the immutable publication migration, preserving applied checksums while allowing a fresh replay. Do not edit an applied migration checksum or use `prisma db push` to bypass the migration gate.
 

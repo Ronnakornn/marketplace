@@ -11,8 +11,9 @@ bun run db:generate
 ```
 
 E2E tests require PostgreSQL through `DATABASE_URL`. Use a disposable local or
-test database: `bun run test:e2e` runs `prisma db push` before Playwright and
-may create or change tables in that database.
+test database: `bun run test:e2e` deploys the checked-in Prisma migrations and
+seeds deterministic fixtures before Playwright, so it creates and changes data
+in that database.
 
 Frontend and API ports must be available:
 
@@ -21,6 +22,23 @@ Frontend and API ports must be available:
 
 Playwright starts both services automatically. When local services already run,
 it reuses them.
+
+To keep Playwright isolated from an existing development session, assign test
+ports and a disposable database. In development mode, Playwright uses a
+separate Next.js build directory, loads `.env.local`, trusts the isolated browser origin for test
+authentication, and disables rate limiting only for its development-mode API
+process so server-side requests do not share one rate-limit bucket:
+
+```powershell
+$env:DATABASE_URL = "postgresql://.../marketplace_e2e"
+$env:PLAYWRIGHT_FRONTEND_PORT = "3100"
+$env:PLAYWRIGHT_API_PORT = "3101"
+$env:PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3100"
+bunx playwright test
+```
+
+Production startup still rejects `RATE_LIMIT_ENABLED=false`; the Playwright
+override does not change the deployed runtime contract.
 
 ## Normal Workflow
 
@@ -83,6 +101,9 @@ bunx playwright test e2e/storefront.spec.ts --project=storefront-chromium
 
 # Authenticated seller Chromium flows
 bunx playwright test --project=chromium
+
+# Buyer, seller, and admin production workflows
+bunx playwright test e2e/buyer-lifecycle.spec.ts e2e/seller-workflows.spec.ts e2e/admin-workflows.spec.ts --project=chromium
 
 # Responsive/cross-browser seller route checks
 bunx playwright test e2e/seller-routes.spec.ts --project=firefox
@@ -160,4 +181,3 @@ generate -> typecheck -> unit/integration -> i18n audit -> build -> E2E
 
 Fail fast on deterministic checks. Keep Playwright last because it starts the
 full application and is the slowest gate.
-

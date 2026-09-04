@@ -10,6 +10,7 @@ import { DataTable } from "#/components/ui/data-table";
 import { Input } from "#/components/ui/input";
 import { SellerPageHeader } from "./SellerShell";
 import { useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 import {
   type SellerProductAnalyticsFilters,
   type SellerProductAnalyticsProductMetric,
@@ -23,6 +24,7 @@ const rangeOptions: SellerProductAnalyticsRange[] = ["7d", "30d", "90d", "custom
 
 export function SellerProductAnalyticsPage() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const [filters, setFilters] = useState<SellerProductAnalyticsFilters>({ range: "30d", sort: "revenue", page: 1, limit: 20 });
   const validationError = validateSellerProductAnalyticsRange(filters);
   const query = useSellerProductAnalytics(filters);
@@ -35,7 +37,7 @@ export function SellerProductAnalyticsPage() {
     {
       id: "product",
       header: t("seller.analytics.product"),
-      cell: ({ row }) => <div className="min-w-64"><Link href={`/seller/products/${row.original.productId}`} className="font-semibold text-slate-950 no-underline">{row.original.title}</Link><p className="text-xs text-slate-500">{row.original.shop.name} / {row.original.status}</p></div>,
+      cell: ({ row }) => <div className="min-w-64"><Link href={localePath(`/seller/products/${row.original.productId}`)} className="font-semibold text-slate-950 no-underline">{row.original.title}</Link><p className="text-xs text-slate-500">{row.original.shop.name} / {row.original.status}</p></div>,
     },
     { accessorKey: "views", header: t("seller.analytics.views"), cell: ({ row }) => formatNumber(row.original.views) },
     { accessorKey: "addToCart", header: t("seller.analytics.addToCart"), cell: ({ row }) => formatNumber(row.original.addToCart) },
@@ -43,7 +45,7 @@ export function SellerProductAnalyticsPage() {
     { accessorKey: "unitsSold", header: t("seller.analytics.units"), cell: ({ row }) => formatNumber(row.original.unitsSold) },
     { accessorKey: "revenue", header: t("seller.analytics.revenue"), cell: ({ row }) => formatMoney(row.original.revenue, row.original.currency) },
     { accessorKey: "conversionRate", header: t("seller.analytics.conversion"), cell: ({ row }) => formatRate(row.original.conversionRate) },
-  ], [t]);
+  ], [localePath, t]);
 
   function setRange(range: SellerProductAnalyticsRange) {
     setFilters((current) => ({ ...current, range, page: 1 }));
@@ -157,7 +159,7 @@ export function SellerProductAnalyticsPage() {
                     <p className="truncate text-sm font-semibold text-slate-950">{product.title}</p>
                     <p className="text-xs text-slate-500">{t("seller.analytics.lowPerformerSummary").replace("{views}", formatNumber(product.views)).replace("{conversion}", formatRate(product.conversionRate))}</p>
                   </div>
-                  <Link href={`/seller/products/${product.productId}`} className="shrink-0 text-xs font-semibold text-emerald-700 no-underline">{t("seller.analytics.tune")}</Link>
+                  <Link href={localePath(`/seller/products/${product.productId}`)} className="shrink-0 text-xs font-semibold text-emerald-700 no-underline">{t("seller.analytics.tune")}</Link>
                 </div>
               </div>
             )) : <EmptyState message={query.isLoading ? t("seller.analytics.loadingLowPerformers") : t("seller.analytics.emptyLowPerformers")} />}

@@ -212,7 +212,7 @@ export function AdminSidebarNav({
       >
         <SidebarHeader className="px-3 py-4">
           <Link
-            href="/admin"
+            href={localePath("/admin")}
             className="flex items-center gap-3 rounded-lg px-3 py-3 no-underline"
           >
             <div className="flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -253,7 +253,7 @@ export function AdminSidebarNav({
                       tooltip={t(item.title)}
                       className="rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
                     >
-                      <Link href={item.href}>
+                      <Link href={localePath(item.href)}>
                         <item.icon className="size-4" />
                         <span>{t(item.title)}</span>
                       </Link>

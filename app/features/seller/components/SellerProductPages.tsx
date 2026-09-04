@@ -7,6 +7,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, BarChart3Icon, EditIcon, PlusIcon, SaveIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -826,6 +827,7 @@ function getVariantStockContext(product: SellerProduct, labels?: { noStock: stri
 
 export function SellerProductsPage() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const [status, setStatus] = useState<"" | ProductStatus>("");
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState<string | undefined>();
@@ -874,7 +876,7 @@ export function SellerProductsPage() {
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
           <Button asChild variant="outline" size="sm" aria-label={t("seller.products.editLabel").replace("{title}", row.original.title)}>
-            <Link href={`/seller/products/${row.original.id}`}>
+            <Link href={localePath(`/seller/products/${row.original.id}`)}>
               <EditIcon className="size-4" />
               <span className="sr-only">{t("seller.products.edit")}</span>
             </Link>
@@ -886,7 +888,7 @@ export function SellerProductsPage() {
         </div>
       ),
     },
-  ], [t]);
+  ], [localePath, t]);
 
   return (
     <>
@@ -931,13 +933,13 @@ export function SellerProductsPage() {
                   </Select>
                 </div>
                 <Button asChild className="w-full sm:w-auto">
-                  <Link href="/seller/analytics/products">
+                  <Link href={localePath("/seller/analytics/products")}>
                     <BarChart3Icon className="size-4" />
                     {t("seller.products.analytics")}
                   </Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/seller/products/new">
+                  <Link href={localePath("/seller/products/new")}>
                     <PlusIcon className="size-4" />
                     {t("seller.products.create")}
                   </Link>
@@ -1084,6 +1086,7 @@ function SellerProductQuestionAnswerForm({ productId, question }: { productId: s
 
 export function SellerProductCreatePage() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const router = useRouter();
   const createProduct = useCreateSellerProduct();
   const [error, setError] = useState("");
@@ -1099,14 +1102,14 @@ export function SellerProductCreatePage() {
       {
         onSuccess: (product) => {
           toast.success(t("seller.editor.success.draftCreated"));
-          router.push(`/seller/products/${product.id}`);
+          router.push(localePath(`/seller/products/${product.id}`));
         },
         onError: (mutationError: unknown) => {
           setError(mutationError instanceof Error ? mutationError.message : t("seller.editor.error.draftCreate"));
         },
       },
     );
-  }, [createProduct, router, t]);
+  }, [createProduct, localePath, router, t]);
 
   return (
     <>
@@ -1125,7 +1128,7 @@ export function SellerProductCreatePage() {
                 createProduct.mutate(
                   { title: t("seller.editor.untitledDraft") },
                   {
-                    onSuccess: (product) => router.push(`/seller/products/${product.id}`),
+                    onSuccess: (product) => router.push(localePath(`/seller/products/${product.id}`)),
                     onError: (mutationError: unknown) => setError(mutationError instanceof Error ? mutationError.message : t("seller.editor.error.draftCreate")),
                   },
                 );
@@ -1157,6 +1160,7 @@ function getDraftStatusLabel(status: ImageDraftState["status"] | VideoDraftState
 function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; productId?: string }) {
   const t = useTranslations();
   const locale = useLocale();
+  const localePath = useLocalePath();
   const router = useRouter();
   const productsQuery = useSellerProducts({ limit: 50 });
   const productQuery = useSellerProduct(mode === "edit" ? productId : undefined);
@@ -1256,7 +1260,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       setConfirmation({ type: "discard" });
       return;
     }
-    router.push("/seller/products");
+    router.push(localePath("/seller/products"));
   }
 
   function addOption() {
@@ -1768,7 +1772,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     const pending = confirmation;
     setConfirmation(null);
     if (pending.type === "discard") {
-      router.push("/seller/products");
+      router.push(localePath("/seller/products"));
       return;
     }
     if (pending.type === "remove-option") {
@@ -2161,7 +2165,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {lowStock ? <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">{t("seller.products.editorActions.lowStock" as never)}</span> : <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">{t("seller.products.editorActions.stockOk" as never)}</span>}
-                          {variant.id ? <Link href={`/seller/inventory?variantId=${variant.id}`} className="text-xs font-semibold text-slate-700 underline">{t("seller.products.editorActions.movementHistory" as never)}</Link> : <span className="text-xs text-slate-500">{t("seller.products.editorActions.saveVariantMovements" as never)}</span>}
+                          {variant.id ? <Link href={localePath(`/seller/inventory?variantId=${variant.id}`)} className="text-xs font-semibold text-slate-700 underline">{t("seller.products.editorActions.movementHistory" as never)}</Link> : <span className="text-xs text-slate-500">{t("seller.products.editorActions.saveVariantMovements" as never)}</span>}
                         </div>
                       </div>
                       <div className="mt-3 grid gap-2 sm:grid-cols-4">

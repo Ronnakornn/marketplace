@@ -32,6 +32,9 @@ export async function prepareStorefrontFixtures() {
     },
   });
 
+  const buyer = await prisma.user.findUnique({ where: { email: storefrontFixture.buyer.email }, select: { id: true } });
+  if (buyer) await prisma.shopFollow.deleteMany({ where: { userId: buyer.id, shopId: shop!.id } });
+
   const inactive = await prisma.shop.findFirst({ where: { slug: storefrontFixture.inactiveSlug }, select: { id: true } });
   await prisma.shop.upsert({
     where: { id: inactive?.id ?? "00000000-0000-0000-0000-000000000000" },
@@ -57,14 +60,18 @@ export async function prepareStorefrontFixtures() {
 }
 
 export async function closeStorefrontFixtures() {
+  const [shop, buyer] = await Promise.all([
+    prisma.shop.findFirst({ where: { slug: storefrontFixture.slug }, select: { id: true } }),
+    prisma.user.findUnique({ where: { email: storefrontFixture.buyer.email }, select: { id: true } }),
+  ]);
+  if (shop && buyer) await prisma.shopFollow.deleteMany({ where: { shopId: shop.id, userId: buyer.id } });
   await prisma.$disconnect();
 }
 
 export async function signIn(page: Page, identity: { email: string; password: string }) {
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
   const response = await page.request.post("/api/auth/sign-in/email", {
     data: identity,
-    headers: { origin: new URL(baseUrl).origin },
+    headers: { origin: new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000").origin },
   });
   expect(response.ok(), await response.text()).toBeTruthy();
   const session = await page.request.get("/api/auth/get-session");

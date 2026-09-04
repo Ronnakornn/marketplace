@@ -81,6 +81,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("#/i18n/client", () => ({
+  useLocale: () => "en",
   useTranslations: () => (key: string) => key,
 }));
 

@@ -7,6 +7,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { AlertTriangleIcon, BanknoteIcon, PackageCheckIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useFormatters, useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { DataTable } from "#/components/ui/data-table";
@@ -304,6 +305,7 @@ export function SellerShopProfilePage({ shopId: selectedShopId }: { shopId?: str
 
 export function SellerDashboardPage() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const searchParams = useSearchParams();
   const selectedShopId = searchParams.get("shopId") || undefined;
   const dashboardQuery = useSellerDashboard(selectedShopId);
@@ -353,7 +355,7 @@ export function SellerDashboardPage() {
                   <p className="text-sm font-medium">{item.productTitle}</p>
                   <p className="text-xs text-slate-500">{item.sku} · {t("seller.manage.availableLabel")} {item.availableQuantity}</p>
                 </div>
-                <Link href="/seller/inventory" className="text-sm font-semibold text-emerald-700 no-underline">{t("seller.manage.restock")}</Link>
+                <Link href={localePath("/seller/inventory")} className="text-sm font-semibold text-emerald-700 no-underline">{t("seller.manage.restock")}</Link>
               </div>
             )) : <EmptyState message={dashboardQuery.isLoading ? t("seller.manage.loadingAlerts") : t("seller.manage.noLowStock")} />}
           </CardContent>

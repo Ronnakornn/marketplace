@@ -322,8 +322,8 @@ describe("Seller product pages", () => {
     expect(screen.getAllByText("Cotton Shirt").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Search products")).toBeTruthy();
     expect(screen.getByLabelText("Filter by product status")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /create product/i }).getAttribute("href")).toBe("/seller/products/new");
-    expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/seller/products/prod_1");
+    expect(screen.getByRole("link", { name: /create product/i }).getAttribute("href")).toBe("/en/seller/products/new");
+    expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/en/seller/products/prod_1");
   });
 
   it("renders unanswered product questions and submits seller answers", () => {
@@ -415,7 +415,7 @@ describe("Seller product pages", () => {
     createMutate.mockImplementation((_input, options) => options.onSuccess({ id: "prod_new" }));
     render(<SellerProductCreatePage />);
 
-    expect(push).toHaveBeenCalledWith("/seller/products/prod_new");
+    expect(push).toHaveBeenCalledWith("/en/seller/products/prod_new");
   });
 
   it("renders edit form data and page-level retry state", async () => {
@@ -620,7 +620,7 @@ describe("Seller product pages", () => {
     expect(screen.getAllByText("Available").length).toBeGreaterThan(0);
     expect(screen.getByText("On hand minus reserved")).toBeTruthy();
     expect((screen.getByLabelText("Quantity reserved") as HTMLInputElement).readOnly).toBe(true);
-    expect(screen.getByRole("link", { name: "Movement history" }).getAttribute("href")).toBe("/seller/inventory?variantId=var_1");
+    expect(screen.getByRole("link", { name: "Movement history" }).getAttribute("href")).toBe("/en/seller/inventory?variantId=var_1");
   });
 
   it("generates variant rows, applies bulk values, and shows duplicate SKU errors inline", () => {

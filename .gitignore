@@ -17,6 +17,7 @@ _ref
 *.db
 generated
 .next
+.next-e2e-*
 next-env.d.ts
 tsconfig.tsbuildinfo
 .devserver.log

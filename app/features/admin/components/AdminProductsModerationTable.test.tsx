@@ -131,7 +131,7 @@ describe("AdminProductsModerationTable", () => {
     renderPage();
 
     expect(screen.getByText("Cotton Shirt")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Detail" }).getAttribute("href")).toBe("/admin/products/prod_1");
+    expect(screen.getByRole("link", { name: "Detail" }).getAttribute("href")).toBe("/en/admin/products/prod_1");
 
     fireEvent.click(screen.getByRole("button", { name: "Suspend" }));
 

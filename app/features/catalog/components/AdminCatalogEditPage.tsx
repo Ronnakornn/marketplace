@@ -54,6 +54,7 @@ import {
 import { Textarea } from "#/components/ui/textarea";
 import type { ProductStatus } from "#generated/client/enums";
 import { useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 import {
   type CatalogProduct,
   type CatalogVariant,
@@ -441,6 +442,7 @@ function WorkspaceStat(props: {
 
 export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const { data: product, isLoading, error } = useAdminCatalogProductDetail(productId);
   const updateProduct = useUpdateAdminCatalogProduct();
   const createVariant = useCreateAdminCatalogVariant();
@@ -494,7 +496,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
         <CardContent className="space-y-3 p-6">
           <p className="text-sm text-red-200">{t("admin.variantLoadError")}</p>
           <Button asChild variant="outline" className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white">
-            <Link href="/admin/catalog">
+            <Link href={localePath("/admin/catalog")}>
               <ArrowLeftIcon className="size-4" />
               {t("admin.catalogEdit.backToCatalog")}
             </Link>
@@ -513,7 +515,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
-              <Link href="/admin/catalog" className="inline-flex items-center gap-1 text-cyan-100 hover:text-cyan-50">
+              <Link href={localePath("/admin/catalog")} className="inline-flex items-center gap-1 text-cyan-100 hover:text-cyan-50">
                 <ArrowLeftIcon className="size-4" />
                 {t("admin.catalogEdit.catalog")}
               </Link>
@@ -537,7 +539,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
           </div>
           <div className="flex flex-col-reverse gap-3 sm:flex-row xl:shrink-0">
             <Button asChild variant="outline" className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white">
-              <Link href="/admin/catalog">{t("admin.ui.cancel")}</Link>
+              <Link href={localePath("/admin/catalog")}>{t("admin.ui.cancel")}</Link>
             </Button>
             <Button form="admin-product-edit-form" type="submit" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200" disabled={updateProduct.isPending}>
               {updateProduct.isPending ? (
@@ -698,7 +700,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
 
               <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
                 <Button asChild variant="outline" className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white">
-                  <Link href="/admin/catalog">{t("admin.ui.cancel")}</Link>
+                  <Link href={localePath("/admin/catalog")}>{t("admin.ui.cancel")}</Link>
                 </Button>
                 <Button type="submit" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200" disabled={updateProduct.isPending}>
                   {updateProduct.isPending ? (

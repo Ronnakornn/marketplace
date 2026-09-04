@@ -77,10 +77,15 @@ export function allowedDevOrigins() {
   return configuredOrigins?.length ? configuredOrigins : ['localhost:3000', '127.0.0.1:3000']
 }
 
+export function resolveDistDir() {
+  return process.env.NEXT_DIST_DIR?.trim() || '.next'
+}
+
 const assetPrefix = getAssetPrefix()
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: resolveDistDir(),
   assetPrefix,
   allowedDevOrigins: allowedDevOrigins(),
   images: {

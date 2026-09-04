@@ -82,7 +82,7 @@ export function MarketplaceGuestHome({ initialHome, locale }: { initialHome: Dis
       <main className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
         <HeroPromo banners={home.banners} localePath={localePath} t={t} />
         <VoucherStrip promotions={home.promotions} localePath={localePath} />
-        <FlashSaleSection flashSale={home.flashSale} loginHref={localePath("/login")} formatMoney={formatMoney} t={t} />
+        <FlashSaleSection flashSale={home.flashSale} loginHref={localePath("/login")} localePath={localePath} formatMoney={formatMoney} t={t} />
         <CategoryGrid categories={categories} localePath={localePath} t={t} />
         <ProductRail
           title={t("home.recommendedTitle")}
@@ -91,6 +91,7 @@ export function MarketplaceGuestHome({ initialHome, locale }: { initialHome: Dis
           emptyTitle={t("home.recommendedEmptyTitle")}
           emptyDescription={t("home.recommendedEmptyDescription")}
           formatMoney={formatMoney}
+          localePath={localePath}
           t={t}
         />
         <ProductRail
@@ -100,6 +101,7 @@ export function MarketplaceGuestHome({ initialHome, locale }: { initialHome: Dis
           emptyTitle={t("home.newArrivalsEmptyTitle")}
           emptyDescription={t("home.newArrivalsEmptyDescription")}
           formatMoney={formatMoney}
+          localePath={localePath}
           t={t}
         />
         <FeaturedShopsSection shops={home.featuredShops} localePath={localePath} t={t} />
@@ -110,6 +112,7 @@ export function MarketplaceGuestHome({ initialHome, locale }: { initialHome: Dis
           emptyTitle={t("home.recentlyViewedEmptyTitle")}
           emptyDescription={t("home.recentlyViewedEmptyDescription")}
           formatMoney={formatMoney}
+          localePath={localePath}
           t={t}
         />
       </main>
@@ -182,7 +185,7 @@ function VoucherStrip({ promotions, localePath }: { promotions: MarketplacePromo
   );
 }
 
-function FlashSaleSection({ flashSale, loginHref, formatMoney, t }: { flashSale: MarketplaceHomeData["flashSale"]; loginHref: string; formatMoney: (cents: number, currency?: string) => string; t: Translator }) {
+function FlashSaleSection({ flashSale, loginHref, localePath, formatMoney, t }: { flashSale: MarketplaceHomeData["flashSale"]; loginHref: string; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; t: Translator }) {
   const products = flashSale?.items ?? [];
   if (!flashSale) return null;
   return (
@@ -191,7 +194,7 @@ function FlashSaleSection({ flashSale, loginHref, formatMoney, t }: { flashSale:
       <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {products.length ? products.map((product) => (
           <article key={product.id} className="min-w-[132px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-            <Link href={`/products/${product.id}`} prefetch={false}><ProductVisual product={product} compact t={t} /></Link>
+            <Link href={localePath(`/products/${product.id}`)} prefetch={false}><ProductVisual product={product} compact t={t} /></Link>
             <div className="p-2"><p className="line-clamp-2 min-h-9 text-xs font-semibold text-slate-800">{product.title}</p><p className="mt-1 text-base font-extrabold text-orange-700">{formatMoney(product.price, product.currency)}</p><div className="mt-2 h-2 rounded-full bg-orange-100"><div className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500" style={{ width: `${Math.min(92, 42 + product.soldCount * 4)}%` }} /></div><p className="mt-1 text-[11px] text-slate-900">{product.soldCount.toLocaleString()} {t("product.sold")}</p>{product.stock === 0 ? <Button disabled size="sm" className="mt-2 h-8 w-full rounded-full">{t("product.outOfStock")}</Button> : <Button asChild size="sm" className="mt-2 h-8 w-full rounded-full bg-orange-700 text-white hover:bg-orange-800"><Link href={loginHref} prefetch={false}>{t("product.add")}</Link></Button>}</div>
           </article>
         )) : <SectionEmptyState title={t("home.noFlashSaleTitle")} description={t("home.noFlashSaleDescription")} />}
@@ -209,18 +212,18 @@ function CategoryGrid({ categories, localePath, t }: { categories: Array<{ id: s
   );
 }
 
-function ProductRail({ title, subtitle, products, emptyTitle, emptyDescription, formatMoney, t }: { title: string; subtitle: string; products: MarketplaceProductCard[]; emptyTitle: string; emptyDescription: string; formatMoney: (cents: number, currency?: string) => string; t: Translator }) {
+function ProductRail({ title, subtitle, products, emptyTitle, emptyDescription, localePath, formatMoney, t }: { title: string; subtitle: string; products: MarketplaceProductCard[]; emptyTitle: string; emptyDescription: string; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; t: Translator }) {
   return (
     <section className="mt-5">
       <div className="mb-3 flex items-center justify-between px-1"><div><h2 className="text-lg font-extrabold text-slate-950">{title}</h2><p className="text-xs text-slate-900">{subtitle}</p></div><SparklesIcon className="size-5 text-orange-500" /></div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{products.map((product, index) => <div key={`${product.id}-${index}`}><GuestProductCard product={product.buyerProduct} formatMoney={formatMoney} t={t} /></div>)}</div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{products.map((product, index) => <div key={`${product.id}-${index}`}><GuestProductCard product={product.buyerProduct} localePath={localePath} formatMoney={formatMoney} t={t} /></div>)}</div>
       {!products.length ? <div className="mt-3 rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm"><p className="text-sm font-bold text-slate-950">{emptyTitle}</p><p className="mt-1 text-xs text-slate-900">{emptyDescription}</p></div> : null}
       <div className="py-6 text-center text-xs text-slate-900">{t("home.youAreCaughtUp")}</div>
     </section>
   );
 }
 
-function GuestProductCard({ product, formatMoney, t }: { product: BuyerProduct; formatMoney: (cents: number, currency?: string) => string; t: Translator }) {
+function GuestProductCard({ product, localePath, formatMoney, t }: { product: BuyerProduct; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; t: Translator }) {
   const image = resolveUploadedImageUrl(product.images[0]);
   const hasPriceRange = product.maxPrice > product.minPrice;
   const quickAddVariant = product.options.length === 0 && product.variants.filter((variant) => variant.stock > 0).length === 1 && product.variants[0]?.optionValues.length === 0 ? product.variants[0] : null;
@@ -232,18 +235,18 @@ function GuestProductCard({ product, formatMoney, t }: { product: BuyerProduct; 
   return (
     <article className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-orange-500 focus-within:ring-offset-2">
       <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
-        <Link href={`/products/${product.id}`} prefetch={false} className="block size-full focus-visible:outline-none" aria-label={t("product.viewProduct").replace("{title}", product.title)}><div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white"><Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition group-hover:scale-105" /></div></Link>
+        <Link href={localePath(`/products/${product.id}`)} prefetch={false} className="block size-full focus-visible:outline-none" aria-label={t("product.viewProduct").replace("{title}", product.title)}><div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white"><Image src={image} alt={product.title} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition group-hover:scale-105" /></div></Link>
         <div className="absolute left-2 top-2 flex min-h-5 max-w-[calc(100%-3.5rem)] flex-wrap gap-1">{cardBadges.slice(0, 2).map((badge) => <Badge key={badge} className="rounded-md bg-orange-700 px-1.5 py-0.5 text-[10px] leading-none text-white">{badge}</Badge>)}</div>
         {discountLabel ? <Badge className="absolute bottom-2 left-2 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] leading-none text-white">{discountLabel}</Badge> : null}
         <Button type="button" variant="secondary" size="icon" className="absolute right-2 top-2 size-9 rounded-full bg-white/90 shadow-sm focus-visible:ring-2 focus-visible:ring-orange-500" aria-label={t("product.signInBuyerWishlist")} title={t("product.signInBuyerWishlist")} disabled><HeartIcon className="size-4 text-slate-700" /></Button>
         {isOutOfStock ? <div className="absolute inset-x-0 bottom-0 bg-slate-950/70 px-2 py-1 text-center text-xs font-semibold text-white">{t("product.outOfStock")}</div> : null}
       </div>
       <div className="space-y-2 p-3">
-        <Link href={`/products/${product.id}`} prefetch={false} className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-5 text-slate-900">{product.title}</h3></Link>
+        <Link href={localePath(`/products/${product.id}`)} prefetch={false} className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-5 text-slate-900">{product.title}</h3></Link>
         {product.brand ? <p className="truncate text-xs font-medium text-slate-500">{product.brand.name}</p> : null}
         <div className="flex min-h-12 items-end justify-between gap-2"><div className="min-w-0 flex-1"><p className="truncate text-base font-bold text-orange-700" title={priceLabel}>{priceLabel}</p>{product.originalPrice && product.originalPrice > product.minPrice ? <p className="truncate text-xs text-slate-600 line-through" title={formatMoney(product.originalPrice, product.currency)}>{formatMoney(product.originalPrice, product.currency)}</p> : null}</div><span className="shrink-0 text-xs text-slate-500">{isOutOfStock ? t("common.unavailable") : t("product.soldCount").replace("{count}", String(product.soldCount))}</span></div>
         <div className="flex items-center justify-between gap-2 text-xs text-slate-500"><span className="flex items-center gap-1"><StarIcon className="size-3.5 fill-amber-400 text-amber-400" />{product.rating.toFixed(1)}</span><span className="flex min-w-0 items-center gap-1"><MapPinIcon className="size-3.5 shrink-0" /><span className="truncate">{product.shop.location}</span></span></div>
-        <div className="flex min-h-9 items-center justify-between gap-2"><Badge variant="outline" className="min-w-0 max-w-full truncate rounded-full border-orange-200 bg-orange-50 font-normal text-orange-700">{product.shop.name}</Badge>{quickAddVariant ? <GuestAddToCartButton variantId={quickAddVariant.id} label={quickAddLabel} addedLabel={t("cart.handoffAddedTitle")} item={{ productId: product.id, title: product.title, variantTitle: quickAddVariant.title, imageUrl: image, unitPrice: quickAddVariant.price, currency: quickAddVariant.currency }} /> : <Link href={`/products/${product.id}`} prefetch={false} className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-orange-300 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" aria-label={quickAddLabel}>{t("common.details")}</Link>}</div>
+        <div className="flex min-h-9 items-center justify-between gap-2"><Badge variant="outline" className="min-w-0 max-w-full truncate rounded-full border-orange-200 bg-orange-50 font-normal text-orange-700">{product.shop.name}</Badge>{quickAddVariant ? <GuestAddToCartButton variantId={quickAddVariant.id} label={quickAddLabel} addedLabel={t("cart.handoffAddedTitle")} item={{ productId: product.id, title: product.title, variantTitle: quickAddVariant.title, imageUrl: image, unitPrice: quickAddVariant.price, currency: quickAddVariant.currency }} /> : <Link href={localePath(`/products/${product.id}`)} prefetch={false} className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-orange-300 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" aria-label={quickAddLabel}>{t("common.details")}</Link>}</div>
         <p className="min-h-4 truncate text-[11px] leading-4 text-slate-500" aria-live="polite">{quickAddVariant ? "\u00a0" : "\u00a0"}</p>
       </div>
     </article>

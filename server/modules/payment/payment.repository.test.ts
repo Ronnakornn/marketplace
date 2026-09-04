@@ -14,6 +14,8 @@ function createRepository() {
     flashSaleItem: { update: vi.fn().mockResolvedValue({}) },
     buyerCoinLedger: { findMany: vi.fn().mockResolvedValue([]), update: vi.fn().mockResolvedValue({}), updateMany: vi.fn().mockResolvedValue({ count: 1 }), create: vi.fn().mockResolvedValue({}) },
     buyerCoinWallet: { update: vi.fn().mockResolvedValue({}), upsert: vi.fn().mockResolvedValue({ id: 'wallet-1', balance: 0, debtBalance: 0 }) },
+    $queryRaw: vi.fn().mockResolvedValue([]),
+    $executeRaw: vi.fn().mockResolvedValue(1),
   }
   const repository = new PrismaPaymentRepository({
     logger: {
@@ -27,6 +29,15 @@ function createRepository() {
 }
 
 describe('PrismaPaymentRepository.applyPaymentStateTransition', () => {
+  it('takes the webhook advisory lock without deserializing PostgreSQL void', async () => {
+    const { prisma, repository } = createRepository()
+
+    await repository.lockWebhookEvent('provider-event-1')
+
+    expect(prisma.$executeRaw).toHaveBeenCalledOnce()
+    expect(prisma.$queryRaw).not.toHaveBeenCalled()
+  })
+
   it('keeps paid Payment and Order status synchronized', async () => {
     const { prisma, repository } = createRepository()
     const occurredAt = new Date('2026-08-08T00:00:00.000Z')

@@ -45,13 +45,13 @@ test("English desktop and Thai mobile share storefront chrome, media, and locali
 });
 
 test("catalog preserves URL filters, loads beyond twelve, deduplicates, and retains out-of-stock products", async ({ page }) => {
-  await page.goto(`/en/shops/${storefrontFixture.slug}?q=E2E&category=${categorySlug}&sort=price_desc`, { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(/q=E2E.*category=.*sort=price_desc/);
-  const cards = page.locator('main article:has(a[href^="/products/"])');
+  await page.goto(`/en/shops/${storefrontFixture.slug}?q=E2E%20Storefront%20Product&category=${categorySlug}&sort=price_desc`, { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/q=E2E(?:%20|\+)Storefront(?:%20|\+)Product.*category=.*sort=price_desc/);
+  const cards = page.locator('main article:has(a[href*="/products/"])');
   await expect(cards).toHaveCount(12);
   await page.getByRole("button", { name: "Load more" }).click();
   await expect(cards).toHaveCount(13);
-  const hrefs = await cards.locator('a[href^="/products/"]').evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+  const hrefs = await cards.locator('a[href*="/products/"]').evaluateAll((links) => links.map((link) => link.getAttribute("href")));
   expect(new Set(hrefs).size).toBe(13);
   await expect(page.getByText("Out of stock").first()).toBeVisible();
   await expect(page.getByText("You have reached the end of this shop's products.")).toBeVisible();
@@ -73,33 +73,34 @@ test("review summary is bounded, history expands, policies are plain text, and t
 });
 
 test("anonymous login return, buyer follow/chat, and owner management actions are correct", async ({ browser, page }) => {
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
   await openStorefront(page, "en");
   await expect(page.getByRole("link", { name: "Sign in" }).first()).toBeVisible();
   await page.getByRole("button", { name: "Follow shop" }).click();
   await expect(page).toHaveURL(/\/en\/login\?next=%2Fshops%2Furban-thread-co/);
 
   const buyerContext = await browser.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL,
     extraHTTPHeaders: { "x-forwarded-for": "10.250.0.2" },
   });
   const buyer = await buyerContext.newPage();
   await signIn(buyer, storefrontFixture.buyer);
-  let following = false;
   await buyer.route("**/api/discovery/track", (route) => route.abort("failed"));
-  await buyer.route(`**/api/shops/${shopId}/follow`, async (route) => {
-    if (route.request().method() !== "GET") following = true;
-    await route.fulfill({ json: { following } });
-  });
   await buyer.route("**/api/chats", (route) => route.fulfill({ json: { roomId: "e2e-room", shopId, shopName: "Urban Thread Co.", buyerName: "Demo Buyer", messages: [] } }));
+  const followStatus = buyer.waitForResponse((response) => response.url().includes(`/api/shops/${shopId}/follow`) && response.request().method() === "GET");
   await openStorefront(buyer, "en");
+  await followStatus;
+  const followed = buyer.waitForResponse((response) => response.url().includes(`/api/shops/${shopId}/follow`) && response.request().method() === "PUT");
   await buyer.getByRole("button", { name: "Follow shop" }).click();
+  const followResponse = await followed;
+  expect(followResponse.ok(), await followResponse.text()).toBeTruthy();
   await expect(buyer.getByRole("button", { name: "Following" })).toBeVisible();
   await buyer.getByRole("button", { name: "Chat with shop" }).click();
   await expect(buyer).toHaveURL(/\/en\/chat\/e2e-room/);
   await buyerContext.close();
 
   const ownerContext = await browser.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL,
     extraHTTPHeaders: { "x-forwarded-for": "10.250.0.3" },
   });
   const owner = await ownerContext.newPage();

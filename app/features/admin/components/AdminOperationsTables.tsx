@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
 import { Textarea } from "#/components/ui/textarea";
 import { useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 import { AdminDataShell } from "./AdminDataShell";
 import { AdminStatusAction } from "./AdminStatusAction";
 import { AdminStatusBadge } from "./AdminStatusBadge";
@@ -332,6 +333,7 @@ export function AdminShopsTable() {
 
 export function AdminProductsModerationTable() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
@@ -438,7 +440,7 @@ export function AdminProductsModerationTable() {
                   <TableCell>
                     <div className="flex flex-wrap justify-end gap-2">
                       <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100">
-                        <Link href={`/admin/products/${product.id}`}>{t("admin.ui.detail")}</Link>
+                        <Link href={localePath(`/admin/products/${product.id}`)}>{t("admin.ui.detail")}</Link>
                       </Button>
                       <Button size="sm" variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isAnyMutationPending || product.status !== "ACTIVE"} onClick={() => setReasonAction(product)}>{t("admin.ui.suspend")}</Button>
                       <Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isAnyMutationPending || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setActionMessage(t("admin.productModerationDetail.restored").replace("{title}", product.title)) })}>{isRowPending && restore.isPending ? t("admin.productModerationDetail.restoring") : t("admin.productModerationDetail.restore")}</Button>

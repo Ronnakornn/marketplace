@@ -363,7 +363,7 @@ describe("ProductCard", () => {
     expect(screen.queryByRole("button", { name: /Quick add Canvas Weekender Bag to cart/ })).toBeNull();
 
     const detailsLink = screen.getByRole("link", { name: /Open Canvas Weekender Bag details/ });
-    expect(detailsLink.getAttribute("href")).toBe("/products/product-1");
+    expect(detailsLink.getAttribute("href")).toBe("/en/products/product-1");
 
     fireEvent.click(detailsLink);
     expect(cardMocks.trackProductClick).toHaveBeenCalledWith({ productId: "product-1", shopId: "shop-1" });

@@ -266,7 +266,16 @@ export function CheckoutPage() {
         ) : null}
       </div>
 
-      {cartQuery.data && itemCount > 0 ? (
+      {checkoutMutation.isSuccess ? (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-emerald-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
+          <p className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 text-sm text-emerald-700">
+            <span>{t("checkout.orderCreated").replace("{orderNo}", checkoutMutation.data.orderNo)}</span>
+            <Button asChild className="rounded-2xl bg-emerald-600 hover:bg-emerald-700">
+              <Link href={checkoutMutation.data.paymentUrl}>{t("checkout.viewPaymentStatus")}</Link>
+            </Button>
+          </p>
+        </div>
+      ) : cartQuery.data && itemCount > 0 ? (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div className="text-lg font-bold">{renderQuoteTotal()}</div>
@@ -275,11 +284,6 @@ export function CheckoutPage() {
             </Button>
           </div>
           {checkoutMutation.isError ? <p className="mx-auto mt-2 max-w-5xl text-sm text-red-600">{checkoutMutation.error.message}</p> : null}
-          {checkoutMutation.isSuccess ? (
-            <p className="mx-auto mt-2 max-w-5xl text-sm text-emerald-700">
-              {t("checkout.orderCreated").replace("{orderNo}", checkoutMutation.data.orderNo)} <Link className="font-semibold underline" href={checkoutMutation.data.paymentUrl}>{t("checkout.viewPaymentStatus")}</Link>
-            </p>
-          ) : null}
         </div>
       ) : null}
     </>

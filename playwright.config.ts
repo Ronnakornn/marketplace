@@ -1,6 +1,30 @@
 import { defineConfig, devices } from "@playwright/test";
+import nextEnv from "@next/env";
+
+const { loadEnvConfig } = nextEnv;
+loadEnvConfig(process.cwd());
 
 const useProductionServers = process.env.PLAYWRIGHT_PRODUCTION === "true";
+const configuredFrontendUrl = process.env.PLAYWRIGHT_BASE_URL;
+const configuredFrontendPort = process.env.PLAYWRIGHT_FRONTEND_PORT;
+const urlPort = configuredFrontendUrl ? (new URL(configuredFrontendUrl).port || (new URL(configuredFrontendUrl).protocol === "https:" ? "443" : "80")) : undefined;
+if (configuredFrontendPort && urlPort && configuredFrontendPort !== urlPort) {
+  throw new Error(`PLAYWRIGHT_FRONTEND_PORT (${configuredFrontendPort}) must match PLAYWRIGHT_BASE_URL (${configuredFrontendUrl})`);
+}
+const frontendPort = configuredFrontendPort ?? urlPort ?? "3000";
+const apiPort = process.env.PLAYWRIGHT_API_PORT ?? "3001";
+const isolatedPorts = Boolean(configuredFrontendUrl || configuredFrontendPort || process.env.PLAYWRIGHT_API_PORT);
+const frontendUrl = configuredFrontendUrl ?? `http://127.0.0.1:${frontendPort}`;
+const apiUrl = `http://127.0.0.1:${apiPort}`;
+const nextDistDir = process.env.NEXT_DIST_DIR ?? (!useProductionServers && isolatedPorts ? `.next-e2e-${frontendPort}` : ".next");
+const frontendHostname = new URL(frontendUrl).hostname;
+
+const apiCommand = useProductionServers
+  ? `cross-env NODE_ENV=production API_PORT=${apiPort} BETTER_AUTH_TRUSTED_ORIGINS=${frontendUrl} bun run server/index.ts`
+  : `cross-env NODE_ENV=development API_PORT=${apiPort} RATE_LIMIT_ENABLED=false BETTER_AUTH_TRUSTED_ORIGINS=${frontendUrl} bun run --watch server/index.ts`;
+const frontendCommand = useProductionServers
+  ? `cross-env NODE_ENV=production NEXT_DIST_DIR=${nextDistDir} API_BASE_URL=${apiUrl} next start --port ${frontendPort}`
+  : `cross-env NODE_ENV=development NEXT_DIST_DIR=${nextDistDir} NEXT_ALLOWED_DEV_ORIGINS=${frontendHostname} API_BASE_URL=${apiUrl} next dev --port ${frontendPort}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -15,7 +39,7 @@ export default defineConfig({
     ["html", { open: "never" }],
   ],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+    baseURL: frontendUrl,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -57,17 +81,17 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: useProductionServers ? "bun run start:server" : "bun run dev:server",
-      url: "http://localhost:3001/api/health/ready",
-      reuseExistingServer: !process.env.CI,
+      command: apiCommand,
+      url: `${apiUrl}/api/health/ready`,
+      reuseExistingServer: !process.env.CI && !isolatedPorts,
       timeout: 120_000,
       stdout: "ignore",
       stderr: "pipe",
     },
     {
-      command: useProductionServers ? "bun run start:frontend" : "bun run dev:frontend",
-      url: "http://localhost:3000/favicon.ico",
-      reuseExistingServer: !process.env.CI,
+      command: frontendCommand,
+      url: `${frontendUrl}/favicon.ico`,
+      reuseExistingServer: !process.env.CI && !isolatedPorts,
       timeout: 120_000,
       stdout: "ignore",
       stderr: "pipe",

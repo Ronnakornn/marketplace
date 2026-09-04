@@ -42,6 +42,7 @@ import {
 import { Input } from "#/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "#/components/ui/native-select";
 import { useTranslations } from "#/i18n/client";
+import { useLocalePath } from "#/i18n/navigation";
 import { AdminStatusBadge } from "#/features/admin/components/AdminStatusBadge";
 import { Skeleton } from "#/components/ui/skeleton";
 import {
@@ -121,6 +122,7 @@ function SummaryCard(props: {
 
 export function AdminCatalogManager() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const { data: products = [], isLoading, error, refetch } = useAdminCatalogProducts();
   const [query, setQuery] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -203,7 +205,7 @@ export function AdminCatalogManager() {
           <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuLabel>{t("admin.actions")}</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link href={`/admin/catalog/${row.original.id}`}>
+              <Link href={localePath(`/admin/catalog/${row.original.id}`)}>
                 <ArrowUpRightIcon className="size-4" />
                 {t("admin.common.editProduct")}
               </Link>
@@ -216,7 +218,7 @@ export function AdminCatalogManager() {
         </DropdownMenu>
       ),
     },
-  ], [t]);
+  ], [localePath, t]);
   const table = useReactTable({
     data: products,
     columns,

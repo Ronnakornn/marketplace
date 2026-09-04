@@ -211,6 +211,29 @@ describe("CheckoutPage", () => {
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["buyer-cart"] }));
   });
 
+  it("keeps the payment handoff visible after checkout invalidates the emptied cart", async () => {
+    vi.mocked(fetchCart).mockResolvedValueOnce({
+      id: "cart-1",
+      shops: [{
+        shopId: "shop-1",
+        shopName: "Demo Shop",
+        items: [{ id: "item-1", variantId: "variant-1", productId: "product-1", title: "Demo Product", variantTitle: "Default", quantity: 1, unitPrice: 1200, currency: "THB" }],
+        subtotal: 1200,
+      }],
+      subtotal: 1200,
+      currency: "THB",
+    }).mockResolvedValue({ id: "cart-1", shops: [], subtotal: 0, currency: "THB" });
+
+    renderCheckoutPage();
+    const placeOrderButton = await screen.findByRole("button", { name: "Place order" }) as HTMLButtonElement;
+    await waitFor(() => expect(placeOrderButton.disabled).toBe(false));
+    fireEvent.click(placeOrderButton);
+
+    const paymentLink = await screen.findByRole("link", { name: "Continue to payment" });
+    await waitFor(() => expect(screen.getByText("Empty cartYour cart is empty.")).toBeTruthy());
+    expect(paymentLink.getAttribute("href")).toBe("/en/payment/mock/payment-1");
+  });
+
   it("shows selected product details in the order summary", async () => {
     renderCheckoutPage();
 

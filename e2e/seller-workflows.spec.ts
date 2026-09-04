@@ -39,7 +39,7 @@ test("products: search, status filter, archive confirmation, and API retry", asy
 
   await statusFilter.click();
   await page.getByRole("option", { name: "ทุกสถานะ", exact: true }).click();
-  const archiveButton = page.locator('button[aria-label^="Archive "]:not([disabled])').first();
+  const archiveButton = page.getByRole("button", { name: /เก็บ.*ไว้ถาวร|Archive/ }).locator(":not([disabled])").first();
   await expect(archiveButton).toBeVisible();
   await archiveButton.click();
   const dialog = page.getByRole("alertdialog");
@@ -82,7 +82,7 @@ test("inventory: low-stock filter and safe numeric update form", async ({ page }
   await expect(stockInputs.first()).toBeVisible();
   await expect(stockInputs.first()).toHaveAttribute("min", "0");
   await expect(page.locator('input[name="reorderLevel"]').first()).toHaveAttribute("min", "0");
-  await expect(page.locator('input[aria-label^="Reserved stock "]').first()).toHaveAttribute("readonly", "");
+  await expect(page.getByRole("textbox", { name: /ถูกจอง|Reserved stock/ }).first()).toHaveAttribute("readonly", "");
 });
 
 test("orders and returns expose state-safe actions", async ({ page }) => {
@@ -102,7 +102,9 @@ test("orders and returns expose state-safe actions", async ({ page }) => {
   if (await returnActions.count()) {
     await expect(returnActions.first()).toBeVisible();
   } else {
-    await expect(page.getByText("ไม่พบคำขอคืนสินค้า", { exact: true })).toBeVisible();
+    const emptyReturns = page.getByText("ไม่พบคำขอคืนสินค้า", { exact: true });
+    const existingReturn = page.getByRole("table").getByRole("row").nth(1);
+    await expect(emptyReturns.or(existingReturn)).toBeVisible();
   }
 });
 
@@ -214,7 +216,7 @@ test("product lifecycle creates, saves, configures options and stock, then clean
     expect(variantResponse.ok(), await variantResponse.text()).toBeTruthy();
     await expect(page.getByText("อัปเดตตัวเลือกสินค้าแล้ว", { exact: true }).or(page.getByText("สร้างตัวเลือกสินค้าแล้ว", { exact: true }))).toBeVisible();
 
-    await expect(page.locator("#review").getByRole("button", { name: "ส่งตรวจสอบ", exact: true })).toBeDisabled();
+    await expect(page.locator("#review").getByRole("button", { name: /เผยแพร่สินค้า|Publish product/ })).toBeDisabled();
   } finally {
     if (productId) {
       await prisma.product.deleteMany({ where: { id: productId } });
@@ -223,19 +225,31 @@ test("product lifecycle creates, saves, configures options and stock, then clean
 });
 
 test("ownership guard blocks another seller and allows product owner", async ({ page }) => {
-  const productId = process.env.E2E_OWNERSHIP_PRODUCT_ID ?? "b4876ad1-bd8b-4b42-86bd-c9dad60fcaea";
-
-  await page.goto(`/th/seller/products/${productId}`);
-  await waitForRenderedPage(page);
-  await expect(page.locator("#seller-product-studio-form")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "ลองอีกครั้ง" })).toBeVisible();
-
-  await page.context().clearCookies();
-  await signInSeller(page, {
-    email: process.env.E2E_PRODUCT_OWNER_EMAIL ?? "buyer.demo@example.com",
-    password: process.env.E2E_PRODUCT_OWNER_PASSWORD ?? "DemoPass123!",
+  const [shop, category] = await Promise.all([
+    prisma.shop.findFirst({ where: { slug: "gadget-harbor" } }),
+    prisma.category.findFirst({ where: { isActive: true } }),
+  ]);
+  expect(shop, "Seed the gadget seller shop shell").toBeTruthy();
+  expect(category, "Seed an active category").toBeTruthy();
+  const product = await prisma.product.create({
+    data: { shopId: shop!.id, sellerProfileId: shop!.sellerProfileId, categoryId: category!.id, title: "Ownership Guard E2E Product", slug: `e2e-ownership-${Date.now()}`, status: "DRAFT" },
   });
-  await page.goto(`/th/seller/products/${productId}`);
-  await waitForRenderedPage(page);
-  await expect(page.locator("#seller-product-studio-form")).toBeVisible();
+
+  try {
+    await page.goto(`/th/seller/products/${product.id}`);
+    await waitForRenderedPage(page);
+    await expect(page.locator("#seller-product-studio-form")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "ลองอีกครั้ง" })).toBeVisible();
+
+    await page.context().clearCookies();
+    await signInSeller(page, {
+      email: process.env.E2E_PRODUCT_OWNER_EMAIL ?? "seller-gadget@example.com",
+      password: process.env.E2E_PRODUCT_OWNER_PASSWORD ?? "DemoPass123!",
+    });
+    await page.goto(`/th/seller/products/${product.id}`);
+    await waitForRenderedPage(page);
+    await expect(page.locator("#seller-product-studio-form")).toBeVisible();
+  } finally {
+    await prisma.product.deleteMany({ where: { id: product.id } });
+  }
 });

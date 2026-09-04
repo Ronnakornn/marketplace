@@ -12,7 +12,7 @@ test("renders the Thai full-width Product Studio without the old accent text", a
   await expect(studioNav).toContainText("ข้อมูลพื้นฐาน");
   await expect(studioNav).toContainText("สื่อ");
   await expect(studioNav).toContainText("ตัวเลือกสินค้า");
-  await expect(studioNav).toContainText("ตรวจสอบ");
+  await expect(studioNav).toContainText("เผยแพร่");
 
   await expect(page.getByText("แถวตัวเลือกสินค้า", { exact: true })).toBeVisible();
   await expect(page.getByText("สร้าง แก้ไข ลบ ตั้งราคา ขนาด และสต็อกสำหรับชุดตัวเลือกที่ขายได้", { exact: true })).toBeVisible();

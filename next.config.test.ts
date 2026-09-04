@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import config, { allowedDevOrigins, imageRemotePatterns } from "./next.config.mjs";
+import config, { allowedDevOrigins, imageRemotePatterns, resolveDistDir } from "./next.config.mjs";
 
 const originalEnv = { ...process.env };
 
@@ -8,6 +8,12 @@ afterEach(() => {
 });
 
 describe("Next CDN and cache config", () => {
+  it("isolates Next build artifacts when a test dist directory is configured", () => {
+    process.env.NEXT_DIST_DIR = ".next-e2e";
+
+    expect(resolveDistDir()).toBe(".next-e2e");
+  });
+
   it("allows configured CDN and S3 public image domains", async () => {
     process.env.NEXT_PUBLIC_CDN_URL = "https://cdn.example.com";
     process.env.S3_PUBLIC_BASE_URL = "https://bucket.storage.example.com";
