@@ -1,0 +1,17 @@
+$ vitest run --exclude "**/e2e/**" server/modules/jobs/queue-expiry.integration.test.ts server/modules/catalog/catalog-cache.integration.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/redis7-expiry-catalog.json"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/jobs/queue-expiry.integration.test.ts (1 test) 712ms
+     ✓ scheduled worker expires checkout and every shop order, then repeats without releasing stock twice  668ms
+(node:30840) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/catalog/catalog-cache.integration.test.ts (1 test) 761ms
+     ✓ refreshes warmed slug and UUID details after seller edits and rejects stale visibility  723ms
+
+ Test Files  2 passed (2)
+      Tests  2 passed (2)
+   Start at  04:47:07
+   Duration  2.52s (transform 317ms, setup 0ms, import 786ms, tests 1.47s, environment 0ms)
+
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/redis7-expiry-catalog.json

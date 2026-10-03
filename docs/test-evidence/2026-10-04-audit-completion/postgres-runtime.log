@@ -1,0 +1,32 @@
+2026-10-04 04:38:43.273 +07 [23120] LOG:  starting PostgreSQL 17.4 on x86_64-windows, compiled by msvc-19.42.34436, 64-bit
+2026-10-04 04:38:43.274 +07 [23120] LOG:  listening on IPv4 address "127.0.0.1", port 55439
+2026-10-04 04:38:43.325 +07 [5760] LOG:  database system was shut down at 2026-10-04 04:27:41 +07
+2026-10-04 04:38:43.360 +07 [23120] LOG:  database system is ready to accept connections
+2026-10-04 04:44:00.150 +07 [7208] LOG:  starting PostgreSQL 17.4 on x86_64-windows, compiled by msvc-19.42.34436, 64-bit
+2026-10-04 04:44:00.151 +07 [7208] LOG:  listening on IPv4 address "127.0.0.1", port 55439
+2026-10-04 04:44:00.197 +07 [16468] LOG:  database system was interrupted; last known up at 2026-10-04 04:38:43 +07
+2026-10-04 04:44:03.611 +07 [16468] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-10-04 04:44:03.615 +07 [16468] LOG:  redo starts at 0/5BB4838
+2026-10-04 04:44:04.115 +07 [16468] LOG:  invalid record length at 0/6951428: expected at least 24, got 0
+2026-10-04 04:44:04.116 +07 [16468] LOG:  redo done at 0/69513F0 system usage: CPU: user: 0.00 s, system: 0.21 s, elapsed: 0.50 s
+2026-10-04 04:44:04.126 +07 [33244] LOG:  checkpoint starting: end-of-recovery immediate wait
+2026-10-04 04:44:04.990 +07 [33244] LOG:  checkpoint complete: wrote 2867 buffers (17.5%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.337 s, sync=0.521 s, total=0.866 s; sync files=1387, longest=0.006 s, average=0.001 s; distance=13939 kB, estimate=13939 kB; lsn=0/6951428, redo lsn=0/6951428
+2026-10-04 04:44:05.109 +07 [7208] LOG:  database system is ready to accept connections
+2026-10-04 04:44:51.802 +07 [34764] ERROR:  value "2147483648" is out of range for type integer
+2026-10-04 04:44:51.802 +07 [34764] CONTEXT:  unnamed portal parameter $3 = '...'
+2026-10-04 04:44:51.802 +07 [34764] STATEMENT:  INSERT INTO "public"."Inventory" ("id","variantId","quantityOnHand","quantityReserved","reorderLevel","version","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT ("variantId") DO UPDATE SET "quantityOnHand" = $8, "updatedAt" = $9 WHERE ("public"."Inventory"."variantId" = $10 AND 1=1) RETURNING "public"."Inventory"."id", "public"."Inventory"."variantId", "public"."Inventory"."quantityOnHand", "public"."Inventory"."quantityReserved", "public"."Inventory"."reorderLevel", "public"."Inventory"."version", "public"."Inventory"."updatedAt"
+2026-10-04 04:44:51.852 +07 [28816] ERROR:  value "2147483648" is out of range for type integer
+2026-10-04 04:44:51.852 +07 [28816] CONTEXT:  unnamed portal parameter $5 = '...'
+2026-10-04 04:44:51.852 +07 [28816] STATEMENT:  INSERT INTO "public"."Inventory" ("id","variantId","quantityOnHand","quantityReserved","reorderLevel","version","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT ("variantId") DO UPDATE SET "reorderLevel" = $8, "updatedAt" = $9 WHERE ("public"."Inventory"."variantId" = $10 AND 1=1) RETURNING "public"."Inventory"."id", "public"."Inventory"."variantId", "public"."Inventory"."quantityOnHand", "public"."Inventory"."quantityReserved", "public"."Inventory"."reorderLevel", "public"."Inventory"."version", "public"."Inventory"."updatedAt"
+2026-10-04 04:45:23.476 +07 [27360] ERROR:  value "2147483648" is out of range for type integer
+2026-10-04 04:45:23.476 +07 [27360] CONTEXT:  unnamed portal parameter $3 = '...'
+2026-10-04 04:45:23.476 +07 [27360] STATEMENT:  INSERT INTO "public"."Inventory" ("id","variantId","quantityOnHand","quantityReserved","reorderLevel","version","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT ("variantId") DO UPDATE SET "quantityOnHand" = $8, "updatedAt" = $9 WHERE ("public"."Inventory"."variantId" = $10 AND 1=1) RETURNING "public"."Inventory"."id", "public"."Inventory"."variantId", "public"."Inventory"."quantityOnHand", "public"."Inventory"."quantityReserved", "public"."Inventory"."reorderLevel", "public"."Inventory"."version", "public"."Inventory"."updatedAt"
+2026-10-04 04:45:23.547 +07 [18204] ERROR:  value "2147483648" is out of range for type integer
+2026-10-04 04:45:23.547 +07 [18204] CONTEXT:  unnamed portal parameter $5 = '...'
+2026-10-04 04:45:23.547 +07 [18204] STATEMENT:  INSERT INTO "public"."Inventory" ("id","variantId","quantityOnHand","quantityReserved","reorderLevel","version","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT ("variantId") DO UPDATE SET "reorderLevel" = $8, "updatedAt" = $9 WHERE ("public"."Inventory"."variantId" = $10 AND 1=1) RETURNING "public"."Inventory"."id", "public"."Inventory"."variantId", "public"."Inventory"."quantityOnHand", "public"."Inventory"."quantityReserved", "public"."Inventory"."reorderLevel", "public"."Inventory"."version", "public"."Inventory"."updatedAt"
+2026-10-04 04:49:04.019 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 04:50:00.264 +07 [33244] LOG:  checkpoint complete: wrote 516 buffers (3.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=56.181 s, sync=0.060 s, total=56.246 s; sync files=202, longest=0.003 s, average=0.001 s; distance=694 kB, estimate=12614 kB; lsn=0/69FF030, redo lsn=0/69FEFA0
+2026-10-04 04:54:04.282 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 04:54:29.541 +07 [33244] LOG:  checkpoint complete: wrote 233 buffers (1.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=25.203 s, sync=0.052 s, total=25.260 s; sync files=155, longest=0.006 s, average=0.001 s; distance=1047 kB, estimate=11457 kB; lsn=0/6B04C68, redo lsn=0/6B04BD8
+2026-10-04 05:04:04.551 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 05:04:21.876 +07 [33244] LOG:  checkpoint complete: wrote 159 buffers (1.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=17.290 s, sync=0.031 s, total=17.325 s; sync files=102, longest=0.002 s, average=0.001 s; distance=529 kB, estimate=10365 kB; lsn=0/6B9D388, redo lsn=0/6B891B0

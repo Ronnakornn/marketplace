@@ -1,0 +1,26 @@
+# Server
+redis_version:7.2.14
+redis_git_sha1:00000000
+redis_git_dirty:0
+redis_build_id:fb2711858e5441b8
+redis_mode:standalone
+os:MSYS_NT-10.0-26200 3.6.9-aa532e7b.x86_64 x86_64
+arch_bits:64
+monotonic_clock:POSIX clock_gettime
+multiplexing_api:select
+atomicvar_api:c11-builtin
+gcc_version:15.2.0
+process_id:1870
+process_supervised:no
+run_id:3413ab0be2940662d8f73c351f57948501fcea2a
+tcp_port:56379
+server_time_usec:1791063925605293
+uptime_in_seconds:0
+uptime_in_days:0
+hz:10
+configured_hz:10
+lru_clock:12679029
+executable:/runtime/Redis-7.2.14-Windows-x64-msys2/redis-server
+config_file:/runtime/Redis-7.2.14-Windows-x64-msys2/redis-task.conf
+io_threads_active:0
+listener0:name=tcp,bind=127.0.0.1,port=56379

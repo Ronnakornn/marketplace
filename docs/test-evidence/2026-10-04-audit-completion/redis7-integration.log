@@ -1,0 +1,15 @@
+$ vitest run --exclude "**/e2e/**" server/modules/queue/queue-worker.integration.test.ts server/modules/refund/settlement-cache.integration.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/redis7-integration.json"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:1420) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/refund/settlement-cache.integration.test.ts (1 test) 951ms
+     ✓ refreshes warmed detail, discovery, search and affected seller caches on completion and replay  927ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  04:45:26
+   Duration  2.25s (transform 489ms, setup 0ms, import 1.16s, tests 951ms, environment 0ms)
+
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/redis7-integration.json

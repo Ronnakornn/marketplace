@@ -1,0 +1,19 @@
+$ bunx prisma migrate deploy
+◇ injected env (20) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": PostgreSQL database "marketplace_test_completion", schema "public" at "127.0.0.1:55439"
+
+20 migrations found in prisma/migrations
+
+Applying migration `20261004060000_audit_historical_order_snapshots`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20261004060000_audit_historical_order_snapshots/
+    └─ migration.sql
+
+All migrations have been successfully applied.

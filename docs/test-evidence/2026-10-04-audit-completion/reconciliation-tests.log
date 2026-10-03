@@ -1,0 +1,15 @@
+$ vitest run --exclude "**/e2e/**" server/modules/order/historical-reconciliation.integration.test.ts server/modules/audit-log/audit-log.service.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/reconciliation-tests.json"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/order/historical-reconciliation.integration.test.ts (18 tests) 2453ms
+     ✓ previews exactly the missing shops without writing  448ms
+     ✓ runs the guarded CLI in dry-run mode and requires explicit apply  1447ms
+ ✓ server/modules/audit-log/audit-log.service.test.ts (8 tests) 21ms
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  05:05:43
+   Duration  3.56s (transform 332ms, setup 0ms, import 715ms, tests 2.47s, environment 0ms)
+
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/reconciliation-tests.json

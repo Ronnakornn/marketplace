@@ -1,0 +1,74 @@
+{
+  "passed": true,
+  "boundaries": [
+    {
+      "input": "9007199254740990",
+      "wireType": "string",
+      "display": "THB 90,071,992,547,409.90"
+    },
+    {
+      "input": "9007199254740991",
+      "wireType": "string",
+      "display": "THB 90,071,992,547,409.91"
+    },
+    {
+      "input": "9007199254740992",
+      "wireType": "string",
+      "display": "THB 90,071,992,547,409.92"
+    },
+    {
+      "input": "9007199254740993",
+      "wireType": "string",
+      "display": "THB 90,071,992,547,409.93"
+    },
+    {
+      "input": "-9007199254740990",
+      "wireType": "string",
+      "display": "-THB 90,071,992,547,409.90"
+    },
+    {
+      "input": "-9007199254740991",
+      "wireType": "string",
+      "display": "-THB 90,071,992,547,409.91"
+    },
+    {
+      "input": "-9007199254740992",
+      "wireType": "string",
+      "display": "-THB 90,071,992,547,409.92"
+    },
+    {
+      "input": "-9007199254740993",
+      "wireType": "string",
+      "display": "-THB 90,071,992,547,409.93"
+    },
+    {
+      "input": "18014398509481981",
+      "wireType": "string",
+      "display": "THB 180,143,985,094,819.81"
+    },
+    {
+      "input": "-18014398509481981",
+      "wireType": "string",
+      "display": "-THB 180,143,985,094,819.81"
+    },
+    {
+      "input": "-1",
+      "wireType": "string",
+      "display": "-THB 0.01"
+    },
+    {
+      "input": "0",
+      "wireType": "string",
+      "display": "THB 0.00"
+    }
+  ],
+  "oldSerializerAmount": 9007199254740992,
+  "oldCacheBigIntType": "string",
+  "oldDisplayAtMaxSafe": "THB 90,071,992,547,409.90",
+  "limits": [
+    "No PostgreSQL queries",
+    "No Redis execution",
+    "No application endpoint integration",
+    "No browser rendering"
+  ]
+}
