@@ -1,0 +1,30 @@
+Refund worker implementation evidence
+
+Owned implementation files:
+- server/modules/refund/refund.repository.ts and refund.repository.test.ts
+- server/modules/refund/settlement-refund.service.ts and settlement-refund.service.test.ts
+- server/modules/refund/settlement-races.integration.test.ts
+- server/modules/return/return.repository.ts and return.repository.test.ts
+- server/modules/promotion/buyer-coin.transitions.ts and buyer-coin.transitions.test.ts
+
+Implemented snapshot policy planning and completion separately from legacy cash-allocation validation. New-policy refund plans reserve complete order-item quantities, retain immutable original components, and require trusted shipping causes. Pending plan writes acquire a conditional PENDING row lock before replacement. Repeated completion has no additional accounting effects. Commission reversals use original snapshotted fee and successful actual merchandise reversals. Unrecognized sale rights are reversed without wallet debt. Recognized sale reversals post negative refund_adjustment and positive commission_fee separately.
+
+Paid preship cancellation validates a full-shop item scope and shipment evidence, restores committed inventory exactly once, records RETURN_RESTOCK movements, and cancels sale items, Shop Orders, and shipments atomically. Parent status derives from remaining active shipments; all-shop cancellation refunds the parent and successful payment. Seller-fault and change-of-mind returns do not auto-restock. Seller-fault returns retain incurred marketplace shipping subsidy.
+
+Fixed Prisma 7.9 transaction proxy recursion in return creation by explicitly tracking transaction context. No transaction timeout was raised.
+
+Validation:
+- bunx tsc --noEmit: passed before the final wallet-ownership guard. Root owns the final repository-wide typecheck.
+- Focused refund/planner/return/coin tests: 61 passed across 4 files. refund-worker-unit.log.
+- Actual PostgreSQL races on local guarded marketplace_test_numeric, port 55439: 11 passed. new-races.log.
+- PostgreSQL cases cover concurrent replay, refund versus earnings recognition, concurrent reservation conflicts and FAILED release, late reward-failure rollback, seller-fault shipping once across two whole items, status-transition-wins plan CAS, and actual two-shop AdminService cancellation plus eligible earnings recovery and replay.
+- Explicit coin restoration requires the original snapshotted funding to equal USED spend coins times 100, consistent prior restorations, and one spend wallet matching the actual BuyerCoinWallet loaded by buyer userId. Missing or corrupt proof fails with 409 and rolls back the entire refund. Four additional PostgreSQL cases prove missing spend, insufficient spend, excess previous restoration, and wrong-wallet rollback. The unrelated wrong wallet receives no credit. Legacy and zero-funded cashback behavior remain unchanged.
+- A planner-only combined funding fixture proves gross 100000, seller discount 10000, marketplace coupon 5000, coins 2000, buyer merchandise cash 83000, shipping 4000, original fee 9000, and full preship refund cash 87000. This does not claim support for multiple coupons in checkout.
+
+Scope limits:
+- Partial-unit quantities are rejected until an allocation and reservation contract supports them safely.
+- Arbitrary amount-only new-policy refunds require a saved explicit item and shipping plan.
+- Nonzero tax is rejected for snapshot refund settlement in this increment.
+- Legacy orders retain the prior validated path; missing or mixed snapshots fail with 409.
+- Cash confirmation still uses two administrators and an external receipt reference. No actual payment-provider transfer was exercised.
+- Root owns API, UI, migrations, broader integration, and final repository-wide checks. No commits were made by this worker.

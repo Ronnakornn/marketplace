@@ -1,0 +1,87 @@
+$ vitest run --exclude "**/e2e/**" server/modules/wallet/settlement-policy.integration.test.ts
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:29568) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ server/modules/wallet/settlement-policy.integration.test.ts (8 tests | 5 failed) 41866ms
+     × returns full merchandise once, restores every spent coin, reverses the original fee and retains shipping 5903ms
+     × records a pre-earning cancellation and never creates debt or later earning on returned rights 6693ms
+     × reverses zero-cash subsidized merchandise without charging unearned seller funds 6278ms
+     × blocks an unfunded outstanding payout after a refund and releases its reservation without inventing debt 9649ms
+     × shows debt after a paid payout and uses future earnings to offset it 6558ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/wallet/settlement-policy.integration.test.ts > accepted settlement policy on PostgreSQL > returns full merchandise once, restores every spent coin, reverses the original fee and retains shipping
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ server/modules/wallet/settlement-policy.integration.test.ts:123:3
+    121|   })
+    122|
+    123|   it('returns full merchandise once, restores every spent coin, revers…
+       |   ^
+    124|     const data = await sale()
+    125|     await data.deliver()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  server/modules/wallet/settlement-policy.integration.test.ts > accepted settlement policy on PostgreSQL > records a pre-earning cancellation and never creates debt or later earning on returned rights
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ server/modules/wallet/settlement-policy.integration.test.ts:137:3
+    135|   })
+    136|
+    137|   it('records a pre-earning cancellation and never creates debt or lat…
+       |   ^
+    138|     const data = await sale()
+    139|     const intent = { items: [{ orderItemId: data.item.id, quantity: 1 …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  server/modules/wallet/settlement-policy.integration.test.ts > accepted settlement policy on PostgreSQL > reverses zero-cash subsidized merchandise without charging unearned seller funds
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ server/modules/wallet/settlement-policy.integration.test.ts:167:3
+    165|   })
+    166|
+    167|   it('reverses zero-cash subsidized merchandise without charging unear…
+       |   ^
+    168|     const data = await sale({ platform: true, price: 10000, discount: …
+    169|     expect(data.result.totalCents).toBe(4000)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  server/modules/wallet/settlement-policy.integration.test.ts > accepted settlement policy on PostgreSQL > blocks an unfunded outstanding payout after a refund and releases its reservation without inventing debt
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ server/modules/wallet/settlement-policy.integration.test.ts:179:3
+    177|   })
+    178|
+    179|   it('blocks an unfunded outstanding payout after a refund and release…
+       |   ^
+    180|     const data = await sale()
+    181|     await data.deliver()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  server/modules/wallet/settlement-policy.integration.test.ts > accepted settlement policy on PostgreSQL > shows debt after a paid payout and uses future earnings to offset it
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ server/modules/wallet/settlement-policy.integration.test.ts:193:3
+    191|   })
+    192|
+    193|   it('shows debt after a paid payout and uses future earnings to offse…
+       |   ^
+    194|     const data = await sale()
+    195|     await data.deliver()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 3 passed (8)
+   Start at  03:40:39
+   Duration  43.39s (transform 417ms, setup 0ms, import 1.07s, tests 41.87s, environment 0ms)
+
+error: script "test" exited with code 1

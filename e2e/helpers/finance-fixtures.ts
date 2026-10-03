@@ -11,7 +11,7 @@ export function financeDatabase() {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString: url.toString() }) });
 }
 
-export async function createFinanceFixture(db: ReturnType<typeof financeDatabase>) {
+export async function createFinanceFixture(db: ReturnType<typeof financeDatabase>, snapshotted = false) {
   const key = randomUUID();
   const password = "DemoPass123!";
   const passwordHash = await hashPassword(password);
@@ -41,5 +41,18 @@ export async function createFinanceFixture(db: ReturnType<typeof financeDatabase
     items.push(await db.orderItem.create({ data: { orderId: order.id, shopId: shop.id, variantId: variant.id, productTitle: product.title, productSlug: product.slug, variantTitle: variant.title, variantSku: variant.sku, shopName: shop.name, shopSlug: shop.slug, quantity: 1, unitPrice: price, lineTotal: price, currency: "THB", fulfillmentStatus: "DELIVERED" } }));
   }
   await db.payment.create({ data: { orderId: order.id, provider: "mock", providerIntentId: key, status: "SUCCEEDED", amount: 8500n, currency: "THB", paidAt: new Date() } });
+  if (snapshotted) {
+    const shopOrder = await db.shopOrder.findFirstOrThrow({ where: { orderId: order.id } });
+    await db.shopSaleSnapshot.create({ data: { shopOrderId: shopOrder.id, currency: "THB", commissionBase: 8000n,
+      commissionBps: 1000, originalCommission: 800n, originalShipping: 500n, buyerShipping: 500n,
+      sellerShippingWaiver: 0n, platformShippingSubsidy: 0n, recognizedAt: new Date() } });
+    for (const item of items) await db.itemSaleSnapshot.create({ data: { orderItemId: item.id, shopOrderId: shopOrder.id,
+      originalQuantity: 1, grossMerchandise: item.lineTotal, sellerCouponDiscount: item.lineTotal === 4000n ? 800n : 1200n,
+      platformCouponDiscount: 0n, coinDiscount: 0n, buyerMerchandise: item.lineTotal === 4000n ? 3200n : 4800n } });
+    await db.walletLedgerEntry.updateMany({ where: { walletId: wallet.id }, data: { amount: 8500n, orderId: order.id } });
+    await db.walletLedgerEntry.create({ data: { walletId: wallet.id, shopId: shop.id, orderId: order.id,
+      type: "commission_fee", amount: -800n, currency: "THB" } });
+    await db.shipment.create({ data: { orderId: order.id, shopId: shop.id, status: "DELIVERED", shippedAt: new Date(), deliveredAt: new Date() } });
+  }
   return { buyer, seller, admin, secondAdmin, shop, wallet, order, items };
 }

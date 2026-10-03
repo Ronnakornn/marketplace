@@ -1,0 +1,113 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > prepares a pending cancellation with original full item quantities and shop intent 299ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > does not offer cancellation preparation for shipped orders 6ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > does not offer cancellation preparation for legacy orders 6ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > does not offer cancellation preparation for unpaid orders 3ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > requires saving shipping and reviewing the refreshed server total before processing 148ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > keeps an unchanged refund plan when processing without a shipping edit 28ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > uses an internal evidence reference to complete a zero-cash adjustment 17ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > shows the server conflict and retains the review gate after a failed plan edit 34ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered percent value in the correct integer unit 168ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 167ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 236ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 130ms
+ ✓ app/features/admin/components/AdminProductsModerationTable.test.tsx > AdminProductsModerationTable > requires a suspend reason before submitting moderation action 970ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 105ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 98ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 88ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 0.29 as exact minor units 14ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.15 as exact minor units 8ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.000 as exact minor units 8ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1e3 as exact minor units 8ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.90 as exact minor units 7ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.91 as exact minor units 7ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.92 as exact minor units 9ms
+
+ Test Files  3 passed (3)
+      Tests  23 passed (23)
+   Start at  03:42:37
+   Duration  3.92s (transform 841ms, setup 0ms, import 2.71s, tests 2.57s, environment 4.44s)
+
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > prepares a pending cancellation with original full item quantities and shop intent 156ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > does not offer cancellation preparation for shipped orders 3ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > does not offer cancellation preparation for legacy orders 6ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > does not offer cancellation preparation for unpaid orders 2ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > requires saving shipping and reviewing the refreshed server total before processing 112ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > keeps an unchanged refund plan when processing without a shipping edit 21ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > uses an internal evidence reference to complete a zero-cash adjustment 19ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > shows the server conflict and retains the review gate after a failed plan edit 41ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered percent value in the correct integer unit 156ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 41ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 31ms
+ ✓ app/features/admin/components/AdminProductsModerationTable.test.tsx > AdminProductsModerationTable > requires a suspend reason before submitting moderation action 304ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 25ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 24ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 20ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 20ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 0.29 as exact minor units 4ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.15 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.000 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1e3 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.90 as exact minor units 2ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.91 as exact minor units 2ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.92 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > shows server debt separately from the signed available balance 6ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > does not label a reservation shortfall as debt when the server reports no debt 3ms
+
+ Test Files  3 passed (3)
+      Tests  25 passed (25)
+   Start at  03:43:32
+   Duration  1.91s (transform 307ms, setup 0ms, import 1.55s, tests 1.02s, environment 2.18s)
+
+$ bun run scripts/i18n-audit.ts
+i18n audit passed.
+Key parity: 2253 en keys, 2253 th keys.
+Placeholder parity: ok.
+Scoped Thai/hardcoded findings covered by baseline: 0.
+Frontend final typecheck exit 0
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > prepares a pending cancellation with original full item quantities and shop intent 346ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > does not offer cancellation preparation for shipped orders 4ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > does not offer cancellation preparation for legacy orders 3ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > does not offer cancellation preparation for unpaid orders 3ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > requires saving shipping and reviewing the refreshed server total before processing 132ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > keeps an unchanged refund plan when processing without a shipping edit 23ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > preserves the final cent in the server review total at the safe integer boundary 23ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > uses an internal evidence reference to complete a zero-cash adjustment 18ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx > settlement refund review controls > shows the server conflict and retains the review gate after a failed plan edit 38ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered percent value in the correct integer unit 179ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 37ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 32ms
+ ✓ app/features/admin/components/AdminProductsModerationTable.test.tsx > AdminProductsModerationTable > requires a suspend reason before submitting moderation action 339ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 32ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 35ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 27ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 22ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 0.29 as exact minor units 5ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.15 as exact minor units 5ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.000 as exact minor units 5ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1e3 as exact minor units 4ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.90 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.91 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.92 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > shows server debt separately from the signed available balance 7ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > does not label a reservation shortfall as debt when the server reports no debt 4ms
+
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+   Start at  03:46:04
+   Duration  2.57s (transform 506ms, setup 0ms, import 2.14s, tests 1.34s, environment 3.09s)
+
+Frontend scope: Admin cancellation prepares a PENDING explicit plan. Seller-fault shipping edits save through separate /plan PATCH; status controls remain blocked while the choice is unsaved. Updated server total is reviewed before a separate PROCESSING transition. Status mutation never implicitly reprices.
+Server quantities/shop IDs and amounts are copied from inferred Eden data. New plan payload types derive from route Parameters. New review amounts preserve cents using integer formatting, including9007199254740991 ->90,071,992,547,409.91.
+Seller debt displays server sellerDebtCents with future-earnings recovery wording, separately from signed available balance. No client debt or entitlement calculation.
+Latest focused result:26 passed in3files. Admin settlement actions9, existing moderation1, seller numeric/debt16. Initial and post-test TypeScript checks exited0. en/th2253keys matched with placeholder parity.
+Evidence is component/unit and TypeScript/i18n only. Root owns final browser/API/DB, build, concurrency and provider scope. No external transfer is performed by prepare/update-plan. Zero-cash SUCCESS requests an internal settlement reference and retains backend two-admin controls.
+After integer display final typecheck exit 0

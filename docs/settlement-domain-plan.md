@@ -58,10 +58,11 @@ is the baseline, not proof that a proposed settlement policy is implemented.
 
 ## Result
 
-The modeling increment is complete. Shipping entitlement is accepted in
-ADR-0004. Funding and commission questions remain pending, so financial
-implementation has not started. Source review corrected one invalid method
-reference and removed stale pending-shipping statements.
+The modeling increment is complete. Its historical result below predates
+the funding and commission acceptance in ADR-0005. Current implementation
+and verification are tracked in settlement-implementation-plan.md.
+Source review corrected one invalid method reference and removed stale
+pending-shipping statements.
 
 Typecheck passed. Vitest passed 1,213 tests, failed zero, and skipped 39 optional
 infrastructure tests. PostgreSQL, Redis, browser, and provider checks were not

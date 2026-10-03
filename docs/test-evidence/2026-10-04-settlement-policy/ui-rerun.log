@@ -1,0 +1,43 @@
+$ vitest run --exclude "**/e2e/**" app/features/product/components/ProductBuyerStates.test.tsx app/features/seller/components/SellerProductPages.test.tsx "--maxWorkers=2"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ❯ app/features/product/components/ProductBuyerStates.test.tsx (40 tests | 2 failed) 45805ms
+     × clamps quantity when the selected variant changes to lower stock 6381ms
+     × renders Q&A discovery controls and loads additional question pages 5036ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/product/components/ProductBuyerStates.test.tsx > ProductDetailPage buyer transaction states > clamps quantity when the selected variant changes to lower stock
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ app/features/product/components/ProductBuyerStates.test.tsx:1031:3
+    1029|   });
+    1030|
+    1031|   it("clamps quantity when the selected variant changes to lower stock…
+       |   ^
+    1032|     renderWithClient(<ProductDetailPage productId="product-1" />);
+    1033|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  app/features/product/components/ProductBuyerStates.test.tsx > ProductDetailPage buyer transaction states > renders Q&A discovery controls and loads additional question pages
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ app/features/product/components/ProductBuyerStates.test.tsx:1289:3
+    1287|   });
+    1288|
+    1289|   it("renders Q&A discovery controls and loads additional question pag…
+       |   ^
+    1290|     queryMocks.questionsResponsesByPage.set(1, {
+    1291|       items: [{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 71 passed (73)
+   Start at  03:56:11
+   Duration  52.15s (transform 2.28s, setup 0ms, import 7.23s, tests 90.59s, environment 2.27s)
+
+error: script "test" exited with code 1

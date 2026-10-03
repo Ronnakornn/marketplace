@@ -2,60 +2,115 @@
 
 ```mermaid
 flowchart TD
-  A[Payment webhook marks order PAID] --> B[Group order items by shop]
-  B --> C[Create shipment for each shop]
-  C --> D[Create shipment items<br/>for that shop's order items]
-  D --> E[Notify each shop<br/>new shipment ready]
-
-  E --> F[Shop opens fulfillment queue]
-  F --> G{Can fulfill all items?}
-  G -- No --> G1[Contact buyer or marketplace support]
-  G1 --> G2{Cancel, refund, or partial fulfill?}
-  G2 -- Cancel/refund --> G3[Create refund request]
-  G3 --> G4[Refund provider via payment API]
-  G4 --> G5[Wait for refund webhook]
-  G5 --> G6[Mark refund completed<br/>update order item status]
-  G2 -- Partial fulfill --> H
-
-  G -- Yes --> H[Pack items]
-  H --> I[Buy or enter shipping label]
-  I --> J[Add carrier and tracking number]
-  J --> K[Mark shipment SHIPPED]
-  K --> L[Notify buyer with tracking]
-  L --> M[Carrier updates delivery status]
-  M --> N{Delivered?}
-  N -- No --> N1[Keep shipment in transit]
-  N1 --> M
-  N -- Yes --> O[Mark shipment DELIVERED]
-  O --> P[Update shipment item statuses]
-  P --> Q{All shipments delivered?}
-  Q -- No --> R[Order remains partially fulfilled]
-  Q -- Yes --> S[Mark order FULFILLED]
-  S --> T[Open review window]
-
-  T --> U{Buyer requests return?}
-  U -- No --> V[Order lifecycle complete]
-  U -- Yes --> W[Create return request]
-  W --> X[Shop/admin reviews return]
-  X --> Y{Approved?}
-  Y -- No --> Y1[Reject return<br/>notify buyer]
-  Y -- Yes --> Z[Buyer ships return]
-  Z --> AA[Shop receives return]
-  AA --> AB[Inspect return items]
-  AB --> AC{Refund due?}
-  AC -- No --> V
-  AC -- Yes --> AD[Create refund]
-  AD --> AE[Refund provider via payment API]
-  AE --> AF[Refund webhook confirms]
-  AF --> AG[Mark return REFUNDED<br/>notify buyer]
+  A[Trusted payment success: Order PAID] --> B[Create shop-owned shipments and shipment items]
+  B --> C[Seller packs and adds carrier/tracking]
+  C --> D[Mark shipment SHIPPED]
+  D --> E[Mark shipment DELIVERED]
+  E --> F[Project parent status under Order lock]
+  F --> G{Paid whole Order DELIVERED or FULFILLED?}
+  G -- Yes --> H[Recognize surviving seller entitlement once]
+  G -- No --> C
+  E --> I[Buyer requests return of full item quantities]
+  I --> J[Seller approves or rejects Return]
+  J -- Approved --> K[Create PENDING refund with merchandise plan]
+  A --> L[Admin prepares unshipped cancellation plan]
+  L --> K
+  K --> M[Admin reviews items, shipping cause and server cash amount]
+  M --> N{Plan change needed?}
+  N -- Yes --> O[Save PENDING plan and refresh amount]
+  O --> M
+  N -- No --> P[First admin marks PROCESSING]
+  P --> Q[Different admin records completion reference]
+  Q --> R[Complete frozen plan in transaction]
+  R --> S[Record SUCCESS, rights reversals, original fee credits and coin effects]
+  S --> T[Post recognized wallet adjustments or reduce future earnings]
 ```
 
-Rules:
-- Shipments are split by `shopId`; a multi-vendor order has multiple shop-owned shipments.
-- Shipment items allocate quantities from order items, allowing partial fulfillment.
-- Packing, shipping, and delivery lock the parent order before changing shipment state, serializing concurrent updates from different shops. After shipping or delivery, the parent is `DELIVERED` when every shipment is delivered, `SHIPPED` when every shipment is shipped or delivered, and `PARTIALLY_FULFILLED` otherwise.
-- Refund completion should follow payment provider confirmation, preferably webhook-backed.
-- Return approvals and refund amounts are separate decisions from shipment delivery.
-- Item refunds use the shop-order subtotal minus its snapshotted coupon/coin discounts. Discounts are allocated across that shop's items in stable ID order, retaining every minor unit; item refunds exclude shipping charges.
-- Both admin refund endpoints (`/status` and the legacy `/process`) use the same approval policy: record the processing administrator, then require a different completing administrator and an external refund reference. Legacy processing records without an administrator must be marked processing again before completion.
-- Refund completion locks the order, checks the remaining paid amount, and atomically records seller wallet debits and buyer coin adjustments. Retrying completion does not debit again. A return debits its shop; an order-wide refund is allocated across shop-order totals.
+## Shipment and earnings
+
+- Shipments are split by Shop. Shipment items allocate Order Item quantities and support partial fulfillment.
+- Packing, shipping, and delivery lock the parent Order before changing state. Canceled shipments are excluded from active delivery projection. The parent becomes DELIVERED when every remaining shipment is delivered, SHIPPED when every remaining shipment is shipped or delivered, and PARTIALLY_FULFILLED otherwise. An all-canceled shipment set projects CANCELED; refund completion applies its separate full-cancellation REFUNDED transition.
+- A paid Order in DELIVERED or FULFILLED state qualifies for earnings recognition. Eligibility remains whole-Order based; this increment does not release earnings independently per Shop.
+- Policy 1 recognition uses original sale snapshots, surviving seller merchandise and shipping rights, and the remaining original fee. Successful refunds before recognition reduce that credit instead of creating a debit against unearned funds.
+- Recognition locks the Order and Shop wallets in Shop ID order. `recognizedAt` makes repeated recognition a no-op, including a fully reversed sale whose surviving credit is zero.
+
+## Refund planning and approval
+
+[ADR-0005](adr/0005-discount-funding-and-refundable-commission.md) is the policy for
+snapshotted sales. `RefundItemAllocation` records the exact original item cash,
+platform coupon, and coin funding components. `RefundShopAllocation` records
+shipping cause, shipping reversals, commission reversal, and wallet posting.
+
+New-policy refunds require an explicit plan. The current API accepts only the full
+original quantity of each selected Order Item. PENDING, PROCESSING, and SUCCESS
+plans reserve item and shipping capacity; FAILED plans do not. Duplicate,
+overlapping, malformed, or partly snapshotted rights produce conflict 409.
+
+An approved Return immediately creates a PENDING merchandise refund. This does
+not establish physical receipt or automatically complete the refund. Free-text
+return reasons do not authorize seller-fault shipping refunds. The Return status
+enum has RECEIVED and COMPLETED, rather than REFUNDED; refund success does not
+automatically advance that independent status.
+
+Admins can create a PENDING cancellation using
+`POST /api/admin/orders/:orderId/refunds` and update a PENDING plan using
+`PATCH /api/admin/refunds/:refundId/plan`. The UI saves changes, refreshes the
+server amount, and requires a separate processing action. A Return-linked plan
+must preserve the approved item IDs/quantities and its Shop.
+
+| Shipping cause | Buyer-paid shipping | Marketplace subsidy | Required scope/evidence |
+|---|---|---|---|
+| NONE / CHANGE_OF_MIND | Retained | Retained | No shipping reversal |
+| PRE_SHIPMENT_CANCEL | Refund remaining original amount | Reverse unused subsidy | Every item in that Shop Order; no shipment sent or delivered |
+| SELLER_FAULT | Refund remaining original amount once | Retained for incurred carrier obligation | Authorized admin decision and shipped/delivered evidence |
+
+Completion rechecks shipping evidence. A pre-shipment cancellation restores the
+paid committed stock once and cancels affected items, Shop Orders, and shipments.
+When all Shop Orders are canceled, Order and successful Payment statuses become
+REFUNDED. Other merchandise returns do not imply this cancellation transition.
+
+Both admin status endpoints use two-person completion: the first administrator
+records PROCESSING, and a different administrator completes with a nonempty
+reference. For positive cash, the reference records an external refund; for zero
+cash, it records internal settlement through the same `externalReference` field.
+The current path records manual completion; it does not call a refund provider or
+verify a refund webhook. A reference alone is not proof of a bank/provider transfer.
+
+## Component completion and debt
+
+Completion locks Order, validates successful payment and remaining cash, and
+rechecks frozen item/shipping capacity against other active plans. Original
+commission reversal uses the purchased fee and cumulative successfully reversed
+merchandise rights, bounded by that original fee. Full merchandise return reverses
+the entire fee, even when shipping is retained.
+
+If earnings were already recognized, seller entitlement debits and fee credits
+are posted under sorted ShopWallet locks. Otherwise the successful allocations
+reduce future recognition. `walletPostedAt` prevents a second posting. Buyer coin
+restoration follows allocated original coin funding; cashback reversal uses
+returned merchandise cash, excluding retained shipping. Order, inventory,
+allocation, wallet, and coin writes roll back together on completion failure.
+Replaying SUCCESS does not apply these adjustments again.
+
+For snapshot orders with coin funding, restoration requires original SPENT evidence
+matching the saved funding and the buyer's wallet. Missing, insufficient,
+over-restored or unrelated-wallet history rejects with 409 and rolls back the
+entire completion instead of silently reducing the promised coin restoration.
+
+After pre-shipment cancellation commits, first completion and SUCCESS replay
+invalidate affected product detail and seller dashboards plus shared discovery,
+search and recommendation caches. Sold-count projections exclude canceled lines
+under a still-successful multi-shop payment. Delivered returns retain their
+historical sale counts. The actual PostgreSQL/Redis regression covers refresh and
+idempotent retry; cache failure continues to use the existing fail-open policy.
+
+Seller debt is the negative economic ledger after adding back reversible active
+payout reservations. The signed available balance remains visible separately.
+Future earnings repay debt before withdrawal. Payout approval and marking paid
+lock the payout and wallet, match currency, and reject a negative available ledger
+balance; rejection can still release a hold. This gate cannot undo a bank transfer
+already made externally.
+
+Orders with no snapshots retain the validated legacy cash allocation described
+in [refund-allocation-design.md](refund-allocation-design.md); they do not acquire
+today's funding or fee policy. Historical inconsistencies require reconciliation.

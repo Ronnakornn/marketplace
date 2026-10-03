@@ -1,0 +1,12 @@
+{
+  "finishedAt": "2026-10-03T21:27:44.7272743Z",
+  "postgresStopExitCode": 0,
+  "postgresStatusExitCode": 3,
+  "redisShutdownExitCode": 0,
+  "redisProcessAlive": false,
+  "taskPortListeners": [],
+  "retainedPostgresDirectory": "C:/Users/ASUS/AppData/Local/Temp/marketplace-numeric-pg-8eaba08c00d24e849724037394816a1b/data",
+  "retainedRedisDirectory": "C:/Users/ASUS/AppData/Local/Temp/marketplace-settlement-redis-4cdd7103e75941c7930ee23764d1d513",
+  "dataDeleted": false,
+  "existingPorts3000And3001Untouched": true
+}

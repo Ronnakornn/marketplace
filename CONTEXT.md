@@ -118,6 +118,18 @@ The amount credited to a Shop for its sales after the applicable settlement
 adjustments. Seller Earnings and Buyer Cash Payment are distinct amounts.
 _Avoid_: Order total, sales revenue, payout
 
+### Sale Snapshot
+
+The original merchandise, discount funding, shipping entitlement, and commission
+facts retained for a Shop Order and its items when purchased.
+_Avoid_: Current coupon settings, current commission rate
+
+### Unrecognized Seller Entitlement
+
+A Shop's surviving sale entitlement before it becomes Seller Earnings. Successful
+refunds reduce this entitlement before crediting it to the seller wallet.
+_Avoid_: Withdrawable balance, seller debt
+
 ### Platform Commission
 
 The fee the marketplace charges a Shop for a sale. Its calculation base and
@@ -141,6 +153,18 @@ Money returned to a buyer against a previously collected payment. Coin
 restoration and seller settlement reversal are separate adjustments.
 _Avoid_: Return approval, seller debit
 
+### Refund Plan
+
+The approved scope of a refund: its original item quantities and shipping causes,
+with the corresponding buyer cash and economic adjustments.
+_Avoid_: Cash amount alone, return reason
+
+### Shipping Subsidy
+
+The marketplace-funded portion of a Shop's original shipping entitlement that
+the buyer does not pay.
+_Avoid_: Shop-funded shipping waiver, carrier cost
+
 ### Seller Settlement Reversal
 
 An adjustment that reverses a Shop's economic entitlement for a refunded sale.
@@ -162,6 +186,12 @@ _Avoid_: Seller earnings, settlement
 
 An amount a Shop owes the marketplace after debits exceed its retained funds.
 _Avoid_: Buyer coin debt, payout failure
+
+### Payout Reservation
+
+Available seller funds held for an outstanding Payout Request. Rejection releases
+the reservation; an active reservation is distinct from Seller Debt.
+_Avoid_: Completed payout, economic loss
 
 ## Seller Operations
 

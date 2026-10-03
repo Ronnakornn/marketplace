@@ -1,0 +1,14 @@
+$ next build
+▲ Next.js 16.3.2 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.mjs took 16ms
+- Experiments (use with caution):
+  ✓ inlineCss
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 4.1s
+  Running TypeScript ...
+server/modules/admin/admin.repository.ts(314,67): error TS2561: Object literal may only specify known properties, but 'orderItem' does not exist in type 'RefundItemAllocationSelect<DefaultArgs>'. Did you mean to write 'orderItemId'?
+Failed to type check.
+
+error: script "build" exited with code 1

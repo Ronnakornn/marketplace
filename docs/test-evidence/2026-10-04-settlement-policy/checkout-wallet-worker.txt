@@ -1,0 +1,19 @@
+Checkout and wallet worker verification
+
+Command: bun run test server/modules/checkout server/modules/wallet
+Exit: 0
+Test Files: 4 passed, 3 skipped, 7 total
+Tests: 78 passed, 14 skipped, 92 total
+Duration: 1.41 seconds
+Optional PostgreSQL infrastructure tests were not enabled in this worker run.
+
+Command: bunx tsc --noEmit
+Exit: 1
+Diagnostics outside worker ownership:
+app/features/admin/components/AdminSettlementRefundActions.tsx(30,76): TS2367 number | undefined compared with string.
+app/features/admin/components/AdminSettlementRefundActions.tsx(53,93): TS2367 number | undefined compared with string.
+No diagnostics in the checkout or wallet files owned by this worker.
+Root was notified and owns final global typecheck verification.
+
+Observed focused assertions include original commission after live rate changes, separate source discount snapshots, both free-shipping payers, pre-earning merchandise refund, zero earning recognition replay, mixed snapshot rejection, and unpaid reservation deficit versus paid-refund seller debt.
+No application schema, generated output, root integration tests, or unrelated files were edited by this worker.

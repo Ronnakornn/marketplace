@@ -1,0 +1,10 @@
+◇ injected env (20) from .env.local // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": PostgreSQL database "marketplace_test_numeric", schema "public" at "127.0.0.1:55439"
+
+19 migrations found in prisma/migrations
+
+Database schema is up to date!

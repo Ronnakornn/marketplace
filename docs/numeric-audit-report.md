@@ -114,7 +114,10 @@ Analytics fixture ใช้ paid order เดียว มี 3 lines มูล�
 | Queue expiry/repeat ไม่ release stock สองครั้ง | ผ่าน worker+scheduler+Redis5+PostgreSQL จริง; Redis7 ยังไม่ได้ทดสอบ |
 | Price cache invalidation หลัง seller edit | ผ่าน Redis5+PostgreSQL warmed price10,000→12,500; stale visibility ปฏิเสธ |
 
-## ช่องว่างที่ต้องเห็นก่อนใช้งานผล
+## ช่องว่างที่บันทึกไว้ใน audit เดิม
+
+รายการนี้เป็นสถานะก่อน ADR-0005 ข้อ 1 ถูกแก้สำหรับออเดอร์ใหม่ที่มี settlement
+snapshots แล้ว รายละเอียดและขอบเขตการตรวจล่าสุดอยู่ในรอบ settlement policy ด้านล่าง
 
 1. รายได้ร้านยังคิดจาก gross item line totals หัก commission และไม่รวม shipping ส่วน refund debit ใช้ net merchandise หรือ shop grand total ตัวอย่าง gross 10,000, discount 2,000, shipping 500 และ commission 10% ทำให้ earnings 9,000 แต่ buyer cash 8,500 ถ้า full cash refund หัก 8,500 จะเหลือ 500 ต้องกำหนด coupon funding, shipping recipient และ commission reversal ก่อนเปลี่ยนสูตร คำถามธุรกิจยังไม่มีคำตอบ จึงไม่รับรอง reconciliation นี้
 2. `server/lib/prisma.ts` ยังแปลง BigInt ทั้งหมดเป็น number โดยไม่มี global safe bound Checkout/catalog/commission/payout guards และ exact intermediate tests ไม่ได้พิสูจน์ว่าการอ่าน/aggregate เงินทุก domain เกิน 9,007,199,254,740,991 จะรักษาเศษสตางค์ได้ การใช้ API number ทำให้ค่าฐานสิบบางค่าถูกปัดตั้งแต่ JSON parse ฟอร์มที่แก้ใช้ raw string แต่ monetary displays ที่หาร number ด้วย 100 ทั่วทั้งระบบยังไม่มี near-ceiling parity proof
@@ -141,8 +144,9 @@ Comment review แยกตรวจเฉพาะ comment ที่เพิ�
 ## รอบเพิ่มเติมหลัง domain modeling
 
 ผู้ใช้เลือกให้ร้านรับค่าส่งและจ่าย carrier แล้วใน [ADR-0004](adr/0004-shops-receive-shipping-charges.md)
-การรับภาระส่วนลดและฐาน/การคืน commission ยังรอการตัดสินใจ
-สูตรรายได้ร้านยังไม่ได้เปลี่ยนตามนโยบายใหม่
+ข้อความและผลในรอบนี้เป็นประวัติก่อนรับ ADR-0005
+การรับภาระส่วนลดและฐาน/การคืน commission ตกลงแล้วเมื่อ 2026-10-04
+ผลการใช้สูตรใหม่แยกอยู่ในรอบ settlement policy ด้านล่าง
 
 พบและแก้บั๊ก refund ย่อยหลายครั้งที่อาจหักร้านเดิมเกิน cash allocation
 เคส PostgreSQL สองร้านจ่ายร้านละ 1 สตางค์ คืนครั้งละ 1 สตางค์สองครั้ง
@@ -156,3 +160,50 @@ Commerce PostgreSQL ผ่านครบ 20 เคส Amount/repository/commerc
 
 [หลักฐานรอบเพิ่มเติม](test-evidence/2026-10-04-refund-allocation/README.md)
 และ [แบบคำนวณ](refund-allocation-design.md) แยกผลรอบนี้จากหลักฐาน audit เดิม
+
+## รอบ settlement policy ตามคำตอบ “ตามแนะนำ”
+
+ใช้ [ADR-0005](adr/0005-discount-funding-and-refundable-commission.md) กับออเดอร์ใหม่
+แยกส่วนลดที่ร้านรับภาระ เงินสนับสนุน platform/coins ค่าส่ง และ fee เดิมตั้งแต่ checkout
+ไม่เปลี่ยน funding หรือ commission ของออเดอร์เก่าตามข้อมูลคูปองปัจจุบัน
+
+| Flow / กฎ | ผลและหลักฐาน |
+|---|---|
+| คูปองร้านและ coins | PostgreSQL ผ่าน buyer 92,000 / seller credit 94,000 / fee 9,000 / wallet 85,000 แม้เปลี่ยน live rate เป็น 20% |
+| คูปอง platform | ผ่าน buyer 97,000 และ wallet 94,000; แก้คูปองภายหลังไม่เปลี่ยน original funding |
+| คืนสินค้าทั้งรายการ | ผ่าน buyer cash 88,000, seller debit 90,000, fee credit 9,000, คงค่าส่ง 4,000 และคืน 20 coins |
+| คืนสินค้า cash ศูนย์ | ผ่าน internal two-admin completion; reverse subsidy และ fee โดยไม่สร้าง provider cash transfer ปลอม |
+| ยกเลิกก่อนเครดิตรายได้ | ผ่าน full cash cancellation, คืน committed stock ครั้งเดียวและไม่สร้างหนี้จากรายได้ที่ยังไม่ได้รับ |
+| ยกเลิกบางร้านหลังร้านอื่นส่งครบ | ผ่าน actual AdminService; parent DELIVERED, ร้านที่เหลือรับ 9,500, ร้านยกเลิกศูนย์, stock กลับ 10 |
+| ค่าส่งที่ platform / ร้านรับภาระ | ผ่าน seller wallet 94,000 / 90,000 ตาม funding; seller-fault คืน buyer shipping ครั้งเดียวต่อร้าน |
+| Refund replay / race / rollback | ผ่าน PostgreSQL concurrent completion, recognition race, capacity reservation, FAILED release, freeze CAS และ reward-failure rollback |
+| Payout ค้างอยู่ / ถอนแล้ว | ผ่าน funding recheck และ reservation release; หลังถอนเกิดหนี้ 81,000, checkout/payment/delivery ใหม่หักหนี้จน balance 13,000 |
+| แก้แผนคืนค่าส่งผ่าน UI | Chromium ผ่าน pending cash 32.00 → 37.00 ตรง API/DB ก่อน PROCESSING; wallet 43.20 ตรงฐานข้อมูล |
+| ยกเลิกผ่าน admin UI/API | ผ่าน POST สร้าง PENDING 85.00; สอง admin จบ flow และ replay ไม่คืน stock ซ้ำหรือสร้าง seller ledger |
+| จำนวนขายแล้วเมื่อยกเลิกบางร้าน | ผ่านจริงทั้ง search/recommendation/catalog/analytics; ไม่รวม canceled 4 units ภายใต้ parent SUCCEEDED แต่เก็บ delivered return เป็นประวัติขาย |
+| Legacy compatibility | Commerce 20 กรณีผ่านด้วย fixture ออเดอร์เก่าที่ไม่มี funding snapshots; ไม่ใช้สูตรใหม่เดาข้อมูลเก่า |
+| Redis cache / expiry | สอง integration cases ผ่าน Redis 5 + PostgreSQL; Redis 7 ยังไม่ได้ตรวจ |
+| Cache หลังยกเลิก / retry | PostgreSQL + Redis ผ่าน stock 9→10 และ sold 1→0; clear cache ร้านที่ยกเลิกและคงข้อมูลร้านอื่น; replay ไม่คืน stock ซ้ำ |
+
+พบและแก้ transaction proxy ที่ทำให้ return ซ้อน transaction จนหมดเวลา
+พบ checkbox คืนค่าส่งถูก flex บีบจนคลิกไม่ได้จากเบราว์เซอร์จริงและแก้แล้ว
+พบ postcommit earnings ทำให้ legacy fixture รับเครดิตซ้ำ จึงจำกัด hook เฉพาะ snapshots
+พบ coin spend history ไม่ครบอาจคืน coins น้อยกว่าสัญญา จึงใช้ original funding proof
+และ rollback เมื่อหลักฐานไม่ตรง
+
+[หลักฐานและคำสั่งรันซ้ำ](test-evidence/2026-10-04-settlement-policy/README.md)
+แยกผลก่อนแก้ ผลหลังแก้ และผลตรวจขั้นสุดท้าย ไม่ใช้ผลรวมจากรอบก่อนแทนรอบนี้
+การรีวิวอิสระใช้ GPT อีก agent ในตระกูลเดียวกัน ไม่มี cross-family verification
+
+ยังไม่ได้รับรอง provider/bank transfer จริง, production browser runtime,
+Firefox/WebKit/mobile, Redis 7, partial-unit returns, nonzero-tax settlement,
+คูปองร้านและ platform พร้อมกัน, affiliate late refund และ lifetime wallet aggregate
+เกิน safe-integer ข้อจำกัดอื่นของ audit เดิมยังคงอยู่ตามหลักฐานเดิม
+Analytics revenue ยังคือ gross merchandise ของ paid noncanceled lines ไม่ใช่ net wallet
+ไม่มี push/deploy หรือ production migration ในรอบนี้
+
+ผลตรวจขั้นสุดท้าย: Vitest 173 files / 1,374 tests ผ่านทั้งหมด ไม่ผ่านศูนย์
+ข้ามศูนย์ โดยเปิด PostgreSQL/Redis integration gates; Chromium finance 4 flows
+ผ่าน ไม่มีข้ามหรือ flaky; `bunx tsc --noEmit` และ `bun run build` exit 0
+ปิด PostgreSQL/Redis ที่เปิดเพื่องานนี้และตรวจ dedicated ports ปิดแล้ว เก็บข้อมูลไว้
+ผลนี้รับรอง increment settlement ตาม ADR-0005; ช่องว่าง audit อื่นยังแยกตามรายการเดิม

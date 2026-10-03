@@ -1,0 +1,5 @@
+$ bun run scripts/i18n-audit.ts
+i18n audit passed.
+Key parity: 2253 en keys, 2253 th keys.
+Placeholder parity: ok.
+Scoped Thai/hardcoded findings covered by baseline: 0.

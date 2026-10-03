@@ -1,0 +1,13 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:26568) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/refund/settlement-cache.integration.test.ts > settlement cancellation cache on PostgreSQL and Redis > refreshes warmed detail, discovery, search and affected seller caches on completion and replay 1086ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  04:20:12
+   Duration  2.42s (transform 493ms, setup 0ms, import 1.16s, tests 1.11s, environment 0ms)
+
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-04-settlement-policy/cache-worker-result.json

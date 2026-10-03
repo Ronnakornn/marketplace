@@ -1,0 +1,12 @@
+Command: bun run test server/modules/checkout server/modules/wallet server/modules/shipment
+Date: 2026-10-04 Asia/Bangkok
+Exit: 0
+Test Files: 7 passed | 4 skipped (11)
+Tests: 100 passed | 16 skipped (116)
+Duration: 2.28s
+
+Command: bunx tsc --noEmit
+Exit: 0 (no diagnostics)
+
+New coverage: seller gross 9007199254744991 is rejected before checkout/order/payment writes even though buyer cash 9007199254740991 fits; original commission and seller net safe integer limits checked in snapshot planning. Existing quote evaluation calculates original undiscounted goods + shipping before coupon/coins and rejects this same unsafe case.
+Other owned fixes: canceled shipment siblings are excluded from active completion; transaction-bound wallet repositories reuse the current transaction even when its proxy exposes $transaction.

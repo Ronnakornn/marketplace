@@ -1,0 +1,12 @@
+$ vitest run --exclude "**/e2e/**" server/modules/catalog/catalog-cache.integration.test.ts server/modules/jobs/queue-expiry.integration.test.ts
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:33156) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ Test Files  2 passed (2)
+      Tests  2 passed (2)
+   Start at  04:03:22
+   Duration  2.34s (transform 672ms, setup 0ms, import 1.57s, tests 2.43s, environment 0ms)
+

@@ -1,0 +1,108 @@
+$ next build
+▲ Next.js 16.3.2 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.mjs took 17ms
+- Experiments (use with caution):
+  ✓ inlineCss
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 13.4s
+  Running TypeScript ...
+  Finished TypeScript in 72s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/127) ...
+  Generating static pages using 11 workers (31/127) 
+  Generating static pages using 11 workers (63/127) 
+  Generating static pages using 11 workers (95/127) 
+✓ Generating static pages using 11 workers (127/127) in 1494ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /_not-found
+├ ƒ /[locale]
+├ ƒ /[locale]/about
+├ ƒ /[locale]/account/addresses
+├ ƒ /[locale]/admin
+├ ƒ /[locale]/admin/affiliates
+├ ƒ /[locale]/admin/audit-logs
+├ ƒ /[locale]/admin/catalog
+├ ƒ /[locale]/admin/catalog/[id]
+├ ƒ /[locale]/admin/categories
+├ ƒ /[locale]/admin/commissions
+├ ƒ /[locale]/admin/content-moderation
+├ ƒ /[locale]/admin/dashboard
+├ ƒ /[locale]/admin/flash-sales
+├ ƒ /[locale]/admin/fraud
+├ ƒ /[locale]/admin/orders
+├ ƒ /[locale]/admin/payouts
+├ ƒ /[locale]/admin/products
+├ ƒ /[locale]/admin/products/[productId]
+├ ƒ /[locale]/admin/profile
+├ ƒ /[locale]/admin/refunds
+├ ƒ /[locale]/admin/reports
+├ ƒ /[locale]/admin/returns
+├ ƒ /[locale]/admin/settings
+├ ƒ /[locale]/admin/shops
+├ ƒ /[locale]/admin/users
+├ ƒ /[locale]/affiliates
+├ ƒ /[locale]/cart
+├ ƒ /[locale]/categories/[categoryId]
+├ ƒ /[locale]/change-password
+├ ƒ /[locale]/chat
+├ ƒ /[locale]/chat/[roomId]
+├ ƒ /[locale]/checkout
+├ ƒ /[locale]/coins
+├ ƒ /[locale]/creator
+├ ƒ /[locale]/deals
+├ ƒ /[locale]/followed-shops
+├ ƒ /[locale]/forgot-password
+├ ƒ /[locale]/login
+├ ƒ /[locale]/notifications
+├ ƒ /[locale]/orders
+├ ƒ /[locale]/orders/[orderId]
+├ ƒ /[locale]/orders/[orderId]/returns/new
+├ ƒ /[locale]/orders/[orderId]/review
+├ ƒ /[locale]/orders/[orderId]/tracking
+├ ƒ /[locale]/payment/mock/[paymentId]
+├ ƒ /[locale]/payment/return
+├ ƒ /[locale]/products/[productId]
+├ ƒ /[locale]/profile
+├ ƒ /[locale]/reset-password
+├ ƒ /[locale]/search
+├ ƒ /[locale]/seller
+├ ƒ /[locale]/seller/analytics/products
+├ ƒ /[locale]/seller/chat
+├ ƒ /[locale]/seller/chat/[roomId]
+├ ƒ /[locale]/seller/finance
+├ ƒ /[locale]/seller/inventory
+├ ƒ /[locale]/seller/notifications
+├ ƒ /[locale]/seller/orders
+├ ƒ /[locale]/seller/products
+├ ƒ /[locale]/seller/products/[productId]
+├ ƒ /[locale]/seller/products/[productId]/edit
+├ ƒ /[locale]/seller/products/create
+├ ƒ /[locale]/seller/products/new
+├ ƒ /[locale]/seller/promotions
+├ ƒ /[locale]/seller/register
+├ ƒ /[locale]/seller/register/[step]
+├ ƒ /[locale]/seller/returns
+├ ƒ /[locale]/seller/shop
+├ ƒ /[locale]/seller/staff
+├ ƒ /[locale]/seller/status
+├ ƒ /[locale]/shops/[shopId]
+├ ƒ /[locale]/signup
+├ ƒ /[locale]/verify-email
+├ ƒ /[locale]/vouchers
+├ ƒ /[locale]/wishlist
+├ ○ /apple-icon.png
+├ ○ /icon.png
+├ ○ /manifest.webmanifest
+├ ○ /robots.txt
+└ ○ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

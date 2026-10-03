@@ -1,0 +1,155 @@
+$ vitest run --exclude "**/e2e/**" server/modules/refund/commerce-concurrency.integration.test.ts
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:15220) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts (20 tests | 7 failed) 1979ms
+     × concurrent refund completion debits the seller exactly once 68ms
+     × preserves each shop allocation when an order-wide refund is split into separate cents 240ms
+     × serializes different simultaneous refunds against the remaining shop allocations 92ms
+     × never credits a shop when cumulative rounding lowers its ideal refund share 177ms
+     × uses actual shop-specific refunds when allocating the remaining order-wide refund 100ms
+     × rejects a targeted refund above its shop remainder without changing committed amounts 58ms
+     × rolls back refund status and ledger entries when coin settlement fails 28ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/refund/commerce-concurrency.integration.test.ts > commerce transactions on PostgreSQL > concurrent refund completion debits the seller exactly once
+RefundServiceError: Refund requires a successful original payment
+ ❯ invalidSettlementRefund server/modules/refund/settlement-refund.service.ts:20:9
+     18|
+     19| export function invalidSettlementRefund(message = 'Refund settlement a…
+     20|   throw new RefundServiceError(message, 409, 'INVALID_REFUND_STATE')
+       |         ^
+     21| }
+     22|
+ ❯ server/modules/refund/refund.repository.ts:206:52
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/src/runtime/getPrismaClient.ts:861:17
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:172:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  server/modules/refund/commerce-concurrency.integration.test.ts > commerce transactions on PostgreSQL > preserves each shop allocation when an order-wide refund is split into separate cents
+AssertionError: promise rejected "RefundServiceError: Refund requires an ex… { …(3) }" instead of resolving
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:184:51
+    182|     const records = await Promise.all([data.createRefund(1), data.crea…
+    183|     for (const refund of records) {
+    184|       await expect(data.completeRefund(refund.id)).resolves.toMatchObj…
+       |                                                   ^
+    185|       await expect(data.completeRefund(refund.id)).resolves.toBeNull()
+    186|     }
+
+Caused by: RefundServiceError: Refund requires an explicit allocation plan
+ ❯ invalidSettlementRefund server/modules/refund/settlement-refund.service.ts:20:9
+ ❯ completeSettlementRefundPlan server/modules/refund/settlement-refund.service.ts:173:102
+ ❯ server/modules/refund/refund.repository.ts:209:22
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/runtime/client.js:99:4800
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:184:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { status: 409, code: 'INVALID_REFUND_STATE', details: undefined }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  server/modules/refund/commerce-concurrency.integration.test.ts > commerce transactions on PostgreSQL > serializes different simultaneous refunds against the remaining shop allocations
+RefundServiceError: Refund requires an explicit allocation plan
+ ❯ invalidSettlementRefund server/modules/refund/settlement-refund.service.ts:20:9
+     18|
+     19| export function invalidSettlementRefund(message = 'Refund settlement a…
+     20|   throw new RefundServiceError(message, 409, 'INVALID_REFUND_STATE')
+       |         ^
+     21| }
+     22|
+ ❯ completeSettlementRefundPlan server/modules/refund/settlement-refund.service.ts:173:102
+ ❯ server/modules/refund/refund.repository.ts:209:22
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/src/runtime/getPrismaClient.ts:861:17
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:196:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  server/modules/refund/commerce-concurrency.integration.test.ts > commerce transactions on PostgreSQL > never credits a shop when cumulative rounding lowers its ideal refund share
+AssertionError: promise rejected "RefundServiceError: Refund requires an ex… { …(3) }" instead of resolving
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:206:51
+    204|     for (let index = 0; index < 2; index += 1) {
+    205|       const refund = await data.createRefund(1)
+    206|       await expect(data.completeRefund(refund.id)).resolves.toMatchObj…
+       |                                                   ^
+    207|     }
+    208|     expect(await refundDebits(data.result.orderId)).toEqual([0n, -1n, …
+
+Caused by: RefundServiceError: Refund requires an explicit allocation plan
+ ❯ invalidSettlementRefund server/modules/refund/settlement-refund.service.ts:20:9
+ ❯ completeSettlementRefundPlan server/modules/refund/settlement-refund.service.ts:173:102
+ ❯ server/modules/refund/refund.repository.ts:209:22
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/runtime/client.js:99:4800
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:206:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { status: 409, code: 'INVALID_REFUND_STATE', details: undefined }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  server/modules/refund/commerce-concurrency.integration.test.ts > commerce transactions on PostgreSQL > uses actual shop-specific refunds when allocating the remaining order-wide refund
+AssertionError: promise rejected "RefundServiceError: Refund requires an ex… { …(3) }" instead of resolving
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:222:55
+    220|     const returned = await data.createReturn(data.first.shop.id)
+    221|     const targetRefund = await data.createRefund(100, returned.id)
+    222|     await expect(data.completeRefund(targetRefund.id)).resolves.toMatc…
+       |                                                       ^
+    223|     expect(await refundDebits(data.result.orderId)).toEqual([-100n, 0n…
+    224|     const remainder = await data.createRefund(100)
+
+Caused by: RefundServiceError: Refund requires an explicit allocation plan
+ ❯ invalidSettlementRefund server/modules/refund/settlement-refund.service.ts:20:9
+ ❯ completeSettlementRefundPlan server/modules/refund/settlement-refund.service.ts:173:102
+ ❯ server/modules/refund/refund.repository.ts:209:22
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/runtime/client.js:99:4800
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:222:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { status: 409, code: 'INVALID_REFUND_STATE', details: undefined }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  server/modules/refund/commerce-concurrency.integration.test.ts > commerce transactions on PostgreSQL > rejects a targeted refund above its shop remainder without changing committed amounts
+AssertionError: promise rejected "RefundServiceError: Refund requires an ex… { …(3) }" instead of resolving
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:232:51
+    230|     const data = await refundFixture([100, 100])
+    231|     const previous = await data.createRefund(100)
+    232|     await expect(data.completeRefund(previous.id)).resolves.toMatchObj…
+       |                                                   ^
+    233|     expect(await refundDebits(data.result.orderId)).toEqual([-50n, -50…
+    234|     const returned = await data.createReturn(data.first.shop.id)
+
+Caused by: RefundServiceError: Refund requires an explicit allocation plan
+ ❯ invalidSettlementRefund server/modules/refund/settlement-refund.service.ts:20:9
+ ❯ completeSettlementRefundPlan server/modules/refund/settlement-refund.service.ts:173:102
+ ❯ server/modules/refund/refund.repository.ts:209:22
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/runtime/client.js:99:4800
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:232:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { status: 409, code: 'INVALID_REFUND_STATE', details: undefined }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  server/modules/refund/commerce-concurrency.integration.test.ts > commerce transactions on PostgreSQL > rolls back refund status and ledger entries when coin settlement fails
+AssertionError: expected [Function] to throw error including 'Coin settlement unavailable' but got 'Refund requires a successful original…'
+
+Expected: "Coin settlement unavailable"
+Received: "Refund requires a successful original payment"
+
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:281:139
+    279|     const failingClient = prisma.$extends({ query: { buyerCoinLedger: …
+    280|     const refunds = new PrismaRefundRepository(context, failingClient …
+    281|     await expect(refunds.completeRefundSuccess(refund.id, 'PROCESSING'…
+       |                                                                                                                                           ^
+    282|     expect(await prisma.refund.findUnique({ where: { id: refund.id } }…
+    283|     expect(await prisma.walletLedgerEntry.count({ where: { refundId: r…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 13 passed (20)
+   Start at  03:49:36
+   Duration  3.41s (transform 489ms, setup 0ms, import 1.28s, tests 1.98s, environment 0ms)
+
+error: script "test" exited with code 1

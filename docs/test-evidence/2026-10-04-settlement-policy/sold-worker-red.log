@@ -1,0 +1,101 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ↓ server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > ranks paid revenue across pages independently of product creation order
+ ↓ server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > keeps recommendations and search sold counts equal when unpaid order items exist
+ × server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > excludes a canceled shop line while its paid parent and the other shop remain active 713ms
+   → expected 13 to be 9 // Object.is equality
+   → expected 13 to be 9 // Object.is equality
+   → expected 13 to be 9 // Object.is equality
+   → expected { …(13) } to match object { unitsSold: 9, revenue: 900 }
+(14 matching properties omitted from actual)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > excludes a canceled shop line while its paid parent and the other shop remain active
+AssertionError: expected 13 to be 9 // Object.is equality
+
+- Expected
++ Received
+
+- 9
++ 13
+
+ ❯ server/modules/product-analytics/product-analytics-numeric.integration.test.ts:132:102
+    130|       const recommended = await recommendations.getRelated(shopFixture…
+    131|       const searched = await search.searchProducts({ q: shopFixture.ta…
+    132|       expect.soft(recommended.items.find((item) => item.productId === …
+       |                                                                                                      ^
+    133|       expect.soft(searched.items.find((item) => item.productId === tar…
+    134|       expect.soft((await catalog.findProductMetrics([target.product.id…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > excludes a canceled shop line while its paid parent and the other shop remain active
+AssertionError: expected 13 to be 9 // Object.is equality
+
+- Expected
++ Received
+
+- 9
++ 13
+
+ ❯ server/modules/product-analytics/product-analytics-numeric.integration.test.ts:133:99
+    131|       const searched = await search.searchProducts({ q: shopFixture.ta…
+    132|       expect.soft(recommended.items.find((item) => item.productId === …
+    133|       expect.soft(searched.items.find((item) => item.productId === tar…
+       |                                                                                                   ^
+    134|       expect.soft((await catalog.findProductMetrics([target.product.id…
+    135|       const analytics = new ProductAnalyticsService(context, new Prism…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > excludes a canceled shop line while its paid parent and the other shop remain active
+AssertionError: expected 13 to be 9 // Object.is equality
+
+- Expected
++ Received
+
+- 9
++ 13
+
+ ❯ server/modules/product-analytics/product-analytics-numeric.integration.test.ts:134:90
+    132|       expect.soft(recommended.items.find((item) => item.productId === …
+    133|       expect.soft(searched.items.find((item) => item.productId === tar…
+    134|       expect.soft((await catalog.findProductMetrics([target.product.id…
+       |                                                                                          ^
+    135|       const analytics = new ProductAnalyticsService(context, new Prism…
+    136|         resolveActiveShops: async () => [shopFixture.shop],
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > excludes a canceled shop line while its paid parent and the other shop remain active
+AssertionError: expected { …(13) } to match object { unitsSold: 9, revenue: 900 }
+(14 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "revenue": 900,
+-   "unitsSold": 9,
++   "revenue": 1300,
++   "unitsSold": 13,
+  }
+
+ ❯ server/modules/product-analytics/product-analytics-numeric.integration.test.ts:141:88
+    139|         range: 'custom', from: '2026-10-04', to: '2026-10-04', limit: …
+    140|       })
+    141|       expect.soft(products.items.find((item) => item.productId === tar…
+       |                                                                                        ^
+    142|     }
+    143|     expect(await db.order.findUniqueOrThrow({ where: { id: order.id } …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 skipped (3)
+   Start at  04:10:54
+   Duration  1.28s (transform 254ms, setup 0ms, import 392ms, tests 745ms, environment 0ms)
+

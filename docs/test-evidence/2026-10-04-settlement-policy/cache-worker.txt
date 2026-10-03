@@ -1,0 +1,22 @@
+Settlement cache integration evidence
+
+Command: bunx vitest run server/modules/refund/settlement-cache.integration.test.ts --reporter=verbose --reporter=json --outputFile=docs/test-evidence/2026-10-04-settlement-policy/cache-worker-result.json
+Environment: COMMERCE_TEST_DATABASE_URL points to local 127.0.0.1:55439/marketplace_test_numeric; CACHE_TEST_REDIS_URL points to local 127.0.0.1:56379/14. Both variables guard this test. Hosts, disposable database naming, Redis nonstandard port/nonzero DB are checked before use.
+Result: 1 passed, 0 failed, 0 skipped. cache-worker-result.json and cache-worker-green.log contain actual final results.
+
+The fixture executes real CheckoutService, PaymentService through the configured mock-provider trusted settlement seam, PrismaAdminRepository, AdminService, and refund repository on PostgreSQL. It does not mock repositories or the cache. Two shops purchase one 10000-minor-unit item each and pay shipping 500 each: payment 21000, canceled shop refund 10500.
+
+Physical Redis payloads are warmed with a 300-second TTL. Before cancellation, product detail has stock 9 and sold 1; recommendations and search have sold 1 / stock 9. Admin creates PRE_SHIPMENT_CANCEL plan, a first administrator marks PROCESSING, and a different administrator records SUCCESS.
+
+After completion:
+- Actual product detail, recommendation and search keys are physically absent before refetch.
+- Catalog detail and discovery/search services then return stock 10 and sold 0 for the canceled product.
+- The sibling search product remains stock 9 and sold 1; parent remains PAID / SUCCEEDED.
+- Affected seller dashboard and insight keys are deleted. These use synthetic marker payloads under real cache key builders, not SellerDashboardService counter assertions.
+- Unaffected sibling dashboard and unrelated sentinel cache payloads remain present; no global Redis flush is used.
+
+For SUCCESS replay, the test reinserts the actual pre-cancellation detail/recommendation/search Redis payloads captured earlier. The real replay path evicts those stale values and refetch returns stock 10 / sold 0. PostgreSQL contains one RETURN_RESTOCK inventory movement. Cleanup removes only this test's UUID-prefixed Redis keys and asserts zero remaining under that prefix.
+
+Source hook confirmed: first SUCCESS and already-SUCCESS replay both call invalidateCancellationCaches; PRE_SHIPMENT_CANCEL gates catalog/discovery/search, affected product, and seller dashboard invalidation. Actual generated relation projection is RefundItemAllocation.itemSale.orderItem.variant.productId plus orderItem.shopId; DI passes CacheInvalidation to AdminService.
+
+Scope: actual PostgreSQL/Redis and service behavior, not browser/HTTP/provider execution. The payment mock seam and manual refund reference do not establish any real external transfer. No forced red/source regression run was made because the root hook existed before this test. Final whole-suite/typecheck/build are root-owned. pg emitted a deprecation warning for overlapping query calls; the run passed.

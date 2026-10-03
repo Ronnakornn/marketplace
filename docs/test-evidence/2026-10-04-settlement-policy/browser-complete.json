@@ -1,0 +1,320 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/finance-lifecycle.spec.ts",
+      "--project=chromium",
+      "--no-deps",
+      "--reporter=list,json"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "finance-lifecycle.spec.ts",
+      "file": "finance-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14678,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T21:12:53.367Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-d323281c634bdbdf6941",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8434,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T21:13:08.156Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-8e6bdbaadd95f5f6f1d2",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7693,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T21:13:16.600Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-7a22cf36debae5a9958a",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 126,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6400,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T21:13:24.305Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-a387c74abc11571e900c",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 173,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-03T21:12:47.729Z",
+    "duration": 43635.327,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

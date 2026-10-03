@@ -1,0 +1,10 @@
+$ vitest run --exclude "**/e2e/**" server/modules/admin/admin.service.test.ts server/modules/refund/refund.routes.test.ts
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+
+ Test Files  2 passed (2)
+      Tests  34 passed (34)
+   Start at  04:05:04
+   Duration  1.01s (transform 345ms, setup 0ms, import 1.47s, tests 97ms, environment 0ms)
+

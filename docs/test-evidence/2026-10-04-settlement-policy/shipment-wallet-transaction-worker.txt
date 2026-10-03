@@ -1,0 +1,10 @@
+$ vitest run --exclude "**/e2e/**" server/modules/wallet/wallet.repository.test.ts server/modules/shipment
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+
+ Test Files  3 passed | 1 skipped (4)
+      Tests  21 passed | 2 skipped (23)
+   Start at  03:52:39
+   Duration  926ms (transform 508ms, setup 0ms, import 988ms, tests 64ms, environment 1ms)
+

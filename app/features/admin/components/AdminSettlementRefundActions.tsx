@@ -1,0 +1,93 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "#/components/ui/button";
+import { useTranslations } from "#/i18n/client";
+import {
+  type AdminOrder, type AdminRefund, usePrepareCancellationRefund,
+  useUpdateRefundPlan, useUpdateRefundStatus,
+} from "../hooks/useAdminOperations";
+import { AdminStatusAction } from "./AdminStatusAction";
+
+function operationMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== "object") return fallback;
+  if ("message" in error && typeof error.message === "string") return error.message;
+  if ("value" in error) return operationMessage(error.value, fallback);
+  if ("error" in error) return operationMessage(error.error, fallback);
+  return fallback;
+}
+
+function refundMoney(amount: number | bigint, currency: string): string {
+  const minorUnits = BigInt(amount);
+  const fraction = (minorUnits % 100n).toString().padStart(2, "0");
+  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    .formatToParts(minorUnits / 100n).map((part) => part.type === "fraction" ? fraction : part.value).join("");
+}
+
+type CancellationOrder = Pick<AdminOrder, "id" | "paymentStatus" | "status" | "shopOrders"> & {
+  items: Array<Pick<AdminOrder["items"][number], "id" | "quantity">>;
+  shipments: Array<Pick<AdminOrder["shipments"][number], "status">>;
+  refunds: Array<Pick<AdminOrder["refunds"][number], "status">>;
+};
+
+export function PrepareCancellationRefund({ order }: { order: CancellationOrder }) {
+  const t = useTranslations();
+  const prepare = usePrepareCancellationRefund();
+  const shops = order.shopOrders ?? [];
+  const eligible = order.paymentStatus === "SUCCEEDED" && ["PAID", "PROCESSING"].includes(order.status)
+    && order.items.length > 0 && shops.length > 0 && shops.every((shop) => shop.saleSnapshot?.policyVersion === 1)
+    && !order.shipments.some((shipment) => shipment.status === "SHIPPED" || shipment.status === "DELIVERED");
+  if (!eligible) return null;
+  return <div className="space-y-2 text-right">
+    <Button size="sm" variant="outline" disabled={prepare.isPending || order.refunds.some((refund) => refund.status === "PENDING" || refund.status === "PROCESSING")}
+      onClick={() => prepare.mutate({ orderId: order.id, plan: {
+        items: order.items.map((item) => ({ orderItemId: item.id, quantity: item.quantity })),
+        shipping: shops.map((shop) => ({ shopOrderId: shop.id, cause: "PRE_SHIPMENT_CANCEL" })),
+      } })}>{t("admin.refunds.prepareCancellation")}</Button>
+    {prepare.data ? <p role="status" className="text-sm text-emerald-200">{t("admin.refunds.cancellationPrepared").replace("{amount}", refundMoney(prepare.data.amount, prepare.data.payment.currency))}</p> : null}
+    {prepare.error ? <p role="alert" className="text-sm text-red-200">{operationMessage(prepare.error, t("admin.refunds.operationFailed"))}</p> : null}
+  </div>;
+}
+
+type SettlementRefund = Pick<AdminRefund, "id" | "status" | "amount" | "itemAllocations" | "shopAllocations"> & {
+  order: Pick<AdminRefund["order"], "orderNumber" | "shopOrders">;
+};
+
+export function RefundSettlementActions({ refund }: { refund: SettlementRefund }) {
+  const t = useTranslations();
+  const updatePlan = useUpdateRefundPlan();
+  const updateStatus = useUpdateRefundStatus();
+  const allocations = refund.shopAllocations ?? [];
+  const snapshotShops = refund.order.shopOrders ?? [];
+  const savedShipping = allocations.some((shop) => shop.shippingCause === "SELLER_FAULT");
+  const [shippingChoice, setShippingChoice] = useState<boolean | null>(null);
+  const includeShipping = shippingChoice ?? savedShipping;
+  const canEditShipping = refund.status === "PENDING" && Boolean(refund.itemAllocations?.length) && allocations.length > 0
+    && snapshotShops.length > 0 && snapshotShops.every((shop) => shop.saleSnapshot?.policyVersion === 1)
+    && allocations.every((shop) => shop.shippingCause !== "PRE_SHIPMENT_CANCEL");
+  const dirty = canEditShipping && includeShipping !== savedShipping;
+  return <div className="ml-auto flex w-64 max-w-full flex-col items-end gap-2 whitespace-normal">
+    {canEditShipping ? <>
+      <label className="flex w-full cursor-pointer items-start gap-2 text-left text-sm text-slate-200">
+        <input type="checkbox" className="mt-1 size-4 shrink-0 accent-primary" checked={includeShipping} disabled={updatePlan.isPending}
+          onChange={(event) => setShippingChoice(event.target.checked)} />
+        <span className="min-w-0 flex-1 break-words">{t("admin.refunds.confirmedSellerFaultShipping")}</span>
+      </label>
+      <Button size="sm" variant="outline" disabled={!dirty || updatePlan.isPending || updateStatus.isPending}
+        onClick={() => updatePlan.mutate({ refundId: refund.id, plan: {
+          items: (refund.itemAllocations ?? []).map((item) => ({ orderItemId: item.orderItemId, quantity: item.quantity })),
+          shipping: allocations.map((shop) => ({ shopOrderId: shop.shopOrderId, cause: includeShipping ? "SELLER_FAULT" : "NONE" })),
+        } }, { onSuccess: () => setShippingChoice(null) })}>{t("admin.refunds.updatePlan")}</Button>
+      {dirty ? <p className="max-w-80 text-sm text-amber-200">{t("admin.refunds.savePlanFirst")}</p> : null}
+    </> : null}
+    {updatePlan.data ? <p role="status" className="max-w-80 text-sm text-emerald-200">{t("admin.refunds.planUpdatedReview").replace("{amount}", refundMoney(updatePlan.data.amount, updatePlan.data.payment.currency))}</p> : null}
+    <AdminStatusAction label={refund.order.orderNumber} currentStatus={refund.status} options={["PENDING", "PROCESSING", "SUCCESS", "FAILED"]}
+      disabled={dirty || updatePlan.isPending} isPending={updateStatus.isPending}
+      onConfirm={(next) => {
+        const externalReference = next === "SUCCESS" ? window.prompt(t(Number(refund.amount) === 0
+          ? "admin.refunds.internalReferencePrompt" : "admin.refunds.externalReferencePrompt"))?.trim() : undefined;
+        if (next !== "SUCCESS" || externalReference) updateStatus.mutate({ id: refund.id, status: next, externalReference });
+      }} />
+    {updatePlan.error || updateStatus.error ? <p role="alert" className="max-w-80 text-sm text-red-200">{operationMessage(updatePlan.error ?? updateStatus.error, t("admin.refunds.operationFailed"))}</p> : null}
+  </div>;
+}

@@ -1,0 +1,21 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/product-analytics/product-analytics.repository.test.ts > Analytics ranking candidate queries > returns all scoped product IDs for global ranking without loading page details 3ms
+ ✓ server/modules/product-analytics/product-analytics.repository.test.ts > Analytics ranking candidate queries > returns all scoped SKU IDs and preserves the selected product filter 1ms
+ ✓ server/modules/product-analytics/product-analytics.repository.test.ts > Analytics ranking candidate queries > reads candidates beyond the first database batch without dropping or duplicating IDs 1ms
+ ✓ server/modules/catalog/catalog.repository.test.ts > PrismaCatalogRepository > sorts a shop page by minimum active variant price with stable ids (price_asc) 15ms
+ ✓ server/modules/catalog/catalog.repository.test.ts > PrismaCatalogRepository > sorts a shop page by minimum active variant price with stable ids (price_desc) 1ms
+ ✓ server/modules/catalog/catalog.repository.test.ts > PrismaCatalogRepository > returns public listing metadata from the same filters used for items 2ms
+ ✓ server/modules/catalog/catalog.repository.test.ts > PrismaCatalogRepository > returns bounded public category, brand, and price facets from active product filters 2ms
+ ✓ server/modules/catalog/catalog.repository.test.ts > PrismaCatalogRepository > finds related products with public active filters and excludes the current product 1ms
+ ✓ server/modules/recommendation/recommendation.repository.test.ts > Recommendation paid sold counts > excludes unpaid and canceled quantities from buyer-facing sold counts 3ms
+ ✓ server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > ranks paid revenue across pages independently of product creation order 428ms
+ ✓ server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > keeps recommendations and search sold counts equal when unpaid order items exist 341ms
+ ✓ server/modules/product-analytics/product-analytics-numeric.integration.test.ts > numeric analytics and sold counts on PostgreSQL > excludes a canceled shop line while its paid parent and the other shop remain active 369ms
+
+ Test Files  4 passed (4)
+      Tests  12 passed (12)
+   Start at  04:11:38
+   Duration  1.72s (transform 362ms, setup 0ms, import 634ms, tests 1.21s, environment 0ms)
+

@@ -4,10 +4,10 @@
 
 - [x] Read the Principles section of the poteto-mode skill.
 - [x] Phase A: Frame.
-- [ ] Phase B: Design the workflow.
-- [ ] Phase C: Run the loop.
-- [ ] Phase D: Keep the audit trail.
-- [ ] Phase E: Verify and hand back.
+- [x] Phase B: Design the workflow.
+- [x] Phase C: Run the loop.
+- [x] Phase D: Keep the audit trail.
+- [x] Phase E: Verify and hand back.
 
 ## Predicate and scope
 
@@ -45,3 +45,21 @@ The throughput checkpoint is two read-only design artifacts followed by separate
 implementation ownership for checkout/earnings, refund/return and payout. The
 root owns schema, synthesis, integration verification, docs and the final diff.
 The canonical trail remains numeric-audit-decisions.tsv.
+
+## Completed behavior
+
+Additive snapshots and explicit refund plans implement ADR-0005 for new orders.
+Whole-item refunds preserve original funding and fee, including zero cash.
+Paid pre-shipment cancellation restores stock and recomputes remaining delivery
+eligibility. Admin completion retries recover remaining earnings without applying
+the new policy to legacy orders. Outstanding payout funding is checked again.
+
+Actual browser checks compare saved refund cash and final seller balance with API
+and PostgreSQL. Final counts, red runs, infrastructure limits and cleanup are
+recorded in test-evidence/2026-10-04-settlement-policy/README.md.
+
+Final gates: 1,374 Vitest cases passed with PostgreSQL/Redis enabled and no skips;
+four Chromium finance flows passed; standalone typecheck and production build
+exited 0. Task PostgreSQL and Redis stopped, dedicated browser ports closed, and
+test data retained. External provider/bank execution and the remaining numeric
+audit gaps are not certified by this increment.

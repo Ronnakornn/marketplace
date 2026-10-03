@@ -2,11 +2,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { SellerFinancePage, SellerPromotionsPage } from './SellerManagePages'
+import type { SellerWallet } from '../hooks/useSellerManage'
 
 const { createCoupon, createPayout } = vi.hoisted(() => ({ createCoupon: vi.fn(), createPayout: vi.fn() }))
+let walletData: Partial<SellerWallet> | null = null
 vi.mock('next/link', () => ({ default: ({ children }: { children: React.ReactNode }) => <span>{children}</span> }))
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }))
-vi.mock('#/i18n/client', () => ({ useTranslations: () => (key: string) => key, useFormatters: () => ({ date: () => '', currency: () => '' }) }))
+vi.mock('#/i18n/client', () => ({ useTranslations: () => (key: string) => key, useFormatters: () => ({ date: () => '', currency: (amount: number) => String(amount) }) }))
 vi.mock('#/i18n/navigation', () => ({ useLocalePath: () => (path: string) => path }))
 vi.mock('./SellerShell', () => ({ SellerPageHeader: () => <div /> }))
 vi.mock('#/components/ui/data-table', () => ({ DataTable: () => <div /> }))
@@ -27,14 +29,14 @@ vi.mock('../hooks/useSellerManage', () => ({
   useEnrollSellerFlashSaleItem: () => ({ mutate: vi.fn() }),
   useUpdateSellerFlashSaleItem: () => ({ mutate: vi.fn() }),
   useDeleteSellerFlashSaleItem: () => ({ mutate: vi.fn() }),
-  useSellerWallet: () => ({ data: null }),
+  useSellerWallet: () => ({ data: walletData }),
   useSellerTransactions: () => ({ data: { items: [] } }),
   useSellerPayouts: () => ({ data: [] }),
   useCreateSellerPayout: () => ({ mutate: createPayout, isPending: false }),
 }))
 
 describe('seller coupon numeric form', () => {
-  afterEach(() => { cleanup(); createCoupon.mockClear(); createPayout.mockClear() })
+  afterEach(() => { cleanup(); createCoupon.mockClear(); createPayout.mockClear(); walletData = null })
   it.each([['percent', '12.50', { discountPercentBps: 1250, discountValueCents: null }],
     ['fixed', '0.29', { discountValueCents: 29, discountPercentBps: null }],
     ['fixed', '1.15', { discountValueCents: 115, discountPercentBps: null }],
@@ -59,4 +61,18 @@ describe('seller coupon numeric form', () => {
       expect(createPayout).toHaveBeenCalledWith(expected)
     },
   )
+  it('shows server debt separately from the signed available balance', () => {
+    walletData = { availableBalanceCents: -8500, sellerDebtCents: 8100, currency: 'THB', shopName: 'Shop' }
+    render(<SellerFinancePage />)
+    expect(screen.getByText('-8500')).toBeTruthy()
+    expect(screen.getByText('8100')).toBeTruthy()
+    expect(screen.getByText('seller.manage.pages.finance.sellerDebt')).toBeTruthy()
+    expect(screen.getByText('seller.manage.pages.finance.debtRecovery')).toBeTruthy()
+  })
+  it('does not label a reservation shortfall as debt when the server reports no debt', () => {
+    walletData = { availableBalanceCents: -8500, sellerDebtCents: 0, currency: 'THB', shopName: 'Shop' }
+    render(<SellerFinancePage />)
+    expect(screen.getByText('-8500')).toBeTruthy()
+    expect(screen.queryByText('seller.manage.pages.finance.sellerDebt')).toBeNull()
+  })
 })

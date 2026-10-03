@@ -1,0 +1,10 @@
+$ vitest run --exclude "**/e2e/**" server/modules/wallet/settlement-policy.integration.test.ts
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  03:35:25
+   Duration  1.11s (transform 309ms, setup 0ms, import 471ms, tests 498ms, environment 0ms)
+

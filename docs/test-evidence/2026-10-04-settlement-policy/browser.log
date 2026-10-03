@@ -1,0 +1,132 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:13632) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:20816) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46010)
+[WebServer] 
+  x  1 [chromium] › e2e\finance-lifecycle.spec.ts:29:1 › partial discounted return is approved and refunded once with the correct seller debit (1.0m)
+  x  2 [chromium] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB (2.5m)
+  ok 3 [chromium] › e2e\finance-lifecycle.spec.ts:126:1 › seller payout reserves funds and two admins complete it without duplicate debits (12.6s)
+
+
+  1) [chromium] › e2e\finance-lifecycle.spec.ts:29:1 › partial discounted return is approved and refunded once with the correct seller debit 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/68\.00/).first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByText(/68\.00/).first()
+
+
+      68 |     expect(debits[0]).toMatchObject({ amount: -3200n, shopId: f.shop.id });
+      69 |     await seller.goto("/en/seller/finance");
+    > 70 |     await expect(seller.getByText(/68\.00/).first()).toBeVisible();
+         |                                                      ^
+      71 |   } finally {
+      72 |     // Serialize WebKit context/video teardown; concurrent closes can stall its host.
+      73 |     for (const context of contexts) await context.close();
+        at D:\GitHub\marketplace\e2e\finance-lifecycle.spec.ts:70:54
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\finance-lifecycle-partial--8f19b-th-the-correct-seller-debit-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\finance-lifecycle-partial--8f19b-th-the-correct-seller-debit-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\finance-lifecycle-partial--8f19b-th-the-correct-seller-debit-chromium\test-failed-3.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\finance-lifecycle-partial--8f19b-th-the-correct-seller-debit-chromium\test-failed-4.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\finance-lifecycle-partial--8f19b-th-the-correct-seller-debit-chromium\error-context.md
+
+    attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\finance-lifecycle-partial--8f19b-th-the-correct-seller-debit-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\finance-lifecycle-partial--8f19b-th-the-correct-seller-debit-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB 
+
+    Test timeout of 150000ms exceeded.
+
+    Error: browserContext.close: Target page, context or browser has been closed
+
+      119 |     await seller.screenshot({ path: "docs/test-evidence/2026-10-04-settlement-policy/seller-refund-balance.png", fullPage: true });
+      120 |   } finally {
+    > 121 |     for (const context of contexts) await context.close();
+          |                                     ^
+      122 |     await db.$disconnect();
+      123 |   }
+      124 | });
+        at D:\GitHub\marketplace\e2e\finance-lifecycle.spec.ts:121:37
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-chromium\test-failed-3.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › e2e\finance-lifecycle.spec.ts:29:1 › partial discounted return is approved and refunded once with the correct seller debit 
+    [chromium] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB 
+  1 passed (4.8m)

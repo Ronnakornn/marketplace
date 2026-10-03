@@ -1,0 +1,32 @@
+$ vitest run --exclude "**/e2e/**" server/modules/wallet/settlement-policy.integration.test.ts -t "returns full merchandise once" "--testTimeout=30000"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:17592) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ server/modules/wallet/settlement-policy.integration.test.ts (8 tests | 1 failed | 7 skipped) 19583ms
+     × returns full merchandise once, restores every spent coin, reverses the original fee and retains shipping 19562ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/wallet/settlement-policy.integration.test.ts > accepted settlement policy on PostgreSQL > returns full merchandise once, restores every spent coin, reverses the original fee and retains shipping
+PrismaClientKnownRequestError: Transaction API error: A start cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 18188 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+ ❯ Ut.#c node_modules/@prisma/client/src/runtime/core/engines/client/ClientEngine.ts:309:13
+ ❯ error node_modules/@prisma/client/src/runtime/core/engines/client/ClientEngine.ts:462:40
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/src/runtime/getPrismaClient.ts:849:15
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/src/runtime/getPrismaClient.ts:861:17
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/src/runtime/getPrismaClient.ts:861:17
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/src/runtime/getPrismaClient.ts:861:17
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/src/runtime/getPrismaClient.ts:861:17
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/src/runtime/getPrismaClient.ts:861:17
+ ❯ Proxy._transactionWithCallback node_modules/@prisma/client/src/runtime/getPrismaClient.ts:861:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 skipped (8)
+   Start at  03:41:56
+   Duration  21.08s (transform 410ms, setup 0ms, import 1.06s, tests 19.58s, environment 0ms)
+
+error: script "test" exited with code 1

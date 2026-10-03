@@ -1,0 +1,247 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout request reserves balance 5ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout cannot exceed available balance 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 0 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount -1 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 1.5 before reserving funds 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount Infinity before reserving funds 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 9007199254740992 before reserving funds 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can approve payout 1ms
+ × server/modules/payout/payout.service.test.ts > PayoutService > blocks approve when a refund leaves the reserved wallet at minus one 8ms
+   → promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+ × server/modules/payout/payout.service.test.ts > PayoutService > blocks paid when a refund leaves the reserved wallet at minus one 2ms
+   → promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+ × server/modules/payout/payout.service.test.ts > PayoutService > allows approve at a ledger balance of 0 after reservation 1ms
+   → actual value must be number or bigint, received "undefined"
+ × server/modules/payout/payout.service.test.ts > PayoutService > allows approve at a ledger balance of 1 after reservation 1ms
+   → actual value must be number or bigint, received "undefined"
+ × server/modules/payout/payout.service.test.ts > PayoutService > allows paid at a ledger balance of 0 after reservation 0ms
+   → actual value must be number or bigint, received "undefined"
+ × server/modules/payout/payout.service.test.ts > PayoutService > allows paid at a ledger balance of 1 after reservation 0ms
+   → actual value must be number or bigint, received "undefined"
+ × server/modules/payout/payout.service.test.ts > PayoutService > rejects approve when the payout currency differs from its wallet 1ms
+   → promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+ × server/modules/payout/payout.service.test.ts > PayoutService > rejects paid when the payout currency differs from its wallet 1ms
+   → promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > allows rejecting an unfunded reservation and releasing its literal reserved amount 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > blocks a new payout while the seller owes one minor unit 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can reject payout 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > publishes payout rejection only after the transaction commits 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > does not publish payout rejection for invalid or rolled-back transitions 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can mark payout paid 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > requires two administrators and an external transfer reference 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > invalid payout transition fails 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > blocks approve when a refund leaves the reserved wallet at minus one
+AssertionError: promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "amount": 5000,
++   "approvedAt": null,
++   "approvedById": null,
++   "currency": "THB",
++   "externalReference": null,
++   "id": "payout-1",
++   "paidAt": null,
++   "rejectedAt": null,
++   "rejectionReason": null,
++   "requestedAt": 2026-05-01T00:00:00.000Z,
++   "shop": {
++     "id": "shop-1",
++     "name": "Shop One",
++   },
++   "status": "approved",
++   "walletId": "wallet-1",
+  }
+
+ ❯ server/modules/payout/payout.service.test.ts:137:25
+    135|       ? service.approveAdminPayout({ id: 'admin-2', role: 'ADMIN' }, '…
+    136|       : service.markAdminPayoutPaid({ id: 'admin-2', role: 'ADMIN' }, …
+    137|     await expect(result).rejects.toMatchObject({ code: 'INSUFFICIENT_B…
+       |                         ^
+    138|     expect(repo.lockWallet).toHaveBeenCalledWith('wallet-1')
+    139|     expect(repo.sumLedger).toHaveBeenCalledWith('wallet-1', 'THB')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > blocks paid when a refund leaves the reserved wallet at minus one
+AssertionError: promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "amount": 5000,
++   "approvedAt": null,
++   "approvedById": null,
++   "currency": "THB",
++   "externalReference": null,
++   "id": "payout-1",
++   "paidAt": null,
++   "rejectedAt": null,
++   "rejectionReason": null,
++   "requestedAt": 2026-05-01T00:00:00.000Z,
++   "shop": {
++     "id": "shop-1",
++     "name": "Shop One",
++   },
++   "status": "paid",
++   "walletId": "wallet-1",
+  }
+
+ ❯ server/modules/payout/payout.service.test.ts:137:25
+    135|       ? service.approveAdminPayout({ id: 'admin-2', role: 'ADMIN' }, '…
+    136|       : service.markAdminPayoutPaid({ id: 'admin-2', role: 'ADMIN' }, …
+    137|     await expect(result).rejects.toMatchObject({ code: 'INSUFFICIENT_B…
+       |                         ^
+    138|     expect(repo.lockWallet).toHaveBeenCalledWith('wallet-1')
+    139|     expect(repo.sumLedger).toHaveBeenCalledWith('wallet-1', 'THB')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > allows approve at a ledger balance of 0 after reservation
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > allows approve at a ledger balance of 1 after reservation
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > allows paid at a ledger balance of 0 after reservation
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > allows paid at a ledger balance of 1 after reservation
+TypeError: actual value must be number or bigint, received "undefined"
+ ❯ server/modules/payout/payout.service.test.ts:158:24
+    156|     const balanceRead = vi.mocked(repo.sumLedger).mock.invocationCallO…
+    157|     const statusWrite = vi.mocked(repo.updatePayout).mock.invocationCa…
+    158|     expect(walletLock).toBeGreaterThan(vi.mocked(repo.lockPayout).mock…
+       |                        ^
+    159|     expect(balanceRead).toBeGreaterThan(walletLock)
+    160|     expect(statusWrite).toBeGreaterThan(balanceRead)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > rejects approve when the payout currency differs from its wallet
+AssertionError: promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "amount": 5000,
++   "approvedAt": null,
++   "approvedById": null,
++   "currency": "THB",
++   "externalReference": null,
++   "id": "payout-1",
++   "paidAt": null,
++   "rejectedAt": null,
++   "rejectionReason": null,
++   "requestedAt": 2026-05-01T00:00:00.000Z,
++   "shop": {
++     "id": "shop-1",
++     "name": "Shop One",
++   },
++   "status": "approved",
++   "walletId": "wallet-1",
+  }
+
+ ❯ server/modules/payout/payout.service.test.ts:173:25
+    171|       ? service.approveAdminPayout({ id: 'admin-2', role: 'ADMIN' }, '…
+    172|       : service.markAdminPayoutPaid({ id: 'admin-2', role: 'ADMIN' }, …
+    173|     await expect(result).rejects.toMatchObject({ code: 'WALLET_CURRENC…
+       |                         ^
+    174|     expect(repo.updatePayout).not.toHaveBeenCalled()
+    175|     expect(repo.createLedgerEntry).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > rejects paid when the payout currency differs from its wallet
+AssertionError: promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "amount": 5000,
++   "approvedAt": null,
++   "approvedById": null,
++   "currency": "THB",
++   "externalReference": null,
++   "id": "payout-1",
++   "paidAt": null,
++   "rejectedAt": null,
++   "rejectionReason": null,
++   "requestedAt": 2026-05-01T00:00:00.000Z,
++   "shop": {
++     "id": "shop-1",
++     "name": "Shop One",
++   },
++   "status": "paid",
++   "walletId": "wallet-1",
+  }
+
+ ❯ server/modules/payout/payout.service.test.ts:173:25
+    171|       ? service.approveAdminPayout({ id: 'admin-2', role: 'ADMIN' }, '…
+    172|       : service.markAdminPayoutPaid({ id: 'admin-2', role: 'ADMIN' }, …
+    173|     await expect(result).rejects.toMatchObject({ code: 'WALLET_CURRENC…
+       |                         ^
+    174|     expect(repo.updatePayout).not.toHaveBeenCalled()
+    175|     expect(repo.createLedgerEntry).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 16 passed (24)
+   Start at  03:23:55
+   Duration  1.11s (transform 269ms, setup 0ms, import 890ms, tests 30ms, environment 0ms)
+
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout request reserves balance 5ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout cannot exceed available balance 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 0 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount -1 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 1.5 before reserving funds 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount Infinity before reserving funds 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 9007199254740992 before reserving funds 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can approve payout 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > blocks approve when a refund leaves the reserved wallet at minus one 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > blocks paid when a refund leaves the reserved wallet at minus one 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > allows approve at a ledger balance of 0 after reservation 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > allows approve at a ledger balance of 1 after reservation 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > allows paid at a ledger balance of 0 after reservation 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > allows paid at a ledger balance of 1 after reservation 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects approve when the payout currency differs from its wallet 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects paid when the payout currency differs from its wallet 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > allows rejecting an unfunded reservation and releasing its literal reserved amount 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > blocks a new payout while the seller owes one minor unit 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can reject payout 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > publishes payout rejection only after the transaction commits 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > does not publish payout rejection for invalid or rolled-back transitions 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can mark payout paid 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > requires two administrators and an external transfer reference 0ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > invalid payout transition fails 0ms
+
+ Test Files  1 passed (1)
+      Tests  24 passed (24)
+   Start at  03:24:28
+   Duration  993ms (transform 256ms, setup 0ms, import 826ms, tests 20ms, environment 0ms)
+
+Finding: requested payout approval and approved payout mark-paid previously ignored a post-reservation negative wallet ledger and wallet/payout currency mismatch.
+Reproduction command: bunx vitest run server/modules/payout/payout.service.test.ts --reporter=verbose
+Red: 8 failed, 16 passed. Negative balance and currency mismatch transitions resolved; wallet lock/recheck ordering was absent.
+Green: 24 passed, zero failed. Literal reserved amount5000 with ledger-1 rejects409 without update/entry; ledger0/1 permits approval/payment without deducting the reservation again. Reject releases5000 even while unfunded. New request1 against ledger-1 remains rejected.
+Implementation: shared private funding assertion takes ShopWallet lock, validates currency, reads sumLedger, and blocks balance<0 before either mutation. Existing payout row lock and transaction remain.
+Evidence scope: focused service unit tests; real PostgreSQL rollback/race verification remains with parent. No provider/browser/HTTP transfer evidence.
+Manual mark-paid only gates the local recorded transition. It cannot undo a bank transfer already executed externally; operator reconciliation is separate.

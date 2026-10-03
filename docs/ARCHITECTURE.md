@@ -41,6 +41,7 @@ The marketplace schema supports:
 - Payments and payment webhook events.
 - Shipments split by shop, with shipment items allocating order item quantities.
 - Coupons, coupon redemptions, reviews, refunds, returns, chat, and notifications.
+- Original sale funding and commission snapshots, explicit refund allocations, seller wallets, and payouts.
 
 Important invariants:
 - One order can contain items from many shops.
@@ -104,8 +105,56 @@ docs/
 
 - `CheckoutQuoteEvaluator` is the single server-side calculation path for Checkout Quote preview and Order commitment. Its policy preserves the intentional difference between an unusable coupon in an estimate and in a commitment.
 - Checkout commitment accepts one evaluated quote artifact and atomically creates the checkout, reservations, Order snapshots, shop orders, coupon/coin reservations, and Payment.
+- Checkout also creates `ShopSaleSnapshot` and `ItemSaleSnapshot` with settlement `policyVersion = 1`. The API accepts one coupon plus coins; the policy example combining two coupons does not extend that API.
 - `PaymentSettlement` concentrates verified payment transitions, inventory reservation handling, affiliate commission creation, and shipment creation behind the payment transaction seam.
 - Buyer-facing shipment status and timeline projection lives in `server/modules/shipment/buyer-shipment-projection.ts` and is shared by Order and Shipment modules.
+
+## Settlement Policy and Boundaries
+
+[ADR-0005](adr/0005-discount-funding-and-refundable-commission.md) defines discount
+funding and refundable commission. Shop coupons reduce seller merchandise rights;
+marketplace coupons and coins reduce buyer cash while preserving those rights.
+Commission excludes shipping and tax and uses the purchased rate and original fee.
+Marketplace shipping subsidies preserve Shop entitlement; Shop-funded waivers
+reduce it. Checkout currently requires zero tax for the new settlement snapshot.
+
+Four additive Prisma models record this policy:
+
+| Model | Responsibility |
+|---|---|
+| `ShopSaleSnapshot` | Original shipping components, commission base/rate/fee, currency, policy version, and earnings recognition marker |
+| `ItemSaleSnapshot` | Original quantity, gross merchandise, seller/platform coupon funding, coin funding, and buyer merchandise cash |
+| `RefundItemAllocation` | Reserved item quantities and their exact cash and funding reversals |
+| `RefundShopAllocation` | Shipping cause and reversals, original commission reversal, and wallet posting marker |
+
+Checkout writes the sale facts in its commitment transaction. Refund planning
+saves a PENDING item/shipping plan; PENDING, PROCESSING, and SUCCESS plans consume
+capacity. FAILED plans release capacity. Completion computes original commission
+credits from successful cumulative merchandise reversals, bounded by the original
+fee. Cash amount alone never identifies a new-policy refund's scope. The current
+API refunds full order-item quantities; partial-unit returns are not added.
+
+Wallet recognition still waits for a paid whole Order in DELIVERED or FULFILLED
+state. It credits surviving merchandise and shipping rights after successful
+pre-earning refunds and subtracts the surviving original commission. Later refunds
+post entitlement debits and commission credits once. The ledger uses existing
+`refund_adjustment` and `commission_fee` types; no separate debt table is added.
+Seller debt derives from the signed ledger excluding reversible payout holds.
+Future earnings offset it. Payout approval and marking paid lock the wallet and
+reject a negative available ledger balance after refunds.
+
+Settlement transactions lock Order, ShopWallets in Shop ID order, then
+BuyerCoinWallet when used. Payout writers lock SellerPayout then ShopWallet and do
+not acquire Order afterward. Replay, rights checks, inventory effects, wallet
+posting, and buyer coin adjustments remain inside the relevant transaction.
+
+Orders with no sale snapshots keep the validated legacy calculation path. Partial
+snapshots or inconsistent histories produce a conflict, rather than guessing from
+mutable coupons or current commission settings. Positive cash refund completion
+records an external reference with two administrators; zero-cash completion uses
+an internal settlement reference through the same field. Neither proves a real
+provider transfer. The browser displays server-calculated amounts and requires
+review of a refreshed PENDING plan before processing.
 
 ## Database Workflow
 

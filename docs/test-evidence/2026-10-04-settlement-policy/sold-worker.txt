@@ -1,0 +1,19 @@
+Sold-count impact of paid pre-shipment partial-shop cancellation
+
+Repository predicates now require a SUCCEEDED paid parent and OrderItem.fulfillmentStatus != CANCELED in recommendation, search, catalog metrics, and seller product analytics.
+
+Literal PostgreSQL state:
+- Existing delivered quantity 9 remains counted after a successful cash refund of 100 minor units.
+- New paid multi-shop parent contains canceled quantity 4 and remaining paid quantity 3.
+- Parent remains PAID / SUCCEEDED after the canceled item and ShopOrder updates.
+- Canceled product sold count: 13 before cancellation, 9 after cancellation.
+- Remaining product sold count: historical 9 plus paid 3 = 12.
+- Recommendation, search, and catalog outputs agree at 9 / 12.
+- Seller analytics units/revenue: 9 / 900 and 12 / 1200 minor units.
+
+Red: actual new regression failed on all four query paths. Buyer counts were 13 instead of 9; analytics units were 13 and revenue 1300 instead of 9 / 900. See sold-worker-red.log.
+Green: 12 tests passed across 4 files, including 3 PostgreSQL tests. See sold-worker-green.log. Scoped git diff --check passed.
+
+This verifies persisted PostgreSQL partial-cancellation state and real repository/service projections, not the refund transaction itself or a browser/provider flow. Analytics revenue remains gross paid noncanceled lineTotal before discounts, shipping, fees, or refund cash reconciliation. Noncanceled delivered/refunded lines retain historical sold semantics; no new late-return clawback rule was introduced.
+
+Root owns final typecheck/global verification. Search/recommendation cached projections may need post-refund invalidation; this worker changed no cache or completion service.

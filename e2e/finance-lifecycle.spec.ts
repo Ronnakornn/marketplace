@@ -75,6 +75,101 @@ test("partial discounted return is approved and refunded once with the correct s
   }
 });
 
+test("snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB", async ({ browser, baseURL }) => {
+  test.setTimeout(150_000);
+  const db = financeDatabase();
+  const contexts: BrowserContext[] = [];
+  try {
+    const f = await createFinanceFixture(db, true);
+    const buyer = await actorPage(browser, baseURL, contexts);
+    await login(buyer, f.buyer, `/en/orders/${f.order.id}/returns/new`);
+    await buyer.locator(`input[name="returnItem"][value="${f.items[0].id}"]`).check();
+    await buyer.getByLabel(en.buyer.details).fill("Seller supplied damaged goods");
+    await buyer.getByRole("button", { name: en.buyer.submitRequest }).click();
+    await expect(buyer.getByText(en.buyer.returnSubmitted)).toBeVisible();
+    const seller = await actorPage(browser, baseURL, contexts);
+    await login(seller, f.seller, "/en/seller/returns");
+    await seller.getByRole("row").filter({ hasText: f.items[0].productTitle })
+      .getByRole("button", { name: en.seller.manage.pages.returns.approve, exact: true }).click();
+    await expect.poll(() => db.refund.count({ where: { orderId: f.order.id } })).toBe(1);
+    const refund = await db.refund.findFirstOrThrow({ where: { orderId: f.order.id } });
+    expect(refund.amount).toBe(3200n);
+    const admin = await actorPage(browser, baseURL, contexts);
+    await login(admin, f.admin, "/en/admin/refunds");
+    const row = admin.getByRole("row").filter({ hasText: f.order.orderNumber });
+    await expect(row).toContainText("32.00");
+    await row.getByLabel(en.admin.refunds.confirmedSellerFaultShipping).check();
+    await expect(row.getByRole("combobox")).toBeDisabled();
+    const planResponse = admin.waitForResponse((response) => response.url().endsWith(`/api/admin/refunds/${refund.id}/plan`) && response.request().method() === "PATCH");
+    await row.getByRole("button", { name: en.admin.refunds.updatePlan }).click();
+    const plan = await planResponse;
+    expect(plan.ok(), await plan.text()).toBeTruthy();
+    expect(await plan.json()).toMatchObject({ amount: 3700, status: "PENDING" });
+    await expect(row).toContainText("37.00");
+    expect(await db.refund.findUniqueOrThrow({ where: { id: refund.id } })).toMatchObject({ amount: 3700n, status: "PENDING" });
+    expect((await refundStatus(admin, row, "PROCESSING")).ok()).toBeTruthy();
+    const completer = await actorPage(browser, baseURL, contexts);
+    await login(completer, f.secondAdmin, "/en/admin/refunds");
+    const completed = await refundStatus(completer, completer.getByRole("row").filter({ hasText: f.order.orderNumber }), "SUCCESS", `E2E-SNAPSHOT-${refund.id}`);
+    expect(completed.ok(), await completed.text()).toBeTruthy();
+    expect(await db.walletLedgerEntry.aggregate({ where: { walletId: f.wallet.id }, _sum: { amount: true } })).toMatchObject({ _sum: { amount: 4320n } });
+    expect(await db.refundShopAllocation.findFirstOrThrow({ where: { refundId: refund.id } })).toMatchObject({ buyerShippingRefund: 500n, commissionReversal: 320n, shippingCause: "SELLER_FAULT" });
+    await seller.goto("/en/seller/finance");
+    await expect(seller.getByText(/43\.20/).first()).toBeVisible();
+    await seller.screenshot({ path: "docs/test-evidence/2026-10-04-settlement-policy/seller-refund-balance.png", fullPage: true });
+  } finally {
+    for (const context of contexts) await context.close();
+    await db.$disconnect();
+  }
+});
+
+test("admin prepares paid cancellation cash before two-admin completion restores stock once", async ({ browser, baseURL }) => {
+  test.setTimeout(150_000);
+  const db = financeDatabase();
+  const contexts: BrowserContext[] = [];
+  try {
+    const f = await createFinanceFixture(db, true);
+    await db.order.update({ where: { id: f.order.id }, data: { status: "PAID" } });
+    await db.orderItem.updateMany({ where: { orderId: f.order.id }, data: { fulfillmentStatus: "PENDING" } });
+    await db.shopOrder.updateMany({ where: { orderId: f.order.id }, data: { status: "PAID", fulfillmentStatus: "PENDING" } });
+    await db.shopSaleSnapshot.updateMany({ where: { shopOrder: { orderId: f.order.id } }, data: { recognizedAt: null } });
+    await db.shipment.updateMany({ where: { orderId: f.order.id }, data: { status: "PENDING_PACK", shippedAt: null, deliveredAt: null } });
+    await db.walletLedgerEntry.deleteMany({ where: { walletId: f.wallet.id } });
+    for (const item of f.items) {
+      const inventory = await db.inventory.create({ data: { variantId: item.variantId, quantityOnHand: 9 } });
+      await db.inventoryReservation.create({ data: { checkoutId: f.order.checkoutId, orderId: f.order.id, inventoryId: inventory.id,
+        quantity: 1, status: "COMMITTED", expiresAt: new Date() } });
+    }
+    const admin = await actorPage(browser, baseURL, contexts);
+    await login(admin, f.admin, "/en/admin/orders");
+    const row = admin.getByRole("row").filter({ hasText: f.order.orderNumber });
+    const prepared = admin.waitForResponse((response) => response.url().endsWith(`/api/admin/orders/${f.order.id}/refunds`) && response.request().method() === "POST");
+    await row.getByRole("button", { name: en.admin.refunds.prepareCancellation }).click();
+    const response = await prepared;
+    expect(response.ok(), await response.text()).toBeTruthy();
+    const record = await response.json();
+    expect(record).toMatchObject({ status: "PENDING", amount: 8500 });
+    expect(await db.order.findUniqueOrThrow({ where: { id: f.order.id } })).toMatchObject({ status: "PAID" });
+    await admin.goto("/en/admin/refunds");
+    const refundRow = admin.getByRole("row").filter({ hasText: f.order.orderNumber });
+    await expect(refundRow).toContainText("85.00");
+    expect((await refundStatus(admin, refundRow, "PROCESSING")).ok()).toBeTruthy();
+    const completer = await actorPage(browser, baseURL, contexts);
+    await login(completer, f.secondAdmin, "/en/admin/refunds");
+    expect((await refundStatus(completer, completer.getByRole("row").filter({ hasText: f.order.orderNumber }), "SUCCESS", `CANCEL-${record.id}`)).ok()).toBeTruthy();
+    const replay = await completer.request.patch(`/api/admin/refunds/${record.id}/status`, { data: { status: "SUCCESS", externalReference: `CANCEL-${record.id}` } });
+    expect(replay.ok(), await replay.text()).toBeTruthy();
+    expect(await db.order.findUniqueOrThrow({ where: { id: f.order.id } })).toMatchObject({ status: "REFUNDED", paymentStatus: "REFUNDED" });
+    expect(await db.payment.findFirstOrThrow({ where: { orderId: f.order.id } })).toMatchObject({ status: "REFUNDED", amount: 8500n });
+    expect(await db.inventory.findMany({ where: { variantId: { in: f.items.map((item) => item.variantId) } }, select: { quantityOnHand: true, quantityReserved: true } }))
+      .toEqual([{ quantityOnHand: 10, quantityReserved: 0 }, { quantityOnHand: 10, quantityReserved: 0 }]);
+    expect(await db.walletLedgerEntry.count({ where: { orderId: f.order.id } })).toBe(0);
+  } finally {
+    for (const context of contexts) await context.close();
+    await db.$disconnect();
+  }
+});
+
 test("seller payout reserves funds and two admins complete it without duplicate debits", async ({ browser, baseURL }) => {
   test.setTimeout(150_000);
   const db = financeDatabase();

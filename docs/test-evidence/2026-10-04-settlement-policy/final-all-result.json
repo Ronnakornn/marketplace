@@ -1,0 +1,5 @@
+{
+  "command": "bun run test --maxWorkers=2 with all PostgreSQL/Redis gates",
+  "exitCode": 0,
+  "finishedAt": "2026-10-03T21:23:51.5359203Z"
+}

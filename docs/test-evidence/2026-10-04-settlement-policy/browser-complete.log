@@ -1,0 +1,43 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:30148) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:31924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46010)
+[WebServer] 
+  ok 1 [chromium] › e2e\finance-lifecycle.spec.ts:29:1 › partial discounted return is approved and refunded once with the correct seller debit (14.7s)
+  ok 2 [chromium] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB (8.4s)
+  ok 3 [chromium] › e2e\finance-lifecycle.spec.ts:126:1 › admin prepares paid cancellation cash before two-admin completion restores stock once (7.7s)
+  ok 4 [chromium] › e2e\finance-lifecycle.spec.ts:173:1 › seller payout reserves funds and two admins complete it without duplicate debits (6.4s)
+
+  4 passed (43.6s)

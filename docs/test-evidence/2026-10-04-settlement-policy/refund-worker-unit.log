@@ -1,0 +1,10 @@
+$ vitest run --exclude "**/e2e/**" server/modules/refund/refund.repository.test.ts server/modules/refund/settlement-refund.service.test.ts server/modules/return/return.repository.test.ts server/modules/promotion/buyer-coin.transitions.test.ts
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+
+ Test Files  4 passed (4)
+      Tests  61 passed (61)
+   Start at  04:19:43
+   Duration  381ms (transform 240ms, setup 0ms, import 476ms, tests 102ms, environment 0ms)
+

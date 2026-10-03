@@ -539,6 +539,32 @@ export function useUpdateReturnStatus() {
   });
 }
 
+export function usePrepareCancellationRefund() {
+  const queryClient = useQueryClient();
+  type Body = Parameters<ReturnType<typeof api.api.admin.orders>["refunds"]["post"]>[0];
+  return useMutation({
+    mutationFn: async ({ orderId, plan }: { orderId: string; plan: Body }) => {
+      const { data, error } = await api.api.admin.orders({ orderId }).refunds.post(plan);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
+export function useUpdateRefundPlan() {
+  const queryClient = useQueryClient();
+  type Body = Parameters<ReturnType<typeof api.api.admin.refunds>["plan"]["patch"]>[0];
+  return useMutation({
+    mutationFn: async ({ refundId, plan }: { refundId: string; plan: Body }) => {
+      const { data, error } = await api.api.admin.refunds({ refundId }).plan.patch(plan);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}
+
 export function useUpdateCommissionStatus() {
   const queryClient = useQueryClient();
   return useMutation({
