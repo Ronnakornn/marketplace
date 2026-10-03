@@ -1,0 +1,9 @@
+$ vitest run --exclude "**/e2e/**" scripts/reconcile-external-finance.test.ts scripts/reconcile-external-finance.integration.test.ts
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+
+ Test Files  2 passed (2)
+      Tests  33 passed (33)
+   Start at  06:23:27
+   Duration  3.92s (transform 325ms, setup 0ms, import 970ms, tests 3.28s, environment 0ms)

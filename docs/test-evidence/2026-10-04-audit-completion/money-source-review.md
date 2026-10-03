@@ -1,0 +1,23 @@
+# Independent money source review
+
+Reviewed source in D:/GitHub/marketplace at committed base06c7ae25, with ongoing uncommitted tax/partial work excluded. The reviewer did not author the root money helpers, Prisma read boundary, route conversion or cache codec. This is an independent author review in the same model family. No cross-model agreement or new executed proof is claimed here.
+
+## Source-grounded conclusions
+
+`server/lib/prisma.ts:16` exports the generated raw Prisma client without a BigInt-to-Number result extension. Consequently this source boundary preserves database BigInt values until an explicit caller conversion. This conclusion is source inspection, not a new PostgreSQL run.
+
+`server/lib/money.ts:8` rejects unsafe numeric inputs and noncanonical integer strings before BigInt conversion. `moneyNumber` at14 rejects results outside signed MAX_SAFE bounds. `moneyRoundedRatio` at30 computes intermediates as BigInt and handles signed ties toward positive infinity. `toMoneyDto` at57 emits every BigInt and Prisma Decimal as text recursively, while named monetary numeric fields pass through the same checked integer conversion. Counts and ratios remain numbers. This preserves exactness for the represented monetary fields; the function does not infer the financial meaning of arbitrary custom numeric property names.
+
+`app/lib/money.ts:3` accepts canonical strings, BigInt and safe integer numbers. At28 formatting splits absolute minor units into BigInt whole/fraction values; it does not divide a large number by100. Negative subunit values retain their sign via negative zero before Intl formatting. At44 monetary sorting compares BigInt values directly. The helper currently assumes two decimal minor units. Extending provider/currency support requires the explicit exponent contract documented in external-finance-reconciliation.md.
+
+`server/modules/cache/cache.codec.ts:5` serializes BigInt, Decimal and Date values with separate path metadata in a version2 envelope. Decode at36 restores those marked paths, so an unmarked ISO text string stays text. It rejects older envelopes and noncanonical marked integer strings. `cache.service.ts:20` moves keys under money-v2 and at46/63 uses the codec for reads/writes. Array path Number conversions at51/56/58 are indices, not financial amounts. No new Redis run was performed for this review.
+
+Payment buyer-detail conversion at `payment.service.ts:61` emits amountCents as text and `payment.types.ts:38` declares the canonical string schema. `payment.routes.ts:53` uses moneyResponse with that schema. Refund admin read paths at `refund.routes.ts:35`/39/49 and payout create/list/detail/status paths at `payout.routes.ts:35`/41/46/51/56/61/67 use the same conversion. MoneyAmountError handlers return409. These routes preserve the root representation at inspected boundaries; this review does not replace their integration/browser gates.
+
+## Deliberate limits and follow-up
+
+The current payment webhook schema at `payment.types.ts:13` uses a numeric operational amount. `payment.service.ts:97` compares it only after checked moneyNumber conversion of the stored amount. This cannot accept an above-MAX_SAFE payment silently. A selected external provider may require a canonical string/decimal raw-body mapping and its own signature protocol. `payment.webhook-signature.ts:38` signs the project's stable JSON representation with project-specific headers, rather than establishing compatibility with an unspecified real provider. Neither this source review nor local signed mock tests can count as W9 external verification.
+
+Payment mismatch diagnostics at `payment.service.ts:99`/100 use lowercase expectedamount/receivedamount. Those keys are not in the DTO monetary-name registry and therefore remain numbers. Expectedamount uses checked moneyNumber, while receivedamount is the supplied numeric input. The schema uses t.Number and validateInput at167 does not add a safe-integer amount guard. This is a source-observed diagnostic representation exception, rather than a newly demonstrated settlement loss. If the public contract requires canonical strings for every diagnostic monetary field, reject unsafe input numbers at the webhook boundary and normalize these two diagnostic values in a separately owned change. Assert a literal mismatch response. No source change or runtime reproduction is made in this read-only review.
+
+No confirmed exactness defect was found in the inspected helper/codec conversions. Whole-codebase completeness, application rendering, provider protocol compatibility and all ongoing W7 tax/partial changes remain outside this source-only verdict. Existing root tests were read for contract context and were not rerun or reported as newly passing.

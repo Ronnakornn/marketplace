@@ -1,0 +1,355 @@
+{
+  "proof": "Generated fixture comparison only. External provider and bank are not verified.",
+  "observations": [
+    {
+      "case": "matched",
+      "exit": 0,
+      "report": {
+        "localComparison": "MATCHED",
+        "externalVerification": "NOT_VERIFIED",
+        "source": {
+          "kind": "fixture",
+          "name": "PostgreSQL CLI fixture",
+          "originalSha256": "97dd60a1b100338013e79049640e2abe0a6657380b8a7c1c1fdbdeb8ab69ff8f",
+          "mappingDescription": "Literal minor units and canonical database statuses from a generated fixture. No external protocol mapping claimed."
+        },
+        "inputRecords": 3,
+        "duplicateRecords": 0,
+        "finalOperations": 3,
+        "matchedOperations": 3,
+        "discrepancies": [],
+        "totals": [
+          {
+            "kind": "PAYMENT",
+            "currency": "THB",
+            "localAmount": "9007199254740993",
+            "recordAmount": "9007199254740993",
+            "difference": "0"
+          },
+          {
+            "kind": "PAYOUT",
+            "currency": "THB",
+            "localAmount": "9007199254740990",
+            "recordAmount": "9007199254740990",
+            "difference": "0"
+          },
+          {
+            "kind": "REFUND",
+            "currency": "THB",
+            "localAmount": "9007199254740991",
+            "recordAmount": "9007199254740991",
+            "difference": "0"
+          }
+        ],
+        "databaseReadOnly": true,
+        "writeStatementsAttempted": 0
+      },
+      "rowsUnchanged": true
+    },
+    {
+      "case": "payout-one-unit-mismatch",
+      "exit": 1,
+      "report": {
+        "localComparison": "DISCREPANCIES",
+        "externalVerification": "NOT_VERIFIED",
+        "source": {
+          "kind": "fixture",
+          "name": "PostgreSQL CLI fixture",
+          "originalSha256": "97dd60a1b100338013e79049640e2abe0a6657380b8a7c1c1fdbdeb8ab69ff8f",
+          "mappingDescription": "Literal minor units and canonical database statuses from a generated fixture. No external protocol mapping claimed."
+        },
+        "inputRecords": 3,
+        "duplicateRecords": 0,
+        "finalOperations": 3,
+        "matchedOperations": 2,
+        "discrepancies": [
+          {
+            "code": "FIELD_MISMATCH",
+            "kind": "PAYOUT",
+            "id": "74459465-b306-458d-832c-bce30113e0b7",
+            "field": "amount",
+            "expected": "9007199254740990",
+            "received": "9007199254740991"
+          }
+        ],
+        "totals": [
+          {
+            "kind": "PAYMENT",
+            "currency": "THB",
+            "localAmount": "9007199254740993",
+            "recordAmount": "9007199254740993",
+            "difference": "0"
+          },
+          {
+            "kind": "PAYOUT",
+            "currency": "THB",
+            "localAmount": "9007199254740990",
+            "recordAmount": "9007199254740991",
+            "difference": "1"
+          },
+          {
+            "kind": "REFUND",
+            "currency": "THB",
+            "localAmount": "9007199254740991",
+            "recordAmount": "9007199254740991",
+            "difference": "0"
+          }
+        ],
+        "databaseReadOnly": true,
+        "writeStatementsAttempted": 0
+      },
+      "rowsUnchanged": true
+    },
+    {
+      "case": "unknown-currency",
+      "exit": 1,
+      "report": {
+        "localComparison": "DISCREPANCIES",
+        "externalVerification": "NOT_VERIFIED",
+        "source": {
+          "kind": "fixture",
+          "name": "PostgreSQL CLI fixture",
+          "originalSha256": "97dd60a1b100338013e79049640e2abe0a6657380b8a7c1c1fdbdeb8ab69ff8f",
+          "mappingDescription": "Literal minor units and canonical database statuses from a generated fixture. No external protocol mapping claimed."
+        },
+        "inputRecords": 3,
+        "duplicateRecords": 0,
+        "finalOperations": 3,
+        "matchedOperations": 2,
+        "discrepancies": [
+          {
+            "code": "UNSUPPORTED_CURRENCY",
+            "kind": "REFUND",
+            "id": "492e49fe-ab2b-42c7-84c2-a567dd8ff4a9",
+            "received": "ZZZ"
+          },
+          {
+            "code": "FIELD_MISMATCH",
+            "kind": "REFUND",
+            "id": "492e49fe-ab2b-42c7-84c2-a567dd8ff4a9",
+            "field": "currency",
+            "expected": "THB",
+            "received": "ZZZ"
+          }
+        ],
+        "totals": [
+          {
+            "kind": "PAYMENT",
+            "currency": "THB",
+            "localAmount": "9007199254740993",
+            "recordAmount": "9007199254740993",
+            "difference": "0"
+          },
+          {
+            "kind": "PAYOUT",
+            "currency": "THB",
+            "localAmount": "9007199254740990",
+            "recordAmount": "9007199254740990",
+            "difference": "0"
+          },
+          {
+            "kind": "REFUND",
+            "currency": "THB",
+            "localAmount": "9007199254740991",
+            "recordAmount": "0",
+            "difference": "-9007199254740991"
+          },
+          {
+            "kind": "REFUND",
+            "currency": "ZZZ",
+            "localAmount": "0",
+            "recordAmount": "9007199254740991",
+            "difference": "9007199254740991"
+          }
+        ],
+        "databaseReadOnly": true,
+        "writeStatementsAttempted": 0
+      },
+      "rowsUnchanged": true
+    },
+    {
+      "case": "unknown-reference-and-relation",
+      "exit": 1,
+      "report": {
+        "localComparison": "DISCREPANCIES",
+        "externalVerification": "NOT_VERIFIED",
+        "source": {
+          "kind": "fixture",
+          "name": "PostgreSQL CLI fixture",
+          "originalSha256": "97dd60a1b100338013e79049640e2abe0a6657380b8a7c1c1fdbdeb8ab69ff8f",
+          "mappingDescription": "Literal minor units and canonical database statuses from a generated fixture. No external protocol mapping claimed."
+        },
+        "inputRecords": 3,
+        "duplicateRecords": 0,
+        "finalOperations": 3,
+        "matchedOperations": 1,
+        "discrepancies": [
+          {
+            "code": "FIELD_MISMATCH",
+            "kind": "REFUND",
+            "id": "492e49fe-ab2b-42c7-84c2-a567dd8ff4a9",
+            "field": "paymentId",
+            "expected": "8f4bb4eb-c11f-4a21-ad13-492f5eb8952a",
+            "received": "47823785-8523-44e5-8c6e-a9e0c9aa5396"
+          },
+          {
+            "code": "FIELD_MISMATCH",
+            "kind": "PAYOUT",
+            "id": "74459465-b306-458d-832c-bce30113e0b7",
+            "field": "externalReference",
+            "expected": "bank-e4affd3b-c3f9-4514-bb2e-23956cbe61cc",
+            "received": "unknown-bank-reference"
+          }
+        ],
+        "totals": [
+          {
+            "kind": "PAYMENT",
+            "currency": "THB",
+            "localAmount": "9007199254740993",
+            "recordAmount": "9007199254740993",
+            "difference": "0"
+          },
+          {
+            "kind": "PAYOUT",
+            "currency": "THB",
+            "localAmount": "9007199254740990",
+            "recordAmount": "9007199254740990",
+            "difference": "0"
+          },
+          {
+            "kind": "REFUND",
+            "currency": "THB",
+            "localAmount": "9007199254740991",
+            "recordAmount": "9007199254740991",
+            "difference": "0"
+          }
+        ],
+        "databaseReadOnly": true,
+        "writeStatementsAttempted": 0
+      },
+      "rowsUnchanged": true
+    },
+    {
+      "case": "duplicate-and-out-of-order",
+      "exit": 0,
+      "report": {
+        "localComparison": "MATCHED",
+        "externalVerification": "NOT_VERIFIED",
+        "source": {
+          "kind": "fixture",
+          "name": "PostgreSQL CLI fixture",
+          "originalSha256": "97dd60a1b100338013e79049640e2abe0a6657380b8a7c1c1fdbdeb8ab69ff8f",
+          "mappingDescription": "Literal minor units and canonical database statuses from a generated fixture. No external protocol mapping claimed."
+        },
+        "inputRecords": 5,
+        "duplicateRecords": 1,
+        "finalOperations": 3,
+        "matchedOperations": 3,
+        "discrepancies": [],
+        "totals": [
+          {
+            "kind": "PAYMENT",
+            "currency": "THB",
+            "localAmount": "9007199254740993",
+            "recordAmount": "9007199254740993",
+            "difference": "0"
+          },
+          {
+            "kind": "PAYOUT",
+            "currency": "THB",
+            "localAmount": "9007199254740990",
+            "recordAmount": "9007199254740990",
+            "difference": "0"
+          },
+          {
+            "kind": "REFUND",
+            "currency": "THB",
+            "localAmount": "9007199254740991",
+            "recordAmount": "9007199254740991",
+            "difference": "0"
+          }
+        ],
+        "databaseReadOnly": true,
+        "writeStatementsAttempted": 0
+      },
+      "rowsUnchanged": true
+    },
+    {
+      "case": "conflicting-duplicate-and-unmatched-row",
+      "exit": 1,
+      "report": {
+        "localComparison": "DISCREPANCIES",
+        "externalVerification": "NOT_VERIFIED",
+        "source": {
+          "kind": "fixture",
+          "name": "PostgreSQL CLI fixture",
+          "originalSha256": "97dd60a1b100338013e79049640e2abe0a6657380b8a7c1c1fdbdeb8ab69ff8f",
+          "mappingDescription": "Literal minor units and canonical database statuses from a generated fixture. No external protocol mapping claimed."
+        },
+        "inputRecords": 4,
+        "duplicateRecords": 0,
+        "finalOperations": 3,
+        "matchedOperations": 2,
+        "discrepancies": [
+          {
+            "code": "CONFLICTING_DUPLICATE",
+            "kind": "PAYOUT",
+            "id": "74459465-b306-458d-832c-bce30113e0b7",
+            "field": "recordId",
+            "received": "fixture-payout"
+          },
+          {
+            "code": "LOCAL_ROW_MISSING",
+            "kind": "PAYMENT",
+            "id": "81b130e8-89d3-4d6d-8de0-28c989dd4433"
+          },
+          {
+            "code": "EXTERNAL_ROW_MISSING",
+            "kind": "PAYMENT",
+            "id": "81b130e8-89d3-4d6d-8de0-28c989dd4433"
+          }
+        ],
+        "totals": [
+          {
+            "kind": "PAYMENT",
+            "currency": "THB",
+            "localAmount": "9007199254740993",
+            "recordAmount": "9007199254740993",
+            "difference": "0"
+          },
+          {
+            "kind": "PAYOUT",
+            "currency": "THB",
+            "localAmount": "9007199254740990",
+            "recordAmount": "9007199254740990",
+            "difference": "0"
+          },
+          {
+            "kind": "REFUND",
+            "currency": "THB",
+            "localAmount": "9007199254740991",
+            "recordAmount": "9007199254740991",
+            "difference": "0"
+          }
+        ],
+        "databaseReadOnly": true,
+        "writeStatementsAttempted": 0
+      },
+      "rowsUnchanged": true
+    },
+    {
+      "case": "original-hash-mismatch",
+      "exit": 2,
+      "report": {
+        "localComparison": "ERROR",
+        "externalVerification": "NOT_VERIFIED",
+        "discrepancies": [
+          {
+            "code": "ORIGINAL_FILE_HASH_MISMATCH"
+          }
+        ]
+      },
+      "rowsUnchanged": true
+    }
+  ]
+}
