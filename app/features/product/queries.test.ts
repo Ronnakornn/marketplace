@@ -409,6 +409,25 @@ describe("affiliate product target normalization", () => {
 });
 
 describe("public product normalization", () => {
+  it("retains exact money strings and orders variant prices by numeric magnitude", () => {
+    const product = normalizePublicProduct({
+      id: "product-1", title: "Exact price", currency: "THB", shop: { id: "shop-1", name: "Shop" },
+      variants: [
+        { id: "variant-1", title: "Higher", currency: "THB", price: "9007199254740993" },
+        { id: "variant-2", title: "Lower", currency: "THB", price: "9007199254740992" },
+      ],
+    });
+    expect(product.minPrice).toBe("9007199254740992");
+    expect(product.maxPrice).toBe("9007199254740993");
+    expect(product.variants[0]?.price).toBe("9007199254740993");
+  });
+
+  it.each([9007199254740992, "9007199254740993.0", "01"])("rejects invalid monetary source %s", (price) => {
+    expect(() => normalizePublicProduct({
+      id: "product-1", title: "Invalid price", currency: "THB", shop: { id: "shop-1", name: "Shop" }, price,
+    })).toThrow(RangeError);
+  });
+
   it("surfaces malformed API products instead of silently hiding them", () => {
     expect(() => normalizePublicProducts({
       data: [{ id: "product-1", title: "Missing shop and currency" }],
@@ -424,6 +443,7 @@ describe("public product normalization", () => {
     expect(() => normalizePublicProduct({
       id: "product-1",
       title: "Malformed options",
+      price: "0",
       currency: "THB",
       shop: { id: "shop-1", name: "Shop" },
       variants: [],
@@ -433,7 +453,7 @@ describe("public product normalization", () => {
 
   it("normalizes listing arrays with default metadata and empty facets", () => {
     const listing = normalizePublicProductListing([
-      { id: "product-1", title: "Legacy product", currency: "THB", shop: { id: "shop-1", name: "Shop" } },
+      { id: "product-1", title: "Legacy product", price: "0", currency: "THB", shop: { id: "shop-1", name: "Shop" } },
     ] as unknown as Parameters<typeof normalizePublicProductListing>[0]);
 
     expect(listing.products).toHaveLength(1);
@@ -454,7 +474,7 @@ describe("public product normalization", () => {
 
   it("normalizes data/meta and items/meta/facets listing response shapes", () => {
     const dataListing = normalizePublicProductListing({
-      data: [{ id: "product-1", title: "Data product", currency: "THB", shop: { id: "shop-1", name: "Shop" } }],
+      data: [{ id: "product-1", title: "Data product", price: "0", currency: "THB", shop: { id: "shop-1", name: "Shop" } }],
       meta: {
         totalCount: 3,
         page: 1,
@@ -469,11 +489,11 @@ describe("public product normalization", () => {
       page: 1,
       pageSize: 1,
       hasNextPage: true,
-      query: { q: "bag", minPrice: 100, sort: "newest" },
+      query: { q: "bag", minPrice: "100", sort: "newest" },
     });
 
     const itemsListing = normalizePublicProductListing({
-      items: [{ id: "product-2", title: "Faceted product", currency: "THB", shop: { id: "shop-1", name: "Shop" } }],
+      items: [{ id: "product-2", title: "Faceted product", price: "0", currency: "THB", shop: { id: "shop-1", name: "Shop" } }],
       meta: { totalCount: 1, page: 1, pageSize: 40, hasNextPage: false },
       facets: {
         categories: [{ id: "cat-1", slug: "fashion", name: "Fashion", count: "8", active: true }],
@@ -497,7 +517,7 @@ describe("public product normalization", () => {
       count: 4,
       active: false,
     });
-    expect(itemsListing.facets.price).toEqual({ min: 100, max: 900, currency: "THB" });
+    expect(itemsListing.facets.price).toEqual({ min: "100", max: "900", currency: "THB" });
   });
 
   it("extracts image URLs from API product image records", () => {
@@ -505,6 +525,7 @@ describe("public product normalization", () => {
       data: [{
         id: "product-1",
         title: "Image-backed product",
+        price: "0",
         currency: "THB",
         shop: { id: "shop-1", name: "Image Shop" },
         variants: [],
@@ -555,10 +576,10 @@ describe("public product normalization", () => {
       }],
     } as unknown as Parameters<typeof normalizePublicProduct>[0]);
 
-    expect(product.minPrice).toBe(1200);
-    expect(product.maxPrice).toBe(1500);
+    expect(product.minPrice).toBe("1200");
+    expect(product.maxPrice).toBe("1500");
     expect(product.stock).toBe(3);
-    expect(product.originalPrice).toBe(2000);
+    expect(product.originalPrice).toBe("2000");
     expect(product.discountPercent).toBe(40);
     expect(product.badges).toContain("Free Shipping");
     expect(product.video?.url).toBe("/uploads/product_video/product-1/demo.mp4");

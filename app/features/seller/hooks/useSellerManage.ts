@@ -74,7 +74,7 @@ export interface SellerShopSettingsUpdateInput {
   chatEnabled?: boolean;
   vacationMode?: boolean;
   defaultShippingProvider?: string | null;
-  shippingFeeBaht?: number;
+  shippingFeeBaht?: number | string;
   returnPolicy?: string | null;
   shippingPolicy?: string | null;
   returnPolicyTh?: string | null;
@@ -903,7 +903,7 @@ export function useSellerFlashSales() {
 export function useEnrollSellerFlashSaleItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ flashSaleId, ...body }: { flashSaleId: string; productId: string; variantId: string; salePriceBaht: number; stockLimit: number; perUserLimit: number | null }) => {
+    mutationFn: async ({ flashSaleId, ...body }: { flashSaleId: string; productId: string; variantId: string; salePriceBaht: number | string; stockLimit: number; perUserLimit: number | null }) => {
       const { data, error } = await api.api.seller["flash-sales"]({ flashSaleId }).items.post(body);
       if (error) throw error;
       return data;
@@ -915,7 +915,7 @@ export function useEnrollSellerFlashSaleItem() {
 export function useUpdateSellerFlashSaleItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ itemId, ...body }: { itemId: string; salePriceBaht?: number; stockLimit?: number; perUserLimit?: number | null }) => {
+    mutationFn: async ({ itemId, ...body }: { itemId: string; salePriceBaht?: number | string; stockLimit?: number; perUserLimit?: number | null }) => {
       const { data, error } = await api.api.seller["flash-sale-items"]({ itemId }).patch(body);
       if (error) throw error;
       return data;

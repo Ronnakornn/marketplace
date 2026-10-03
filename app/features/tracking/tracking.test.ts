@@ -53,7 +53,7 @@ describe("tracking utilities", () => {
       title: "Tee",
       imageUrl: "/tee.jpg",
       href: "/products/p1",
-      minPrice: 1200,
+      minPrice: "1200",
       currency: "THB",
       rating: 4.8,
       soldCount: 34,

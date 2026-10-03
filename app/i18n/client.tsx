@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, formatMinorInteger, type MinorUnitValue } from "#/lib/money";
+
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type enMessages from "../../messages/en.json";
 import type { Locale } from "./config";
@@ -68,24 +70,22 @@ export function useFormatters() {
   const locale = useLocale();
 
   return {
-    currency(cents: number, currency = defaultCurrency) {
+    currency(cents: MinorUnitValue, currency = defaultCurrency) {
       return formatCurrency(cents, locale, currency);
     },
     date(value: Date | string | number, options?: Intl.DateTimeFormatOptions) {
       return formatDate(value, locale, options);
     },
-    number(value: number) {
+    number(value: MinorUnitValue) {
+      if (typeof value !== "number" || Number.isInteger(value)) return formatMinorInteger(value, resolveLocale(locale));
+      if (!Number.isFinite(value)) throw new RangeError("Display number must be finite");
       return new Intl.NumberFormat(resolveLocale(locale)).format(value);
     },
   };
 }
 
-export function formatCurrency(cents: number, locale: Locale | string, currency = defaultCurrency) {
-  return new Intl.NumberFormat(resolveLocale(locale), {
-    style: "currency",
-    currency: normalizeDisplayCurrency(currency),
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
+export function formatCurrency(cents: MinorUnitValue, locale: Locale | string, currency = defaultCurrency) {
+  return formatMinorCurrency(cents, resolveLocale(locale), normalizeDisplayCurrency(currency));
 }
 
 function normalizeDisplayCurrency(_currency: string) {

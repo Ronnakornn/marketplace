@@ -1,5 +1,7 @@
 "use client";
 
+import { compareMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TicketIcon } from "lucide-react";
@@ -40,7 +42,7 @@ export function VoucherWalletPage() {
                   <h2 className="mt-1 text-lg font-extrabold text-slate-950">{coupon.title || couponLabel(coupon, t, formatters.currency)}</h2>
                   {coupon.description ? <p className="mt-1 text-sm text-slate-500">{coupon.description}</p> : null}
                   <p className="mt-1 text-sm text-slate-500">
-                    {coupon.minOrderCents ? t("buyer.minSpend").replace("{amount}", formatters.currency(coupon.minOrderCents)) : t("buyer.readyToApplyAtCheckout")}
+                    {coupon.minOrderCents !== null && compareMinorUnits(coupon.minOrderCents, 0) > 0 ? t("buyer.minSpend").replace("{amount}", formatters.currency(coupon.minOrderCents)) : t("buyer.readyToApplyAtCheckout")}
                   </p>
                   {coupon.endsAt ? <p className="mt-1 text-xs text-slate-400">{t("buyer.endsAt").replace("{time}", formatters.date(coupon.endsAt))}</p> : null}
                 </div>
@@ -70,11 +72,11 @@ export function VoucherWalletPage() {
   );
 }
 
-function couponLabel(coupon: BuyerCoupon, t: ReturnType<typeof useTranslations>, formatCurrency: (amount: number, currency?: string) => string) {
+function couponLabel(coupon: BuyerCoupon, t: ReturnType<typeof useTranslations>, formatCurrency: (amount: MinorUnitValue, currency?: string) => string) {
   if (coupon.discountType.toLowerCase().includes("percent") && coupon.discountPercentBps) {
     return t("buyer.percentOff").replace("{percent}", String(coupon.discountPercentBps / 100));
   }
-  if (coupon.discountValueCents) {
+  if (coupon.discountValueCents !== null && compareMinorUnits(coupon.discountValueCents, 0) > 0) {
     return t("buyer.amountOff").replace("{amount}", formatCurrency(coupon.discountValueCents));
   }
   if (coupon.discountType.toLowerCase().includes("shipping")) return t("product.freeShipping");

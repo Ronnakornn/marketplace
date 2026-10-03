@@ -1,5 +1,7 @@
 "use client";
 
+import { minorUnitsText, type MinorUnitValue } from "#/lib/money";
+
 import { useEffect, useMemo, useRef } from "react";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
@@ -41,7 +43,7 @@ export interface RecentlyViewedProductCard {
   title: string;
   imageUrl: string | null;
   href: string;
-  minPrice: number | null;
+  minPrice: MinorUnitValue | null;
   currency: string | null;
   rating: number;
   soldCount: number;
@@ -155,7 +157,7 @@ export function normalizeRecentlyViewedProducts(input: RecentlyViewedResponse): 
       title,
       imageUrl: optionalString(record.coverImage) ?? optionalString(record.imageUrl),
       href: `/products/${productId}`,
-      minPrice: readNumberOrNull(record.minPrice),
+      minPrice: record.minPrice === null || record.minPrice === undefined ? null : minorUnitsText(record.minPrice),
       currency: optionalString(record.currency),
       rating: readNumber(record.rating),
       soldCount: readNumber(record.soldCount),

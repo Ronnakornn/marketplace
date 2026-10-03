@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, type MinorUnitValue } from "#/lib/money";
+
 import { useMemo, useState } from "react";
 import { BanknoteIcon, BarChart3Icon, ShieldAlertIcon, Undo2Icon } from "lucide-react";
 import { Button } from "#/components/ui/button";
@@ -38,8 +40,8 @@ function formatDate(value: string | Date | null | undefined) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function formatMoney(cents: number | undefined, currency = "USD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format((cents ?? 0) / 100);
+function formatMoney(cents: MinorUnitValue | undefined, currency = "USD") {
+  return formatMinorCurrency(cents ?? 0, "en-US", currency);
 }
 
 function textMatch(values: Array<unknown>, query: string) {

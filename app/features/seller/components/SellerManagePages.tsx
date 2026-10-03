@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -58,8 +60,8 @@ import {
   useUpdateSellerInventory,
 } from "../hooks/useSellerManage";
 
-function formatMoney(cents: number | bigint | undefined, currency = "THB") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(cents ?? 0) / 100);
+function formatMoney(cents: MinorUnitValue | undefined, currency = "THB") {
+  return formatMinorCurrency(cents ?? 0, "en-US", currency ?? "THB");
 }
 
 function formatTransactionType(type: string, t: (key: string) => string) {
@@ -185,7 +187,7 @@ function LocalizedShopContentForm({ shopId, profile, settings }: {
   </form>;
 }
 
-function ShippingFeeForm({ shopId, shippingFeeBaht }: { shopId: string; shippingFeeBaht: number }) {
+function ShippingFeeForm({ shopId, shippingFeeBaht }: { shopId: string; shippingFeeBaht: number | string }) {
   const t = useTranslations();
   const updateSettings = useUpdateSellerShopSettings();
 
@@ -194,7 +196,7 @@ function ShippingFeeForm({ shopId, shippingFeeBaht }: { shopId: string; shipping
     const data = new FormData(event.currentTarget);
     updateSettings.mutate({
       shopId,
-      shippingFeeBaht: Number(data.get("shippingFeeBaht")),
+      shippingFeeBaht: String(data.get("shippingFeeBaht")),
     }, {
       onSuccess: () => toast.success(t("seller.manage.shippingFeeSaved")),
       onError: () => toast.error(t("seller.manage.shippingFeeFailed")),
@@ -766,7 +768,7 @@ function SellerFlashSalePanel() {
           const values = new FormData(form);
           const [productId, variantId] = String(values.get("variant") ?? "").split(":");
           if (!productId || !variantId) return;
-          enroll.mutate({ flashSaleId: campaign.id, productId, variantId, salePriceBaht: Number(values.get("salePriceBaht")), stockLimit: Number(values.get("stockLimit")), perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : null }, { onSuccess: () => form.reset() });
+          enroll.mutate({ flashSaleId: campaign.id, productId, variantId, salePriceBaht: String(values.get("salePriceBaht")), stockLimit: Number(values.get("stockLimit")), perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : null }, { onSuccess: () => form.reset() });
         }}>
           <Select name="variant" required><SelectTrigger><SelectValue placeholder={t("seller.manage.pages.promotions.selectProduct")} /></SelectTrigger><SelectContent>{productOptions.map((option) => <SelectItem key={option.variantId} value={`${option.productId}:${option.variantId}`}>{option.label}</SelectItem>)}</SelectContent></Select>
           <Input name="salePriceBaht" required type="number" min="0.01" step="0.01" placeholder={t("seller.manage.pages.promotions.salePriceBaht")} />
@@ -777,7 +779,7 @@ function SellerFlashSalePanel() {
         <div className="space-y-2">{campaign.items.map((item) => <form key={item.id} className="grid gap-2 rounded-md bg-slate-50 p-3 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_auto]" onSubmit={(event) => {
           event.preventDefault();
           const values = new FormData(event.currentTarget);
-          update.mutate({ itemId: item.id, salePriceBaht: values.get("salePriceBaht") ? Number(values.get("salePriceBaht")) : undefined, stockLimit: values.get("stockLimit") ? Number(values.get("stockLimit")) : undefined, perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : undefined });
+          update.mutate({ itemId: item.id, salePriceBaht: values.get("salePriceBaht") ? String(values.get("salePriceBaht")) : undefined, stockLimit: values.get("stockLimit") ? Number(values.get("stockLimit")) : undefined, perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : undefined });
         }}>
           <div><p className="text-sm font-medium">{item.productId}</p><p className="text-xs text-slate-500">{item.variantId} · {formatMoney(item.salePrice)}</p></div>
           <Input name="salePriceBaht" disabled={!canManageSellerFlashSale(campaign)} type="number" min="0.01" step="0.01" placeholder={t("seller.manage.pages.promotions.salePriceBaht")} />
@@ -806,11 +808,11 @@ export function SellerFinancePage() {
     <>
       <SellerPageHeader title={t("seller.manage.pages.finance.title")} description={t("seller.manage.pages.finance.description")} />
       <section className="grid gap-4 md:grid-cols-3">
-        <Card className="rounded-lg border-slate-200 bg-white md:col-span-1"><CardContent className="pt-6"><p className="text-sm text-slate-500">{t("seller.manage.pages.finance.available")}</p><p className="mt-2 text-3xl font-semibold">{formatters.currency(Number(wallet.data?.availableBalanceCents ?? 0), wallet.data?.currency)}</p><p className="mt-1 text-sm text-slate-500">{wallet.data?.shopName ?? t("seller.manage.pages.finance.shop")}</p>{(wallet.data?.sellerDebtCents ?? 0) > 0 ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800"><p>{t("seller.manage.pages.finance.sellerDebt")}</p><p className="mt-1 font-semibold">{formatters.currency(wallet.data?.sellerDebtCents ?? 0, wallet.data?.currency)}</p><p className="mt-2">{t("seller.manage.pages.finance.debtRecovery")}</p></div> : null}</CardContent></Card>
+        <Card className="rounded-lg border-slate-200 bg-white md:col-span-1"><CardContent className="pt-6"><p className="text-sm text-slate-500">{t("seller.manage.pages.finance.available")}</p><p className="mt-2 text-3xl font-semibold">{formatters.currency(wallet.data?.availableBalanceCents ?? 0, wallet.data?.currency)}</p><p className="mt-1 text-sm text-slate-500">{wallet.data?.shopName ?? t("seller.manage.pages.finance.shop")}</p>{compareMinorUnits(wallet.data?.sellerDebtCents ?? 0, 0) > 0 ? <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800"><p>{t("seller.manage.pages.finance.sellerDebt")}</p><p className="mt-1 font-semibold">{formatters.currency(wallet.data?.sellerDebtCents ?? 0, wallet.data?.currency)}</p><p className="mt-2">{t("seller.manage.pages.finance.debtRecovery")}</p></div> : null}</CardContent></Card>
         <Card className="rounded-lg border-slate-200 bg-white md:col-span-2"><CardHeader><CardTitle>{t("seller.manage.pages.finance.requestPayout")}</CardTitle></CardHeader><CardContent><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); createPayout.mutate(decimalInputToMinorUnits(String(data.get("amount") ?? ""))); }}><Input name="amount" placeholder={t("seller.manage.pages.finance.amount")} type="number" min="1" step="0.01" /><Button type="submit" disabled={createPayout.isPending}>{t("seller.manage.pages.finance.request")}</Button></form></CardContent></Card>
       </section>
       <section className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>{t("seller.manage.pages.finance.transactions")}</CardTitle></CardHeader><CardContent className="space-y-2">{transactions.data?.items.length ? transactions.data.items.map((item) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{formatTransactionType(item.type, t)}</p><p className="text-xs text-slate-500">{formatTransactionDescription(item.type, item.description, t) ?? formatters.date(item.createdAt)}</p></div><p className={item.amount < 0 ? "text-red-600" : "text-emerald-700"}>{formatters.currency(item.amount, item.currency)}</p></div>) : <EmptyState message={transactions.isLoading ? t("seller.manage.pages.finance.loadingTransactions") : t("seller.manage.pages.finance.emptyTransactions")} />}</CardContent></Card>
+        <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>{t("seller.manage.pages.finance.transactions")}</CardTitle></CardHeader><CardContent className="space-y-2">{transactions.data?.items.length ? transactions.data.items.map((item) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{formatTransactionType(item.type, t)}</p><p className="text-xs text-slate-500">{formatTransactionDescription(item.type, item.description, t) ?? formatters.date(item.createdAt)}</p></div><p className={compareMinorUnits(item.amount, 0) < 0 ? "text-red-600" : "text-emerald-700"}>{formatters.currency(item.amount, item.currency)}</p></div>) : <EmptyState message={transactions.isLoading ? t("seller.manage.pages.finance.loadingTransactions") : t("seller.manage.pages.finance.emptyTransactions")} />}</CardContent></Card>
         <Card className="rounded-lg border-slate-200 bg-white"><CardHeader><CardTitle>{t("seller.manage.pages.finance.payoutHistory")}</CardTitle></CardHeader><CardContent className="space-y-2">{payouts.data?.length ? payouts.data.map((item: SellerPayout) => <div key={item.id} className="flex justify-between rounded-lg border border-slate-200 px-3 py-3"><div><p className="text-sm font-medium">{formatters.currency(item.amount, item.currency)}</p><p className="text-xs text-slate-500">{formatters.date(item.requestedAt)}</p></div><StatusPill value={item.status} /></div>) : <EmptyState message={payouts.isLoading ? t("seller.manage.pages.finance.loadingPayouts") : t("seller.manage.pages.finance.emptyPayouts")} />}</CardContent></Card>
       </section>
     </>

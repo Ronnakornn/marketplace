@@ -1,3 +1,4 @@
+import { minorToDecimalText, type MinorUnitValue } from "#/lib/money";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { locales, resolveLocale, type Locale, withLocale } from "#/i18n/config";
@@ -45,8 +46,8 @@ export function safeDescription(value?: string | null, fallback = DEFAULT_DESCRI
   return description.length > 160 ? `${description.slice(0, 157).trim()}...` : description;
 }
 
-export function formatSeoPriceCents(value?: bigint | number | null): string {
-  return (Number(value ?? 0) / 100).toFixed(2);
+export function formatSeoPriceCents(value?: MinorUnitValue | null): string {
+  return minorToDecimalText(value ?? 0);
 }
 
 export function publicPageMetadata(input: {

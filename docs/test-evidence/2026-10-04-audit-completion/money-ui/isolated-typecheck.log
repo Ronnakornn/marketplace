@@ -1,0 +1,20 @@
+app/features/admin/components/AdminFlashSaleManager.tsx(63,94): error TS2345: Argument of type '{ productId: string; variantId: string; salePriceBaht: string | number; stockLimit: number; perUserLimit: number | null; }' is not assignable to parameter of type '{ perUserLimit?: number | null | undefined; stockLimit: number; salePriceBaht: number; productId: string; variantId: string; }'.
+  Types of property 'salePriceBaht' are incompatible.
+    Type 'string | number' is not assignable to type 'number'.
+      Type 'string' is not assignable to type 'number'.
+app/features/admin/components/AdminFlashSaleManager.tsx(71,89): error TS2345: Argument of type '{ salePriceBaht?: string | number | undefined; stockLimit?: number | undefined; perUserLimit?: number | null | undefined; }' is not assignable to parameter of type '{ stockLimit?: number | undefined; perUserLimit?: number | null | undefined; salePriceBaht?: number | undefined; }'.
+  Types of property 'salePriceBaht' are incompatible.
+    Type 'string | number | undefined' is not assignable to type 'number | undefined'.
+      Type 'string' is not assignable to type 'number'.
+app/features/seller/hooks/useSellerManage.ts(288,85): error TS2345: Argument of type '{ autoAcceptOrder?: boolean | undefined; allowCod?: boolean | undefined; chatEnabled?: boolean | undefined; vacationMode?: boolean | undefined; defaultShippingProvider?: string | null | undefined; ... 6 more ...; shippingPolicyEn?: string | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ shippingPolicy?: string | null | undefined; returnPolicy?: string | null | undefined; chatEnabled?: boolean | undefined; autoAcceptOrder?: boolean | undefined; allowCod?: boolean | undefined; ... 6 more ...; shippingPolicyEn?: string | ... 1 more ... | undefined; }'.
+  Types of property 'shippingFeeBaht' are incompatible.
+    Type 'string | number | undefined' is not assignable to type 'number | undefined'.
+      Type 'string' is not assignable to type 'number'.
+app/features/seller/hooks/useSellerManage.ts(907,95): error TS2345: Argument of type '{ productId: string; variantId: string; salePriceBaht: string | number; stockLimit: number; perUserLimit: number | null; }' is not assignable to parameter of type '{ perUserLimit?: number | null | undefined; stockLimit: number; salePriceBaht: number; productId: string; variantId: string; }'.
+  Types of property 'salePriceBaht' are incompatible.
+    Type 'string | number' is not assignable to type 'number'.
+      Type 'string' is not assignable to type 'number'.
+app/features/seller/hooks/useSellerManage.ts(919,90): error TS2345: Argument of type '{ salePriceBaht?: string | number | undefined; stockLimit?: number | undefined; perUserLimit?: number | null | undefined; }' is not assignable to parameter of type '{ stockLimit?: number | undefined; perUserLimit?: number | null | undefined; salePriceBaht?: number | undefined; }'.
+  Types of property 'salePriceBaht' are incompatible.
+    Type 'string | number | undefined' is not assignable to type 'number | undefined'.
+      Type 'string' is not assignable to type 'number'.

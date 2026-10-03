@@ -54,6 +54,13 @@ beforeEach(() => {
 });
 
 describe("SEO helpers", () => {
+  it("keeps exact minor units in exported SEO price text", () => {
+    expect(formatSeoPriceCents("9007199254740991")).toBe("90071992547409.91");
+    expect(formatSeoPriceCents("9007199254740993")).toBe("90071992547409.93");
+    expect(formatSeoPriceCents(-1)).toBe("-0.01");
+    expect(() => formatSeoPriceCents(9007199254740992)).toThrow(RangeError);
+  });
+
   it("builds canonical URLs and social metadata with a fallback image", () => {
     const metadata = publicPageMetadata({
       title: "Canvas Bag",

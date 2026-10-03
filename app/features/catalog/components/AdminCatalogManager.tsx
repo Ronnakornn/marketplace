@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import {
@@ -73,15 +75,12 @@ const emptyBrandForm = {
   isFeatured: false,
 };
 
-function formatMoney(cents: number | bigint, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(Number(cents) / 100);
+function formatMoney(cents: MinorUnitValue, currency: string) {
+  return formatMinorCurrency(cents, "en-US", currency);
 }
 
 function lowestVariantPrice(product: CatalogProduct) {
-  const sorted = [...product.variants].sort((a, b) => Number(a.price) - Number(b.price));
+  const sorted = [...product.variants].sort((a, b) => compareMinorUnits(a.price, b.price));
   return sorted[0] ?? null;
 }
 

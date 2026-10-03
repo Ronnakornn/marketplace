@@ -1,5 +1,7 @@
 "use client";
 
+import { parseMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
@@ -87,7 +89,7 @@ export function CheckoutPage() {
   });
   const quotedItems = new Map(quoteQuery.data?.items.map((item) => [item.id, item]));
   const quotedShops = new Map(quoteQuery.data?.shops.map((shop) => [shop.shopId, shop]));
-  const renderQuotedAmount = (amount: number | undefined) => amount === undefined || !quoteQuery.isSuccess
+  const renderQuotedAmount = (amount: MinorUnitValue | undefined) => amount === undefined || !quoteQuery.isSuccess
     ? <Skeleton className="h-4 w-20" />
     : formatMoney(amount, quoteQuery.data.currency);
   const handleApplyCoupon = () => {
@@ -100,9 +102,12 @@ export function CheckoutPage() {
     setCouponInput("");
   };
   const handleApplyCoins = () => {
-    const requested = Math.max(0, Math.floor(Number(coinInput) || 0));
-    const available = coinsQuery.data?.balance ?? 0;
-    const applied = Math.min(requested, available);
+    let requested: bigint;
+    try { requested = parseMinorUnits(coinInput); } catch { return; }
+    if (requested < 0n || requested > 9007199254740991n) return;
+    const available = parseMinorUnits(coinsQuery.data?.balance ?? 0);
+    if (available < 0n) return;
+    const applied = Number(requested < available ? requested : available);
     setCoinsToUse(applied);
     setCoinInput(String(applied));
   };

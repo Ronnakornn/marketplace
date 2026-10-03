@@ -1,3 +1,4 @@
+import { compareMinorUnits, minorUnitsText, parseMinorUnits, displayDiscountPercent, type MinorUnitValue } from "#/lib/money";
 import { queryOptions } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import type { BuyerProduct } from "#/features/product/queries";
@@ -33,8 +34,8 @@ export interface MarketplaceProductCard {
   id: string;
   title: string;
   imageUrl: string | null;
-  price: number;
-  originalPrice: number | null;
+  price: MinorUnitValue;
+  originalPrice: MinorUnitValue | null;
   currency: string;
   rating: number;
   soldCount: number;
@@ -185,8 +186,8 @@ function normalizeFlashSaleItem(input: unknown): MarketplaceProductCard | null {
   const record = toRecord(input);
   const product = toRecord(record.product);
   const variant = toRecord(record.variant);
-  const salePrice = readRequiredNumber(record.salePrice, "flash sale price", 1);
-  const originalPrice = readRequiredNumber(record.originalPrice, "flash sale original price", 1);
+  const salePrice = readRequiredMoney(record.salePrice, "flash sale price");
+  const originalPrice = readRequiredMoney(record.originalPrice, "flash sale original price");
   const availableStock = readRequiredNumber(record.availableStock, "flash sale available stock", 0);
   const shop = toRecord(product.shop);
   const id = readString(product.id, readString(record.productId));
@@ -201,7 +202,7 @@ function normalizeFlashSaleItem(input: unknown): MarketplaceProductCard | null {
     title,
     imageUrl: optionalString(product.coverImage),
     price: salePrice,
-    originalPrice: originalPrice > salePrice ? originalPrice : null,
+    originalPrice: compareMinorUnits(originalPrice, salePrice) > 0 ? originalPrice : null,
     currency,
     rating: readNumber(record.rating),
     soldCount: readNumber(record.soldCount),
@@ -232,8 +233,8 @@ function normalizeFlashSaleItem(input: unknown): MarketplaceProductCard | null {
 function normalizeRecommendationProduct(input: unknown, badge: string): MarketplaceProductCard | null {
   const record = toRecord(input);
   const shop = toRecord(record.shop);
-  const minPrice = readRequiredNumber(record.minPrice ?? record.price, "recommendation price", 1);
-  const maxPrice = readNumber(record.maxPrice, minPrice);
+  const minPrice = readRequiredMoney(record.minPrice ?? record.price, "recommendation price");
+  const maxPrice = minorUnitsText(record.maxPrice ?? minPrice);
   const id = readString(record.productId, readString(record.id));
   const title = readString(record.title);
   const shopId = readString(shop.id);
@@ -245,7 +246,7 @@ function normalizeRecommendationProduct(input: unknown, badge: string): Marketpl
     title,
     imageUrl: optionalString(record.coverImage),
     price: minPrice,
-    originalPrice: maxPrice > minPrice ? maxPrice : null,
+    originalPrice: compareMinorUnits(maxPrice, minPrice) > 0 ? maxPrice : null,
     currency,
     rating: readNumber(record.rating),
     soldCount: readNumber(record.soldCount),
@@ -286,7 +287,7 @@ function normalizeRecentlyViewedProduct(input: unknown): MarketplaceProductCard 
     id,
     title,
     imageUrl: optionalString(record.coverImage),
-    price: readNumber(record.minPrice),
+    price: minorUnitsText(record.minPrice),
     originalPrice: null,
     currency,
     rating: readNumber(record.rating),
@@ -309,9 +310,7 @@ function withBuyerProduct(
   purchaseData: Pick<BuyerProduct, "variants" | "options">,
 ): MarketplaceProductCard {
   const stock = Math.max(0, product.stock ?? purchaseData.variants.reduce((total, variant) => total + variant.stock, 0));
-  const discountPercent = product.originalPrice && product.originalPrice > product.price && product.price > 0
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : null;
+  const discountPercent = displayDiscountPercent(product.originalPrice, product.price);
 
   return {
     ...product,
@@ -321,7 +320,7 @@ function withBuyerProduct(
       description: null,
       price: product.price,
       minPrice: product.price,
-      maxPrice: product.originalPrice && product.originalPrice > product.price ? product.originalPrice : product.price,
+      maxPrice: product.originalPrice && compareMinorUnits(product.originalPrice, product.price) > 0 ? product.originalPrice : product.price,
       currency: product.currency,
       rating: product.rating,
       soldCount: product.soldCount,
@@ -426,4 +425,10 @@ function readRequiredNumber(value: unknown, label: string, minimum: number): num
     throw new Error(`Discovery API response contains an invalid ${label}`);
   }
   return number;
+}
+
+function readRequiredMoney(value: unknown, label: string): string {
+  const money = minorUnitsText(value);
+  if (parseMinorUnits(money) < 1n) throw new Error(`Discovery API response contains an invalid ${label}`);
+  return money;
 }

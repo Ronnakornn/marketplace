@@ -1,5 +1,7 @@
 "use client";
 
+import { boundedMinorUnits, formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -83,11 +85,8 @@ const EMPTY_VARIANT_FORM: VariantFormState = {
   currency: "USD",
 };
 
-function formatMoney(cents: number | bigint, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(Number(cents) / 100);
+function formatMoney(cents: MinorUnitValue, currency: string) {
+  return formatMinorCurrency(cents, "en-US", currency);
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -124,7 +123,7 @@ function statusTone(status: ProductStatus) {
 function ProductSnapshot({ product, status }: { product: CatalogProduct; status: ProductStatus }) {
   const t = useTranslations();
   const lowestPrice = useMemo(
-    () => [...product.variants].sort((a, b) => Number(a.price) - Number(b.price))[0] ?? null,
+    () => [...product.variants].sort((a, b) => compareMinorUnits(a.price, b.price))[0] ?? null,
     [product.variants],
   );
   const totalStock = product.variants.reduce((total, variant) => total + (variant.inventory?.quantityOnHand ?? 0), 0);
@@ -506,7 +505,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
     );
   }
 
-  const lowestPrice = [...product.variants].sort((a, b) => Number(a.price) - Number(b.price))[0] ?? null;
+  const lowestPrice = [...product.variants].sort((a, b) => compareMinorUnits(a.price, b.price))[0] ?? null;
   const totalStock = product.variants.reduce((total, variant) => total + (variant.inventory?.quantityOnHand ?? 0), 0);
 
   return (
@@ -783,7 +782,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                 variantId: editingVariant.id,
                 sku: values.sku,
                 title: values.title,
-                price: Number(values.price),
+                price: boundedMinorUnits(values.price),
                 currency: values.currency,
               });
               setMessage("Variant saved.");
@@ -792,7 +791,7 @@ export function AdminCatalogEditPage({ productId }: AdminCatalogEditPageProps) {
                 productId: product.id,
                 sku: values.sku,
                 title: values.title,
-                price: Number(values.price),
+                price: boundedMinorUnits(values.price),
                 currency: values.currency,
               });
               setMessage("Variant created.");

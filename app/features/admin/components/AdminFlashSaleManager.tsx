@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, type MinorUnitValue } from "#/lib/money";
+
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BoltIcon, PlusIcon, Trash2Icon } from "lucide-react";
@@ -20,8 +22,8 @@ function toIsoDate(value: FormDataEntryValue | null) {
   return new Date(String(value ?? "")).toISOString();
 }
 
-function formatMoney(cents: number | bigint) {
-  return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(Number(cents) / 100);
+function formatMoney(cents: MinorUnitValue) {
+  return formatMinorCurrency(cents, "th-TH", "THB");
 }
 
 export function AdminFlashSaleManager() {
@@ -56,7 +58,7 @@ export function AdminFlashSaleManager() {
     onSuccess: invalidate,
   });
   const addItem = useMutation({
-    mutationFn: async (input: { flashSaleId: string; productId: string; variantId: string; salePriceBaht: number; stockLimit: number; perUserLimit: number | null }) => {
+    mutationFn: async (input: { flashSaleId: string; productId: string; variantId: string; salePriceBaht: number | string; stockLimit: number; perUserLimit: number | null }) => {
       const { flashSaleId, ...body } = input;
       const { data, error } = await api.api.admin["flash-sales"]({ flashSaleId }).items.post(body);
       if (error) throw error;
@@ -65,7 +67,7 @@ export function AdminFlashSaleManager() {
     onSuccess: invalidate,
   });
   const updateItem = useMutation({
-    mutationFn: async ({ itemId, ...body }: { itemId: string; salePriceBaht?: number; stockLimit?: number; perUserLimit?: number | null }) => {
+    mutationFn: async ({ itemId, ...body }: { itemId: string; salePriceBaht?: number | string; stockLimit?: number; perUserLimit?: number | null }) => {
       const { data, error } = await api.api.admin["flash-sale-items"]({ itemId }).patch(body);
       if (error) throw error;
       return data;
@@ -117,7 +119,7 @@ export function AdminFlashSaleManager() {
         <div className="space-y-2">{sale.items.map((item) => <form key={item.id} className="grid gap-2 rounded-lg border border-white/10 p-3 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_auto]" onSubmit={(event) => {
           event.preventDefault();
           const values = new FormData(event.currentTarget);
-          updateItem.mutate({ itemId: item.id, salePriceBaht: values.get("salePriceBaht") ? Number(values.get("salePriceBaht")) : undefined, stockLimit: values.get("stockLimit") ? Number(values.get("stockLimit")) : undefined, perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : undefined });
+          updateItem.mutate({ itemId: item.id, salePriceBaht: values.get("salePriceBaht") ? String(values.get("salePriceBaht")) : undefined, stockLimit: values.get("stockLimit") ? Number(values.get("stockLimit")) : undefined, perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : undefined });
         }}>
           <div><p className="text-sm font-medium text-white">{item.productId}</p><p className="text-xs text-slate-400">{item.variantId} · {formatMoney(item.salePrice)}</p></div>
           <Input name="salePriceBaht" disabled={!canManageFlashSaleItems(sale)} type="number" min="0.01" step="0.01" placeholder={t("admin.flashSales.salePrice")} className="border-white/10 bg-slate-950 text-white" />
@@ -139,7 +141,7 @@ function FlashItemForm({ campaignId, productOptions, pending, t, onSubmit }: {
   productOptions: Array<{ productId: string; variantId: string; label: string }>;
   pending: boolean;
   t: (key: string) => string;
-  onSubmit: (input: { flashSaleId: string; productId: string; variantId: string; salePriceBaht: number; stockLimit: number; perUserLimit: number | null }, form: HTMLFormElement) => void;
+  onSubmit: (input: { flashSaleId: string; productId: string; variantId: string; salePriceBaht: number | string; stockLimit: number; perUserLimit: number | null }, form: HTMLFormElement) => void;
 }) {
   return <form className="grid gap-2 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_auto]" onSubmit={(event) => {
     event.preventDefault();
@@ -147,7 +149,7 @@ function FlashItemForm({ campaignId, productOptions, pending, t, onSubmit }: {
     const values = new FormData(form);
     const [productId, variantId] = String(values.get("variant") ?? "").split(":");
     if (!productId || !variantId) return;
-    onSubmit({ flashSaleId: campaignId, productId, variantId, salePriceBaht: Number(values.get("salePriceBaht")), stockLimit: Number(values.get("stockLimit")), perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : null }, form);
+    onSubmit({ flashSaleId: campaignId, productId, variantId, salePriceBaht: String(values.get("salePriceBaht")), stockLimit: Number(values.get("stockLimit")), perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : null }, form);
   }}>
     <Select name="variant" required><SelectTrigger className="border-white/10 bg-slate-950 text-white"><SelectValue placeholder={t("admin.flashSales.selectProduct")} /></SelectTrigger><SelectContent>{productOptions.map((option) => <SelectItem key={option.variantId} value={`${option.productId}:${option.variantId}`}>{option.label}</SelectItem>)}</SelectContent></Select>
     <Input name="salePriceBaht" required type="number" min="0.01" step="0.01" placeholder={t("admin.flashSales.salePrice")} className="border-white/10 bg-slate-950 text-white" />

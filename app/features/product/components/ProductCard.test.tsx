@@ -55,11 +55,11 @@ vi.mock("#/components/ui/button", () => ({
   Button: ({ children, ...props }: { children: ReactNode }) => <button {...props}>{children}</button>,
 }));
 
-vi.mock("#/features/buyer/api", () => ({
+vi.mock("#/features/buyer/api", async () => ({
   addCartItem: cardMocks.addCartItem,
   addFavoriteProduct: cardMocks.addFavoriteProduct,
   fetchFavoriteStatus: cardMocks.fetchFavoriteStatus,
-  formatMoney: (cents: number, currency = "THB") => `${currency} ${(cents / 100).toFixed(2)}`,
+  formatMoney: (await vi.importActual<typeof import("#/features/buyer/api")>("#/features/buyer/api")).formatMoney,
   removeFavoriteProduct: cardMocks.removeFavoriteProduct,
 }));
 
@@ -144,6 +144,19 @@ beforeEach(() => {
 });
 
 describe("ProductCard", () => {
+  it.each([
+    ["9007199254740991", "฿90,071,992,547,409.91"],
+    ["9007199254740993", "฿90,071,992,547,409.93"],
+  ])("renders the exact historical price %s", (amount, expected) => {
+    renderWithClient(createProductFixture({ price: amount, minPrice: amount, maxPrice: amount, originalPrice: null }));
+    expect(screen.getByText(expected)).toBeTruthy();
+  });
+
+  it("compares string price magnitudes when showing a range", () => {
+    renderWithClient(createProductFixture({ price: "9", minPrice: "9", maxPrice: "10", originalPrice: null }));
+    expect(screen.getByText("฿0.09 - ฿0.10")).toBeTruthy();
+  });
+
   it("eagerly loads its image when the card is marked as above the fold", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -189,8 +202,8 @@ describe("ProductCard", () => {
     renderWithClient(createProductFixture());
 
     expect(screen.getByText("Canvas Weekender Bag")).toBeTruthy();
-    expect(screen.getByText("THB 12.00 - THB 15.00")).toBeTruthy();
-    expect(screen.getByText("THB 18.00")).toBeTruthy();
+    expect(screen.getByText("฿12.00 - ฿15.00")).toBeTruthy();
+    expect(screen.getByText("฿18.00")).toBeTruthy();
     expect(screen.getByText("17% off")).toBeTruthy();
     expect(screen.getByText("4.6")).toBeTruthy();
     expect(screen.getByText("21 sold")).toBeTruthy();

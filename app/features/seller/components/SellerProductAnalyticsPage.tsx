@@ -1,5 +1,7 @@
 "use client";
 
+import { compareMinorUnits, formatMinorCurrency, type MinorUnitValue } from "#/lib/money";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -30,7 +32,7 @@ export function SellerProductAnalyticsPage() {
   const query = useSellerProductAnalytics(filters);
   const data = query.data;
   const summary = data?.summary;
-  const isEmpty = !query.isLoading && !validationError && !summary?.views && !summary?.addToCart && !summary?.orders && !summary?.unitsSold && !summary?.revenue;
+  const isEmpty = !query.isLoading && !validationError && !summary?.views && !summary?.addToCart && !summary?.orders && !summary?.unitsSold && compareMinorUnits(summary?.revenue ?? 0, 0) === 0;
 
   const maxTrendValue = useMemo(() => Math.max(1, ...(data?.daily ?? []).map((item) => Math.max(item.views, item.addToCart, item.orders))), [data?.daily]);
   const productColumns = useMemo<ColumnDef<SellerProductAnalyticsProductMetric>[]>(() => [
@@ -221,8 +223,8 @@ function formatNumber(value: number | null | undefined) {
   return new Intl.NumberFormat("en-US").format(value ?? 0);
 }
 
-function formatMoney(cents: number | null | undefined, currency: string | null | undefined = "THB") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "THB" }).format(Number(cents ?? 0) / 100);
+function formatMoney(cents: MinorUnitValue | null | undefined, currency: string | null | undefined = "THB") {
+  return formatMinorCurrency(cents ?? 0, "en-US", currency ?? "THB");
 }
 
 function formatRate(value: number | null | undefined) {

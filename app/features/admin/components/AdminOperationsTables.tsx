@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
@@ -74,8 +76,8 @@ function formatOptionalDate(value: string | Date | null | undefined) {
   return formatDate(value);
 }
 
-function formatMoney(cents: number | bigint, currency = "USD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(cents) / 100);
+function formatMoney(cents: MinorUnitValue, currency = "USD") {
+  return formatMinorCurrency(cents, "en-US", currency);
 }
 
 function textMatch(values: Array<unknown>, query: string) {
@@ -162,7 +164,7 @@ function readErrorMessage(error: unknown, fallback: string) {
 
 function readinessFlags(product: AdminCatalogModerationProduct, labels: { category: string; media: string; variant: string; stock: string }) {
   const hasPrimaryImage = product.images.some((image) => image.isPrimary) || product.images.length > 0;
-  const hasVariant = product.variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price) > 0);
+  const hasVariant = product.variants.some((variant) => variant.status === "ACTIVE" && compareMinorUnits(variant.price, 0) > 0);
   const hasCategory = Boolean(product.category);
   const hasStock = product.variants.some((variant) => (variant.inventory?.quantityOnHand ?? 0) > 0);
   return [

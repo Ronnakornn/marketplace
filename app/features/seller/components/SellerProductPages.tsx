@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -603,7 +605,7 @@ function getReadinessChecks(form: ProductFormState, images: ImageDraftState[], v
     { id: "category", label: t("seller.editor.readiness.category"), passed: Boolean(form.categoryId), missingLabel: t("seller.editor.readiness.missingCategory") },
     { id: "required-specs", label: t("seller.editor.readiness.requiredSpecs"), passed: requiredSpecMissing.length === 0, missingLabel: requiredSpecMissing.length ? t("seller.editor.readiness.missingRequiredSpecs").replace("{items}", requiredSpecMissing.join(", ")) : t("seller.editor.readiness.missingRequiredSpecsFallback") },
     { id: "primary-image", label: t("seller.editor.readiness.primaryImage"), passed: images.some((image) => image.isPrimary), missingLabel: t("seller.editor.readiness.missingPrimaryImage") },
-    { id: "active-priced-variant", label: t("seller.editor.readiness.activeVariant"), passed: variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price || "0") > 0), missingLabel: t("seller.editor.readiness.missingActiveVariant") },
+    { id: "active-priced-variant", label: t("seller.editor.readiness.activeVariant"), passed: variants.some((variant) => variant.status === "ACTIVE" && decimalInputToMinorUnits(variant.price || "0") > 0), missingLabel: t("seller.editor.readiness.missingActiveVariant") },
   ];
 }
 
@@ -664,7 +666,7 @@ function getVariantRowErrors(variant: VariantFormState, index: number, duplicate
   if (!variant.sku.trim()) errors.push(t("seller.editor.error.skuRequired"));
   if (duplicateSkuIndexes.has(index)) errors.push(t("seller.editor.error.duplicateSku"));
   if (duplicateCombinationIndexes.has(index)) errors.push(t("seller.editor.error.duplicateOptionCombination"));
-  if (Number(variant.price || "0") < 0) errors.push(t("seller.editor.error.priceNegative"));
+  if (decimalInputToMinorUnits(variant.price || "0") < 0) errors.push(t("seller.editor.error.priceNegative"));
   if (Number(variant.quantityOnHand || "0") < 0) errors.push(t("seller.editor.error.stockNegative"));
   return errors;
 }
@@ -733,8 +735,8 @@ function toProductInput(form: ProductFormState): SellerProductInput {
   };
 }
 
-function formatMoney(cents: number | bigint | undefined, currency = "THB") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(cents ?? 0) / 100);
+function formatMoney(cents: MinorUnitValue | undefined, currency = "THB") {
+  return formatMinorCurrency(cents ?? 0, "en-US", currency ?? "THB");
 }
 
 function StatusPill({ value }: { value: string }) {
@@ -812,9 +814,9 @@ function CategorySpecField({
 function getVariantPriceContext(product: SellerProduct) {
   const variants = product.variants ?? [];
   if (!variants.length) return "No variants";
-  const prices = variants.map((variant) => Number(variant.price ?? 0));
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
+  const prices = variants.map((variant) => variant.price).sort(compareMinorUnits);
+  const min = prices[0];
+  const max = prices[prices.length - 1];
   const currency = variants[0]?.currency ?? "THB";
   return min === max ? formatMoney(min, currency) : `${formatMoney(min, currency)} - ${formatMoney(max, currency)}`;
 }
@@ -1722,7 +1724,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       document.getElementById(`variant-sku-${index}`)?.focus();
       return;
     }
-    if (Number(variant.price || "0") < 0 || Number(variant.quantityOnHand || "0") < 0 || Number(variant.reorderLevel || "0") < 0) {
+    if (decimalInputToMinorUnits(variant.price || "0") < 0 || Number(variant.quantityOnHand || "0") < 0 || Number(variant.reorderLevel || "0") < 0) {
       setVariantError(t("seller.editor.error.variantNegative"));
       return;
     }

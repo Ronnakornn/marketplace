@@ -19,7 +19,7 @@ describe("GuestAddToCartButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add Demo Product" }));
 
     expect(JSON.parse(window.localStorage.getItem("marketplace:guest-cart") ?? "[]")).toEqual([
-      { variantId: "variant-1", quantity: 1, productId: "product-1", title: "Demo Product", variantTitle: "Default", imageUrl: "https://example.com/product.jpg", unitPrice: 1200, currency: "THB" },
+      { variantId: "variant-1", quantity: 1, productId: "product-1", title: "Demo Product", variantTitle: "Default", imageUrl: "https://example.com/product.jpg", unitPrice: "1200", currency: "THB" },
     ]);
     expect(screen.getByText("Added to cart")).toBeTruthy();
   });

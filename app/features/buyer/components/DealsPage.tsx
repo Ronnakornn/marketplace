@@ -1,5 +1,7 @@
 "use client";
 
+import { compareMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { FlameIcon, TicketIcon } from "lucide-react";
@@ -61,7 +63,7 @@ export function DealsPage() {
                   <p className="mt-1 text-lg font-extrabold text-slate-950">{coupon.title || couponLabel(coupon, t)}</p>
                   {coupon.description ? <p className="mt-1 text-xs text-slate-500">{coupon.description}</p> : null}
                   <p className="mt-1 text-xs text-slate-500">
-                    {coupon.minOrderCents ? t("buyer.minSpend").replace("{amount}", formatMoney(coupon.minOrderCents)) : t("buyer.readyToApplyAtCheckout")}
+                    {coupon.minOrderCents !== null && compareMinorUnits(coupon.minOrderCents, 0) > 0 ? t("buyer.minSpend").replace("{amount}", formatMoney(coupon.minOrderCents)) : t("buyer.readyToApplyAtCheckout")}
                   </p>
                   {coupon.endsAt ? <p className="mt-1 text-xs font-medium text-orange-700">{t("buyer.endsAt").replace("{time}", formatDate(coupon.endsAt, locale, { dateStyle: "medium", timeStyle: "short" }))}</p> : null}
                 </div>
@@ -93,11 +95,11 @@ export function DealsPage() {
   );
 }
 
-function couponLabel(coupon: { discountType: string; discountPercentBps: number | null; discountValueCents: number | null }, t: ReturnType<typeof useTranslations>) {
+function couponLabel(coupon: { discountType: string; discountPercentBps: number | null; discountValueCents: MinorUnitValue | null }, t: ReturnType<typeof useTranslations>) {
   if (coupon.discountType.toLowerCase().includes("percent") && coupon.discountPercentBps) {
     return `${coupon.discountPercentBps / 100}% off`;
   }
-  if (coupon.discountValueCents) return `${formatMoney(coupon.discountValueCents)} off`;
+  if (coupon.discountValueCents !== null && compareMinorUnits(coupon.discountValueCents, 0) > 0) return `${formatMoney(coupon.discountValueCents)} off`;
   if (coupon.discountType.toLowerCase().includes("shipping")) return t("product.freeShipping");
   return t("buyer.specialDeal");
 }

@@ -1,3 +1,4 @@
+import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/lib/money";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -64,11 +65,7 @@ export function MarketplaceGuestHome({ initialHome, locale }: { initialHome: Dis
   const t = createTranslator(locale);
   const home = normalizeMarketplaceHome(initialHome);
   const localePath = (pathname: string) => withLocale(pathname, locale);
-  const formatMoney = (cents: number, currency = "THB") => new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
+  const formatMoney = (cents: MinorUnitValue, currency = "THB") => formatMinorCurrency(cents, locale, currency);
   const categories = home.categories.map((category, index) => ({
     id: category.id,
     slug: category.slug,
@@ -186,7 +183,7 @@ function VoucherStrip({ promotions, localePath }: { promotions: MarketplacePromo
   );
 }
 
-function FlashSaleSection({ flashSale, loginHref, localePath, formatMoney, t }: { flashSale: MarketplaceHomeData["flashSale"]; loginHref: string; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; t: Translator }) {
+function FlashSaleSection({ flashSale, loginHref, localePath, formatMoney, t }: { flashSale: MarketplaceHomeData["flashSale"]; loginHref: string; localePath: (path: string) => string; formatMoney: (cents: MinorUnitValue, currency?: string) => string; t: Translator }) {
   const products = flashSale?.items ?? [];
   if (!flashSale) return null;
   return (
@@ -213,7 +210,7 @@ function CategoryGrid({ categories, localePath, t }: { categories: Array<{ id: s
   );
 }
 
-function ProductRail({ title, subtitle, products, emptyTitle, emptyDescription, localePath, formatMoney, prioritizeFirstImage = false, t }: { title: string; subtitle: string; products: MarketplaceProductCard[]; emptyTitle: string; emptyDescription: string; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; prioritizeFirstImage?: boolean; t: Translator }) {
+function ProductRail({ title, subtitle, products, emptyTitle, emptyDescription, localePath, formatMoney, prioritizeFirstImage = false, t }: { title: string; subtitle: string; products: MarketplaceProductCard[]; emptyTitle: string; emptyDescription: string; localePath: (path: string) => string; formatMoney: (cents: MinorUnitValue, currency?: string) => string; prioritizeFirstImage?: boolean; t: Translator }) {
   return (
     <section className="mt-5">
       <div className="mb-3 flex items-center justify-between px-1"><div><h2 className="text-lg font-extrabold text-slate-950">{title}</h2><p className="text-xs text-slate-900">{subtitle}</p></div><SparklesIcon className="size-5 text-orange-500" /></div>
@@ -224,10 +221,10 @@ function ProductRail({ title, subtitle, products, emptyTitle, emptyDescription, 
   );
 }
 
-function GuestProductCard({ product, localePath, formatMoney, eagerImage = false, t }: { product: BuyerProduct; localePath: (path: string) => string; formatMoney: (cents: number, currency?: string) => string; eagerImage?: boolean; t: Translator }) {
+function GuestProductCard({ product, localePath, formatMoney, eagerImage = false, t }: { product: BuyerProduct; localePath: (path: string) => string; formatMoney: (cents: MinorUnitValue, currency?: string) => string; eagerImage?: boolean; t: Translator }) {
   const imageSource = product.images[0];
   const image = resolveUploadedImageUrl(imageSource);
-  const hasPriceRange = product.maxPrice > product.minPrice;
+  const hasPriceRange = compareMinorUnits(product.maxPrice, product.minPrice) > 0;
   const quickAddVariant = product.options.length === 0 && product.variants.filter((variant) => variant.stock > 0).length === 1 && product.variants[0]?.optionValues.length === 0 ? product.variants[0] : null;
   const isOutOfStock = product.stock <= 0;
   const priceLabel = hasPriceRange ? `${formatMoney(product.minPrice, product.currency)} - ${formatMoney(product.maxPrice, product.currency)}` : formatMoney(product.price, product.currency);
@@ -246,7 +243,7 @@ function GuestProductCard({ product, localePath, formatMoney, eagerImage = false
       <div className="space-y-2 p-3">
         <Link href={localePath(`/products/${product.id}`)} prefetch={false} className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"><h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-5 text-slate-900">{product.title}</h3></Link>
         {product.brand ? <p className="truncate text-xs font-medium text-slate-500">{product.brand.name}</p> : null}
-        <div className="flex min-h-12 items-end justify-between gap-2"><div className="min-w-0 flex-1"><p className="truncate text-base font-bold text-orange-700" title={priceLabel}>{priceLabel}</p>{product.originalPrice && product.originalPrice > product.minPrice ? <p className="truncate text-xs text-slate-600 line-through" title={formatMoney(product.originalPrice, product.currency)}>{formatMoney(product.originalPrice, product.currency)}</p> : null}</div><span className="shrink-0 text-xs text-slate-500">{isOutOfStock ? t("common.unavailable") : t("product.soldCount").replace("{count}", String(product.soldCount))}</span></div>
+        <div className="flex min-h-12 items-end justify-between gap-2"><div className="min-w-0 flex-1"><p className="truncate text-base font-bold text-orange-700" title={priceLabel}>{priceLabel}</p>{product.originalPrice && compareMinorUnits(product.originalPrice, product.minPrice) > 0 ? <p className="truncate text-xs text-slate-600 line-through" title={formatMoney(product.originalPrice, product.currency)}>{formatMoney(product.originalPrice, product.currency)}</p> : null}</div><span className="shrink-0 text-xs text-slate-500">{isOutOfStock ? t("common.unavailable") : t("product.soldCount").replace("{count}", String(product.soldCount))}</span></div>
         <div className="flex items-center justify-between gap-2 text-xs text-slate-500"><span className="flex items-center gap-1"><StarIcon className="size-3.5 fill-amber-400 text-amber-400" />{product.rating.toFixed(1)}</span><span className="flex min-w-0 items-center gap-1"><MapPinIcon className="size-3.5 shrink-0" /><span className="truncate">{product.shop.location}</span></span></div>
         <div className="flex min-h-9 items-center justify-between gap-2"><Badge variant="outline" className="min-w-0 max-w-full truncate rounded-full border-orange-200 bg-orange-50 font-normal text-orange-700">{product.shop.name}</Badge>{quickAddVariant ? <GuestAddToCartButton variantId={quickAddVariant.id} label={quickAddLabel} addedLabel={t("cart.handoffAddedTitle")} item={{ productId: product.id, title: product.title, variantTitle: quickAddVariant.title, imageUrl: image, unitPrice: quickAddVariant.price, currency: quickAddVariant.currency }} /> : <Link href={localePath(`/products/${product.id}`)} prefetch={false} className="shrink-0 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-orange-300 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" aria-label={quickAddLabel}>{t("common.details")}</Link>}</div>
         <p className="min-h-4 truncate text-[11px] leading-4 text-slate-500" aria-live="polite">{quickAddVariant ? "\u00a0" : "\u00a0"}</p>
@@ -257,7 +254,7 @@ function GuestProductCard({ product, localePath, formatMoney, eagerImage = false
 
 function ProductVisual({ product, compact = false, t }: { product: MarketplaceProductCard; compact?: boolean; t: Translator }) {
   const imageUrl = resolveUploadedImageUrl(product.imageUrl);
-  return <div className={`relative overflow-hidden bg-gradient-to-br ${productGradients[Math.abs(hashString(product.id)) % productGradients.length]} ${compact ? "h-28" : "aspect-square"}`}>{imageUrl ? <img src={imageUrl} alt={product.title} className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" loading="lazy" /> : null}{imageUrl ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-transparent" /> : null}{product.originalPrice && product.originalPrice > product.price ? <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-700 shadow-sm">{t("home.saleBadge")}</div> : null}<span className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-900 shadow-sm"><HeartIcon className="size-4" /><span className="sr-only">{t("product.saveProduct")}</span></span><div className={`absolute inset-0 flex items-center justify-center ${imageUrl ? "hidden" : ""}`}><ShoppingBagIcon className={`${compact ? "size-12" : "size-20"} text-slate-900/60`} /></div></div>;
+  return <div className={`relative overflow-hidden bg-gradient-to-br ${productGradients[Math.abs(hashString(product.id)) % productGradients.length]} ${compact ? "h-28" : "aspect-square"}`}>{imageUrl ? <img src={imageUrl} alt={product.title} className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" loading="lazy" /> : null}{imageUrl ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-transparent" /> : null}{product.originalPrice && compareMinorUnits(product.originalPrice, product.price) > 0 ? <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-700 shadow-sm">{t("home.saleBadge")}</div> : null}<span className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-900 shadow-sm"><HeartIcon className="size-4" /><span className="sr-only">{t("product.saveProduct")}</span></span><div className={`absolute inset-0 flex items-center justify-center ${imageUrl ? "hidden" : ""}`}><ShoppingBagIcon className={`${compact ? "size-12" : "size-20"} text-slate-900/60`} /></div></div>;
 }
 
 function FeaturedShopsSection({ shops, localePath, t }: { shops: MarketplaceShop[]; localePath: (path: string) => string; t: Translator }) {

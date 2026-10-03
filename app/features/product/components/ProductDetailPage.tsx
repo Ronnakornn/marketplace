@@ -1,5 +1,7 @@
 "use client";
 
+import { compareMinorUnits } from "#/lib/money";
+
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
@@ -336,8 +338,8 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const selectedImage = galleryImages[selectedImageIndex] ?? galleryImages[0] ?? resolveUploadedImageUrl(undefined);
   const displayPrice = selectedVariant?.price ?? product.minPrice;
   const displayCurrency = selectedVariant?.currency ?? product.currency;
-  const hasPriceRange = !selectedVariant && product.maxPrice > product.minPrice;
-  const originalPriceLabel = product.originalPrice && product.originalPrice > displayPrice
+  const hasPriceRange = !selectedVariant && compareMinorUnits(product.maxPrice, product.minPrice) > 0;
+  const originalPriceLabel = product.originalPrice && compareMinorUnits(product.originalPrice, displayPrice) > 0
     ? formatMoney(product.originalPrice, displayCurrency)
     : null;
   const isOutOfStock = displayedStock < 1 || product.stock < 1;

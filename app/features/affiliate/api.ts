@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, minorUnitsText, type MinorUnitValue } from "#/lib/money";
+
 import { requestApi } from "#/lib/api-client";
 
 export type AffiliateTargetType = "product" | "shop" | "campaign";
@@ -18,7 +20,7 @@ export interface AffiliateLink {
 export interface AffiliateStats {
   clicks: number;
   conversions: number;
-  commissionCents: number;
+  commissionCents: MinorUnitValue;
 }
 
 export interface AffiliateTargetOption {
@@ -49,7 +51,7 @@ export async function fetchAffiliateStats(): Promise<AffiliateStats> {
   return {
     clicks: readNumber(record.clicks),
     conversions: readNumber(record.conversions),
-    commissionCents: readNumber(record.commissionCents),
+    commissionCents: minorUnitsText(record.commissionCents),
   };
 }
 
@@ -108,8 +110,8 @@ export async function updateAdminAffiliateStatus(input: { affiliateId: string; s
   });
 }
 
-export function formatAffiliateMoney(cents: number, _currency = "THB"): string {
-  return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(cents / 100);
+export function formatAffiliateMoney(cents: MinorUnitValue, _currency = "THB"): string {
+  return formatMinorCurrency(cents, "th-TH", "THB");
 }
 
 export function affiliateTrackingUrl(code: string): string {

@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { useTranslations } from "#/i18n/client";
@@ -17,11 +19,8 @@ function operationMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function refundMoney(amount: number | bigint, currency: string): string {
-  const minorUnits = BigInt(amount);
-  const fraction = (minorUnits % 100n).toString().padStart(2, "0");
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    .formatToParts(minorUnits / 100n).map((part) => part.type === "fraction" ? fraction : part.value).join("");
+function refundMoney(amount: MinorUnitValue, currency: string): string {
+  return formatMinorCurrency(amount, "en-US", currency);
 }
 
 type CancellationOrder = Pick<AdminOrder, "id" | "paymentStatus" | "status" | "shopOrders"> & {
@@ -84,7 +83,7 @@ export function RefundSettlementActions({ refund }: { refund: SettlementRefund }
     <AdminStatusAction label={refund.order.orderNumber} currentStatus={refund.status} options={["PENDING", "PROCESSING", "SUCCESS", "FAILED"]}
       disabled={dirty || updatePlan.isPending} isPending={updateStatus.isPending}
       onConfirm={(next) => {
-        const externalReference = next === "SUCCESS" ? window.prompt(t(Number(refund.amount) === 0
+        const externalReference = next === "SUCCESS" ? window.prompt(t(compareMinorUnits(refund.amount, 0) === 0
           ? "admin.refunds.internalReferencePrompt" : "admin.refunds.externalReferencePrompt"))?.trim() : undefined;
         if (next !== "SUCCESS" || externalReference) updateStatus.mutate({ id: refund.id, status: next, externalReference });
       }} />

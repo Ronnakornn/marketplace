@@ -1,3 +1,5 @@
+import { parseMinorUnits } from "#/lib/money";
+
 export function decimalInputToMinorUnits(value: string): number {
   const text = value.trim();
   if (!text) return 0;
@@ -23,7 +25,7 @@ export function decimalInputToMinorUnits(value: string): number {
 }
 
 export function minorUnitsToDecimalInput(value: number | bigint | string): string {
-  const minorUnits = BigInt(value);
+  const minorUnits = parseMinorUnits(value);
   const absolute = minorUnits < 0n ? -minorUnits : minorUnits;
   const fraction = (absolute % 100n).toString().padStart(2, "0").replace(/0+$/, "");
   return `${minorUnits < 0n ? "-" : ""}${absolute / 100n}${fraction ? `.${fraction}` : ""}`;

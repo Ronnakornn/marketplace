@@ -7,9 +7,10 @@ import { MinusIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
+import { Skeleton } from "#/components/ui/skeleton";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { clearCart, fetchCart, formatMoney, removeCartItem, updateCartItem } from "#/features/buyer/api";
+import { clearCart, fetchCart, formatMoney, quoteCheckout, removeCartItem, updateCartItem } from "#/features/buyer/api";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
@@ -42,7 +43,14 @@ export function CartPage({ initialVoucher = "" }: { initialVoucher?: string }) {
     () => cart?.shops.flatMap((shop) => shop.items).filter((item) => selectedItemIds.has(item.id)) ?? [],
     [cart, selectedItemIds],
   );
-  const selectedSubtotal = selectedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const selectionQuote = useQuery({
+    queryKey: ["cart-selection-quote", cart?.id, selectedItems.map((item) => item.id), cartQuery.dataUpdatedAt, locale],
+    queryFn: () => {
+      if (!cart?.id) throw new Error("Cart is unavailable");
+      return quoteCheckout({ cartId: cart.id, cartItemIds: selectedItems.map((item) => item.id) });
+    },
+    enabled: Boolean(cart?.id) && selectedItems.length > 0,
+  });
   const checkoutParams = new URLSearchParams({ items: selectedItems.map((item) => item.id).join(",") });
   if (initialVoucher) checkoutParams.set("voucher", initialVoucher);
   const checkoutHref = `${localePath("/checkout")}?${checkoutParams}`;
@@ -78,7 +86,7 @@ export function CartPage({ initialVoucher = "" }: { initialVoucher?: string }) {
               <div className="divide-y divide-slate-100">{guestItems.map((item) => (
                 <div key={item.variantId} className="grid grid-cols-[72px_1fr_auto] items-center gap-3 p-4">
                   {item.productId ? <Link href={localePath(`/products/${item.productId}`)} className="block overflow-hidden rounded-lg bg-slate-100">{item.imageUrl ? <img src={item.imageUrl} alt={item.title ?? item.variantId} className="aspect-square w-full object-cover" /> : <span className="flex aspect-square items-center justify-center text-xs text-slate-400">{t("cart.noImage")}</span>}</Link> : <div className="overflow-hidden rounded-lg bg-slate-100"><span className="flex aspect-square items-center justify-center text-xs text-slate-400">{t("cart.noImage")}</span></div>}
-                  <div className="min-w-0"><p className="truncate font-semibold text-slate-950">{item.title ?? item.variantId}</p>{item.variantTitle ? <p className="mt-1 text-sm text-slate-600">{item.variantTitle}</p> : null}{typeof item.unitPrice === "number" ? <p className="mt-2 font-bold text-orange-600">{formatMoney(item.unitPrice, item.currency ?? "THB")}</p> : null}</div>
+                  <div className="min-w-0"><p className="truncate font-semibold text-slate-950">{item.title ?? item.variantId}</p>{item.variantTitle ? <p className="mt-1 text-sm text-slate-600">{item.variantTitle}</p> : null}{item.unitPrice !== undefined ? <p className="mt-2 font-bold text-orange-600">{formatMoney(item.unitPrice, item.currency ?? "THB")}</p> : null}</div>
                   <div className="flex items-center gap-2"><span className="font-semibold">×{item.quantity}</span><Button size="icon" variant="ghost" className="rounded-full" onClick={() => { const next = guestItems.filter((candidate) => candidate.variantId !== item.variantId); writeGuestCart(next); setGuestItems(next); }}><Trash2Icon className="size-4 text-red-600" /><span className="sr-only">{t("cart.remove")}</span></Button></div>
                 </div>
               ))}</div>
@@ -146,7 +154,8 @@ export function CartPage({ initialVoucher = "" }: { initialVoucher?: string }) {
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-slate-700">{t("cart.subtotal")}</p>
-              <p className="text-lg font-bold text-slate-950">{formatMoney(selectedSubtotal, cart.currency)}</p>
+              <p className="text-lg font-bold text-slate-950">{selectedItems.length === 0 ? formatMoney(0, cart.currency) : selectionQuote.data ? formatMoney(selectionQuote.data.subtotal, cart.currency) : <Skeleton className="h-6 w-24" />}</p>
+              {selectionQuote.isError ? <p role="alert" className="text-sm text-red-600">{selectionQuote.error.message}</p> : null}
               <p className="text-xs text-slate-500">{t("cart.selectedCount").replace("{count}", String(selectedItems.length))}</p>
             </div>
             {selectedItems.length > 0 ? (

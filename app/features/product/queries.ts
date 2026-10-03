@@ -1,5 +1,7 @@
 "use client";
 
+import { compareMinorUnits, minorUnitsText, displayDiscountPercent, type MinorUnitValue } from "#/lib/money";
+
 import { queryOptions, useQuery, type QueryClient } from "@tanstack/react-query";
 import type { Treaty } from "@elysiajs/eden";
 import { isSecretStorageUrl } from "#/lib/assets";
@@ -116,14 +118,14 @@ export interface BuyerProduct {
   id: string;
   title: string;
   description: string | null;
-  price: number;
-  minPrice: number;
-  maxPrice: number;
+  price: MinorUnitValue;
+  minPrice: MinorUnitValue;
+  maxPrice: MinorUnitValue;
   currency: string;
   rating: number;
   soldCount: number;
   stock: number;
-  originalPrice: number | null;
+  originalPrice: MinorUnitValue | null;
   discountPercent: number | null;
   badges: string[];
   shop: {
@@ -152,7 +154,7 @@ export interface BuyerProduct {
     id: string;
     title: string;
     sku: string;
-    price: number;
+    price: MinorUnitValue;
     currency: string;
     stock: number;
     optionValues: Array<{
@@ -202,8 +204,8 @@ export interface BuyerListingMeta {
     q?: string;
     categoryId?: string;
     brandId?: string;
-    minPrice?: number;
-    maxPrice?: number;
+    minPrice?: number | string;
+    maxPrice?: number | string;
     sort?: string;
   };
 }
@@ -224,8 +226,8 @@ export interface BuyerListingFacets {
     active: boolean;
   }>;
   price: {
-    min: number | null;
-    max: number | null;
+    min: MinorUnitValue | null;
+    max: MinorUnitValue | null;
     currency: string;
   };
 }
@@ -967,8 +969,8 @@ function normalizeListingMeta(metaInput: unknown, itemCount: number): BuyerListi
       q: optionalString(query.q) ?? optionalString(query.keyword) ?? undefined,
       categoryId: optionalString(query.categoryId) ?? undefined,
       brandId: optionalString(query.brandId) ?? undefined,
-      minPrice: optionalNumber(query.minPrice) ?? undefined,
-      maxPrice: optionalNumber(query.maxPrice) ?? undefined,
+      minPrice: optionalMoney(query.minPrice) ?? undefined,
+      maxPrice: optionalMoney(query.maxPrice) ?? undefined,
       sort: optionalString(query.sort) ?? undefined,
     },
   };
@@ -1008,8 +1010,8 @@ function normalizeListingFacets(facetsInput: unknown): BuyerListingFacets {
       };
     }),
     price: {
-      min: optionalNumber(price.min),
-      max: optionalNumber(price.max),
+      min: optionalMoney(price.min),
+      max: optionalMoney(price.max),
       currency: readString(price.currency),
     },
   };
@@ -1040,7 +1042,7 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
       id: variantId,
       title: variantTitle,
       sku: readString(variant.sku),
-      price: readNumber(variant.price, readNumber(record.price, 0)),
+      price: minorUnitsText(variant.price ?? record.price),
       currency,
       stock,
       optionValues: normalizeVariantOptionValues(variant.optionValues),
@@ -1048,14 +1050,14 @@ export function normalizePublicProduct(input: PublicProductDetailResponse | unkn
   });
   const firstVariant = variants[0];
   const ratingSummary = toRecord(record.ratingSummary);
-  const variantPrices = variants.map((variant) => variant.price).filter((price) => price > 0);
-  const minPrice = readNumber(record.minPrice, variantPrices.length ? Math.min(...variantPrices) : readNumber(record.price));
-  const maxPrice = readNumber(record.maxPrice, variantPrices.length ? Math.max(...variantPrices) : minPrice);
+  const variantPrices = variants.map((variant) => variant.price).filter((price) => compareMinorUnits(price, 0) > 0).sort(compareMinorUnits);
+  const minPrice = minorUnitsText(record.minPrice ?? variantPrices[0] ?? record.price);
+  const maxPrice = minorUnitsText(record.maxPrice ?? variantPrices.at(-1) ?? minPrice);
   const stock = variants.length ? variants.reduce((total, variant) => total + variant.stock, 0) : readNumber(record.stock);
   const currency = firstVariant?.currency ?? readString(record.currency);
   if (!currency) throw new Error("Product API response is missing currency");
-  const originalPrice = optionalNumber(record.originalPrice) ?? optionalNumber(record.compareAtPrice) ?? optionalNumber(record.listPrice);
-  const discountPercent = optionalNumber(record.discountPercent) ?? calculateDiscountPercent(originalPrice, minPrice);
+  const originalPrice = optionalMoney(record.originalPrice) ?? optionalMoney(record.compareAtPrice) ?? optionalMoney(record.listPrice);
+  const discountPercent = optionalNumber(record.discountPercent) ?? displayDiscountPercent(originalPrice, minPrice);
 
   return {
     id,
@@ -1406,6 +1408,10 @@ function readNumber(value: unknown, fallback = 0): number {
   return fallback;
 }
 
+function optionalMoney(value: unknown): string | null {
+  return value === undefined || value === null ? null : minorUnitsText(value);
+}
+
 function optionalNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "bigint") return Number(value);
@@ -1416,10 +1422,6 @@ function optionalNumber(value: unknown): number | null {
   return null;
 }
 
-function calculateDiscountPercent(originalPrice: number | null, currentPrice: number): number | null {
-  if (!originalPrice || originalPrice <= currentPrice || currentPrice < 1) return null;
-  return Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
-}
 
 function normalizeProductBadges(record: Record<string, unknown>, stock: number, discountPercent: number | null): string[] {
   const rawBadges = readArray(record.badges).map((badge) => readString(badge)).filter(Boolean);

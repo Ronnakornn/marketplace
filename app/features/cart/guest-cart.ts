@@ -1,3 +1,4 @@
+import { minorUnitsText, type MinorUnitValue } from "#/lib/money"
 const KEY = 'marketplace:guest-cart'
 export const GUEST_CART_CHANGED_EVENT = 'marketplace:guest-cart-changed'
 export type GuestCartItem = {
@@ -7,7 +8,7 @@ export type GuestCartItem = {
   title?: string
   variantTitle?: string
   imageUrl?: string | null
-  unitPrice?: number
+  unitPrice?: MinorUnitValue
   currency?: string
 }
 export type GuestCartItemSnapshot = Omit<GuestCartItem, 'variantId' | 'quantity'>
@@ -19,8 +20,8 @@ export function readGuestCart(): GuestCartItem[] {
 export function addGuestCartItem(variantId: string, quantity: number, snapshot?: GuestCartItemSnapshot) {
   const items = readGuestCart(); const existing = items.find((item) => item.variantId === variantId)
   if (existing) { existing.quantity += quantity; Object.assign(existing, snapshot) } else items.push({ variantId, quantity, ...snapshot })
-  window.localStorage.setItem(KEY, JSON.stringify(items))
+  window.localStorage.setItem(KEY, JSON.stringify(items.map((item) => item.unitPrice === undefined ? item : { ...item, unitPrice: minorUnitsText(item.unitPrice) })))
   window.dispatchEvent(new Event(GUEST_CART_CHANGED_EVENT))
 }
-export function writeGuestCart(items: GuestCartItem[]) { if (typeof window !== 'undefined') { window.localStorage.setItem(KEY, JSON.stringify(items)); window.dispatchEvent(new Event(GUEST_CART_CHANGED_EVENT)) } }
+export function writeGuestCart(items: GuestCartItem[]) { if (typeof window !== 'undefined') { window.localStorage.setItem(KEY, JSON.stringify(items.map((item) => item.unitPrice === undefined ? item : { ...item, unitPrice: minorUnitsText(item.unitPrice) }))); window.dispatchEvent(new Event(GUEST_CART_CHANGED_EVENT)) } }
 export function clearGuestCart() { if (typeof window !== 'undefined') { window.localStorage.removeItem(KEY); window.dispatchEvent(new Event(GUEST_CART_CHANGED_EVENT)) } }

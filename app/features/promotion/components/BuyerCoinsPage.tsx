@@ -1,5 +1,7 @@
 "use client";
 
+import { parseMinorUnits } from "#/lib/money";
+
 import { CoinsIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
@@ -28,14 +30,16 @@ export function BuyerCoinsPage() {
             <div className="rounded-2xl bg-slate-50 p-3"><p className="text-slate-500">{t("coins.pending")}</p><p className="mt-1 font-bold text-slate-950">{formatters.number(wallet.pendingBalance)}</p></div>
             <div className="rounded-2xl bg-slate-50 p-3"><p className="text-slate-500">{t("coins.lifetimeEarned")}</p><p className="mt-1 font-bold text-slate-950">{formatters.number(wallet.lifetimeEarned)}</p></div>
           </div>
-          {wallet.debtBalance > 0 ? <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm"><p className="font-bold text-amber-900">{t("coins.debt")}: {formatters.number(wallet.debtBalance)}</p><p className="mt-1 text-amber-800">{t("coins.debtDescription")}</p></div> : null}
+          {parseMinorUnits(wallet.debtBalance) > 0n ? <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm"><p className="font-bold text-amber-900">{t("coins.debt")}: {formatters.number(wallet.debtBalance)}</p><p className="mt-1 text-amber-800">{t("coins.debtDescription")}</p></div> : null}
         </section>
         <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-bold text-slate-950">{t("coins.history")}</h2>
           {!entries.length ? <BuyerEmptyState title={t("coins.emptyTitle")} description={t("coins.emptyDescription")} /> : null}
           <div className="mt-3 divide-y divide-slate-100">{entries.map((entry) => {
-            const isDebit = entry.type === "SPENT" || entry.type === "EXPIRED" || (entry.type === "ADJUSTMENT" && entry.amount < 0);
-            const displayAmount = isDebit ? -Math.abs(entry.amount) : Math.abs(entry.amount);
+            const isDebit = entry.type === "SPENT" || entry.type === "EXPIRED" || (entry.type === "ADJUSTMENT" && parseMinorUnits(entry.amount) < 0n);
+            const original = parseMinorUnits(entry.amount);
+            const absolute = original < 0n ? -original : original;
+            const displayAmount = isDebit ? -absolute : absolute;
             return <article key={entry.id} className="flex items-start justify-between gap-3 py-3">
             <div><p className="font-semibold text-slate-950">{t(`coins.types.${entry.type}`)}</p><p className="mt-1 text-xs text-slate-500">{entry.reason ?? formatters.date(entry.createdAt)}</p></div>
             <div className="text-right"><p className={displayAmount < 0 ? "font-bold text-red-600" : "font-bold text-emerald-700"}>{displayAmount > 0 ? "+" : ""}{formatters.number(displayAmount)}</p><p className="text-xs text-slate-500">{t(`coins.statuses.${entry.status}`)}</p></div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { compareMinorUnits } from "#/lib/money";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,7 +36,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
   const hasHydrated = useHasHydrated();
   const hydratedSession = hasHydrated ? session : null;
   const image = resolveUploadedImageUrl(product.images[0]);
-  const hasPriceRange = product.maxPrice > product.minPrice;
+  const hasPriceRange = compareMinorUnits(product.maxPrice, product.minPrice) > 0;
   const purchasableVariants = product.variants.filter((variant) => variant.stock > 0);
   const quickAddVariant =
     product.options.length === 0 && purchasableVariants.length === 1 && purchasableVariants[0]?.optionValues.length === 0
@@ -181,7 +183,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
         <div className="flex min-h-12 items-end justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="truncate text-base font-bold text-orange-700" title={priceLabel}>{priceLabel}</p>
-            {product.originalPrice && product.originalPrice > product.minPrice ? (
+            {product.originalPrice && compareMinorUnits(product.originalPrice, product.minPrice) > 0 ? (
               <p className="truncate text-xs text-slate-600 line-through" title={formatMoney(product.originalPrice, product.currency)}>
                 {formatMoney(product.originalPrice, product.currency)}
               </p>

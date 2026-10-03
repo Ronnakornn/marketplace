@@ -296,7 +296,7 @@ describe("SellerDashboardPage", () => {
     fireEvent.submit(input.closest("form")!);
 
     expect(updateSettingsMutation.mutate).toHaveBeenCalledWith(
-      { shopId: "shop-1", shippingFeeBaht: 89.5 },
+      { shopId: "shop-1", shippingFeeBaht: "89.50" },
       expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
     );
   });

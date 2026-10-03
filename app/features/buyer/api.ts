@@ -1,5 +1,7 @@
 "use client";
 
+import { formatMinorCurrency, minorUnitsText, type MinorUnitValue } from "#/lib/money";
+
 import { defaultCurrency } from "#/i18n/config";
 import { ApiClientError, requestApi } from "#/lib/api-client";
 import { api } from "#/lib/eden";
@@ -20,12 +22,12 @@ export interface BuyerCart {
       productStatus?: string;
       availableQuantity?: number;
       quantity: number;
-      unitPrice: number;
+      unitPrice: MinorUnitValue;
       currency: string;
     }>;
-    subtotal: number;
+    subtotal: MinorUnitValue;
   }>;
-  subtotal: number;
+  subtotal: MinorUnitValue;
   currency: string;
 }
 
@@ -34,7 +36,7 @@ export interface BuyerOrder {
   orderNo: string;
   status: string;
   paymentStatus: string;
-  totalCents: number;
+  totalCents: MinorUnitValue;
   currency: string;
   createdAt: string;
   items: Array<{
@@ -43,7 +45,7 @@ export interface BuyerOrder {
     productTitle: string;
     variantTitle: string;
     quantity: number;
-    lineTotal: number;
+    lineTotal: MinorUnitValue;
     shopName: string;
     fulfillmentStatus: string;
   }>;
@@ -77,10 +79,10 @@ export interface BuyerCoupon {
   title: string;
   description: string | null;
   discountType: string;
-  discountValueCents: number | null;
+  discountValueCents: MinorUnitValue | null;
   discountPercentBps: number | null;
-  minOrderCents: number | null;
-  maxDiscountCents: number | null;
+  minOrderCents: MinorUnitValue | null;
+  maxDiscountCents: MinorUnitValue | null;
   endsAt: string | null;
   claimed: boolean;
   claimedAt: string | null;
@@ -131,7 +133,7 @@ export interface BuyerFavoriteProduct {
   id: string;
   productId: string;
   title: string;
-  price: number;
+  price: MinorUnitValue;
   currency: string;
   status: string;
   imageUrls: string[];
@@ -141,7 +143,7 @@ export interface BuyerFavoriteProduct {
     title: string;
     stock: number;
     currency: string;
-    price: number;
+    price: MinorUnitValue;
   } | null;
   createdAt: string;
 }
@@ -153,7 +155,7 @@ export interface BuyerFollowedShop {
   slug: string;
   followerCount: number;
   productCount: number;
-  products: Array<{ id: string; title: string; price: number; currency: string }>;
+  products: Array<{ id: string; title: string; price: MinorUnitValue; currency: string }>;
   createdAt: string;
 }
 
@@ -201,10 +203,10 @@ export async function fetchCoupons(locale?: string): Promise<BuyerCoupon[]> {
       title: readString(record.title, readString(record.code, "Deal")),
       description: optionalString(record.description),
       discountType: readString(record.discountType, "fixed"),
-      discountValueCents: optionalNumber(record.discountValueCents),
+      discountValueCents: optionalMoney(record.discountValueCents),
       discountPercentBps: optionalNumber(record.discountPercentBps),
-      minOrderCents: optionalNumber(record.minOrderCents),
-      maxDiscountCents: optionalNumber(record.maxDiscountCents),
+      minOrderCents: optionalMoney(record.minOrderCents),
+      maxDiscountCents: optionalMoney(record.maxDiscountCents),
       endsAt: optionalString(record.endsAt),
       claimed: Boolean(record.claimed),
       claimedAt: optionalString(record.claimedAt),
@@ -221,10 +223,10 @@ export async function claimCoupon(couponId: string, locale?: string): Promise<Bu
     title: readString(record.title, readString(record.code)),
     description: optionalString(record.description),
     discountType: readString(record.discountType),
-    discountValueCents: optionalNumber(record.discountValueCents),
+    discountValueCents: optionalMoney(record.discountValueCents),
     discountPercentBps: optionalNumber(record.discountPercentBps),
-    minOrderCents: optionalNumber(record.minOrderCents),
-    maxDiscountCents: optionalNumber(record.maxDiscountCents),
+    minOrderCents: optionalMoney(record.minOrderCents),
+    maxDiscountCents: optionalMoney(record.maxDiscountCents),
     endsAt: optionalString(record.endsAt),
     claimed: Boolean(record.claimed),
     claimedAt: optionalString(record.claimedAt),
@@ -243,7 +245,7 @@ export async function fetchFavoriteProducts(): Promise<BuyerFavoriteProduct[]> {
       id: readString(record.id),
       productId: readString(record.productId),
       title: readString(record.title, "Product"),
-      price: readNumber(record.price),
+      price: minorUnitsText(record.price),
       currency: readString(record.currency, defaultCurrency),
       status: readString(record.status, "ACTIVE"),
       imageUrls: readArray(record.imageUrls).map((image) => readString(image)).filter(Boolean),
@@ -258,7 +260,7 @@ export async function fetchFavoriteProducts(): Promise<BuyerFavoriteProduct[]> {
         title: readString(purchaseVariant.title, "Default"),
         stock: readNumber(purchaseVariant.stock),
         currency: readString(purchaseVariant.currency, readString(record.currency, defaultCurrency)),
-        price: readNumber(purchaseVariant.price, readNumber(record.price)),
+        price: minorUnitsText(purchaseVariant.price ?? record.price),
       } : null,
       createdAt: readString(record.createdAt, new Date().toISOString()),
     };
@@ -295,7 +297,7 @@ export async function fetchFollowedShops(): Promise<BuyerFollowedShop[]> {
         return {
           id: readString(product.id),
           title: readString(product.title, "Product"),
-          price: readNumber(product.price),
+          price: minorUnitsText(product.price),
           currency: readString(product.currency, defaultCurrency),
         };
       }),
@@ -541,7 +543,7 @@ function normalizeCart(input: unknown): BuyerCart {
         productStatus: readString(product.status, readString(variantProduct.status, "ACTIVE")),
         availableQuantity: readNumber(item.availableQuantity, Number.MAX_SAFE_INTEGER),
         quantity: readNumber(item.quantity, 1),
-        unitPrice: readNumber(item.unitPrice, readNumber(variant.price)),
+        unitPrice: minorUnitsText(item.unitPrice ?? variant.price),
         currency: readString(item.currency, readString(variant.currency, defaultCurrency)),
       };
     });
@@ -549,13 +551,13 @@ function normalizeCart(input: unknown): BuyerCart {
       shopId: readString(shop.shopId, readString(shop.id, readString(shopDetail.id))),
       shopName: readString(shop.shopName, readString(shop.name, readString(shopDetail.name, "Shop"))),
       items,
-      subtotal: readNumber(shop.subtotal, items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)),
+      subtotal: minorUnitsText(shop.subtotal),
     };
   });
   return {
     id: optionalString(record.id),
     shops,
-    subtotal: readNumber(record.subtotal, shops.reduce((sum, shop) => sum + shop.subtotal, 0)),
+    subtotal: minorUnitsText(record.subtotal),
     currency: readString(record.currency, shops[0]?.items[0]?.currency ?? defaultCurrency),
   };
 }
@@ -586,7 +588,7 @@ function normalizeOrder(input: unknown): BuyerOrder {
       productTitle: readString(item.productTitle, "Product"),
       variantTitle: readString(item.variantTitle, "Default"),
       quantity: readNumber(item.quantity, 1),
-      lineTotal: readNumber(item.lineTotal),
+      lineTotal: minorUnitsText(item.lineTotal),
       shopName: readString(item.shopName, "Shop"),
       fulfillmentStatus: readString(item.fulfillmentStatus, "pending"),
     };
@@ -615,7 +617,7 @@ function normalizeOrder(input: unknown): BuyerOrder {
     orderNo: readString(record.orderNo, readString(record.orderNumber, "Order")),
     status: readString(record.status, "pending"),
     paymentStatus: readString(record.paymentStatus, "pending"),
-    totalCents: readNumber(record.totalCents, readNumber(record.grandTotal, readNumber(toRecord(record.totals).grandTotal))),
+    totalCents: minorUnitsText(record.totalCents ?? record.grandTotal ?? toRecord(record.totals).grandTotal),
     currency: readString(record.currency, readString(toRecord(record.totals).currency, defaultCurrency)),
     createdAt: readString(record.createdAt, new Date().toISOString()),
     items,
@@ -648,6 +650,10 @@ function optionalString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function optionalMoney(value: unknown): string | null {
+  return value === undefined || value === null ? null : minorUnitsText(value);
+}
+
 function optionalNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
@@ -656,10 +662,6 @@ function readNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-export function formatMoney(cents: number, _currency = defaultCurrency): string {
-  return new Intl.NumberFormat("th-TH", {
-    style: "currency",
-    currency: defaultCurrency,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
+export function formatMoney(cents: MinorUnitValue, _currency = defaultCurrency): string {
+  return formatMinorCurrency(cents, "th-TH", defaultCurrency);
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { compareMinorUnits, type MinorUnitValue } from "#/lib/money";
+
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { ArrowLeftIcon, BoxesIcon, CheckCircle2Icon, ClipboardListIcon, ImageIcon, RotateCcwIcon, ShieldCheckIcon, StoreIcon, XCircleIcon } from "lucide-react";
@@ -95,7 +97,7 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
 
   const moderationProduct = productData as ModerationProduct | undefined;
   const primaryImage = useMemo(() => moderationProduct?.images.find((image) => image.isPrimary) ?? moderationProduct?.images[0] ?? null, [moderationProduct]);
-  const lowestPrice = useMemo(() => moderationProduct ? [...moderationProduct.variants].sort((a, b) => Number(a.price) - Number(b.price))[0] ?? null : null, [moderationProduct]);
+  const lowestPrice = useMemo(() => moderationProduct ? [...moderationProduct.variants].sort((a, b) => compareMinorUnits(a.price, b.price))[0] ?? null : null, [moderationProduct]);
 
   if (isLoading) {
     return (
@@ -138,12 +140,12 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
     { label: t("admin.productModerationDetail.categoryAssigned"), ready: Boolean(product.category), detail: product.category?.name ?? t("admin.productModerationDetail.noCategory") },
     { label: t("admin.productModerationDetail.mediaAvailable"), ready: product.images.length > 0, detail: t("admin.productModerationDetail.imageCount").replace("{count}", String(product.images.length)) },
     { label: t("admin.productModerationDetail.primaryImage"), ready: product.images.some((image) => image.isPrimary), detail: t(product.images.some((image) => image.isPrimary) ? "admin.productModerationDetail.set" : "admin.productModerationDetail.missing") },
-    { label: t("admin.productModerationDetail.activePricedVariant"), ready: product.variants.some((variant) => variant.status === "ACTIVE" && Number(variant.price) > 0), detail: t("admin.productModerationDetail.variantCount").replace("{count}", String(product.variants.length)) },
+    { label: t("admin.productModerationDetail.activePricedVariant"), ready: product.variants.some((variant) => variant.status === "ACTIVE" && compareMinorUnits(variant.price, 0) > 0), detail: t("admin.productModerationDetail.variantCount").replace("{count}", String(product.variants.length)) },
     { label: t("admin.productModerationDetail.availableInventory"), ready: product.variants.some((variant) => (variant.inventory?.quantityOnHand ?? 0) > 0), detail: t("admin.productModerationDetail.onHandCount").replace("{count}", String(totalInventory(product))) },
   ];
   const moderationCase = product.moderationCase ?? null;
   const formatDate = (value: string | Date | null | undefined) => value ? formatters.date(value) : t("admin.productModerationDetail.notAvailable");
-  const formatMoney = (cents: number | bigint, currency: string) => formatters.currency(Number(cents), currency);
+  const formatMoney = (cents: MinorUnitValue, currency: string) => formatters.currency(cents, currency);
 
   return (
     <div className="space-y-6">

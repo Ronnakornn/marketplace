@@ -1,3 +1,4 @@
+import { compareMinorUnits, type MinorUnitValue } from "#/lib/money";
 ﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -289,7 +290,7 @@ function FlashSaleSection({
   isLoading: boolean;
   onAddToCart: (product: MarketplaceProductCard) => void;
   pendingVariantId?: string;
-  formatMoney: (cents: number, currency?: string) => string;
+  formatMoney: (cents: MinorUnitValue, currency?: string) => string;
 }) {
   const t = useTranslations();
   const localePath = useLocalePath();
@@ -394,7 +395,7 @@ function ProductRail(props: {
   loadMoreRef?: React.RefObject<HTMLDivElement | null>;
   onAddToCart: (product: MarketplaceProductCard) => void;
   pendingVariantId?: string;
-  formatMoney: (cents: number, currency?: string) => string;
+  formatMoney: (cents: MinorUnitValue, currency?: string) => string;
   onRetry?: () => void;
   prioritizeFirstImage?: boolean;
 }) {
@@ -456,7 +457,7 @@ function ProductVisual({ product, compact = false }: { product: MarketplaceProdu
         />
       ) : null}
       {imageUrl ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-transparent" /> : null}
-      {product.originalPrice && product.originalPrice > product.price ? <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-700 shadow-sm">{t("home.saleBadge")}</div> : null}
+      {product.originalPrice && compareMinorUnits(product.originalPrice, product.price) > 0 ? <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-bold text-orange-700 shadow-sm">{t("home.saleBadge")}</div> : null}
       <span className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/85 text-slate-900 shadow-sm">
         <HeartIcon className="size-4" />
         <span className="sr-only">{t("product.saveProduct")}</span>

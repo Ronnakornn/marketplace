@@ -1,0 +1,141 @@
+$ vitest run --exclude "**/e2e/**" app "--maxWorkers=2" "--reporter=default" "--reporter=json" "--outputFile=C:/Users/ASUS/AppData/Local/Temp/audit-money-ui-all-final.json"
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-money-ui/marketplace
+
+ ✓ app/features/product/components/ProductBuyerStates.test.tsx (40 tests) 12000ms
+     ✓ renders metadata-driven category, brand, and price filters with unavailable facets disabled  344ms
+     ✓ keeps active chips removable and clear filters preserving the search query  342ms
+     ✓ requires option selection before adding to cart and sends selected quantity  781ms
+     ✓ uses stable pending labels on product detail purchase actions  670ms
+     ✓ shows add-to-cart confirmation and refreshes the buyer cart query after success  659ms
+     ✓ shows a readable add-to-cart error when the mutation fails  529ms
+     ✓ shows sticky purchase context and keeps buy-now on the current cart flow  750ms
+     ✓ does not navigate buy-now when add-to-cart fails  520ms
+     ✓ keeps sticky purchase actions described by visible purchase status  358ms
+     ✓ does not allow quantity above selected variant stock  666ms
+     ✓ clamps quantity when the selected variant changes to lower stock  968ms
+     ✓ shows buyer purchase CTAs to anonymous visitors  312ms
+     ✓ disables product detail purchase actions for non-buyer accounts with a reason  458ms
+     ✓ adds an anonymous buyer selection to the guest cart  473ms
+     ✓ allows selecting standalone variants when no option groups are available  387ms
+     ✓ renders review discovery controls and loads additional review pages  736ms
+     ✓ renders Q&A discovery controls and loads additional question pages  692ms
+     ✓ submits buyer questions with pending and success states  362ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx (33 tests) 12770ms
+     ✓ shows required and optional category specs with inline readiness validation  576ms
+     ✓ renders number, boolean, and multi-select category specs with helper text  382ms
+     ✓ keeps category spec attributes in the save payload while additional specs stay free-form  754ms
+     ✓ prevents adding more than ten images before upload  375ms
+     ✓ validates one product video with visible MIME and size feedback  431ms
+     ✓ shows media upload errors and allows retry without clearing image form state  716ms
+     ✓ keeps exactly one primary image while reordering and removing media  599ms
+     ✓ edits variant stock with fields limited to allowed values  436ms
+     ✓ creates variants  1047ms
+     ✓ saves catalog price decimal text 0.29 as exact minor units  350ms
+     ✓ saves catalog price decimal text 1.15 as exact minor units  362ms
+     ✓ saves catalog price decimal text 1.000 as exact minor units  355ms
+     ✓ saves catalog price decimal text 1e3 as exact minor units  356ms
+     ✓ saves catalog price decimal text 90071992547409.90 as exact minor units  345ms
+     ✓ saves catalog price decimal text 90071992547409.91 as exact minor units  333ms
+     ✓ preserves the maximum safe catalog price when saving without editing its amount  304ms
+     ✓ deletes variants after confirmation  509ms
+     ✓ generates variant rows, applies bulk values, and shows duplicate SKU errors inline  2066ms
+     ✓ limits options to two axes and confirms removal when variants are affected  553ms
+     ✓ blocks publish when variant option combinations are duplicated  319ms
+ ✓ app/features/checkout/components/CheckoutPage.test.tsx (13 tests) 1424ms
+     ✓ submits once for rapid clicks in one batch and allows retry after a network failure  358ms
+ ✓ app/features/catalog/components/AdminCategorySpecsManager.test.tsx (4 tests) 1118ms
+     ✓ renders admin categories, inactive states, and editable mutation controls  357ms
+     ✓ submits category updates and active state changes  303ms
+     ✓ edits specs and deactivates inactive-aware spec rows  413ms
+ ✓ app/features/product/components/ProductCard.test.tsx (17 tests) 832ms
+ ✓ app/features/seller/components/SellerProductAnalyticsPage.test.tsx (6 tests) 796ms
+ ✓ app/features/auth/components/AuthV1Forms.test.tsx (10 tests) 684ms
+stderr | app/features/marketplace/components/MarketplaceHome.test.tsx > MarketplaceHome > renders marketplace sections from the discovery homepage API
+Received `true` for a non-boolean attribute `priority`.
+
+If you want to write it to the DOM, pass a string instead: priority="true" or priority={value.toString()}.
+
+ ✓ app/features/marketplace/components/MarketplaceHome.test.tsx (4 tests) 688ms
+     ✓ renders marketplace sections from the discovery homepage API  444ms
+ ✓ app/features/seller/components/SellerOnboardingPages.test.tsx (5 tests) 644ms
+ ✓ app/features/buyer/components/WishlistPage.test.tsx (6 tests) 624ms
+ ✓ app/features/payment/components/MockPaymentPage.test.tsx (6 tests) 638ms
+ ✓ app/features/buyer/components/PaymentReturnPage.test.tsx (6 tests) 601ms
+ ✓ app/features/admin/components/AdminSellerApplicationsTable.test.tsx (5 tests) 527ms
+ ✓ app/features/seller/components/SellerShell.test.tsx (2 tests) 515ms
+     ✓ preserves selected shopId in seller navigation links  435ms
+ ✓ app/features/auth/components/SocialSignInButtons.test.tsx (6 tests) 518ms
+ ✓ app/features/admin/components/AdminContentModerationQueues.test.tsx (2 tests) 462ms
+ ✓ app/features/buyer/components/ProfilePage.test.tsx (3 tests) 441ms
+ ✓ app/features/seller/components/SellerManagePages.test.tsx (4 tests) 257ms
+ ✓ app/features/auth/components/PhoneAuthPanel.test.tsx (4 tests) 414ms
+ ✓ app/components/BuyerShell.test.tsx (11 tests) 404ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx (9 tests) 403ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx (16 tests) 376ms
+stderr | app/features/cart/components/CartPage.money.test.tsx > cart exact selection total > displays the selected subtotal returned by the server quote
+In HTML, <div> cannot be a descendant of <p>.
+This will cause a hydration error.
+
+  <QueryClientProvider client={{}}>
+    <CartPage>
+      <BuyerTopBar>
+      <div>
+      <div className="fixed inse...">
+        <div className="mx-auto fl...">
+          <div>
+            <p>
+>           <p className="text-lg font-bold text-slate-950">
+              <Skeleton className="h-6 w-24">
+>               <div data-slot="skeleton" className="animate-pulse rounded-md bg-accent h-6 w-24">
+            ...
+          ...
+
+<p> cannot contain a nested <div>.
+See this log for the ancestor stack trace.
+
+ ✓ app/features/cart/components/CartPage.money.test.tsx (2 tests) 335ms
+ ✓ app/features/marketplace/components/MarketplaceGuestHome.test.tsx (2 tests) 294ms
+ ✓ app/features/admin/components/AdminProductsModerationTable.test.tsx (1 test) 293ms
+ ✓ app/features/storefront/StorefrontDetails.test.tsx (5 tests) 328ms
+ ✓ app/components/ui/data-table.test.tsx (3 tests) 300ms
+ ✓ app/features/storefront/StorefrontCatalog.test.tsx (3 tests) 364ms
+ ✓ app/features/chat/components/ChatPages.test.tsx (1 test) 268ms
+ ✓ app/features/auth/components/SignupForm.test.tsx (1 test) 236ms
+ ✓ app/features/auth/components/LoginForm.test.tsx (1 test) 247ms
+ ✓ app/features/cart/components/GuestAddToCartButton.test.tsx (1 test) 155ms
+ ✓ app/features/storefront/StorefrontIdentity.test.tsx (5 tests) 216ms
+ ✓ app/features/cart/components/GuestCartLink.test.tsx (1 test) 138ms
+ ✓ app/features/promotion/components/BuyerCoinsPage.test.tsx (1 test) 45ms
+ ✓ app/lib/frontend-role-contract.test.ts (1 test) 29ms
+ ✓ app/lib/money.test.ts (27 tests) 20ms
+ ✓ app/features/product/queries.test.ts (28 tests) 17ms
+ ✓ app/components/AppChrome.test.tsx (2 tests) 24ms
+ ✓ app/lib/query-client.test.ts (3 tests) 20ms
+ ✓ app/features/tracking/tracking.test.ts (5 tests) 14ms
+ ✓ app/lib/seo.test.ts (13 tests) 13ms
+ ✓ app/features/seller/upload-helper.test.ts (2 tests) 11ms
+ ✓ app/lib/push-notifications.test.ts (3 tests) 10ms
+ ✓ app/lib/api-client.test.ts (2 tests) 9ms
+ ✓ app/lib/input-decimal.test.ts (31 tests) 6ms
+ ✓ app/features/buyer/api.test.ts (3 tests) 6ms
+ ✓ app/features/marketplace/queries.test.ts (2 tests) 5ms
+ ✓ app/features/buyer/upload-helper.test.ts (2 tests) 7ms
+ ✓ app/features/payment/api.test.ts (3 tests) 5ms
+ ✓ app/features/buyer/checkout-api.test.ts (2 tests) 4ms
+ ✓ app/features/product/cart-handoff.test.ts (4 tests) 6ms
+ ✓ app/lib/seller-access.test.ts (6 tests) 4ms
+ ✓ app/lib/assets.test.ts (4 tests) 5ms
+ ✓ app/features/order/order-status.test.ts (2 tests) 4ms
+ ✓ app/manifest.test.ts (1 test) 4ms
+ ✓ app/features/auth/redirect.test.ts (3 tests) 4ms
+ ✓ app/robots.test.ts (1 test) 5ms
+ ✓ app/[locale]/layout.test.tsx (1 test) 5ms
+ ✓ app/layout.test.tsx (1 test) 4ms
+
+ Test Files  60 passed (60)
+      Tests  391 passed (391)
+   Start at  05:11:11
+   Duration  46.06s (transform 1.95s, setup 0ms, import 15.00s, tests 40.59s, environment 27.69s)
+
+JSON report written to C:/Users/ASUS/AppData/Local/Temp/audit-money-ui-all-final.json
