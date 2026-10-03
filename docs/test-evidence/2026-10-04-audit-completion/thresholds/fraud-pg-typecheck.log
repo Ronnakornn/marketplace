@@ -1,0 +1,61 @@
+app/features/admin/components/AdminSettlementRefundActions.test.tsx(27,47): error TS2322: Type 'bigint' is not assignable to type 'string'.
+app/features/admin/components/AdminSettlementRefundActions.test.tsx(29,77): error TS2322: Type 'bigint' is not assignable to type 'string'.
+app/features/admin/components/AdminSettlementRefundActions.test.tsx(66,63): error TS2322: Type 'bigint' is not assignable to type 'string'.
+app/features/admin/components/AdminSettlementRefundActions.test.tsx(66,158): error TS2322: Type 'bigint' is not assignable to type 'string'.
+app/features/admin/components/AdminSettlementRefundActions.test.tsx(88,60): error TS2322: Type 'bigint' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(201,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(204,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(205,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(206,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(207,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(208,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(286,48): error TS2345: Argument of type '{ coinsApplied: number; items: { id: string; shopId: string; unitPrice: number; lineTotal: number; }[]; shops: { shopId: string; subtotal: number; }[]; subtotal: number; discountTotal: number; shippingTotal: number; taxTotal: number; grandTotal: number; currency: string; coupon: null; }' is not assignable to parameter of type '{ subtotal: string; discountTotal: string; shippingTotal: string; taxTotal: string; grandTotal: string; currency: string; shops: { shopId: string; subtotal: string; }[]; coupon: { code: string; applied: true; } | { ...; } | null; items: { ...; }[]; coinsApplied: number; }'.
+  Types of property 'subtotal' are incompatible.
+    Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(307,20): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(307,36): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(307,54): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(307,74): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(307,87): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(314,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(314,23): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(314,41): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(314,61): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(314,74): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(363,69): error TS2322: Type 'Promise<{ coinsApplied: number; items: { id: string; shopId: string; unitPrice: number; lineTotal: number; }[]; shops: { shopId: string; subtotal: number; }[]; subtotal: number; discountTotal: number; shippingTotal: number; taxTotal: number; grandTotal: number; currency: string; coupon: { ...; } | null; }>' is not assignable to type 'Promise<{ subtotal: string; discountTotal: string; shippingTotal: string; taxTotal: string; grandTotal: string; currency: string; shops: { shopId: string; subtotal: string; }[]; coupon: { code: string; applied: true; } | { ...; } | null; items: { ...; }[]; coinsApplied: number; }>'.
+  Type '{ coinsApplied: number; items: { id: string; shopId: string; unitPrice: number; lineTotal: number; }[]; shops: { shopId: string; subtotal: number; }[]; subtotal: number; discountTotal: number; shippingTotal: number; taxTotal: number; grandTotal: number; currency: string; coupon: { ...; } | null; }' is not assignable to type '{ subtotal: string; discountTotal: string; shippingTotal: string; taxTotal: string; grandTotal: string; currency: string; shops: { shopId: string; subtotal: string; }[]; coupon: { code: string; applied: true; } | { ...; } | null; items: { ...; }[]; coinsApplied: number; }'.
+    Types of property 'subtotal' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(395,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(396,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(397,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(398,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(399,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(414,69): error TS2322: Type 'Promise<{ coinsApplied: number; items: { id: string; shopId: string; unitPrice: number; lineTotal: number; }[]; shops: { shopId: string; subtotal: number; }[]; subtotal: number; discountTotal: number; shippingTotal: number; taxTotal: number; grandTotal: number; currency: string; coupon: null; }>' is not assignable to type 'Promise<{ subtotal: string; discountTotal: string; shippingTotal: string; taxTotal: string; grandTotal: string; currency: string; shops: { shopId: string; subtotal: string; }[]; coupon: { code: string; applied: true; } | { ...; } | null; items: { ...; }[]; coinsApplied: number; }>'.
+  Type '{ coinsApplied: number; items: { id: string; shopId: string; unitPrice: number; lineTotal: number; }[]; shops: { shopId: string; subtotal: number; }[]; subtotal: number; discountTotal: number; shippingTotal: number; taxTotal: number; grandTotal: number; currency: string; coupon: null; }' is not assignable to type '{ subtotal: string; discountTotal: string; shippingTotal: string; taxTotal: string; grandTotal: string; currency: string; shops: { shopId: string; subtotal: string; }[]; coupon: { code: string; applied: true; } | { ...; } | null; items: { ...; }[]; coinsApplied: number; }'.
+    Types of property 'subtotal' are incompatible.
+      Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(437,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(438,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(439,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(440,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.test.tsx(441,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/checkout/components/CheckoutPage.tsx(266,37): error TS2365: Operator '>' cannot be applied to types 'string' and 'number'.
+app/features/marketplace/queries.test.ts(6,43): error TS2352: Conversion of type '{ sections: { flashSale: { id: string; title: string; description: null; startsAt: Date; endsAt: Date; items: { id: string; salePrice: number; originalPrice: number; stockLimit: number; soldCount: number; ... 4 more ...; variant: { ...; }; }[]; }; categories: never[]; recommendedProducts: never[]; newArrivals: never...' to type '{ sections: { banners?: { id: string; placement: MarketingPlacement; title: string; subtitle: string | null; imageUrl: string | null; mobileImageUrl: string | null; targetUrl: string | null; sortOrder: number; }[] | undefined; ... 6 more ...; promotions?: { ...; }[] | undefined; }; meta: { ...; }; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The types of 'sections.flashSale.items' are incompatible between these types.
+    Type '{ id: string; salePrice: number; originalPrice: number; stockLimit: number; soldCount: number; availableStock: number; rating: number; perUserLimit: number; product: { id: string; title: string; slug: string; coverImage: null; shop: { ...; }; }; variant: { ...; }; }[]' is not comparable to type '{ id: string; salePrice: string; originalPrice: string; stockLimit: number; soldCount: number; availableStock: number; rating: number; perUserLimit: number | null; product: { id: string; title: string; slug: string; coverImage: string | null; shop: { ...; }; }; variant: { ...; }; }[]'.
+      Type '{ id: string; salePrice: number; originalPrice: number; stockLimit: number; soldCount: number; availableStock: number; rating: number; perUserLimit: number; product: { id: string; title: string; slug: string; coverImage: null; shop: { ...; }; }; variant: { ...; }; }' is not comparable to type '{ id: string; salePrice: string; originalPrice: string; stockLimit: number; soldCount: number; availableStock: number; rating: number; perUserLimit: number | null; product: { id: string; title: string; slug: string; coverImage: string | null; shop: { ...; }; }; variant: { ...; }; }'.
+        Types of property 'salePrice' are incompatible.
+          Type 'number' is not comparable to type 'string'.
+app/features/payment/components/MockPaymentPage.test.tsx(79,56): error TS2345: Argument of type '{ readonly id: "14141414-1414-4141-8141-141414141414"; readonly orderId: "13131313-1313-4131-8131-131313131313"; readonly orderNo: "ORD-TEST"; readonly amountCents: 2900; readonly currency: "THB"; readonly status: "PENDING"; }' is not assignable to parameter of type '{ id: string; status: "PENDING" | "CANCELED" | "REFUNDED" | "REQUIRES_ACTION" | "SUCCEEDED" | "FAILED"; orderId: string; currency: string; orderNo: string; amountCents: string; }'.
+  Types of property 'amountCents' are incompatible.
+    Type 'number' is not assignable to type 'string'.
+app/features/payment/components/MockPaymentPage.test.tsx(105,58): error TS2345: Argument of type '{ status: "CANCELED" | "REFUNDED" | "SUCCEEDED" | "FAILED"; id: "14141414-1414-4141-8141-141414141414"; orderId: "13131313-1313-4131-8131-131313131313"; orderNo: "ORD-TEST"; amountCents: 2900; currency: "THB"; }' is not assignable to parameter of type '{ id: string; status: "PENDING" | "CANCELED" | "REFUNDED" | "REQUIRES_ACTION" | "SUCCEEDED" | "FAILED"; orderId: string; currency: string; orderNo: string; amountCents: string; }'.
+  Types of property 'amountCents' are incompatible.
+    Type 'number' is not assignable to type 'string'.
+app/features/seller/components/SellerPromotionsPage.numeric.test.tsx(65,20): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/seller/components/SellerPromotionsPage.numeric.test.tsx(65,50): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/seller/components/SellerPromotionsPage.numeric.test.tsx(73,20): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/seller/components/SellerPromotionsPage.numeric.test.tsx(73,50): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/tracking/tracking.test.ts(46,7): error TS2322: Type 'number' is not assignable to type 'string'.
+app/features/tracking/tracking.test.ts(88,7): error TS2322: Type 'number' is not assignable to type 'string'.
