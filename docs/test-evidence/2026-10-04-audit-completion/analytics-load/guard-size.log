@@ -1,0 +1,12 @@
+21 |   throw new Error('Require ANALYTICS_LOAD_ALLOW_LOCAL=true and an explicit local marketplace_test_* database port')
+22 | }
+23 | 
+24 | const sizes = (process.env['ANALYTICS_LOAD_SIZES'] ?? '501,5000,20000').split(',').map(Number)
+25 | if (!sizes.length || sizes.some((size) => ![501, 5000, 20000].includes(size)) || new Set(sizes).size !== sizes.length) {
+26 |   throw new Error('Dataset sizes must be distinct members of 501,5000,20000')
+                 ^
+error: Dataset sizes must be distinct members of 501,5000,20000
+      at C:\Users\ASUS\.codex\worktrees\audit-inventory\marketplace\scripts\analytics-load-test.ts:26:13
+
+Bun v1.3.14 (Windows x64)
+expected_rejection_exit=1

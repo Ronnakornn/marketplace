@@ -1,0 +1,12 @@
+16 | if (process.env['ANALYTICS_LOAD_ALLOW_LOCAL'] !== 'true'
+17 |   || !['127.0.0.1', 'localhost'].includes(database.hostname)
+18 |   || !['postgres:', 'postgresql:'].includes(database.protocol)
+19 |   || !/^\/marketplace_test_/.test(database.pathname)
+20 |   || !database.port || database.search || database.hash) {
+21 |   throw new Error('Require ANALYTICS_LOAD_ALLOW_LOCAL=true and an explicit local marketplace_test_* database port')
+                 ^
+error: Require ANALYTICS_LOAD_ALLOW_LOCAL=true and an explicit local marketplace_test_* database port
+      at C:\Users\ASUS\.codex\worktrees\audit-inventory\marketplace\scripts\analytics-load-test.ts:21:13
+
+Bun v1.3.14 (Windows x64)
+expected_rejection_exit=1
