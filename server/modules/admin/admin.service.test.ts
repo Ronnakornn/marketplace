@@ -5,6 +5,9 @@ import { AdminServiceError } from './admin.errors.ts'
 import type { AdminDashboardCounts, AdminRefundRecord, IAdminRepository } from './admin.repository.ts'
 import { AdminService } from './admin.service.ts'
 import type { IRefundRepository } from '#server/modules/refund/refund.repository.ts'
+import type { WalletService } from '#server/modules/wallet/wallet.service.ts'
+import type { AuditLogService } from '#server/modules/audit-log'
+import type { EventPublisherService } from '#server/modules/event-bus'
 
 function createLogger() {
   return {
@@ -73,7 +76,7 @@ function createRepoMock(): IAdminRepository {
 }
 
 function createRefundRepoMock(): IRefundRepository {
-  return { listRefunds: vi.fn(), findRefundById: vi.fn(), completeRefundSuccess: vi.fn() }
+  return { listRefunds: vi.fn(), findRefundById: vi.fn(), completeRefundSuccess: vi.fn(), prepareRefundPlan: vi.fn(), createPlannedRefund: vi.fn() }
 }
 
 function actor(role: Role = 'ADMIN') {
@@ -514,6 +517,42 @@ describe('AdminService', () => {
     await expect(service.getRefund(actor(), 'refund-1')).resolves.toMatchObject({ id: 'refund-1' })
   })
 
+  it('rejects buyer creation and revision of financial allocation plans', async () => {
+    const intent = { items: [{ orderItemId: 'item-1', quantity: 1 }], shipping: [] }
+    await expect(service.createSettlementRefund(actor('USER'), 'order-1', intent)).rejects.toMatchObject({ status: 403 })
+    await expect(service.prepareSettlementRefund(actor('USER'), 'refund-1', intent)).rejects.toMatchObject({ status: 403 })
+    expect(refundRepo.createPlannedRefund).not.toHaveBeenCalled()
+    expect(refundRepo.prepareRefundPlan).not.toHaveBeenCalled()
+  })
+
+  it('returns the revised server cash amount while leaving the refund pending for review', async () => {
+    const intent = { items: [{ orderItemId: 'item-1', quantity: 1 }], shipping: [{ shopOrderId: 'shop-order-1', cause: 'SELLER_FAULT' as const }] }
+    vi.mocked(repo.findRefundById).mockResolvedValueOnce(refund()).mockResolvedValueOnce({ ...refund(), amount: 1400n })
+    await expect(service.prepareSettlementRefund(actor(), 'refund-1', intent)).resolves.toMatchObject({ status: 'PENDING', amount: 1400n })
+    expect(refundRepo.prepareRefundPlan).toHaveBeenCalledWith('refund-1', intent)
+    expect(repo.updateRefundStatus).not.toHaveBeenCalled()
+    expect(refundRepo.completeRefundSuccess).not.toHaveBeenCalled()
+  })
+
+  it('prevents processing a new-policy cash refund without its approved scope', async () => {
+    const record = refund()
+    vi.mocked(repo.findRefundById).mockResolvedValue({ ...record,
+      order: { ...record.order, shopOrders: [{ id: 'shop-order-1', shopId: 'shop-1', saleSnapshot: { policyVersion: 1 } }] },
+      itemAllocations: [], shopAllocations: [],
+    })
+    await expect(service.updateRefundStatus(actor(), 'refund-1', { status: 'PROCESSING' })).rejects.toMatchObject({ status: 409 })
+    expect(repo.updateRefundStatus).not.toHaveBeenCalled()
+  })
+
+  it('rejects changing scope at success or after cash processing starts', async () => {
+    const intent = { items: [{ orderItemId: 'item-1', quantity: 1 }], shipping: [] }
+    vi.mocked(repo.findRefundById).mockResolvedValue(refund('PROCESSING'))
+    await expect(service.updateRefundStatus(actor(), 'refund-1', { status: 'SUCCESS', settlementPlan: intent, externalReference: 'REF-1' })).rejects.toMatchObject({ status: 409 })
+    await expect(service.updateRefundStatus(actor(), 'refund-1', { status: 'PROCESSING', settlementPlan: intent })).rejects.toMatchObject({ status: 409 })
+    expect(refundRepo.prepareRefundPlan).not.toHaveBeenCalled()
+    expect(refundRepo.completeRefundSuccess).not.toHaveBeenCalled()
+  })
+
   it('updates refund status and rejects invalid status/transition', async () => {
     vi.mocked(repo.findRefundById).mockResolvedValueOnce(refund('PENDING'))
     vi.mocked(repo.updateRefundStatus).mockResolvedValue(refund('PROCESSING'))
@@ -555,6 +594,29 @@ describe('AdminService', () => {
     vi.mocked(repo.updateRefundStatus).mockResolvedValueOnce({ ...refund('PROCESSING'), processingById: 'admin-1' })
     await service.updateRefundStatus(actor(), 'refund-1', { status: 'PROCESSING' })
     expect(repo.updateRefundStatus).toHaveBeenCalledWith('refund-1', 'PROCESSING', expect.objectContaining({ processingById: 'admin-1' }))
+  })
+
+  it('records completion before a failed earning hook and recovers earnings on success replay', async () => {
+    const effects: string[] = []
+    const audit = { createAuditLogBestEffort: vi.fn(async () => { effects.push('audit') }) }
+    const events = { publish: vi.fn(async () => { effects.push('notification') }) }
+    const wallet = { createEarningsForCompletedOrder: vi.fn()
+      .mockImplementationOnce(async () => { throw new Error('Temporary earning failure') })
+      .mockImplementationOnce(async () => { effects.push('earning') }) }
+    const record = { ...refund('PROCESSING'), processingById: 'admin-2', order: {
+      ...refund().order, shopOrders: [{ id: 'shop-order-1', shopId: 'shop-1', saleSnapshot: { policyVersion: 1 } }],
+    } }
+    const completed = { ...record, status: 'SUCCESS' as const, completedById: 'admin-1', externalReference: 'REF-1' }
+    vi.mocked(repo.findRefundById).mockResolvedValueOnce(record).mockResolvedValue(completed)
+    vi.mocked(refundRepo.completeRefundSuccess).mockResolvedValue({} as never)
+    const recovering = new AdminService(createAppContext(), repo, audit as unknown as AuditLogService,
+      refundRepo, events as unknown as EventPublisherService, wallet as unknown as WalletService)
+    await expect(recovering.updateRefundStatus(actor(), 'refund-1', { status: 'SUCCESS', externalReference: 'REF-1' }))
+      .rejects.toThrow('Temporary earning failure')
+    expect(effects).toEqual(['audit', 'notification'])
+    await expect(recovering.updateRefundStatus(actor(), 'refund-1', { status: 'SUCCESS', externalReference: 'REF-1' }))
+      .resolves.toMatchObject({ status: 'SUCCESS', externalReference: 'REF-1' })
+    expect(effects).toEqual(['audit', 'notification', 'earning'])
   })
 
   it('lists and updates return escalations', async () => {

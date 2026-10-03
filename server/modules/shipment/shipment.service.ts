@@ -309,8 +309,10 @@ export class ShipmentService {
     return shipment.items.map((item) => item.orderItemId)
   }
 
-  private orderFulfillmentStatus(shipment: SellerShipment): 'DELIVERED' | 'SHIPPED' | 'PARTIALLY_FULFILLED' {
-    const statuses = shipment.order.shipments.map((sibling) => sibling.id === shipment.id ? shipment.status : sibling.status)
+  private orderFulfillmentStatus(shipment: SellerShipment): 'DELIVERED' | 'SHIPPED' | 'PARTIALLY_FULFILLED' | 'CANCELED' {
+    const allStatuses = shipment.order.shipments.map((sibling) => sibling.id === shipment.id ? shipment.status : sibling.status)
+    if (allStatuses.length > 0 && allStatuses.every((status) => status === 'CANCELED')) return 'CANCELED'
+    const statuses = allStatuses.filter((status) => status !== 'CANCELED')
     if (statuses.length > 0 && statuses.every((status) => status === 'DELIVERED')) return 'DELIVERED'
     if (statuses.length > 0 && statuses.every((status) => status === 'SHIPPED' || status === 'DELIVERED')) return 'SHIPPED'
     return 'PARTIALLY_FULFILLED'

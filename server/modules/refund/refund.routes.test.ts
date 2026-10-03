@@ -11,7 +11,7 @@ const id = '88888888-8888-4888-8888-888888888888'
 function setup(processingById = 'admin-2') {
   const user = { id: 'admin-1', role: 'ADMIN', status: 'ACTIVE', emailVerified: true }
   vi.mocked(getAuthContext).mockResolvedValue({ user } as any)
-  const refund = { id, status: 'PROCESSING', processingById }
+  const refund = { id, orderId: 'order-1', order: { shopOrders: [] }, status: 'PROCESSING', processingById }
   const repository = { findRefundById: vi.fn(async () => refund), updateRefundStatus: vi.fn() }
   const refundRepository = { completeRefundSuccess: vi.fn(async () => ({ ...refund, status: 'SUCCESS' })) }
   const adminService = new AdminService({ logger: { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }, config: { environment: 'test' } }, repository as any, undefined, refundRepository as any)

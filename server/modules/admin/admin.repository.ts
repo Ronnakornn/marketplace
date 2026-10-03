@@ -14,6 +14,10 @@ import type {
   SystemSetting,
   User,
   Brand,
+  ShopOrder,
+  ShopSaleSnapshot,
+  RefundItemAllocation,
+  RefundShopAllocation,
 } from '#generated/client/client.ts'
 import type {
   AffiliateCommissionStatus,
@@ -107,10 +111,17 @@ export type AdminOrderRecord = Order & {
   payments: Payment[]
   shipments: Shipment[]
   refunds: Array<Pick<Refund, 'id' | 'status' | 'amount' | 'reason' | 'createdAt'>>
+  shopOrders?: Array<Pick<ShopOrder, 'id' | 'shopId'> & { saleSnapshot: Pick<ShopSaleSnapshot, 'policyVersion'> | null }>
 }
 export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 'status' | 'amount' | 'reason' | 'processingById' | 'completedById' | 'externalReference' | 'processingAt' | 'completedAt' | 'createdAt'> & {
-  order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId' | 'grandTotal'>
+  order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId' | 'grandTotal'> & {
+    shopOrders?: Array<Pick<ShopOrder, 'id' | 'shopId'> & { saleSnapshot: Pick<ShopSaleSnapshot, 'policyVersion'> | null }>
+  }
   payment: Pick<Payment, 'id' | 'provider' | 'status' | 'amount' | 'currency'>
+  itemAllocations?: Array<Pick<RefundItemAllocation, 'orderItemId' | 'quantity'> & {
+    itemSale?: { orderItem: Pick<OrderItem, 'shopId'> & { variant: Pick<ProductVariant, 'productId'> } }
+  }>
+  shopAllocations?: Array<Pick<RefundShopAllocation, 'shopOrderId' | 'shippingCause' | 'buyerShippingRefund'>>
 }
 export type AdminReturnRecord = ReturnRequest & {
   order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId' | 'currency'>
@@ -283,6 +294,7 @@ const productInclude = {
 } as const
 
 const orderInclude = {
+  shopOrders: { select: { id: true, shopId: true, saleSnapshot: { select: { policyVersion: true } } } },
   items: { orderBy: { id: 'asc' } },
   payments: { orderBy: { createdAt: 'desc' } },
   shipments: { orderBy: { createdAt: 'asc' } },
@@ -299,6 +311,8 @@ const orderInclude = {
 } as const
 
 const refundInclude = {
+  itemAllocations: { select: { orderItemId: true, quantity: true, itemSale: { select: { orderItem: { select: { shopId: true, variant: { select: { productId: true } } } } } } } },
+  shopAllocations: { select: { shopOrderId: true, shippingCause: true, buyerShippingRefund: true } },
   id: true,
   orderId: true,
   paymentId: true,
@@ -319,6 +333,7 @@ const refundInclude = {
       paymentStatus: true,
       userId: true,
       grandTotal: true,
+      shopOrders: { select: { id: true, shopId: true, saleSnapshot: { select: { policyVersion: true } } } },
     },
   },
   payment: {

@@ -248,6 +248,7 @@ export class PrismaProductAnalyticsRepository implements IProductAnalyticsReposi
     return this.prisma.orderItem.findMany({
       where: {
         shopId: { in: shopIds },
+        fulfillmentStatus: { not: 'CANCELED' },
         order: {
           paymentStatus: 'SUCCEEDED',
           status: { in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'PARTIALLY_FULFILLED', 'FULFILLED'] },

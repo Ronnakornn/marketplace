@@ -6,6 +6,7 @@ import type {
   ShipmentOrderForCreation,
 } from './shipment.repository.ts'
 import { ShipmentService } from './shipment.service.ts'
+import type { WalletService } from '#server/modules/wallet/wallet.service.ts'
 
 function createLogger() {
   return {
@@ -415,6 +416,7 @@ describe('ShipmentService', () => {
     ['PACKED', 'PARTIALLY_FULFILLED'],
     ['SHIPPED', 'SHIPPED'],
     ['DELIVERED', 'SHIPPED'],
+    ['CANCELED', 'SHIPPED'],
   ] as const)('shipping one shop with sibling %s gives aggregate order %s', async (siblingStatus, orderStatus) => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
     vi.mocked(repo.findSellerShipmentById).mockResolvedValue(createSellerShipment({ status: 'PACKED' }))
@@ -438,6 +440,22 @@ describe('ShipmentService', () => {
 
     expect(repo.updateOrderStatus).toHaveBeenCalledWith('order-1', 'PARTIALLY_FULFILLED')
     expect(vi.mocked(repo.lockShipmentOrder).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(repo.findShipmentById).mock.invocationCallOrder[0]!)
+  })
+
+  it('completes the active shop and requests earnings when the other shop shipment was canceled', async () => {
+    const earnings = { createEarningsForCompletedOrder: vi.fn(async () => undefined) }
+    service = new ShipmentService(createAppContext(), repo, earnings as unknown as WalletService)
+    vi.mocked(repo.findShipmentById).mockResolvedValue(createSellerShipment({ status: 'SHIPPED' }))
+    const updated: SellerShipment = createSellerShipment({ status: 'DELIVERED' })
+    updated.order.shipments.push({ ...updated.order.shipments[0], id: 'shipment-2', shopId: 'shop-2', status: 'CANCELED' })
+    vi.mocked(repo.updateShipmentDelivered).mockResolvedValue(updated)
+
+    await expect(service.deliverAdminShipment({ id: 'admin-1', role: 'ADMIN' }, 'shipment-1', { evidenceReference: 'CARRIER-DELIVERED' }))
+      .resolves.toMatchObject({ status: 'delivered', orderId: 'order-1', shopId: 'shop-1' })
+
+    expect(repo.updateOrderStatus).toHaveBeenCalledWith('order-1', 'DELIVERED')
+    expect(repo.updateOrderItemsStatus).toHaveBeenCalledWith(['item-1'], 'DELIVERED')
+    expect(earnings.createEarningsForCompletedOrder).toHaveBeenCalledWith('order-1')
   })
 
   it('lets admin confirm carrier delivery and only marks order delivered when all shipments are delivered', async () => {

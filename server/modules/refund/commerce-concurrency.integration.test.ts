@@ -112,6 +112,7 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
     const modules = services()
     const result = await modules.checkout.createCheckout(first.user, { cartId: first.cart.id, addressId: first.input.address.id, paymentMethod: 'card' })
     await modules.payments.handleWebhook(event(result))
+    await makeLegacySale(result.orderId)
     const admin = await prisma.user.create({ data: { name: 'Refund admin', email: `${randomUUID()}@example.test`, role: 'ADMIN' } })
     const completingAdmin = await prisma.user.create({ data: { name: 'Completing admin', email: `${randomUUID()}@example.test`, role: 'ADMIN' } })
     const refunds = new PrismaRefundRepository(context, prisma)
@@ -131,6 +132,12 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
         completedById: completingAdmin.id, externalReference: `REF-${refundId}`, completedAt: new Date(),
       }),
     }
+  }
+
+  async function makeLegacySale(orderId: string) {
+    // Amount-only regressions exercise historical orders without funding snapshots.
+    await prisma.itemSaleSnapshot.deleteMany({ where: { orderItem: { orderId } } })
+    await prisma.shopSaleSnapshot.deleteMany({ where: { shopOrder: { orderId } } })
   }
 
   async function refundDebits(orderId: string): Promise<bigint[]> {
@@ -165,6 +172,7 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
   it('concurrent refund completion debits the seller exactly once', async () => {
     const { repo, input, user, shop } = await fixture()
     const { order, payment } = await repo.transaction((tx) => tx.commitCheckout(input))
+    await makeLegacySale(order.id)
     const secondAdmin = await prisma.user.create({ data: { name: 'Second admin', email: `${randomUUID()}@example.test`, role: 'ADMIN' } })
     const refund = await prisma.refund.create({ data: { orderId: order.id, paymentId: payment.id, status: 'PROCESSING', processingById: user.id, amount: 2000 } })
     const refunds = new PrismaRefundRepository(context, prisma)
@@ -274,6 +282,7 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
   it('rolls back refund status and ledger entries when coin settlement fails', async () => {
     const { repo, input, user } = await fixture()
     const { order, payment } = await repo.transaction((tx) => tx.commitCheckout(input))
+    await makeLegacySale(order.id)
     const secondAdmin = await prisma.user.create({ data: { name: 'Second admin', email: `${randomUUID()}@example.test`, role: 'ADMIN' } })
     const refund = await prisma.refund.create({ data: { orderId: order.id, paymentId: payment.id, status: 'PROCESSING', processingById: user.id, amount: 2000 } })
     const failingClient = prisma.$extends({ query: { buyerCoinLedger: { findFirst: async () => { throw new Error('Coin settlement unavailable') } } } })

@@ -181,6 +181,7 @@ const searchProductSelect = {
       orderItems: {
         where: {
           order: { paymentStatus: 'SUCCEEDED' },
+          fulfillmentStatus: { not: 'CANCELED' },
         },
         select: {
           quantity: true,

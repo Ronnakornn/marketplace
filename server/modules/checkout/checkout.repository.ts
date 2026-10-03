@@ -13,11 +13,14 @@ import type {
   Shop,
   ShopSetting,
 } from '#generated/client/client.ts'
+import { randomUUID } from 'node:crypto'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { localizedText, resolveContentLocale } from '#server/lib/localization.ts'
 import type { IPromotionValidationRepository, PromotionCoupon } from '#server/modules/promotion/promotion.repository.ts'
 import { CheckoutServiceError } from './checkout.errors.ts'
+import { CommissionService } from '#server/modules/commission/commission.service.ts'
+import { allocateRefundAmount } from '#server/modules/refund/refund-amount.service.ts'
 
 type CheckoutTx = Omit<
   PrismaClient,
@@ -71,6 +74,7 @@ export interface AcceptedCheckoutQuote {
   totals: CheckoutTotalsRecord
   items: CheckoutPricedItem[]
   coupon?: CheckoutCouponRef | null
+  couponCode?: string
   couponDiscount: number
   couponShopId: string | null
   coinDiscount: number
@@ -138,12 +142,14 @@ const checkoutCartInclude = {
 
 export class PrismaCheckoutRepository implements ICheckoutRepository {
   private logger: ILogger
+  private commissionService: CommissionService
 
   constructor(
     appContext: AppContext,
     private prisma: PrismaClient | CheckoutTx,
   ) {
     this.logger = appContext.logger
+    this.commissionService = new CommissionService(appContext)
   }
 
   transaction<T>(callback: (repo: ICheckoutRepository) => Promise<T>): Promise<T> {
@@ -232,6 +238,57 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
   async commitCheckout(input: CheckoutCommitmentInput): Promise<CreatedCheckoutOrder> {
     this.logger.debug('PrismaCheckoutRepository.commitCheckout', { cartId: input.cartId, userId: input.userId })
     const quote = input.acceptedQuote
+    const commissionBps = this.commissionService.calculate(0).commissionBps
+    const snapshotItems = quote.items.map((item) => ({ item, orderItemId: randomUUID() }))
+      .sort((a, b) => a.item.variant.product.shop.id.localeCompare(b.item.variant.product.shop.id) || a.orderItemId.localeCompare(b.orderItemId))
+    const gross = snapshotItems.map(({ item }) => BigInt(item.unitPrice) * BigInt(item.quantity))
+    const sellerDiscounts = allocateRefundAmount(quote.couponShopId ? BigInt(quote.couponDiscount) : 0n,
+      snapshotItems.map(({ item }, index) => item.variant.product.shop.id === quote.couponShopId ? gross[index] : 0n))
+    const sellerMerchandise = gross.map((amount, index) => amount - sellerDiscounts[index])
+    const platformDiscounts = allocateRefundAmount(quote.couponShopId ? 0n : BigInt(quote.couponDiscount), sellerMerchandise)
+    const coinDiscounts = allocateRefundAmount(BigInt(quote.coinDiscount), sellerMerchandise.map((amount, index) => amount - platformDiscounts[index]))
+    const shopOrderGroups = new Map<string, {
+      id: string; subtotal: bigint; discountTotal: bigint; commissionBase: bigint; originalShipping: bigint; buyerShipping: bigint
+    }>()
+    for (let index = 0; index < snapshotItems.length; index++) {
+      const { item } = snapshotItems[index]
+      const shop = item.variant.product.shop
+      const shipping = BigInt(shop.settings?.shippingFee ?? 0)
+      const group = shopOrderGroups.get(shop.id) ?? {
+        id: randomUUID(), subtotal: 0n, discountTotal: 0n, commissionBase: 0n,
+        originalShipping: shipping, buyerShipping: quote.freeShippingShopIds.includes(shop.id) ? 0n : shipping,
+      }
+      group.subtotal += gross[index]
+      group.discountTotal += sellerDiscounts[index] + platformDiscounts[index] + coinDiscounts[index]
+      group.commissionBase += sellerMerchandise[index]
+      shopOrderGroups.set(shop.id, group)
+    }
+    const shopOrderCreates = [...shopOrderGroups].map(([shopId, group]) => {
+      const sellerShippingWaiver = quote.couponShopId ? group.originalShipping - group.buyerShipping : 0n
+      const platformShippingSubsidy = quote.couponShopId ? 0n : group.originalShipping - group.buyerShipping
+      const originalCommission = group.commissionBase * BigInt(commissionBps) / 10000n
+      const sellerGross = group.commissionBase + group.buyerShipping + platformShippingSubsidy
+      if ([group.subtotal, group.commissionBase, group.originalShipping, sellerGross, originalCommission, sellerGross - originalCommission]
+        .some((amount) => amount < 0n || amount > BigInt(Number.MAX_SAFE_INTEGER))) {
+        throw new CheckoutServiceError('Seller settlement amounts exceed supported safe integer limits', 400, 'CHECKOUT_FAILED')
+      }
+      return {
+        id: group.id, shopId, status: 'PENDING_PAYMENT' as const, fulfillmentStatus: 'PENDING' as const,
+        subtotal: Number(group.subtotal), discountTotal: Number(group.discountTotal), shippingTotal: Number(group.buyerShipping),
+        taxTotal: 0, grandTotal: Number(group.subtotal - group.discountTotal + group.buyerShipping), currency: quote.totals.currency,
+        saleSnapshot: { create: {
+          policyVersion: 1, currency: quote.totals.currency, commissionBase: group.commissionBase, commissionBps,
+          originalCommission,
+          originalShipping: group.originalShipping, buyerShipping: group.buyerShipping,
+          sellerShippingWaiver, platformShippingSubsidy,
+        } },
+      }
+    })
+    if (shopOrderCreates.reduce((sum, shop) => sum + BigInt(shop.grandTotal), 0n) !== BigInt(quote.totals.grandTotal)
+      || shopOrderCreates.reduce((sum, shop) => sum + BigInt(shop.subtotal), 0n) !== BigInt(quote.totals.subtotal)
+      || shopOrderCreates.reduce((sum, shop) => sum + BigInt(shop.discountTotal), 0n) !== BigInt(quote.totals.discountTotal)
+      || shopOrderCreates.reduce((sum, shop) => sum + BigInt(shop.shippingTotal), 0n) !== BigInt(quote.totals.shippingTotal)
+      || quote.totals.taxTotal !== 0) throw new CheckoutServiceError('Settlement snapshot does not match the accepted quote', 409, 'CHECKOUT_FAILED')
 
     const checkout = await this.prisma.checkout.create({
       data: {
@@ -319,44 +376,6 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     }
 
     const locale = resolveContentLocale(input.locale)
-    const shopOrderGroups = new Map<string, { subtotal: number; shippingTotal: number }>()
-    for (const item of quote.items) {
-      const shop = item.variant.product.shop
-      const current = shopOrderGroups.get(shop.id) ?? {
-        subtotal: 0,
-        shippingTotal: quote.freeShippingShopIds.includes(shop.id) ? 0 : Math.max(0, Number(shop.settings?.shippingFee ?? 0)),
-      }
-      current.subtotal += item.unitPrice * item.quantity
-      shopOrderGroups.set(shop.id, current)
-    }
-
-    let remainingPlatformDiscount = quote.coinDiscount + (quote.couponShopId ? 0 : quote.couponDiscount)
-    let remainingPlatformDiscountCapacity = [...shopOrderGroups.entries()].reduce(
-      (total, [shopId, group]) => total + Math.max(0, group.subtotal - (quote.couponShopId === shopId ? quote.couponDiscount : 0)),
-      0,
-    )
-    const shopOrderCreates = [...shopOrderGroups.entries()].map(([shopId, group]) => {
-      const shopCouponDiscount = quote.couponShopId === shopId ? Math.min(group.subtotal, quote.couponDiscount) : 0
-      const availableForPlatformDiscount = group.subtotal - shopCouponDiscount
-      const proportionalPlatformDiscount = remainingPlatformDiscountCapacity > 0
-        ? Number(BigInt(remainingPlatformDiscount) * BigInt(availableForPlatformDiscount) / BigInt(remainingPlatformDiscountCapacity))
-        : 0
-      const platformDiscount = Math.min(availableForPlatformDiscount, proportionalPlatformDiscount)
-      remainingPlatformDiscount -= platformDiscount
-      remainingPlatformDiscountCapacity -= availableForPlatformDiscount
-      const discountTotal = platformDiscount + shopCouponDiscount
-      return {
-        shopId,
-        status: 'PENDING_PAYMENT' as const,
-        fulfillmentStatus: 'PENDING' as const,
-        subtotal: group.subtotal,
-        discountTotal,
-        shippingTotal: group.shippingTotal,
-        taxTotal: 0,
-        grandTotal: group.subtotal - discountTotal + group.shippingTotal,
-        currency: quote.totals.currency,
-      }
-    })
 
     const order = await this.prisma.order.create({
       data: {
@@ -381,10 +400,11 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         shippingCountry: input.address.country,
         shopOrders: { create: shopOrderCreates },
         items: {
-          create: quote.items.map((item) => {
+          create: snapshotItems.map(({ item, orderItemId }) => {
             const unitPrice = BigInt(item.unitPrice)
 
             return {
+              id: orderItemId,
               shopId: item.variant.product.shop.id,
               variantId: item.variantId,
               productTitle: localizedText(locale, {
@@ -411,6 +431,17 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         },
       },
     })
+
+    await this.prisma.itemSaleSnapshot.createMany({ data: snapshotItems.map(({ item, orderItemId }, index) => {
+      const shopOrder = shopOrderGroups.get(item.variant.product.shop.id)
+      if (!shopOrder) throw new CheckoutServiceError('Shop snapshot not found', 409, 'CHECKOUT_FAILED')
+      return {
+        orderItemId, shopOrderId: shopOrder.id, originalQuantity: item.quantity, grossMerchandise: gross[index],
+        sellerCouponDiscount: sellerDiscounts[index], platformCouponDiscount: platformDiscounts[index], coinDiscount: coinDiscounts[index],
+        buyerMerchandise: sellerMerchandise[index] - platformDiscounts[index] - coinDiscounts[index],
+        couponId: quote.coupon?.id ?? null, couponCode: quote.couponCode ?? null,
+      }
+    }) })
 
     await this.prisma.inventoryReservation.updateMany({
       where: { checkoutId: checkout.id, status: 'ACTIVE' },

@@ -8,6 +8,7 @@ import { PrismaRecommendationRepository } from '#server/modules/recommendation/r
 import { RecommendationService } from '#server/modules/recommendation/recommendation.service.ts'
 import { PrismaSearchRepository } from '#server/modules/search/search.repository.ts'
 import { SearchService } from '#server/modules/search/search.service.ts'
+import { PrismaCatalogRepository } from '#server/modules/catalog/catalog.repository.ts'
 import { PrismaProductAnalyticsRepository } from './product-analytics.repository.ts'
 import { ProductAnalyticsService } from './product-analytics.service.ts'
 
@@ -90,5 +91,56 @@ describe.skipIf(!url)('numeric analytics and sold counts on PostgreSQL', () => {
     expect(recommended.items.find((item) => item.productId === target.product.id)?.soldCount).toBe(9)
     expect(searched.items.find((item) => item.productId === target.product.id)?.soldCount).toBe(9)
     expect(await db.orderItem.count({ where: { variantId: target.variant.id } })).toBe(3)
+  })
+
+  it('excludes a canceled shop line while its paid parent and the other shop remain active', async () => {
+    const canceled = await fixture()
+    const retained = await fixture()
+    const canceledProduct = canceled.products[2]!
+    const retainedProduct = retained.products[2]!
+    const historicItem = await db.orderItem.findFirstOrThrow({ where: { variantId: canceledProduct.variant.id } })
+    await db.orderItem.update({ where: { id: historicItem.id }, data: { fulfillmentStatus: 'DELIVERED' } })
+    const historicPayment = await db.payment.findFirstOrThrow({ where: { orderId: historicItem.orderId } })
+    await db.refund.create({ data: { orderId: historicItem.orderId, paymentId: historicPayment.id, amount: 100n, status: 'SUCCESS' } })
+    const cart = await db.cart.create({ data: { userId: canceled.user.id, status: 'CHECKED_OUT' } })
+    const checkout = await db.checkout.create({ data: { cartId: cart.id, userId: canceled.user.id, grandTotal: 700n, expiresAt: new Date('2026-10-04T01:00:00Z') } })
+    const order = await db.order.create({ data: {
+      checkoutId: checkout.id, userId: canceled.user.id, orderNumber: randomUUID(), status: 'PAID', paymentStatus: 'SUCCEEDED',
+      subtotal: 700n, grandTotal: 700n, createdAt: new Date('2026-10-04T00:00:00Z'),
+      shippingName: 'Buyer', shippingLine1: 'Test', shippingCity: 'Bangkok', shippingPostalCode: '10110', shippingCountry: 'TH',
+    } })
+    await db.payment.create({ data: { orderId: order.id, provider: 'mock', providerIntentId: randomUUID(), status: 'SUCCEEDED', amount: 700n, currency: 'THB' } })
+    const lines = []
+    for (const [shopFixture, target, quantity] of [[canceled, canceledProduct, 4], [retained, retainedProduct, 3]] as const) {
+      await db.shopOrder.create({ data: { orderId: order.id, shopId: shopFixture.shop.id, status: 'PAID', subtotal: BigInt(quantity * 100), grandTotal: BigInt(quantity * 100) } })
+      lines.push(await db.orderItem.create({ data: {
+        orderId: order.id, shopId: shopFixture.shop.id, variantId: target.variant.id, quantity, unitPrice: 100n, lineTotal: BigInt(quantity * 100),
+        productTitle: target.product.title, productSlug: target.product.slug, variantTitle: target.variant.title,
+        variantSku: target.variant.sku, shopName: shopFixture.shop.name, shopSlug: shopFixture.shop.slug,
+      } }))
+    }
+    const catalog = new PrismaCatalogRepository(context, db)
+    expect((await catalog.findProductMetrics([canceledProduct.product.id]))[0]?.soldCount).toBe(13)
+    await db.orderItem.update({ where: { id: lines[0]!.id }, data: { fulfillmentStatus: 'CANCELED' } })
+    await db.shopOrder.update({ where: { orderId_shopId: { orderId: order.id, shopId: canceled.shop.id } }, data: { status: 'CANCELED', fulfillmentStatus: 'CANCELED' } })
+
+    const recommendations = new RecommendationService(context, new PrismaRecommendationRepository(context, db))
+    const search = new SearchService(context, new PrismaSearchRepository(context, db))
+    for (const [shopFixture, target, expected, expectedRevenue] of [[canceled, canceledProduct, 9, 900], [retained, retainedProduct, 12, 1200]] as const) {
+      const recommended = await recommendations.getRelated(shopFixture.products[0]!.product.id, { limit: 20 })
+      const searched = await search.searchProducts({ q: shopFixture.tag, limit: 20 })
+      expect.soft(recommended.items.find((item) => item.productId === target.product.id)?.soldCount).toBe(expected)
+      expect.soft(searched.items.find((item) => item.productId === target.product.id)?.soldCount).toBe(expected)
+      expect.soft((await catalog.findProductMetrics([target.product.id]))[0]?.soldCount).toBe(expected)
+      const analytics = new ProductAnalyticsService(context, new PrismaProductAnalyticsRepository(context, db), {
+        resolveActiveShops: async () => [shopFixture.shop],
+      } as unknown as ActiveShopResolver)
+      const products = await analytics.getProducts({ id: shopFixture.user.id, role: 'USER' }, {
+        range: 'custom', from: '2026-10-04', to: '2026-10-04', limit: 20,
+      })
+      expect.soft(products.items.find((item) => item.productId === target.product.id)).toMatchObject({ unitsSold: expected, revenue: expectedRevenue })
+    }
+    expect(await db.order.findUniqueOrThrow({ where: { id: order.id } })).toMatchObject({ status: 'PAID', paymentStatus: 'SUCCEEDED' })
+    expect(await db.orderItem.findUniqueOrThrow({ where: { id: historicItem.id } })).toMatchObject({ quantity: 9, fulfillmentStatus: 'DELIVERED' })
   })
 })

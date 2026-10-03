@@ -23,6 +23,7 @@ function setup(returnShopId: string | null = 'shop-1') {
     returnRequest: returnShopId ? { orderId: 'order-1', shopId: returnShopId } : null,
   }
   const tx = {
+    itemSaleSnapshot: { count: vi.fn(async () => 0) },
     $queryRaw: vi.fn(async () => []),
     refund: {
       findUnique: vi.fn(async () => ({ ...refund })),
@@ -53,7 +54,83 @@ function setup(returnShopId: string | null = 'shop-1') {
   return { repo, refund, tx, complete, history, entry }
 }
 
+function snapshotSetup(recognized = true) {
+  const original = setup(null)
+  const snapshot = { shopOrderId: 'shop-order-1', policyVersion: 1, currency: 'THB', commissionBase: 10000n, commissionBps: 1000,
+    originalCommission: 1000n, originalShipping: 0n, buyerShipping: 0n, sellerShippingWaiver: 0n, platformShippingSubsidy: 0n, recognizedAt: recognized ? new Date() : null }
+  const itemSnapshot = { orderItemId: 'item-1', shopOrderId: 'shop-order-1', originalQuantity: 1, grossMerchandise: 10000n, sellerCouponDiscount: 0n,
+    platformCouponDiscount: 2000n, coinDiscount: 0n, buyerMerchandise: 8000n, couponId: null, couponCode: null }
+  const itemAllocation = { id: 'item-allocation', refundId: 'refund-1', orderItemId: 'item-1', quantity: 1, cashMerchandise: 8000n, platformCouponReversal: 2000n, coinFundingReversal: 0n }
+  const shopAllocation = { id: 'shop-allocation', refundId: 'refund-1', shopOrderId: 'shop-order-1', buyerShippingRefund: 0n, platformShippingReversal: 0n, commissionReversal: 0n, shippingCause: 'NONE', walletPostedAt: null }
+  original.refund.payment.amount = original.refund.order.grandTotal = 8000n
+  Object.assign(original.refund, { payment: { ...original.refund.payment, status: 'SUCCEEDED' }, itemAllocations: [itemAllocation], shopAllocations: [shopAllocation] })
+  const shops = [{ id: 'shop-order-1', orderId: 'order-1', shopId: 'shop-1', grandTotal: 8000n, taxTotal: 0n, currency: 'THB', saleSnapshot: snapshot }]
+  original.tx.shopOrder.findMany.mockResolvedValue(shops)
+  const tx = Object.assign(original.tx, {
+    orderItem: { findMany: vi.fn(async () => [{ id: 'item-1', orderId: 'order-1', shopId: 'shop-1', quantity: 1, lineTotal: 10000n, saleSnapshot: itemSnapshot }]) },
+    refundShopAllocation: { update: vi.fn(async () => ({})), deleteMany: vi.fn(async () => ({})), createMany: vi.fn(async () => ({})) },
+    refundItemAllocation: { deleteMany: vi.fn(async () => ({})), createMany: vi.fn(async () => ({})) },
+    shipment: { count: vi.fn(async () => 0) },
+  })
+  Object.assign(tx.refund, { update: vi.fn(async () => ({})) })
+  return { ...original, tx, snapshot, itemSnapshot, itemAllocation, shopAllocation, shops }
+}
+
 describe('refund completion transaction', () => {
+  it('reverses seller entitlement and original commission separately for a subsidized sale', async () => {
+    const { complete, tx } = snapshotSetup()
+    await expect(complete()).resolves.toMatchObject({ status: 'SUCCESS', amount: 8000n })
+    expect(tx.walletLedgerEntry.create.mock.calls.map(([input]) => [input.data.type, input.data.amount])).toEqual([['refund_adjustment', -10000n], ['commission_fee', 1000n]])
+    expect(tx.refundShopAllocation.update).toHaveBeenCalledWith(expect.objectContaining({ data: { commissionReversal: 1000n } }))
+    expect(tx.refundShopAllocation.update).toHaveBeenCalledWith(expect.objectContaining({ data: { walletPostedAt: expect.any(Date) } }))
+    await expect(complete()).resolves.toBeNull()
+    expect(tx.walletLedgerEntry.create).toHaveBeenCalledTimes(2)
+  })
+
+  it('records a pre-earning reversal without creating wallet debt', async () => {
+    const { complete, tx } = snapshotSetup(false)
+    await expect(complete()).resolves.toMatchObject({ status: 'SUCCESS' })
+    expect(tx.walletLedgerEntry.create).not.toHaveBeenCalled()
+    expect(tx.shopWallet.upsert).not.toHaveBeenCalled()
+    expect(tx.refundShopAllocation.update).toHaveBeenCalledTimes(1)
+    expect(reverseBuyerCoinsForRefund).toHaveBeenCalledWith(tx, expect.objectContaining({ coinFundingTargetCents: 0n, merchandiseCashTarget: 8000n, merchandiseCashTotal: 8000n }))
+  })
+
+  it('completes a zero-cash subsidy reversal with economic wallet postings', async () => {
+    const { complete, refund, tx, itemAllocation, itemSnapshot, shops } = snapshotSetup()
+    refund.amount = refund.order.grandTotal = refund.payment.amount = 0n
+    shops[0]!.grandTotal = 0n
+    itemAllocation.cashMerchandise = itemSnapshot.buyerMerchandise = 0n
+    itemAllocation.platformCouponReversal = itemSnapshot.platformCouponDiscount = 10000n
+    await expect(complete()).resolves.toMatchObject({ status: 'SUCCESS', amount: 0n })
+    expect(tx.walletLedgerEntry.create.mock.calls.map(([input]) => input.data.amount)).toEqual([-10000n, 1000n])
+    expect(reverseBuyerCoinsForRefund).toHaveBeenCalledWith(tx, expect.objectContaining({ refundAmount: 0n, merchandiseCashTotal: 0n }))
+  })
+
+  it('rejects new-policy amount-only refunds before status or ledger writes', async () => {
+    const { complete, refund, tx } = snapshotSetup()
+    Object.assign(refund, { itemAllocations: [], shopAllocations: [] })
+    await expect(complete()).rejects.toMatchObject({ code: 'INVALID_REFUND_STATE', status: 409 })
+    expect(tx.refund.updateMany).not.toHaveBeenCalled()
+    expect(tx.walletLedgerEntry.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects preparing a plan after external processing starts', async () => {
+    const { repo, tx } = snapshotSetup()
+    await expect(repo.prepareRefundPlan('refund-1', { items: [{ orderItemId: 'item-1', quantity: 1 }], shipping: [] })).rejects.toMatchObject({ code: 'INVALID_REFUND_STATE', status: 409 })
+    expect(tx.refundItemAllocation.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('leaves allocations untouched if processing wins the pending-plan compare-and-swap', async () => {
+    const { repo, refund, tx } = snapshotSetup()
+    refund.status = 'PENDING'
+    tx.refund.updateMany.mockResolvedValue({ count: 0 })
+    await expect(repo.prepareRefundPlan('refund-1', { items: [{ orderItemId: 'item-1', quantity: 1 }], shipping: [] })).rejects.toMatchObject({ code: 'INVALID_REFUND_STATE', status: 409 })
+    expect(tx.refund.updateMany).toHaveBeenCalledWith({ where: { id: 'refund-1', status: 'PENDING' }, data: { amount: 8000n } })
+    expect(tx.refundItemAllocation.deleteMany).not.toHaveBeenCalled()
+    expect(tx.refundShopAllocation.deleteMany).not.toHaveBeenCalled()
+  })
+
   it('debits only the returned shop once and reverses coins in the same transaction', async () => {
     const { complete, tx } = setup()
     await expect(complete()).resolves.toMatchObject({ status: 'SUCCESS' })

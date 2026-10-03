@@ -15,6 +15,9 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { AuditLogService } from '#server/modules/audit-log'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { IRefundRepository } from '#server/modules/refund/refund.repository.ts'
+import type { SettlementRefundIntent } from '#server/modules/refund/settlement-refund.service.ts'
+import type { WalletService } from '#server/modules/wallet/wallet.service.ts'
+import type { CacheInvalidation } from '#server/modules/cache/cache.invalidation.ts'
 import { isAPIError } from 'better-auth/api'
 import { auth } from '#server/lib/auth.ts'
 import { AdminServiceError } from './admin.errors.ts'
@@ -102,6 +105,7 @@ export interface AdminListByStatusInput {
 export interface AdminRefundStatusInput {
   status: string
   externalReference?: string
+  settlementPlan?: SettlementRefundIntent
 }
 
 export interface AdminListBrandsInput {
@@ -176,6 +180,8 @@ export class AdminService {
     private auditLogService?: AuditLogService,
     private refundRepository?: IRefundRepository,
     private eventPublisher?: EventPublisherService,
+    private walletService?: WalletService,
+    private cacheInvalidation?: CacheInvalidation,
   ) {
     this.logger = appContext.logger
   }
@@ -579,14 +585,51 @@ export class AdminService {
     return refund
   }
 
+  async createSettlementRefund(actor: AdminActor, orderId: string, intent: SettlementRefundIntent): Promise<AdminRefundRecord> {
+    this.assertAdmin(actor)
+    if (!this.refundRepository) throw new AdminServiceError('Refund planning is unavailable', 503, 'REFUND_COMPLETION_UNAVAILABLE')
+    const created = await this.refundRepository.createPlannedRefund(orderId, intent)
+    const result = await this.getRefund(actor, created.id)
+    await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', created.id, null, result, { created: true, settlementPlan: intent, cashAmountAfter: Number(result.amount) })
+    return result
+  }
+
+  async prepareSettlementRefund(actor: AdminActor, refundId: string, intent: SettlementRefundIntent): Promise<AdminRefundRecord> {
+    this.assertAdmin(actor)
+    if (!this.refundRepository) throw new AdminServiceError('Refund planning is unavailable', 503, 'REFUND_COMPLETION_UNAVAILABLE')
+    const before = await this.getRefund(actor, refundId)
+    await this.refundRepository.prepareRefundPlan(refundId, intent)
+    const result = await this.getRefund(actor, refundId)
+    await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', refundId, before, result, {
+      settlementPlan: intent, cashAmountBefore: Number(before.amount), cashAmountAfter: Number(result.amount),
+    })
+    return result
+  }
+
   async updateRefundStatus(actor: AdminActor, refundId: string, input: AdminRefundStatusInput): Promise<AdminRefundRecord> {
     this.assertAdmin(actor)
     const status = this.parseEnum<RefundStatus>(input.status, REFUND_STATUSES)
-    const existing = await this.repository.findRefundById(refundId)
+    let existing = await this.repository.findRefundById(refundId)
     if (!existing) {
       throw new AdminServiceError('Refund not found', 404, 'REFUND_NOT_FOUND')
     }
+    if (input.settlementPlan) {
+      if (status !== 'PROCESSING' || existing.status !== 'PENDING') {
+        throw new AdminServiceError('Refund scope must be approved before processing', 409, 'INVALID_STATUS_TRANSITION')
+      }
+      if (!this.refundRepository) throw new AdminServiceError('Refund planning is unavailable', 503, 'REFUND_COMPLETION_UNAVAILABLE')
+      await this.refundRepository.prepareRefundPlan(refundId, input.settlementPlan)
+      existing = await this.getRefund(actor, refundId)
+    }
+    if (status === 'PROCESSING' && existing.order.shopOrders?.some((shop) => shop.saleSnapshot)
+      && !existing.itemAllocations?.length && !existing.shopAllocations?.length) {
+      throw new AdminServiceError('Refund requires an approved merchandise and shipping plan', 409, 'INVALID_STATUS_TRANSITION')
+    }
     if (existing.status === status && !(status === 'PROCESSING' && !existing.processingById)) {
+      if (status === 'SUCCESS') {
+        await this.invalidateCancellationCaches(existing)
+        if (existing.order.shopOrders?.some((shop) => shop.saleSnapshot)) await this.walletService?.createEarningsForCompletedOrder(existing.orderId)
+      }
       return existing
     }
     if (existing.status === 'SUCCESS' || existing.status === 'FAILED' || (status === 'SUCCESS' && existing.status !== 'PROCESSING')) {
@@ -630,7 +673,23 @@ export class AdminService {
         this.logger.warn('Refund notification publish failed', { refundId, error: String(error) })
       }
     }
+    if (status === 'SUCCESS') {
+      await this.invalidateCancellationCaches(updated)
+      if (updated.order.shopOrders?.some((shop) => shop.saleSnapshot)) await this.walletService?.createEarningsForCompletedOrder(updated.orderId)
+    }
     return updated
+  }
+
+  private async invalidateCancellationCaches(refund: AdminRefundRecord): Promise<void> {
+    const cache = this.cacheInvalidation
+    if (!cache || !refund.shopAllocations?.some((shop) => shop.shippingCause === 'PRE_SHIPMENT_CANCEL')) return
+    const products = new Set(refund.itemAllocations?.flatMap((item) => item.itemSale ? [item.itemSale.orderItem.variant.productId] : []) ?? [])
+    const shops = new Set(refund.itemAllocations?.flatMap((item) => item.itemSale ? [item.itemSale.orderItem.shopId] : []) ?? [])
+    await Promise.all([
+      cache.invalidateCatalogDiscoveryAndSearch(),
+      ...[...products].map((id) => cache.invalidateProduct(id)),
+      ...[...shops].map((id) => cache.invalidateSellerDashboard(id)),
+    ])
   }
 
   async listReturns(actor: AdminActor, input: AdminListByStatusInput = {}): Promise<AdminListResponse<AdminReturnRecord>> {
@@ -675,19 +734,19 @@ export class AdminService {
     action: 'USER_STATUS_CHANGED' | 'SHOP_STATUS_CHANGED' | 'PRODUCT_STATUS_CHANGED' | 'REFUND_STATUS_CHANGED' | 'RETURN_STATUS_CHANGED',
     entityType: string,
     entityId: string,
-    before: { status: string },
+    before: { status: string } | null,
     after: { status: string },
     metadata: Record<string, unknown> = {},
     nonCritical = true,
   ): Promise<void> {
-    if (!this.auditLogService || before.status === after.status) return
+    if (!this.auditLogService || (before?.status === after.status && !metadata['settlementPlan'])) return
     await this.auditLogService.createAuditLogBestEffort({
       actorUserId: actor.id,
       actorRole: actor.role,
       action,
       entityType,
       entityId,
-      before: { status: before.status },
+      before: before ? { status: before.status } : null,
       after: { status: after.status },
       metadata: { source: 'admin_api', ...metadata },
       nonCritical,

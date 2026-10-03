@@ -13,6 +13,8 @@ import type {
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { calculateReturnRefund } from '#server/modules/refund/refund-amount.service.ts'
+import { loadRefundSettlementState, saveRefundSettlementPlan } from '#server/modules/refund/refund.repository.ts'
+import { createSettlementRefundPlan, invalidSettlementRefund } from '#server/modules/refund/settlement-refund.service.ts'
 
 type ReturnTx = Omit<
   PrismaClient,
@@ -90,16 +92,18 @@ export class PrismaReturnRepository implements IReturnRepository {
   constructor(
     appContext: AppContext,
     private prisma: PrismaClient | ReturnTx,
+    private readonly inTransaction = false,
   ) {
     this.logger = appContext.logger
   }
 
   transaction<T>(callback: (repo: IReturnRepository) => Promise<T>): Promise<T> {
+    if (this.inTransaction) return callback(this)
     const client = this.prisma as PrismaClient
-    if (typeof client.$transaction !== 'function') return callback(this)
+    if (typeof client.$transaction !== 'function') return callback(new PrismaReturnRepository({ logger: this.logger, config: { environment: 'transaction' } }, this.prisma, true))
 
     return client.$transaction((tx) =>
-      callback(new PrismaReturnRepository({ logger: this.logger, config: { environment: 'transaction' } }, tx)),
+      callback(new PrismaReturnRepository({ logger: this.logger, config: { environment: 'transaction' } }, tx, true)),
     )
   }
 
@@ -243,8 +247,21 @@ export class PrismaReturnRepository implements IReturnRepository {
   }
 
   async createPendingRefundForReturn(returnRecord: ReturnRecord): Promise<Refund> {
+    if (!this.inTransaction) return this.transaction((repository) => repository.createPendingRefundForReturn(returnRecord))
+    await this.prisma.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${returnRecord.orderId}::uuid FOR UPDATE`
     const payment = returnRecord.order.payments.find((row) => row.status === 'SUCCEEDED')
     if (!payment) throw new Error('Refund requires a successful payment')
+    const state = await loadRefundSettlementState(this.prisma, returnRecord.orderId, returnRecord.order.currency)
+    if (state) {
+      if (payment.orderId !== returnRecord.orderId || payment.currency !== returnRecord.order.currency || BigInt(payment.amount) !== BigInt(returnRecord.order.grandTotal)
+        || returnRecord.items.some((item) => state.items.find((row) => row.id === item.orderItemId)?.shopId !== returnRecord.shopId)) invalidSettlementRefund()
+      const existing = await this.prisma.refund.findUnique({ where: { returnRequestId: returnRecord.id } })
+      if (existing) return existing
+      const plan = createSettlementRefundPlan(state, { items: returnRecord.items.map((item) => ({ orderItemId: item.orderItemId, quantity: item.quantity })), shipping: [] })
+      const refund = await this.prisma.refund.create({ data: { orderId: returnRecord.orderId, paymentId: payment.id, returnRequestId: returnRecord.id, status: 'PENDING', amount: plan.amount, reason: returnRecord.reason } })
+      await saveRefundSettlementPlan(this.prisma, refund.id, plan)
+      return refund
+    }
     const [shopOrder, orderItems] = await Promise.all([
       this.prisma.shopOrder.findUniqueOrThrow({ where: { orderId_shopId: { orderId: returnRecord.orderId, shopId: returnRecord.shopId } }, select: { subtotal: true, discountTotal: true } }),
       this.prisma.orderItem.findMany({ where: { orderId: returnRecord.orderId, shopId: returnRecord.shopId }, select: { id: true, lineTotal: true, quantity: true } }),

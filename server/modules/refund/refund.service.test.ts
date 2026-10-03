@@ -28,6 +28,8 @@ function createRepoMock(): IRefundRepository {
     listRefunds: vi.fn(),
     findRefundById: vi.fn(),
     completeRefundSuccess: vi.fn(),
+    prepareRefundPlan: vi.fn(),
+    createPlannedRefund: vi.fn(),
   }
 }
 

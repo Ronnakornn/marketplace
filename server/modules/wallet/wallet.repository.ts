@@ -6,6 +6,7 @@ import type {
   Shop,
   WalletLedgerEntry,
   WalletLedgerEntryType,
+  Prisma,
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -14,7 +15,15 @@ type WalletTx = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transa
 
 export type WalletRecord = ShopWallet & { shop: Pick<Shop, 'id' | 'name' | 'ownerId'> }
 export type WalletEntryRecord = WalletLedgerEntry
-export type CompletedOrderRecord = Order & { items: OrderItem[] }
+const completedOrderInclude = {
+  items: { include: { saleSnapshot: { include: { refundAllocations: { include: { refund: { select: { status: true } } } } } } } },
+  shopOrders: { include: { saleSnapshot: { include: { refundAllocations: { include: { refund: { select: { status: true } } } } } } } },
+} as const
+type SnapshottedOrder = Prisma.OrderGetPayload<{ include: typeof completedOrderInclude }>
+export type CompletedOrderRecord = Order & {
+  items: Array<OrderItem & { saleSnapshot?: SnapshottedOrder['items'][number]['saleSnapshot'] }>
+  shopOrders?: SnapshottedOrder['shopOrders']
+}
 
 export interface CreateLedgerEntryInput {
   walletId: string
@@ -36,10 +45,13 @@ export interface IWalletRepository {
   ensureWallet(shopId: string, currency: string): Promise<ShopWallet>
   listEntries(walletId: string, limit: number, offset: number): Promise<WalletEntryRecord[]>
   sumLedger(walletId: string, currency: string): Promise<number>
+  sumReservedPayouts(walletId: string, currency: string): Promise<number>
   createLedgerEntry(input: CreateLedgerEntryInput): Promise<WalletLedgerEntry>
   lockOrder(orderId: string): Promise<void>
   findCompletedOrder(orderId: string): Promise<CompletedOrderRecord | null>
   hasOrderEarnings(orderId: string, shopId: string): Promise<boolean>
+  lockWallet(walletId: string): Promise<void>
+  recognizeShopSale(shopOrderId: string, recognizedAt: Date): Promise<void>
 }
 
 export class PrismaWalletRepository implements IWalletRepository {
@@ -48,15 +60,16 @@ export class PrismaWalletRepository implements IWalletRepository {
   constructor(
     appContext: AppContext,
     private prisma: PrismaClient | WalletTx,
+    private inTransaction = false,
   ) {
     this.logger = appContext.logger
   }
 
   transaction<T>(callback: (repo: IWalletRepository) => Promise<T>): Promise<T> {
+    if (this.inTransaction) return callback(this)
     const client = this.prisma as PrismaClient
-    if (typeof client.$transaction !== 'function') return callback(this)
     return client.$transaction((tx) =>
-      callback(new PrismaWalletRepository({ logger: this.logger, config: { environment: 'transaction' } }, tx)),
+      callback(new PrismaWalletRepository({ logger: this.logger, config: { environment: 'transaction' } }, tx, true)),
     )
   }
 
@@ -104,6 +117,24 @@ export class PrismaWalletRepository implements IWalletRepository {
     return Number(result._sum.amount ?? 0)
   }
 
+  async sumReservedPayouts(walletId: string, currency: string): Promise<number> {
+    const result = await this.prisma.sellerPayout.aggregate({
+      where: { walletId, currency, status: { in: ['requested', 'approved'] } }, _sum: { amount: true },
+    })
+    return Number(result._sum.amount ?? 0)
+  }
+
+  async lockWallet(walletId: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "ShopWallet" WHERE "id" = ${walletId}::uuid FOR UPDATE`
+  }
+
+  async recognizeShopSale(shopOrderId: string, recognizedAt: Date): Promise<void> {
+    await this.prisma.shopSaleSnapshot.update({ where: { shopOrderId }, data: { recognizedAt } })
+    await this.prisma.refundShopAllocation.updateMany({
+      where: { shopOrderId, refund: { status: 'SUCCESS' }, walletPostedAt: null }, data: { walletPostedAt: recognizedAt },
+    })
+  }
+
   createLedgerEntry(input: CreateLedgerEntryInput): Promise<WalletLedgerEntry> {
     this.logger.info('PrismaWalletRepository.createLedgerEntry', {
       walletId: input.walletId,
@@ -134,7 +165,7 @@ export class PrismaWalletRepository implements IWalletRepository {
         status: { in: ['DELIVERED', 'FULFILLED'] },
         paymentStatus: 'SUCCEEDED',
       },
-      include: { items: true },
+      include: completedOrderInclude,
     })
   }
 

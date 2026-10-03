@@ -15,6 +15,33 @@ function createLogger() {
 }
 
 describe('PrismaCheckoutRepository', () => {
+  it('rejects an invalid commission rate before writing checkout money', async () => {
+    const prisma = { checkout: { create: vi.fn() } }
+    vi.stubEnv('PLATFORM_COMMISSION_BPS', '10001')
+    try {
+      const repo = new PrismaCheckoutRepository({ logger: createLogger(), config: { environment: 'test' } }, prisma as unknown as PrismaClient)
+      await expect(repo.commitCheckout({ acceptedQuote: {} } as unknown as CheckoutCommitmentInput)).rejects.toMatchObject({ code: 'COMMISSION_RULE_NOT_FOUND' })
+      expect(prisma.checkout.create).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('rejects a seller gross earning beyond safe integer limits even when discounted buyer cash fits', async () => {
+    const prisma = { checkout: { create: vi.fn() }, order: { create: vi.fn() }, payment: { create: vi.fn() } }
+    const repo = new PrismaCheckoutRepository({ logger: createLogger(), config: { environment: 'test' } }, prisma as unknown as PrismaClient)
+    const input = { acceptedQuote: {
+      totals: { subtotal: 9007199254740991, discountTotal: 4000, shippingTotal: 4000, taxTotal: 0, grandTotal: 9007199254740991, currency: 'THB' },
+      couponDiscount: 4000, couponShopId: null, coinDiscount: 0, freeShippingShopIds: [],
+      items: [{ id: 'item', unitPrice: 9007199254740991, quantity: 1,
+        variant: { product: { shop: { id: 'shop-1', settings: { shippingFee: 4000 } } } } }],
+    } } as unknown as CheckoutCommitmentInput
+    await expect(repo.commitCheckout(input)).rejects.toMatchObject({ status: 400, code: 'CHECKOUT_FAILED' })
+    expect(prisma.checkout.create).not.toHaveBeenCalled()
+    expect(prisma.order.create).not.toHaveBeenCalled()
+    expect(prisma.payment.create).not.toHaveBeenCalled()
+  })
+
   it('creates order item totals when the Prisma result extension returns BigInt prices as numbers', async () => {
     const order = { id: 'order-1' }
     const payment = { id: 'payment-1' }
@@ -35,6 +62,7 @@ describe('PrismaCheckoutRepository', () => {
       payment: {
         create: vi.fn().mockResolvedValue(payment),
       },
+      itemSaleSnapshot: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
       cart: {
         update: vi.fn().mockResolvedValue({ id: 'cart-1' }),
       },
@@ -149,6 +177,10 @@ describe('PrismaCheckoutRepository', () => {
     expect(prisma.cartItem.deleteMany).toHaveBeenCalledWith({
       where: { cartId: 'cart-1', id: { in: ['cart-item-1'] } },
     })
+    expect(prisma.itemSaleSnapshot.createMany).toHaveBeenCalledWith({ data: [expect.objectContaining({
+      originalQuantity: 2, grossMerchandise: 2400n, sellerCouponDiscount: 0n,
+      platformCouponDiscount: 0n, coinDiscount: 0n, buyerMerchandise: 2400n,
+    })] })
     expect(prisma.flashSaleReservation.aggregate).toHaveBeenNthCalledWith(1, expect.objectContaining({
       where: expect.objectContaining({
         flashSaleItemId: 'flash-item-1',
@@ -190,6 +222,7 @@ describe('PrismaCheckoutRepository', () => {
       inventoryReservation: { create: vi.fn().mockResolvedValue({}), updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
       order: { create: vi.fn().mockResolvedValue({ id: 'order-1' }) },
       payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1' }) },
+      itemSaleSnapshot: { createMany: vi.fn().mockResolvedValue({ count: 2 }) },
       cart: { update: vi.fn().mockResolvedValue({}) },
       cartItem: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
       $queryRaw: vi.fn().mockResolvedValue([]),
@@ -228,5 +261,51 @@ describe('PrismaCheckoutRepository', () => {
     expect(shopOrders.reduce((sum, row) => sum + row.discountTotal, 0)).toBe(orderData.discountTotal)
     expect(shopOrders.reduce((sum, row) => sum + row.shippingTotal, 0)).toBe(orderData.shippingTotal)
     expect(shopOrders.reduce((sum, row) => sum + row.grandTotal, 0)).toBe(orderData.grandTotal)
+    const snapshots = prisma.itemSaleSnapshot.createMany.mock.calls[0][0].data
+    if (example.couponShopId) {
+      expect(snapshots.map((row: { sellerCouponDiscount: bigint; platformCouponDiscount: bigint; coinDiscount: bigint; buyerMerchandise: bigint }) =>
+        [row.sellerCouponDiscount, row.platformCouponDiscount, row.coinDiscount, row.buyerMerchandise])).toEqual([
+        [1000n, 0n, 0n, 0n], [0n, 0n, 600n, 1400n],
+      ])
+      expect(orderData.shopOrders.create.map((row: { saleSnapshot: { create: { commissionBase: bigint; originalCommission: bigint } } }) =>
+        [row.saleSnapshot.create.commissionBase, row.saleSnapshot.create.originalCommission])).toEqual([[0n, 0n], [2000n, 200n]])
+    } else {
+      expect(snapshots.map((row: { sellerCouponDiscount: bigint; platformCouponDiscount: bigint; coinDiscount: bigint; buyerMerchandise: bigint }) =>
+        [row.sellerCouponDiscount, row.platformCouponDiscount, row.coinDiscount, row.buyerMerchandise])).toEqual([
+        [0n, 6004799503160593n, 0n, 67n], [0n, 3002399751580298n, 0n, 33n],
+      ])
+    }
+  })
+
+  it.each([{ couponShopId: null, sellerWaiver: 0n, platformSubsidy: 4000n },
+    { couponShopId: 'shop-1', sellerWaiver: 4000n, platformSubsidy: 0n }])('snapshots the payer for free shipping from $couponShopId', async (example) => {
+    const prisma = {
+      checkout: { create: vi.fn().mockResolvedValue({ id: 'checkout-1' }) },
+      inventoryReservation: { create: vi.fn().mockResolvedValue({}), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      order: { create: vi.fn().mockResolvedValue({ id: 'order-1' }) },
+      itemSaleSnapshot: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      couponRedemption: { create: vi.fn().mockResolvedValue({}) },
+      payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1' }) },
+      cartItem: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      $executeRaw: vi.fn().mockResolvedValue(1),
+    }
+    const repo = new PrismaCheckoutRepository({ logger: createLogger(), config: { environment: 'test' } }, prisma as unknown as PrismaClient)
+    const input = {
+      cartId: 'cart', userId: 'buyer', orderNumber: 'ORD-SHIPPING', paymentProvider: 'mock', checkoutExpiresAt: new Date(),
+      address: { recipientName: 'Buyer', phone: null, line1: '1 Road', line2: null, city: 'Bangkok', region: null, postalCode: '10110', country: 'TH' },
+      acceptedQuote: {
+        totals: { subtotal: 100000, discountTotal: 0, shippingTotal: 0, taxTotal: 0, grandTotal: 100000, currency: 'THB' },
+        coupon: { id: 'coupon-1' }, couponCode: 'FREE_SHIP', couponDiscount: 0, couponShopId: example.couponShopId, coinDiscount: 0, freeShippingShopIds: ['shop-1'],
+        items: [{ id: 'cart-item', variantId: 'variant', quantity: 1, unitPrice: 100000,
+          variant: { currency: 'THB', title: 'Item', sku: 'SKU', inventory: { id: 'inventory' },
+            product: { title: 'Item', slug: 'item', shop: { id: 'shop-1', name: 'Shop', slug: 'shop', settings: { shippingFee: 4000 } } } } }],
+      },
+    } as unknown as CheckoutCommitmentInput
+    await repo.commitCheckout(input)
+    expect(prisma.order.create.mock.calls[0][0].data.shopOrders.create[0].saleSnapshot.create).toMatchObject({
+      policyVersion: 1, commissionBase: 100000n, commissionBps: 1000, originalCommission: 10000n,
+      originalShipping: 4000n, buyerShipping: 0n, sellerShippingWaiver: example.sellerWaiver, platformShippingSubsidy: example.platformSubsidy,
+    })
+    expect(prisma.itemSaleSnapshot.createMany.mock.calls[0][0].data[0]).toMatchObject({ couponId: 'coupon-1', couponCode: 'FREE_SHIP' })
   })
 })

@@ -823,6 +823,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
           where: {
             variantId: { in: variants.map((variant) => variant.id) },
             order: { paymentStatus: 'SUCCEEDED' },
+            fulfillmentStatus: { not: 'CANCELED' },
           },
           _sum: { quantity: true },
         })

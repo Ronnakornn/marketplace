@@ -6,7 +6,7 @@ import { RecommendationService } from './recommendation.service.ts'
 
 describe('Recommendation paid sold counts', () => {
   it('excludes unpaid and canceled quantities from buyer-facing sold counts', async () => {
-    const paidOnly = { order: { paymentStatus: 'SUCCEEDED' } }
+    const paidOnly = { order: { paymentStatus: 'SUCCEEDED' }, fulfillmentStatus: { not: 'CANCELED' } }
     const findMany = vi.fn(async (query: unknown) => {
       const selection = JSON.stringify(query)
       const quantities = selection.includes(JSON.stringify(paidOnly)) ? [2] : [2, 5, 4]

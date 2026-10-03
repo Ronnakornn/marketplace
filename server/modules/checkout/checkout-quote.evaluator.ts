@@ -107,6 +107,7 @@ export class CheckoutQuoteEvaluator {
         totals,
         items,
         coupon: couponValidation ? { id: couponValidation.couponId } : null,
+        couponCode: couponValidation?.couponCode,
         couponDiscount,
         couponShopId: couponValidation?.couponShopId ?? null,
         coinDiscount: coinsApplied * 100,

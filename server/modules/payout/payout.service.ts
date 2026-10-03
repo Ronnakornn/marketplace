@@ -131,6 +131,7 @@ export class PayoutService {
       if (payout.status !== 'requested') {
         throw new WalletServiceError('Only requested payouts can be approved', 409, 'INVALID_PAYOUT_STATE')
       }
+      await this.assertReservedPayoutFunded(txRepo, payout)
       return { beforeStatus: payout.status, response: this.toResponse(await txRepo.updatePayout(payout.id, {
         status: 'approved',
         approvedById: actor.id,
@@ -189,6 +190,7 @@ export class PayoutService {
       if (payout.approvedById === actor.id) {
         throw new WalletServiceError('Payout must be paid by a different administrator', 409, 'INVALID_PAYOUT_STATE')
       }
+      await this.assertReservedPayoutFunded(txRepo, payout)
       const updated = await txRepo.updatePayout(payout.id, {
         status: 'paid',
         paidById: actor.id,
@@ -225,6 +227,19 @@ export class PayoutService {
     const payout = await repo.findPayoutById(payoutId)
     if (!payout) throw new WalletServiceError('Payout not found', 404, 'PAYOUT_NOT_FOUND')
     return payout
+  }
+
+  private async assertReservedPayoutFunded(repo: IPayoutRepository, payout: PayoutRecord): Promise<void> {
+    await repo.lockWallet(payout.walletId)
+    if (payout.wallet.currency !== payout.currency) {
+      throw new WalletServiceError('Payout currency must match its wallet', 409, 'WALLET_CURRENCY_MISMATCH')
+    }
+    const balance = await repo.sumLedger(payout.walletId, payout.currency)
+    if (balance < 0) {
+      throw new WalletServiceError('Payout cannot proceed while the wallet is unfunded', 409, 'INSUFFICIENT_BALANCE', {
+        availableBalanceCents: balance,
+      })
+    }
   }
 
   private assertAdmin(actor: PayoutActor): void {

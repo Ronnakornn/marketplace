@@ -87,7 +87,7 @@ const recommendationProductSelect = {
         },
       },
       orderItems: {
-        where: { order: { paymentStatus: 'SUCCEEDED' } },
+        where: { order: { paymentStatus: 'SUCCEEDED' }, fulfillmentStatus: { not: 'CANCELED' } },
         select: {
           quantity: true,
         },

@@ -2,6 +2,7 @@ import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
 import { RefundServiceError } from '#server/modules/refund/refund.errors.ts'
+import { SettlementRefundPlanSchema } from '#server/modules/refund/settlement-refund.schema.ts'
 import { AdminServiceError } from './admin.errors.ts'
 
 const PaginationQuery = t.Object({
@@ -12,6 +13,7 @@ const StatusBody = t.Object({ status: t.String({ minLength: 1 }) })
 const RefundStatusBody = t.Object({
   status: t.String({ minLength: 1 }),
   externalReference: t.Optional(t.String({ minLength: 1, maxLength: 200 })),
+  settlementPlan: t.Optional(SettlementRefundPlanSchema),
 })
 const CommissionStatusBody = t.Object({
   status: t.Union([t.Literal('APPROVED'), t.Literal('VOID')]),
@@ -249,6 +251,12 @@ export function createAdminRoutes(container: ServiceContainer) {
         params: t.Object({ orderId: t.String() }),
       },
     )
+    .post('/api/admin/orders/:orderId/refunds', ({ authContext, params, body }: any) =>
+      container.adminService.createSettlementRefund(adminActor(authContext), params.orderId, body), {
+      withRole: 'ADMIN',
+      params: t.Object({ orderId: t.String({ format: 'uuid' }) }),
+      body: SettlementRefundPlanSchema,
+    })
     .get('/api/admin/refunds', ({ authContext, query }: any) => container.adminService.listRefunds(adminActor(authContext), query), {
       withRole: 'ADMIN',
       query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()) })]),
@@ -261,6 +269,12 @@ export function createAdminRoutes(container: ServiceContainer) {
         params: t.Object({ refundId: t.String() }),
       },
     )
+    .patch('/api/admin/refunds/:refundId/plan', ({ authContext, params, body }: any) =>
+      container.adminService.prepareSettlementRefund(adminActor(authContext), params.refundId, body), {
+      withRole: 'ADMIN',
+      params: t.Object({ refundId: t.String({ format: 'uuid' }) }),
+      body: SettlementRefundPlanSchema,
+    })
     .patch(
       '/api/admin/refunds/:refundId/status',
       ({ authContext, params: { refundId }, body }: any) => container.adminService.updateRefundStatus(adminActor(authContext), refundId, body),

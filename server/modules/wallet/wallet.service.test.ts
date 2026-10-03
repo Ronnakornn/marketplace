@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
 import { CommissionService } from '#server/modules/commission'
-import type { IWalletRepository, WalletRecord } from './wallet.repository.ts'
+import type { CompletedOrderRecord, IWalletRepository, WalletRecord } from './wallet.repository.ts'
 import { WalletService } from './wallet.service.ts'
 
 function appContext(): AppContext {
@@ -31,6 +31,36 @@ function walletRecord(ownerId = 'seller-1'): WalletRecord {
   }
 }
 
+function snapshottedOrder(): CompletedOrderRecord {
+  const now = new Date('2026-10-04T00:00:00Z')
+  return {
+    id: 'order-1', checkoutId: 'checkout-1', userId: 'buyer-1', orderNumber: 'ORD-1', status: 'DELIVERED', paymentStatus: 'SUCCEEDED',
+    subtotal: 100000n, discountTotal: 12000n, shippingTotal: 4000n, taxTotal: 0n, grandTotal: 92000n, currency: 'THB',
+    shippingName: 'Buyer', shippingPhone: null, shippingLine1: '1 Road', shippingLine2: null, shippingCity: 'Bangkok',
+    shippingRegion: null, shippingPostalCode: '10110', shippingCountry: 'TH', createdAt: now, updatedAt: now,
+    items: [{
+      id: 'item-1', orderId: 'order-1', shopId: 'shop-1', variantId: 'variant-1', productTitle: 'Item', productSlug: 'item',
+      variantTitle: 'Default', variantSku: 'SKU', shopName: 'Shop', shopSlug: 'shop', quantity: 1,
+      unitPrice: 100000n, lineTotal: 100000n, currency: 'THB', fulfillmentStatus: 'DELIVERED',
+      saleSnapshot: {
+        orderItemId: 'item-1', shopOrderId: 'shop-order-1', originalQuantity: 1, grossMerchandise: 100000n,
+        sellerCouponDiscount: 10000n, platformCouponDiscount: 0n, coinDiscount: 2000n, buyerMerchandise: 88000n,
+        couponId: 'coupon-1', couponCode: 'TEN_OFF', refundAllocations: [],
+      },
+    }],
+    shopOrders: [{
+      id: 'shop-order-1', orderId: 'order-1', shopId: 'shop-1', status: 'DELIVERED', fulfillmentStatus: 'DELIVERED',
+      subtotal: 100000n, discountTotal: 12000n, shippingTotal: 4000n, taxTotal: 0n, grandTotal: 92000n,
+      currency: 'THB', version: 1, createdAt: now, updatedAt: now,
+      saleSnapshot: {
+        shopOrderId: 'shop-order-1', policyVersion: 1, currency: 'THB', commissionBase: 90000n, commissionBps: 1000,
+        originalCommission: 9000n, originalShipping: 4000n, buyerShipping: 4000n, sellerShippingWaiver: 0n,
+        platformShippingSubsidy: 0n, recognizedAt: null, refundAllocations: [],
+      },
+    }],
+  }
+}
+
 function repoMock(): IWalletRepository {
   return {
     transaction: vi.fn((callback) => callback(repo)),
@@ -39,10 +69,13 @@ function repoMock(): IWalletRepository {
     ensureWallet: vi.fn(),
     listEntries: vi.fn(),
     sumLedger: vi.fn(),
+    sumReservedPayouts: vi.fn(),
     createLedgerEntry: vi.fn(),
     lockOrder: vi.fn(),
     findCompletedOrder: vi.fn(),
     hasOrderEarnings: vi.fn(),
+    lockWallet: vi.fn(),
+    recognizeShopSale: vi.fn(),
   }
 }
 
@@ -57,6 +90,7 @@ describe('WalletService', () => {
     vi.mocked(repo.ensureWallet).mockResolvedValue(walletRecord())
     vi.mocked(repo.findWalletByShopId).mockResolvedValue(walletRecord())
     vi.mocked(repo.sumLedger).mockResolvedValue(9000)
+    vi.mocked(repo.sumReservedPayouts).mockResolvedValue(0)
   })
 
   it('seller wallet summary works', async () => {
@@ -66,6 +100,7 @@ describe('WalletService', () => {
       shopName: 'Shop One',
       currency: 'THB',
       availableBalanceCents: 9000,
+      sellerDebtCents: 0,
     })
   })
 
@@ -75,6 +110,82 @@ describe('WalletService', () => {
     await expect(service.getSellerWallet({ id: 'seller-1', role: 'USER' })).rejects.toMatchObject({
       code: 'WALLET_FORBIDDEN',
     })
+  })
+
+  it('distinguishes an unpaid payout reservation from seller debt', async () => {
+    vi.mocked(repo.sumLedger).mockResolvedValue(-100)
+    vi.mocked(repo.sumReservedPayouts).mockResolvedValue(100)
+    await expect(service.getSellerWallet({ id: 'seller-1', role: 'USER' })).resolves.toMatchObject({ availableBalanceCents: -100, sellerDebtCents: 0 })
+    vi.mocked(repo.sumReservedPayouts).mockResolvedValue(0)
+    await expect(service.getSellerWallet({ id: 'seller-1', role: 'USER' })).resolves.toMatchObject({ availableBalanceCents: -100, sellerDebtCents: 100 })
+  })
+
+  it('uses seller-funded net merchandise, shipping and the original commission after the live rate changes', async () => {
+    vi.mocked(repo.findCompletedOrder).mockResolvedValue(snapshottedOrder())
+    service = new WalletService(appContext(), repo, new CommissionService(appContext(), 2000))
+    await service.createEarningsForCompletedOrder('order-1')
+    expect(vi.mocked(repo.createLedgerEntry).mock.calls.map(([entry]) => [entry.type, entry.amount])).toEqual([
+      ['order_earning', 94000], ['commission_fee', -9000],
+    ])
+    expect(repo.recognizeShopSale).toHaveBeenCalledWith('shop-order-1', expect.any(Date))
+  })
+
+  it('recognizes only retained shipping after a successful merchandise refund before earnings', async () => {
+    const order = snapshottedOrder()
+    const itemSale = order.items[0].saleSnapshot
+    const shopSale = order.shopOrders?.[0].saleSnapshot
+    if (!itemSale || !shopSale) throw new Error('Test snapshot missing')
+    itemSale.refundAllocations = [{ id: 'item-refund', refundId: 'refund-1', orderItemId: 'item-1', quantity: 1,
+      cashMerchandise: 88000n, platformCouponReversal: 0n, coinFundingReversal: 2000n, refund: { status: 'SUCCESS' } }]
+    shopSale.refundAllocations = [{ id: 'shop-refund', refundId: 'refund-1', shopOrderId: 'shop-order-1',
+      buyerShippingRefund: 0n, platformShippingReversal: 0n, commissionReversal: 9000n,
+      shippingCause: 'CHANGE_OF_MIND', walletPostedAt: null, refund: { status: 'SUCCESS' } }]
+    vi.mocked(repo.findCompletedOrder).mockResolvedValue(order)
+    await service.createEarningsForCompletedOrder('order-1')
+    expect(vi.mocked(repo.createLedgerEntry).mock.calls.map(([entry]) => [entry.type, entry.amount])).toEqual([['order_earning', 4000]])
+    expect(repo.recognizeShopSale).toHaveBeenCalledWith('shop-order-1', expect.any(Date))
+  })
+
+  it.each([{ payer: 'platform', gross: 94000 }, { payer: 'seller', gross: 90000 }])('credits the shipping entitlement for $payer free shipping', async ({ payer, gross }) => {
+    const order = snapshottedOrder()
+    const shop = order.shopOrders?.[0]
+    const sale = shop?.saleSnapshot
+    if (!shop || !sale) throw new Error('Test snapshot missing')
+    order.grandTotal = shop.grandTotal = 88000n
+    order.shippingTotal = shop.shippingTotal = 0n
+    sale.buyerShipping = 0n
+    sale.platformShippingSubsidy = payer === 'platform' ? 4000n : 0n
+    sale.sellerShippingWaiver = payer === 'seller' ? 4000n : 0n
+    vi.mocked(repo.findCompletedOrder).mockResolvedValue(order)
+    await service.createEarningsForCompletedOrder('order-1')
+    expect(vi.mocked(repo.createLedgerEntry).mock.calls.map(([entry]) => [entry.type, entry.amount])).toEqual([
+      ['order_earning', gross], ['commission_fee', -9000],
+    ])
+  })
+
+  it('records zero earning recognition once when all merchandise and shipping were refunded', async () => {
+    const order = snapshottedOrder()
+    const itemSale = order.items[0].saleSnapshot
+    const shopSale = order.shopOrders?.[0].saleSnapshot
+    if (!itemSale || !shopSale) throw new Error('Test snapshot missing')
+    itemSale.refundAllocations = [{ id: 'item-refund', refundId: 'refund-1', orderItemId: 'item-1', quantity: 1,
+      cashMerchandise: 88000n, platformCouponReversal: 0n, coinFundingReversal: 2000n, refund: { status: 'SUCCESS' } }]
+    shopSale.refundAllocations = [{ id: 'shop-refund', refundId: 'refund-1', shopOrderId: 'shop-order-1',
+      buyerShippingRefund: 4000n, platformShippingReversal: 0n, commissionReversal: 9000n,
+      shippingCause: 'SELLER_FAULT', walletPostedAt: null, refund: { status: 'SUCCESS' } }]
+    vi.mocked(repo.findCompletedOrder).mockResolvedValue(order)
+    vi.mocked(repo.recognizeShopSale).mockImplementation(async (_shopOrderId, at) => { shopSale.recognizedAt = at })
+    await service.createEarningsForCompletedOrder('order-1')
+    await service.createEarningsForCompletedOrder('order-1')
+    expect(vi.mocked(repo.createLedgerEntry).mock.calls.map(([entry]) => [entry.type, entry.amount])).toEqual([['order_earning', 0]])
+  })
+
+  it('rejects a mixed legacy and snapshot order instead of partially crediting earnings', async () => {
+    const order = snapshottedOrder()
+    order.items[0].saleSnapshot = null
+    vi.mocked(repo.findCompletedOrder).mockResolvedValue(order)
+    await expect(service.createEarningsForCompletedOrder('order-1')).rejects.toMatchObject({ status: 409, code: 'INVALID_PAYOUT_STATE' })
+    expect(repo.createLedgerEntry).not.toHaveBeenCalled()
   })
 
   it('completed order creates earning ledger and commission is deducted', async () => {

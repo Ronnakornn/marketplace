@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from '#generated/client/client.ts'
+import { RefundServiceError } from '#server/modules/refund/refund.errors.ts'
 
 type BuyerCoinClient = Pick<PrismaClient, 'buyerCoinLedger' | 'buyerCoinWallet'>
 type BuyerCoinTransactionClient = Pick<Prisma.TransactionClient, 'buyerCoinLedger' | 'buyerCoinWallet' | 'refund'>
@@ -33,7 +34,13 @@ export async function releasePendingBuyerCoins(prisma: BuyerCoinClient, orderId:
 
 export async function reverseBuyerCoinsForRefund(
   prisma: BuyerCoinTransactionClient,
-  input: { refundId: string; orderId: string; refundAmount: bigint | number; orderGrandTotal: bigint | number; userId: string },
+  input: {
+    refundId: string; orderId: string; refundAmount: bigint | number; orderGrandTotal: bigint | number; userId: string
+    coinFundingTargetCents?: bigint
+    coinFundingTotalCents?: bigint
+    merchandiseCashTarget?: bigint
+    merchandiseCashTotal?: bigint
+  },
 ): Promise<void> {
   const existing = await prisma.buyerCoinLedger.findFirst({
     where: { referenceId: input.refundId, referenceType: { in: ['REFUND_COIN_RESTORE', 'REFUND_CASHBACK_REVERSAL'] } },
@@ -41,7 +48,12 @@ export async function reverseBuyerCoinsForRefund(
   })
   const refundAmount = integerAmount(input.refundAmount)
   const orderGrandTotal = integerAmount(input.orderGrandTotal)
-  if (existing || refundAmount <= 0n || orderGrandTotal <= 0n) return
+  const explicit = input.coinFundingTargetCents !== undefined
+  if (existing || !explicit && (refundAmount <= 0n || orderGrandTotal <= 0n)) return
+  const invalid = () => new RefundServiceError('Refund reward allocation is inconsistent', 409, 'INVALID_REFUND_STATE')
+  if (explicit && (integerAmount(input.coinFundingTargetCents!) < 0n || input.coinFundingTotalCents === undefined || integerAmount(input.coinFundingTotalCents) < 0n
+    || integerAmount(input.coinFundingTargetCents!) > integerAmount(input.coinFundingTotalCents) || input.merchandiseCashTarget === undefined || input.merchandiseCashTotal === undefined
+    || integerAmount(input.merchandiseCashTarget) < 0n || integerAmount(input.merchandiseCashTotal) < 0n || integerAmount(input.merchandiseCashTarget) > integerAmount(input.merchandiseCashTotal))) throw invalid()
 
   const [spentEntries, cashbackEntries, successfulRefunds, priorRestores, priorReversals] = await Promise.all([
     prisma.buyerCoinLedger.findMany({
@@ -72,7 +84,15 @@ export async function reverseBuyerCoinsForRefund(
   const cumulativeRefund = integerAmount(successfulRefunds._sum.amount ?? refundAmount)
   const totalSpent = spentEntries.reduce((sum, entry) => sum + integerAmount(entry.amount), 0n)
   const restored = integerAmount(priorRestores._sum.amount ?? 0)
-  const spentDelta = proportionalTarget(totalSpent, cumulativeRefund, orderGrandTotal) - restored
+  const coinTarget = explicit ? integerAmount(input.coinFundingTargetCents!) / 100n : proportionalTarget(totalSpent, cumulativeRefund, orderGrandTotal)
+  if (explicit && (totalSpent * 100n !== integerAmount(input.coinFundingTotalCents!)
+    || spentEntries.some((entry) => integerAmount(entry.amount) <= 0n) || new Set(spentEntries.map((entry) => entry.walletId)).size > 1
+    || restored < 0n || restored > coinTarget || coinTarget > totalSpent)) throw invalid()
+  if (explicit && integerAmount(input.coinFundingTotalCents!) > 0n) {
+    const buyerWallet = await prisma.buyerCoinWallet.findUnique({ where: { userId: input.userId }, select: { id: true } })
+    if (!buyerWallet || spentEntries[0]?.walletId !== buyerWallet.id) throw invalid()
+  }
+  const spentDelta = (explicit ? coinTarget : coinTarget > totalSpent ? totalSpent : coinTarget) - restored
   const spentWalletId = spentEntries[0]?.walletId
   if (spentWalletId && spentDelta > 0n) {
     const wallet = await prisma.buyerCoinWallet.update({
@@ -98,7 +118,9 @@ export async function reverseBuyerCoinsForRefund(
 
   const totalCashback = cashbackEntries.reduce((sum, entry) => sum + (integerAmount(entry.amount) < 0n ? -integerAmount(entry.amount) : integerAmount(entry.amount)), 0n)
   const reversed = -integerAmount(priorReversals._sum.amount ?? 0)
-  const cashbackDelta = proportionalTarget(totalCashback, cumulativeRefund, orderGrandTotal) - reversed
+  const cashbackDelta = explicit
+    ? proportionalTarget(totalCashback, integerAmount(input.merchandiseCashTarget!), integerAmount(input.merchandiseCashTotal!)) - reversed
+    : proportionalTarget(totalCashback, cumulativeRefund, orderGrandTotal) - reversed
   const cashbackWalletId = cashbackEntries[0]?.walletId
   if (cashbackWalletId && cashbackDelta > 0n) {
     const currentWallet = await prisma.buyerCoinWallet.findUniqueOrThrow({
