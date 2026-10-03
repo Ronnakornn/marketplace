@@ -21,7 +21,7 @@ bunx --bun prisma init
 - `prisma/schema.prisma` - Your Prisma schema file
 - `prisma.config.ts` - TypeScript configuration for Prisma CLI
 - `.env` - Environment variables (DATABASE_URL)
-- `.gitignore` - Ignores node_modules, .env, and generated files
+- `.gitignore` - Ensures `.env` is ignored and appends the generated client path
 
 ## Options
 
@@ -34,6 +34,9 @@ bunx --bun prisma init
 | `--output` | Define Prisma Client generator output path to use | - |
 | `--preview-feature` | Define a preview feature to use | - |
 | `--with-model` | Add example model to created schema file | - |
+| `--no-skills` | Skip the best-effort installation of Prisma agent skills | - |
+
+`prisma init` attempts to install `prisma/skills` for detected agents. This is best-effort and does not make project initialization fail. Use `--no-skills` in minimal or controlled environments.
 
 ## Examples
 
@@ -65,13 +68,13 @@ prisma init --db
 
 Opens browser for authentication, creates cloud database instance.
 
-### AI-generated schema
+### Add an example model
 
 ```bash
-prisma init --prompt "Blog with users, posts, comments, and tags"
+prisma init --with-model
 ```
 
-Generates schema based on description and deploys to Prisma Postgres.
+Adds a starter model to the generated schema.
 
 ### With preview features
 
@@ -79,12 +82,12 @@ Generates schema based on description and deploys to Prisma Postgres.
 prisma init --preview-feature relationJoins --preview-feature fullTextSearch
 ```
 
-## Generated Schema (v7)
+## Generated Schema
 
 ```prisma
 generator client {
   provider = "prisma-client"
-  output   = "../generated"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -92,10 +95,27 @@ datasource db {
 }
 ```
 
-## Generated Config (v7)
+## Generated Config (Node.js default)
 
 ```typescript
 // prisma.config.ts
+import "dotenv/config";
+import { defineConfig } from 'prisma/config'
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  migrations: {
+    path: 'prisma/migrations',
+  },
+  datasource: {
+    url: process.env['DATABASE_URL'],
+  },
+})
+```
+
+## Generated Config (Bun)
+
+```typescript
 import { defineConfig, env } from 'prisma/config'
 
 export default defineConfig({
@@ -111,8 +131,9 @@ export default defineConfig({
 
 ## Next Steps After Init
 
-1. Configure `DATABASE_URL` in `prisma.config.ts` or `.env`
+1. Configure `DATABASE_URL` in `.env` (and let `prisma.config.ts` read it)
 2. Define your models in `prisma/schema.prisma`
 3. Run `prisma dev` for local development or connect to remote DB
 4. Run `prisma migrate dev` to create migrations
 5. Run `prisma generate` to generate Prisma Client
+6. Run `prisma db seed` explicitly if you want seed data

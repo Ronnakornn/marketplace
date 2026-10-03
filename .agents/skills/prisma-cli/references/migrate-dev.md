@@ -26,10 +26,12 @@ prisma migrate dev [options]
 | `--config` | Custom path to your Prisma config file |
 | `--url` | Override the datasource URL from the Prisma config file |
 
-### Removed in v7
+### Follow-up Commands
 
-- `--skip-generate` - Run `prisma generate` explicitly
-- `--skip-seed` - Run `prisma db seed` explicitly
+- Run `prisma generate` explicitly when you need refreshed client output
+- Run `prisma db seed` explicitly when you need seed data
+
+Run `prisma generate` as an explicit follow-up when you need refreshed generated artifacts. Do not rely on historical CLI help that described generators as part of `migrate dev`.
 
 ## Examples
 
@@ -55,12 +57,12 @@ prisma migrate dev --create-only
 
 Useful for reviewing migration SQL before applying.
 
-### Full workflow (v7)
+### Full workflow
 
 ```bash
 prisma migrate dev --name my_migration
-prisma generate  # Must run explicitly in v7
-prisma db seed   # Must run explicitly in v7
+prisma generate
+prisma db seed
 ```
 
 ## Migration Files
