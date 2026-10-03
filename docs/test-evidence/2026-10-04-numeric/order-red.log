@@ -1,0 +1,101 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ❯ server/modules/order/order.service.test.ts (7 tests | 3 failed) 19ms
+     × lets sellers list own shop orders and hides other shop items in the same order 7ms
+     × uses authorized shop snapshots for discounted seller totals while preserving buyer totals 1ms
+     × uses the active shop resolver for staff totals and sums only its authorized shop snapshots 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/order/order.service.test.ts > OrderService > lets sellers list own shop orders and hides other shop items in the same order
+AssertionError: expected { subtotal: 5000, …(5) } to deeply equal { subtotal: 2400, …(5) }
+
+- Expected
++ Received
+
+  {
+    "currency": "USD",
+    "discountTotal": 0,
+-   "grandTotal": 2600,
+-   "shippingTotal": 200,
+-   "subtotal": 2400,
++   "grandTotal": 5500,
++   "shippingTotal": 500,
++   "subtotal": 5000,
+    "taxTotal": 0,
+  }
+
+ ❯ server/modules/order/order.service.test.ts:267:31
+    265|     expect(result[0]!.shipments[0]!.shopId).toBe('shop-1')
+    266|     expect(result[0]!.shops).toHaveLength(1)
+    267|     expect(result[0]!.totals).toEqual({ subtotal: 2400, discountTotal:…
+       |                               ^
+    268|   })
+    269|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  server/modules/order/order.service.test.ts > OrderService > uses authorized shop snapshots for discounted seller totals while preserving buyer totals
+AssertionError: expected { subtotal: 5000, …(5) } to deeply equal { subtotal: 2400, …(5) }
+
+- Expected
++ Received
+
+  {
+    "currency": "USD",
+-   "discountTotal": 200,
+-   "grandTotal": 2400,
+-   "shippingTotal": 200,
+-   "subtotal": 2400,
++   "discountTotal": 500,
++   "grandTotal": 5000,
++   "shippingTotal": 500,
++   "subtotal": 5000,
+    "taxTotal": 0,
+  }
+
+ ❯ server/modules/order/order.service.test.ts:282:27
+    280|     vi.mocked(repo.findBuyerOrderById).mockResolvedValue(order)
+    281|     const seller = await service.getSellerOrder({ id: 'seller-1', role…
+    282|     expect(seller.totals).toEqual({ subtotal: 2400, discountTotal: 200…
+       |                           ^
+    283|     expect(seller.items.map(item => item.shopId)).toEqual(['shop-1'])
+    284|     const buyer = await service.getBuyerOrder({ id: 'buyer-1', role: '…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  server/modules/order/order.service.test.ts > OrderService > uses the active shop resolver for staff totals and sums only its authorized shop snapshots
+AssertionError: expected { subtotal: 5000, …(5) } to deeply equal { subtotal: 2600, …(5) }
+
+- Expected
++ Received
+
+  {
+    "currency": "USD",
+    "discountTotal": 0,
+-   "grandTotal": 2900,
+-   "shippingTotal": 300,
+-   "subtotal": 2600,
++   "grandTotal": 5500,
++   "shippingTotal": 500,
++   "subtotal": 5000,
+    "taxTotal": 0,
+  }
+
+ ❯ server/modules/order/order.service.test.ts:293:31
+    291|     vi.mocked(repo.findSellerOrders).mockResolvedValue([createOrder()])
+    292|     const orders = await staffService.listSellerOrders({ id: 'staff-2'…
+    293|     expect(orders[0]!.totals).toEqual({ subtotal: 2600, discountTotal:…
+       |                               ^
+    294|     expect(orders[0]!.items.map(item => item.shopId)).toEqual(['shop-2…
+    295|     expect(access.resolveActiveShops).toHaveBeenCalledWith('staff-2')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 4 passed (7)
+   Start at  01:30:31
+   Duration  231ms (transform 50ms, setup 0ms, import 72ms, tests 19ms, environment 0ms)
+

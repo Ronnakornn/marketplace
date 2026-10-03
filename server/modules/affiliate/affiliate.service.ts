@@ -198,7 +198,7 @@ export class AffiliateService {
 
     const eligiblesubtotal = this.calculateEligiblesubtotal(order)
     if (eligiblesubtotal <= 0) return null
-    const commissionCents = Math.floor((eligiblesubtotal * this.config.commissionBps) / 10000)
+    const commissionCents = Number(BigInt(eligiblesubtotal) * BigInt(this.config.commissionBps) / 10000n)
     if (commissionCents <= 0) return null
 
     return repo.createCommission({

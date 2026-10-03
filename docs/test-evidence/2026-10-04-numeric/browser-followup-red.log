@@ -1,0 +1,260 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:27036) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:25624) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+  ok  1 [setup] › e2e\auth.setup.ts:6:1 › authenticate seller (584ms)
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46010)
+[WebServer] 
+  ok  2 [chromium] › e2e\buyer-lifecycle.spec.ts:127:1 › buyer purchases through the UI, seller ships, and buyer sees matching tracking (14.2s)
+  ok  3 [chromium] › e2e\buyer-lifecycle.spec.ts:228:1 › buyer submits a review and a return for an eligible delivered item (3.2s)
+  ok  4 [chromium] › e2e\checkout-resilience.spec.ts:30:1 › double-clicking checkout creates one order, payment and stock reservation (3.8s)
+  ok  5 [chromium] › e2e\checkout-resilience.spec.ts:64:1 › lost checkout response after commit can be retried and recovered in history without duplicates (2.9s)
+  x   6 [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (3.7s)
+  x   7 [chromium] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (1.6s)
+  ok  8 [chromium] › e2e\numeric-boundaries.spec.ts:66:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (2.5s)
+  x   9 [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for repriced basket (2.0s)
+  x  10 [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for coupon and coins (2.6s)
+  x  11 [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for flash price with coupon and coins (2.5s)
+
+
+  1) [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 
+
+    Error: {"error":{"code":"INVALID_REQUEST","message":"{\n  \"type\": \"validation\",\n  \"on\": \"body\",\n  \"property\": \"/cartItemIds\",\n  \"message\": \"Expected array\",\n  \"summary\": \"Expected array\",\n  \"expected\": {\n    \"type\": \"Could not create expected value\",\n    \"message\": \"String types with formats must specify a default value\",\n    \"error\": {\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      }\n    }\n  },\n  \"found\": {\n    \"cartId\": \"1157c430-2c2c-4a09-990c-59867f033b9c\",\n    \"couponCode\": \"NUM-D87723CA\"\n  },\n  \"errors\": [\n    {\n      \"summary\": \"Expected array\",\n      \"type\": 6,\n      \"schema\": {\n        \"minItems\": 1,\n        \"type\": \"array\",\n        \"items\": {\n          \"format\": \"uuid\",\n          \"type\": \"string\"\n        }\n      },\n      \"path\": \"/cartItemIds\",\n      \"message\": \"Expected array\",\n      \"errors\": []\n    }\n  ]\n}","requestId":"b779ba19-9cb4-411f-aa70-f3e012ee0fd5"}}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      34 |   await loginUi(page, fixture.buyer, '/en/checkout');
+      35 |   const quote = await page.request.post('/api/checkout/quote', { data: { cartId: cart.id, couponCode: code } });
+    > 36 |   expect(quote.ok(), await quote.text()).toBeTruthy();
+         |                                          ^
+      37 |   expect(await quote.json()).toMatchObject({ subtotal: 1999, discountTotal: 249, grandTotal: 1750 });
+      38 | });
+      39 |
+        at D:\GitHub\marketplace\e2e\numeric-boundaries.spec.ts:36:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\error-context.md
+
+    Error Context: test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds 
+
+    Error: {"error":{"code":"INVALID_REQUEST","message":"{\n  \"type\": \"validation\",\n  \"on\": \"body\",\n  \"property\": \"/cartItemIds\",\n  \"message\": \"Expected array\",\n  \"summary\": \"Expected array\",\n  \"expected\": {\n    \"type\": \"Could not create expected value\",\n    \"message\": \"String types with formats must specify a default value\",\n    \"error\": {\n      \"schema\": {\n        \"format\": \"uuid\",\n        \"type\": \"string\"\n      }\n    }\n  },\n  \"found\": {\n    \"cartId\": \"f1d57cfc-67b5-4f44-8cbc-3ad1467f56c5\",\n    \"addressId\": \"16deaae8-eafd-4eeb-a3f2-cf7ce3f65933\",\n    \"paymentMethod\": \"card\"\n  },\n  \"errors\": [\n    {\n      \"summary\": \"Expected array\",\n      \"type\": 6,\n      \"schema\": {\n        \"minItems\": 1,\n        \"type\": \"array\",\n        \"items\": {\n          \"format\": \"uuid\",\n          \"type\": \"string\"\n        }\n      },\n      \"path\": \"/cartItemIds\",\n      \"message\": \"Expected array\",\n      \"errors\": []\n    }\n  ]\n}","requestId":"e90effb5-3dc4-47df-bf44-2eba3846d9f4"}}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      47 |     cartId: cart.id, addressId: fixture.address.id, paymentMethod: 'card',
+      48 |   } });
+    > 49 |   expect(checkout.ok(), await checkout.text()).toBeTruthy();
+         |                                                ^
+      50 |   expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 3 });
+      51 |   await page.context().clearCookies();
+      52 |   await loginUi(page, seller, '/en/seller/inventory');
+        at D:\GitHub\marketplace\e2e\numeric-boundaries.spec.ts:49:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\numeric-boundaries-product-55d2e-er-stock-below-active-holds-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\numeric-boundaries-product-55d2e-er-stock-below-active-holds-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\numeric-boundaries-product-55d2e-er-stock-below-active-holds-chromium\error-context.md
+
+    Error Context: test-results\numeric-boundaries-product-55d2e-er-stock-below-active-holds-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\numeric-boundaries-product-55d2e-er-stock-below-active-holds-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\numeric-boundaries-product-55d2e-er-stock-below-active-holds-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for repriced basket 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "error": Object {
+    -     "code": "AMOUNT_MISMATCH",
+    +     "code": "INVALID_REQUEST",
+        },
+      }
+
+      100 |     const rejected = await postWebhook({ ...webhook, amount: scenario.grandTotal - 1 });
+      101 |     expect(rejected.status()).toBe(400);
+    > 102 |     expect(await rejected.json()).toMatchObject({ error: { code: 'AMOUNT_MISMATCH' } });
+          |                                   ^
+      103 |     expect(await prisma.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ amount: scenario.grandTotal, status: 'PENDING' });
+      104 |     for (const { variant } of fixture.shops) {
+      105 |       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });
+        at D:\GitHub\marketplace\e2e\numeric-commerce.spec.ts:102:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\numeric-commerce-UI-API-an-ab517--satang-for-repriced-basket-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\numeric-commerce-UI-API-an-ab517--satang-for-repriced-basket-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\numeric-commerce-UI-API-an-ab517--satang-for-repriced-basket-chromium\error-context.md
+
+    Error Context: test-results\numeric-commerce-UI-API-an-ab517--satang-for-repriced-basket-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\numeric-commerce-UI-API-an-ab517--satang-for-repriced-basket-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\numeric-commerce-UI-API-an-ab517--satang-for-repriced-basket-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for coupon and coins 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "error": Object {
+    -     "code": "AMOUNT_MISMATCH",
+    +     "code": "INVALID_REQUEST",
+        },
+      }
+
+      100 |     const rejected = await postWebhook({ ...webhook, amount: scenario.grandTotal - 1 });
+      101 |     expect(rejected.status()).toBe(400);
+    > 102 |     expect(await rejected.json()).toMatchObject({ error: { code: 'AMOUNT_MISMATCH' } });
+          |                                   ^
+      103 |     expect(await prisma.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ amount: scenario.grandTotal, status: 'PENDING' });
+      104 |     for (const { variant } of fixture.shops) {
+      105 |       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });
+        at D:\GitHub\marketplace\e2e\numeric-commerce.spec.ts:102:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\error-context.md
+
+    Error Context: test-results\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for flash price with coupon and coins 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "error": Object {
+    -     "code": "AMOUNT_MISMATCH",
+    +     "code": "INVALID_REQUEST",
+        },
+      }
+
+      100 |     const rejected = await postWebhook({ ...webhook, amount: scenario.grandTotal - 1 });
+      101 |     expect(rejected.status()).toBe(400);
+    > 102 |     expect(await rejected.json()).toMatchObject({ error: { code: 'AMOUNT_MISMATCH' } });
+          |                                   ^
+      103 |     expect(await prisma.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ amount: scenario.grandTotal, status: 'PENDING' });
+      104 |     for (const { variant } of fixture.shops) {
+      105 |       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });
+        at D:\GitHub\marketplace\e2e\numeric-commerce.spec.ts:102:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\error-context.md
+
+    Error Context: test-results\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 
+    [chromium] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds 
+    [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for repriced basket 
+    [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for coupon and coins 
+    [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for flash price with coupon and coins 
+  6 passed (53.1s)

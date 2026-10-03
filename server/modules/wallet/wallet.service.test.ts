@@ -40,6 +40,7 @@ function repoMock(): IWalletRepository {
     listEntries: vi.fn(),
     sumLedger: vi.fn(),
     createLedgerEntry: vi.fn(),
+    lockOrder: vi.fn(),
     findCompletedOrder: vi.fn(),
     hasOrderEarnings: vi.fn(),
   }

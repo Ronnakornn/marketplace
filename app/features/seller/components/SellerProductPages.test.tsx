@@ -604,6 +604,29 @@ describe("Seller product pages", () => {
     expect(createVariantMutate).toHaveBeenCalledWith(expect.objectContaining({ productId: "prod_1", sku: "SHIRT-2", price: 1550 }), expect.any(Object));
   });
 
+  it.each([["0.29", 29], ["1.15", 115], ["1.000", 100], ["1e3", 100000], ["90071992547409.90", 9007199254740990], ["90071992547409.91", 9007199254740991]] as const)(
+    "saves catalog price decimal text %s as exact minor units", (price, expected) => {
+      render(<SellerProductEditPage productId="prod_1" />);
+      fireEvent.change(screen.getByLabelText("Price", { selector: "#variant-price-0" }), { target: { value: price } });
+      fireEvent.click(screen.getAllByRole("button", { name: "Save variant" })[0]);
+      expect(updateVariantMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ productId: "prod_1", variantId: "var_1", price: expected }),
+        expect.any(Object),
+      );
+    },
+  );
+
+  it("preserves the maximum safe catalog price when saving without editing its amount", () => {
+    sellerProductsState = {
+      data: { data: [{ ...products[0], variants: [{ ...products[0].variants[0], price: 9007199254740991 }] }], meta: { nextCursor: null, hasNextPage: false } },
+      error: null, isLoading: false,
+    };
+    render(<SellerProductEditPage productId="prod_1" />);
+    expect(screen.getByLabelText("Price", { selector: "#variant-price-0" }).getAttribute("value")).toBe("90071992547409.91");
+    fireEvent.click(screen.getAllByRole("button", { name: "Save variant" })[0]);
+    expect(updateVariantMutate).toHaveBeenCalledWith(expect.objectContaining({ price: 9007199254740991 }), expect.any(Object));
+  });
+
   it("deletes variants after confirmation", () => {
     render(<SellerProductEditPage productId="prod_1" />);
     fireEvent.click(screen.getAllByRole("button", { name: "Delete variant" })[0]);

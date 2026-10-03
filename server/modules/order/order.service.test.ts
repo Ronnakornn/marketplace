@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { IOrderRepository, OrderRecord } from './order.repository.ts'
 import { OrderService } from './order.service.ts'
+import type { ActiveShopResolver } from '#server/modules/security'
 
 function createLogger() {
   return {
@@ -56,6 +57,10 @@ function createOrder(): OrderRecord {
     shippingCountry: 'TH',
     createdAt: now,
     updatedAt: now,
+    shopOrders: [
+      { shopId: 'shop-1', subtotal: 2400n, discountTotal: 0n, shippingTotal: 200n, taxTotal: 0n, grandTotal: 2600n, currency: 'USD' },
+      { shopId: 'shop-2', subtotal: 2600n, discountTotal: 0n, shippingTotal: 300n, taxTotal: 0n, grandTotal: 2900n, currency: 'USD' },
+    ],
     items: [
       {
         id: 'item-shop-1',
@@ -259,5 +264,34 @@ describe('OrderService', () => {
     expect(result[0]!.shipments).toHaveLength(1)
     expect(result[0]!.shipments[0]!.shopId).toBe('shop-1')
     expect(result[0]!.shops).toHaveLength(1)
+    expect(result[0]!.totals).toEqual({ subtotal: 2400, discountTotal: 0, shippingTotal: 200, taxTotal: 0, grandTotal: 2600, currency: 'USD' })
+  })
+
+  it('uses authorized shop snapshots for discounted seller totals while preserving buyer totals', async () => {
+    const order = createOrder()
+    order.discountTotal = 500n
+    order.grandTotal = 5000n
+    order.shopOrders[0]!.discountTotal = 200n
+    order.shopOrders[0]!.grandTotal = 2400n
+    order.shopOrders[1]!.discountTotal = 300n
+    order.shopOrders[1]!.grandTotal = 2600n
+    vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', name: 'Shop One', slug: 'shop-one' }])
+    vi.mocked(repo.findSellerOrderById).mockResolvedValue(order)
+    vi.mocked(repo.findBuyerOrderById).mockResolvedValue(order)
+    const seller = await service.getSellerOrder({ id: 'seller-1', role: 'USER' }, order.id)
+    expect(seller.totals).toEqual({ subtotal: 2400, discountTotal: 200, shippingTotal: 200, taxTotal: 0, grandTotal: 2400, currency: 'USD' })
+    expect(seller.items.map(item => item.shopId)).toEqual(['shop-1'])
+    const buyer = await service.getBuyerOrder({ id: 'buyer-1', role: 'USER' }, order.id)
+    expect(buyer.totals).toEqual({ subtotal: 5000, discountTotal: 500, shippingTotal: 500, taxTotal: 0, grandTotal: 5000, currency: 'USD' })
+  })
+
+  it('uses the active shop resolver for staff totals and sums only its authorized shop snapshots', async () => {
+    const access = { resolveActiveShops: vi.fn().mockResolvedValue([{ id: 'shop-2', name: 'Shop Two', slug: 'shop-two' }]) } as unknown as ActiveShopResolver
+    const staffService = new OrderService(createAppContext(), repo, access)
+    vi.mocked(repo.findSellerOrders).mockResolvedValue([createOrder()])
+    const orders = await staffService.listSellerOrders({ id: 'staff-2', role: 'USER' })
+    expect(orders[0]!.totals).toEqual({ subtotal: 2600, discountTotal: 0, shippingTotal: 300, taxTotal: 0, grandTotal: 2900, currency: 'USD' })
+    expect(orders[0]!.items.map(item => item.shopId)).toEqual(['shop-2'])
+    expect(access.resolveActiveShops).toHaveBeenCalledWith('staff-2')
   })
 })

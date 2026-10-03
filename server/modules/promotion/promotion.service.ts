@@ -440,10 +440,12 @@ export class PromotionService {
   }
 
   private bahtToMinorUnits(value: number): number {
-    if (!Number.isFinite(value) || value <= 0 || Math.round(value * 100) !== value * 100) {
+    const decimal = /^(\d+)(?:\.(\d{1,2}))?$/.exec(value.toString())
+    const minorUnits = decimal ? BigInt(decimal[1]!) * 100n + BigInt((decimal[2] ?? '').padEnd(2, '0')) : 0n
+    if (!Number.isFinite(value) || value <= 0 || !decimal || minorUnits <= 0n || minorUnits > BigInt(Number.MAX_SAFE_INTEGER)) {
       throw new PromotionServiceError('Flash sale price must be a positive amount with at most two decimal places', 400, 'FLASH_SALE_PRICE_INVALID')
     }
-    return Math.round(value * 100)
+    return Number(minorUnits)
   }
 
   private async assertFlashSaleItemUpdatePayload(
@@ -515,7 +517,7 @@ export class PromotionService {
     if (coupon.discountType === 'FIXED_AMOUNT') {
       discount = this.toMoneyNumber(coupon.discountValue ?? coupon.discountValueCents ?? 0)
     } else if (coupon.discountType === 'PERCENT') {
-      discount = Math.floor(subtotal * (coupon.discountPercentBps ?? 0) / 10_000)
+      discount = Number(BigInt(subtotal) * BigInt(coupon.discountPercentBps ?? 0) / 10_000n)
       const maxDiscount = coupon.maxDiscount ?? coupon.maxDiscountCents ?? null
       if (maxDiscount !== null) {
         discount = Math.min(discount, this.toMoneyNumber(maxDiscount))
@@ -573,6 +575,17 @@ export class PromotionService {
     if (payload.usageLimit !== undefined) data.usageLimit = payload.usageLimit
     if (payload.perUserLimit !== undefined) data.perUserLimit = payload.perUserLimit
     if (payload.isActive !== undefined) data.isActive = payload.isActive
+    for (const [field, value] of Object.entries(data)) {
+      if (value === null || value === undefined) continue
+      const minimum = field === 'usageLimit' || field === 'perUserLimit' ? 1 : 0
+      const maximum = field === 'discountPercentBps' ? 10_000
+        : field === 'usageLimit' || field === 'perUserLimit' ? 2_147_483_647
+          : Number.MAX_SAFE_INTEGER
+      if (['discountValue', 'minOrder', 'maxDiscount', 'discountPercentBps', 'usageLimit', 'perUserLimit'].includes(field)
+        && (!Number.isSafeInteger(value) || Number(value) < minimum || Number(value) > maximum)) {
+        throw new PromotionServiceError(`${field} must be an integer between ${minimum} and ${maximum}`, 400, 'INVALID_COUPON')
+      }
+    }
     return data as CreateCouponInput | UpdateCouponInput
   }
 

@@ -201,18 +201,30 @@ export class ProductAnalyticsService {
     const pagination = this.normalizePagination(query)
     const q = this.normalizeQuery(query.q)
     const sort = this.normalizeSort(query.sort, PRODUCT_SORTS, 'revenue')
-    const [total, products, views, addToCart, orderItems] = await Promise.all([
-      this.repo.countProducts(shopIds, q),
-      this.repo.findProducts({ shopIds, q, page: pagination.page, limit: pagination.limit }),
+    const [candidates, views, addToCart, orderItems] = await Promise.all([
+      this.repo.findProductRankingCandidates(shopIds, q),
       this.repo.countProductViews(shopIds, range),
       this.repo.countProductAddToCart(shopIds, range),
       this.repo.findPaidOrderItems(shopIds, range),
     ])
 
-    const items = this.sortProductMetrics(this.buildProductMetrics(products, views, addToCart, orderItems), sort)
+    const buckets = this.buildProductBuckets(views, addToCart, orderItems)
+    const ranked = this.sortProductMetrics(candidates.map((product) => ({
+      productId: product.id,
+      title: product.title,
+      ...this.productMetricTotals(this.bucket(buckets, product.id)),
+    })), sort)
+    const start = (pagination.page - 1) * pagination.limit
+    const pageIds = ranked.slice(start, start + pagination.limit).map((item) => item.productId)
+    const products = await this.repo.findProductsByIds(shopIds, pageIds)
+    const byId = new Map(this.buildProductMetrics(products, views, addToCart, orderItems).map((item) => [item.productId, item]))
+    const items = pageIds.flatMap((id) => {
+      const item = byId.get(id)
+      return item ? [item] : []
+    })
     return {
       items,
-      pagination: this.toPagination(total, pagination.page, pagination.limit),
+      pagination: this.toPagination(candidates.length, pagination.page, pagination.limit),
     }
   }
 
@@ -222,16 +234,34 @@ export class ProductAnalyticsService {
     const productId = this.normalizeUuid(query.productId, 'productId')
     const pagination = this.normalizePagination(query)
     const sort = this.normalizeSort(query.sort, SKU_SORTS, 'revenue')
-    const [total, variants, addToCart, orderItems] = await Promise.all([
-      this.repo.countVariants(shopIds, productId),
-      this.repo.findVariants({ shopIds, productId, page: pagination.page, limit: pagination.limit }),
+    const [candidates, addToCart, orderItems] = await Promise.all([
+      this.repo.findVariantRankingCandidates(shopIds, productId),
       this.repo.countProductAddToCart(shopIds, range, productId),
       this.repo.findPaidOrderItems(shopIds, range, productId),
     ])
 
+    const buckets = this.buildSkuBuckets(addToCart, orderItems)
+    const ranked = this.sortSkuMetrics(candidates.map((variant) => {
+      const bucket = this.bucket(buckets, variant.id)
+      return {
+        variantId: variant.id,
+        sku: variant.sku,
+        addToCart: bucket.addToCart,
+        orders: bucket.orderIds.size,
+        unitsSold: bucket.unitsSold,
+        revenue: bucket.revenue,
+      }
+    }), sort)
+    const start = (pagination.page - 1) * pagination.limit
+    const pageIds = ranked.slice(start, start + pagination.limit).map((item) => item.variantId)
+    const variants = await this.repo.findVariantsByIds(shopIds, pageIds)
+    const byId = new Map(this.buildSkuMetrics(variants, addToCart, orderItems).map((item) => [item.variantId, item]))
     return {
-      items: this.sortSkuMetrics(this.buildSkuMetrics(variants, addToCart, orderItems), sort),
-      pagination: this.toPagination(total, pagination.page, pagination.limit),
+      items: pageIds.flatMap((id) => {
+        const item = byId.get(id)
+        return item ? [item] : []
+      }),
+      pagination: this.toPagination(candidates.length, pagination.page, pagination.limit),
     }
   }
 
@@ -320,6 +350,35 @@ export class ProductAnalyticsService {
     addToCart: AnalyticsAddToCartRow[],
     orderItems: AnalyticsOrderItem[],
   ): ProductAnalyticsProductMetric[] {
+    const buckets = this.buildProductBuckets(views, addToCart, orderItems)
+    return products.map((product) => ({
+      productId: product.id,
+      title: product.title,
+      slug: product.slug,
+      status: product.status,
+      coverImage: product.images[0]?.url ?? null,
+      shop: product.shop,
+      ...this.productMetricTotals(this.bucket(buckets, product.id)),
+    }))
+  }
+
+  private productMetricTotals(bucket: MetricBucket) {
+    return {
+      views: bucket.views,
+      addToCart: bucket.addToCart,
+      orders: bucket.orderIds.size,
+      unitsSold: bucket.unitsSold,
+      revenue: bucket.revenue,
+      conversionRate: this.conversionRate(bucket.orderIds.size, bucket.views),
+      currency: this.currency(bucket.currencies),
+    }
+  }
+
+  private buildProductBuckets(
+    views: Array<{ productId: string; count: number }>,
+    addToCart: AnalyticsAddToCartRow[],
+    orderItems: AnalyticsOrderItem[],
+  ): Map<string, MetricBucket> {
     const buckets = new Map<string, MetricBucket>()
     for (const row of views) this.bucket(buckets, row.productId).views += row.count
     for (const row of addToCart) {
@@ -335,24 +394,7 @@ export class ProductAnalyticsService {
       bucket.currencies.add(item.currency)
     }
 
-    return products.map((product) => {
-      const bucket = this.bucket(buckets, product.id)
-      return {
-        productId: product.id,
-        title: product.title,
-        slug: product.slug,
-        status: product.status,
-        coverImage: product.images[0]?.url ?? null,
-        shop: product.shop,
-        views: bucket.views,
-        addToCart: bucket.addToCart,
-        orders: bucket.orderIds.size,
-        unitsSold: bucket.unitsSold,
-        revenue: bucket.revenue,
-        conversionRate: this.conversionRate(bucket.orderIds.size, bucket.views),
-        currency: this.currency(bucket.currencies),
-      }
-    })
+    return buckets
   }
 
   private buildSkuMetrics(
@@ -360,19 +402,7 @@ export class ProductAnalyticsService {
     addToCart: AnalyticsAddToCartRow[],
     orderItems: AnalyticsOrderItem[],
   ): ProductAnalyticsSkuMetric[] {
-    const buckets = new Map<string, MetricBucket>()
-    for (const row of addToCart) {
-      const bucket = this.bucket(buckets, row.variantId)
-      bucket.addToCart += row.count
-      bucket.addToCartQuantity += row.quantity
-    }
-    for (const item of orderItems) {
-      const bucket = this.bucket(buckets, item.variantId)
-      bucket.orderIds.add(item.order.id)
-      bucket.unitsSold += item.quantity
-      bucket.revenue += Number(item.lineTotal)
-      bucket.currencies.add(item.currency)
-    }
+    const buckets = this.buildSkuBuckets(addToCart, orderItems)
 
     return variants.map((variant) => {
       const bucket = this.bucket(buckets, variant.id)
@@ -393,6 +423,23 @@ export class ProductAnalyticsService {
         currency: this.currency(bucket.currencies) ?? variant.currency,
       }
     })
+  }
+
+  private buildSkuBuckets(addToCart: AnalyticsAddToCartRow[], orderItems: AnalyticsOrderItem[]): Map<string, MetricBucket> {
+    const buckets = new Map<string, MetricBucket>()
+    for (const row of addToCart) {
+      const bucket = this.bucket(buckets, row.variantId)
+      bucket.addToCart += row.count
+      bucket.addToCartQuantity += row.quantity
+    }
+    for (const item of orderItems) {
+      const bucket = this.bucket(buckets, item.variantId)
+      bucket.orderIds.add(item.order.id)
+      bucket.unitsSold += item.quantity
+      bucket.revenue += Number(item.lineTotal)
+      bucket.currencies.add(item.currency)
+    }
+    return buckets
   }
 
   private totalMetrics(
@@ -450,13 +497,13 @@ export class ProductAnalyticsService {
       .slice(0, LOW_PERFORMING_LIMIT)
   }
 
-  private sortProductMetrics(items: ProductAnalyticsProductMetric[], sort: string): ProductAnalyticsProductMetric[] {
+  private sortProductMetrics<T extends object>(items: T[], sort: string): T[] {
     const descending = sort.startsWith('-') || sort !== 'title'
     const key = sort.startsWith('-') ? sort.slice(1) : sort
     return [...items].sort((a, b) => this.compare(a, b, key, descending))
   }
 
-  private sortSkuMetrics(items: ProductAnalyticsSkuMetric[], sort: string): ProductAnalyticsSkuMetric[] {
+  private sortSkuMetrics<T extends object>(items: T[], sort: string): T[] {
     const descending = sort.startsWith('-') || sort !== 'sku'
     const key = sort.startsWith('-') ? sort.slice(1) : sort
     return [...items].sort((a, b) => this.compare(a, b, key, descending))
@@ -468,7 +515,10 @@ export class ProductAnalyticsService {
     const result = typeof av === 'string' && typeof bv === 'string'
       ? av.localeCompare(bv)
       : Number(av ?? 0) - Number(bv ?? 0)
-    return descending ? -result : result
+    if (result !== 0) return descending ? -result : result
+    const aId = 'variantId' in a ? a.variantId : 'productId' in a ? a.productId : ''
+    const bId = 'variantId' in b ? b.variantId : 'productId' in b ? b.productId : ''
+    return String(aId).localeCompare(String(bId))
   }
 
   private bucket(map: Map<string, MetricBucket>, key: string): MetricBucket {

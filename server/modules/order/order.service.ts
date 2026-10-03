@@ -189,7 +189,18 @@ export class OrderService {
         ...shipment,
         items: shipment.items.filter((shipmentItem) => items.some((item) => item.id === shipmentItem.orderItemId)),
       }))
-    return this.toOrderResponse(order, items, shipments)
+    const totals = order.shopOrders.filter((shopOrder) => allowed.has(shopOrder.shopId)).reduce(
+      (total, shopOrder) => ({
+        subtotal: total.subtotal + this.toMoneyNumber(shopOrder.subtotal),
+        discountTotal: total.discountTotal + this.toMoneyNumber(shopOrder.discountTotal),
+        shippingTotal: total.shippingTotal + this.toMoneyNumber(shopOrder.shippingTotal),
+        taxTotal: total.taxTotal + this.toMoneyNumber(shopOrder.taxTotal),
+        grandTotal: total.grandTotal + this.toMoneyNumber(shopOrder.grandTotal),
+        currency: shopOrder.currency,
+      }),
+      { subtotal: 0, discountTotal: 0, shippingTotal: 0, taxTotal: 0, grandTotal: 0, currency: order.currency },
+    )
+    return { ...this.toOrderResponse(order, items, shipments), totals }
   }
 
   private toOrderResponse(

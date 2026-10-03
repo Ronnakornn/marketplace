@@ -1,0 +1,525 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 0.29 2ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 1.15 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 19.99 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text .29 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text  001.15  0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 12.5 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 12. 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text  0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text -1.15 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text +1.15 0ms
+ × app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 1.000 6ms
+   → expected NaN to be 100 // Object.is equality
+ × app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 1e3 1ms
+   → expected NaN to be 100000 // Object.is equality
+ × app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 29e-2 0ms
+   → expected NaN to be 29 // Object.is equality
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 90071992547409.90 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 90071992547409.91 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text 90071992547409.92 for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text -90071992547409.92 for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text 1.001 for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text NaN for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text Infinity for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text 1e-7 for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text . for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text + for API validation 0ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered percent value in the correct integer unit 145ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 32ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 29ms
+ × app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 35ms
+   → expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "code": "SAVE",
+      "discountPercentBps": null,
+      "discountType": "fixed",
+-     "discountValueCents": 100,
++     "discountValueCents": NaN,
++     "isActive": true,
++     "titleEn": "",
+    },
+  ]
+
+
+Number of calls: 1
+
+ × app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 23ms
+   → expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "code": "SAVE",
+      "discountPercentBps": null,
+      "discountType": "fixed",
+-     "discountValueCents": 100000,
++     "discountValueCents": NaN,
++     "isActive": true,
++     "titleEn": "",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 26ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 24ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 0.29 as exact minor units 7ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.15 as exact minor units 4ms
+ × app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.000 as exact minor units 4ms
+   → expected "vi.fn()" to be called with arguments: [ 100 ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   100,
++   NaN,
+  ]
+
+
+Number of calls: 1
+
+ × app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1e3 as exact minor units 4ms
+   → expected "vi.fn()" to be called with arguments: [ 100000 ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   100000,
++   NaN,
+  ]
+
+
+Number of calls: 1
+
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.90 as exact minor units 2ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.91 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.92 as exact minor units 4ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders product list controls and links to create and edit pages 242ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders unanswered product questions and submits seller answers 81ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows seller answer submission state 59ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > requires archive confirmation before calling archive mutation 109ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > prepares a draft from the new product route before opening Product Studio 12ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > redirects to Product Studio after draft creation succeeds 1ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders edit form data and page-level retry state 175ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows required and optional category specs with inline readiness validation 511ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders number, boolean, and multi-select category specs with helper text 352ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders category specs fetched from the category specs endpoint 112ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > keeps category spec attributes in the save payload while additional specs stay free-form 686ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > prevents adding more than ten images before upload 337ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > validates one product video with visible MIME and size feedback 376ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows media upload errors and allows retry without clearing image form state 640ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > keeps exactly one primary image while reordering and removing media 528ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > edits variant stock with fields limited to allowed values 385ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > creates variants 912ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 0.29 as exact minor units 327ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 1.15 as exact minor units 311ms
+ × app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 1.000 as exact minor units 322ms
+   → expected "vi.fn()" to be called with arguments: [ ObjectContaining{…}, Any<Object> ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
+-     "price": 100,
++   {
++     "currency": "USD",
++     "heightMm": 20,
++     "lengthMm": 300,
++     "optionValueIds": [
++       "opt_value_blue",
++     ],
++     "price": NaN,
+      "productId": "prod_1",
++     "quantityOnHand": 10,
++     "reorderLevel": 1,
++     "sku": "SHIRT-1",
++     "status": "ACTIVE",
++     "title": "Small",
++     "titleEn": "Small",
++     "titleTh": null,
+      "variantId": "var_1",
++     "weightGrams": 250,
++     "widthMm": 200,
+    },
+-   Any<Object>,
++   {
++     "onError": [Function onError],
++     "onSuccess": [Function onSuccess],
++   },
+  ]
+
+
+Number of calls: 1
+
+ × app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 1e3 as exact minor units 312ms
+   → expected "vi.fn()" to be called with arguments: [ ObjectContaining{…}, Any<Object> ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
+-     "price": 100000,
++   {
++     "currency": "USD",
++     "heightMm": 20,
++     "lengthMm": 300,
++     "optionValueIds": [
++       "opt_value_blue",
++     ],
++     "price": NaN,
+      "productId": "prod_1",
++     "quantityOnHand": 10,
++     "reorderLevel": 1,
++     "sku": "SHIRT-1",
++     "status": "ACTIVE",
++     "title": "Small",
++     "titleEn": "Small",
++     "titleTh": null,
+      "variantId": "var_1",
++     "weightGrams": 250,
++     "widthMm": 200,
+    },
+-   Any<Object>,
++   {
++     "onError": [Function onError],
++     "onSuccess": [Function onSuccess],
++   },
+  ]
+
+
+Number of calls: 1
+
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 90071992547409.90 as exact minor units 315ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 90071992547409.91 as exact minor units 316ms
+ × app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > preserves the maximum safe catalog price when saving without editing its amount 104ms
+   → expected '90071992547409.9' to be '90071992547409.91' // Object.is equality
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > deletes variants after confirmation 462ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows inventory as derived stock state with reserved quantity read-only and movement access 140ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > generates variant rows, applies bulk values, and shows duplicate SKU errors inline 1867ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > limits options to two axes and confirms removal when variants are affected 496ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows retry when draft preparation fails 12ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > publishes a ready draft directly and shows legacy moderation reasons 260ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > blocks publish when variant option combinations are duplicated 277ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > warns before unloading when any studio field has unsaved changes 118ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > exposes accessible status, errors, media dimensions, and form semantics 155ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 1.000
+AssertionError: expected NaN to be 100 // Object.is equality
+
+- Expected
++ Received
+
+- 100
++ NaN
+
+ ❯ app/lib/input-decimal.test.ts:12:45
+     10|     ["90071992547409.91", 9007199254740991],
+     11|   ] as const)("preserves exact decimal text %s", (input, expected) => {
+     12|     expect(decimalInputToMinorUnits(input)).toBe(expected);
+       |                                             ^
+     13|   });
+     14|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 1e3
+AssertionError: expected NaN to be 100000 // Object.is equality
+
+- Expected
++ Received
+
+- 100000
++ NaN
+
+ ❯ app/lib/input-decimal.test.ts:12:45
+     10|     ["90071992547409.91", 9007199254740991],
+     11|   ] as const)("preserves exact decimal text %s", (input, expected) => {
+     12|     expect(decimalInputToMinorUnits(input)).toBe(expected);
+       |                                             ^
+     13|   });
+     14|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 29e-2
+AssertionError: expected NaN to be 29 // Object.is equality
+
+- Expected
++ Received
+
+- 29
++ NaN
+
+ ❯ app/lib/input-decimal.test.ts:12:45
+     10|     ["90071992547409.91", 9007199254740991],
+     11|   ] as const)("preserves exact decimal text %s", (input, expected) => {
+     12|     expect(decimalInputToMinorUnits(input)).toBe(expected);
+       |                                             ^
+     13|   });
+     14|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 1.000 as exact minor units
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…}, Any<Object> ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
+-     "price": 100,
++   {
++     "currency": "USD",
++     "heightMm": 20,
++     "lengthMm": 300,
++     "optionValueIds": [
++       "opt_value_blue",
++     ],
++     "price": NaN,
+      "productId": "prod_1",
++     "quantityOnHand": 10,
++     "reorderLevel": 1,
++     "sku": "SHIRT-1",
++     "status": "ACTIVE",
++     "title": "Small",
++     "titleEn": "Small",
++     "titleTh": null,
+      "variantId": "var_1",
++     "weightGrams": 250,
++     "widthMm": 200,
+    },
+-   Any<Object>,
++   {
++     "onError": [Function onError],
++     "onSuccess": [Function onSuccess],
++   },
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerProductPages.test.tsx:612:35
+    610|       fireEvent.change(screen.getByLabelText("Price", { selector: "#va…
+    611|       fireEvent.click(screen.getAllByRole("button", { name: "Save vari…
+    612|       expect(updateVariantMutate).toHaveBeenCalledWith(
+       |                                   ^
+    613|         expect.objectContaining({ productId: "prod_1", variantId: "var…
+    614|         expect.any(Object),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 1e3 as exact minor units
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…}, Any<Object> ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
+-     "price": 100000,
++   {
++     "currency": "USD",
++     "heightMm": 20,
++     "lengthMm": 300,
++     "optionValueIds": [
++       "opt_value_blue",
++     ],
++     "price": NaN,
+      "productId": "prod_1",
++     "quantityOnHand": 10,
++     "reorderLevel": 1,
++     "sku": "SHIRT-1",
++     "status": "ACTIVE",
++     "title": "Small",
++     "titleEn": "Small",
++     "titleTh": null,
+      "variantId": "var_1",
++     "weightGrams": 250,
++     "widthMm": 200,
+    },
+-   Any<Object>,
++   {
++     "onError": [Function onError],
++     "onSuccess": [Function onSuccess],
++   },
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerProductPages.test.tsx:612:35
+    610|       fireEvent.change(screen.getByLabelText("Price", { selector: "#va…
+    611|       fireEvent.click(screen.getAllByRole("button", { name: "Save vari…
+    612|       expect(updateVariantMutate).toHaveBeenCalledWith(
+       |                                   ^
+    613|         expect.objectContaining({ productId: "prod_1", variantId: "var…
+    614|         expect.any(Object),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > preserves the maximum safe catalog price when saving without editing its amount
+AssertionError: expected '90071992547409.9' to be '90071992547409.91' // Object.is equality
+
+Expected: "90071992547409.91"
+Received: "90071992547409.9"
+
+ ❯ app/features/seller/components/SellerProductPages.test.tsx:625:100
+    623|     };
+    624|     render(<SellerProductEditPage productId="prod_1" />);
+    625|     expect(screen.getByLabelText("Price", { selector: "#variant-price-…
+       |                                                                                                    ^
+    626|     fireEvent.click(screen.getAllByRole("button", { name: "Save varian…
+    627|     expect(updateVariantMutate).toHaveBeenCalledWith(expect.objectCont…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "code": "SAVE",
+      "discountPercentBps": null,
+      "discountType": "fixed",
+-     "discountValueCents": 100,
++     "discountValueCents": NaN,
++     "isActive": true,
++     "titleEn": "",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx:51:28
+     49|       fireEvent.change(container.querySelector('input[name="amount"]')…
+     50|       fireEvent.click(screen.getByRole('button', { name: 'seller.manag…
+     51|       expect(createCoupon).toHaveBeenCalledWith(expect.objectContainin…
+       |                            ^
+     52|     },
+     53|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "code": "SAVE",
+      "discountPercentBps": null,
+      "discountType": "fixed",
+-     "discountValueCents": 100000,
++     "discountValueCents": NaN,
++     "isActive": true,
++     "titleEn": "",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx:51:28
+     49|       fireEvent.change(container.querySelector('input[name="amount"]')…
+     50|       fireEvent.click(screen.getByRole('button', { name: 'seller.manag…
+     51|       expect(createCoupon).toHaveBeenCalledWith(expect.objectContainin…
+       |                            ^
+     52|     },
+     53|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.000 as exact minor units
+AssertionError: expected "vi.fn()" to be called with arguments: [ 100 ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   100,
++   NaN,
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx:59:28
+     57|       fireEvent.change(container.querySelector('input[name="amount"]')…
+     58|       fireEvent.submit(container.querySelector('form')!)
+     59|       expect(createPayout).toHaveBeenCalledWith(expected)
+       |                            ^
+     60|     },
+     61|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1e3 as exact minor units
+AssertionError: expected "vi.fn()" to be called with arguments: [ 100000 ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   100000,
++   NaN,
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx:59:28
+     57|       fireEvent.change(container.querySelector('input[name="amount"]')…
+     58|       fireEvent.submit(container.querySelector('form')!)
+     59|       expect(createPayout).toHaveBeenCalledWith(expected)
+       |                            ^
+     60|     },
+     61|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  10 failed | 60 passed (70)
+   Start at  01:56:53
+   Duration  12.96s (transform 380ms, setup 0ms, import 1.41s, tests 11.67s, environment 1.40s)
+

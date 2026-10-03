@@ -1,0 +1,220 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/refund/refund-amount.service.test.ts > refund amounts > refunds the amount paid after coupons and coins, excluding shipping 3ms
+ ✓ server/modules/refund/refund-amount.service.test.ts > refund amounts > allocates rounding deterministically across separate item returns 16ms
+ ✓ server/modules/refund/refund-amount.service.test.ts > refund amounts > does not spread another shop coupon across the returned shop 0ms
+ ✓ server/modules/refund/refund-amount.service.test.ts > refund amounts > rejects over-refunds and invalid return quantities 2ms
+ ✓ server/modules/checkout/checkout.repository.test.ts > PrismaCheckoutRepository > creates order item totals when the Prisma result extension returns BigInt prices as numbers 17ms
+ ✓ server/modules/checkout/checkout.repository.test.ts > PrismaCheckoutRepository > keeps two-shop settlement totals exact for 'shop and coin discounts' 3ms
+ × server/modules/checkout/checkout.repository.test.ts > PrismaCheckoutRepository > keeps two-shop settlement totals exact for 'near-limit proportional discount' 12ms
+   → expected [ 6004799503160594, 3002399751580297 ] to deeply equal [ 6004799503160593, 3002399751580298 ]
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > user can create affiliate link 8ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > duplicate affiliate code fails 4ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > invalid target fails 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > public click tracking works without storing raw ip or user agent 6ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > authenticated target search returns product shop and campaign options 3ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > invalid target type fails target search 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > attribution window works 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > paid order creates affiliate commission once 2ms
+ × server/modules/affiliate/affiliate.service.test.ts > AffiliateService > preserves every minor unit in a full-rate commission near the safe amount limit 12ms
+   → expected 9007199254740990n to be 9007199254740991n // Object.is equality
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > duplicate payment webhook does not duplicate commission 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > cancelled or refunded order does not create commission 12ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > self-referral is blocked 4ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > affiliate stats show clicks conversions and commission 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > admin can disable affiliate account 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=1.5 before persistence 9ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon minOrderCents=1.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon maxDiscountCents=1.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=12.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=1.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon perUserLimit=1.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=-1 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=9007199254740992 before persistence 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=10001 before persistence 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=0 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 0.29 baht exactly 5ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 1.15 baht exactly 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 19.99 baht exactly 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 0 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price -1 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 1.001 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price Infinity 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 9007199254740991 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid fixed coupon discount 8ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns only redeemable public coupons using the API field contract 4ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns buyer coupon claim state and claims an active coupon 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid percent coupon discount 1ms
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > keeps percentage coupon minor units exact near the safe amount limit 14ms
+   → expected { …(8) } to match object { discountCents: 9006298534815515 }
+(7 matching properties omitted from actual)
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > marks a free-shipping coupon without discounting product subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > scopes a seller coupon to its own shop subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a seller coupon when the selected cart has no items from its shop 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > respects max discount for percent coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > never discounts more than the subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects inactive coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects expired coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons that have not started 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons when the order minimum is not met 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the global usage limit is reached 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the per-user usage limit is reached 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lists and creates seller coupons for owned shops 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents sellers from updating another shop coupon 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a flash-sale item update at or above the active variant price 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lets a seller enroll an owned active variant in a scheduled platform flash sale 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents a seller from enrolling in another shop scoped flash sale 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects enrollment when the atomic repository overlap check loses a race 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a campaign schedule update when the atomic repository check finds overlap 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents deleting live or reserved flash sale items 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns the buyer coin wallet and recent ledger history 2ms
+ × server/modules/commission/commission.service.test.ts > CommissionService exact minor-unit arithmetic > preserves commission and net for gross 9007199254740991 at 10000 basis points 9ms
+   → expected { grossamount: 9007199254740991, …(3) } to deeply equal { grossamount: 9007199254740991, …(3) }
+ × server/modules/commission/commission.service.test.ts > CommissionService exact minor-unit arithmetic > preserves commission and net for gross 9007199254740969 at 1000 basis points 1ms
+   → expected { grossamount: 9007199254740969, …(3) } to deeply equal { grossamount: 9007199254740969, …(3) }
+ ✓ server/modules/commission/commission.service.test.ts > CommissionService exact minor-unit arithmetic > preserves commission and net for gross 10001 at 1000 basis points 0ms
+ × server/modules/commission/commission.service.test.ts > CommissionService exact minor-unit arithmetic > rejects an unsafe gross amount 2ms
+   → expected [Function] to throw an error
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/affiliate/affiliate.service.test.ts > AffiliateService > preserves every minor unit in a full-rate commission near the safe amount limit
+AssertionError: expected 9007199254740990n to be 9007199254740991n // Object.is equality
+
+- Expected
++ Received
+
+- 9007199254740991n
++ 9007199254740990n
+
+ ❯ server/modules/affiliate/affiliate.service.test.ts:282:36
+    280|     })
+    281|     const commission = await service.createCommissionForPaidOrder({ or…
+    282|     expect(commission?.commission).toBe(9007199254740991n)
+       |                                    ^
+    283|     expect(commission?.eligiblesubtotal).toBe(9007199254740991n)
+    284|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  server/modules/checkout/checkout.repository.test.ts > PrismaCheckoutRepository > keeps two-shop settlement totals exact for 'near-limit proportional discount'
+AssertionError: expected [ 6004799503160594, 3002399751580297 ] to deeply equal [ 6004799503160593, 3002399751580298 ]
+
+- Expected
++ Received
+
+  [
+-   6004799503160593,
+-   3002399751580298,
++   6004799503160594,
++   3002399751580297,
+  ]
+
+ ❯ server/modules/checkout/checkout.repository.test.ts:225:56
+    223|     const shopOrders = orderData.shopOrders.create as Array<{ subtotal…
+    224|     expect(shopOrders).toHaveLength(2)
+    225|     expect(shopOrders.map((row) => row.discountTotal)).toEqual(example…
+       |                                                        ^
+    226|     expect(shopOrders.map((row) => row.grandTotal)).toEqual(example.sh…
+    227|     expect(shopOrders.reduce((sum, row) => sum + row.subtotal, 0)).toB…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  server/modules/commission/commission.service.test.ts > CommissionService exact minor-unit arithmetic > preserves commission and net for gross 9007199254740991 at 10000 basis points
+AssertionError: expected { grossamount: 9007199254740991, …(3) } to deeply equal { grossamount: 9007199254740991, …(3) }
+
+- Expected
++ Received
+
+  {
+    "commissionBps": 10000,
+-   "commissionamount": 9007199254740991,
++   "commissionamount": 9007199254740990,
+    "grossamount": 9007199254740991,
+-   "netamount": 0,
++   "netamount": 1,
+  }
+
+ ❯ server/modules/commission/commission.service.test.ts:12:66
+     10|     [10001, 1000, 1000, 9001],
+     11|   ])('preserves commission and net for gross %s at %s basis points', (…
+     12|     expect(new CommissionService(context, bps).calculate(gross)).toEqu…
+       |                                                                  ^
+     13|       grossamount: gross, commissionamount: commission, netamount: net…
+     14|     })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  server/modules/commission/commission.service.test.ts > CommissionService exact minor-unit arithmetic > preserves commission and net for gross 9007199254740969 at 1000 basis points
+AssertionError: expected { grossamount: 9007199254740969, …(3) } to deeply equal { grossamount: 9007199254740969, …(3) }
+
+- Expected
++ Received
+
+  {
+    "commissionBps": 1000,
+-   "commissionamount": 900719925474096,
++   "commissionamount": 900719925474097,
+    "grossamount": 9007199254740969,
+-   "netamount": 8106479329266873,
++   "netamount": 8106479329266872,
+  }
+
+ ❯ server/modules/commission/commission.service.test.ts:12:66
+     10|     [10001, 1000, 1000, 9001],
+     11|   ])('preserves commission and net for gross %s at %s basis points', (…
+     12|     expect(new CommissionService(context, bps).calculate(gross)).toEqu…
+       |                                                                  ^
+     13|       grossamount: gross, commissionamount: commission, netamount: net…
+     14|     })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  server/modules/commission/commission.service.test.ts > CommissionService exact minor-unit arithmetic > rejects an unsafe gross amount
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ server/modules/commission/commission.service.test.ts:19:8
+     17|   it('rejects an unsafe gross amount', () => {
+     18|     expect(() => new CommissionService(context, 1000).calculate(900719…
+     19|       .toThrow('Gross amount must be a non-negative integer')
+       |        ^
+     20|   })
+     21| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > keeps percentage coupon minor units exact near the safe amount limit
+AssertionError: expected { …(8) } to match object { discountCents: 9006298534815515 }
+(7 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "discountCents": 9006298534815515,
++   "discountCents": 9006298534815516,
+  }
+
+ ❯ server/modules/promotion/promotion.service.test.ts:244:45
+    242|   it('keeps percentage coupon minor units exact near the safe amount l…
+    243|     vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({ …
+    244|     await expect(validate(9007199254740990)).resolves.toMatchObject({ …
+       |                                             ^
+    245|   })
+    246|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  4 failed | 1 passed (5)
+      Tests  6 failed | 62 passed (68)
+   Start at  01:21:26
+   Duration  745ms (transform 423ms, setup 0ms, import 618ms, tests 247ms, environment 1ms)
+

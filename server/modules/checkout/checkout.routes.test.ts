@@ -16,6 +16,12 @@ vi.mock('#server/modules/auth/auth.context.ts', () => ({
 function createContainer() {
   return {
     checkoutService: {
+      quoteCheckout: vi.fn().mockResolvedValue({
+        subtotal: 2400, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 2900,
+        currency: 'THB', coupon: null, coinsApplied: 0,
+        items: [{ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', shopId: 'shop-1', unitPrice: 1200, lineTotal: 2400 }],
+        shops: [{ shopId: 'shop-1', subtotal: 2400 }],
+      }),
       createCheckout: vi.fn().mockResolvedValue({
         orderId: 'order-1',
         orderNo: 'ORD-TEST',
@@ -89,6 +95,31 @@ describe('checkout routes', () => {
       expect.objectContaining({ id: 'user-1', role: 'USER' }),
       validBody,
     )
+  })
+
+  it('returns quoted line and shop amounts through the validated API response', async () => {
+    mockAuth('USER')
+    const response = await createApp().handle(new Request('http://localhost/api/checkout/quote', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ cartId: validBody.cartId, cartItemIds: validBody.cartItemIds }),
+    }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      subtotal: 2400, shippingTotal: 500, grandTotal: 2900,
+      items: [{ unitPrice: 1200, lineTotal: 2400 }],
+      shops: [{ shopId: 'shop-1', subtotal: 2400 }],
+    })
+  })
+
+  it.each([-1, 1.5, 9007199254740992])('rejects malformed coins %s at the quote API boundary', async (coinsToUse) => {
+    mockAuth('USER')
+    const container = createContainer()
+    const response = await createApp(container).handle(new Request('http://localhost/api/checkout/quote', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ cartId: validBody.cartId, cartItemIds: validBody.cartItemIds, coinsToUse }),
+    }))
+    expect(response.status).toBe(422)
+    expect(container.checkoutService.quoteCheckout).not.toHaveBeenCalled()
   })
 
   it('lets the service reject seller and admin users', async () => {

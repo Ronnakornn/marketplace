@@ -67,6 +67,7 @@ export class WalletService {
   async createEarningsForCompletedOrder(orderId: string): Promise<void> {
     this.logger.info('WalletService.createEarningsForCompletedOrder', { orderId })
     await this.repo.transaction(async (txRepo) => {
+      await txRepo.lockOrder(orderId)
       const order = await txRepo.findCompletedOrder(orderId)
       if (!order) return
       const itemsByShop = new Map<string, typeof order.items>()

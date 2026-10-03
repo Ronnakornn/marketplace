@@ -1,0 +1,234 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered percent value in the correct integer unit 364ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 39ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 39ms
+ × app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 47ms
+   → expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "code": "SAVE",
+      "discountPercentBps": null,
+      "discountType": "fixed",
+-     "discountValueCents": 9007199254740990,
++     "discountValueCents": 9007199254740991,
++     "isActive": true,
++     "titleEn": "",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 40ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 0.29 as exact minor units 7ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.15 as exact minor units 4ms
+ × app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.90 as exact minor units 5ms
+   → expected "vi.fn()" to be called with arguments: [ 9007199254740990 ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   9007199254740990,
++   9007199254740991,
+  ]
+
+
+Number of calls: 1
+
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.91 as exact minor units 6ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders product list controls and links to create and edit pages 312ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders unanswered product questions and submits seller answers 112ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows seller answer submission state 59ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > requires archive confirmation before calling archive mutation 123ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > prepares a draft from the new product route before opening Product Studio 12ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > redirects to Product Studio after draft creation succeeds 2ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders edit form data and page-level retry state 181ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows required and optional category specs with inline readiness validation 952ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders number, boolean, and multi-select category specs with helper text 886ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders category specs fetched from the category specs endpoint 166ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > keeps category spec attributes in the save payload while additional specs stay free-form 1494ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > prevents adding more than ten images before upload 555ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > validates one product video with visible MIME and size feedback 851ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows media upload errors and allows retry without clearing image form state 1106ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > keeps exactly one primary image while reordering and removing media 914ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > edits variant stock with fields limited to allowed values 600ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > creates variants 1323ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 0.29 as exact minor units 770ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 1.15 as exact minor units 874ms
+ × app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 90071992547409.90 as exact minor units 823ms
+   → expected "vi.fn()" to be called with arguments: [ ObjectContaining{…}, Any<Object> ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
+-     "price": 9007199254740990,
++   {
++     "currency": "USD",
++     "heightMm": 20,
++     "lengthMm": 300,
++     "optionValueIds": [
++       "opt_value_blue",
++     ],
++     "price": 9007199254740991,
+      "productId": "prod_1",
++     "quantityOnHand": 10,
++     "reorderLevel": 1,
++     "sku": "SHIRT-1",
++     "status": "ACTIVE",
++     "title": "Small",
++     "titleEn": "Small",
++     "titleTh": null,
+      "variantId": "var_1",
++     "weightGrams": 250,
++     "widthMm": 200,
+    },
+-   Any<Object>,
++   {
++     "onError": [Function onError],
++     "onSuccess": [Function onSuccess],
++   },
+  ]
+
+
+Number of calls: 1
+
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 90071992547409.91 as exact minor units 754ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > deletes variants after confirmation 801ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows inventory as derived stock state with reserved quantity read-only and movement access 147ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > generates variant rows, applies bulk values, and shows duplicate SKU errors inline 2035ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > limits options to two axes and confirms removal when variants are affected 629ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows retry when draft preparation fails 13ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > publishes a ready draft directly and shows legacy moderation reasons 303ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > blocks publish when variant option combinations are duplicated 299ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > warns before unloading when any studio field has unsaved changes 128ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > exposes accessible status, errors, media dimensions, and form semantics 160ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 90071992547409.90 as exact minor units
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…}, Any<Object> ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
+-     "price": 9007199254740990,
++   {
++     "currency": "USD",
++     "heightMm": 20,
++     "lengthMm": 300,
++     "optionValueIds": [
++       "opt_value_blue",
++     ],
++     "price": 9007199254740991,
+      "productId": "prod_1",
++     "quantityOnHand": 10,
++     "reorderLevel": 1,
++     "sku": "SHIRT-1",
++     "status": "ACTIVE",
++     "title": "Small",
++     "titleEn": "Small",
++     "titleTh": null,
+      "variantId": "var_1",
++     "weightGrams": 250,
++     "widthMm": 200,
+    },
+-   Any<Object>,
++   {
++     "onError": [Function onError],
++     "onSuccess": [Function onSuccess],
++   },
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerProductPages.test.tsx:612:35
+    610|       fireEvent.change(screen.getByLabelText("Price", { selector: "#va…
+    611|       fireEvent.click(screen.getAllByRole("button", { name: "Save vari…
+    612|       expect(updateVariantMutate).toHaveBeenCalledWith(
+       |                                   ^
+    613|         expect.objectContaining({ productId: "prod_1", variantId: "var…
+    614|         expect.any(Object),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "code": "SAVE",
+      "discountPercentBps": null,
+      "discountType": "fixed",
+-     "discountValueCents": 9007199254740990,
++     "discountValueCents": 9007199254740991,
++     "isActive": true,
++     "titleEn": "",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx:49:28
+     47|       fireEvent.change(container.querySelector('input[name="amount"]')…
+     48|       fireEvent.click(screen.getByRole('button', { name: 'seller.manag…
+     49|       expect(createCoupon).toHaveBeenCalledWith(expect.objectContainin…
+       |                            ^
+     50|     },
+     51|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.90 as exact minor units
+AssertionError: expected "vi.fn()" to be called with arguments: [ 9007199254740990 ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   9007199254740990,
++   9007199254740991,
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx:57:28
+     55|       fireEvent.change(container.querySelector('input[name="amount"]')…
+     56|       fireEvent.submit(container.querySelector('form')!)
+     57|       expect(createPayout).toHaveBeenCalledWith(expected)
+       |                            ^
+     58|     },
+     59|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 36 passed (39)
+   Start at  01:54:18
+   Duration  19.77s (transform 673ms, setup 0ms, import 2.64s, tests 17.94s, environment 1.50s)
+

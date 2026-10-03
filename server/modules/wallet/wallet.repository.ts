@@ -37,6 +37,7 @@ export interface IWalletRepository {
   listEntries(walletId: string, limit: number, offset: number): Promise<WalletEntryRecord[]>
   sumLedger(walletId: string, currency: string): Promise<number>
   createLedgerEntry(input: CreateLedgerEntryInput): Promise<WalletLedgerEntry>
+  lockOrder(orderId: string): Promise<void>
   findCompletedOrder(orderId: string): Promise<CompletedOrderRecord | null>
   hasOrderEarnings(orderId: string, shopId: string): Promise<boolean>
 }
@@ -135,6 +136,10 @@ export class PrismaWalletRepository implements IWalletRepository {
       },
       include: { items: true },
     })
+  }
+
+  async lockOrder(orderId: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${orderId}::uuid FOR UPDATE`
   }
 
   async hasOrderEarnings(orderId: string, shopId: string): Promise<boolean> {

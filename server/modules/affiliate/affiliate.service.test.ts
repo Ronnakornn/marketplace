@@ -269,6 +269,31 @@ describe('AffiliateService', () => {
     }))
   })
 
+  it('floors the fractional minor unit of a 1999 subtotal at 500 basis points', async () => {
+    const service = setup()
+    vi.mocked(repo.findOrderForCommission).mockResolvedValue({
+      ...order, subtotal: 1999n, discountTotal: 0n, shippingTotal: 0n, grandTotal: 1999n,
+      items: [{ ...order.items[0], unitPrice: 1999n, lineTotal: 1999n }],
+    })
+    const commission = await service.createCommissionForPaidOrder({ orderId: order.id, now })
+    expect(commission?.commission).toBe(99n)
+    expect(commission?.eligiblesubtotal).toBe(1999n)
+  })
+
+  it('preserves every minor unit in a full-rate commission near the safe amount limit', async () => {
+    setup()
+    vi.mocked(repo.findOrderForCommission).mockResolvedValue({
+      ...order, subtotal: 9007199254740991n, discountTotal: 0n, shippingTotal: 0n, grandTotal: 9007199254740991n,
+      items: [{ ...order.items[0], unitPrice: 9007199254740991n, lineTotal: 9007199254740991n }],
+    })
+    const service = new AffiliateService(createAppContext(), repo, {
+      enabled: true, attributionWindowDays: 30, commissionBps: 10000, blockSelfReferral: true,
+    })
+    const commission = await service.createCommissionForPaidOrder({ orderId: order.id, now })
+    expect(commission?.commission).toBe(9007199254740991n)
+    expect(commission?.eligiblesubtotal).toBe(9007199254740991n)
+  })
+
   it('duplicate payment webhook does not duplicate commission', async () => {
     const service = setup()
     vi.mocked(repo.findCommissionByOrderId).mockResolvedValue({ id: 'commission-1' } as AffiliateCommission)

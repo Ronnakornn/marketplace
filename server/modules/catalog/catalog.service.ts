@@ -1464,7 +1464,7 @@ export class CatalogService {
   private validateVariantInput(data: CreateVariantData): void {
     if (!data.sku.trim()) throw new CatalogServiceError('Variant SKU is required', 400, 'VARIANT_VALIDATION_FAILED')
     if (!data.title.trim()) throw new CatalogServiceError('Variant title is required', 400, 'VARIANT_VALIDATION_FAILED')
-    if (!Number.isInteger(data.price) || data.price <= 0) {
+    if (!Number.isSafeInteger(data.price) || data.price <= 0) {
       throw new CatalogServiceError('Variant price must be a positive integer in cents', 400, 'VARIANT_VALIDATION_FAILED')
     }
     this.normalizeMarketplaceCurrency(data.currency)
@@ -1497,7 +1497,7 @@ export class CatalogService {
     if (data.title !== undefined && !data.title.trim()) {
       throw new CatalogServiceError('Variant title is required', 400, 'VARIANT_VALIDATION_FAILED')
     }
-    if (data.price !== undefined && (!Number.isInteger(data.price) || data.price <= 0)) {
+    if (data.price !== undefined && (!Number.isSafeInteger(data.price) || data.price <= 0)) {
       throw new CatalogServiceError('Variant price must be a positive integer in cents', 400, 'VARIANT_VALIDATION_FAILED')
     }
     if (data.currency !== undefined) this.normalizeMarketplaceCurrency(data.currency)

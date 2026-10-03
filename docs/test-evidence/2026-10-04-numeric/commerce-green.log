@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+
+ Test Files  4 passed (4)
+      Tests  76 passed (76)
+   Start at  01:24:29
+   Duration  3.79s (transform 350ms, setup 0ms, import 1.11s, tests 1.45s, environment 688ms)
+

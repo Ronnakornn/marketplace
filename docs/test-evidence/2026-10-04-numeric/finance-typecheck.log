@@ -1,0 +1,7 @@
+server/modules/inventory/inventory-concurrency.integration.test.ts(25,41): error TS2322: Type '{ ownerId: string; name: string; slug: `${string}-${string}-${string}-${string}-${string}`; }' is not assignable to type '((Without<ShopCreateInput, ShopUncheckedCreateInput> & ShopUncheckedCreateInput) | (Without<...> & ShopCreateInput)) & object'.
+  Type '{ ownerId: string; name: string; slug: `${string}-${string}-${string}-${string}-${string}`; }' is not assignable to type 'Without<ShopCreateInput, ShopUncheckedCreateInput> & ShopUncheckedCreateInput & object'.
+    Type '{ ownerId: string; name: string; slug: `${string}-${string}-${string}-${string}-${string}`; }' is missing the following properties from type 'ShopUncheckedCreateInput': sellerProfileId, contactEmail, contactPhone
+server/modules/wallet/wallet-concurrency.integration.test.ts(30,11): error TS7034: Variable 'items' implicitly has type 'any[]' in some locations where its type cannot be determined.
+server/modules/wallet/wallet-concurrency.integration.test.ts(49,42): error TS2683: 'this' implicitly has type 'any' because it does not have a type annotation.
+server/modules/wallet/wallet-concurrency.integration.test.ts(62,66): error TS7005: Variable 'items' implicitly has an 'any[]' type.
+server/modules/wallet/wallet-concurrency.integration.test.ts(63,67): error TS7005: Variable 'items' implicitly has an 'any[]' type.

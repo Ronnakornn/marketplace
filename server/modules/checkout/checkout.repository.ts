@@ -339,7 +339,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
       const shopCouponDiscount = quote.couponShopId === shopId ? Math.min(group.subtotal, quote.couponDiscount) : 0
       const availableForPlatformDiscount = group.subtotal - shopCouponDiscount
       const proportionalPlatformDiscount = remainingPlatformDiscountCapacity > 0
-        ? Math.floor(remainingPlatformDiscount * availableForPlatformDiscount / remainingPlatformDiscountCapacity)
+        ? Number(BigInt(remainingPlatformDiscount) * BigInt(availableForPlatformDiscount) / BigInt(remainingPlatformDiscountCapacity))
         : 0
       const platformDiscount = Math.min(availableForPlatformDiscount, proportionalPlatformDiscount)
       remainingPlatformDiscount -= platformDiscount

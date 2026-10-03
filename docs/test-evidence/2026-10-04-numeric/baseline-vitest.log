@@ -1,0 +1,2 @@
+$ vitest run --exclude "**/e2e/**" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-numeric/baseline-vitest.json"
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-04-numeric/baseline-vitest.json

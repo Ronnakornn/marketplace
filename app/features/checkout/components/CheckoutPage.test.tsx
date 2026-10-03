@@ -132,6 +132,11 @@ function renderCheckoutPage() {
   };
 }
 
+const quotedAmounts = {
+  items: [{ id: "item-1", shopId: "shop-1", unitPrice: 1200, lineTotal: 1200 }],
+  shops: [{ shopId: "shop-1", subtotal: 1200 }],
+};
+
 describe("CheckoutPage", () => {
   it("submits once for rapid clicks in one batch and allows retry after a network failure", async () => {
     let rejectRequest!: (error: Error) => void;
@@ -203,7 +208,7 @@ describe("CheckoutPage", () => {
       grandTotal: 1700,
       currency: "THB",
       coupon: null,
-      coinsApplied: 0,
+      ...quotedAmounts, coinsApplied: 0,
     });
   });
 
@@ -261,6 +266,31 @@ describe("CheckoutPage", () => {
     expect(screen.getByText("×1")).toBeTruthy();
   });
 
+  it.each([
+    { name: "repriced variant", unitPrice: 1200, lineTotal: 2400, grandTotal: 2900, lineLabel: "THB 24.00", totalLabel: "THB 29.00" },
+    { name: "flash-sale variant", unitPrice: 900, lineTotal: 1800, grandTotal: 2300, lineLabel: "THB 18.00", totalLabel: "THB 23.00" },
+  ])("shows quoted line and shop amounts for a $name", async ({ unitPrice, lineTotal, grandTotal, lineLabel, totalLabel }) => {
+    vi.mocked(fetchCart).mockResolvedValue({
+      id: "cart-1", currency: "THB", subtotal: 2000,
+      shops: [{ shopId: "shop-1", shopName: "Demo Shop", subtotal: 2000, items: [{
+        id: "item-1", variantId: "variant-1", productId: "product-1", title: "Demo Product", variantTitle: "Default",
+        quantity: 2, unitPrice: 1000, currency: "THB",
+      }] }],
+    });
+    const quote = {
+      subtotal: lineTotal, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal,
+      currency: "THB", coupon: null, ...quotedAmounts, coinsApplied: 0,
+      items: [{ id: "item-1", shopId: "shop-1", unitPrice, lineTotal }],
+      shops: [{ shopId: "shop-1", subtotal: lineTotal }],
+    };
+    vi.mocked(quoteCheckout).mockResolvedValue(quote);
+    renderCheckoutPage();
+    await screen.findAllByText(totalLabel);
+    expect(screen.getAllByText(lineLabel)).toHaveLength(3);
+    expect(screen.queryByText("THB 20.00")).toBeNull();
+    expect(screen.getByText("THB 5.00")).toBeTruthy();
+  });
+
   it("disables place order and shows no final amount while the quote is loading", async () => {
     let resolveQuote: (value: Awaited<ReturnType<typeof quoteCheckout>>) => void = () => {};
     vi.mocked(quoteCheckout).mockImplementation(() => new Promise((resolve) => {
@@ -274,14 +304,14 @@ describe("CheckoutPage", () => {
     expect(screen.getAllByTestId("quote-skeleton").length).toBeGreaterThan(0);
     expect(screen.queryByText("THB 17.00")).toBeNull();
 
-    resolveQuote({ subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null, coinsApplied: 0 });
+    resolveQuote({ subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null, ...quotedAmounts, coinsApplied: 0 });
     await waitFor(() => expect(placeOrderButton.disabled).toBe(false));
   });
 
   it("disables place order and shows a retryable error affordance when the quote fails", async () => {
     vi.mocked(quoteCheckout).mockRejectedValueOnce(new Error("Quote request failed"));
     vi.mocked(quoteCheckout).mockResolvedValueOnce({
-      subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null, coinsApplied: 0,
+      subtotal: 1200, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 1700, currency: "THB", coupon: null, ...quotedAmounts, coinsApplied: 0,
     });
 
     renderCheckoutPage();
@@ -338,7 +368,7 @@ describe("CheckoutPage", () => {
       grandTotal: couponCode === "SAVE10" ? 1600 : 1700,
       currency: "THB",
       coupon: couponCode ? { code: couponCode, applied: true } : null,
-      coinsApplied: 0,
+      ...quotedAmounts, coinsApplied: 0,
     }));
 
     renderCheckoutPage();
@@ -369,7 +399,7 @@ describe("CheckoutPage", () => {
       grandTotal: 1400,
       currency: "THB",
       coupon: { code: "SAVE10", applied: true },
-      coinsApplied: 0,
+      ...quotedAmounts, coinsApplied: 0,
     });
 
     renderCheckoutPage();
@@ -389,7 +419,7 @@ describe("CheckoutPage", () => {
       grandTotal: 1700 - (coinsToUse ?? 0) * 100,
       currency: "THB",
       coupon: null,
-      coinsApplied: coinsToUse ?? 0,
+      ...quotedAmounts, coinsApplied: coinsToUse ?? 0,
     }));
     renderCheckoutPage();
 
@@ -411,7 +441,7 @@ describe("CheckoutPage", () => {
       grandTotal: 1700,
       currency: "THB",
       coupon: { code: "EXPIRED10", applied: false, reason: "COUPON_EXPIRED" },
-      coinsApplied: 0,
+      ...quotedAmounts, coinsApplied: 0,
     });
 
     renderCheckoutPage();

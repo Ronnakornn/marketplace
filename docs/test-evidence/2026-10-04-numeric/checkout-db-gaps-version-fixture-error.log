@@ -1,0 +1,38 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ❯ server/modules/checkout/checkout-concurrency.integration.test.ts (5 tests | 1 failed) 1089ms
+     × rolls back order, reservations, coupon and coins when payment creation fails after their writes 102ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/checkout/checkout-concurrency.integration.test.ts > checkout creation concurrency on PostgreSQL > rolls back order, reservations, coupon and coins when payment creation fails after their writes
+AssertionError: expected { …(7) } to match object { quantityOnHand: 10, …(2) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "quantityOnHand": 10,
+    "quantityReserved": 0,
+-   "version": 0,
++   "version": 1,
+  }
+
+ ❯ server/modules/checkout/checkout-concurrency.integration.test.ts:161:94
+    159|     expect(await prisma.buyerCoinWallet.findUniqueOrThrow({ where: { i…
+    160|     for (const variant of data.variants) {
+    161|       expect(await prisma.inventory.findUniqueOrThrow({ where: { varia…
+       |                                                                                              ^
+    162|     }
+    163|     const items = await prisma.cartItem.findMany({ where: { cartId: da…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  01:46:09
+   Duration  1.59s (transform 230ms, setup 0ms, import 368ms, tests 1.09s, environment 0ms)
+

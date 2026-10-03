@@ -1,0 +1,796 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ❯ app/features/checkout/components/CheckoutPage.test.tsx (13 tests | 2 failed) 1362ms
+     × shows quoted line and shop amounts for a 'repriced variant' 52ms
+     × shows quoted line and shop amounts for a 'flash-sale variant' 43ms
+ ❯ server/modules/checkout/checkout.service.test.ts (40 tests | 15 failed) 43ms
+     × returns authoritative line and shop amounts for 'current variant price' 7ms
+     × returns authoritative line and shop amounts for 'active flash price' 1ms
+     × rejects 'zero price' before persisting checkout 1ms
+     × rejects 'negative price' before persisting checkout 1ms
+     × rejects 'fractional price' before persisting checkout 1ms
+     × rejects 'unsafe price' before persisting checkout 1ms
+     × rejects 'subtotal overflow' before persisting checkout 1ms
+     × rejects 'grand total overflow' before persisting checkout 2ms
+     × rejects 'negative shipping' before persisting checkout 1ms
+     × rejects 'fractional shipping' before persisting checkout 1ms
+     × rejects 'unsafe shipping' before persisting checkout 1ms
+     × rejects 'nonfinite shipping' before persisting checkout 0ms
+     × rejects 'negative quantity' before persisting checkout 0ms
+     × rejects 'fractional quantity' before persisting checkout 0ms
+     × rejects a BigInt price beyond the exact numeric API range 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > returns authoritative line and shop amounts for 'current variant price'
+AssertionError: expected { subtotal: 2400, …(7) } to match object { subtotal: 2400, …(4) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "grandTotal": 2900,
+-   "items": [
+-     {
+-       "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+-       "lineTotal": 2400,
+-       "shopId": "11111111-1111-4111-8111-111111111111",
+-       "unitPrice": 1200,
+-     },
+-   ],
+    "shippingTotal": 500,
+-   "shops": [
+-     {
+-       "shopId": "11111111-1111-4111-8111-111111111111",
+-       "subtotal": 2400,
+-     },
+-   ],
+    "subtotal": 2400,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:707:19
+    705|     }
+    706|     const quote = await service.quoteCheckout(createActor(), { cartId:…
+    707|     expect(quote).toMatchObject({
+       |                   ^
+    708|       subtotal: lineTotal,
+    709|       shippingTotal: 500,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > returns authoritative line and shop amounts for 'active flash price'
+AssertionError: expected { subtotal: 1800, …(7) } to match object { subtotal: 1800, …(4) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "grandTotal": 2300,
+-   "items": [
+-     {
+-       "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+-       "lineTotal": 1800,
+-       "shopId": "11111111-1111-4111-8111-111111111111",
+-       "unitPrice": 900,
+-     },
+-   ],
+    "shippingTotal": 500,
+-   "shops": [
+-     {
+-       "shopId": "11111111-1111-4111-8111-111111111111",
+-       "subtotal": 1800,
+-     },
+-   ],
+    "subtotal": 1800,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:707:19
+    705|     }
+    706|     const quote = await service.quoteCheckout(createActor(), { cartId:…
+    707|     expect(quote).toMatchObject({
+       |                   ^
+    708|       subtotal: lineTotal,
+    709|       shippingTotal: 500,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'zero price' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ1X-407D24AA",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 0,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'negative price' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ1Y-231A959C",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 0,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'fractional price' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ1Z-E168120C",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 1.5,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'unsafe price' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ20-950A319F",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 9007199254740992,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'subtotal overflow' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ20-6125A71D",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 18014398509481982,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'grand total overflow' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ22-22412350",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 9007199254740992,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'negative shipping' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ23-C8955E65",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 100,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'fractional shipping' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ24-EC388731",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 101.5,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'unsafe shipping' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ24-3838FF07",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 9007199254741092,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'nonfinite shipping' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ25-B61E1D3A",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": Infinity,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'negative quantity' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ25-A4CC2423",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 0,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects 'fractional quantity' before persisting checkout
+AssertionError: promise resolved "{ …(6) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "orderId": "13131313-1313-4131-8131-131313131313",
++   "orderNo": "ORD-MUSPQZ26-B748A995",
++   "paymentId": "14141414-1414-4141-8141-141414141414",
++   "paymentStatus": "pending",
++   "paymentUrl": "/th/payment/mock/14141414-1414-4141-8141-141414141414",
++   "totalCents": 150,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:735:8
+    733|       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    734|       paymentMethod: 'card',
+    735|     })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+       |        ^
+    736|     expect(repo.commitCheckout).not.toHaveBeenCalled()
+    737|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/17]⎯
+
+ FAIL  server/modules/checkout/checkout.service.test.ts > CheckoutQuoteEvaluator > rejects a BigInt price beyond the exact numeric API range
+AssertionError: promise resolved "{ subtotal: 9007199254740992, …(7) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "coinsApplied": 0,
++   "coupon": null,
++   "currency": "THB",
++   "discountTotal": 0,
++   "grandTotal": 9007199254740992,
++   "shippingTotal": 0,
++   "subtotal": 9007199254740992,
++   "taxTotal": 0,
+  }
+
+ ❯ server/modules/checkout/checkout.service.test.ts:743:107
+    741|     item.variant.price = 9007199254740993n
+    742|     const service = await setupSuccess({ cart: createCart({ items: [it…
+    743|     await expect(service.quoteCheckout(createActor(), { cartId: 'ddddd…
+       |                                                                                                           ^
+    744|       .rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+    745|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/17]⎯
+
+ FAIL  app/features/checkout/components/CheckoutPage.test.tsx > CheckoutPage > shows quoted line and shop amounts for a 'repriced variant'
+TestingLibraryElementError: Unable to find an element with the text: THB 24.00. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <header>
+      Checkout
+    </header>
+    <div
+      class="mx-auto max-w-5xl space-y-4 px-3 pb-28 pt-4"
+    >
+      <div
+        class="grid gap-4 lg:grid-cols-[1fr_360px]"
+      >
+        <div
+          class="space-y-4"
+        >
+          <section
+            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div
+              class="mb-3 flex items-center gap-2 font-bold text-slate-950"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-package-check size-5"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 22V12"
+                />
+                <path
+                  d="m16 17 2 2 4-4"
+                />
+                <path
+                  d="M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753"
+                />
+                <path
+                  d="M3.29 7 12 12l8.71-5"
+                />
+                <path
+                  d="m7.5 4.27 8.997 5.148"
+                />
+              </svg>
+              order.items
+            </div>
+            <div
+              class="space-y-3"
+            >
+              <section
+                class="border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+              >
+                <div
+                  class="mb-2 flex justify-between gap-3 text-sm"
+                >
+                  <span
+                    class="font-semibold text-slate-700"
+                  >
+                    Demo Shop
+                  </span>
+                  <span
+                    class="font-semibold text-slate-950"
+                  >
+                    THB 20.00
+                  </span>
+                </div>
+                <div
+                  class="space-y-2"
+                >
+                  <div
+                    class="flex gap-3"
+                  >
+                    <div
+                      class="size-14 shrink-0 overflow-hidden rounded-lg bg-slate-100"
+                    >
+                      <span
+                        class="flex size-full items-center justify-center text-[10px] text-slate-400"
+                      >
+                        cart.noImage
+                      </span>
+                    </div>
+                    <div
+                      class="min-w-0 flex-1"
+                    >
+                      <p
+                        class="truncate text-sm font-semibold text-slate-950"
+                      >
+                        Demo Product
+                      </p>
+                      <p
+                        class="truncate text-xs text-slate-500"
+                      >
+                        Default
+                      </p>
+                      <div
+                        class="mt-1 flex justify-between gap-2 text-xs text-slate-600"
+                      >
+                        <span>
+                          ×
+                          2
+                        </span>
+                        <span
+                          class="font-semibold text-slate-950"
+                        >
+                          THB 20.00
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </section>
+          <section
+            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div
+              class="mb-3 flex items-center gap-2 font-bold text-slate-950"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-map-pin size-5"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"
+                />
+                <circle
+                  cx="12"
+                  cy="10"
+                  r="3"
+                />
+              </svg>
+              Address
+            </div>
+            <div>
+              <label
+                class="flex cursor-pointer items-start justify-between gap-3 rounded-2xl border border-slate-200 p-3 has-[[data-state=checked]]:border-orange-200 has-[[data-state=checked]]:bg-orange-50"
+              ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ app/features/checkout/components/CheckoutPage.test.tsx:284:19
+    282|     renderCheckoutPage();
+    283|     await screen.findAllByText(totalLabel);
+    284|     expect(screen.getAllByText(lineLabel)).toHaveLength(3);
+       |                   ^
+    285|     expect(screen.queryByText("THB 20.00")).toBeNull();
+    286|     expect(screen.getByText("THB 5.00")).toBeTruthy();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/17]⎯
+
+ FAIL  app/features/checkout/components/CheckoutPage.test.tsx > CheckoutPage > shows quoted line and shop amounts for a 'flash-sale variant'
+TestingLibraryElementError: Unable to find an element with the text: THB 18.00. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <header>
+      Checkout
+    </header>
+    <div
+      class="mx-auto max-w-5xl space-y-4 px-3 pb-28 pt-4"
+    >
+      <div
+        class="grid gap-4 lg:grid-cols-[1fr_360px]"
+      >
+        <div
+          class="space-y-4"
+        >
+          <section
+            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div
+              class="mb-3 flex items-center gap-2 font-bold text-slate-950"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-package-check size-5"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 22V12"
+                />
+                <path
+                  d="m16 17 2 2 4-4"
+                />
+                <path
+                  d="M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753"
+                />
+                <path
+                  d="M3.29 7 12 12l8.71-5"
+                />
+                <path
+                  d="m7.5 4.27 8.997 5.148"
+                />
+              </svg>
+              order.items
+            </div>
+            <div
+              class="space-y-3"
+            >
+              <section
+                class="border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+              >
+                <div
+                  class="mb-2 flex justify-between gap-3 text-sm"
+                >
+                  <span
+                    class="font-semibold text-slate-700"
+                  >
+                    Demo Shop
+                  </span>
+                  <span
+                    class="font-semibold text-slate-950"
+                  >
+                    THB 20.00
+                  </span>
+                </div>
+                <div
+                  class="space-y-2"
+                >
+                  <div
+                    class="flex gap-3"
+                  >
+                    <div
+                      class="size-14 shrink-0 overflow-hidden rounded-lg bg-slate-100"
+                    >
+                      <span
+                        class="flex size-full items-center justify-center text-[10px] text-slate-400"
+                      >
+                        cart.noImage
+                      </span>
+                    </div>
+                    <div
+                      class="min-w-0 flex-1"
+                    >
+                      <p
+                        class="truncate text-sm font-semibold text-slate-950"
+                      >
+                        Demo Product
+                      </p>
+                      <p
+                        class="truncate text-xs text-slate-500"
+                      >
+                        Default
+                      </p>
+                      <div
+                        class="mt-1 flex justify-between gap-2 text-xs text-slate-600"
+                      >
+                        <span>
+                          ×
+                          2
+                        </span>
+                        <span
+                          class="font-semibold text-slate-950"
+                        >
+                          THB 20.00
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </section>
+          <section
+            class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div
+              class="mb-3 flex items-center gap-2 font-bold text-slate-950"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-map-pin size-5"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"
+                />
+                <circle
+                  cx="12"
+                  cy="10"
+                  r="3"
+                />
+              </svg>
+              Address
+            </div>
+            <div>
+              <label
+                class="flex cursor-pointer items-start justify-between gap-3 rounded-2xl border border-slate-200 p-3 has-[[data-state=checked]]:border-orange-200 has-[[data-state=checked]]:bg-orange-50"
+              ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ app/features/checkout/components/CheckoutPage.test.tsx:284:19
+    282|     renderCheckoutPage();
+    283|     await screen.findAllByText(totalLabel);
+    284|     expect(screen.getAllByText(lineLabel)).toHaveLength(3);
+       |                   ^
+    285|     expect(screen.queryByText("THB 20.00")).toBeNull();
+    286|     expect(screen.getByText("THB 5.00")).toBeTruthy();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/17]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  17 failed | 36 passed (53)
+   Start at  01:16:19
+   Duration  2.90s (transform 138ms, setup 0ms, import 414ms, tests 1.40s, environment 794ms)
+

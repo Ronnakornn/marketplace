@@ -1,0 +1,7 @@
+{
+  "defaultServicesUntouched": true,
+  "redisStopped": true,
+  "temporaryDataRetained": true,
+  "postgresStopped": true,
+  "checkedAt": "2026-10-03T19:06:36.8614214Z"
+}

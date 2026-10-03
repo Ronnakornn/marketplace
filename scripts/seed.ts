@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { hashPassword } from "better-auth/crypto";
 import { buildDemoNotificationSeeds } from "./seed-notification-data.ts";
+import type { OrderItem } from "#generated/client/client.ts";
 
 function loadEnvLocal() {
   const envPath = resolve(process.cwd(), ".env.local");
@@ -531,6 +532,10 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
       ["MWPB-1", 1],
     ],
     shipping: 500,
+    shopAmounts: [
+      { shopSlug: "urban-thread-co", subtotal: 1780, discountTotal: 0, shippingTotal: 250, grandTotal: 2030 },
+      { shopSlug: "gadget-harbor", subtotal: 1490, discountTotal: 0, shippingTotal: 250, grandTotal: 1740 },
+    ],
   });
   await setReservedQuantities(prisma, pending.reservations);
 
@@ -550,6 +555,10 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
     couponCode: "DEMO10",
     discount: 300,
     shipping: 500,
+    shopAmounts: [
+      { shopSlug: "urban-thread-co", subtotal: 1290, discountTotal: 61, shippingTotal: 250, grandTotal: 1479 },
+      { shopSlug: "gadget-harbor", subtotal: 4970, discountTotal: 239, shippingTotal: 250, grandTotal: 4981 },
+    ],
     paymentEventType: "payment.paid",
   });
   await seedShipments(prisma, paid.order.id, "PENDING_PACK");
@@ -568,6 +577,10 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
       ["CWTB-1", 1],
     ],
     shipping: 500,
+    shopAmounts: [
+      { shopSlug: "gadget-harbor", subtotal: 2290, discountTotal: 0, shippingTotal: 250, grandTotal: 2540 },
+      { shopSlug: "nest-glow-market", subtotal: 1490, discountTotal: 0, shippingTotal: 250, grandTotal: 1740 },
+    ],
     paymentEventType: "payment.paid",
   });
   await seedShipments(prisma, shipped.order.id, "SHIPPED");
@@ -585,6 +598,10 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
       ["HGC-1", 2],
     ],
     shipping: 500,
+    shopAmounts: [
+      { shopSlug: "urban-thread-co", subtotal: 1390, discountTotal: 0, shippingTotal: 250, grandTotal: 1640 },
+      { shopSlug: "nest-glow-market", subtotal: 1180, discountTotal: 0, shippingTotal: 250, grandTotal: 1430 },
+    ],
     paymentEventType: "payment.paid",
   });
   await seedShipments(prisma, delivered.order.id, "DELIVERED");
@@ -600,6 +617,9 @@ async function seedCommerce(prisma: Prisma, ctx: SeedContext) {
     reservationStatus: "RELEASED",
     items: [["UCTD7-1", 1]],
     shipping: 500,
+    shopAmounts: [
+      { shopSlug: "gadget-harbor", subtotal: 1890, discountTotal: 0, shippingTotal: 500, grandTotal: 2390 },
+    ],
     paymentEventType: "payment.failed",
   });
   await seedPaymentEvent(prisma, failed.payment.id, "DEMO-FAILED-1005", "payment.failed");
@@ -640,6 +660,7 @@ async function seedOrderScenario(
     reservationStatus: "ACTIVE" | "COMMITTED" | "RELEASED";
     items: Array<[string, number]>;
     shipping: number;
+    shopAmounts: Array<{ shopSlug: string; subtotal: number; discountTotal: number; shippingTotal: number; grandTotal: number }>;
     discount?: number;
     couponCode?: string;
     paymentEventType?: "payment.paid" | "payment.failed";
@@ -656,7 +677,7 @@ async function seedOrderScenario(
   );
 
   let subtotal = 0;
-  const orderItems = [];
+  const orderItems: Array<Omit<OrderItem, "id" | "orderId" | "unitPrice" | "lineTotal"> & { unitPrice: number; lineTotal: number }> = [];
   for (const [sku, quantity] of input.items) {
     const variant = requiredVariant(ctx, sku);
     subtotal += variant.price * quantity;
@@ -685,6 +706,29 @@ async function seedOrderScenario(
 
   const discountTotal = input.discount ?? 0;
   const grandTotal = subtotal - discountTotal + input.shipping;
+  const shopSnapshots = input.shopAmounts.map(amounts => {
+    const shop = requiredShop(ctx, amounts.shopSlug);
+    const itemSubtotal = orderItems.filter(item => item.shopId === shop.id).reduce((total, item) => total + item.lineTotal, 0);
+    if (itemSubtotal !== amounts.subtotal || amounts.grandTotal !== amounts.subtotal - amounts.discountTotal + amounts.shippingTotal) {
+      throw new Error(`Demo shop amount fixture does not match ${input.orderNumber}/${amounts.shopSlug}`);
+    }
+    return {
+      shopId: shop.id,
+      status: input.orderStatus,
+      fulfillmentStatus: input.orderStatus === "CANCELED" ? "CANCELED" as const : orderItems.find(item => item.shopId === shop.id)!.fulfillmentStatus,
+      subtotal: BigInt(amounts.subtotal), discountTotal: BigInt(amounts.discountTotal),
+      shippingTotal: BigInt(amounts.shippingTotal), taxTotal: 0n,
+      grandTotal: BigInt(amounts.grandTotal), currency: "THB",
+    };
+  });
+  const uniqueShopIds = new Set(shopSnapshots.map(snapshot => snapshot.shopId));
+  if (uniqueShopIds.size !== shopSnapshots.length || orderItems.some(item => !uniqueShopIds.has(item.shopId))
+    || input.shopAmounts.reduce((total, amounts) => total + amounts.subtotal, 0) !== subtotal
+    || input.shopAmounts.reduce((total, amounts) => total + amounts.discountTotal, 0) !== discountTotal
+    || input.shopAmounts.reduce((total, amounts) => total + amounts.shippingTotal, 0) !== input.shipping
+    || input.shopAmounts.reduce((total, amounts) => total + amounts.grandTotal, 0) !== grandTotal) {
+    throw new Error(`Demo shop amount fixtures do not match parent ${input.orderNumber}`);
+  }
   const checkoutData = {
     cartId: cart.id,
     userId,
@@ -768,6 +812,13 @@ async function seedOrderScenario(
   });
 
   await prisma.shipmentItem.deleteMany({ where: { orderItem: { orderId: order.id } } });
+  for (const snapshot of shopSnapshots) {
+    await prisma.shopOrder.upsert({
+      where: { orderId_shopId: { orderId: order.id, shopId: snapshot.shopId } },
+      update: snapshot,
+      create: { ...snapshot, orderId: order.id },
+    });
+  }
   await prisma.review.deleteMany({ where: { orderItem: { orderId: order.id } } });
   await prisma.returnItem.deleteMany({ where: { orderItem: { orderId: order.id } } });
   await prisma.orderItem.deleteMany({ where: { orderId: order.id } });

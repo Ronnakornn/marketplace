@@ -1,0 +1,122 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=1.5 before persistence 5ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon minOrderCents=1.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon maxDiscountCents=1.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=12.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=1.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon perUserLimit=1.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=-1 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=9007199254740992 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=10001 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=0 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 0.29 baht exactly 4ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 1.15 baht exactly 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 19.99 baht exactly 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 90071992547409.9 baht exactly 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 0 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price -1 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 1.001 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 1e-7 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 1e+21 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price Infinity 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 9007199254740991 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid fixed coupon discount 4ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns only redeemable public coupons using the API field contract 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns buyer coupon claim state and claims an active coupon 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid percent coupon discount 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > keeps percentage coupon minor units exact near the safe amount limit 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > marks a free-shipping coupon without discounting product subtotal 4ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > scopes a seller coupon to its own shop subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a seller coupon when the selected cart has no items from its shop 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > respects max discount for percent coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > never discounts more than the subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects inactive coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects expired coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons that have not started 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons when the order minimum is not met 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the global usage limit is reached 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the per-user usage limit is reached 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lists and creates seller coupons for owned shops 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents sellers from updating another shop coupon 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a flash-sale item update at or above the active variant price 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lets a seller enroll an owned active variant in a scheduled platform flash sale 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents a seller from enrolling in another shop scoped flash sale 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects enrollment when the atomic repository overlap check loses a race 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a campaign schedule update when the atomic repository check finds overlap 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents deleting live or reserved flash sale items 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns the buyer coin wallet and recent ledger history 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > user can create affiliate link 6ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > duplicate affiliate code fails 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > invalid target fails 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > public click tracking works without storing raw ip or user agent 5ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > authenticated target search returns product shop and campaign options 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > invalid target type fails target search 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > attribution window works 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > paid order creates affiliate commission once 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > floors the fractional minor unit of a 1999 subtotal at 500 basis points 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > preserves every minor unit in a full-rate commission near the safe amount limit 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > duplicate payment webhook does not duplicate commission 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > cancelled or refunded order does not create commission 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > self-referral is blocked 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > affiliate stats show clicks conversions and commission 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > admin can disable affiliate account 1ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount 0 before creating a payout 49ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount -1 before creating a payout 6ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount 1.5 before creating a payout 4ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount 9007199254740992 before creating a payout 3ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > accepts a safe positive integer amount 1 4ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > accepts a safe positive integer amount 9007199254740991 2ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects discountValueCents=1.5 before coupon persistence 48ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects discountPercentBps=12.5 before coupon persistence 10ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects minOrderCents=0.5 before coupon persistence 4ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects maxDiscountCents=2.5 before coupon persistence 4ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects usageLimit=1.5 before coupon persistence 5ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects perUserLimit=1.5 before coupon persistence 5ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects discountValueCents=9007199254740992 before coupon persistence 9ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects minOrderCents=9007199254740992 before coupon persistence 6ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects maxDiscountCents=9007199254740992 before coupon persistence 8ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects usageLimit=2147483648 before coupon persistence 7ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects perUserLimit=2147483648 before coupon persistence 5ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects discountPercentBps=10001 before coupon persistence 6ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > accepts a 12.50 percent coupon as 1250 integer basis points 7ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > accepts a valid two-decimal flash price 0.29 through HTTP validation 8ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > accepts a valid two-decimal flash price 1.15 through HTTP validation 6ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > accepts a valid two-decimal flash price 19.99 through HTTP validation 4ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > stores the canonical decimal minor units of a near-limit flash price through the real service 6ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > preserves cumulative 333, 667 and 1000 refund rounding with 0 spent coins 8ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > preserves cumulative 333, 667 and 1000 refund rounding with 3 spent coins 2ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > restores spent coins and reverses cashback proportionally once 2ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > uses cumulative targets with number-shaped Prisma values and records cashback debt 1ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > does nothing when the refund was already reconciled 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout request reserves balance 8ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout cannot exceed available balance 3ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 0 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount -1 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 1.5 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount Infinity before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 9007199254740992 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can approve payout 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can reject payout 3ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > publishes payout rejection only after the transaction commits 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > does not publish payout rejection for invalid or rolled-back transitions 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can mark payout paid 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > requires two administrators and an external transfer reference 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > invalid payout transition fails 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > earns exact cashback on 9999 minor units of net merchandise 3ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > earns exact cashback on 10000 minor units of net merchandise 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > earns exact cashback on 10001 minor units of net merchandise 0ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > uses later cashback to clear debt once and leaves the next order cashback available 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > takes the webhook advisory lock without deserializing PostgreSQL void 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > keeps paid Payment and Order status synchronized 2ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > commits flash-sale quota and settles coin spend and cashback after payment 2ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > splits cashback between available coins and outstanding debt settlement 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > releases reservations and synchronizes failed status 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > marks checkout expired while releasing payment resources 0ms
+
+ Test Files  7 passed (7)
+      Tests  113 passed (113)
+   Start at  01:43:45
+   Duration  2.27s (transform 672ms, setup 0ms, import 4.13s, tests 392ms, environment 1ms)
+

@@ -1,0 +1,87 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 0.29 2ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 1.15 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 19.99 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text .29 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text  001.15  0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 12.5 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 12. 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text  0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text -1.15 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text +1.15 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 1.000 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 1e3 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 29e-2 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 90071992547409.90 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > preserves exact decimal text 90071992547409.91 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text 90071992547409.92 for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text -90071992547409.92 for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text 1.001 for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text NaN for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text Infinity for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text 1e-7 for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text . for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > decimal input to minor units > leaves invalid or unsafe text + for API validation 0ms
+ ✓ app/lib/input-decimal.test.ts > minor units to decimal input > preserves exact stored minor units 29 0ms
+ ✓ app/lib/input-decimal.test.ts > minor units to decimal input > preserves exact stored minor units 115 0ms
+ ✓ app/lib/input-decimal.test.ts > minor units to decimal input > preserves exact stored minor units 100 0ms
+ ✓ app/lib/input-decimal.test.ts > minor units to decimal input > preserves exact stored minor units 150 0ms
+ ✓ app/lib/input-decimal.test.ts > minor units to decimal input > preserves exact stored minor units 0 0ms
+ ✓ app/lib/input-decimal.test.ts > minor units to decimal input > preserves exact stored minor units -29 0ms
+ ✓ app/lib/input-decimal.test.ts > minor units to decimal input > preserves exact stored minor units 9007199254740990 0ms
+ ✓ app/lib/input-decimal.test.ts > minor units to decimal input > preserves exact stored minor units 9007199254740991 0ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered percent value in the correct integer unit 159ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 31ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 29ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 23ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 22ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 29ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit 20ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 0.29 as exact minor units 4ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.15 as exact minor units 4ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1.000 as exact minor units 4ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 1e3 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.90 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.91 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits payout decimal text 90071992547409.92 as exact minor units 3ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders product list controls and links to create and edit pages 220ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders unanswered product questions and submits seller answers 82ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows seller answer submission state 56ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > requires archive confirmation before calling archive mutation 109ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > prepares a draft from the new product route before opening Product Studio 12ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > redirects to Product Studio after draft creation succeeds 2ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders edit form data and page-level retry state 218ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows required and optional category specs with inline readiness validation 522ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders number, boolean, and multi-select category specs with helper text 353ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > renders category specs fetched from the category specs endpoint 116ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > keeps category spec attributes in the save payload while additional specs stay free-form 691ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > prevents adding more than ten images before upload 352ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > validates one product video with visible MIME and size feedback 396ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows media upload errors and allows retry without clearing image form state 651ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > keeps exactly one primary image while reordering and removing media 538ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > edits variant stock with fields limited to allowed values 390ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > creates variants 936ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 0.29 as exact minor units 319ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 1.15 as exact minor units 318ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 1.000 as exact minor units 314ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 1e3 as exact minor units 319ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 90071992547409.90 as exact minor units 318ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > saves catalog price decimal text 90071992547409.91 as exact minor units 319ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > preserves the maximum safe catalog price when saving without editing its amount 291ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > deletes variants after confirmation 460ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows inventory as derived stock state with reserved quantity read-only and movement access 144ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > generates variant rows, applies bulk values, and shows duplicate SKU errors inline 1960ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > limits options to two axes and confirms removal when variants are affected 498ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > shows retry when draft preparation fails 13ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > publishes a ready draft directly and shows legacy moderation reasons 272ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > blocks publish when variant option combinations are duplicated 312ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > warns before unloading when any studio field has unsaved changes 135ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx > Seller product pages > exposes accessible status, errors, media dimensions, and form semantics 191ms
+
+ Test Files  3 passed (3)
+      Tests  78 passed (78)
+   Start at  01:57:47
+   Duration  13.57s (transform 482ms, setup 0ms, import 1.54s, tests 12.17s, environment 1.53s)
+

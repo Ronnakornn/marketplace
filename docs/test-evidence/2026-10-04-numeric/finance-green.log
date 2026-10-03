@@ -1,0 +1,57 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/wallet/wallet.service.test.ts > WalletService > seller wallet summary works 6ms
+ ✓ server/modules/wallet/wallet.service.test.ts > WalletService > seller cannot see another wallet 2ms
+ ✓ server/modules/wallet/wallet.service.test.ts > WalletService > completed order creates earning ledger and commission is deducted 3ms
+ ✓ server/modules/wallet/wallet.service.test.ts > WalletService > refund adjustment reduces seller balance 1ms
+ ✓ server/modules/wallet/wallet.service.test.ts > WalletService > transaction rollback works 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=1.5 before persistence 7ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon minOrderCents=1.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon maxDiscountCents=1.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=12.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=1.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon perUserLimit=1.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=-1 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=9007199254740992 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=10001 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=0 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 0.29 baht exactly 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 1.15 baht exactly 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 19.99 baht exactly 0ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 0 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price -1 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 1.001 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price Infinity 0ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 9007199254740991 0ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid fixed coupon discount 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns only redeemable public coupons using the API field contract 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns buyer coupon claim state and claims an active coupon 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid percent coupon discount 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > marks a free-shipping coupon without discounting product subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > scopes a seller coupon to its own shop subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a seller coupon when the selected cart has no items from its shop 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > respects max discount for percent coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > never discounts more than the subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects inactive coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects expired coupons 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons that have not started 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons when the order minimum is not met 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the global usage limit is reached 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the per-user usage limit is reached 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lists and creates seller coupons for owned shops 5ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents sellers from updating another shop coupon 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a flash-sale item update at or above the active variant price 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lets a seller enroll an owned active variant in a scheduled platform flash sale 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents a seller from enrolling in another shop scoped flash sale 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects enrollment when the atomic repository overlap check loses a race 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a campaign schedule update when the atomic repository check finds overlap 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents deleting live or reserved flash sale items 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns the buyer coin wallet and recent ledger history 1ms
+ ✓ server/modules/wallet/wallet-concurrency.integration.test.ts > completed-order earnings on PostgreSQL > credits each shop once when completed-order callbacks overlap and replay 586ms
+
+ Test Files  3 passed (3)
+      Tests  48 passed (48)
+   Start at  01:18:28
+   Duration  1.15s (transform 362ms, setup 0ms, import 616ms, tests 694ms, environment 0ms)
+

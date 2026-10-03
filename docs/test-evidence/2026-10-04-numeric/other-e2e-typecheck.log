@@ -1,0 +1,5 @@
+.next-e2e-3100/dev/types/validator.ts(728,1): error TS1434: Unexpected keyword or identifier.
+.next-e2e-3100/dev/types/validator.ts(728,7): error TS1128: Declaration or statement expected.
+.next-e2e-3100/dev/types/validator.ts(728,29): error TS1005: ';' expected.
+.next-e2e-3100/dev/types/validator.ts(728,31): error TS1002: Unterminated string literal.
+.next-e2e-3100/dev/types/validator.ts(732,1): error TS1128: Declaration or statement expected.

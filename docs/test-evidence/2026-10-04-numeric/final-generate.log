@@ -1,0 +1,11 @@
+$ bunx prisma generate
+◇ injected env (21) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+
+✔ Generated Prisma Client (7.9.1) to .\generated\client in 983ms
+
+✔ Generated prismabox to .\generated\prismabox in 2.86s
+

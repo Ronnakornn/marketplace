@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DiscountType } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { IPromotionRepository } from './promotion.repository.ts'
-import { PromotionService } from './promotion.service.ts'
+import { PromotionService, type CouponPayload } from './promotion.service.ts'
 
 function createLogger() {
   return {
@@ -115,6 +115,48 @@ describe('PromotionService', () => {
     vi.mocked(repo.countCouponRedemptionsForUser).mockResolvedValue(0)
   })
 
+  it.each([
+    ['discountValueCents', 1.5], ['minOrderCents', 1.5], ['maxDiscountCents', 1.5],
+    ['discountPercentBps', 12.5], ['usageLimit', 1.5], ['perUserLimit', 1.5],
+    ['discountValueCents', -1], ['discountValueCents', Number.MAX_SAFE_INTEGER + 1],
+    ['discountPercentBps', 10001], ['usageLimit', 0],
+  ] satisfies Array<[keyof CouponPayload, number]>)('rejects invalid coupon %s=%s before persistence', async (field, value) => {
+    await expect(service.createCoupon({ id: 'admin-1', role: 'ADMIN' }, {
+      code: 'NUMBER', discountType: 'fixed', [field]: value,
+    })).rejects.toMatchObject({ code: 'INVALID_COUPON', status: 400 })
+    expect(repo.createCoupon).not.toHaveBeenCalled()
+  })
+
+  it.each([[0.29, 29n], [1.15, 115n], [19.99, 1999n], [90071992547409.9, 9007199254740990n]])('stores a valid flash sale price of %s baht exactly', async (baht, expected) => {
+    const campaign = { id: 'flash-1', shopId: null, title: 'Sale', description: null, status: 'DRAFT' as const,
+      startsAt: new Date('2999-01-01'), endsAt: new Date('2999-01-02'), createdAt: new Date(), updatedAt: new Date(), items: [] }
+    const item = { id: 'item-1', flashSaleId: campaign.id, shopId: 'shop-1', productId: 'product-1', variantId: 'variant-1',
+      salePrice: 100n, originalPrice: 3000n, stockLimit: 10, soldCount: 0, perUserLimit: null,
+      isActive: true, createdAt: new Date(), updatedAt: new Date() }
+    vi.mocked(repo.findFlashSaleById).mockResolvedValue(campaign)
+    vi.mocked(repo.findActiveProductVariant).mockResolvedValue({ id: 'variant-1', price: 9007199254740991n, product: { id: 'product-1', shopId: 'shop-1' } })
+    vi.mocked(repo.createFlashSaleItem).mockImplementation(async (_id, input) => ({ ...item, salePrice: BigInt(input.salePrice) }))
+    const created = await service.addFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, campaign.id, {
+      productId: item.productId, variantId: item.variantId, salePriceBaht: baht, stockLimit: 10,
+    })
+    expect(created.salePrice).toBe(expected)
+    vi.mocked(repo.findFlashSaleItemById).mockResolvedValue({ ...item, variant: { price: 9007199254740991n }, flashSale: campaign })
+    vi.mocked(repo.updateFlashSaleItem).mockImplementation(async (_id, input) => ({ ...item, salePrice: BigInt(input.salePrice!) }))
+    const updated = await service.updateFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, item.id, { salePriceBaht: baht })
+    expect(updated.salePrice).toBe(expected)
+  })
+
+  it.each([0, -1, 1.001, 1e-7, 1e21, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER])('rejects invalid flash sale baht price %s', async (baht) => {
+    vi.mocked(repo.findFlashSaleItemById).mockResolvedValue({
+      id: 'item-1', flashSaleId: 'flash-1', shopId: 'shop-1', productId: 'product-1', variantId: 'variant-1',
+      salePrice: 100n, originalPrice: 3000n, stockLimit: 10, soldCount: 0, perUserLimit: null,
+      isActive: true, createdAt: new Date(), updatedAt: new Date(), variant: { price: 3000n },
+      flashSale: { id: 'flash-1', shopId: null, status: 'DRAFT', startsAt: new Date('2999-01-01'), endsAt: new Date('2999-01-02') },
+    })
+    await expect(service.updateFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, 'item-1', { salePriceBaht: baht }))
+      .rejects.toMatchObject({ code: 'FLASH_SALE_PRICE_INVALID' })
+  })
+
   it('applies a valid fixed coupon discount', async () => {
     vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({ discountValueCents: 700 }))
 
@@ -195,6 +237,11 @@ describe('PromotionService', () => {
     }))
 
     await expect(validate(2_000)).resolves.toMatchObject({ discountCents: 300 })
+  })
+
+  it('keeps percentage coupon minor units exact near the safe amount limit', async () => {
+    vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({ discountType: 'PERCENT', discountPercentBps: 9999 }))
+    await expect(validate(9007199254740990)).resolves.toMatchObject({ discountCents: 9006298534815515 })
   })
 
   it('marks a free-shipping coupon without discounting product subtotal', async () => {

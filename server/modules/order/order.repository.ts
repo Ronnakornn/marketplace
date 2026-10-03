@@ -5,6 +5,7 @@ import type {
   Shipment,
   ShipmentItem,
   Shop,
+  ShopOrder,
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -18,6 +19,7 @@ export type OrderShipment = Shipment & {
 export type OrderRecord = Order & {
   items: OrderItem[]
   shipments: OrderShipment[]
+  shopOrders: Array<Pick<ShopOrder, 'shopId' | 'subtotal' | 'discountTotal' | 'shippingTotal' | 'taxTotal' | 'grandTotal' | 'currency'>>
 }
 
 export interface IOrderRepository {
@@ -29,6 +31,9 @@ export interface IOrderRepository {
 }
 
 const orderInclude = {
+  shopOrders: {
+    select: { shopId: true, subtotal: true, discountTotal: true, shippingTotal: true, taxTotal: true, grandTotal: true, currency: true },
+  },
   items: {
     orderBy: { id: 'asc' },
   },

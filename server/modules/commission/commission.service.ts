@@ -25,10 +25,10 @@ export class CommissionService {
     if (!Number.isInteger(this.commissionBps) || this.commissionBps < 0 || this.commissionBps > 10000) {
       throw new WalletServiceError('Commission rule not found', 500, 'COMMISSION_RULE_NOT_FOUND')
     }
-    if (!Number.isInteger(grossamount) || grossamount < 0) {
+    if (!Number.isSafeInteger(grossamount) || grossamount < 0) {
       throw new WalletServiceError('Gross amount must be a non-negative integer', 400, 'COMMISSION_RULE_NOT_FOUND')
     }
-    const commissionamount = Math.floor((grossamount * this.commissionBps) / 10000)
+    const commissionamount = Number(BigInt(grossamount) * BigInt(this.commissionBps) / 10000n)
     return {
       grossamount,
       commissionamount,

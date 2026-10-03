@@ -53,7 +53,7 @@ export function CheckoutPage() {
   const hasRequestedItems = searchParams?.has("items") ?? false;
   const selectedShops = cartQuery.data?.shops.map((shop) => {
     const items = shop.items.filter((item) => !hasRequestedItems || requestedItemIds.has(item.id));
-    return { ...shop, items, subtotal: items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) };
+    return { ...shop, items };
   }).filter((shop) => shop.items.length > 0) ?? [];
   const selectedItemIds = selectedShops.flatMap((shop) => shop.items.map((item) => item.id));
   const itemCount = selectedItemIds.length;
@@ -85,6 +85,11 @@ export function CheckoutPage() {
       checkoutSubmitting.current = false;
     },
   });
+  const quotedItems = new Map(quoteQuery.data?.items.map((item) => [item.id, item]));
+  const quotedShops = new Map(quoteQuery.data?.shops.map((shop) => [shop.shopId, shop]));
+  const renderQuotedAmount = (amount: number | undefined) => amount === undefined || !quoteQuery.isSuccess
+    ? <Skeleton className="h-4 w-20" />
+    : formatMoney(amount, quoteQuery.data.currency);
   const handleApplyCoupon = () => {
     const trimmed = couponInput.trim();
     if (!trimmed) return;
@@ -145,7 +150,7 @@ export function CheckoutPage() {
                     <section key={shop.shopId} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
                       <div className="mb-2 flex justify-between gap-3 text-sm">
                         <span className="font-semibold text-slate-700">{shop.shopName}</span>
-                        <span className="font-semibold text-slate-950">{formatMoney(shop.subtotal, cartQuery.data.currency)}</span>
+                        <span className="font-semibold text-slate-950">{renderQuotedAmount(quotedShops.get(shop.shopId)?.subtotal)}</span>
                       </div>
                       <div className="space-y-2">
                         {shop.items.map((item) => (
@@ -158,7 +163,7 @@ export function CheckoutPage() {
                               <p className="truncate text-xs text-slate-500">{item.variantTitle}</p>
                               <div className="mt-1 flex justify-between gap-2 text-xs text-slate-600">
                                 <span>×{item.quantity}</span>
-                                <span className="font-semibold text-slate-950">{formatMoney(item.unitPrice * item.quantity, item.currency)}</span>
+                                <span className="font-semibold text-slate-950">{renderQuotedAmount(quotedItems.get(item.id)?.lineTotal)}</span>
                               </div>
                             </div>
                           </div>
@@ -250,7 +255,7 @@ export function CheckoutPage() {
                 {selectedShops.map((shop) => (
                   <div key={shop.shopId} className="flex justify-between gap-3 text-sm">
                     <span className="text-slate-700">{shop.shopName}</span>
-                    <span className="font-semibold text-slate-950">{formatMoney(shop.subtotal, cartQuery.data.currency)}</span>
+                    <span className="font-semibold text-slate-950">{renderQuotedAmount(quotedShops.get(shop.shopId)?.subtotal)}</span>
                   </div>
                 ))}
                 {quoteQuery.data && quoteQuery.data.discountTotal > 0 ? (

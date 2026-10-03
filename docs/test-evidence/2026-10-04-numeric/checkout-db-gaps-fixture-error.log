@@ -1,0 +1,38 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ❯ server/modules/checkout/checkout-concurrency.integration.test.ts (5 tests | 1 failed) 1074ms
+     × rolls back order, reservations, coupon and coins when payment creation fails after their writes 108ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/checkout/checkout-concurrency.integration.test.ts > checkout creation concurrency on PostgreSQL > rolls back order, reservations, coupon and coins when payment creation fails after their writes
+AssertionError: expected CheckoutServiceError: Checkout failed { …(3) } to match object { Object (status, code) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+- {
++ CheckoutServiceError {
+    "code": "CHECKOUT_FAILED",
+-   "status": 409,
++   "status": 500,
+  }
+
+ ❯ server/modules/checkout/checkout-concurrency.integration.test.ts:150:8
+    148|     await expect(service(instrumented as unknown as PrismaClient).crea…
+    149|       ...data.input, cartItemIds: data.cart.items.map(item => item.id)…
+    150|     })).rejects.toMatchObject({ status: 409, code: 'CHECKOUT_FAILED' })
+       |        ^
+    151|     expect(attemptedPayments).toBe(1)
+    152|     expect(writes).toEqual(['checkout', 'reservation', 'reservation', …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  01:45:45
+   Duration  1.64s (transform 264ms, setup 0ms, import 426ms, tests 1.07s, environment 0ms)
+

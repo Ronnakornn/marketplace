@@ -1,0 +1,137 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=1.5 before persistence 9ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon minOrderCents=1.5 before persistence 1ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon maxDiscountCents=1.5 before persistence 1ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=12.5 before persistence 1ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=1.5 before persistence 1ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon perUserLimit=1.5 before persistence 1ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=-1 before persistence 1ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=9007199254740992 before persistence 1ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=10001 before persistence 2ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=0 before persistence 1ms
+   → promise resolved "undefined" instead of rejecting
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 0.29 baht exactly 2ms
+   → Flash sale price must be a positive amount with at most two decimal places
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 1.15 baht exactly 1ms
+   → Flash sale price must be a positive amount with at most two decimal places
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 19.99 baht exactly 0ms
+   → Flash sale price must be a positive amount with at most two decimal places
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 0 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price -1 0ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 1.001 0ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price Infinity 0ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 9007199254740991 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid fixed coupon discount 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns only redeemable public coupons using the API field contract 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns buyer coupon claim state and claims an active coupon 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid percent coupon discount 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > marks a free-shipping coupon without discounting product subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > scopes a seller coupon to its own shop subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a seller coupon when the selected cart has no items from its shop 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > respects max discount for percent coupons 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > never discounts more than the subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects inactive coupons 4ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects expired coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons that have not started 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons when the order minimum is not met 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the global usage limit is reached 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the per-user usage limit is reached 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lists and creates seller coupons for owned shops 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents sellers from updating another shop coupon 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a flash-sale item update at or above the active variant price 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lets a seller enroll an owned active variant in a scheduled platform flash sale 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents a seller from enrolling in another shop scoped flash sale 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects enrollment when the atomic repository overlap check loses a race 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a campaign schedule update when the atomic repository check finds overlap 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents deleting live or reserved flash sale items 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns the buyer coin wallet and recent ledger history 1ms
+ × server/modules/wallet/wallet-concurrency.integration.test.ts > completed-order earnings on PostgreSQL > credits each shop once when completed-order callbacks overlap and replay 431ms
+   → expected [ { …(13) }, { …(13) }, …(2) ] to have a length of 2 but got 4
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=1.5 before persistence
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon minOrderCents=1.5 before persistence
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon maxDiscountCents=1.5 before persistence
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=12.5 before persistence
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=1.5 before persistence
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon perUserLimit=1.5 before persistence
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=-1 before persistence
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=9007199254740992 before persistence
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=10001 before persistence
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=0 before persistence
+AssertionError: promise resolved "undefined" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+undefined
+
+ ❯ server/modules/promotion/promotion.service.test.ts:126:8
+    124|     await expect(service.createCoupon({ id: 'admin-1', role: 'ADMIN' }…
+    125|       code: 'NUMBER', discountType: 'fixed', [field]: value,
+    126|     })).rejects.toMatchObject({ code: 'INVALID_COUPON', status: 400 })
+       |        ^
+    127|     expect(repo.createCoupon).not.toHaveBeenCalled()
+    128|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/14]⎯
+
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 0.29 baht exactly
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 1.15 baht exactly
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 19.99 baht exactly
+PromotionServiceError: Flash sale price must be a positive amount with at most two decimal places
+ ❯ PromotionService.bahtToMinorUnits server/modules/promotion/promotion.service.ts:444:13
+    442|   private bahtToMinorUnits(value: number): number {
+    443|     if (!Number.isFinite(value) || value <= 0 || Math.round(value * 10…
+    444|       throw new PromotionServiceError('Flash sale price must be a posi…
+       |             ^
+    445|     }
+    446|     return Math.round(value * 100)
+ ❯ PromotionService.normalizeFlashSaleItemPayload server/modules/promotion/promotion.service.ts:428:23
+ ❯ PromotionService.addFlashSaleItem server/modules/promotion/promotion.service.ts:287:29
+ ❯ server/modules/promotion/promotion.service.test.ts:139:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { status: 400, code: 'FLASH_SALE_PRICE_INVALID', details: undefined }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/14]⎯
+
+ FAIL  server/modules/wallet/wallet-concurrency.integration.test.ts > completed-order earnings on PostgreSQL > credits each shop once when completed-order callbacks overlap and replay
+AssertionError: expected [ { …(13) }, { …(13) }, …(2) ] to have a length of 2 but got 4
+
+- Expected
++ Received
+
+- 2
++ 4
+
+ ❯ server/modules/wallet/wallet-concurrency.integration.test.ts:60:71
+     58|     }
+     59|     const entries = await prisma.walletLedgerEntry.findMany({ where: {…
+     60|     expect(entries.filter((entry) => entry.type === 'order_earning')).…
+       |                                                                       ^
+     61|     expect(entries.filter((entry) => entry.type === 'commission_fee'))…
+     62|     const firstShop = entries.filter((entry) => entry.shopId === items…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/14]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  14 failed | 29 passed (43)
+   Start at  01:15:59
+   Duration  973ms (transform 307ms, setup 0ms, import 455ms, tests 515ms, environment 0ms)
+

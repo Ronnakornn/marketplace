@@ -1,0 +1,94 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > preserves cumulative 333, 667 and 1000 refund rounding with 0 spent coins 6ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > preserves cumulative 333, 667 and 1000 refund rounding with 3 spent coins 2ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > restores spent coins and reverses cashback proportionally once 2ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > uses cumulative targets with number-shaped Prisma values and records cashback debt 1ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts > reverseBuyerCoinsForRefund > does nothing when the refund was already reconciled 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > user can create affiliate link 7ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > duplicate affiliate code fails 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > invalid target fails 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > public click tracking works without storing raw ip or user agent 3ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > authenticated target search returns product shop and campaign options 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > invalid target type fails target search 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > attribution window works 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > paid order creates affiliate commission once 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > floors the fractional minor unit of a 1999 subtotal at 500 basis points 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > preserves every minor unit in a full-rate commission near the safe amount limit 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > duplicate payment webhook does not duplicate commission 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > cancelled or refunded order does not create commission 3ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > self-referral is blocked 1ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > affiliate stats show clicks conversions and commission 2ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts > AffiliateService > admin can disable affiliate account 2ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > credits exactly 9999 net merchandise cashback at the coin threshold 5ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > credits exactly 10000 net merchandise cashback at the coin threshold 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > credits exactly 10001 net merchandise cashback at the coin threshold 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > uses later cashback to clear debt once and leaves the next order cashback available 2ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > takes the webhook advisory lock without deserializing PostgreSQL void 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > keeps paid Payment and Order status synchronized 4ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > commits flash-sale quota and settles coin spend and cashback after payment 3ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > splits cashback between available coins and outstanding debt settlement 1ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > releases reservations and synchronizes failed status 2ms
+ ✓ server/modules/payment/payment.repository.test.ts > PrismaPaymentRepository.applyPaymentStateTransition > marks checkout expired while releasing payment resources 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout request reserves balance 7ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout cannot exceed available balance 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 0 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount -1 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 1.5 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount Infinity before reserving funds 1ms
+ × server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 9007199254740992 before reserving funds 11ms
+   → promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can approve payout 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can reject payout 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > publishes payout rejection only after the transaction commits 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > does not publish payout rejection for invalid or rolled-back transitions 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can mark payout paid 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > requires two administrators and an external transfer reference 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > invalid payout transition fails 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 9007199254740992 before reserving funds
+AssertionError: promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "amount": 5000,
++   "approvedAt": null,
++   "approvedById": null,
++   "currency": "THB",
++   "externalReference": null,
++   "id": "payout-1",
++   "paidAt": null,
++   "rejectedAt": null,
++   "rejectionReason": null,
++   "requestedAt": 2026-05-01T00:00:00.000Z,
++   "shop": {
++     "id": "shop-1",
++     "name": "Shop One",
++   },
++   "status": "requested",
++   "walletId": "wallet-1",
+  }
+
+ ❯ server/modules/payout/payout.service.test.ts:116:91
+    114|   it.each([0, -1, 1.5, Number.POSITIVE_INFINITY, 9007199254740992])('r…
+    115|     vi.mocked(repo.sumLedger).mockResolvedValue(9007199254740992)
+    116|     await expect(service.createSellerPayout({ id: 'seller-1', role: 'U…
+       |                                                                                           ^
+    117|       .rejects.toMatchObject({ code: 'INVALID_PAYOUT_STATE', status: 4…
+    118|     expect(repo.createPayout).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  1 failed | 43 passed (44)
+   Start at  01:40:23
+   Duration  2.01s (transform 951ms, setup 0ms, import 3.57s, tests 112ms, environment 1ms)
+

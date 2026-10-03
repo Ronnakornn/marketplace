@@ -1,0 +1,2 @@
+$ bun run scripts/seed.ts
+Seeded full marketplace demo data. users=6 shops=3 products=21 variants=35

@@ -1,0 +1,192 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=1.5 before persistence 6ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon minOrderCents=1.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon maxDiscountCents=1.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=12.5 before persistence 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=1.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon perUserLimit=1.5 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=-1 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountValueCents=9007199254740992 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon discountPercentBps=10001 before persistence 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid coupon usageLimit=0 before persistence 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 0.29 baht exactly 4ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 1.15 baht exactly 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 19.99 baht exactly 1ms
+ × server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 90071992547409.9 baht exactly 11ms
+   → Flash sale price must be below the active product price
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 0 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price -1 4ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 1.001 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 1e-7 4ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 1e+21 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price Infinity 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects invalid flash sale baht price 9007199254740991 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid fixed coupon discount 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns only redeemable public coupons using the API field contract 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns buyer coupon claim state and claims an active coupon 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > applies a valid percent coupon discount 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > keeps percentage coupon minor units exact near the safe amount limit 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > marks a free-shipping coupon without discounting product subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > scopes a seller coupon to its own shop subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a seller coupon when the selected cart has no items from its shop 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > respects max discount for percent coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > never discounts more than the subtotal 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects inactive coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects expired coupons 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons that have not started 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons when the order minimum is not met 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the global usage limit is reached 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects coupons after the per-user usage limit is reached 3ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lists and creates seller coupons for owned shops 4ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents sellers from updating another shop coupon 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a flash-sale item update at or above the active variant price 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > lets a seller enroll an owned active variant in a scheduled platform flash sale 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents a seller from enrolling in another shop scoped flash sale 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects enrollment when the atomic repository overlap check loses a race 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > rejects a campaign schedule update when the atomic repository check finds overlap 2ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > prevents deleting live or reserved flash sale items 1ms
+ ✓ server/modules/promotion/promotion.service.test.ts > PromotionService > returns the buyer coin wallet and recent ledger history 2ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount 0 before creating a payout 36ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount -1 before creating a payout 5ms
+ × server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount 1.5 before creating a payout 10ms
+   → expected 200 to be 422 // Object.is equality
+ × server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount 9007199254740992 before creating a payout 3ms
+   → expected 200 to be 422 // Object.is equality
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > accepts a safe positive integer amount 1 3ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > accepts a safe positive integer amount 9007199254740991 3ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects discountValueCents=1.5 before coupon persistence 41ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects discountPercentBps=12.5 before coupon persistence 6ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects minOrderCents=0.5 before coupon persistence 4ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects maxDiscountCents=2.5 before coupon persistence 3ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects usageLimit=1.5 before coupon persistence 4ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects perUserLimit=1.5 before coupon persistence 3ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects discountValueCents=9007199254740992 before coupon persistence 7ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects minOrderCents=9007199254740992 before coupon persistence 6ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects maxDiscountCents=9007199254740992 before coupon persistence 5ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects usageLimit=2147483648 before coupon persistence 4ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects perUserLimit=2147483648 before coupon persistence 3ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > rejects discountPercentBps=10001 before coupon persistence 3ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > accepts a 12.50 percent coupon as 1250 integer basis points 4ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > accepts a valid two-decimal flash price 0.29 through HTTP validation 6ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > accepts a valid two-decimal flash price 1.15 through HTTP validation 4ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > accepts a valid two-decimal flash price 19.99 through HTTP validation 7ms
+ × server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > stores the canonical decimal minor units of a near-limit flash price through the real service 10ms
+   → {"error":{"code":"FLASH_SALE_PRICE_INVALID","message":"Flash sale price must be below the active product price","details":{}}}: expected 400 to be 200 // Object.is equality
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout request reserves balance 8ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > payout cannot exceed available balance 3ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 0 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount -1 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 1.5 before reserving funds 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount Infinity before reserving funds 1ms
+ × server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 9007199254740992 before reserving funds 13ms
+   → promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can approve payout 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can reject payout 3ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > publishes payout rejection only after the transaction commits 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > does not publish payout rejection for invalid or rolled-back transitions 2ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > admin can mark payout paid 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > requires two administrators and an external transfer reference 1ms
+ ✓ server/modules/payout/payout.service.test.ts > PayoutService > invalid payout transition fails 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount 1.5 before creating a payout
+ FAIL  server/modules/payout/payout.numeric-routes.test.ts > payout numeric HTTP boundary > rejects amount 9007199254740992 before creating a payout
+AssertionError: expected 200 to be 422 // Object.is equality
+
+- Expected
++ Received
+
+- 422
++ 200
+
+ ❯ server/modules/payout/payout.numeric-routes.test.ts:23:41
+     21|   beforeEach(() => vi.clearAllMocks())
+     22|   it.each([0, -1, 1.5, 9007199254740992])('rejects amount %s before cr…
+     23|     expect((await post(amount)).status).toBe(422)
+       |                                         ^
+     24|     expect(createSellerPayout).not.toHaveBeenCalled()
+     25|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  server/modules/payout/payout.service.test.ts > PayoutService > rejects an invalid payout amount 9007199254740992 before reserving funds
+AssertionError: promise resolved "{ id: 'payout-1', …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "amount": 5000,
++   "approvedAt": null,
++   "approvedById": null,
++   "currency": "THB",
++   "externalReference": null,
++   "id": "payout-1",
++   "paidAt": null,
++   "rejectedAt": null,
++   "rejectionReason": null,
++   "requestedAt": 2026-05-01T00:00:00.000Z,
++   "shop": {
++     "id": "shop-1",
++     "name": "Shop One",
++   },
++   "status": "requested",
++   "walletId": "wallet-1",
+  }
+
+ ❯ server/modules/payout/payout.service.test.ts:116:91
+    114|   it.each([0, -1, 1.5, Number.POSITIVE_INFINITY, 9007199254740992])('r…
+    115|     vi.mocked(repo.sumLedger).mockResolvedValue(9007199254740992)
+    116|     await expect(service.createSellerPayout({ id: 'seller-1', role: 'U…
+       |                                                                                           ^
+    117|       .rejects.toMatchObject({ code: 'INVALID_PAYOUT_STATE', status: 4…
+    118|     expect(repo.createPayout).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  server/modules/promotion/promotion.numeric-routes.test.ts > coupon numeric HTTP boundary > stores the canonical decimal minor units of a near-limit flash price through the real service
+AssertionError: {"error":{"code":"FLASH_SALE_PRICE_INVALID","message":"Flash sale price must be below the active product price","details":{}}}: expected 400 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 400
+
+ ❯ server/modules/promotion/promotion.numeric-routes.test.ts:61:60
+     59|       body: JSON.stringify({ productId: id, variantId: id, salePriceBa…
+     60|     }))
+     61|     expect(response.status, await response.clone().text()).toBe(200)
+       |                                                            ^
+     62|     expect(await response.json()).toEqual({ id, salePrice: 90071992547…
+     63|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  server/modules/promotion/promotion.service.test.ts > PromotionService > stores a valid flash sale price of 90071992547409.9 baht exactly
+PromotionServiceError: Flash sale price must be below the active product price
+ ❯ PromotionService.assertFlashSaleItemCreatePayload server/modules/promotion/promotion.service.ts:393:13
+    391|   private assertFlashSaleItemCreatePayload(payload: import('./promotio…
+    392|     if (!Number.isInteger(payload.salePrice) || payload.salePrice <= 0…
+    393|       throw new PromotionServiceError('Flash sale price must be below …
+       |             ^
+    394|     }
+    395|     if (!Number.isInteger(payload.stockLimit) || payload.stockLimit < …
+ ❯ PromotionService.addFlashSaleItem server/modules/promotion/promotion.service.ts:288:10
+ ❯ server/modules/promotion/promotion.service.test.ts:139:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { status: 400, code: 'FLASH_SALE_PRICE_INVALID', details: undefined }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  4 failed (4)
+      Tests  5 failed | 78 passed (83)
+   Start at  01:42:55
+   Duration  1.43s (transform 638ms, setup 0ms, import 2.56s, tests 325ms, environment 0ms)
+

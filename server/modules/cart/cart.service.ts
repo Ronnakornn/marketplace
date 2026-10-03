@@ -87,29 +87,32 @@ export class CartService {
     this.assertPositiveQuantity(data.quantity)
     this.logger.debug('CartService.addItem', { actorId: actor.id, variantId: data.variantId })
 
-    const cart = await this.repo.findOrCreateActiveCart(actor.id)
-    const variant = await this.repo.findVariantForCart(data.variantId)
-    this.assertVariantPurchasable(variant)
+    const { cart, variant } = await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
+      this.assertActiveCart(cart)
+      const variant = await repo.findVariantForCart(data.variantId)
+      this.assertVariantPurchasable(variant)
 
-    const existing = cart.items.find((item) => item.variantId === data.variantId)
-    const nextQuantity = (existing?.quantity ?? 0) + data.quantity
-    this.assertStockAvailable(variant!, nextQuantity)
+      const existing = cart.items.find((item) => item.variantId === data.variantId)
+      const nextQuantity = (existing?.quantity ?? 0) + data.quantity
+      this.assertStockAvailable(variant, nextQuantity)
 
-    const savedItem = existing
-      ? await this.repo.updateItemQuantity(existing.id, nextQuantity)
-      : await this.repo.createItem({
-        cartId: cart.id,
-        variantId: variant!.id,
-        quantity: data.quantity,
-        unitPrice: this.toMoneyNumber(this.getVariantPrice(variant!)),
-        currency: variant!.currency,
-      })
+      const savedItem = existing
+        ? await repo.updateItemQuantity(existing.id, nextQuantity)
+        : await repo.createItem({
+          cartId: cart.id,
+          variantId: variant.id,
+          quantity: data.quantity,
+          unitPrice: this.toMoneyNumber(this.getVariantPrice(variant)),
+          currency: variant.currency,
+        })
+      const items = existing
+        ? cart.items.map(item => item.id === existing.id ? savedItem : item)
+        : [...cart.items, savedItem]
+      return { cart: { ...cart, items }, variant }
+    })
     // Analytics is explicitly best-effort and must not delay the cart response.
-    void this.recordAddToCartAnalytics(actor, variant!, data)
-    const items = existing
-      ? cart.items.map(item => item.id === existing.id ? savedItem : item)
-      : [...cart.items, savedItem]
-    return this.toCartResponse({ ...cart, items }, resolveContentLocale(undefined))
+    void this.recordAddToCartAnalytics(actor, variant, data)
+    return this.toCartResponse(cart, resolveContentLocale(undefined))
   }
 
   async updateItem(actor: CartActor, itemId: string, data: UpdateCartItemData): Promise<CartResponse> {
@@ -117,12 +120,14 @@ export class CartService {
     this.assertPositiveQuantity(data.quantity)
     this.logger.info('CartService.updateItem', { actorId: actor.id, itemId })
 
-    const item = await this.repo.findItemByIdForUser(itemId, actor.id)
-    if (!item) throw new CartServiceError('Cart item not found', 404, 'CART_ITEM_NOT_FOUND')
-    this.assertVariantPurchasable(item.variant)
-    this.assertStockAvailable(item.variant, data.quantity)
-
-    await this.repo.updateItemQuantity(item.id, data.quantity)
+    await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
+      this.assertActiveCart(cart)
+      const item = await repo.findItemByIdForUser(itemId, actor.id)
+      if (!item) throw new CartServiceError('Cart item not found', 404, 'CART_ITEM_NOT_FOUND')
+      this.assertVariantPurchasable(item.variant)
+      this.assertStockAvailable(item.variant, data.quantity)
+      await repo.updateItemQuantity(item.id, data.quantity)
+    })
     return this.getCart(actor)
   }
 
@@ -130,10 +135,12 @@ export class CartService {
     this.assertBuyer(actor)
     this.logger.info('CartService.deleteItem', { actorId: actor.id, itemId })
 
-    const item = await this.repo.findItemByIdForUser(itemId, actor.id)
-    if (!item) throw new CartServiceError('Cart item not found', 404, 'CART_ITEM_NOT_FOUND')
-
-    await this.repo.deleteItem(item.id)
+    await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
+      this.assertActiveCart(cart)
+      const item = await repo.findItemByIdForUser(itemId, actor.id)
+      if (!item) throw new CartServiceError('Cart item not found', 404, 'CART_ITEM_NOT_FOUND')
+      await repo.deleteItem(item.id)
+    })
     return this.getCart(actor)
   }
 
@@ -141,7 +148,10 @@ export class CartService {
     this.assertBuyer(actor)
     this.logger.info('CartService.clearCart', { actorId: actor.id })
 
-    await this.repo.clearActiveCart(actor.id)
+    await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
+      this.assertActiveCart(cart)
+      await repo.clearActiveCart(actor.id)
+    })
     return this.getCart(actor)
   }
 
@@ -154,6 +164,12 @@ export class CartService {
   private assertPositiveQuantity(quantity: number): void {
     if (!Number.isInteger(quantity) || quantity <= 0) {
       throw new CartServiceError('Quantity must be a positive integer', 400, 'CART_QUANTITY_INVALID')
+    }
+  }
+
+  private assertActiveCart(cart: ActiveCartDetail): void {
+    if (cart.status !== 'ACTIVE') {
+      throw new CartServiceError('Cart is no longer active; refresh before retrying', 409, 'CART_STATE_CONFLICT')
     }
   }
 

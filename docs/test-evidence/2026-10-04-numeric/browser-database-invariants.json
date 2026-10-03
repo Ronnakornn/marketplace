@@ -1,0 +1,46 @@
+{
+  "database": "marketplace_e2e_numeric_final",
+  "checkedAt": "2026-10-03T19:03:57.750Z",
+  "counts": [
+    {
+      "orders": "35",
+      "payments": "35",
+      "items": "58",
+      "shop_orders": "49"
+    }
+  ],
+  "violations": [
+    {
+      "check": "order_equation",
+      "violations": "0"
+    },
+    {
+      "check": "item_equation",
+      "violations": "0"
+    },
+    {
+      "check": "item_subtotal",
+      "violations": "0"
+    },
+    {
+      "check": "shop_snapshot_completeness",
+      "violations": "0"
+    },
+    {
+      "check": "shop_snapshot_totals",
+      "violations": "0"
+    },
+    {
+      "check": "payment_snapshot_amount",
+      "violations": "0"
+    },
+    {
+      "check": "inventory_bounds",
+      "violations": "0"
+    },
+    {
+      "check": "duplicate_seller_earnings",
+      "violations": "0"
+    }
+  ]
+}

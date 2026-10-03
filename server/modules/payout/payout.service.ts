@@ -57,7 +57,7 @@ export class PayoutService {
   }
 
   async createSellerPayout(actor: PayoutActor, input: CreatePayoutInput): Promise<PayoutResponse> {
-    if (!Number.isInteger(input.amount) || input.amount <= 0) {
+    if (!Number.isSafeInteger(input.amount) || input.amount <= 0) {
       throw new WalletServiceError('Payout amount must be positive cents', 400, 'INVALID_PAYOUT_STATE')
     }
 

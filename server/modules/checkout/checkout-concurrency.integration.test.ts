@@ -83,6 +83,88 @@ describe.skipIf(!url)('checkout creation concurrency on PostgreSQL', () => {
     expect((await checkout.quoteCheckout(data.user, { cartId: data.cart.id })).grandTotal).toBe(10000)
   })
 
+  it('allows only one of two distinct buyers to reserve the last unit', async () => {
+    const first = await fixture()
+    const variant = first.variants[0]!
+    await prisma.inventory.update({ where: { variantId: variant.id }, data: { quantityOnHand: 1 } })
+    await prisma.cartItem.update({ where: { id: first.input.cartItemIds[0] }, data: { quantity: 1 } })
+    const secondBuyer = await prisma.user.create({ data: { name: 'Second last-unit buyer', email: `${randomUUID()}@example.test` } })
+    const secondCart = await prisma.cart.create({ data: { userId: secondBuyer.id, items: { create: { variantId: variant.id, quantity: 1, unitPrice: 10000 } } }, include: { items: true } })
+    const secondAddress = await prisma.address.create({ data: { userId: secondBuyer.id, recipientName: secondBuyer.name, line1: '2 Test Road', city: 'Bangkok', postalCode: '10110', country: 'TH' } })
+    const cartIds = [first.cart.id, secondCart.id]
+    let reads = 0
+    let release!: () => void
+    const snapshotsRead = new Promise<void>(resolve => { release = resolve })
+    // Both real snapshots see available stock 1 before either conditional reserve.
+    const instrumented = prisma.$extends({ query: { cart: { async findUnique({ args, query }) {
+      const cart = await query(args)
+      if (cartIds.includes(args.where.id!)) {
+        reads++
+        if (reads === 2) release()
+        await snapshotsRead
+      }
+      return cart
+    } } } })
+    const checkout = service(instrumented as unknown as PrismaClient)
+    const results = await Promise.allSettled([
+      checkout.createCheckout(first.user, first.input),
+      checkout.createCheckout(secondBuyer, { cartId: secondCart.id, cartItemIds: [secondCart.items[0]!.id], addressId: secondAddress.id, paymentMethod: 'card' }),
+    ])
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+    expect(results.find(result => result.status === 'rejected')).toMatchObject({ reason: { status: 409, code: 'INSUFFICIENT_STOCK' } })
+    const buyers = [first.user.id, secondBuyer.id]
+    expect(await prisma.order.count({ where: { userId: { in: buyers } } })).toBe(1)
+    expect(await prisma.payment.count({ where: { order: { userId: { in: buyers } } } })).toBe(1)
+    expect(await prisma.checkout.count({ where: { userId: { in: buyers } } })).toBe(1)
+    const reservation = await prisma.inventoryReservation.findMany({ where: { checkout: { userId: { in: buyers } } } })
+    expect(reservation).toEqual([expect.objectContaining({ quantity: 1, status: 'ACTIVE' })])
+    expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 1, quantityReserved: 1 })
+    expect(await prisma.payment.findFirstOrThrow({ where: { order: { userId: { in: buyers } } } })).toMatchObject({ amount: 10000n, status: 'PENDING' })
+  })
+
+  it('rolls back order, reservations, coupon and coins when payment creation fails after their writes', async () => {
+    const data = await fixture()
+    const wallet = await prisma.buyerCoinWallet.create({ data: { userId: data.user.id, balance: 100 } })
+    const coupon = await prisma.coupon.create({ data: { code: randomUUID().toUpperCase(), discountType: 'FIXED_AMOUNT', discountValue: 1000 } })
+    const writes: string[] = []
+    let attemptedPayments = 0
+    const instrumented = prisma.$extends({ query: {
+      checkout: { async create({ args, query }) { const row = await query(args); writes.push('checkout'); return row } },
+      inventoryReservation: { async create({ args, query }) { const row = await query(args); writes.push('reservation'); return row } },
+      order: { async create({ args, query }) { const row = await query(args); writes.push('order'); return row } },
+      buyerCoinWallet: { async update({ args, query }) {
+        const row = await query(args)
+        expect(row).toMatchObject({ balance: 90n, pendingBalance: 10n })
+        writes.push('coins'); return row
+      } },
+      buyerCoinLedger: { async create({ args, query }) { const row = await query(args); writes.push('coin-ledger'); return row } },
+      couponRedemption: { async create({ args, query }) { const row = await query(args); writes.push('coupon'); return row } },
+      payment: { async create({ args }) {
+        attemptedPayments++
+        expect(args.data.amount).toBe(38000)
+        throw new Error('Injected payment persistence failure')
+      } },
+    } })
+    await expect(service(instrumented as unknown as PrismaClient).createCheckout(data.user, {
+      ...data.input, cartItemIds: data.cart.items.map(item => item.id), couponCode: coupon.code, coinsToUse: 10,
+    })).rejects.toMatchObject({ status: 500, code: 'CHECKOUT_FAILED', details: { cause: 'Injected payment persistence failure' } })
+    expect(attemptedPayments).toBe(1)
+    expect(writes).toEqual(['checkout', 'reservation', 'reservation', 'order', 'coins', 'coin-ledger', 'coupon'])
+    expect(await prisma.order.count({ where: { userId: data.user.id } })).toBe(0)
+    expect(await prisma.payment.count({ where: { order: { userId: data.user.id } } })).toBe(0)
+    expect(await prisma.checkout.count({ where: { userId: data.user.id } })).toBe(0)
+    expect(await prisma.inventoryReservation.count({ where: { inventory: { variantId: { in: data.variants.map(variant => variant.id) } } } })).toBe(0)
+    expect(await prisma.couponRedemption.count({ where: { couponId: coupon.id } })).toBe(0)
+    expect(await prisma.buyerCoinLedger.count({ where: { userId: data.user.id } })).toBe(0)
+    expect(await prisma.buyerCoinWallet.findUniqueOrThrow({ where: { id: wallet.id } })).toMatchObject({ balance: 100n, pendingBalance: 0n })
+    for (const variant of data.variants) {
+      expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 0, version: 1 })
+    }
+    const items = await prisma.cartItem.findMany({ where: { cartId: data.cart.id } })
+    expect(items).toHaveLength(2)
+    expect(items).toEqual(expect.arrayContaining(data.cart.items.map(item => expect.objectContaining({ id: item.id, quantity: 2, unitPrice: 10000n }))))
+  })
+
   it('serializes cart inserts and quantity edits while preserving unselected items', async () => {
     const data = await fixture()
     const newVariant = await prisma.productVariant.create({ data: { productId: data.variants[0]!.productId, title: 'Later addition', sku: randomUUID(), price: 10000 } })

@@ -139,8 +139,9 @@ export class PrismaInventoryRepository implements IInventoryRepository {
     })
   }
 
-  findInventoryById(inventoryId: string, tx?: InventoryTx): Promise<SellerInventoryRecord | null> {
+  async findInventoryById(inventoryId: string, tx?: InventoryTx): Promise<SellerInventoryRecord | null> {
     this.logger.debug('PrismaInventoryRepository.findInventoryById', { inventoryId })
+    if (tx) await tx.$queryRaw`SELECT "id" FROM "Inventory" WHERE "id" = ${inventoryId}::uuid FOR UPDATE`
     return (tx ?? this.prisma).inventory.findUnique({
       where: { id: inventoryId },
       include: sellerInventoryInclude,

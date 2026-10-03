@@ -24,7 +24,8 @@ function createAppContext() {
 }
 
 function createRepoMock(): ICartRepository {
-  return {
+  const repo: ICartRepository = {
+    withLockedActiveCart: vi.fn(async (userId, callback) => callback(await repo.findOrCreateActiveCart(userId), repo)),
     findActiveCartByUserId: vi.fn(),
     findOrCreateActiveCart: vi.fn(),
     findItemByIdForUser: vi.fn(),
@@ -34,6 +35,7 @@ function createRepoMock(): ICartRepository {
     deleteItem: vi.fn(),
     clearActiveCart: vi.fn(),
   }
+  return repo
 }
 
 function createTrackingServiceMock(): Pick<TrackingService, 'recordProductAddToCart'> {

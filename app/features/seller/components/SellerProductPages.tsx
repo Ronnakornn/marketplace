@@ -8,6 +8,7 @@ import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, BarChart3Icon, EditIcon, PlusI
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { decimalInputToMinorUnits, minorUnitsToDecimalInput } from "#/lib/input-decimal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -421,7 +422,7 @@ function productVariantsToForms(product?: SellerProduct | null): VariantFormStat
     title: variant.title ?? "",
     titleTh: variant.titleTh ?? "",
     titleEn: variant.titleEn ?? "",
-    price: String(Number(variant.price ?? 0) / 100),
+    price: minorUnitsToDecimalInput(variant.price ?? 0),
     currency: variant.currency ?? "THB",
     status: (variant.status ?? "ACTIVE") as VariantStatus,
     quantityOnHand: String(variant.inventory?.quantityOnHand ?? 0),
@@ -465,7 +466,7 @@ function toVariantInput(variant: VariantFormState): SellerVariantInput & { statu
     title: variant.title.trim(),
     titleTh: optionalText(variant.titleTh),
     titleEn: optionalText(variant.titleEn),
-    price: Math.round(Number(variant.price || "0") * 100),
+    price: decimalInputToMinorUnits(variant.price),
     currency: variant.currency.trim() || "THB",
     status: variant.status,
     quantityOnHand: Number(variant.quantityOnHand || "0"),

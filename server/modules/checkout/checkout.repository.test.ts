@@ -177,7 +177,13 @@ describe('PrismaCheckoutRepository', () => {
     }))
   })
 
-  it('keeps two-shop settlement totals equal to the parent after shop, platform, and coin discounts', async () => {
+  it.each([
+    { name: 'shop and coin discounts', prices: [1000, 2000], shipping: [100, 200], coupon: 1000, couponShopId: 'shop-1',
+      coins: 600, subtotal: 3000, discount: 1600, shippingTotal: 300, grand: 1700, discounts: [1000, 600], shopTotals: [100, 1600] },
+    { name: 'near-limit proportional discount', prices: [6004799503160660, 3002399751580331], shipping: [0, 0], coupon: 9007199254740891, couponShopId: null,
+      coins: 0, subtotal: 9007199254740991, discount: 9007199254740891, shippingTotal: 0, grand: 100,
+      discounts: [6004799503160593, 3002399751580298], shopTotals: [67, 33] },
+  ])('keeps two-shop settlement totals exact for $name', async (example) => {
     const prisma = {
       checkout: { create: vi.fn().mockResolvedValue({ id: 'checkout-1' }) },
       inventory: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
@@ -204,9 +210,9 @@ describe('PrismaCheckoutRepository', () => {
       cartId: 'cart-1', userId: 'buyer-1', orderNumber: 'ORD-SPLIT', checkoutExpiresAt: new Date('2026-09-04T00:00:00.000Z'),
       address: { recipientName: 'Buyer', phone: null, line1: '1 Road', line2: null, city: 'Bangkok', region: null, postalCode: '10110', country: 'TH' },
       acceptedQuote: {
-        totals: { subtotal: 3000, discountTotal: 1600, shippingTotal: 300, taxTotal: 0, grandTotal: 1700, currency: 'THB' },
-        items: [item('one', 'shop-1', 1000, 100), item('two', 'shop-2', 2000, 200)],
-        couponDiscount: 1000, couponShopId: 'shop-1', coinDiscount: 600, freeShippingShopIds: [],
+        totals: { subtotal: example.subtotal, discountTotal: example.discount, shippingTotal: example.shippingTotal, taxTotal: 0, grandTotal: example.grand, currency: 'THB' },
+        items: [item('one', 'shop-1', example.prices[0]!, example.shipping[0]!), item('two', 'shop-2', example.prices[1]!, example.shipping[1]!)],
+        couponDiscount: example.coupon, couponShopId: example.couponShopId, coinDiscount: example.coins, freeShippingShopIds: [],
       },
       paymentProvider: 'mock', locale: 'en',
     } as unknown as CheckoutCommitmentInput
@@ -216,6 +222,8 @@ describe('PrismaCheckoutRepository', () => {
     const orderData = prisma.order.create.mock.calls[0]![0].data
     const shopOrders = orderData.shopOrders.create as Array<{ subtotal: number; discountTotal: number; shippingTotal: number; grandTotal: number }>
     expect(shopOrders).toHaveLength(2)
+    expect(shopOrders.map((row) => row.discountTotal)).toEqual(example.discounts)
+    expect(shopOrders.map((row) => row.grandTotal)).toEqual(example.shopTotals)
     expect(shopOrders.reduce((sum, row) => sum + row.subtotal, 0)).toBe(orderData.subtotal)
     expect(shopOrders.reduce((sum, row) => sum + row.discountTotal, 0)).toBe(orderData.discountTotal)
     expect(shopOrders.reduce((sum, row) => sum + row.shippingTotal, 0)).toBe(orderData.shippingTotal)

@@ -2,6 +2,54 @@ import { describe, expect, it, vi } from 'vitest'
 import { reverseBuyerCoinsForRefund } from './buyer-coin.transitions.ts'
 
 describe('reverseBuyerCoinsForRefund', () => {
+  it.each([0, 3])('preserves cumulative 333, 667 and 1000 refund rounding with %s spent coins', async (spentCoins) => {
+    const wallet = { balance: 0n, debtBalance: 0n, lifetimeEarned: 3n, lifetimeSpent: BigInt(spentCoins) }
+    const entries: Array<{ amount: bigint; referenceType: string; referenceId: string }> = []
+    let refundedAmount = 0n
+    const buyerCoinLedger = {
+      findFirst: vi.fn(async ({ where }: { where: { referenceId: string } }) => entries.find((entry) => entry.referenceId === where.referenceId) ?? null),
+      findMany: vi.fn(async ({ where }: { where: { type?: string } }) => where.type === 'SPENT'
+        ? spentCoins ? [{ walletId: 'wallet-1', amount: 3n }] : []
+        : [{ walletId: 'wallet-1', amount: 3n }]),
+      aggregate: vi.fn(async ({ where }: { where: { referenceType: string } }) => ({
+        _sum: { amount: entries.filter((entry) => entry.referenceType === where.referenceType).reduce((sum, entry) => sum + entry.amount, 0n) },
+      })),
+      create: vi.fn(async ({ data }: { data: { amount: bigint; referenceType: string; referenceId: string } }) => {
+        entries.push(data)
+        return data
+      }),
+    }
+    type Change = { increment?: bigint; decrement?: bigint }
+    const buyerCoinWallet = {
+      findUniqueOrThrow: vi.fn(async () => ({ ...wallet })),
+      update: vi.fn(async ({ data }: { data: Partial<Record<keyof typeof wallet, Change>> }) => {
+        for (const field of ['balance', 'debtBalance', 'lifetimeEarned', 'lifetimeSpent'] as const) {
+          wallet[field] += data[field]?.increment ?? 0n
+          wallet[field] -= data[field]?.decrement ?? 0n
+        }
+        return { ...wallet }
+      }),
+    }
+    const refund = { aggregate: vi.fn(async () => ({ _sum: { amount: refundedAmount } })) }
+    const client = { buyerCoinLedger, buyerCoinWallet, refund }
+    for (const [index, cumulative, amount] of [[1, 333n, 333n], [2, 667n, 334n], [3, 1000n, 333n]] as const) {
+      refundedAmount = cumulative
+      await reverseBuyerCoinsForRefund(client as never, {
+        refundId: `refund-${index}`, orderId: 'order-1', refundAmount: amount, orderGrandTotal: 1000n, userId: 'user-1',
+      })
+      if (index === 1) expect(wallet).toEqual({ balance: 0n, debtBalance: 0n, lifetimeEarned: 3n, lifetimeSpent: BigInt(spentCoins) })
+      if (index === 2) expect(wallet).toEqual({ balance: 0n, debtBalance: spentCoins ? 0n : 2n, lifetimeEarned: 1n, lifetimeSpent: spentCoins ? 1n : 0n })
+    }
+    expect(wallet).toEqual({ balance: 0n, debtBalance: spentCoins ? 0n : 3n, lifetimeEarned: 0n, lifetimeSpent: 0n })
+    expect(entries.filter((entry) => entry.referenceType === 'REFUND_COIN_RESTORE').map((entry) => entry.amount)).toEqual(spentCoins ? [2n, 1n] : [])
+    expect(entries.filter((entry) => entry.referenceType === 'REFUND_CASHBACK_REVERSAL').map((entry) => entry.amount)).toEqual([-2n, -1n])
+    await reverseBuyerCoinsForRefund(client as never, {
+      refundId: 'refund-3', orderId: 'order-1', refundAmount: 333n, orderGrandTotal: 1000n, userId: 'user-1',
+    })
+    expect(wallet).toEqual({ balance: 0n, debtBalance: spentCoins ? 0n : 3n, lifetimeEarned: 0n, lifetimeSpent: 0n })
+    expect(entries).toHaveLength(spentCoins ? 4 : 2)
+  })
+
   it('restores spent coins and reverses cashback proportionally once', async () => {
     const buyerCoinLedger = {
       findFirst: vi.fn().mockResolvedValue(null),

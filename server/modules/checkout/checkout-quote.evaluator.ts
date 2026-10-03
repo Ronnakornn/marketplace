@@ -22,6 +22,8 @@ export interface CheckoutQuote {
   currency: string
   coupon: CouponOutcome | null
   coinsApplied: number
+  items: Array<{ id: string; shopId: string; unitPrice: number; lineTotal: number }>
+  shops: Array<{ shopId: string; subtotal: number }>
 }
 
 export interface CheckoutQuoteEvaluation {
@@ -71,6 +73,7 @@ export class CheckoutQuoteEvaluator {
     }
 
     const couponDiscount = couponValidation?.discount ?? 0
+    this.assertAmount(couponDiscount, 'Coupon discount')
     const coinsApplied = await this.resolveCoinRedemption(
       repo,
       input.userId,
@@ -81,9 +84,25 @@ export class CheckoutQuoteEvaluator {
     )
     const freeShippingShopIds = couponValidation?.freeShippingShopIds ?? []
     const totals = this.calculateTotals(items, couponDiscount + coinsApplied * 100, freeShippingShopIds)
+    const quotedItems = items.map((item) => ({
+      id: item.id,
+      shopId: item.variant.product.shop.id,
+      unitPrice: item.unitPrice,
+      lineTotal: item.unitPrice * item.quantity,
+    }))
+    const shopSubtotals = new Map<string, number>()
+    for (const item of quotedItems) {
+      shopSubtotals.set(item.shopId, (shopSubtotals.get(item.shopId) ?? 0) + item.lineTotal)
+    }
 
     return {
-      quote: { ...totals, coupon, coinsApplied },
+      quote: {
+        ...totals,
+        coupon,
+        coinsApplied,
+        items: quotedItems,
+        shops: [...shopSubtotals].map(([shopId, subtotal]) => ({ shopId, subtotal })),
+      },
       acceptedQuote: {
         totals,
         items,
@@ -106,12 +125,23 @@ export class CheckoutQuoteEvaluator {
     if (items.some((item) => item.variant.currency !== currency) || currency !== 'THB') {
       throw new CheckoutServiceError('Checkout supports one THB currency only', 400, 'CHECKOUT_FAILED')
     }
-    const subtotal = items.reduce((total, item) => total + item.unitPrice * item.quantity, 0)
+    this.assertAmount(discountCents, 'Discount total')
+    let subtotal = 0
     const shippingByShop = new Map<string, number>()
     for (const item of items) {
+      if (!Number.isSafeInteger(item.quantity) || item.quantity <= 0) {
+        throw new CheckoutServiceError('Item quantity must be a positive safe integer', 400, 'CHECKOUT_FAILED')
+      }
+      this.assertAmount(item.unitPrice, 'Unit price', 1)
+      const lineTotal = item.unitPrice * item.quantity
+      this.assertAmount(lineTotal, 'Item line total')
+      subtotal += lineTotal
+      this.assertAmount(subtotal, 'Item subtotal')
       const shop = item.variant.product.shop
       if (!shippingByShop.has(shop.id)) {
-        shippingByShop.set(shop.id, Math.max(0, Number(shop.settings?.shippingFee ?? 0)))
+        const shippingFee = Number(shop.settings?.shippingFee ?? 0)
+        this.assertAmount(shippingFee, 'Shipping fee')
+        shippingByShop.set(shop.id, shippingFee)
       }
     }
     const waivedShopIds = new Set(freeShippingShopIds)
@@ -119,13 +149,16 @@ export class CheckoutQuoteEvaluator {
       (total, [shopId, fee]) => total + (waivedShopIds.has(shopId) ? 0 : fee),
       0,
     )
+    this.assertAmount(shippingTotal, 'Shipping total')
     const discountTotal = Math.min(Math.max(0, discountCents), subtotal)
+    const grandTotal = subtotal - discountTotal + shippingTotal
+    this.assertAmount(grandTotal, 'Grand total')
     return {
       subtotal,
       discountTotal,
       shippingTotal,
       taxTotal: 0,
-      grandTotal: Math.max(0, subtotal - discountTotal + shippingTotal),
+      grandTotal,
       currency,
     }
   }
@@ -143,10 +176,14 @@ export class CheckoutQuoteEvaluator {
         flashSaleItem = await repo.findActiveFlashSaleItemForCheckout(item.variantId, now)
       }
       const regularPrice = Number(item.variant.price)
-      if (!flashSaleItem || Number(flashSaleItem.salePrice) <= 0 || Number(flashSaleItem.salePrice) >= regularPrice) {
+      this.assertAmount(regularPrice, 'Variant price', 1)
+      if (!flashSaleItem) {
         return { ...item, unitPrice: regularPrice }
       }
-      return { ...item, unitPrice: Number(flashSaleItem.salePrice), flashSaleItemId: flashSaleItem.id }
+      const salePrice = Number(flashSaleItem.salePrice)
+      this.assertAmount(salePrice, 'Flash sale price')
+      if (salePrice === 0 || salePrice >= regularPrice) return { ...item, unitPrice: regularPrice }
+      return { ...item, unitPrice: salePrice, flashSaleItemId: flashSaleItem.id }
     }))
   }
 
@@ -188,13 +225,15 @@ export class CheckoutQuoteEvaluator {
     existingDiscount: number,
     lockWallet: boolean,
   ): Promise<number> {
-    const coins = Math.max(0, Math.floor(requested ?? 0))
+    const coins = requested ?? 0
+    this.assertAmount(coins, 'Requested coins')
     if (!coins) return 0
     if (lockWallet) await repo.lockBuyerCoinWallet(userId)
     const balance = await repo.findBuyerCoinBalance(userId)
+    this.assertAmount(balance, 'Coin balance')
     const maximum = Math.min(
-      Math.floor(subtotal * 0.2 / 100),
-      Math.floor(Math.max(0, subtotal - existingDiscount) / 100),
+      Number(BigInt(subtotal) / 500n),
+      Number(BigInt(Math.max(0, subtotal - existingDiscount)) / 100n),
     )
     if (coins > balance || coins > maximum) {
       throw new CheckoutServiceError(
@@ -204,5 +243,11 @@ export class CheckoutQuoteEvaluator {
       )
     }
     return coins
+  }
+
+  private assertAmount(value: number, label: string, minimum = 0): void {
+    if (!Number.isSafeInteger(value) || value < minimum) {
+      throw new CheckoutServiceError(`${label} must be a safe integer of at least ${minimum}`, 400, 'CHECKOUT_FAILED')
+    }
   }
 }

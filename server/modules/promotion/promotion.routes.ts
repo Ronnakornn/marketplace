@@ -21,14 +21,14 @@ const CouponBodySchema = t.Object({
   descriptionTh: t.Optional(t.Nullable(t.String())),
   descriptionEn: t.Optional(t.Nullable(t.String())),
   discountType: t.Union([t.Literal('fixed'), t.Literal('percent'), t.Literal('free_shipping')]),
-  discountValueCents: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
-  discountPercentBps: t.Optional(t.Nullable(t.Number({ minimum: 0, maximum: 10_000 }))),
-  minOrderCents: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
-  maxDiscountCents: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
+  discountValueCents: t.Optional(t.Nullable(t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }))),
+  discountPercentBps: t.Optional(t.Nullable(t.Integer({ minimum: 0, maximum: 10_000 }))),
+  minOrderCents: t.Optional(t.Nullable(t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }))),
+  maxDiscountCents: t.Optional(t.Nullable(t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }))),
   startsAt: t.Optional(t.Nullable(t.String())),
   endsAt: t.Optional(t.Nullable(t.String())),
-  usageLimit: t.Optional(t.Nullable(t.Number({ minimum: 1 }))),
-  perUserLimit: t.Optional(t.Nullable(t.Number({ minimum: 1 }))),
+  usageLimit: t.Optional(t.Nullable(t.Integer({ minimum: 1, maximum: 2_147_483_647 }))),
+  perUserLimit: t.Optional(t.Nullable(t.Integer({ minimum: 1, maximum: 2_147_483_647 }))),
   isActive: t.Optional(t.Boolean()),
 })
 
@@ -36,14 +36,14 @@ const UpdateCouponBodySchema = t.Partial(CouponBodySchema)
 
 const FlashSaleParamsSchema = t.Object({ flashSaleId: t.String({ format: 'uuid' }) })
 const FlashSaleItemParamsSchema = t.Object({ itemId: t.String({ format: 'uuid' }) })
-const FlashSaleBodySchema = t.Intersect([t.Pick(FlashSalePlainInputCreate, ['title', 'description', 'status']), t.Object({
+const FlashSaleBodySchema = t.Composite([t.Pick(FlashSalePlainInputCreate, ['title', 'description', 'status']), t.Object({
   startsAt: t.String({ format: 'date-time' }),
   endsAt: t.String({ format: 'date-time' }),
 })])
-const FlashSaleItemBodySchema = t.Intersect([t.Pick(FlashSaleItemPlainInputCreate, ['stockLimit', 'perUserLimit']), t.Object({
+const FlashSaleItemBodySchema = t.Composite([t.Pick(FlashSaleItemPlainInputCreate, ['stockLimit', 'perUserLimit']), t.Object({
   productId: t.String({ format: 'uuid' }),
   variantId: t.String({ format: 'uuid' }),
-  salePriceBaht: t.Number({ exclusiveMinimum: 0, multipleOf: 0.01 }),
+  salePriceBaht: t.Number({ exclusiveMinimum: 0, maximum: Number.MAX_SAFE_INTEGER / 100 }),
 })])
 
 export function createPromotionRoutes(container: ServiceContainer) {

@@ -4,7 +4,7 @@ import { authPlugin } from '#server/modules/auth'
 import { WalletServiceError } from '#server/modules/wallet'
 
 const PayoutRequestBody = t.Object({
-  amount: t.Number({ minimum: 1 }),
+  amount: t.Integer({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER }),
 })
 
 const RejectBody = t.Object({

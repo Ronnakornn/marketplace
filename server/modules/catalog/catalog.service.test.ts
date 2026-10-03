@@ -1699,6 +1699,17 @@ describe('CatalogService', () => {
     })
   })
 
+  it('rejects unsafe minor-unit variant prices before writing the catalog', async () => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.createVariant).mockResolvedValue(createVariant({ productId: product.id, price: 9007199254740992n }))
+    const service = new CatalogService(createAppContext(), repo)
+    await expect(service.createVariant(createActor(), product.id, {
+      sku: 'UNSAFE', title: 'Unsafe', price: 9007199254740992,
+    })).rejects.toMatchObject({ status: 400, code: 'VARIANT_VALIDATION_FAILED' })
+  })
+
   it('updates variants only when they belong to the requested owned product', async () => {
     const repo = createRepoMock()
     const product = createProduct({ ownerId: 'seller-1' })

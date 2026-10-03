@@ -18,7 +18,7 @@ const analyticsData = {
     orders: 36,
     unitsSold: 52,
     revenue: 245000,
-    conversionRate: 3,
+    conversionRate: 0.03,
     currency: "USD",
     topSkus: [
       {
@@ -57,8 +57,8 @@ const analyticsData = {
     ],
   },
   daily: [
-    { date: "2026-06-01", views: 100, addToCart: 12, orders: 3, unitsSold: 4, revenue: 12000, conversionRate: 3 },
-    { date: "2026-06-02", views: 140, addToCart: 18, orders: 5, unitsSold: 7, revenue: 22000, conversionRate: 3.57 },
+    { date: "2026-06-01", views: 100, addToCart: 12, orders: 3, unitsSold: 4, revenue: 12000, conversionRate: 0.03 },
+    { date: "2026-06-02", views: 140, addToCart: 18, orders: 5, unitsSold: 7, revenue: 22000, conversionRate: 0.03571428571428571 },
   ],
   products: [
     {
@@ -73,7 +73,7 @@ const analyticsData = {
       orders: 28,
       unitsSold: 40,
       revenue: 180000,
-      conversionRate: 4,
+      conversionRate: 0.04,
       currency: "USD",
     },
   ],
@@ -220,6 +220,28 @@ afterEach(() => {
 });
 
 describe("Seller product analytics page", () => {
+  it("renders API conversion fractions as percentages in summary, product rows, and low performers", () => {
+    analyticsState = makeState({
+      data: {
+        ...analyticsData,
+        summary: {
+          ...analyticsData.summary,
+          views: 20,
+          orders: 2,
+          conversionRate: 0.1,
+          lowPerformingProducts: [{ ...analyticsData.summary.lowPerformingProducts[0]!, views: 1000, orders: 3, conversionRate: 0.003 }],
+        },
+        products: [{ ...analyticsData.products[0]!, conversionRate: 0.125 }],
+      },
+    });
+
+    render(<SellerProductAnalyticsPage />);
+
+    expect(screen.getByText("10%").textContent).toBe("10%");
+    expect(screen.getByText("12.5%").textContent).toBe("12.5%");
+    expect(screen.getByText("1,000 views / 0.3% conversion").textContent).toBe("1,000 views / 0.3% conversion");
+  });
+
   it("renders summary metrics and analytics sections", () => {
     render(<SellerProductAnalyticsPage />);
 

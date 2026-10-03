@@ -239,6 +239,7 @@ export class InventoryService {
   private async getInventoryForReservation(reservation: InventoryReservation, tx: InventoryTx): Promise<SellerInventoryRecord> {
     const current = await this.repo.findInventoryById(reservation.inventoryId, tx)
     if (!current) throw new InventoryServiceError('Inventory not found', 404, 'INVENTORY_NOT_FOUND')
+    await this.getActiveReservation(reservation.id, tx)
     return current
   }
 

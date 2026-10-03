@@ -8,7 +8,7 @@ const CreateCheckoutBodySchema = t.Object({
   cartItemIds: t.Array(t.String({ format: 'uuid' }), { minItems: 1 }),
   addressId: t.String({ format: 'uuid' }),
   couponCode: t.Optional(t.String({ minLength: 1 })),
-  coinsToUse: t.Optional(t.Integer({ minimum: 0 })),
+  coinsToUse: t.Optional(t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER })),
   paymentMethod: t.String({ minLength: 1 }),
   shippingMethod: t.Optional(t.String({ minLength: 1 })),
   locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
@@ -27,7 +27,7 @@ const QuoteCheckoutBodySchema = t.Object({
   cartId: t.String({ format: 'uuid' }),
   cartItemIds: t.Array(t.String({ format: 'uuid' }), { minItems: 1 }),
   couponCode: t.Optional(t.String({ minLength: 1 })),
-  coinsToUse: t.Optional(t.Integer({ minimum: 0 })),
+  coinsToUse: t.Optional(t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER })),
 })
 
 const CouponOutcomeSchema = t.Union([
@@ -36,14 +36,24 @@ const CouponOutcomeSchema = t.Union([
 ])
 
 const CheckoutQuoteResponseSchema = t.Object({
-  subtotal: t.Number(),
-  discountTotal: t.Number(),
-  shippingTotal: t.Number(),
-  taxTotal: t.Number(),
-  grandTotal: t.Number(),
+  subtotal: t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+  discountTotal: t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+  shippingTotal: t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+  taxTotal: t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+  grandTotal: t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
   currency: t.String(),
   coupon: t.Union([CouponOutcomeSchema, t.Null()]),
   coinsApplied: t.Integer({ minimum: 0 }),
+  items: t.Array(t.Object({
+    id: t.String(),
+    shopId: t.String(),
+    unitPrice: t.Integer({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER }),
+    lineTotal: t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+  })),
+  shops: t.Array(t.Object({
+    shopId: t.String(),
+    subtotal: t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
+  })),
 })
 
 export function createCheckoutRoutes(container: ServiceContainer) {

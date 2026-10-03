@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '#generated/client/client.ts'
 import { PrismaCartRepository } from './cart.repository.ts'
+import { CartService } from './cart.service.ts'
 
 const url = process.env.COMMERCE_TEST_DATABASE_URL
 const context = { logger: { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }, config: { environment: 'test' } }
@@ -51,5 +52,122 @@ describe.skipIf(!url)('active cart creation on PostgreSQL', () => {
     const followingRead = await repo.findOrCreateActiveCart(user.id)
     expect(followingRead.id).toBe(carts[0]!.id)
     expect(followingRead.items).toEqual([expect.objectContaining({ variantId: variant.id, quantity: 2 })])
+  })
+
+  it.each([0, 1])('preserves both concurrent additions with initial variant quantity %i', async initialQuantity => {
+    const { user, variant } = await fixture()
+    if (initialQuantity > 0) await prisma.cart.create({ data: {
+      userId: user.id, items: { create: { variantId: variant.id, quantity: 1, unitPrice: 1000 } },
+    } })
+    let firstRead!: () => void
+    let secondRead!: () => void
+    let release!: () => void
+    const firstSeen = new Promise<void>(resolve => { firstRead = resolve })
+    const secondSeen = new Promise<void>(resolve => { secondRead = resolve })
+    const hold = new Promise<void>(resolve => { release = resolve })
+    let reads = 0
+    const instrumented = prisma.$extends({ query: { productVariant: { async findUnique({ args, query }) {
+      const value = await query(args)
+      if (args.where.id === variant.id) {
+        reads++
+        if (reads === 1) firstRead()
+        else secondRead()
+        await hold
+      }
+      return value
+    } } } })
+    const cartService = new CartService(context, new PrismaCartRepository(context, instrumented as unknown as PrismaClient))
+    const first = cartService.addItem(user, { variantId: variant.id, quantity: 1 })
+    await firstSeen
+    const second = cartService.addItem(user, { variantId: variant.id, quantity: 1 })
+    const pending = Promise.allSettled([first, second])
+    await Promise.race([secondSeen, new Promise(resolve => setTimeout(resolve, 200))])
+    release()
+    expect((await pending).map(result => result.status)).toEqual(['fulfilled', 'fulfilled'])
+    const cart = await prisma.cart.findFirstOrThrow({ where: { userId: user.id, status: 'ACTIVE' } })
+    expect(await prisma.cartItem.count({ where: { cartId: cart.id, variantId: variant.id } })).toBe(1)
+    expect(await prisma.cartItem.findUniqueOrThrow({ where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } } }))
+      .toMatchObject({ quantity: initialQuantity === 0 ? 2 : 3 })
+    expect((await cartService.getCart(user)).subtotal).toBe(initialQuantity === 0 ? 2000 : 3000)
+  })
+
+  it('rejects the second concurrent addition when combined quantity exceeds stock', async () => {
+    const { user, variant } = await fixture()
+    await prisma.inventory.update({ where: { variantId: variant.id }, data: { quantityOnHand: 1 } })
+    const service = new CartService(context, new PrismaCartRepository(context, prisma))
+    const results = await Promise.allSettled([
+      service.addItem(user, { variantId: variant.id, quantity: 1 }),
+      service.addItem(user, { variantId: variant.id, quantity: 1 }),
+    ])
+    expect(results.map(result => result.status).sort()).toEqual(['fulfilled', 'rejected'])
+    const rejected = results.find(result => result.status === 'rejected')
+    expect(rejected?.status === 'rejected' && rejected.reason).toMatchObject({ code: 'CART_STOCK_UNAVAILABLE' })
+    expect((await service.getCart(user)).subtotal).toBe(1000)
+  })
+
+  it('rejects an addition when its previously active cart checks out while waiting for the lock', async () => {
+    const { user, variant } = await fixture()
+    const cart = await prisma.cart.create({ data: { userId: user.id, items: { create: { variantId: variant.id, quantity: 1, unitPrice: 1000 } } } })
+    let locked!: () => void
+    let release!: () => void
+    let read!: () => void
+    const lockHeld = new Promise<void>(resolve => { locked = resolve })
+    const hold = new Promise<void>(resolve => { release = resolve })
+    const initialRead = new Promise<void>(resolve => { read = resolve })
+    const instrumented = prisma.$extends({ query: { cart: { async findFirst({ args, query }) {
+      const result = await query(args)
+      if (args.where?.userId === user.id) read()
+      return result
+    } } } })
+    const checkoutWrite = prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT "id" FROM "Cart" WHERE "id" = ${cart.id} FOR UPDATE`
+      await tx.$queryRaw`SELECT "id" FROM "CartItem" WHERE "cartId" = ${cart.id} ORDER BY "id" FOR UPDATE`
+      await tx.cart.update({ where: { id: cart.id }, data: { status: 'CHECKED_OUT' } })
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } })
+      locked()
+      await hold
+    })
+    await lockHeld
+    const service = new CartService(context, new PrismaCartRepository(context, instrumented as unknown as PrismaClient))
+    const mutation = service.addItem(user, { variantId: variant.id, quantity: 1 }).then(value => ({ value }), error => ({ error }))
+    await initialRead
+    release()
+    await checkoutWrite
+    expect(await mutation).toMatchObject({ error: { status: 409, code: 'CART_STATE_CONFLICT' } })
+    expect(await prisma.cart.findUniqueOrThrow({ where: { id: cart.id } })).toMatchObject({ status: 'CHECKED_OUT' })
+    expect(await prisma.cartItem.count({ where: { cartId: cart.id } })).toBe(0)
+    expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 0 })
+  })
+
+  it.each(['update', 'delete', 'clear'] as const)('%s waits for checkout locks and observes consumed cart items', async operation => {
+    const { user, variant } = await fixture()
+    const cart = await prisma.cart.create({ data: { userId: user.id, items: { create: { variantId: variant.id, quantity: 1, unitPrice: 1000 } } }, include: { items: true } })
+    const item = cart.items[0]!
+    let locked!: () => void
+    let release!: () => void
+    const lockHeld = new Promise<void>(resolve => { locked = resolve })
+    const hold = new Promise<void>(resolve => { release = resolve })
+    const checkoutWrite = prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT "id" FROM "Cart" WHERE "id" = ${cart.id} FOR UPDATE`
+      await tx.$queryRaw`SELECT "id" FROM "CartItem" WHERE "cartId" = ${cart.id} ORDER BY "id" FOR UPDATE`
+      locked()
+      await hold
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } })
+    })
+    await lockHeld
+    const service = new CartService(context, new PrismaCartRepository(context, prisma))
+    const mutation = operation === 'update' ? service.updateItem(user, item.id, { quantity: 2 })
+      : operation === 'delete' ? service.deleteItem(user, item.id) : service.clearCart(user)
+    let finished = false
+    const observed = mutation.then(value => ({ value }), error => ({ error })).finally(() => { finished = true })
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      expect(finished).toBe(false)
+    } finally { release() }
+    await checkoutWrite
+    const result = await observed
+    if (operation === 'clear') expect(result).toMatchObject({ value: { subtotal: 0 } })
+    else expect(result).toMatchObject({ error: { code: 'CART_ITEM_NOT_FOUND', status: 404 } })
+    expect(await prisma.cartItem.count({ where: { cartId: cart.id } })).toBe(0)
   })
 })

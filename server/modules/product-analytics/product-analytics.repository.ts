@@ -10,23 +10,11 @@ import type {
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
+const RANKING_BATCH_SIZE = 500
+
 export interface AnalyticsDateRange {
   from: Date
   to: Date
-}
-
-export interface AnalyticsProductQuery {
-  shopIds: string[]
-  q?: string
-  page: number
-  limit: number
-}
-
-export interface AnalyticsSkuQuery {
-  shopIds: string[]
-  productId?: string
-  page: number
-  limit: number
 }
 
 export type AnalyticsProduct = Pick<Product, 'id' | 'shopId' | 'title' | 'slug' | 'status'> & {
@@ -37,6 +25,9 @@ export type AnalyticsProduct = Pick<Product, 'id' | 'shopId' | 'title' | 'slug' 
 export type AnalyticsVariant = Pick<ProductVariant, 'id' | 'productId' | 'sku' | 'title' | 'status' | 'currency'> & {
   product: Pick<Product, 'id' | 'shopId' | 'title' | 'slug'>
 }
+
+export type AnalyticsProductRankingCandidate = Pick<Product, 'id' | 'title'>
+export type AnalyticsVariantRankingCandidate = Pick<ProductVariant, 'id' | 'sku'>
 
 export interface AnalyticsCountRow {
   productId: string
@@ -68,11 +59,9 @@ export type AnalyticsOrderItem = Pick<OrderItem, 'id' | 'shopId' | 'variantId' |
 }
 
 export interface IProductAnalyticsRepository {
-  countProducts(shopIds: string[], q?: string): Promise<number>
-  findProducts(query: AnalyticsProductQuery): Promise<AnalyticsProduct[]>
+  findProductRankingCandidates(shopIds: string[], q?: string): Promise<AnalyticsProductRankingCandidate[]>
+  findVariantRankingCandidates(shopIds: string[], productId?: string): Promise<AnalyticsVariantRankingCandidate[]>
   findProductsByIds(shopIds: string[], productIds: string[]): Promise<AnalyticsProduct[]>
-  countVariants(shopIds: string[], productId?: string): Promise<number>
-  findVariants(query: AnalyticsSkuQuery): Promise<AnalyticsVariant[]>
   findVariantsByIds(shopIds: string[], variantIds: string[]): Promise<AnalyticsVariant[]>
   countProductViews(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsCountRow[]>
   findProductViewLogs(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsViewLogRow[]>
@@ -91,43 +80,40 @@ export class PrismaProductAnalyticsRepository implements IProductAnalyticsReposi
     this.logger = appContext.logger
   }
 
-  countProducts(shopIds: string[], q?: string): Promise<number> {
-    this.logger.debug('PrismaProductAnalyticsRepository.countProducts', { shopIds, q })
-    if (shopIds.length === 0) return Promise.resolve(0)
-    return this.prisma.product.count({
-      where: this.productWhere(shopIds, q),
-    })
+  async findProductRankingCandidates(shopIds: string[], q?: string): Promise<AnalyticsProductRankingCandidate[]> {
+    if (shopIds.length === 0) return []
+    const candidates: AnalyticsProductRankingCandidate[] = []
+    let cursor: string | undefined
+    while (true) {
+      const batch = await this.prisma.product.findMany({
+        where: this.productWhere(shopIds, q),
+        select: { id: true, title: true },
+        orderBy: { id: 'asc' },
+        take: RANKING_BATCH_SIZE,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      })
+      candidates.push(...batch)
+      if (batch.length < RANKING_BATCH_SIZE) return candidates
+      cursor = batch.at(-1)?.id
+    }
   }
 
-  findProducts(query: AnalyticsProductQuery): Promise<AnalyticsProduct[]> {
-    this.logger.debug('PrismaProductAnalyticsRepository.findProducts', {
-      shopIds: query.shopIds,
-      q: query.q,
-      page: query.page,
-      limit: query.limit,
-    })
-    if (query.shopIds.length === 0) return Promise.resolve([])
-    return this.prisma.product.findMany({
-      where: this.productWhere(query.shopIds, query.q),
-      select: {
-        id: true,
-        shopId: true,
-        title: true,
-        slug: true,
-        status: true,
-        images: {
-          select: { url: true, isPrimary: true, sortOrder: true },
-          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
-          take: 1,
-        },
-        shop: {
-          select: { id: true, name: true, slug: true },
-        },
-      },
-      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
-      skip: (query.page - 1) * query.limit,
-      take: query.limit,
-    })
+  async findVariantRankingCandidates(shopIds: string[], productId?: string): Promise<AnalyticsVariantRankingCandidate[]> {
+    if (shopIds.length === 0) return []
+    const candidates: AnalyticsVariantRankingCandidate[] = []
+    let cursor: string | undefined
+    while (true) {
+      const batch = await this.prisma.productVariant.findMany({
+        where: this.variantWhere(shopIds, productId),
+        select: { id: true, sku: true },
+        orderBy: { id: 'asc' },
+        take: RANKING_BATCH_SIZE,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      })
+      candidates.push(...batch)
+      if (batch.length < RANKING_BATCH_SIZE) return candidates
+      cursor = batch.at(-1)?.id
+    }
   }
 
   findProductsByIds(shopIds: string[], productIds: string[]): Promise<AnalyticsProduct[]> {
@@ -153,46 +139,6 @@ export class PrismaProductAnalyticsRepository implements IProductAnalyticsReposi
           select: { id: true, name: true, slug: true },
         },
       },
-    })
-  }
-
-  countVariants(shopIds: string[], productId?: string): Promise<number> {
-    this.logger.debug('PrismaProductAnalyticsRepository.countVariants', { shopIds, productId })
-    if (shopIds.length === 0) return Promise.resolve(0)
-    return this.prisma.productVariant.count({
-      where: this.variantWhere(shopIds, productId),
-    })
-  }
-
-  findVariants(query: AnalyticsSkuQuery): Promise<AnalyticsVariant[]> {
-    this.logger.debug('PrismaProductAnalyticsRepository.findVariants', {
-      shopIds: query.shopIds,
-      productId: query.productId,
-      page: query.page,
-      limit: query.limit,
-    })
-    if (query.shopIds.length === 0) return Promise.resolve([])
-    return this.prisma.productVariant.findMany({
-      where: this.variantWhere(query.shopIds, query.productId),
-      select: {
-        id: true,
-        productId: true,
-        sku: true,
-        title: true,
-        status: true,
-        currency: true,
-        product: {
-          select: {
-            id: true,
-            shopId: true,
-            title: true,
-            slug: true,
-          },
-        },
-      },
-      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
-      skip: (query.page - 1) * query.limit,
-      take: query.limit,
     })
   }
 

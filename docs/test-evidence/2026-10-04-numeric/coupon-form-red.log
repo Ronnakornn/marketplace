@@ -1,0 +1,82 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ❯ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx (2 tests | 2 failed) 301ms
+     × submits the entered percent value in the correct integer unit 254ms
+     × submits the entered fixed value in the correct integer unit 45ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered percent value in the correct integer unit
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "code": "SAVE",
+-     "discountPercentBps": 1250,
++     "discountPercentBps": 0,
+      "discountType": "percent",
+-     "discountValueCents": null,
++     "discountValueCents": 1250,
++     "isActive": true,
++     "titleEn": "",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx:42:28
+     40|       fireEvent.change(container.querySelector('input[name="amount"]')…
+     41|       fireEvent.click(screen.getByRole('button', { name: 'seller.manag…
+     42|       expect(createCoupon).toHaveBeenCalledWith(expect.objectContainin…
+       |                            ^
+     43|     },
+     44|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  app/features/seller/components/SellerPromotionsPage.numeric.test.tsx > seller coupon numeric form > submits the entered fixed value in the correct integer unit
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "code": "SAVE",
+-     "discountPercentBps": null,
++     "discountPercentBps": 0,
+      "discountType": "fixed",
+      "discountValueCents": 29,
++     "isActive": true,
++     "titleEn": "",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx:42:28
+     40|       fireEvent.change(container.querySelector('input[name="amount"]')…
+     41|       fireEvent.click(screen.getByRole('button', { name: 'seller.manag…
+     42|       expect(createCoupon).toHaveBeenCalledWith(expect.objectContainin…
+       |                            ^
+     43|     },
+     44|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  01:19:58
+   Duration  2.02s (transform 158ms, setup 0ms, import 796ms, tests 301ms, environment 707ms)
+

@@ -87,6 +87,7 @@ const recommendationProductSelect = {
         },
       },
       orderItems: {
+        where: { order: { paymentStatus: 'SUCCEEDED' } },
         select: {
           quantity: true,
         },

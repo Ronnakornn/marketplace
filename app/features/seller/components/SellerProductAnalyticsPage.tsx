@@ -226,7 +226,7 @@ function formatMoney(cents: number | null | undefined, currency: string | null |
 }
 
 function formatRate(value: number | null | undefined) {
-  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value ?? 0)}%`;
+  return new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 2 }).format(value ?? 0);
 }
 
 function formatTrendDate(value: unknown) {

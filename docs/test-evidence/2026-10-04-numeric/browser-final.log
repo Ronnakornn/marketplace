@@ -1,0 +1,60 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:29104) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:27136) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 21 tests using 1 worker
+
+  ok  1 [setup] › e2e\auth.setup.ts:6:1 › authenticate seller (410ms)
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46010)
+[WebServer] 
+  ok  2 [chromium] › e2e\buyer-lifecycle.spec.ts:127:1 › buyer purchases through the UI, seller ships, and buyer sees matching tracking (13.9s)
+  ok  3 [chromium] › e2e\buyer-lifecycle.spec.ts:228:1 › buyer submits a review and a return for an eligible delivered item (3.3s)
+  ok  4 [chromium] › e2e\checkout-resilience.spec.ts:30:1 › double-clicking checkout creates one order, payment and stock reservation (3.7s)
+  ok  5 [chromium] › e2e\checkout-resilience.spec.ts:64:1 › lost checkout response after commit can be retried and recovered in history without duplicates (3.0s)
+  ok  6 [chromium] › e2e\commerce-edge-flows.spec.ts:12:3 › unpaid failed returns stock, coupon and coins and shows canceled buyer state (3.7s)
+  ok  7 [chromium] › e2e\commerce-edge-flows.spec.ts:12:3 › unpaid expired returns stock, coupon and coins and shows canceled buyer state (3.2s)
+  ok  8 [chromium] › e2e\commerce-edge-flows.spec.ts:12:3 › unpaid buyer-cancel returns stock, coupon and coins and shows canceled buyer state (3.3s)
+  ok  9 [chromium] › e2e\commerce-edge-flows.spec.ts:49:1 › two sellers ship separately and buyer sees only the tracking each has submitted (5.6s)
+  ok 10 [chromium] › e2e\commerce-edge-flows.spec.ts:78:1 › stock disappearing after the quote rejects checkout without leaving an order or reservation (1.2s)
+  ok 11 [chromium] › e2e\commerce-edge-flows.spec.ts:93:1 › price changes are requoted and the buyer sees the current server total (2.2s)
+  ok 12 [chromium] › e2e\commerce-edge-flows.spec.ts:108:1 › expired session requires login again and cannot read another buyer order or seller resources (8.3s)
+  ok 13 [chromium] › e2e\finance-lifecycle.spec.ts:29:1 › partial discounted return is approved and refunded once with the correct seller debit (11.0s)
+  ok 14 [chromium] › e2e\finance-lifecycle.spec.ts:78:1 › seller payout reserves funds and two admins complete it without duplicate debits (5.7s)
+  ok 15 [chromium] › e2e\numeric-analytics.spec.ts:13:1 › paid analytics reconciles ten views to ten percent and revenue ranking across pages (2.6s)
+  ok 16 [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (3.5s)
+  ok 17 [chromium] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (2.8s)
+  ok 18 [chromium] › e2e\numeric-boundaries.spec.ts:66:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (1.6s)
+  ok 19 [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for repriced basket (5.3s)
+  ok 20 [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for coupon and coins (4.7s)
+  ok 21 [chromium] › e2e\numeric-commerce.spec.ts:19:3 › UI, API and database preserve exact satang for flash price with coupon and coins (4.8s)
+
+  21 passed (1.7m)

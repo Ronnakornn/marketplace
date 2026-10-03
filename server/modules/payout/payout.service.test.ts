@@ -111,6 +111,14 @@ describe('PayoutService', () => {
       .rejects.toMatchObject({ code: 'INSUFFICIENT_BALANCE' })
   })
 
+  it.each([0, -1, 1.5, Number.POSITIVE_INFINITY, 9007199254740992])('rejects an invalid payout amount %s before reserving funds', async (amount) => {
+    vi.mocked(repo.sumLedger).mockResolvedValue(9007199254740992)
+    await expect(service.createSellerPayout({ id: 'seller-1', role: 'USER' }, { amount }))
+      .rejects.toMatchObject({ code: 'INVALID_PAYOUT_STATE', status: 400 })
+    expect(repo.createPayout).not.toHaveBeenCalled()
+    expect(repo.createLedgerEntry).not.toHaveBeenCalled()
+  })
+
   it('admin can approve payout', async () => {
     vi.mocked(repo.findPayoutById).mockResolvedValue(payout('requested'))
     vi.mocked(repo.updatePayout).mockResolvedValue(payout('approved'))

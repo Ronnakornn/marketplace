@@ -2,6 +2,7 @@ import type {
   Cart,
   CartItem,
   Inventory,
+  Prisma,
   PrismaClient,
   Product,
   ProductVariant,
@@ -45,6 +46,7 @@ export interface CreateCartItemData {
 }
 
 export interface ICartRepository {
+  withLockedActiveCart<T>(userId: string, callback: (cart: ActiveCartDetail, repo: ICartRepository) => Promise<T>): Promise<T>
   findActiveCartByUserId(userId: string): Promise<ActiveCartDetail | null>
   findOrCreateActiveCart(userId: string): Promise<ActiveCartDetail>
   findItemByIdForUser(itemId: string, userId: string): Promise<CartItemDetail | null>
@@ -115,9 +117,24 @@ export class PrismaCartRepository implements ICartRepository {
 
   constructor(
     appContext: AppContext,
-    private prisma: PrismaClient,
+    private prisma: PrismaClient | Prisma.TransactionClient,
   ) {
     this.logger = appContext.logger
+  }
+
+  async withLockedActiveCart<T>(userId: string, callback: (cart: ActiveCartDetail, repo: ICartRepository) => Promise<T>): Promise<T> {
+    const cart = await this.findOrCreateActiveCart(userId)
+    return this.withTransaction(async repo => {
+      await repo.prisma.$queryRaw`SELECT "id" FROM "Cart" WHERE "id" = ${cart.id} FOR UPDATE`
+      await repo.prisma.$queryRaw`SELECT "id" FROM "CartItem" WHERE "cartId" = ${cart.id} ORDER BY "id" FOR UPDATE`
+      const current = await repo.prisma.cart.findUniqueOrThrow({ where: { id: cart.id }, include: cartInclude })
+      return callback(current, repo)
+    })
+  }
+
+  private withTransaction<T>(callback: (repo: PrismaCartRepository) => Promise<T>): Promise<T> {
+    if (!('$transaction' in this.prisma)) return callback(this)
+    return this.prisma.$transaction(tx => callback(new PrismaCartRepository({ logger: this.logger, config: { environment: 'transaction' } }, tx)))
   }
 
   findActiveCartByUserId(userId: string): Promise<ActiveCartDetail | null> {
@@ -139,7 +156,8 @@ export class PrismaCartRepository implements ICartRepository {
     const existing = await this.findActiveCartByUserId(userId)
     if (existing) return existing
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.withTransaction(async (repo) => {
+      const tx = repo.prisma
       // A first-page GET and add-item request can both observe no active cart.
       // Serialize creation for this buyer and recheck after acquiring the lock.
       await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`

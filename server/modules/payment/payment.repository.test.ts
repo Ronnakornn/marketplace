@@ -29,6 +29,48 @@ function createRepository() {
 }
 
 describe('PrismaPaymentRepository.applyPaymentStateTransition', () => {
+  it.each([[9999, 0], [10000, 1], [10001, 1]])('earns exact cashback on %s minor units of net merchandise', async (subtotal, expectedCoins) => {
+    const { prisma, repository } = createRepository()
+    const wallet = { id: 'wallet-1', balance: 0, debtBalance: 0, lifetimeEarned: 0 }
+    prisma.order.findUnique.mockResolvedValue({ userId: 'user-1', subtotal: subtotal + 1000, discountTotal: 1000, shippingTotal: 5000 })
+    prisma.buyerCoinWallet.upsert.mockImplementation(async ({ update }: { update: { balance: { increment: number }; lifetimeEarned: { increment: number } } }) => {
+      wallet.balance += update.balance.increment
+      wallet.lifetimeEarned += update.lifetimeEarned.increment
+      return { ...wallet }
+    })
+    await repository.applyPaymentStateTransition({
+      paymentId: 'payment-1', orderId: 'order-1', checkoutId: 'checkout-1', eventType: 'payment.paid', reservations: [], occurredAt: new Date(),
+    })
+    expect(wallet).toEqual({ id: 'wallet-1', balance: expectedCoins, debtBalance: 0, lifetimeEarned: expectedCoins })
+    expect(prisma.buyerCoinLedger.create.mock.calls.map(([input]) => input.data.amount)).toEqual(expectedCoins ? [1] : [])
+  })
+
+  it('uses later cashback to clear debt once and leaves the next order cashback available', async () => {
+    const { prisma, repository } = createRepository()
+    const wallet = { id: 'wallet-1', balance: 0, debtBalance: 3, lifetimeEarned: 0 }
+    prisma.buyerCoinWallet.upsert.mockImplementation(async ({ update }: { update: { balance: { increment: number }; lifetimeEarned: { increment: number } } }) => {
+      wallet.balance += update.balance.increment
+      wallet.lifetimeEarned += update.lifetimeEarned.increment
+      return { ...wallet }
+    })
+    prisma.buyerCoinWallet.update.mockImplementation(async ({ data }: { data: { balance: { decrement: number }; debtBalance: { decrement: number } } }) => {
+      wallet.balance -= data.balance.decrement
+      wallet.debtBalance -= data.debtBalance.decrement
+      return { ...wallet }
+    })
+    prisma.order.findUnique.mockResolvedValueOnce({ userId: 'user-1', subtotal: 50000, discountTotal: 0 })
+      .mockResolvedValueOnce({ userId: 'user-1', subtotal: 10000, discountTotal: 0 })
+    await repository.applyPaymentStateTransition({
+      paymentId: 'payment-1', orderId: 'order-1', checkoutId: 'checkout-1', eventType: 'payment.paid', reservations: [], occurredAt: new Date(),
+    })
+    expect(wallet).toEqual({ id: 'wallet-1', balance: 2, debtBalance: 0, lifetimeEarned: 5 })
+    await repository.applyPaymentStateTransition({
+      paymentId: 'payment-2', orderId: 'order-2', checkoutId: 'checkout-2', eventType: 'payment.paid', reservations: [], occurredAt: new Date(),
+    })
+    expect(wallet).toEqual({ id: 'wallet-1', balance: 3, debtBalance: 0, lifetimeEarned: 6 })
+    expect(prisma.buyerCoinLedger.create.mock.calls.map(([input]) => input.data.amount)).toEqual([2, -3, 1])
+  })
+
   it('takes the webhook advisory lock without deserializing PostgreSQL void', async () => {
     const { prisma, repository } = createRepository()
 

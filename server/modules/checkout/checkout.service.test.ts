@@ -695,6 +695,123 @@ describe('CheckoutService', () => {
 })
 
 describe('CheckoutQuoteEvaluator', () => {
+  it.each([
+    { name: 'current variant price', salePrice: null, unitPrice: 1200, lineTotal: 2400, grandTotal: 2900 },
+    { name: 'active flash price', salePrice: 900, unitPrice: 900, lineTotal: 1800, grandTotal: 2300 },
+  ])('returns authoritative line and shop amounts for $name', async ({ salePrice, unitPrice, lineTotal, grandTotal }) => {
+    const service = await setupSuccess()
+    if (salePrice !== null) {
+      vi.mocked(repo.findActiveFlashSaleItemForCheckout).mockResolvedValue({ id: 'flash-item-1', salePrice } as never)
+    }
+    const quote = await service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' })
+    expect(quote).toMatchObject({
+      subtotal: lineTotal,
+      shippingTotal: 500,
+      grandTotal,
+      items: [{ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', shopId: '11111111-1111-4111-8111-111111111111', unitPrice, lineTotal }],
+      shops: [{ shopId: '11111111-1111-4111-8111-111111111111', subtotal: lineTotal }],
+    })
+  })
+
+  it.each([
+    { name: 'zero price', price: 0, quantity: 1, shippingFee: 0 },
+    { name: 'negative price', price: -1, quantity: 1, shippingFee: 0 },
+    { name: 'fractional price', price: 1.5, quantity: 1, shippingFee: 0 },
+    { name: 'unsafe price', price: 9007199254740992, quantity: 1, shippingFee: 0 },
+    { name: 'subtotal overflow', price: 9007199254740991, quantity: 2, shippingFee: 0 },
+    { name: 'grand total overflow', price: 9007199254740991, quantity: 1, shippingFee: 1 },
+    { name: 'negative shipping', price: 100, quantity: 1, shippingFee: -1 },
+    { name: 'fractional shipping', price: 100, quantity: 1, shippingFee: 1.5 },
+    { name: 'unsafe shipping', price: 100, quantity: 1, shippingFee: 9007199254740992 },
+    { name: 'nonfinite shipping', price: 100, quantity: 1, shippingFee: Infinity },
+    { name: 'negative quantity', price: 100, quantity: -1, shippingFee: 0 },
+    { name: 'zero quantity', price: 100, quantity: 0, shippingFee: 0 },
+    { name: 'fractional quantity', price: 100, quantity: 1.5, shippingFee: 0 },
+  ])('rejects $name before persisting checkout', async ({ price, quantity, shippingFee }) => {
+    const service = await setupSuccess({ cart: createCart({ items: [createItem({ price, quantity, shippingFee })] }) })
+    await expect(service.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      paymentMethod: 'card',
+    })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+    expect(repo.commitCheckout).not.toHaveBeenCalled()
+  })
+
+  it('rejects a BigInt price beyond the exact numeric API range', async () => {
+    const item = createItem({ quantity: 1, shippingFee: 0 })
+    item.variant.price = 9007199254740993n
+    const service = await setupSuccess({ cart: createCart({ items: [item] }) })
+    await expect(service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }))
+      .rejects.toMatchObject({ code: 'CHECKOUT_FAILED', status: 400 })
+  })
+
+  it('preserves a one-satang quote and the maximum safe integer without fees', async () => {
+    const small = await setupSuccess({ cart: createCart({ items: [createItem({ price: 1, quantity: 1, shippingFee: 0 })] }) })
+    expect(await small.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }))
+      .toMatchObject({ subtotal: 1, discountTotal: 0, shippingTotal: 0, grandTotal: 1 })
+    const large = await setupSuccess({ cart: createCart({ items: [createItem({ price: 9007199254740991, quantity: 1, shippingFee: 0 })] }) })
+    expect(await large.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }))
+      .toMatchObject({ subtotal: 9007199254740991, grandTotal: 9007199254740991 })
+  })
+
+  it('calculates a mixed multi-shop basket against literal item, coupon, coin and shipping amounts', async () => {
+    const service = await setupSuccess({
+      couponDiscountCents: 640,
+      cart: createCart({ items: [
+        createItem({ id: 'one', price: 1299, quantity: 3, shippingFee: 350 }),
+        createItem({ id: 'two', variantId: 'variant-two', price: 250, quantity: 2, shippingFee: 350 }),
+        createItem({ id: 'three', shopId: 'shop-two', variantId: 'variant-three', price: 999, quantity: 2, shippingFee: 450 }),
+      ] }),
+    })
+    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(20)
+    const quote = await service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', couponCode: 'SAVE', coinsToUse: 12 })
+    expect(quote).toMatchObject({ subtotal: 6395, discountTotal: 1840, shippingTotal: 800, taxTotal: 0, grandTotal: 5355, coinsApplied: 12 })
+    expect(quote.items).toEqual([
+      { id: 'one', shopId: '11111111-1111-4111-8111-111111111111', unitPrice: 1299, lineTotal: 3897 },
+      { id: 'two', shopId: '11111111-1111-4111-8111-111111111111', unitPrice: 250, lineTotal: 500 },
+      { id: 'three', shopId: 'shop-two', unitPrice: 999, lineTotal: 1998 },
+    ])
+    expect(quote.shops).toEqual([
+      { shopId: '11111111-1111-4111-8111-111111111111', subtotal: 4397 },
+      { shopId: 'shop-two', subtotal: 1998 },
+    ])
+    await expect(service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', couponCode: 'SAVE', coinsToUse: 13 }))
+      .rejects.toMatchObject({ code: 'CHECKOUT_FAILED' })
+  })
+
+  it.each([
+    { subtotal: 499, coins: 1, rejected: true, grandTotal: 499 },
+    { subtotal: 500, coins: 1, rejected: false, grandTotal: 400 },
+  ])('checks coin cap at the $subtotal-satang boundary', async ({ subtotal, coins, rejected, grandTotal }) => {
+    const service = await setupSuccess({ cart: createCart({ items: [createItem({ price: subtotal, quantity: 1, shippingFee: 0 })] }) })
+    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(20)
+    const quote = service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', coinsToUse: coins })
+    if (rejected) await expect(quote).rejects.toMatchObject({ code: 'CHECKOUT_FAILED' })
+    else expect(await quote).toMatchObject({ subtotal, discountTotal: 100, grandTotal })
+  })
+
+  it.each([-1, 1.5, NaN, 9007199254740992])('rejects malformed requested coins %s', async (coinsToUse) => {
+    const service = await setupSuccess()
+    await expect(service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', coinsToUse }))
+      .rejects.toMatchObject({ code: 'CHECKOUT_FAILED' })
+  })
+
+  it.each([-1, 1.5, Infinity, 9007199254740992])('rejects malformed active flash price %s', async (salePrice) => {
+    const service = await setupSuccess()
+    vi.mocked(repo.findActiveFlashSaleItemForCheckout).mockResolvedValue({ id: 'flash-item-1', salePrice } as never)
+    await expect(service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }))
+      .rejects.toMatchObject({ code: 'CHECKOUT_FAILED' })
+  })
+
+  it('rejects shipping sum overflow even when each fee is a safe integer', async () => {
+    const service = await setupSuccess({ cart: createCart({ items: [
+      createItem({ id: 'one', price: 1, quantity: 1, shippingFee: 9007199254740991 }),
+      createItem({ id: 'two', shopId: 'shop-two', price: 1, quantity: 1, shippingFee: 9007199254740991 }),
+    ] }) })
+    await expect(service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }))
+      .rejects.toMatchObject({ code: 'CHECKOUT_FAILED' })
+  })
+
   it('evaluates the same accepted quote artifact used by preview and commitment', async () => {
     await setupSuccess({ couponDiscountCents: 240 })
     const evaluator = new CheckoutQuoteEvaluator(promotionService as PromotionService)

@@ -1,0 +1,105 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:17704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+[WebServer] (node:23824) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [setup] › e2e\auth.setup.ts:6:1 › authenticate seller (1.2s)
+[WebServer] (node:2576) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+  ok  2 [chromium] › e2e\checkout-resilience.spec.ts:30:1 › double-clicking checkout creates one order, payment and stock reservation (15.4s)
+  ok  3 [chromium] › e2e\checkout-resilience.spec.ts:64:1 › lost checkout response after commit can be retried and recovered in history without duplicates (3.3s)
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46010)
+[WebServer] 
+  ok  4 [chromium] › e2e\commerce-edge-flows.spec.ts:12:3 › unpaid failed returns stock, coupon and coins and shows canceled buyer state (4.7s)
+  ok  5 [chromium] › e2e\commerce-edge-flows.spec.ts:12:3 › unpaid expired returns stock, coupon and coins and shows canceled buyer state (3.8s)
+  ok  6 [chromium] › e2e\commerce-edge-flows.spec.ts:12:3 › unpaid buyer-cancel returns stock, coupon and coins and shows canceled buyer state (3.5s)
+  ok  7 [chromium] › e2e\commerce-edge-flows.spec.ts:49:1 › two sellers ship separately and buyer sees only the tracking each has submitted (6.0s)
+  ok  8 [chromium] › e2e\commerce-edge-flows.spec.ts:78:1 › stock disappearing after the quote rejects checkout without leaving an order or reservation (1.2s)
+  ok  9 [chromium] › e2e\commerce-edge-flows.spec.ts:93:1 › price changes are requoted and the buyer sees the current server total (2.2s)
+  ok 10 [chromium] › e2e\commerce-edge-flows.spec.ts:108:1 › expired session requires login again and cannot read another buyer order or seller resources (11.4s)
+  ok 11 [chromium] › e2e\finance-lifecycle.spec.ts:29:1 › partial discounted return is approved and refunded once with the correct seller debit (14.5s)
+  ok 12 [chromium] › e2e\finance-lifecycle.spec.ts:78:1 › seller payout reserves funds and two admins complete it without duplicate debits (7.2s)
+  x  13 [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (3.6s)
+  ok 14 [chromium] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (3.1s)
+  ok 15 [chromium] › e2e\numeric-boundaries.spec.ts:58:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (1.9s)
+  ok 16 [chromium] › e2e\numeric-commerce.spec.ts:17:3 › UI, API and database preserve exact satang for repriced basket (2.6s)
+  ok 17 [chromium] › e2e\numeric-commerce.spec.ts:17:3 › UI, API and database preserve exact satang for coupon and coins (3.1s)
+  ok 18 [chromium] › e2e\numeric-commerce.spec.ts:17:3 › UI, API and database preserve exact satang for flash price with coupon and coins (2.6s)
+
+
+  1) [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "code": "NUM-d1347a38",
+    +   "code": "NUM-D1347A38",
+        "discountPercentBps": 1250,
+        "discountType": "PERCENT",
+      }
+
+      26 |   const response = await pending;
+      27 |   expect(response.ok(), await response.text()).toBeTruthy();
+    > 28 |   expect(await response.json()).toMatchObject({ code, discountPercentBps: 1250, discountType: 'PERCENT' });
+         |                                 ^
+      29 |   const coupon = await prisma.coupon.findUniqueOrThrow({ where: { code } });
+      30 |   expect(coupon).toMatchObject({ shopId: shop.id, discountPercentBps: 1250, discountType: 'PERCENT' });
+      31 |   await page.context().clearCookies();
+        at D:\GitHub\marketplace\e2e\numeric-boundaries.spec.ts:28:33
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\error-context.md
+
+    Error Context: test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\numeric-boundaries-seller--081fa-iscounts-1999-satang-by-249-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 
+  17 passed (2.0m)

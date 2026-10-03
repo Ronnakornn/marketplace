@@ -25,11 +25,9 @@ function createAppContext(): AppContext {
 
 function createRepo(): IProductAnalyticsRepository {
   return {
-    countProducts: vi.fn(),
-    findProducts: vi.fn(),
+    findProductRankingCandidates: vi.fn(),
+    findVariantRankingCandidates: vi.fn(),
     findProductsByIds: vi.fn(),
-    countVariants: vi.fn(),
-    findVariants: vi.fn(),
     findVariantsByIds: vi.fn(),
     countProductViews: vi.fn(),
     findProductViewLogs: vi.fn(),
@@ -99,11 +97,9 @@ describe('ProductAnalyticsService', () => {
     repo = createRepo()
     activeShopResolver = createActiveShopResolver()
     service = new ProductAnalyticsService(createAppContext(), repo, activeShopResolver)
-    vi.mocked(repo.countProducts).mockResolvedValue(1)
-    vi.mocked(repo.findProducts).mockResolvedValue([createProduct()])
+    vi.mocked(repo.findProductRankingCandidates).mockResolvedValue([{ id: PRODUCT_ID, title: 'Cotton Tee' }])
+    vi.mocked(repo.findVariantRankingCandidates).mockResolvedValue([{ id: VARIANT_ID, sku: 'TEE-BLK-M' }])
     vi.mocked(repo.findProductsByIds).mockResolvedValue([createProduct()])
-    vi.mocked(repo.countVariants).mockResolvedValue(1)
-    vi.mocked(repo.findVariants).mockResolvedValue([createVariant()])
     vi.mocked(repo.findVariantsByIds).mockResolvedValue([createVariant()])
     vi.mocked(repo.countProductViews).mockResolvedValue([{ productId: PRODUCT_ID, count: 10 }])
     vi.mocked(repo.findProductViewLogs).mockResolvedValue([
@@ -158,7 +154,7 @@ describe('ProductAnalyticsService', () => {
       sort: 'unitsSold',
     })
 
-    expect(repo.findVariants).toHaveBeenCalledWith({ shopIds: [SHOP_ID], productId: PRODUCT_ID, page: 2, limit: 10 })
+    expect(repo.findVariantRankingCandidates).toHaveBeenCalledWith([SHOP_ID], PRODUCT_ID)
     expect(repo.countProductAddToCart).toHaveBeenCalledWith([SHOP_ID], expect.objectContaining({
       from: new Date('2026-06-01T00:00:00.000Z'),
       to: new Date('2026-06-07T23:59:59.999Z'),
@@ -170,8 +166,6 @@ describe('ProductAnalyticsService', () => {
     vi.mocked(repo.countProductViews).mockResolvedValue([])
     vi.mocked(repo.countProductAddToCart).mockResolvedValue([])
     vi.mocked(repo.findPaidOrderItems).mockResolvedValue([])
-    vi.mocked(repo.findProducts).mockResolvedValue([])
-    vi.mocked(repo.findVariants).mockResolvedValue([])
     vi.mocked(repo.findProductsByIds).mockResolvedValue([])
     vi.mocked(repo.findVariantsByIds).mockResolvedValue([])
 
@@ -191,8 +185,11 @@ describe('ProductAnalyticsService', () => {
   })
 
   it('paginates and sorts product table metrics', async () => {
-    vi.mocked(repo.countProducts).mockResolvedValue(2)
-    vi.mocked(repo.findProducts).mockResolvedValue([
+    vi.mocked(repo.findProductRankingCandidates).mockResolvedValue([
+      { id: PRODUCT_ID, title: 'Cotton Tee' },
+      { id: PRODUCT_2_ID, title: 'Silk Scarf' },
+    ])
+    vi.mocked(repo.findProductsByIds).mockResolvedValue([
       createProduct({ id: PRODUCT_ID, title: 'Cotton Tee' }),
       createProduct({ id: PRODUCT_2_ID, title: 'Silk Scarf', slug: 'silk-scarf' }),
     ])
@@ -220,10 +217,62 @@ describe('ProductAnalyticsService', () => {
       sort: 'revenue',
     })
 
-    expect(repo.countProducts).toHaveBeenCalledWith([SHOP_ID], 'tee')
+    expect(repo.findProductRankingCandidates).toHaveBeenCalledWith([SHOP_ID], 'tee')
     expect(result.pagination).toEqual({ page: 1, limit: 2, total: 2, totalPages: 1 })
     expect(result.items[0]!.productId).toBe(PRODUCT_2_ID)
     expect(result.items[0]!.revenue).toBe(5000)
+  })
+
+  it('ranks product revenue globally before paging and retains deterministic ties', async () => {
+    const products = [
+      createProduct({ id: 'product-a', title: 'A' }),
+      createProduct({ id: 'product-b', title: 'B' }),
+      createProduct({ id: 'product-c', title: 'C' }),
+      createProduct({ id: 'product-d', title: 'D' }),
+    ]
+    vi.mocked(repo.findProductRankingCandidates).mockResolvedValue(products.map(({ id, title }) => ({ id, title })))
+    vi.mocked(repo.findProductsByIds).mockImplementation(async (_shopIds, ids) => products.filter((product) => ids.includes(product.id)))
+    vi.mocked(repo.countProductViews).mockResolvedValue([])
+    vi.mocked(repo.countProductAddToCart).mockResolvedValue([])
+    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([
+      createOrderItem({ lineTotal: 100n, variant: { id: 'variant-a', productId: 'product-a' } }),
+      createOrderItem({ lineTotal: 200n, variant: { id: 'variant-b', productId: 'product-b' } }),
+      createOrderItem({ lineTotal: 900n, variant: { id: 'variant-c', productId: 'product-c' } }),
+      createOrderItem({ lineTotal: 200n, variant: { id: 'variant-d', productId: 'product-d' } }),
+    ])
+
+    const first = await service.getProducts(createActor(), { page: 1, limit: 2, sort: 'revenue' })
+    const second = await service.getProducts(createActor(), { page: 2, limit: 2, sort: 'revenue' })
+
+    expect(first.items.map((item) => [item.productId, item.revenue])).toEqual([['product-c', 900], ['product-b', 200]])
+    expect(second.items.map((item) => [item.productId, item.revenue])).toEqual([['product-d', 200], ['product-a', 100]])
+    expect(first.pagination).toEqual({ page: 1, limit: 2, total: 4, totalPages: 2 })
+    expect(repo.findProductsByIds).toHaveBeenNthCalledWith(1, [SHOP_ID], ['product-c', 'product-b'])
+    expect(repo.findProductsByIds).toHaveBeenNthCalledWith(2, [SHOP_ID], ['product-d', 'product-a'])
+  })
+
+  it('ranks SKU revenue globally before paging', async () => {
+    const variants = [
+      createVariant({ id: 'variant-a', sku: 'A' }),
+      createVariant({ id: 'variant-b', sku: 'B' }),
+      createVariant({ id: 'variant-c', sku: 'C' }),
+    ]
+    vi.mocked(repo.findVariantRankingCandidates).mockResolvedValue(variants.map(({ id, sku }) => ({ id, sku })))
+    vi.mocked(repo.findVariantsByIds).mockImplementation(async (_shopIds, ids) => variants.filter((variant) => ids.includes(variant.id)))
+    vi.mocked(repo.countProductAddToCart).mockResolvedValue([])
+    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([
+      createOrderItem({ variantId: 'variant-a', lineTotal: 100n }),
+      createOrderItem({ variantId: 'variant-b', lineTotal: 200n }),
+      createOrderItem({ variantId: 'variant-c', lineTotal: 900n }),
+    ])
+
+    const first = await service.getSkus(createActor(), { page: 1, limit: 2, sort: 'revenue' })
+    const second = await service.getSkus(createActor(), { page: 2, limit: 2, sort: 'revenue' })
+
+    expect(first.items.map((item) => [item.variantId, item.revenue])).toEqual([['variant-c', 900], ['variant-b', 200]])
+    expect(second.items.map((item) => [item.variantId, item.revenue])).toEqual([['variant-a', 100]])
+    expect(repo.findVariantsByIds).toHaveBeenNthCalledWith(1, [SHOP_ID], ['variant-c', 'variant-b'])
+    expect(repo.findVariantsByIds).toHaveBeenNthCalledWith(2, [SHOP_ID], ['variant-a'])
   })
 
   it('builds daily series from event and order timestamps', async () => {
