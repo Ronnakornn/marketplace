@@ -1,0 +1,12 @@
+$ vitest run --exclude "**/e2e/**" server/modules/search server/modules/review server/modules/shop-review
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+(node:29200) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ Test Files  9 passed (9)
+      Tests  43 passed (43)
+   Start at  05:54:56
+   Duration  2.21s (transform 899ms, setup 0ms, import 3.32s, tests 2.34s, environment 1ms)
+

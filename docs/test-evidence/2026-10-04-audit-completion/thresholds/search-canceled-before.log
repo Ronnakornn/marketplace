@@ -1,0 +1,57 @@
+$ vitest run --exclude "**/e2e/**" server/modules/search/search-numeric.integration.test.ts -t best_seller
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+ ❯ server/modules/search/search-numeric.integration.test.ts (3 tests | 1 failed | 2 skipped) 445ms
+     × sets best_seller at100 paid units and new at the exact seven-day instant 411ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/search/search-numeric.integration.test.ts > search numeric thresholds on PostgreSQL > sets best_seller at100 paid units and new at the exact seven-day instant
+AssertionError: expected [ { …(3) }, { …(3) } ] to deeply equal [ { …(3) }, { …(3) } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "badges": [
+-       "new",
+        "best_seller",
+        "in_stock",
+      ],
+-     "id": "f11022f9-de35-47a4-acde-80a31c6a7eff",
+-     "sold": 100,
++     "id": "865a5a1c-da27-4ee4-b2e7-73b74eb94f29",
++     "sold": 1099,
+    },
+    {
+      "badges": [
++       "new",
++       "best_seller",
+        "in_stock",
+      ],
+-     "id": "865a5a1c-da27-4ee4-b2e7-73b74eb94f29",
+-     "sold": 99,
++     "id": "f11022f9-de35-47a4-acde-80a31c6a7eff",
++     "sold": 100,
+    },
+  ]
+
+ ❯ server/modules/search/search-numeric.integration.test.ts:76:109
+     74|     await thresholdSale(db, f, { quantity: 1000, amount: 100000n, paym…
+     75|     const result = await service.searchProducts({ shopId: f.shop.id, s…
+     76|     expect(result.items.map((item) => ({ id: item.productId, sold: ite…
+       |                                                                                                             ^
+     77|       { id: equal.product.id, sold: 100, badges: ['new', 'best_seller'…
+     78|       { id: f.product.id, sold: 99, badges: ['in_stock'] },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 skipped (3)
+   Start at  05:54:15
+   Duration  1.07s (transform 236ms, setup 0ms, import 476ms, tests 445ms, environment 0ms)
+
+error: script "test" exited with code 1

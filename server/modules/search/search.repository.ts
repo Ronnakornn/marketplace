@@ -181,7 +181,7 @@ const searchProductSelect = {
       },
       orderItems: {
         where: {
-          order: { paymentStatus: 'SUCCEEDED' },
+          order: { paymentStatus: 'SUCCEEDED', status: { not: 'CANCELED' } },
           fulfillmentStatus: { not: 'CANCELED' },
         },
         select: {
@@ -374,7 +374,7 @@ export class PrismaSearchRepository implements ISearchRepository {
           const v: Prisma.ProductVariantWhereInput = { status: 'ACTIVE' }
           if (filters.inStock) {
             v.inventory = {
-              quantityOnHand: { gt: 0 },
+              quantityOnHand: { gt: this.prisma.inventory.fields.quantityReserved },
             }
           }
           if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {

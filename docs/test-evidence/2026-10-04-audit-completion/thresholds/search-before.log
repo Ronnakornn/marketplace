@@ -1,0 +1,43 @@
+$ vitest run --exclude "**/e2e/**" server/modules/search/search-numeric.integration.test.ts -t "fully reserved"
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+ ❯ server/modules/search/search-numeric.integration.test.ts (3 tests | 1 failed | 2 skipped) 386ms
+     × excludes fully reserved stock from both results and category/brand/price facets 353ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/search/search-numeric.integration.test.ts > search numeric thresholds on PostgreSQL > excludes fully reserved stock from both results and category/brand/price facets
+AssertionError: expected [ { …(5) } ] to deeply equal [ { …(5) } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "active": false,
+-     "count": 1,
++     "count": 2,
+      "id": "1b2b2990-dc85-4c98-8f7f-9bb75b25c460",
+      "name": "5a5d3439-12e9-4867-9bb4-b8bed5a7f7f5",
+      "slug": "5a5d3439-12e9-4867-9bb4-b8bed5a7f7f5",
+    },
+  ]
+
+ ❯ server/modules/search/search-numeric.integration.test.ts:31:38
+     29|     expect(result.items[0]!.variants[0]!.stock).toBe(1)
+     30|     expect(result.meta.totalCount).toBe(1)
+     31|     expect(result.facets.categories).toEqual([{ id: f.category.id, nam…
+       |                                      ^
+     32|     expect(result.facets.brands).toEqual([{ id: f.brand.id, name: f.br…
+     33|     expect(result.facets.price).toEqual({ min: 2000n, max: 2000n, curr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 skipped (3)
+   Start at  05:53:34
+   Duration  958ms (transform 213ms, setup 0ms, import 431ms, tests 386ms, environment 0ms)
+
+error: script "test" exited with code 1

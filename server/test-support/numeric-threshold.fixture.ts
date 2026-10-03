@@ -31,6 +31,16 @@ export async function numericThresholdFixture(db: PrismaClient) {
   return { tag, owner, buyer, shop, category, brand, product, variant }
 }
 
+export async function thresholdProduct(db: PrismaClient, fixture: Awaited<ReturnType<typeof numericThresholdFixture>>, input: {
+  price: bigint; createdAt?: Date; status?: Product['status']; variantStatus?: ProductVariant['status'];
+  onHand?: number; reserved?: number; categoryId?: string; shopId?: string;
+}) {
+  const tag = randomUUID()
+  const product = await db.product.create({ data: { shopId: input.shopId ?? fixture.shop.id, categoryId: input.categoryId ?? fixture.category.id, brandId: fixture.brand.id, title: tag, slug: tag, status: input.status ?? 'ACTIVE', ...(input.createdAt ? { createdAt: input.createdAt } : {}) } })
+  const variant = await db.productVariant.create({ data: { productId: product.id, sku: tag, title: tag, price: input.price, status: input.variantStatus ?? 'ACTIVE', inventory: { create: { quantityOnHand: input.onHand ?? 3, quantityReserved: input.reserved ?? 2 } } } })
+  return { product, variant }
+}
+
 export async function thresholdSale(db: PrismaClient, fixture: Awaited<ReturnType<typeof numericThresholdFixture>>, input: {
   product?: Product; variant?: ProductVariant; quantity?: number; amount?: bigint;
   createdAt?: Date; checkoutCreatedAt?: Date; status?: OrderStatus; paymentStatus?: Order['paymentStatus']; paymentState?: PaymentStatus;
