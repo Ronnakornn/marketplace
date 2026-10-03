@@ -56,9 +56,9 @@ describe('coupon numeric HTTP boundary', () => {
     } as never)
     const response = await new Elysia().use(createPromotionRoutes({ promotionService: service } as never)).handle(new Request(`http://localhost/api/admin/flash-sales/${id}/items`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ productId: id, variantId: id, salePriceBaht: 90071992547409.9, stockLimit: 1 }),
+      body: JSON.stringify({ productId: id, variantId: id, salePriceBaht: '90071992547409.90', stockLimit: 1 }),
     }))
     expect(response.status, await response.clone().text()).toBe(200)
-    expect(await response.json()).toEqual({ id, salePrice: 9007199254740990 })
+    expect(await response.json()).toEqual({ id, salePrice: '9007199254740990' })
   })
 })

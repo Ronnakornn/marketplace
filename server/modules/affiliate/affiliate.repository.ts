@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type {
   Affiliate,
   AffiliateClick,
@@ -51,7 +52,7 @@ export interface CreateAffiliateCommissionInput {
   orderId: string
   eligiblesubtotal: number
   commissionBps: number
-  commissionCents: number
+  commissionCents: bigint
   currency: string
 }
 
@@ -83,7 +84,7 @@ export interface IAffiliateRepository {
   findOrderForCommission(orderId: string): Promise<AffiliateOrderRecord | null>
   findCommissionByOrderId(orderId: string): Promise<AffiliateCommission | null>
   createCommission(input: CreateAffiliateCommissionInput): Promise<AffiliateCommission>
-  getStats(userId: string): Promise<{ clicks: number; conversions: number; commissionCents: number }>
+  getStats(userId: string): Promise<{ clicks: number; conversions: number; commissionCents: bigint }>
 }
 
 export type IAffiliateCommissionRepository = Pick<
@@ -313,9 +314,9 @@ export class PrismaAffiliateRepository implements IAffiliateRepository {
     })
   }
 
-  async getStats(userId: string): Promise<{ clicks: number; conversions: number; commissionCents: number }> {
+  async getStats(userId: string): Promise<{ clicks: number; conversions: number; commissionCents: bigint }> {
     const affiliate = await this.prisma.affiliate.findUnique({ where: { userId }, select: { id: true } })
-    if (!affiliate) return { clicks: 0, conversions: 0, commissionCents: 0 }
+    if (!affiliate) return { clicks: 0, conversions: 0, commissionCents: 0n }
 
     const [clicks, conversions, commission] = await Promise.all([
       this.prisma.affiliateClick.count({ where: { affiliateId: affiliate.id } }),
@@ -329,7 +330,7 @@ export class PrismaAffiliateRepository implements IAffiliateRepository {
     return {
       clicks,
       conversions,
-      commissionCents: Number(commission._sum.commission ?? 0),
+      commissionCents: moneyInteger(commission._sum.commission ?? 0n),
     }
   }
 }

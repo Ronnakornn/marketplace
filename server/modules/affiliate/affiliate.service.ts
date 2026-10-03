@@ -1,3 +1,4 @@
+import { moneyNumber, moneyInteger } from '#server/lib/money.ts'
 import { createHash, randomBytes } from 'node:crypto'
 import type { Affiliate, AffiliateCommission, AffiliateLink } from '#generated/client/client.ts'
 import type { AffiliateStatus, AffiliateTargetType } from '#generated/client/enums.ts'
@@ -198,7 +199,7 @@ export class AffiliateService {
 
     const eligiblesubtotal = this.calculateEligiblesubtotal(order)
     if (eligiblesubtotal <= 0) return null
-    const commissionCents = Number(BigInt(eligiblesubtotal) * BigInt(this.config.commissionBps) / 10000n)
+    const commissionCents = BigInt(eligiblesubtotal) * BigInt(this.config.commissionBps) / 10000n
     if (commissionCents <= 0) return null
 
     return repo.createCommission({
@@ -214,9 +215,10 @@ export class AffiliateService {
   }
 
   private calculateEligiblesubtotal(order: { subtotal: number | bigint; discountTotal: number | bigint; items: Array<{ lineTotal: number | bigint }> }): number {
-    const itemsubtotal = order.items.reduce((sum, item) => sum + Number(item.lineTotal), 0)
-    const subtotal = itemsubtotal || Number(order.subtotal)
-    return Math.max(0, subtotal - Number(order.discountTotal))
+    const itemsubtotal = order.items.reduce((sum, item) => sum + moneyInteger(item.lineTotal), 0n)
+    const subtotal = itemsubtotal || moneyInteger(order.subtotal)
+    const eligible = subtotal - moneyInteger(order.discountTotal)
+    return moneyNumber(eligible > 0n ? eligible : 0n)
   }
 
   private async assertValidTarget(targetType: AffiliateTargetType, targetId: string): Promise<void> {

@@ -83,14 +83,19 @@ let repo: IWalletRepository
 let service: WalletService
 
 describe('WalletService', () => {
+  it.each([9007199254740992, 1.5, Number.POSITIVE_INFINITY])('rejects unsafe refund amount %s before a transaction or write', async (amount) => {
+    await expect(service.applyRefundAdjustment('shop-1', 'refund-1', 'order-1', amount)).rejects.toMatchObject({ status: 400 })
+    expect(repo.transaction).not.toHaveBeenCalled()
+    expect(repo.createLedgerEntry).not.toHaveBeenCalled()
+  })
   beforeEach(() => {
     repo = repoMock()
     service = new WalletService(appContext(), repo, new CommissionService(appContext(), 1000))
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', name: 'Shop One', ownerId: 'seller-1' }])
     vi.mocked(repo.ensureWallet).mockResolvedValue(walletRecord())
     vi.mocked(repo.findWalletByShopId).mockResolvedValue(walletRecord())
-    vi.mocked(repo.sumLedger).mockResolvedValue(9000)
-    vi.mocked(repo.sumReservedPayouts).mockResolvedValue(0)
+    vi.mocked(repo.sumLedger).mockResolvedValue(9000n)
+    vi.mocked(repo.sumReservedPayouts).mockResolvedValue(0n)
   })
 
   it('seller wallet summary works', async () => {
@@ -99,8 +104,8 @@ describe('WalletService', () => {
       shopId: 'shop-1',
       shopName: 'Shop One',
       currency: 'THB',
-      availableBalanceCents: 9000,
-      sellerDebtCents: 0,
+      availableBalanceCents: 9000n,
+      sellerDebtCents: 0n,
     })
   })
 
@@ -113,11 +118,11 @@ describe('WalletService', () => {
   })
 
   it('distinguishes an unpaid payout reservation from seller debt', async () => {
-    vi.mocked(repo.sumLedger).mockResolvedValue(-100)
-    vi.mocked(repo.sumReservedPayouts).mockResolvedValue(100)
-    await expect(service.getSellerWallet({ id: 'seller-1', role: 'USER' })).resolves.toMatchObject({ availableBalanceCents: -100, sellerDebtCents: 0 })
-    vi.mocked(repo.sumReservedPayouts).mockResolvedValue(0)
-    await expect(service.getSellerWallet({ id: 'seller-1', role: 'USER' })).resolves.toMatchObject({ availableBalanceCents: -100, sellerDebtCents: 100 })
+    vi.mocked(repo.sumLedger).mockResolvedValue(-100n)
+    vi.mocked(repo.sumReservedPayouts).mockResolvedValue(100n)
+    await expect(service.getSellerWallet({ id: 'seller-1', role: 'USER' })).resolves.toMatchObject({ availableBalanceCents: -100n, sellerDebtCents: 0n })
+    vi.mocked(repo.sumReservedPayouts).mockResolvedValue(0n)
+    await expect(service.getSellerWallet({ id: 'seller-1', role: 'USER' })).resolves.toMatchObject({ availableBalanceCents: -100n, sellerDebtCents: 100n })
   })
 
   it('uses seller-funded net merchandise, shipping and the original commission after the live rate changes', async () => {

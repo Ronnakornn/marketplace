@@ -1,3 +1,4 @@
+import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
@@ -32,14 +33,15 @@ export function createPaymentRoutes(container: ServiceContainer) {
   const routes = new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof PaymentServiceError) {
-        return httpStatus(error.status, {
+        return moneyHttpError(error.status, toMoneyDto({
           error: {
             code: error.code,
             message: error.message,
             details: error.details ?? {},
           },
-        })
+        }))
       }
     })
     .post('/api/payment/webhook', handleWebhook, webhookOptions)
@@ -48,13 +50,13 @@ export function createPaymentRoutes(container: ServiceContainer) {
   const mockRoutes = new Elysia()
     .use(authPlugin)
     .get('/api/payments/mock/:paymentId', ({ authContext, params }: any) =>
-      container.paymentService.getBuyerMockPaymentDetail(authContext!.user, params.paymentId), {
+      moneyResponse(container.paymentService.getBuyerMockPaymentDetail(authContext!.user, params.paymentId)), {
       withAuth: true,
       params: PaymentParamsSchema,
       response: BuyerMockPaymentDetailSchema,
     })
     .post('/api/payments/mock/:paymentId/events', ({ authContext, params, body }: any) =>
-      container.paymentService.handleMockPaymentEvent(authContext!.user, params.paymentId, body), {
+      moneyResponse(container.paymentService.handleMockPaymentEvent(authContext!.user, params.paymentId, body)), {
       withAuth: true,
       params: PaymentParamsSchema,
       body: MockPaymentEventBodySchema,

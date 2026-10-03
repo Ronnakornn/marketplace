@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Role, UserStatus } from '#generated/client/enums.ts'
 import { randomInt } from 'node:crypto'
 import { hashPassword, verifyPassword } from 'better-auth/crypto'
@@ -51,7 +52,7 @@ export interface FavoriteProductResponse {
   id: string
   productId: string
   title: string
-  price: number
+  price: bigint
   currency: string
   status: string
   imageUrls: string[]
@@ -61,7 +62,7 @@ export interface FavoriteProductResponse {
     title: string
     stock: number
     currency: string
-    price: number
+    price: bigint
   } | null
   createdAt: Date
 }
@@ -73,7 +74,7 @@ export interface ShopFollowResponse {
   slug: string
   followerCount: number
   productCount: number
-  products: Array<{ id: string; title: string; price: number; currency: string }>
+  products: Array<{ id: string; title: string; price: bigint; currency: string }>
   createdAt: Date
 }
 
@@ -610,7 +611,7 @@ export class UserService {
       id: favorite.id,
       productId: favorite.productId,
       title: favorite.product.title,
-      price: displayVariant ? Number(displayVariant.variant.price) : 0,
+      price: displayVariant ? moneyInteger(displayVariant.variant.price) : 0n,
       currency: displayVariant?.variant.currency ?? 'USD',
       status: favorite.product.status,
       imageUrls: favorite.product.images.map((image) => image.url),
@@ -620,7 +621,7 @@ export class UserService {
         title: purchaseVariant.variant.title,
         stock: purchaseVariant.stock,
         currency: purchaseVariant.variant.currency,
-        price: Number(purchaseVariant.variant.price),
+        price: moneyInteger(purchaseVariant.variant.price),
       } : null,
       createdAt: favorite.createdAt,
     }
@@ -639,7 +640,7 @@ export class UserService {
         return {
           id: product.id,
           title: product.title,
-          price: variant?.price !== null && variant?.price !== undefined ? Number(variant?.price) : 0,
+          price: variant?.price !== null && variant?.price !== undefined ? moneyInteger(variant?.price) : 0n,
           currency: variant?.currency ?? 'USD',
         }
       }),

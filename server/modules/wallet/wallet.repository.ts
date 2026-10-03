@@ -29,7 +29,7 @@ export interface CreateLedgerEntryInput {
   walletId: string
   shopId: string
   type: WalletLedgerEntryType
-  amount: number
+  amount: bigint | number
   currency: string
   orderId?: string | null
   payoutId?: string | null
@@ -44,8 +44,8 @@ export interface IWalletRepository {
   findWalletByShopId(shopId: string): Promise<WalletRecord | null>
   ensureWallet(shopId: string, currency: string): Promise<ShopWallet>
   listEntries(walletId: string, limit: number, offset: number): Promise<WalletEntryRecord[]>
-  sumLedger(walletId: string, currency: string): Promise<number>
-  sumReservedPayouts(walletId: string, currency: string): Promise<number>
+  sumLedger(walletId: string, currency: string): Promise<bigint>
+  sumReservedPayouts(walletId: string, currency: string): Promise<bigint>
   createLedgerEntry(input: CreateLedgerEntryInput): Promise<WalletLedgerEntry>
   lockOrder(orderId: string): Promise<void>
   findCompletedOrder(orderId: string): Promise<CompletedOrderRecord | null>
@@ -109,19 +109,19 @@ export class PrismaWalletRepository implements IWalletRepository {
     })
   }
 
-  async sumLedger(walletId: string, currency: string): Promise<number> {
+  async sumLedger(walletId: string, currency: string): Promise<bigint> {
     const result = await this.prisma.walletLedgerEntry.aggregate({
       where: { walletId, currency },
       _sum: { amount: true },
     })
-    return Number(result._sum.amount ?? 0)
+    return result._sum.amount ?? 0n
   }
 
-  async sumReservedPayouts(walletId: string, currency: string): Promise<number> {
+  async sumReservedPayouts(walletId: string, currency: string): Promise<bigint> {
     const result = await this.prisma.sellerPayout.aggregate({
       where: { walletId, currency, status: { in: ['requested', 'approved'] } }, _sum: { amount: true },
     })
-    return Number(result._sum.amount ?? 0)
+    return result._sum.amount ?? 0n
   }
 
   async lockWallet(walletId: string): Promise<void> {

@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { ShipmentStatus } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -89,8 +90,8 @@ export interface BuyerShipmentTrackingResponse {
       variantTitle: string
       variantSku: string
       quantity: number
-      unitPrice: number
-      lineTotal: number
+      unitPrice: bigint
+      lineTotal: bigint
       currency: string
       fulfillmentStatus: string
     }>
@@ -370,8 +371,8 @@ export class ShipmentService {
         variantTitle: item.orderItem.variantTitle,
         variantSku: item.orderItem.variantSku,
         quantity: item.quantity,
-        unitPrice: Number(item.orderItem.unitPrice),
-        lineTotal: Number(item.orderItem.lineTotal),
+        unitPrice: moneyInteger(item.orderItem.unitPrice),
+        lineTotal: moneyInteger(item.orderItem.lineTotal),
         currency: item.orderItem.currency,
         fulfillmentStatus: item.orderItem.fulfillmentStatus,
       })),

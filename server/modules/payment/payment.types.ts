@@ -1,3 +1,4 @@
+import { MinorUnitString } from '#server/lib/money.ts'
 import type { Static } from 'elysia'
 import { t } from 'elysia'
 
@@ -34,7 +35,7 @@ export const BuyerMockPaymentDetailSchema = t.Object({
   id: t.String({ format: 'uuid' }),
   orderId: t.String({ format: 'uuid' }),
   orderNo: t.String(),
-  amountCents: t.Number(),
+  amountCents: MinorUnitString,
   currency: t.String(),
   status: BuyerPaymentStatusSchema,
 })

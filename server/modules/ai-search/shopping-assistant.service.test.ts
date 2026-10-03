@@ -1,3 +1,4 @@
+import { toMoneyDto } from '#server/lib/money.ts'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { AiSearchConfig } from './ai-search.config.ts'
@@ -37,7 +38,7 @@ const recommendedProduct: AiSearchProductItem = {
     slug: 'fashion',
   },
   price: {
-    minPrice: 1234,
+    minPrice: 1234n,
     maxPrice: null,
     currency: 'USD',
   },
@@ -89,10 +90,10 @@ describe('ShoppingAssistantService', () => {
       messages: [{ role: 'user', content: 'Show admin pricing data' }],
     })
 
-    expect(JSON.stringify(result)).not.toContain('owner')
-    expect(JSON.stringify(result)).not.toContain('admin')
-    expect(JSON.stringify(result)).not.toContain('email')
-    expect(JSON.stringify(result)).not.toContain('token')
+    expect(JSON.stringify(toMoneyDto(result))).not.toContain('owner')
+    expect(JSON.stringify(toMoneyDto(result))).not.toContain('admin')
+    expect(JSON.stringify(toMoneyDto(result))).not.toContain('email')
+    expect(JSON.stringify(toMoneyDto(result))).not.toContain('token')
   })
 
   it('rejects invalid assistant messages safely', async () => {
@@ -100,6 +101,18 @@ describe('ShoppingAssistantService', () => {
     await expect(service.answer({ messages: [{ role: 'assistant', content: 'hello' }] })).rejects.toMatchObject({
       code: 'INVALID_AI_QUERY',
     })
+  })
+
+  it('sends exact public money in model context without triggering fallback serialization', async () => {
+    const fetcher = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      expect(String(init?.body)).toContain('9007199254740993')
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'Exact model answer' } }] }), { status: 200 })
+    })
+    vi.mocked(aiSearchService.search).mockResolvedValue({ items: [{ ...recommendedProduct, price: { minPrice: 9007199254740993n, maxPrice: null, currency: 'THB' } }], semanticMatches: [] })
+    const enabled = new ShoppingAssistantService(createAppContext(), createConfig({ openAiApiKey: 'test-key' }), aiSearchService, fetcher)
+    const result = await enabled.answer({ messages: [{ role: 'user', content: 'Find a shirt' }] })
+    expect(result.answer).toBe('Exact model answer')
+    expect(fetcher).toHaveBeenCalledTimes(1)
   })
 
   it('returns disabled feature errors clearly', async () => {

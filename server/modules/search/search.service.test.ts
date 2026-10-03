@@ -70,8 +70,8 @@ function createProduct(overrides: Partial<{
   shopId: string
   categoryId: string
   categorySlug: string
-  price: number
-  secondPrice: number
+  price: bigint
+  secondPrice: bigint
   rating: number
   reviewCount: number
   soldCount: number
@@ -137,8 +137,8 @@ describe('SearchService', () => {
     repo = createRepoMock()
     service = new SearchService(createAppContext(), repo)
     vi.mocked(repo.findSearchableProducts).mockResolvedValue([
-      createProduct({ id: 'p1', title: 'Cotton Tee', price: 1000, rating: 4, soldCount: 20 }),
-      createProduct({ id: 'p2', title: 'Denim Jacket', price: 3000, rating: 5, soldCount: 5 }),
+      createProduct({ id: 'p1', title: 'Cotton Tee', price: 1000n, rating: 4, soldCount: 20 }),
+      createProduct({ id: 'p2', title: 'Denim Jacket', price: 3000n, rating: 5, soldCount: 5 }),
     ])
     vi.mocked(repo.findSuggestions).mockResolvedValue([
       { id: 'p1', title: 'Cotton Tee' },
@@ -221,7 +221,7 @@ describe('SearchService', () => {
 
   it('supports price range and variant min/max output', async () => {
     vi.mocked(repo.findSearchableProducts).mockResolvedValue([
-      createProduct({ id: 'p3', title: 'Sneakers', price: 2500, secondPrice: 3500 }),
+      createProduct({ id: 'p3', title: 'Sneakers', price: 2500n, secondPrice: 3500n }),
     ])
 
     const result = await service.searchProducts({ minPrice: 2000, maxPrice: 4000 })
@@ -230,7 +230,7 @@ describe('SearchService', () => {
       minPrice: 2000,
       maxPrice: 4000,
     }))
-    expect(result.items[0]).toMatchObject({ minPrice: 2500, maxPrice: 3500 })
+    expect(result.items[0]).toMatchObject({ minPrice: 2500n, maxPrice: 3500n })
     expect(result.meta.query).toMatchObject({
       minPrice: 2000,
       maxPrice: 4000,
@@ -247,7 +247,7 @@ describe('SearchService', () => {
         id: 'variant-1',
         sku: 'TEE-1',
         title: 'Default',
-        price: 1000,
+        price: 1000n,
         currency: 'USD',
         stock: 8,
         optionValues: [],
@@ -260,14 +260,14 @@ describe('SearchService', () => {
     vi.mocked(repo.findProductFacets).mockResolvedValueOnce({
       categories: [{ id: 'category-1', slug: 'fashion', name: 'Fashion', count: 2, active: true }],
       brands: [{ id: 'brand-1', slug: 'acme', name: 'Acme', count: 2, active: false }],
-      price: { min: 1000, max: 3000, currency: 'USD' },
+      price: { min: 1000n, max: 3000n, currency: 'USD' },
     })
 
     await expect(service.searchProducts({ categoryId: 'fashion' })).resolves.toMatchObject({
       facets: {
         categories: [{ id: 'category-1', slug: 'fashion', name: 'Fashion', count: 2, active: true }],
         brands: [{ id: 'brand-1', slug: 'acme', name: 'Acme', count: 2, active: false }],
-        price: { min: 1000, max: 3000, currency: 'USD' },
+        price: { min: 1000n, max: 3000n, currency: 'USD' },
       },
     })
     expect(repo.findProductFacets).toHaveBeenCalledWith(expect.objectContaining({ categoryId: 'fashion' }))

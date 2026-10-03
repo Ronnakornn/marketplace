@@ -1,3 +1,4 @@
+import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import { authPlugin } from '#server/modules/auth'
 import type { ServiceContainer } from '#server/context/app-context.ts'
@@ -72,123 +73,124 @@ export function createUserRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof UserServiceError) {
-        return httpStatus(error.status, { message: error.message })
+        return moneyHttpError(error.status, toMoneyDto({ message: error.message }))
       }
     })
-    .get('/api/me', ({ authContext }: any) => container.userService.getCurrentUser(authContext!.user.id), {
+    .get('/api/me', ({ authContext }: any) => moneyResponse(container.userService.getCurrentUser(authContext!.user.id)), {
       withAuth: true,
       response: CurrentUserResponse,
     })
-    .patch('/api/me', ({ authContext, body }: any) => container.userService.updateCurrentUser(authContext!.user.id, body), {
+    .patch('/api/me', ({ authContext, body }: any) => moneyResponse(container.userService.updateCurrentUser(authContext!.user.id, body)), {
       withAuth: true,
       body: UpdateCurrentUserProfileBody,
       response: CurrentUserResponse,
     })
     .post('/api/auth/resend-email-verification', ({ authContext }: any) =>
-      container.userService.resendEmailVerification(authContext!.user.id), {
+      moneyResponse(container.userService.resendEmailVerification(authContext!.user.id)), {
       withAuth: true,
       response: SuccessResponse,
     })
-    .post('/api/auth/verify-email-otp', ({ body }) => container.userService.verifyEmailOtp(body.email, body.otp), {
+    .post('/api/auth/verify-email-otp', ({ body }) => moneyResponse(container.userService.verifyEmailOtp(body.email, body.otp)), {
       body: OtpEmailBody,
       response: SuccessResponse,
     })
-    .post('/api/auth/request-password-reset-otp', ({ body }) => container.userService.requestPasswordResetOtp(body.email), {
+    .post('/api/auth/request-password-reset-otp', ({ body }) => moneyResponse(container.userService.requestPasswordResetOtp(body.email)), {
       body: EmailBody,
       response: SuccessResponse,
     })
     .post('/api/auth/complete-password-reset', ({ body }) =>
-      container.userService.completePasswordReset(body.email, body.otp, body.newPassword), {
+      moneyResponse(container.userService.completePasswordReset(body.email, body.otp, body.newPassword)), {
       body: ResetPasswordBody,
       response: SuccessResponse,
     })
     .post('/api/auth/change-password', ({ authContext, body }: any) =>
-      container.userService.changePassword(authContext!.user.id, body.currentPassword, body.newPassword), {
+      moneyResponse(container.userService.changePassword(authContext!.user.id, body.currentPassword, body.newPassword)), {
       withVerifiedAuth: true,
       body: ChangePasswordBody,
       response: SuccessResponse,
     })
-    .get('/api/addresses', ({ authContext }: any) => container.userService.listAddresses(authContext!.user.id), {
+    .get('/api/addresses', ({ authContext }: any) => moneyResponse(container.userService.listAddresses(authContext!.user.id)), {
       withAuth: true,
     })
-    .post('/api/addresses', ({ authContext, body }: any) => container.userService.createAddress(authContext!.user.id, body), {
+    .post('/api/addresses', ({ authContext, body }: any) => moneyResponse(container.userService.createAddress(authContext!.user.id, body)), {
       withAuth: true,
       body: AddressBody,
     })
     .patch('/api/addresses/:addressId', ({ authContext, params, body }: any) =>
-      container.userService.updateAddress(authContext!.user.id, params.addressId, body), {
+      moneyResponse(container.userService.updateAddress(authContext!.user.id, params.addressId, body)), {
       withAuth: true,
       params: AddressParams,
       body: UpdateAddressBody,
     })
     .delete('/api/addresses/:addressId', async ({ authContext, params }: any) => {
       await container.userService.deleteAddress(authContext!.user.id, params.addressId)
-      return { success: true }
+      return moneyResponse({ success: true })
     }, {
       withAuth: true,
       params: AddressParams,
       response: t.Object({ success: t.Boolean() }),
     })
     .patch('/api/addresses/:addressId/default', ({ authContext, params }: any) =>
-      container.userService.setDefaultAddress(authContext!.user.id, params.addressId), {
+      moneyResponse(container.userService.setDefaultAddress(authContext!.user.id, params.addressId)), {
       withAuth: true,
       params: AddressParams,
     })
     .get('/api/me/favorites', ({ authContext }: any) =>
-      container.userService.listFavoriteProducts(authContext!.user.id), {
+      moneyResponse(container.userService.listFavoriteProducts(authContext!.user.id)), {
       withAuth: true,
     })
     .get('/api/me/favorites/:productId', ({ authContext, params }: any) =>
-      container.userService.getFavoriteStatus(authContext!.user.id, params.productId), {
+      moneyResponse(container.userService.getFavoriteStatus(authContext!.user.id, params.productId)), {
       withAuth: true,
       params: ProductFavoriteParams,
     })
     .put('/api/me/favorites/:productId', ({ authContext, params }: any) =>
-      container.userService.addFavoriteProduct(authContext!.user.id, params.productId), {
+      moneyResponse(container.userService.addFavoriteProduct(authContext!.user.id, params.productId)), {
       withAuth: true,
       params: ProductFavoriteParams,
     })
     .delete('/api/me/favorites/:productId', ({ authContext, params }: any) =>
-      container.userService.removeFavoriteProduct(authContext!.user.id, params.productId), {
+      moneyResponse(container.userService.removeFavoriteProduct(authContext!.user.id, params.productId)), {
       withAuth: true,
       params: ProductFavoriteParams,
     })
     .get('/api/me/followed-shops', ({ authContext }: any) =>
-      container.userService.listFollowedShops(authContext!.user.id), {
+      moneyResponse(container.userService.listFollowedShops(authContext!.user.id)), {
       withAuth: true,
     })
     .get('/api/shops/:shopId/follow', ({ authContext, params }: any) =>
-      container.userService.getShopFollowStatus(authContext!.user.id, params.shopId), {
+      moneyResponse(container.userService.getShopFollowStatus(authContext!.user.id, params.shopId)), {
       withAuth: true,
       params: ShopFollowParams,
     })
     .put('/api/shops/:shopId/follow', ({ authContext, params }: any) =>
-      container.userService.followShop(authContext!.user.id, params.shopId), {
+      moneyResponse(container.userService.followShop(authContext!.user.id, params.shopId)), {
       withAuth: true,
       params: ShopFollowParams,
     })
     .delete('/api/shops/:shopId/follow', ({ authContext, params }: any) =>
-      container.userService.unfollowShop(authContext!.user.id, params.shopId), {
+      moneyResponse(container.userService.unfollowShop(authContext!.user.id, params.shopId)), {
       withAuth: true,
       params: ShopFollowParams,
     })
-    .get('/api/users', () => container.userService.listForAdmin(), {
+    .get('/api/users', () => moneyResponse(container.userService.listForAdmin()), {
       withRole: 'ADMIN',
       response: t.Array(AdminUserResponse),
     })
-    .post('/api/users', ({ body }) => container.userService.createForAdmin(body), {
+    .post('/api/users', ({ body }) => moneyResponse(container.userService.createForAdmin(body)), {
       withRole: 'ADMIN',
       body: CreateUserBody,
       response: AdminUserResponse,
     })
-    .patch('/api/users/:id', ({ authContext, params: { id }, body }: any) => container.userService.updateForAdmin(authContext!.user.id, id, body), {
+    .patch('/api/users/:id', ({ authContext, params: { id }, body }: any) => moneyResponse(container.userService.updateForAdmin(authContext!.user.id, id, body)), {
       withRole: 'ADMIN',
       params: t.Object({ id: t.String() }),
       body: UpdateUserBody,
       response: AdminUserResponse,
     })
-    .patch('/api/users/:id/role', ({ authContext, params: { id }, body }: any) => container.userService.updateRole(authContext!.user.id, id, body.role), {
+    .patch('/api/users/:id/role', ({ authContext, params: { id }, body }: any) => moneyResponse(container.userService.updateRole(authContext!.user.id, id, body.role)), {
       withRole: 'ADMIN',
       params: t.Object({ id: t.String() }),
       body: UpdateUserRoleBody,
@@ -196,7 +198,7 @@ export function createUserRoutes(container: ServiceContainer) {
     })
     .delete('/api/users/:id', async ({ authContext, params: { id } }: any) => {
       await container.userService.deleteForAdmin(authContext!.user.id, id)
-      return { success: true }
+      return moneyResponse({ success: true })
     }, {
       withRole: 'ADMIN',
       params: t.Object({ id: t.String() }),

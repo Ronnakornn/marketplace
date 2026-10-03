@@ -1,3 +1,4 @@
+import { toMoneyDto } from '#server/lib/money.ts'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { CacheService } from '#server/modules/cache'
@@ -65,7 +66,7 @@ function product(overrides: Partial<{
   shopStatus: 'ACTIVE' | 'PENDING' | 'SUSPENDED'
   categoryId: string | null
   shopId: string
-  price: number
+  price: bigint
   secondPrice: number
   rating: number
   soldCount: number
@@ -145,7 +146,7 @@ describe('RecommendationService', () => {
     expect(result.items).toEqual([{
       productId: 'p1',
       title: 'Cotton Tee',
-      minPrice: 1000,
+      minPrice: 1000n,
       variantId: 'p1-v1',
       variantTitle: 'Default',
       sku: 'P1-V1',
@@ -175,7 +176,7 @@ describe('RecommendationService', () => {
   })
 
   it('similar products exclude inactive products through public repository constraints', async () => {
-    const source = product({ id: 'source', categoryId: 'cat-1', price: 2000 })
+    const source = product({ id: 'source', categoryId: 'cat-1', price: 2000n })
     vi.mocked(repo.findPublicProductById).mockResolvedValue(source)
     vi.mocked(repo.findSimilarProducts).mockResolvedValue([product({ id: 'similar' })])
 
@@ -233,8 +234,8 @@ describe('RecommendationService', () => {
     expect(result.items[0]).toEqual({
       productId: 'p1',
       title: 'Cotton Tee',
-      minPrice: 1000,
-      maxPrice: 1500,
+      minPrice: 1000n,
+      maxPrice: 1500n,
       currency: 'THB',
       soldCount: 0,
       shop: {
@@ -242,8 +243,8 @@ describe('RecommendationService', () => {
         name: 'Shop One',
       },
     })
-    expect(JSON.stringify(result)).not.toContain('owner')
-    expect(JSON.stringify(result)).not.toContain('user')
+    expect(JSON.stringify(toMoneyDto(result))).not.toContain('owner')
+    expect(JSON.stringify(toMoneyDto(result))).not.toContain('user')
   })
 
   it('does not expose signed storage URLs as recommendation images', async () => {

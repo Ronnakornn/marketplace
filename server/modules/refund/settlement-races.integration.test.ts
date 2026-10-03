@@ -56,10 +56,10 @@ describe.skipIf(!url)('snapshotted refund races on PostgreSQL', () => {
         shopOwners.push({ shop: itemShop, owner: otherOwner })
       }
       const product = await prisma.product.create({ data: { shopId: itemShop.id, title: 'Refund race item', slug: `${tag}-${index}`, status: 'ACTIVE' } })
-      const variant = await prisma.productVariant.create({ data: { productId: product.id, sku: `${tag}-${index}`, title: 'Default', price: 10000, inventory: { create: { quantityOnHand: 10 } } } })
+      const variant = await prisma.productVariant.create({ data: { productId: product.id, sku: `${tag}-${index}`, title: 'Default', price: 10000n, inventory: { create: { quantityOnHand: 10 } } } })
       variantIds.push(variant.id)
     }
-    const cart = await prisma.cart.create({ data: { userId: buyer.id, items: { create: variantIds.map((variantId) => ({ variantId, quantity: 1, unitPrice: 10000 })) } } })
+    const cart = await prisma.cart.create({ data: { userId: buyer.id, items: { create: variantIds.map((variantId) => ({ variantId, quantity: 1, unitPrice: 10000n })) } } })
     const address = await prisma.address.create({ data: { userId: buyer.id, recipientName: 'Buyer', line1: '1 Road', city: 'Bangkok', postalCode: '10110', country: 'TH' } })
     const coupon = await prisma.coupon.create({ data: { code: tag.toUpperCase(), discountType: 'FIXED_AMOUNT', discountValue: 2000, isActive: true } })
     if (coins) await prisma.buyerCoinWallet.create({ data: { userId: buyer.id, balance: coins } })
@@ -96,7 +96,7 @@ describe.skipIf(!url)('snapshotted refund races on PostgreSQL', () => {
     expect(outcomes.filter(Boolean)).toHaveLength(1)
     const entries = await prisma.walletLedgerEntry.findMany({ where: { refundId: refund.id }, orderBy: { amount: 'asc' } })
     expect(entries.map((entry) => entry.amount)).toEqual([-10000n, 1000n])
-    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(500)
+    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(500n)
     expect(await prisma.refundShopAllocation.findFirstOrThrow({ where: { refundId: refund.id } })).toMatchObject({ commissionReversal: 1000n, walletPostedAt: expect.any(Date) })
   })
 
@@ -107,7 +107,7 @@ describe.skipIf(!url)('snapshotted refund races on PostgreSQL', () => {
     await prisma.order.update({ where: { id: data.result.orderId }, data: { status: 'DELIVERED' } })
     await Promise.all([data.complete(refund.id), data.wallets.createEarningsForCompletedOrder(data.result.orderId)])
     await data.wallets.createEarningsForCompletedOrder(data.result.orderId)
-    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(500)
+    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(500n)
     expect(await prisma.walletLedgerEntry.count({ where: { orderId: data.result.orderId, type: 'order_earning' } })).toBe(1)
     expect(await prisma.shopSaleSnapshot.findUniqueOrThrow({ where: { shopOrderId: data.shopOrder.id } })).toMatchObject({ recognizedAt: expect.any(Date) })
     expect(await prisma.refund.findUniqueOrThrow({ where: { id: refund.id } })).toMatchObject({ status: 'SUCCESS' })
@@ -137,9 +137,9 @@ describe.skipIf(!url)('snapshotted refund races on PostgreSQL', () => {
     expect(await prisma.refund.findUniqueOrThrow({ where: { id: refund.id } })).toMatchObject({ status: 'PROCESSING' })
     expect(await prisma.refundShopAllocation.findFirstOrThrow({ where: { refundId: refund.id } })).toMatchObject({ commissionReversal: 0n, walletPostedAt: null })
     expect(await prisma.walletLedgerEntry.count({ where: { refundId: refund.id } })).toBe(0)
-    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(9500)
+    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(9500n)
     await data.complete(refund.id)
-    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(500)
+    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(500n)
   })
 
   it('refunds seller-fault shipping once across two full item plans', async () => {
@@ -151,7 +151,7 @@ describe.skipIf(!url)('snapshotted refund races on PostgreSQL', () => {
     await data.processing(first.id); await data.processing(second.id)
     await Promise.all([data.complete(first.id), data.complete(second.id)])
     expect(await prisma.refundShopAllocation.aggregate({ where: { refundId: { in: [first.id, second.id] } }, _sum: { buyerShippingRefund: true, commissionReversal: true } })).toMatchObject({ _sum: { buyerShippingRefund: 500n, commissionReversal: 2000n } })
-    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(0)
+    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(0n)
   })
 
   it('preserves a frozen plan when processing wins the plan-write CAS race', async () => {
@@ -175,7 +175,7 @@ describe.skipIf(!url)('snapshotted refund races on PostgreSQL', () => {
     expect(await prisma.refund.findUniqueOrThrow({ where: { id: refund.id } })).toMatchObject({ status: 'PROCESSING', amount: 8000n })
     expect(await prisma.refundShopAllocation.findFirstOrThrow({ where: { refundId: refund.id } })).toMatchObject({ id: originalAllocation.id, shippingCause: 'NONE', buyerShippingRefund: 0n })
     await data.complete(refund.id)
-    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(500)
+    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(500n)
   })
 
   it('credits the delivered shop after the real admin flow cancels its pending sibling', async () => {
@@ -195,8 +195,8 @@ describe.skipIf(!url)('snapshotted refund races on PostgreSQL', () => {
     expect(await prisma.order.findUniqueOrThrow({ where: { id: data.result.orderId } })).toMatchObject({ status: 'DELIVERED', paymentStatus: 'SUCCEEDED' })
     expect(await prisma.shipment.findFirstOrThrow({ where: { orderId: data.result.orderId, shopId: canceled.shop.id } })).toMatchObject({ status: 'CANCELED' })
     expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: item.variantId } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 0 })
-    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(9500)
-    expect((await data.wallets.getSellerWallet(canceled.owner)).availableBalanceCents).toBe(0)
+    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(9500n)
+    expect((await data.wallets.getSellerWallet(canceled.owner)).availableBalanceCents).toBe(0n)
     expect(await prisma.walletLedgerEntry.count({ where: { orderId: data.result.orderId, shopId: data.shopOrder.shopId, type: 'order_earning' } })).toBe(1)
     expect(await prisma.walletLedgerEntry.count({ where: { orderId: data.result.orderId, shopId: canceled.shop.id, type: 'order_earning' } })).toBe(1)
     expect(await prisma.walletLedgerEntry.findFirstOrThrow({ where: { orderId: data.result.orderId, shopId: canceled.shop.id, type: 'order_earning' } })).toMatchObject({ amount: 0n })
@@ -225,7 +225,7 @@ describe.skipIf(!url)('snapshotted refund races on PostgreSQL', () => {
     expect(await prisma.refund.findUniqueOrThrow({ where: { id: refund.id } })).toMatchObject({ status: 'PROCESSING' })
     expect(await prisma.refundShopAllocation.findFirstOrThrow({ where: { refundId: refund.id } })).toMatchObject({ commissionReversal: 0n, walletPostedAt: null })
     expect(await prisma.walletLedgerEntry.count({ where: { refundId: refund.id } })).toBe(0)
-    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(9500)
+    expect((await data.wallets.getSellerWallet(data.owner)).availableBalanceCents).toBe(9500n)
     expect(await prisma.buyerCoinWallet.findUniqueOrThrow({ where: { userId: data.buyer.id } })).toMatchObject({ balance: 0n, lifetimeSpent: 20n })
     if (corruption === 'wrong-wallet') {
       const spend = await prisma.buyerCoinLedger.findFirstOrThrow({ where: { orderId: data.result.orderId, type: 'SPENT' } })

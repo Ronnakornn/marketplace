@@ -89,7 +89,7 @@ describe('PayoutService', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-    vi.mocked(repo.sumLedger).mockResolvedValue(10000)
+    vi.mocked(repo.sumLedger).mockResolvedValue(10000n)
     vi.mocked(repo.createPayout).mockResolvedValue(payout('requested'))
     vi.mocked(repo.createLedgerEntry).mockResolvedValue({} as never)
   })
@@ -105,14 +105,14 @@ describe('PayoutService', () => {
   })
 
   it('payout cannot exceed available balance', async () => {
-    vi.mocked(repo.sumLedger).mockResolvedValue(100)
+    vi.mocked(repo.sumLedger).mockResolvedValue(100n)
 
     await expect(service.createSellerPayout({ id: 'seller-1', role: 'USER' }, { amount: 5000 }))
       .rejects.toMatchObject({ code: 'INSUFFICIENT_BALANCE' })
   })
 
   it.each([0, -1, 1.5, Number.POSITIVE_INFINITY, 9007199254740992])('rejects an invalid payout amount %s before reserving funds', async (amount) => {
-    vi.mocked(repo.sumLedger).mockResolvedValue(9007199254740992)
+    vi.mocked(repo.sumLedger).mockResolvedValue(9007199254740992n)
     await expect(service.createSellerPayout({ id: 'seller-1', role: 'USER' }, { amount }))
       .rejects.toMatchObject({ code: 'INVALID_PAYOUT_STATE', status: 400 })
     expect(repo.createPayout).not.toHaveBeenCalled()
@@ -130,7 +130,7 @@ describe('PayoutService', () => {
   it.each(['approve', 'paid'] as const)('blocks %s when a refund leaves the reserved wallet at minus one', async (transition) => {
     vi.mocked(repo.findPayoutById).mockResolvedValue(payout(transition === 'approve' ? 'requested' : 'approved'))
     vi.mocked(repo.updatePayout).mockResolvedValue(payout(transition === 'approve' ? 'approved' : 'paid'))
-    vi.mocked(repo.sumLedger).mockResolvedValue(-1)
+    vi.mocked(repo.sumLedger).mockResolvedValue(-1n)
     const result = transition === 'approve'
       ? service.approveAdminPayout({ id: 'admin-2', role: 'ADMIN' }, 'payout-1')
       : service.markAdminPayoutPaid({ id: 'admin-2', role: 'ADMIN' }, 'payout-1', { externalReference: 'BANK-123' })
@@ -143,7 +143,7 @@ describe('PayoutService', () => {
   })
 
   it.each([
-    ['approve', 0], ['approve', 1], ['paid', 0], ['paid', 1],
+    ['approve', 0n], ['approve', 1n], ['paid', 0n], ['paid', 1n],
   ] as const)('allows %s at a ledger balance of %s after reservation', async (transition, balance) => {
     vi.mocked(repo.findPayoutById).mockResolvedValue(payout(transition === 'approve' ? 'requested' : 'approved'))
     vi.mocked(repo.sumLedger).mockResolvedValue(balance)
@@ -151,7 +151,7 @@ describe('PayoutService', () => {
     const result = transition === 'approve'
       ? service.approveAdminPayout({ id: 'admin-2', role: 'ADMIN' }, 'payout-1')
       : service.markAdminPayoutPaid({ id: 'admin-2', role: 'ADMIN' }, 'payout-1', { externalReference: 'BANK-123' })
-    await expect(result).resolves.toMatchObject({ status: transition === 'approve' ? 'approved' : 'paid', amount: 5000 })
+    await expect(result).resolves.toMatchObject({ status: transition === 'approve' ? 'approved' : 'paid', amount: 5000n })
     const walletLock = vi.mocked(repo.lockWallet).mock.invocationCallOrder[0]!
     const balanceRead = vi.mocked(repo.sumLedger).mock.invocationCallOrder[0]!
     const statusWrite = vi.mocked(repo.updatePayout).mock.invocationCallOrder[0]!
@@ -177,14 +177,14 @@ describe('PayoutService', () => {
 
   it('allows rejecting an unfunded reservation and releasing its literal reserved amount', async () => {
     vi.mocked(repo.findPayoutById).mockResolvedValue(payout('approved'))
-    vi.mocked(repo.sumLedger).mockResolvedValue(-1)
+    vi.mocked(repo.sumLedger).mockResolvedValue(-1n)
     vi.mocked(repo.updatePayout).mockResolvedValue(payout('rejected'))
     await expect(service.rejectAdminPayout({ id: 'admin-2', role: 'ADMIN' }, 'payout-1')).resolves.toMatchObject({ status: 'rejected' })
-    expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({ type: 'payout_rejected', amount: 5000 }))
+    expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({ type: 'payout_rejected', amount: 5000n }))
   })
 
   it('blocks a new payout while the seller owes one minor unit', async () => {
-    vi.mocked(repo.sumLedger).mockResolvedValue(-1)
+    vi.mocked(repo.sumLedger).mockResolvedValue(-1n)
     await expect(service.createSellerPayout({ id: 'seller-1', role: 'USER' }, { amount: 1 }))
       .rejects.toMatchObject({ code: 'INSUFFICIENT_BALANCE', status: 409 })
     expect(repo.createPayout).not.toHaveBeenCalled()
@@ -199,7 +199,7 @@ describe('PayoutService', () => {
       .resolves.toMatchObject({ status: 'rejected', rejectionReason: 'bad details' })
     expect(repo.createLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       type: 'payout_rejected',
-      amount: 5000,
+      amount: 5000n,
     }))
     expect(eventPublisher.publish).toHaveBeenCalledWith({
       eventName: 'payout.rejected',

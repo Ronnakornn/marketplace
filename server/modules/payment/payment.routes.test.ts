@@ -51,7 +51,7 @@ function createContainer() {
         id: paymentId,
         orderId: '13131313-1313-4131-8131-131313131313',
         orderNo: 'ORD-TEST',
-        amountCents: 2900,
+        amountCents: '2900',
         currency: 'THB',
         status: 'PENDING',
       })),
@@ -103,7 +103,7 @@ describe('payment routes', () => {
     await expect(response.json()).resolves.toMatchObject({
       id: paymentId,
       orderNo: 'ORD-TEST',
-      amountCents: 2900,
+      amountCents: '2900',
       status: 'PENDING',
     })
     expect(container.paymentService.getBuyerMockPaymentDetail).toHaveBeenCalledWith(

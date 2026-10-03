@@ -75,13 +75,13 @@ describe('DiscoveryService', () => {
       { id: 'cat-1', name: 'Fashion', slug: 'fashion', sortOrder: 1, isActive: true },
     ])
     vi.mocked(recommendationService.getTrending).mockResolvedValue({
-      items: [{ productId: 'p1', title: 'Tee', minPrice: 1000 }],
+      items: [{ productId: 'p1', title: 'Tee', minPrice: 1000n }],
       pagination: { page: 1, limit: 4, hasNextPage: false },
     })
     vi.mocked(recommendationService.getHomeFeed).mockResolvedValue({
       sections: {
         trending: [],
-        newest: [{ productId: 'p2', title: 'New Tee', minPrice: 1200 }],
+        newest: [{ productId: 'p2', title: 'New Tee', minPrice: 1200n }],
         recommendedCategories: [],
       },
       pagination: { page: 1, limit: 4 },
@@ -96,8 +96,8 @@ describe('DiscoveryService', () => {
     expect(repo.findActiveFlashSale).toHaveBeenCalledWith(4, expect.any(Date))
     expect(result.sections).toEqual({
       categories: [{ id: 'cat-1', name: 'Fashion', slug: 'fashion', sortOrder: 1, isActive: true }],
-      recommendedProducts: [{ productId: 'p1', title: 'Tee', minPrice: 1000 }],
-      newArrivals: [{ productId: 'p2', title: 'New Tee', minPrice: 1200 }],
+      recommendedProducts: [{ productId: 'p1', title: 'Tee', minPrice: 1000n }],
+      newArrivals: [{ productId: 'p2', title: 'New Tee', minPrice: 1200n }],
       recentlyViewed: [],
     })
     expect(result.meta).toMatchObject({ limit: 4 })
@@ -172,8 +172,8 @@ describe('DiscoveryService', () => {
 
     expect(result.sections.banners).toHaveLength(1)
     expect(result.sections.flashSale?.items[0]).toMatchObject({
-      salePrice: 900,
-      originalPrice: 1200,
+      salePrice: 900n,
+      originalPrice: 1200n,
       availableStock: 5,
       rating: 4.5,
     })

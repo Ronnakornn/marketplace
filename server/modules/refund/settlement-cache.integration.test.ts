@@ -76,13 +76,13 @@ describe.skipIf(!databaseUrl || !redisUrl)('settlement cancellation cache on Pos
       const shop = await prisma.shop.create({ data: { ownerId: owner.id, sellerProfileId: profile.id, name: 'Cache shop', slug: `${tag}-${index}`,
         status: 'ACTIVE', contactEmail: owner.email, contactPhone: '0800000000', settings: { create: { shippingFee: 500 } } } })
       const product = await prisma.product.create({ data: { shopId: shop.id, categoryId: category.id, title: `${tag} product ${index}`, slug: `${tag}-${index}`, status: 'ACTIVE' } })
-      const variant = await prisma.productVariant.create({ data: { productId: product.id, title: 'Default', sku: `${tag}-${index}`, price: 10000, inventory: { create: { quantityOnHand: 10 } } } })
+      const variant = await prisma.productVariant.create({ data: { productId: product.id, title: 'Default', sku: `${tag}-${index}`, price: 10000n, inventory: { create: { quantityOnHand: 10 } } } })
       products.push({ shop, product, variant })
     }
     const canceled = products[0]
     const retained = products[1]
     if (!canceled || !retained) throw new Error('Both shop fixtures are required')
-    const cart = await prisma.cart.create({ data: { userId: buyer.id, items: { create: products.map(({ variant }) => ({ variantId: variant.id, quantity: 1, unitPrice: 10000 })) } } })
+    const cart = await prisma.cart.create({ data: { userId: buyer.id, items: { create: products.map(({ variant }) => ({ variantId: variant.id, quantity: 1, unitPrice: 10000n })) } } })
     const address = await prisma.address.create({ data: { userId: buyer.id, recipientName: 'Buyer', line1: '1 Road', city: 'Bangkok', postalCode: '10110', country: 'TH' } })
     const checkout = new CheckoutService(context, new PrismaCheckoutRepository(context, prisma), new CheckoutQuoteEvaluator(new PromotionService(context, new PrismaPromotionRepository(context, prisma))), undefined, { provider: 'mock', mockEnabled: true })
     const order = await checkout.createCheckout(buyer, { cartId: cart.id, addressId: address.id, paymentMethod: 'card' })
@@ -101,8 +101,8 @@ describe.skipIf(!databaseUrl || !redisUrl)('settlement cancellation cache on Pos
     expect(before.recommendations.items.find((item) => item.productId === canceled.product.id)).toMatchObject({ soldCount: 1, stock: 9 })
     expect(before.search.items.find((item) => item.productId === canceled.product.id)).toMatchObject({ soldCount: 1, variants: [expect.objectContaining({ stock: 9 })] })
     const detailEntry = await warmEntry(cache.keys.productDetail(canceled.product.id, 'en'))
-    const recommendationEntry = await warmEntry(`${prefix}:recommendations:*`)
-    const searchEntry = await warmEntry(`${prefix}:search:products:*`)
+    const recommendationEntry = await warmEntry(`${prefix}:money-v2:recommendations:*`)
+    const searchEntry = await warmEntry(`${prefix}:money-v2:search:products:*`)
     const dashboardKey = cache.keys.sellerDashboard(canceled.shop.id)
     const insightsKey = cache.keys.sellerDashboardInsights(canceled.shop.id, { range: '7d' })
     const retainedDashboardKey = cache.keys.sellerDashboard(retained.shop.id)

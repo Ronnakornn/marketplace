@@ -122,6 +122,19 @@ function createApp(container = createContainer()) {
   return new Elysia().use(createCatalogRoutes(container))
 }
 
+describe('catalog monetary HTTP boundaries', () => {
+  it.each(['/api/products', '/api/catalog/products', '/api/products/p1', '/api/catalog/products/p1', '/api/products/p1/related', '/api/catalog/products/p1/related'])('preserves exact raw Prisma money for %s', async (path) => {
+    const container = createContainer()
+    const value = { items: [{ price: 9007199254740993n, quantity: 2 }] }
+    container.catalogService.listPublicProducts.mockResolvedValue(value)
+    container.catalogService.getPublicProductDetail.mockResolvedValue(value)
+    container.catalogService.listRelatedProducts.mockResolvedValue(value)
+    const response = await createApp(container).handle(new Request(`http://localhost${path}`))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ items: [{ price: '9007199254740993', quantity: 2 }] })
+  })
+})
+
 function mockAuthContext(overrides: Record<string, unknown> = {}) {
   return {
     user: {

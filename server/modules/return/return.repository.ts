@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type {
   Order,
   OrderItem,
@@ -270,7 +271,7 @@ export class PrismaReturnRepository implements IReturnRepository {
     this.logger.info('PrismaReturnRepository.createPendingRefundForReturn', {
       returnId: returnRecord.id,
       orderId: returnRecord.orderId,
-      amount: Number(amount),
+      amount: moneyInteger(amount),
     })
     return this.prisma.refund.create({
       data: {

@@ -1,3 +1,4 @@
+import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { TrackingServiceError } from './tracking.errors.ts'
@@ -40,26 +41,27 @@ const RecentlyViewedQuerySchema = t.Object({
 export function createTrackingRoutes(container: ServiceContainer) {
   return new Elysia()
     .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof TrackingServiceError) {
-        return httpStatus(error.status, {
+        return moneyHttpError(error.status, toMoneyDto({
           error: {
             code: error.code,
             message: error.message,
             details: error.details ?? {},
           },
-        })
+        }))
       }
     })
     .post('/api/discovery/track', ({ body, authContext }: any) =>
-      container.trackingService.trackEvent({ userId: authContext?.user?.id }, body), {
+      moneyResponse(container.trackingService.trackEvent({ userId: authContext?.user?.id }, body)), {
       body: TrackingEventSchema,
     })
     .get('/api/discovery/recently-viewed', ({ query, authContext }: any) =>
-      container.trackingService.getRecentlyViewedProducts({
+      moneyResponse(container.trackingService.getRecentlyViewedProducts({
         userId: authContext?.user?.id,
         sessionId: query.sessionId,
         limit: query.limit,
-      }), {
+      })), {
       query: RecentlyViewedQuerySchema,
     })
 }

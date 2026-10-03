@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -40,9 +41,9 @@ export interface SellerShopInsightSummaryResponse {
 }
 
 export interface SellerSalesSummaryResponse {
-  todaySalesCents: number
-  thisMonthSalesCents: number
-  totalSalesCents: number
+  todaySalesCents: bigint
+  thisMonthSalesCents: bigint
+  totalSalesCents: bigint
 }
 
 export interface SellerOrderSummaryResponse {
@@ -64,7 +65,7 @@ export interface SellerRecentOrderResponse {
   status: string
   paymentStatus: string
   createdAt: Date
-  totalCents: number
+  totalCents: bigint
   items: Array<{
     orderItemId: string
     productTitle: string
@@ -72,7 +73,7 @@ export interface SellerRecentOrderResponse {
     variantTitle: string
     variantSku: string
     quantity: number
-    lineTotal: number
+    lineTotal: bigint
     fulfillmentStatus: string
   }>
 }
@@ -280,8 +281,8 @@ export class SellerDashboardService {
     }
   }
 
-  private sumSales(items: SellerSalesOrderItem[]): number {
-    return items.reduce((total, item) => total + Number(item.lineTotal), 0)
+  private sumSales(items: SellerSalesOrderItem[]): bigint {
+    return items.reduce((total, item) => total + moneyInteger(item.lineTotal), 0n)
   }
 
   private toRecentOrder(order: SellerDashboardOrder): SellerRecentOrderResponse {
@@ -291,7 +292,7 @@ export class SellerDashboardService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       createdAt: order.createdAt,
-      totalCents: order.items.reduce((total, item) => total + Number(item.lineTotal), 0),
+      totalCents: order.items.reduce((total, item) => total + moneyInteger(item.lineTotal), 0n),
       items: order.items.map((item) => ({
         orderItemId: item.id,
         productTitle: item.productTitle,
@@ -299,7 +300,7 @@ export class SellerDashboardService {
         variantTitle: item.variantTitle,
         variantSku: item.variantSku,
         quantity: item.quantity,
-        lineTotal: Number(item.lineTotal),
+        lineTotal: moneyInteger(item.lineTotal),
         fulfillmentStatus: item.fulfillmentStatus,
       })),
     }

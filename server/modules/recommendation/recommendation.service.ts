@@ -1,3 +1,4 @@
+import { moneyInteger, moneyMin, moneyMax } from '#server/lib/money.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheService } from '#server/modules/cache'
@@ -20,8 +21,8 @@ export interface RecommendationProductCard {
   productId: string
   title: string
   coverImage?: string
-  minPrice: number
-  maxPrice?: number
+  minPrice: bigint
+  maxPrice?: bigint
   variantId?: string
   variantTitle?: string
   sku?: string
@@ -172,9 +173,9 @@ export class RecommendationService {
   }
 
   private toProductCard(product: RecommendationProductRecord, locale: ContentLocale): RecommendationProductCard {
-    const price = product.variants.map((variant) => Number(variant.price))
-    const minPrice = Math.min(...price)
-    const maxPrice = Math.max(...price)
+    const price = product.variants.map((variant) => moneyInteger(variant.price))
+    const minPrice = moneyMin(price)
+    const maxPrice = moneyMax(price)
     const soldCount = product.variants.reduce(
       (sum, variant) => sum + variant.orderItems.reduce((variantSum, item) => variantSum + item.quantity, 0),
       0,

@@ -1,3 +1,4 @@
+import { moneyNumber, decimalMoneyNumber, moneyInteger } from '#server/lib/money.ts'
 import type { Coupon } from '#generated/client/client.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -50,10 +51,10 @@ export interface PublicCoupon {
   title: string
   description: string | null
   discountType: Coupon['discountType']
-  discountValueCents: number | null
+  discountValueCents: bigint | null
   discountPercentBps: number | null
-  minOrderCents: number | null
-  maxDiscountCents: number | null
+  minOrderCents: bigint | null
+  maxDiscountCents: bigint | null
   startsAt: string | null
   endsAt: string | null
   claimed?: boolean
@@ -92,7 +93,7 @@ export interface FlashSaleCampaignPayload {
 export interface FlashSaleCampaignItemPayload {
   productId: string
   variantId: string
-  salePriceBaht: number
+  salePriceBaht: number | string
   stockLimit: number
   perUserLimit?: number | null
 }
@@ -138,12 +139,12 @@ export class PromotionService {
     const hasMore = entries.length > limit
     const pageEntries = entries.slice(0, limit)
     return {
-      balance: Number(wallet?.balance ?? 0),
-      pendingBalance: Number(wallet?.pendingBalance ?? 0),
-      debtBalance: Number(wallet?.debtBalance ?? 0),
-      lifetimeEarned: Number(wallet?.lifetimeEarned ?? 0),
-      lifetimeSpent: Number(wallet?.lifetimeSpent ?? 0),
-      entries: pageEntries.map((entry) => ({ ...entry, amount: Number(entry.amount) })),
+      balance: moneyInteger(wallet?.balance ?? 0n),
+      pendingBalance: moneyInteger(wallet?.pendingBalance ?? 0n),
+      debtBalance: moneyInteger(wallet?.debtBalance ?? 0n),
+      lifetimeEarned: moneyInteger(wallet?.lifetimeEarned ?? 0n),
+      lifetimeSpent: moneyInteger(wallet?.lifetimeSpent ?? 0n),
+      entries: pageEntries.map((entry) => ({ ...entry, amount: moneyInteger(entry.amount) })),
       nextCursor: hasMore ? pageEntries.at(-1)?.id ?? null : null,
     }
   }
@@ -285,9 +286,9 @@ export class PromotionService {
     const variant = await this.repo.findActiveProductVariant(payload.variantId)
     if (!variant || variant.product.id !== payload.productId) throw new PromotionServiceError('Product variant is unavailable', 400, 'INVALID_COUPON')
     const normalized = this.normalizeFlashSaleItemPayload(payload)
-    this.assertFlashSaleItemCreatePayload(normalized, Number(variant.price))
+    this.assertFlashSaleItemCreatePayload(normalized, moneyNumber(variant.price))
     if (['SCHEDULED', 'ACTIVE'].includes(sale.status)) await this.assertNoOverlappingFlashSale(payload.variantId, sale.startsAt, sale.endsAt, sale.id)
-    const created = await this.repo.createFlashSaleItem(flashSaleId, { ...normalized, shopId: variant.product.shopId, originalPrice: Number(variant.price) })
+    const created = await this.repo.createFlashSaleItem(flashSaleId, { ...normalized, shopId: variant.product.shopId, originalPrice: moneyNumber(variant.price) })
     if (!created) throw new PromotionServiceError('Variant is already enrolled in an overlapping flash sale', 409, 'FLASH_SALE_OVERLAP')
     return created
   }
@@ -303,12 +304,12 @@ export class PromotionService {
       throw new PromotionServiceError('Product variant is unavailable', 404, 'FLASH_SALE_ITEM_NOT_FOUND')
     }
     const normalized = this.normalizeFlashSaleItemPayload(payload)
-    this.assertFlashSaleItemCreatePayload(normalized, Number(variant.price))
+    this.assertFlashSaleItemCreatePayload(normalized, moneyNumber(variant.price))
     await this.assertNoOverlappingFlashSale(payload.variantId, sale.startsAt, sale.endsAt, sale.id)
     const created = await this.repo.createFlashSaleItem(flashSaleId, {
       ...normalized,
       shopId: variant.product.shopId,
-      originalPrice: Number(variant.price),
+      originalPrice: moneyNumber(variant.price),
     })
     if (!created) throw new PromotionServiceError('Variant is already enrolled in an overlapping flash sale', 409, 'FLASH_SALE_OVERLAP')
     return created
@@ -439,13 +440,11 @@ export class PromotionService {
     }
   }
 
-  private bahtToMinorUnits(value: number): number {
-    const decimal = /^(\d+)(?:\.(\d{1,2}))?$/.exec(value.toString())
-    const minorUnits = decimal ? BigInt(decimal[1]!) * 100n + BigInt((decimal[2] ?? '').padEnd(2, '0')) : 0n
-    if (!Number.isFinite(value) || value <= 0 || !decimal || minorUnits <= 0n || minorUnits > BigInt(Number.MAX_SAFE_INTEGER)) {
-      throw new PromotionServiceError('Flash sale price must be a positive amount with at most two decimal places', 400, 'FLASH_SALE_PRICE_INVALID')
-    }
-    return Number(minorUnits)
+  private bahtToMinorUnits(value: number | string): number {
+    let minorUnits: number
+    try { minorUnits = decimalMoneyNumber(value) } catch { throw new PromotionServiceError('Flash sale price must be a positive amount with at most two decimal places', 400, 'FLASH_SALE_PRICE_INVALID') }
+    if (minorUnits <= 0) throw new PromotionServiceError('Flash sale price must be positive', 400, 'FLASH_SALE_PRICE_INVALID')
+    return minorUnits
   }
 
   private async assertFlashSaleItemUpdatePayload(
@@ -456,7 +455,7 @@ export class PromotionService {
     if (payload.salePrice !== undefined && (
       !Number.isInteger(payload.salePrice)
       || payload.salePrice <= 0
-      || payload.salePrice >= Number(item.variant.price)
+      || payload.salePrice >= moneyNumber(item.variant.price)
     )) {
       throw new PromotionServiceError('Flash sale price must be below the active product price', 400, 'FLASH_SALE_PRICE_INVALID')
     }
@@ -517,7 +516,7 @@ export class PromotionService {
     if (coupon.discountType === 'FIXED_AMOUNT') {
       discount = this.toMoneyNumber(coupon.discountValue ?? coupon.discountValueCents ?? 0)
     } else if (coupon.discountType === 'PERCENT') {
-      discount = Number(BigInt(subtotal) * BigInt(coupon.discountPercentBps ?? 0) / 10_000n)
+      discount = moneyNumber(BigInt(subtotal) * BigInt(coupon.discountPercentBps ?? 0) / 10_000n)
       const maxDiscount = coupon.maxDiscount ?? coupon.maxDiscountCents ?? null
       if (maxDiscount !== null) {
         discount = Math.min(discount, this.toMoneyNumber(maxDiscount))
@@ -530,7 +529,7 @@ export class PromotionService {
     const subtotals = new Map<string, number>()
     for (const item of cart.items) {
       const shopId = item.variant.product.shopId
-      subtotals.set(shopId, (subtotals.get(shopId) ?? 0) + this.toMoneyNumber(item.variant.price) * item.quantity)
+      subtotals.set(shopId, moneyNumber(BigInt(subtotals.get(shopId) ?? 0) + BigInt(this.toMoneyNumber(item.variant.price)) * BigInt(item.quantity)))
     }
     return [...subtotals].map(([shopId, subtotal]) => ({ shopId, subtotal }))
   }
@@ -631,10 +630,10 @@ export class PromotionService {
       title: localizedText(locale, { th: coupon.titleTh, en: coupon.titleEn, fallback: coupon.code }) ?? coupon.code,
       description: localizedText(locale, { th: coupon.descriptionTh, en: coupon.descriptionEn }),
       discountType: coupon.discountType,
-      discountValueCents: coupon.discountValue === null ? null : this.toMoneyNumber(coupon.discountValue),
+      discountValueCents: coupon.discountValue === null ? null : moneyInteger(coupon.discountValue),
       discountPercentBps: coupon.discountPercentBps,
-      minOrderCents: coupon.minOrder === null ? null : this.toMoneyNumber(coupon.minOrder),
-      maxDiscountCents: coupon.maxDiscount === null ? null : this.toMoneyNumber(coupon.maxDiscount),
+      minOrderCents: coupon.minOrder === null ? null : moneyInteger(coupon.minOrder),
+      maxDiscountCents: coupon.maxDiscount === null ? null : moneyInteger(coupon.maxDiscount),
       startsAt: this.toIsoDate(coupon.startsAt),
       endsAt: this.toIsoDate(coupon.endsAt),
       claimed: Boolean(claim),
@@ -649,6 +648,6 @@ export class PromotionService {
   }
 
   private toMoneyNumber(value: bigint | number): number {
-    return typeof value === 'bigint' ? Number(value) : value
+    return moneyNumber(value)
   }
 }

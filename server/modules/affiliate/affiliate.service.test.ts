@@ -153,7 +153,7 @@ function setup() {
     commission: BigInt(input.commissionCents),
     currency: input.currency,
   }))
-  vi.mocked(repo.getStats).mockResolvedValue({ clicks: 1, conversions: 1, commissionCents: 450 })
+  vi.mocked(repo.getStats).mockResolvedValue({ clicks: 1, conversions: 1, commissionCents: 450n })
   return new AffiliateService(createAppContext(), repo, {
     enabled: true,
     attributionWindowDays: 30,
@@ -265,7 +265,7 @@ describe('AffiliateService', () => {
       orderId: order.id,
       eligiblesubtotal: 9000,
       commissionBps: 500,
-      commissionCents: 450,
+      commissionCents: 450n,
     }))
   })
 
@@ -333,7 +333,7 @@ describe('AffiliateService', () => {
     await expect(service.getStats({ id: affiliate.userId })).resolves.toEqual({
       clicks: 1,
       conversions: 1,
-      commissionCents: 450,
+      commissionCents: 450n,
     })
   })
 

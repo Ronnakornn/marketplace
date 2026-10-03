@@ -1,3 +1,4 @@
+import { moneyResponse, moneyHttpError, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, t } from 'elysia'
 import { CategoryAttributeDefinitionPlainInputCreate, CategoryAttributeDefinitionPlainInputUpdate } from '#generated/prismabox/CategoryAttributeDefinition.ts'
 import { ProductPlainInputCreate, ProductPlainInputUpdate } from '#generated/prismabox/Product.ts'
@@ -312,9 +313,10 @@ const UpdateVariantBodySchema = t.Partial(t.Composite([
 export function createCatalogRoutes(container: ServiceContainer) {
   const app = new Elysia()
     .use(authPlugin)
-    .onError(({ error, status }) => {
+    .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return moneyHttpError(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof CatalogServiceError) {
-        return status(error.status, {
+        return moneyHttpError(error.status, {
           error: {
             code: error.code,
             message: error.message,
@@ -325,7 +327,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
     })
 
   const listPublicProducts = ({ query }: any) =>
-    container.catalogService.listPublicProducts({
+    moneyResponse(container.catalogService.listPublicProducts({
       keyword: query.keyword ?? query.q,
       categoryId: query.categoryId,
       brandId: query.brandId,
@@ -338,105 +340,105 @@ export function createCatalogRoutes(container: ServiceContainer) {
       cursor: query.cursor,
       page: query.page,
       limit: query.limit,
-    })
+    }))
 
   const getPublicProductDetail = ({ params, query }: any) =>
-    container.catalogService.getPublicProductDetail(params.productId, query.locale)
+    moneyResponse(container.catalogService.getPublicProductDetail(params.productId, query.locale))
 
   const listRelatedProducts = ({ params, query }: any) =>
-    container.catalogService.listRelatedProducts(params.productId, {
+    moneyResponse(container.catalogService.listRelatedProducts(params.productId, {
       locale: query.locale,
       limit: query.limit,
-    })
+    }))
 
   return app
-    .get('/api/categories', ({ query }: any) => container.catalogService.listCategories(query.locale), {
+    .get('/api/categories', ({ query }: any) => moneyResponse(container.catalogService.listCategories(query.locale)), {
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
       response: t.Array(CategoryResponseSchema),
     })
-    .get('/api/admin/categories', () => container.catalogService.listAdminCategories(), {
+    .get('/api/admin/categories', () => moneyResponse(container.catalogService.listAdminCategories()), {
       withRole: 'ADMIN',
       response: t.Array(AdminCategoryResponseSchema),
     })
     .post('/api/admin/categories', ({ body }: any) =>
-      container.catalogService.createAdminCategory(body), {
+      moneyResponse(container.catalogService.createAdminCategory(body)), {
       withRole: 'ADMIN',
       body: CategoryBodySchema,
       response: AdminCategoryResponseSchema,
     })
     .patch('/api/admin/categories/:categoryId', ({ params, body }: any) =>
-      container.catalogService.updateAdminCategory(params.categoryId, body), {
+      moneyResponse(container.catalogService.updateAdminCategory(params.categoryId, body)), {
       withRole: 'ADMIN',
       params: CategoryParamsSchema,
       body: UpdateCategoryBodySchema,
       response: AdminCategoryResponseSchema,
     })
     .patch('/api/admin/categories/:categoryId/deactivate', ({ params }: any) =>
-      container.catalogService.deactivateAdminCategory(params.categoryId), {
+      moneyResponse(container.catalogService.deactivateAdminCategory(params.categoryId)), {
       withRole: 'ADMIN',
       params: CategoryParamsSchema,
       response: AdminCategoryResponseSchema,
     })
     .patch('/api/admin/categories/:categoryId/reactivate', ({ params }: any) =>
-      container.catalogService.reactivateAdminCategory(params.categoryId), {
+      moneyResponse(container.catalogService.reactivateAdminCategory(params.categoryId)), {
       withRole: 'ADMIN',
       params: CategoryParamsSchema,
       response: AdminCategoryResponseSchema,
     })
     .put('/api/admin/categories/reorder', ({ body }: any) =>
-      container.catalogService.reorderAdminCategories(body), {
+      moneyResponse(container.catalogService.reorderAdminCategories(body)), {
       withRole: 'ADMIN',
       body: ReorderCategoriesBodySchema,
       response: t.Array(AdminCategoryResponseSchema),
     })
     .get('/api/categories/:categoryId/specs', ({ params }: any) =>
-      container.catalogService.listCategorySpecs(params.categoryId), {
+      moneyResponse(container.catalogService.listCategorySpecs(params.categoryId)), {
       params: CategoryParamsSchema,
       response: t.Array(CategorySpecResponseSchema),
     })
     .get('/api/admin/categories/:categoryId/specs', ({ params }: any) =>
-      container.catalogService.listAdminCategorySpecs(params.categoryId), {
+      moneyResponse(container.catalogService.listAdminCategorySpecs(params.categoryId)), {
       withRole: 'ADMIN',
       params: CategoryParamsSchema,
       response: t.Array(CategorySpecResponseSchema),
     })
     .post('/api/admin/categories/:categoryId/specs', ({ params, body }: any) =>
-      container.catalogService.createAdminCategorySpec(params.categoryId, body), {
+      moneyResponse(container.catalogService.createAdminCategorySpec(params.categoryId, body)), {
       withRole: 'ADMIN',
       params: CategoryParamsSchema,
       body: CategorySpecBodySchema,
       response: CategorySpecResponseSchema,
     })
     .patch('/api/admin/categories/:categoryId/specs/:specId', ({ params, body }: any) =>
-      container.catalogService.updateAdminCategorySpec(params.categoryId, params.specId, body), {
+      moneyResponse(container.catalogService.updateAdminCategorySpec(params.categoryId, params.specId, body)), {
       withRole: 'ADMIN',
       params: CategorySpecParamsSchema,
       body: UpdateCategorySpecBodySchema,
       response: CategorySpecResponseSchema,
     })
     .patch('/api/admin/categories/:categoryId/specs/:specId/deactivate', ({ params }: any) =>
-      container.catalogService.deactivateAdminCategorySpec(params.categoryId, params.specId), {
+      moneyResponse(container.catalogService.deactivateAdminCategorySpec(params.categoryId, params.specId)), {
       withRole: 'ADMIN',
       params: CategorySpecParamsSchema,
       response: CategorySpecResponseSchema,
     })
     .patch('/api/admin/categories/:categoryId/specs/:specId/reactivate', ({ params }: any) =>
-      container.catalogService.reactivateAdminCategorySpec(params.categoryId, params.specId), {
+      moneyResponse(container.catalogService.reactivateAdminCategorySpec(params.categoryId, params.specId)), {
       withRole: 'ADMIN',
       params: CategorySpecParamsSchema,
       response: CategorySpecResponseSchema,
     })
     .put('/api/admin/categories/:categoryId/specs/reorder', ({ params, body }: any) =>
-      container.catalogService.reorderAdminCategorySpecs(params.categoryId, body), {
+      moneyResponse(container.catalogService.reorderAdminCategorySpecs(params.categoryId, body)), {
       withRole: 'ADMIN',
       params: CategoryParamsSchema,
       body: ReorderCategorySpecsBodySchema,
       response: t.Array(CategorySpecResponseSchema),
     })
-    .get('/api/brands', () => container.catalogService.listActiveBrands(), {
+    .get('/api/brands', () => moneyResponse(container.catalogService.listActiveBrands()), {
       response: t.Array(BrandResponseSchema),
     })
-    .get('/api/seller/brands', () => container.catalogService.listActiveBrands(), {
+    .get('/api/seller/brands', () => moneyResponse(container.catalogService.listActiveBrands()), {
       withAuth: true,
       withSellerOperational: true,
       response: t.Array(BrandResponseSchema),
@@ -445,7 +447,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
       query: PublicListQuerySchema,
     })
     .get('/api/categories/:categoryId/products', ({ params, query }: any) =>
-      container.catalogService.listPublicProducts({
+      moneyResponse(container.catalogService.listPublicProducts({
         keyword: query.keyword ?? query.q,
         categoryId: params.categoryId,
         brandId: query.brandId,
@@ -458,7 +460,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
         cursor: query.cursor,
         page: query.page,
         limit: query.limit,
-      }), {
+      })), {
       params: CategoryParamsSchema,
       query: PublicListQuerySchema,
     })
@@ -471,7 +473,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
     })
     .get('/api/shops/:shopId/products', ({ params, query }) =>
-      container.catalogService.listPublicShopProducts(params.shopId, {
+      moneyResponse(container.catalogService.listPublicShopProducts(params.shopId, {
         keyword: query.keyword ?? query.q,
         categoryId: query.categoryId,
         brandId: query.brandId,
@@ -483,7 +485,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
         cursor: query.cursor,
         page: query.page,
         limit: query.limit,
-      }), {
+      })), {
       params: ShopProductsParamsSchema,
       query: PublicListQuerySchema,
     })
@@ -499,7 +501,7 @@ export function createCatalogRoutes(container: ServiceContainer) {
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
     })
     .get('/api/seller/products', ({ authContext, query }: any) =>
-      container.catalogService.listSellerProducts(authContext.user, {
+      moneyResponse(container.catalogService.listSellerProducts(authContext.user, {
         keyword: query.keyword ?? query.q,
         categoryId: query.categoryId,
         brandId: query.brandId,
@@ -512,24 +514,24 @@ export function createCatalogRoutes(container: ServiceContainer) {
         cursor: query.cursor,
         page: query.page,
         limit: query.limit,
-      }), {
+      })), {
       withAuth: true,
       withSellerOperational: true,
       query: SellerListQuerySchema,
     })
     .get('/api/seller/products/:productId', ({ authContext, params }: any) =>
-      container.catalogService.getSellerProductDetail(authContext.user, params.productId), {
+      moneyResponse(container.catalogService.getSellerProductDetail(authContext.user, params.productId)), {
       withAuth: true,
       params: ProductParamsSchema,
     })
     .post('/api/seller/products/:productId/publish', ({ authContext, params }: any) =>
-      container.catalogService.publishProduct(authContext.user, params.productId), {
+      moneyResponse(container.catalogService.publishProduct(authContext.user, params.productId)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductParamsSchema,
     })
     .get('/api/admin/catalog/products', ({ query }: any) =>
-      container.catalogService.listAdminProducts({
+      moneyResponse(container.catalogService.listAdminProducts({
         keyword: query.keyword ?? query.q,
         categoryId: query.categoryId,
         brandId: query.brandId,
@@ -542,129 +544,129 @@ export function createCatalogRoutes(container: ServiceContainer) {
         cursor: query.cursor,
         page: query.page,
         limit: query.limit,
-      }), {
+      })), {
       withRole: 'ADMIN',
       query: SellerListQuerySchema,
     })
     .get('/api/admin/catalog/products/:productId', ({ params }: any) =>
-      container.catalogService.getAdminProductDetail(params.productId), {
+      moneyResponse(container.catalogService.getAdminProductDetail(params.productId)), {
       withRole: 'ADMIN',
       params: ProductParamsSchema,
     })
     .patch('/api/admin/catalog/products/:productId', ({ params, body }: any) =>
-      container.catalogService.updateAdminProduct(params.productId, body), {
+      moneyResponse(container.catalogService.updateAdminProduct(params.productId, body)), {
       withRole: 'ADMIN',
       params: ProductParamsSchema,
       body: UpdateProductBodySchema,
     })
     .post('/api/admin/catalog/products/:productId/variants', ({ params, body }: any) =>
-      container.catalogService.createAdminVariant(params.productId, body), {
+      moneyResponse(container.catalogService.createAdminVariant(params.productId, body)), {
       withRole: 'ADMIN',
       params: ProductParamsSchema,
       body: CreateVariantBodySchema,
     })
     .patch('/api/admin/catalog/products/:productId/variants/:variantId', ({ params, body }: any) =>
-      container.catalogService.updateAdminVariant(params.productId, params.variantId, body), {
+      moneyResponse(container.catalogService.updateAdminVariant(params.productId, params.variantId, body)), {
       withRole: 'ADMIN',
       params: ProductVariantParamsSchema,
       body: UpdateVariantBodySchema,
     })
     .delete('/api/admin/catalog/products/:productId/variants/:variantId', ({ params }: any) =>
-      container.catalogService.deleteAdminVariant(params.productId, params.variantId), {
+      moneyResponse(container.catalogService.deleteAdminVariant(params.productId, params.variantId)), {
       withRole: 'ADMIN',
       params: ProductVariantParamsSchema,
     })
     .patch('/api/admin/catalog/products/:productId/suspend', ({ authContext, params, body }: any) =>
-      container.catalogService.suspendProduct(authContext.user, params.productId, body), {
+      moneyResponse(container.catalogService.suspendProduct(authContext.user, params.productId, body)), {
       withRole: 'ADMIN',
       params: ProductParamsSchema,
       body: ModerationReasonBodySchema,
     })
     .patch('/api/admin/catalog/products/:productId/restore', ({ authContext, params }: any) =>
-      container.catalogService.restoreProduct(authContext.user, params.productId), {
+      moneyResponse(container.catalogService.restoreProduct(authContext.user, params.productId)), {
       withRole: 'ADMIN',
       params: ProductParamsSchema,
     })
     .post('/api/seller/products', ({ authContext, body }: any) =>
-      container.catalogService.createProduct(authContext.user, body), {
+      moneyResponse(container.catalogService.createProduct(authContext.user, body)), {
       withAuth: true,
       withSellerOperational: true,
       body: CreateProductBodySchema,
     })
     .patch('/api/seller/products/:productId', ({ authContext, params, body }: any) =>
-      container.catalogService.updateProduct(authContext.user, params.productId, body), {
+      moneyResponse(container.catalogService.updateProduct(authContext.user, params.productId, body)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductParamsSchema,
       body: UpdateProductBodySchema,
     })
     .delete('/api/seller/products/:productId', ({ authContext, params }: any) =>
-      container.catalogService.archiveProduct(authContext.user, params.productId), {
+      moneyResponse(container.catalogService.archiveProduct(authContext.user, params.productId)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductParamsSchema,
     })
     .post('/api/seller/products/:productId/images', ({ authContext, params, body }: any) =>
-      container.catalogService.createProductImage(authContext.user, params.productId, body), {
+      moneyResponse(container.catalogService.createProductImage(authContext.user, params.productId, body)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductParamsSchema,
       body: ProductImageBodySchema,
     })
     .patch('/api/seller/products/:productId/images/:imageId', ({ authContext, params, body }: any) =>
-      container.catalogService.updateProductImage(authContext.user, params.productId, params.imageId, body), {
+      moneyResponse(container.catalogService.updateProductImage(authContext.user, params.productId, params.imageId, body)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductImageParamsSchema,
       body: UpdateProductImageBodySchema,
     })
     .delete('/api/seller/products/:productId/images/:imageId', ({ authContext, params }: any) =>
-      container.catalogService.deleteProductImage(authContext.user, params.productId, params.imageId), {
+      moneyResponse(container.catalogService.deleteProductImage(authContext.user, params.productId, params.imageId)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductImageParamsSchema,
     })
     .put('/api/seller/products/:productId/images/order', ({ authContext, params, body }: any) =>
-      container.catalogService.updateProductImagesOrder(authContext.user, params.productId, body), {
+      moneyResponse(container.catalogService.updateProductImagesOrder(authContext.user, params.productId, body)), {
       withAuth: true,
       params: ProductParamsSchema,
       body: ProductImageOrderBodySchema,
     })
     .post('/api/seller/products/:productId/video', ({ authContext, params, body }: any) =>
-      container.catalogService.upsertProductVideo(authContext.user, params.productId, body), {
+      moneyResponse(container.catalogService.upsertProductVideo(authContext.user, params.productId, body)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductParamsSchema,
       body: ProductVideoBodySchema,
     })
     .delete('/api/seller/products/:productId/video', ({ authContext, params }: any) =>
-      container.catalogService.deleteProductVideo(authContext.user, params.productId), {
+      moneyResponse(container.catalogService.deleteProductVideo(authContext.user, params.productId)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductParamsSchema,
     })
     .put('/api/seller/products/:productId/options', ({ authContext, params, body }: any) =>
-      container.catalogService.updateProductOptions(authContext.user, params.productId, body), {
+      moneyResponse(container.catalogService.updateProductOptions(authContext.user, params.productId, body)), {
       withAuth: true,
       params: ProductParamsSchema,
       body: ProductOptionsBodySchema,
     })
     .post('/api/seller/products/:productId/variants', ({ authContext, params, body }: any) =>
-      container.catalogService.createVariant(authContext.user, params.productId, body), {
+      moneyResponse(container.catalogService.createVariant(authContext.user, params.productId, body)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductParamsSchema,
       body: CreateVariantBodySchema,
     })
     .patch('/api/seller/products/:productId/variants/:variantId', ({ authContext, params, body }: any) =>
-      container.catalogService.updateVariant(authContext.user, params.productId, params.variantId, body), {
+      moneyResponse(container.catalogService.updateVariant(authContext.user, params.productId, params.variantId, body)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductVariantParamsSchema,
       body: UpdateVariantBodySchema,
     })
     .delete('/api/seller/products/:productId/variants/:variantId', ({ authContext, params }: any) =>
-      container.catalogService.deleteVariant(authContext.user, params.productId, params.variantId), {
+      moneyResponse(container.catalogService.deleteVariant(authContext.user, params.productId, params.variantId)), {
       withAuth: true,
       withSellerOperational: true,
       params: ProductVariantParamsSchema,

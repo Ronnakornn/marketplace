@@ -1,3 +1,4 @@
+import { moneyNumber, moneyInteger } from '#server/lib/money.ts'
 import type {
   Address,
   Cart,
@@ -107,7 +108,7 @@ export interface ICheckoutRepository extends IPromotionValidationRepository {
   lockCouponForCheckout(couponId: string): Promise<void>
   lockFlashSaleItemForCheckout(flashSaleItemId: string): Promise<void>
   findActiveFlashSaleItemForCheckout(variantId: string, now: Date): Promise<CheckoutFlashSaleItem | null>
-  findBuyerCoinBalance(userId: string): Promise<number>
+  findBuyerCoinBalance(userId: string): Promise<bigint>
   lockBuyerCoinWallet(userId: string): Promise<void>
   commitCheckout(input: CheckoutCommitmentInput): Promise<CreatedCheckoutOrder>
 }
@@ -226,9 +227,9 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     await this.prisma.$queryRaw`SELECT "id" FROM "FlashSaleItem" WHERE "id" = ${flashSaleItemId}::uuid FOR UPDATE`
   }
 
-  async findBuyerCoinBalance(userId: string): Promise<number> {
+  async findBuyerCoinBalance(userId: string): Promise<bigint> {
     const wallet = await this.prisma.buyerCoinWallet.findUnique({ where: { userId }, select: { balance: true } })
-    return Number(wallet?.balance ?? 0)
+    return moneyInteger(wallet?.balance ?? 0n)
   }
 
   async lockBuyerCoinWallet(userId: string): Promise<void> {
@@ -274,8 +275,8 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
       }
       return {
         id: group.id, shopId, status: 'PENDING_PAYMENT' as const, fulfillmentStatus: 'PENDING' as const,
-        subtotal: Number(group.subtotal), discountTotal: Number(group.discountTotal), shippingTotal: Number(group.buyerShipping),
-        taxTotal: 0, grandTotal: Number(group.subtotal - group.discountTotal + group.buyerShipping), currency: quote.totals.currency,
+        subtotal: moneyNumber(group.subtotal), discountTotal: moneyNumber(group.discountTotal), shippingTotal: moneyNumber(group.buyerShipping),
+        taxTotal: 0, grandTotal: moneyNumber(group.subtotal - group.discountTotal + group.buyerShipping), currency: quote.totals.currency,
         saleSnapshot: { create: {
           policyVersion: 1, currency: quote.totals.currency, commissionBase: group.commissionBase, commissionBps,
           originalCommission,
@@ -450,7 +451,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
 
     if (quote.coinsToUse && quote.coinsToUse > 0) {
       const wallet = await this.prisma.buyerCoinWallet.findUnique({ where: { userId: input.userId }, select: { id: true, balance: true } })
-      if (!wallet || Number(wallet.balance) < quote.coinsToUse) {
+      if (!wallet || moneyInteger(wallet.balance) < BigInt(quote.coinsToUse)) {
         throw new CheckoutServiceError('Insufficient coin balance', 409, 'CHECKOUT_FAILED')
       }
       await this.prisma.buyerCoinWallet.update({

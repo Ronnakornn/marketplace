@@ -1,3 +1,4 @@
+import { toMoneyDto } from '#server/lib/money.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { AiSearchConfig } from './ai-search.config.ts'
@@ -172,7 +173,7 @@ export class ShoppingAssistantService {
       title: product.title,
       description: product.description,
       category: product.category?.name ?? null,
-      price: product.price,
+      price: toMoneyDto(product.price),
       rating: product.rating,
       shopName: product.shop.name,
       stockAvailability: product.stockAvailability,

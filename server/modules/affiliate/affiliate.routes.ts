@@ -1,3 +1,4 @@
+import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
@@ -31,36 +32,37 @@ export function createAffiliateRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof AffiliateServiceError) {
-        return httpStatus(error.status, {
+        return moneyHttpError(error.status, toMoneyDto({
           error: {
             code: error.code,
             message: error.message,
             details: error.details ?? {},
           },
-        })
+        }))
       }
     })
     .post('/api/affiliate/links', ({ authContext, body }: any) =>
-      container.affiliateService.createLink(authContext.user, body), {
+      moneyResponse(container.affiliateService.createLink(authContext.user, body)), {
       withAuth: true,
       body: CreateLinkBodySchema,
     })
     .get('/api/affiliate/links', ({ authContext }: any) =>
-      container.affiliateService.listLinks(authContext.user), {
+      moneyResponse(container.affiliateService.listLinks(authContext.user)), {
       withAuth: true,
     })
     .get('/api/affiliate/links/:linkId', ({ authContext, params }: any) =>
-      container.affiliateService.getLink(authContext.user, params.linkId), {
+      moneyResponse(container.affiliateService.getLink(authContext.user, params.linkId)), {
       withAuth: true,
       params: LinkParamsSchema,
     })
     .get('/api/affiliate/stats', ({ authContext }: any) =>
-      container.affiliateService.getStats(authContext.user), {
+      moneyResponse(container.affiliateService.getStats(authContext.user)), {
       withAuth: true,
     })
     .get('/api/affiliate/targets', ({ query }: any) =>
-      container.affiliateService.searchTargets(query), {
+      moneyResponse(container.affiliateService.searchTargets(query)), {
       withAuth: true,
       query: TargetSearchQuerySchema,
     })
@@ -75,7 +77,7 @@ export function createAffiliateRoutes(container: ServiceContainer) {
       set.status = 302
       set.headers.Location = result.targetUrl
       set.headers['Set-Cookie'] = `affiliate_click=${result.clickId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`
-      return null
+      return moneyResponse(null)
     }, {
       params: t.Object({ code: t.String({ minLength: 1 }) }),
       query: t.Object({
@@ -84,18 +86,18 @@ export function createAffiliateRoutes(container: ServiceContainer) {
       }),
     })
     .post('/api/affiliate/clicks', ({ body, request }: any) =>
-      container.affiliateService.trackClick({
+      moneyResponse(container.affiliateService.trackClick({
         ...body,
         ipAddress: request.headers.get('x-forwarded-for') ?? null,
         userAgent: request.headers.get('user-agent') ?? null,
-      }), {
+      })), {
       body: ClickBodySchema,
     })
-    .get('/api/admin/affiliates', () => container.affiliateService.listAdminAffiliates(), {
+    .get('/api/admin/affiliates', () => moneyResponse(container.affiliateService.listAdminAffiliates()), {
       withRole: 'ADMIN',
     })
     .patch('/api/admin/affiliates/:affiliateId/status', ({ params, body }: any) =>
-      container.affiliateService.updateAffiliateStatus(params.affiliateId, body.status), {
+      moneyResponse(container.affiliateService.updateAffiliateStatus(params.affiliateId, body.status)), {
       withRole: 'ADMIN',
       params: AffiliateParamsSchema,
       body: AdminStatusBodySchema,

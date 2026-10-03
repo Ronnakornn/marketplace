@@ -41,7 +41,7 @@ export interface CreateCartItemData {
   cartId: string
   variantId: string
   quantity: number
-  unitPrice: number
+  unitPrice: bigint
   currency: string
 }
 

@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CatalogService } from '#server/modules/catalog/catalog.service.ts'
@@ -142,8 +143,8 @@ export class DiscoveryService {
         const metric = metricsByProductId.get(item.product.id)
         return {
           id: item.id,
-          salePrice: Number(item.salePrice),
-          originalPrice: Number(item.originalPrice),
+          salePrice: moneyInteger(item.salePrice),
+          originalPrice: moneyInteger(item.originalPrice),
           stockLimit: item.stockLimit,
           soldCount: item.soldCount,
           availableStock: Math.min(campaignAvailable, inventoryAvailable),

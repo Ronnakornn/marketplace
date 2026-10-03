@@ -1,3 +1,4 @@
+import { moneyInteger, moneyMin } from '#server/lib/money.ts'
 import type { Brand, Category, CategoryAttributeDefinition, ModerationAction, ModerationCase, Prisma, PrismaClient, Product, ProductAttribute, ProductHighlight, ProductImage, ProductOption, ProductOptionValue, ProductVariant, ProductVariantOptionValue, ProductVideo, Shop, ShopAddress, Upload } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -72,8 +73,8 @@ export interface ProductListingFacets {
     active: boolean
   }>
   price: {
-    min: number | null
-    max: number | null
+    min: bigint | null
+    max: bigint | null
     currency: string
   }
 }
@@ -856,9 +857,9 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       const sorted = rows
         .filter((product) => product.variants.some((variant) => variant.status === 'ACTIVE'))
         .sort((left, right) => {
-          const leftPrice = Math.min(...left.variants.filter((variant) => variant.status === 'ACTIVE').map((variant) => Number(variant.price)))
-          const rightPrice = Math.min(...right.variants.filter((variant) => variant.status === 'ACTIVE').map((variant) => Number(variant.price)))
-          return (leftPrice - rightPrice) * direction || left.id.localeCompare(right.id)
+          const leftPrice = moneyMin(left.variants.filter((variant) => variant.status === 'ACTIVE').map((variant) => moneyInteger(variant.price)))
+          const rightPrice = moneyMin(right.variants.filter((variant) => variant.status === 'ACTIVE').map((variant) => moneyInteger(variant.price)))
+          return (leftPrice < rightPrice ? -1 : leftPrice > rightPrice ? 1 : 0) * direction || left.id.localeCompare(right.id)
         })
       const data = sorted.slice(skip, skip + filters.limit)
       return {
@@ -975,8 +976,8 @@ export class PrismaCatalogRepository implements ICatalogRepository {
           }]
         }),
       price: {
-        min: priceRange._min.price === null ? null : Number(priceRange._min.price),
-        max: priceRange._max.price === null ? null : Number(priceRange._max.price),
+        min: priceRange._min.price === null ? null : moneyInteger(priceRange._min.price),
+        max: priceRange._max.price === null ? null : moneyInteger(priceRange._max.price),
         currency: firstVariant?.currency ?? 'THB',
       },
     }

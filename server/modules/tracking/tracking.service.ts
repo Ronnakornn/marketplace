@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Prisma } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -76,7 +77,7 @@ export interface RecentlyViewedProduct {
   title: string
   slug: string
   coverImage: string | null
-  minPrice: number | null
+  minPrice: bigint | null
   currency: string | null
   rating: number
   soldCount: number
@@ -341,7 +342,7 @@ export class TrackingService {
       title: product.title,
       slug: product.slug,
       coverImage: publicAssetUrl(product.images[0]?.url),
-      minPrice: firstVariant ? Number(firstVariant.price) : null,
+      minPrice: firstVariant ? moneyInteger(firstVariant.price) : null,
       currency: firstVariant?.currency ?? null,
       rating: metric?.rating ?? 0,
       soldCount: metric?.soldCount ?? 0,

@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -25,7 +26,7 @@ export interface UpdateCartItemData {
 export interface CartResponse {
   id: string
   shops: CartShopGroup[]
-  subtotal: number
+  subtotal: bigint
   currency: string | null
 }
 
@@ -36,7 +37,7 @@ export interface CartShopGroup {
     slug: string
   }
   items: CartResponseItem[]
-  subtotal: number
+  subtotal: bigint
   currency: string | null
 }
 
@@ -53,13 +54,13 @@ export interface CartResponseItem {
     id: string
     sku: string
     title: string
-    price: number
+    price: bigint
     currency: string
   }
   quantity: number
-  unitPrice: number
+  unitPrice: bigint
   currency: string
-  lineTotal: number
+  lineTotal: bigint
   availableQuantity: number
 }
 
@@ -102,7 +103,7 @@ export class CartService {
           cartId: cart.id,
           variantId: variant.id,
           quantity: data.quantity,
-          unitPrice: this.toMoneyNumber(this.getVariantPrice(variant)),
+          unitPrice: this.toMoneyInteger(this.getVariantPrice(variant)),
           currency: variant.currency,
         })
       const items = existing
@@ -227,8 +228,8 @@ export class CartService {
 
     for (const item of cart.items) {
       const shop = item.variant.product.shop
-      const unitPrice = this.toMoneyNumber(item.unitPrice)
-      const lineTotal = unitPrice * item.quantity
+      const unitPrice = this.toMoneyInteger(item.unitPrice)
+      const lineTotal = unitPrice * BigInt(item.quantity)
       const responseItem: CartResponseItem = {
         id: item.id,
         product: {
@@ -250,7 +251,7 @@ export class CartService {
             en: item.variant.titleEn,
             fallback: item.variant.title,
           }) ?? item.variant.title,
-          price: this.toMoneyNumber(this.getVariantPrice(item.variant)),
+          price: this.toMoneyInteger(this.getVariantPrice(item.variant)),
           currency: item.variant.currency,
         },
         quantity: item.quantity,
@@ -267,7 +268,7 @@ export class CartService {
           slug: shop.slug,
         },
         items: [],
-        subtotal: 0,
+        subtotal: 0n,
         currency: item.currency,
       }
 
@@ -278,7 +279,7 @@ export class CartService {
     }
 
     const shops = [...groups.values()]
-    const subtotal = shops.reduce((total, shop) => total + shop.subtotal, 0)
+    const subtotal = shops.reduce((total, shop) => total + shop.subtotal, 0n)
     const currency = shops.reduce<string | null>((current, shop) => {
       if (current === undefined) return shop.currency
       return current === shop.currency ? current : null
@@ -292,8 +293,8 @@ export class CartService {
     }
   }
 
-  private toMoneyNumber(value: bigint | number): number {
-    return typeof value === 'bigint' ? Number(value) : value
+  private toMoneyInteger(value: bigint | number): bigint {
+    return moneyInteger(value)
   }
 
   private getVariantPrice(variant: CartItemDetail['variant']): bigint | number {

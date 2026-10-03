@@ -2,8 +2,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { createCacheKeys } from './cache.keys.ts'
 import type { CacheClient, CacheConfig, CacheKeyBuilder, CacheSetOptions } from './cache.types.ts'
-
-const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/
+import { encodeCacheValue, decodeCacheValue } from './cache.codec.ts'
 
 export class CacheService {
   private logger: ILogger
@@ -18,7 +17,7 @@ export class CacheService {
     private client: CacheClient | null,
   ) {
     this.logger = appContext.logger
-    this.keys = createCacheKeys(config.keyPrefix)
+    this.keys = createCacheKeys(`${config.keyPrefix}:money-v2`)
 
     if (config.enabled && !config.redisUrl) {
       this.logger.warn('CACHE_CONFIG_MISSING', { code: 'CACHE_CONFIG_MISSING' })
@@ -44,7 +43,7 @@ export class CacheService {
     try {
       const raw = await this.client!.get(key)
       if (raw === null) return null
-      return JSON.parse(raw, dateReviver) as T
+      return decodeCacheValue(raw) as T
     } catch (error) {
       this.markTemporarilyUnavailable()
       this.logger.warn('Cache get failed', {
@@ -61,7 +60,7 @@ export class CacheService {
 
     try {
       const ttlSeconds = options.ttlSeconds ?? this.config.defaultTtlSeconds
-      await this.client!.set(key, JSON.stringify(value, cacheJsonReplacer), 'EX', ttlSeconds)
+      await this.client!.set(key, encodeCacheValue(value), 'EX', ttlSeconds)
     } catch (error) {
       this.markTemporarilyUnavailable()
       this.logger.warn('Cache set failed', {
@@ -132,13 +131,4 @@ export class CacheService {
   private markTemporarilyUnavailable(): void {
     this.unavailableUntilMs = Date.now() + 30_000
   }
-}
-
-function dateReviver(_key: string, value: unknown): unknown {
-  if (typeof value === 'string' && isoDatePattern.test(value)) return new Date(value)
-  return value
-}
-
-function cacheJsonReplacer(_key: string, value: unknown): unknown {
-  return typeof value === 'bigint' ? value.toString() : value
 }

@@ -1,3 +1,4 @@
+import { moneyInteger, moneyMin, moneyMax } from '#server/lib/money.ts'
 import type { Category, Inventory, Prisma, PrismaClient, Product, ProductImage, ProductVariant, Review, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -180,12 +181,12 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
 
   findSimilarProducts(query: SimilarRecommendationQuery, source: RecommendationProductRecord): Promise<RecommendationProductRecord[]> {
     this.logger.debug('PrismaRecommendationRepository.findSimilarProducts', { query })
-    const price = source.variants.map((variant) => Number(variant.price))
-    const minPrice = price.length === 0 ? undefined : Math.min(...price)
-    const maxPrice = price.length === 0 ? undefined : Math.max(...price)
+    const price = source.variants.map((variant) => moneyInteger(variant.price))
+    const minPrice = price.length === 0 ? undefined : moneyMin(price)
+    const maxPrice = price.length === 0 ? undefined : moneyMax(price)
     const pricePadding = minPrice === undefined || maxPrice === undefined
       ? undefined
-      : Math.max(500, Math.round((maxPrice - minPrice || minPrice) * 0.25))
+      : moneyMax([500n, ((maxPrice - minPrice || minPrice) + 2n) / 4n])
 
     return this.prisma.product.findMany({
       where: {
@@ -198,7 +199,7 @@ export class PrismaRecommendationRepository implements IRecommendationRepository
                 some: {
                   status: 'ACTIVE',
                   price: {
-                    gte: Math.max(0, minPrice - pricePadding),
+                    gte: moneyMax([0n, minPrice - pricePadding]),
                     lte: maxPrice + pricePadding,
                   },
                 },

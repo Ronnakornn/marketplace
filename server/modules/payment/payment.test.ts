@@ -273,7 +273,7 @@ describe('PaymentService', () => {
       id: baseBody.paymentId,
       orderId: baseBody.orderId,
       orderNo: 'ORD-TEST',
-      amountCents: 2900,
+      amountCents: '2900',
       currency: 'USD',
       status: 'PENDING',
     })

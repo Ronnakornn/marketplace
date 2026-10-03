@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Prisma } from '#generated/client/client.ts'
 import type {
   AffiliateCommissionStatus,
@@ -590,7 +591,7 @@ export class AdminService {
     if (!this.refundRepository) throw new AdminServiceError('Refund planning is unavailable', 503, 'REFUND_COMPLETION_UNAVAILABLE')
     const created = await this.refundRepository.createPlannedRefund(orderId, intent)
     const result = await this.getRefund(actor, created.id)
-    await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', created.id, null, result, { created: true, settlementPlan: intent, cashAmountAfter: Number(result.amount) })
+    await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', created.id, null, result, { created: true, settlementPlan: intent, cashAmountAfter: moneyInteger(result.amount).toString() })
     return result
   }
 
@@ -601,7 +602,7 @@ export class AdminService {
     await this.refundRepository.prepareRefundPlan(refundId, intent)
     const result = await this.getRefund(actor, refundId)
     await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', refundId, before, result, {
-      settlementPlan: intent, cashAmountBefore: Number(before.amount), cashAmountAfter: Number(result.amount),
+      settlementPlan: intent, cashAmountBefore: moneyInteger(before.amount).toString(), cashAmountAfter: moneyInteger(result.amount).toString(),
     })
     return result
   }
@@ -667,7 +668,7 @@ export class AdminService {
         await this.eventPublisher?.publish({
           eventName: 'refund.succeeded', aggregateType: 'refund', aggregateId: refundId,
           actorUserId: actor.id,
-          data: { refundId, orderId: updated.orderId, paymentId: updated.paymentId, amount: Number(updated.amount) },
+          data: { refundId, orderId: updated.orderId, paymentId: updated.paymentId, amount: moneyInteger(updated.amount).toString() },
         })
       } catch (error) {
         this.logger.warn('Refund notification publish failed', { refundId, error: String(error) })

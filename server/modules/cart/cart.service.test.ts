@@ -1,3 +1,4 @@
+import { toMoneyDto } from '#server/lib/money.ts'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Role } from '#generated/client/enums.ts'
 import type { TrackingService } from '#server/modules/tracking'
@@ -146,23 +147,23 @@ describe('CartService', () => {
 
   it('returns a cart grouped by shop with captured unit price and subtotal', async () => {
     const repo = createRepoMock()
-    const item = createItem({ quantity: 2, unitPrice: 1490 })
+    const item = createItem({ quantity: 2, unitPrice: 1490n })
     vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart({ items: [item] }))
     const service = new CartService(createAppContext(), repo)
 
     await expect(service.getCart(createActor())).resolves.toMatchObject({
       id: '55555555-5555-4555-8555-555555555555',
-      subtotal: 2980,
+      subtotal: 2980n,
       shops: [
         {
           shop: { id: '11111111-1111-4111-8111-111111111111' },
-          subtotal: 2980,
+          subtotal: 2980n,
           items: [
             {
               id: '66666666-6666-4666-8666-666666666666',
               quantity: 2,
-              unitPrice: 1490,
-              lineTotal: 2980,
+              unitPrice: 1490n,
+              lineTotal: 2980n,
               availableQuantity: 8,
             },
           ],
@@ -170,18 +171,18 @@ describe('CartService', () => {
       ],
     })
     const result = await service.getCart(createActor())
-    expect(() => JSON.stringify(result)).not.toThrow()
+    expect(() => JSON.stringify(toMoneyDto(result))).not.toThrow()
   })
 
   it('adds an active variant and captures current unit price', async () => {
     const repo = createRepoMock()
     const cart = createCart()
-    const variant = createVariant({ price: 1590 })
+    const variant = createVariant({ price: 1590n })
     vi.mocked(repo.findOrCreateActiveCart)
       .mockResolvedValueOnce(cart)
-      .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 1, unitPrice: 1590, variant })] }))
+      .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 1, unitPrice: 1590n, variant })] }))
     vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
-    vi.mocked(repo.createItem).mockResolvedValue(createItem({ quantity: 1, unitPrice: 1590, variant }))
+    vi.mocked(repo.createItem).mockResolvedValue(createItem({ quantity: 1, unitPrice: 1590n, variant }))
     const service = new CartService(createAppContext(), repo)
 
     await service.addItem(createActor(), { variantId: variant.id, quantity: 1 })
@@ -190,7 +191,7 @@ describe('CartService', () => {
       cartId: cart.id,
       variantId: variant.id,
       quantity: 1,
-      unitPrice: 1590,
+      unitPrice: 1590n,
       currency: 'USD',
     })
     expect(repo.findOrCreateActiveCart).toHaveBeenCalledTimes(1)
@@ -200,12 +201,12 @@ describe('CartService', () => {
     const repo = createRepoMock()
     const trackingService = createTrackingServiceMock()
     const cart = createCart()
-    const variant = createVariant({ price: 1590 })
+    const variant = createVariant({ price: 1590n })
     vi.mocked(repo.findOrCreateActiveCart)
       .mockResolvedValueOnce(cart)
-      .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 2, unitPrice: 1590, variant })] }))
+      .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 2, unitPrice: 1590n, variant })] }))
     vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
-    vi.mocked(repo.createItem).mockResolvedValue(createItem({ quantity: 2, unitPrice: 1590, variant }))
+    vi.mocked(repo.createItem).mockResolvedValue(createItem({ quantity: 2, unitPrice: 1590n, variant }))
     const service = new CartService(createAppContext(), repo, trackingService as TrackingService)
 
     await service.addItem(createActor(), {

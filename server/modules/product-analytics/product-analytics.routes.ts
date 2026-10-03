@@ -1,3 +1,4 @@
+import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
@@ -18,33 +19,34 @@ export function createProductAnalyticsRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof ProductAnalyticsServiceError) {
-        return httpStatus(error.status, {
+        return moneyHttpError(error.status, toMoneyDto({
           error: {
             code: error.code,
             message: error.message,
             details: error.details ?? {},
           },
-        })
+        }))
       }
     })
     .get('/api/seller/analytics/products/summary', ({ authContext, query }: any) =>
-      container.productAnalyticsService.getSummary(authContext!.user, query), {
+      moneyResponse(container.productAnalyticsService.getSummary(authContext!.user, query)), {
       withAuth: true,
       query: AnalyticsQuerySchema,
     })
     .get('/api/seller/analytics/products/daily', ({ authContext, query }: any) =>
-      container.productAnalyticsService.getDaily(authContext!.user, query), {
+      moneyResponse(container.productAnalyticsService.getDaily(authContext!.user, query)), {
       withAuth: true,
       query: AnalyticsQuerySchema,
     })
     .get('/api/seller/analytics/products', ({ authContext, query }: any) =>
-      container.productAnalyticsService.getProducts(authContext!.user, query), {
+      moneyResponse(container.productAnalyticsService.getProducts(authContext!.user, query)), {
       withAuth: true,
       query: AnalyticsQuerySchema,
     })
     .get('/api/seller/analytics/products/skus', ({ authContext, query }: any) =>
-      container.productAnalyticsService.getSkus(authContext!.user, query), {
+      moneyResponse(container.productAnalyticsService.getSkus(authContext!.user, query)), {
       withAuth: true,
       query: AnalyticsQuerySchema,
     })

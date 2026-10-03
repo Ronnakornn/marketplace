@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Prisma, PrismaClient, Product, ProductVariant, Review, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -95,8 +96,8 @@ export interface SearchProductFacets {
     active: boolean
   }>
   price: {
-    min: number | null
-    max: number | null
+    min: bigint | null
+    max: bigint | null
     currency: string
   }
 }
@@ -316,8 +317,8 @@ export class PrismaSearchRepository implements ISearchRepository {
           }]
         }),
       price: {
-        min: priceRange._min.price === null ? null : Number(priceRange._min.price),
-        max: priceRange._max.price === null ? null : Number(priceRange._max.price),
+        min: priceRange._min.price === null ? null : moneyInteger(priceRange._min.price),
+        max: priceRange._max.price === null ? null : moneyInteger(priceRange._max.price),
         currency: firstVariant?.currency ?? 'THB',
       },
     }

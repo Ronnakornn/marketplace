@@ -238,9 +238,9 @@ function commission(overrides: Record<string, unknown> = {}) {
     targetId: 'product-1',
     orderId: 'order-1',
     orderNumber: 'ORD-1',
-    eligibleSubtotalCents: 9000,
+    eligibleSubtotalCents: 9000n,
     commissionBps: 500,
-    commissionCents: 450,
+    commissionCents: 450n,
     currency: 'THB',
     status: 'PENDING',
     createdAt: now,
@@ -289,11 +289,11 @@ describe('AdminService', () => {
 
   it('returns derived report metrics', async () => {
     const reports = {
-      sales: { grossCents: 10000, paidOrderCount: 2, averageOrderValueCents: 5000 },
+      sales: { grossCents: 10000n, paidOrderCount: 2, averageOrderValueCents: 5000n },
       orders: { total: 3, pendingPayment: 1, paid: 1, shipped: 0, delivered: 1, cancelled: 0, refunded: 0 },
-      refunds: { totalCents: 1000, pending: 1, processing: 0, success: 0, failed: 0 },
-      payouts: { requestedCents: 2000, approvedCents: 0, paidCents: 0, requested: 1, approved: 0, paid: 0 },
-      commissions: { pendingCents: 300, approvedCents: 0, voidCents: 0 },
+      refunds: { totalCents: 1000n, pending: 1, processing: 0, success: 0, failed: 0 },
+      payouts: { requestedCents: 2000n, approvedCents: 0n, paidCents: 0n, requested: 1, approved: 0, paid: 0 },
+      commissions: { pendingCents: 300n, approvedCents: 0n, voidCents: 0n },
       marketplace: { users: 4, sellers: 1, shops: 1, products: 2, activeProducts: 1 },
     }
     vi.mocked(repo.getReportMetrics).mockResolvedValue(reports)

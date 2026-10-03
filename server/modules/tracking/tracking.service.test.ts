@@ -196,7 +196,7 @@ describe('TrackingService', () => {
       title: 'Cotton Tee',
       slug: 'cotton-tee',
       coverImage: '/tee.jpg',
-      minPrice: 1000,
+      minPrice: 1000n,
       currency: 'THB',
       rating: 4.8,
       soldCount: 34,

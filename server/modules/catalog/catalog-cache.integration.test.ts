@@ -49,10 +49,10 @@ describe.skipIf(!url || !redisUrl)('catalog invalidation on real Redis and Postg
     expect(await client!.get(cache.keys.productDetail(product.id, 'en'))).not.toBeNull()
     const listing = { shopId: shop.id, limit: 12 }
     for (let i = 0; i < 2; i++) {
-      expect((await service.listPublicProducts(listing)).facets?.price).toMatchObject({ min: 10000, max: 10000 })
+      expect((await service.listPublicProducts(listing)).facets?.price).toMatchObject({ min: 10000n, max: 10000n })
     }
     await service.updateVariant({ id: user.id, role: 'USER' }, product.id, variant.id, { price: 12500 })
-    expect((await service.listPublicProducts(listing)).facets?.price).toMatchObject({ min: 12500, max: 12500 })
+    expect((await service.listPublicProducts(listing)).facets?.price).toMatchObject({ min: 12500n, max: 12500n })
     for (const identifier of [product.slug, product.id]) for (const locale of ['th', 'en']) {
       expect(Number((await service.getPublicProductDetail(identifier, locale)).variants[0]!.price)).toBe(12500)
     }

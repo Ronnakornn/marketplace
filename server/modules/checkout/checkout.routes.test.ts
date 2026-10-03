@@ -105,9 +105,9 @@ describe('checkout routes', () => {
     }))
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({
-      subtotal: 2400, shippingTotal: 500, grandTotal: 2900,
-      items: [{ unitPrice: 1200, lineTotal: 2400 }],
-      shops: [{ shopId: 'shop-1', subtotal: 2400 }],
+      subtotal: '2400', shippingTotal: '500', grandTotal: '2900',
+      items: [{ unitPrice: '1200', lineTotal: '2400' }],
+      shops: [{ shopId: 'shop-1', subtotal: '2400' }],
     })
   })
 

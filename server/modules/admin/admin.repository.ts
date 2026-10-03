@@ -1,3 +1,4 @@
+import { moneyInteger, moneyRoundedRatio } from '#server/lib/money.ts'
 import type {
   Order,
   OrderItem,
@@ -152,11 +153,11 @@ export interface AdminDashboardCounts {
 }
 
 export interface AdminReportMetrics {
-  sales: { grossCents: number; paidOrderCount: number; averageOrderValueCents: number }
+  sales: { grossCents: bigint; paidOrderCount: number; averageOrderValueCents: bigint }
   orders: { total: number; pendingPayment: number; paid: number; shipped: number; delivered: number; cancelled: number; refunded: number }
-  refunds: { totalCents: number; pending: number; processing: number; success: number; failed: number }
-  payouts: { requestedCents: number; approvedCents: number; paidCents: number; requested: number; approved: number; paid: number }
-  commissions: { pendingCents: number; approvedCents: number; voidCents: number }
+  refunds: { totalCents: bigint; pending: number; processing: number; success: number; failed: number }
+  payouts: { requestedCents: bigint; approvedCents: bigint; paidCents: bigint; requested: number; approved: number; paid: number }
+  commissions: { pendingCents: bigint; approvedCents: bigint; voidCents: bigint }
   marketplace: { users: number; sellers: number; shops: number; products: number; activeProducts: number }
 }
 
@@ -171,9 +172,9 @@ export interface AdminCommissionRecord {
   targetId: string
   orderId: string
   orderNumber: string
-  eligibleSubtotalCents: number
+  eligibleSubtotalCents: bigint
   commissionBps: number
-  commissionCents: number
+  commissionCents: bigint
   currency: string
   status: AffiliateCommissionStatus
   createdAt: Date
@@ -434,9 +435,9 @@ function toAdminCommissionRecord(row: AdminCommissionRow): AdminCommissionRecord
     targetId: row.link.targetId,
     orderId: row.orderId,
     orderNumber: row.order.orderNumber,
-    eligibleSubtotalCents: Number(row.eligiblesubtotal),
+    eligibleSubtotalCents: moneyInteger(row.eligiblesubtotal),
     commissionBps: row.commissionBps,
-    commissionCents: Number(row.commission),
+    commissionCents: moneyInteger(row.commission),
     currency: row.currency,
     status: row.status,
     createdAt: row.createdAt,
@@ -587,27 +588,27 @@ export class PrismaAdminRepository implements IAdminRepository {
       this.prisma.product.count(),
       this.prisma.product.count({ where: { status: 'ACTIVE' } }),
     ])
-    const grossCents = Number(paidSales._sum.grandTotal ?? 0)
+    const grossCents = moneyInteger(paidSales._sum.grandTotal ?? 0)
     return {
       sales: {
         grossCents,
         paidOrderCount,
-        averageOrderValueCents: paidOrderCount === 0 ? 0 : Math.round(grossCents / paidOrderCount),
+        averageOrderValueCents: paidOrderCount === 0 ? 0n : moneyRoundedRatio(grossCents, BigInt(paidOrderCount)),
       },
       orders: { total: totalOrders, pendingPayment: pendingPaymentOrders, paid: paidOrders, shipped: shippedOrders, delivered: deliveredOrders, cancelled: cancelledOrders, refunded: refundedOrders },
-      refunds: { totalCents: Number(refundTotal._sum.amount ?? 0), pending: pendingRefunds, processing: processingRefunds, success: successRefunds, failed: failedRefunds },
+      refunds: { totalCents: moneyInteger(refundTotal._sum.amount ?? 0), pending: pendingRefunds, processing: processingRefunds, success: successRefunds, failed: failedRefunds },
       payouts: {
-        requestedCents: Number(requestedPayouts._sum.amount ?? 0),
-        approvedCents: Number(approvedPayouts._sum.amount ?? 0),
-        paidCents: Number(paidPayouts._sum.amount ?? 0),
+        requestedCents: moneyInteger(requestedPayouts._sum.amount ?? 0),
+        approvedCents: moneyInteger(approvedPayouts._sum.amount ?? 0),
+        paidCents: moneyInteger(paidPayouts._sum.amount ?? 0),
         requested: requestedPayouts._count,
         approved: approvedPayouts._count,
         paid: paidPayouts._count,
       },
       commissions: {
-        pendingCents: Number(pendingCommissions._sum.commission ?? 0),
-        approvedCents: Number(approvedCommissions._sum.commission ?? 0),
-        voidCents: Number(voidCommissions._sum.commission ?? 0),
+        pendingCents: moneyInteger(pendingCommissions._sum.commission ?? 0),
+        approvedCents: moneyInteger(approvedCommissions._sum.commission ?? 0),
+        voidCents: moneyInteger(voidCommissions._sum.commission ?? 0),
       },
       marketplace: { users: totalUsers, sellers, shops: totalShops, products: totalProducts, activeProducts },
     }

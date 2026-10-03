@@ -148,6 +148,7 @@ export class AuditLogService {
   }
 
   private redact(value: unknown): unknown {
+    if (typeof value === 'bigint') return value.toString()
     if (value === null || value === undefined) return null
     if (Array.isArray(value)) return value.map((item) => this.redact(item))
     if (value instanceof Date) return value.toISOString()

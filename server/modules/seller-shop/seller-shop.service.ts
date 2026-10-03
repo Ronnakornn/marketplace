@@ -1,3 +1,5 @@
+import { decimalMoneyNumber } from '#server/lib/money.ts'
+import { moneyNumber } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -81,7 +83,7 @@ export interface SellerShopSettingsResponse {
 }
 
 export type SellerShopSettingsUpdateRequest = Omit<SellerShopSettingUpdateInput, 'shippingFee'> & {
-  shippingFeeBaht?: number
+  shippingFeeBaht?: number | string
 }
 
 export interface PublicStorefrontProfile {
@@ -259,14 +261,10 @@ export class SellerShopService {
     return next
   }
 
-  private shippingFeeToMinorUnits(value: number): number {
-    if (!Number.isFinite(value) || value < 0 || value > MAX_SHIPPING_FEE_BAHT) {
-      throw new SellerShopServiceError('Shipping fee must be between 0 and 100,000 baht', 400, 'SHOP_SETTINGS_INVALID')
-    }
-    const minorUnits = Math.round(value * 100)
-    if (Math.abs(value * 100 - minorUnits) > 0.000_001) {
-      throw new SellerShopServiceError('Shipping fee supports at most two decimal places', 400, 'SHOP_SETTINGS_INVALID')
-    }
+  private shippingFeeToMinorUnits(value: number | string): number {
+    let minorUnits: number
+    try { minorUnits = decimalMoneyNumber(value) } catch { throw new SellerShopServiceError('Shipping fee supports at most two decimal places', 400, 'SHOP_SETTINGS_INVALID') }
+    if (minorUnits < 0 || minorUnits > MAX_SHIPPING_FEE_BAHT * 100) throw new SellerShopServiceError('Shipping fee must be between 0 and 100,000 baht', 400, 'SHOP_SETTINGS_INVALID')
     return minorUnits
   }
 
@@ -367,7 +365,7 @@ export class SellerShopService {
       chatEnabled: settings.chatEnabled,
       vacationMode: settings.vacationMode,
       defaultShippingProvider: settings.defaultShippingProvider,
-      shippingFeeBaht: Number(settings.shippingFee) / 100,
+      shippingFeeBaht: moneyNumber(settings.shippingFee) / 100,
       returnPolicy: settings.returnPolicy,
       shippingPolicy: settings.shippingPolicy,
       returnPolicyTh: settings.returnPolicyTh,

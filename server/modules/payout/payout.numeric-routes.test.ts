@@ -26,6 +26,6 @@ describe('payout numeric HTTP boundary', () => {
   it.each([1, 9007199254740991])('accepts a safe positive integer amount %s', async amount => {
     const response = await post(amount)
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ amount })
+    expect(await response.json()).toEqual({ amount: amount.toString() })
   })
 })

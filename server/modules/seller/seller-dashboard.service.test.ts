@@ -84,7 +84,7 @@ const now = new Date()
 
 function createSalesItem(overrides: Partial<{
   shopId: string
-  lineTotal: number
+  lineTotal: bigint
   createdAt: Date
   status: OrderStatus
   paymentStatus: PaymentStatus
@@ -92,7 +92,7 @@ function createSalesItem(overrides: Partial<{
   return {
     id: 'item-1',
     shopId: overrides.shopId ?? 'shop-1',
-    lineTotal: overrides.lineTotal ?? 1000,
+    lineTotal: overrides.lineTotal ?? 1000n,
     quantity: 1,
     order: {
       id: 'order-1',
@@ -107,7 +107,7 @@ function createSalesItem(overrides: Partial<{
 function createOrderItem(overrides: Partial<{
   id: string
   shopId: string
-  lineTotal: number
+  lineTotal: bigint
   fulfillmentStatus: FulfillmentStatus
 }> = {}): any {
   return {
@@ -122,8 +122,8 @@ function createOrderItem(overrides: Partial<{
     shopName: 'Shop One',
     shopSlug: 'shop-one',
     quantity: 2,
-    unitPrice: 1200,
-    lineTotal: overrides.lineTotal ?? 2400,
+    unitPrice: 1200n,
+    lineTotal: overrides.lineTotal ?? 2400n,
     currency: 'USD',
     fulfillmentStatus: overrides.fulfillmentStatus ?? 'PENDING',
   }
@@ -151,7 +151,7 @@ function createLowStockVariant(overrides: Partial<{
     productId: 'product-1',
     sku: 'TEE-BLK-M',
     title: 'Black / M',
-    price: 1200,
+    price: 1200n,
     currency: 'USD',
     status: 'ACTIVE' as VariantStatus,
     createdAt: now,
@@ -208,7 +208,7 @@ function setup() {
   repo = createRepoMock()
   service = new SellerDashboardService(createAppContext(), repo)
   vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', name: 'Shop One', slug: 'shop-one' }])
-  vi.mocked(repo.findSalesOrderItems).mockResolvedValue([createSalesItem({ lineTotal: 1000 })])
+  vi.mocked(repo.findSalesOrderItems).mockResolvedValue([createSalesItem({ lineTotal: 1000n })])
   vi.mocked(repo.findShipments).mockResolvedValue([
     { id: 's1', status: 'PENDING_PACK' as ShipmentStatus },
     { id: 's2', status: 'SHIPPED' as ShipmentStatus },
@@ -234,7 +234,7 @@ describe('SellerDashboardService', () => {
 
     expect(repo.findSellerShops).toHaveBeenCalledWith('seller-1')
     expect(result).toMatchObject({
-      sales: { totalSalesCents: 1000 },
+      sales: { totalSalesCents: 1000n },
       orders: { pendingPack: 1, shipped: 1, delivered: 1, cancelled: 1 },
       products: { active: 3, inactive: 2, lowStock: 1 },
       shopInsights: { averageRating: 4.5, publishedReviewCount: 8, pendingReviewCount: 2 },
@@ -285,25 +285,25 @@ describe('SellerDashboardService', () => {
 
   it('counts sales only for seller shop items returned by repository', async () => {
     vi.mocked(repo.findSalesOrderItems).mockResolvedValue([
-      createSalesItem({ shopId: 'shop-1', lineTotal: 1000 }),
-      createSalesItem({ shopId: 'shop-1', lineTotal: 2500 }),
+      createSalesItem({ shopId: 'shop-1', lineTotal: 1000n }),
+      createSalesItem({ shopId: 'shop-1', lineTotal: 2500n }),
     ])
 
     const result = await service.getSalesSummary(createActor())
 
     expect(repo.findSalesOrderItems).toHaveBeenCalledWith(['shop-1'])
-    expect(result.totalSalesCents).toBe(3500)
+    expect(result.totalSalesCents).toBe(3500n)
   })
 
   it('recent orders include only seller items', async () => {
     vi.mocked(repo.findRecentOrders).mockResolvedValue([
-      createRecentOrder([createOrderItem({ id: 'own-item', shopId: 'shop-1', lineTotal: 1500 })]),
+      createRecentOrder([createOrderItem({ id: 'own-item', shopId: 'shop-1', lineTotal: 1500n })]),
     ])
 
     const result = await service.getRecentOrders(createActor(), 5)
 
     expect(repo.findRecentOrders).toHaveBeenCalledWith(['shop-1'], 5)
-    expect(result[0]).toMatchObject({ totalCents: 1500 })
+    expect(result[0]).toMatchObject({ totalCents: 1500n })
     expect(result[0]!.items).toHaveLength(1)
     expect(result[0]!.items[0]!.orderItemId).toBe('own-item')
   })
@@ -332,7 +332,7 @@ describe('SellerDashboardService', () => {
 
     const result = await service.getDashboard(createActor())
 
-    expect(result.sales.totalSalesCents).toBe(0)
+    expect(result.sales.totalSalesCents).toBe(0n)
     expect(result.orders).toEqual({ pendingPack: 0, shipped: 0, delivered: 0, cancelled: 0 })
     expect(result.recentOrders).toEqual([])
   })

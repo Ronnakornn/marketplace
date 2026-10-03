@@ -56,7 +56,7 @@ function createOrderItem(overrides: Partial<{
   userId: string
   shopId: string
   fulfillmentStatus: FulfillmentStatus
-  lineTotal: number
+  lineTotal: bigint
   returnStatus: ReturnStatus
 }> = {}): any {
   return {
@@ -71,7 +71,7 @@ function createOrderItem(overrides: Partial<{
     shopName: 'Shop One',
     shopSlug: 'shop-one',
     quantity: 2,
-    unitPrice: 1200,
+    unitPrice: 1200n,
     lineTotal: overrides.lineTotal ?? 2400,
     currency: 'USD',
     fulfillmentStatus: overrides.fulfillmentStatus ?? 'DELIVERED',
@@ -82,11 +82,11 @@ function createOrderItem(overrides: Partial<{
       orderNumber: 'ORD-1',
       status: 'DELIVERED',
       paymentStatus: 'SUCCEEDED',
-      subtotal: 2400,
+      subtotal: 2400n,
       discountTotal: 0,
       shippingTotal: 500,
       taxTotal: 0,
-      grandTotal: 2900,
+      grandTotal: 2900n,
       currency: 'USD',
       shippingName: 'Buyer',
       shippingPhone: null,
@@ -132,7 +132,7 @@ function createPayment(status: PaymentStatus = 'SUCCEEDED'): any {
 function createReturnRecord(overrides: Partial<{
   status: ReturnStatus
   shopId: string
-  lineTotal: number
+  lineTotal: bigint
   refunds: ReturnRecord['refunds']
 }> = {}): any {
   return {
@@ -295,8 +295,8 @@ describe('ReturnService', () => {
   })
 
   it('lets sellers approve returns and creates a pending refund with server-side amount', async () => {
-    vi.mocked(repo.findSellerReturnById).mockResolvedValue(createReturnRecord({ lineTotal: 1999 }))
-    vi.mocked(repo.updateReturnStatus).mockResolvedValue(createReturnRecord({ status: 'APPROVED', lineTotal: 1999 }))
+    vi.mocked(repo.findSellerReturnById).mockResolvedValue(createReturnRecord({ lineTotal: 1999n }))
+    vi.mocked(repo.updateReturnStatus).mockResolvedValue(createReturnRecord({ status: 'APPROVED', lineTotal: 1999n }))
 
     const result = await service.approveSellerReturn(sellerActor(), 'return-1')
 
@@ -304,7 +304,7 @@ describe('ReturnService', () => {
     expect(repo.createPendingRefundForReturn).toHaveBeenCalledWith(expect.objectContaining({
       status: 'APPROVED',
     }))
-    expect(result.refund).toMatchObject({ status: 'pending', amount: 1999 })
+    expect(result.refund).toMatchObject({ status: 'pending', amount: 1999n })
     expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({
       eventName: 'return.approved', aggregateId: '66666666-6666-4666-8666-666666666666',
     }))

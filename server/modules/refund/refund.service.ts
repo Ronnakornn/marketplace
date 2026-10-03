@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -15,7 +16,7 @@ export interface RefundResponse {
   paymentId: string
   returnRequestId: string | null
   status: string
-  amount: number
+  amount: bigint
   reason: string | null
   createdAt: Date
   updatedAt: Date
@@ -59,7 +60,7 @@ export class RefundService {
       paymentId: refund.paymentId,
       returnRequestId: refund.returnRequestId,
       status: refund.status.toLowerCase(),
-      amount: Number(refund.amount),
+      amount: moneyInteger(refund.amount),
       reason: refund.reason,
       createdAt: refund.createdAt,
       updatedAt: refund.updatedAt,

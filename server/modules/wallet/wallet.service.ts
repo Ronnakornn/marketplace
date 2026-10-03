@@ -1,3 +1,4 @@
+import { moneyNumber, moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -19,14 +20,14 @@ export interface WalletSummary {
   shopId: string
   shopName: string
   currency: string
-  availableBalanceCents: number
-  sellerDebtCents: number
+  availableBalanceCents: bigint
+  sellerDebtCents: bigint
 }
 
 export interface WalletTransactionResponse {
   id: string
   type: string
-  amount: number
+  amount: bigint
   currency: string
   orderId: string | null
   payoutId: string | null
@@ -87,7 +88,7 @@ export class WalletService {
 
       for (const [shopId, items] of itemsByShop) {
         if (await txRepo.hasOrderEarnings(order.id, shopId)) continue
-        const gross = items.reduce((sum: number, item) => sum + Number(item.lineTotal), 0)
+        const gross = moneyNumber(items.reduce((sum, item) => sum + moneyInteger(item.lineTotal), 0n))
         const commission = this.commissionService.calculate(gross)
         const wallet = await txRepo.ensureWallet(shopId, order.currency)
         this.assertWalletCurrency(wallet.currency, order.currency)
@@ -183,8 +184,8 @@ export class WalletService {
       }
       if (reversedBuyerShipping > BigInt(sale.buyerShipping) || reversedPlatformShipping > BigInt(sale.platformShippingSubsidy)
         || reversedFee !== (merchandise === 0n ? 0n : originalFee * reversed / merchandise)) throw invalid()
-      const earning = Number(merchandise + shipping - reversed - reversedBuyerShipping - reversedPlatformShipping)
-      const fee = Number(originalFee - reversedFee)
+      const earning = moneyNumber(merchandise + shipping - reversed - reversedBuyerShipping - reversedPlatformShipping)
+      const fee = moneyNumber(originalFee - reversedFee)
       if (!Number.isSafeInteger(earning) || earning < 0 || !Number.isSafeInteger(fee) || fee < 0) throw invalid()
       return { shop, sale, earning, fee }
     })
@@ -209,7 +210,7 @@ export class WalletService {
   }
 
   async applyRefundAdjustment(shopId: string, refundId: string, orderId: string, amount: number, currency = 'THB'): Promise<void> {
-    if (!Number.isInteger(amount) || amount <= 0) {
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
       throw new WalletServiceError('Refund adjustment amount must be positive', 400, 'INVALID_PAYOUT_STATE')
     }
     await this.repo.transaction(async (txRepo) => {
@@ -256,14 +257,14 @@ export class WalletService {
     return { page, limit, offset: (page - 1) * limit }
   }
 
-  private toSummary(wallet: WalletRecord, balance: number, reserved: number): WalletSummary {
+  private toSummary(wallet: WalletRecord, balance: bigint, reserved: bigint): WalletSummary {
     return {
       walletId: wallet.id,
       shopId: wallet.shopId,
       shopName: wallet.shop.name,
       currency: wallet.currency,
       availableBalanceCents: balance,
-      sellerDebtCents: Math.max(0, -(balance + reserved)),
+      sellerDebtCents: balance + reserved < 0n ? -(balance + reserved) : 0n,
     }
   }
 
@@ -271,7 +272,7 @@ export class WalletService {
     return {
       id: entry.id,
       type: entry.type,
-      amount: Number(entry.amount),
+      amount: moneyInteger(entry.amount),
       currency: entry.currency,
       orderId: entry.orderId,
       payoutId: entry.payoutId,

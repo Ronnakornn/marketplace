@@ -1,3 +1,4 @@
+import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { DiscoveryServiceError } from './discovery.errors.ts'
@@ -11,18 +12,19 @@ const DiscoveryHomeQuerySchema = t.Object({
 export function createDiscoveryRoutes(container: ServiceContainer) {
   return new Elysia()
     .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof DiscoveryServiceError) {
-        return httpStatus(error.status, {
+        return moneyHttpError(error.status, toMoneyDto({
           error: {
             code: error.code,
             message: error.message,
             details: error.details ?? {},
           },
-        })
+        }))
       }
     })
     .get('/api/discovery/home', ({ query, authContext }: any) =>
-      container.discoveryService.getHome({ ...query, userId: authContext?.user?.id }), {
+      moneyResponse(container.discoveryService.getHome({ ...query, userId: authContext?.user?.id })), {
       query: DiscoveryHomeQuerySchema,
     })
 }

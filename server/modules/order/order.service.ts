@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { OrderItem } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -24,8 +25,8 @@ export interface OrderItemResponse {
   variantTitle: string
   variantSku: string
   quantity: number
-  unitPrice: number
-  lineTotal: number
+  unitPrice: bigint
+  lineTotal: bigint
   currency: string
   fulfillmentStatus: string
 }
@@ -85,11 +86,11 @@ export interface OrderDetailResponse {
   status: string
   paymentStatus: string
   totals: {
-    subtotal: number
-    discountTotal: number
-    shippingTotal: number
-    taxTotal: number
-    grandTotal: number
+    subtotal: bigint
+    discountTotal: bigint
+    shippingTotal: bigint
+    taxTotal: bigint
+    grandTotal: bigint
     currency: string
   }
   shippingAddress: {
@@ -191,14 +192,14 @@ export class OrderService {
       }))
     const totals = order.shopOrders.filter((shopOrder) => allowed.has(shopOrder.shopId)).reduce(
       (total, shopOrder) => ({
-        subtotal: total.subtotal + this.toMoneyNumber(shopOrder.subtotal),
-        discountTotal: total.discountTotal + this.toMoneyNumber(shopOrder.discountTotal),
-        shippingTotal: total.shippingTotal + this.toMoneyNumber(shopOrder.shippingTotal),
-        taxTotal: total.taxTotal + this.toMoneyNumber(shopOrder.taxTotal),
-        grandTotal: total.grandTotal + this.toMoneyNumber(shopOrder.grandTotal),
+        subtotal: total.subtotal + this.toMoneyInteger(shopOrder.subtotal),
+        discountTotal: total.discountTotal + this.toMoneyInteger(shopOrder.discountTotal),
+        shippingTotal: total.shippingTotal + this.toMoneyInteger(shopOrder.shippingTotal),
+        taxTotal: total.taxTotal + this.toMoneyInteger(shopOrder.taxTotal),
+        grandTotal: total.grandTotal + this.toMoneyInteger(shopOrder.grandTotal),
         currency: shopOrder.currency,
       }),
-      { subtotal: 0, discountTotal: 0, shippingTotal: 0, taxTotal: 0, grandTotal: 0, currency: order.currency },
+      { subtotal: 0n, discountTotal: 0n, shippingTotal: 0n, taxTotal: 0n, grandTotal: 0n, currency: order.currency },
     )
     return { ...this.toOrderResponse(order, items, shipments), totals }
   }
@@ -215,11 +216,11 @@ export class OrderService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       totals: {
-        subtotal: this.toMoneyNumber(order.subtotal),
-        discountTotal: this.toMoneyNumber(order.discountTotal),
-        shippingTotal: this.toMoneyNumber(order.shippingTotal),
-        taxTotal: this.toMoneyNumber(order.taxTotal),
-        grandTotal: this.toMoneyNumber(order.grandTotal),
+        subtotal: this.toMoneyInteger(order.subtotal),
+        discountTotal: this.toMoneyInteger(order.discountTotal),
+        shippingTotal: this.toMoneyInteger(order.shippingTotal),
+        taxTotal: this.toMoneyInteger(order.taxTotal),
+        grandTotal: this.toMoneyInteger(order.grandTotal),
         currency: order.currency,
       },
       shippingAddress: {
@@ -263,8 +264,8 @@ export class OrderService {
       variantTitle: item.variantTitle,
       variantSku: item.variantSku,
       quantity: item.quantity,
-      unitPrice: this.toMoneyNumber(item.unitPrice),
-      lineTotal: this.toMoneyNumber(item.lineTotal),
+      unitPrice: this.toMoneyInteger(item.unitPrice),
+      lineTotal: this.toMoneyInteger(item.lineTotal),
       currency: item.currency,
       fulfillmentStatus: item.fulfillmentStatus,
     }
@@ -303,7 +304,7 @@ export class OrderService {
     }
   }
 
-  private toMoneyNumber(value: bigint | number): number {
-    return typeof value === 'bigint' ? Number(value) : value
+  private toMoneyInteger(value: bigint | number): bigint {
+    return moneyInteger(value)
   }
 }

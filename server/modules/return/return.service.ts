@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { Refund } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -33,7 +34,7 @@ export interface ReturnResponse {
   refund?: {
     id: string
     status: string
-    amount: number
+    amount: bigint
   } | null
   items: Array<{
     id: string
@@ -42,7 +43,7 @@ export interface ReturnResponse {
     productTitle: string
     variantTitle: string
     quantity: number
-    lineTotal: number
+    lineTotal: bigint
     currency: string
     fulfillmentStatus: string
   }>
@@ -272,7 +273,7 @@ export class ReturnService {
       refund: refund ? {
         id: refund.id,
         status: refund.status.toLowerCase(),
-        amount: Number(refund.amount),
+        amount: moneyInteger(refund.amount),
       } : null,
       items: returnRecord.items.map((item) => ({
         id: item.id,
@@ -281,7 +282,7 @@ export class ReturnService {
         productTitle: item.orderItem.productTitle,
         variantTitle: item.orderItem.variantTitle,
         quantity: item.quantity,
-        lineTotal: Number(item.orderItem.lineTotal),
+        lineTotal: moneyInteger(item.orderItem.lineTotal),
         currency: item.orderItem.currency,
         fulfillmentStatus: item.orderItem.fulfillmentStatus,
       })),

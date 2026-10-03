@@ -127,7 +127,7 @@ describe('PromotionService', () => {
     expect(repo.createCoupon).not.toHaveBeenCalled()
   })
 
-  it.each([[0.29, 29n], [1.15, 115n], [19.99, 1999n], [90071992547409.9, 9007199254740990n]])('stores a valid flash sale price of %s baht exactly', async (baht, expected) => {
+  it.each([[0.29, 29n], [1.15, 115n], [19.99, 1999n], ['90071992547409.90', 9007199254740990n]])('stores a valid flash sale price of %s baht exactly', async (baht, expected) => {
     const campaign = { id: 'flash-1', shopId: null, title: 'Sale', description: null, status: 'DRAFT' as const,
       startsAt: new Date('2999-01-01'), endsAt: new Date('2999-01-02'), createdAt: new Date(), updatedAt: new Date(), items: [] }
     const item = { id: 'item-1', flashSaleId: campaign.id, shopId: 'shop-1', productId: 'product-1', variantId: 'variant-1',
@@ -146,7 +146,7 @@ describe('PromotionService', () => {
     expect(updated.salePrice).toBe(expected)
   })
 
-  it.each([0, -1, 1.001, 1e-7, 1e21, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER])('rejects invalid flash sale baht price %s', async (baht) => {
+  it.each([0, -1, 1.001, 1e-7, 1e21, 90071992547409.9, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER])('rejects invalid flash sale baht price %s', async (baht) => {
     vi.mocked(repo.findFlashSaleItemById).mockResolvedValue({
       id: 'item-1', flashSaleId: 'flash-1', shopId: 'shop-1', productId: 'product-1', variantId: 'variant-1',
       salePrice: 100n, originalPrice: 3000n, stockLimit: 10, soldCount: 0, perUserLimit: null,
@@ -197,8 +197,8 @@ describe('PromotionService', () => {
     await expect(service.listPublicCoupons('en')).resolves.toEqual([expect.objectContaining({
       code: 'SAVE',
       title: 'Five off',
-      discountValueCents: 500,
-      minOrderCents: 1_000,
+      discountValueCents: 500n,
+      minOrderCents: 1_000n,
       endsAt: '2999-01-01T00:00:00.000Z',
     })])
   })
@@ -477,17 +477,17 @@ describe('PromotionService', () => {
 
   it('returns the buyer coin wallet and recent ledger history', async () => {
     ;(repo as any).findBuyerCoinWallet = vi.fn().mockResolvedValue({
-      balance: 25,
-      pendingBalance: 3,
-      debtBalance: 0,
-      lifetimeEarned: 40,
-      lifetimeSpent: 15,
+      balance: 25n,
+      pendingBalance: 3n,
+      debtBalance: 0n,
+      lifetimeEarned: 40n,
+      lifetimeSpent: 15n,
     })
     ;(repo as any).listBuyerCoinLedger = vi.fn().mockResolvedValue([{
       id: 'coin-entry-1',
       type: 'EARNED',
       status: 'AVAILABLE',
-      amount: 10,
+      amount: 10n,
       reason: '1% order cashback',
       orderId: 'order-1',
       createdAt: new Date('2026-05-13T00:00:00.000Z'),
@@ -497,12 +497,12 @@ describe('PromotionService', () => {
       { id: 'user-1', role: 'USER' },
       20,
     ))).resolves.toEqual({
-      balance: 25,
-      pendingBalance: 3,
-      debtBalance: 0,
-      lifetimeEarned: 40,
-      lifetimeSpent: 15,
-      entries: [expect.objectContaining({ id: 'coin-entry-1', amount: 10 })],
+      balance: 25n,
+      pendingBalance: 3n,
+      debtBalance: 0n,
+      lifetimeEarned: 40n,
+      lifetimeSpent: 15n,
+      entries: [expect.objectContaining({ id: 'coin-entry-1', amount: 10n })],
       nextCursor: null,
     })
     expect(repo.listBuyerCoinLedger).toHaveBeenCalledWith('user-1', 21, undefined)

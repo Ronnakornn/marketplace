@@ -127,11 +127,11 @@ describe('ProductAnalyticsService', () => {
       addToCart: 3,
       orders: 1,
       unitsSold: 2,
-      revenue: 2400,
+      revenue: 2400n,
       conversionRate: 0.1,
       currency: 'THB',
     })
-    expect(result.topSkus[0]).toMatchObject({ variantId: VARIANT_ID, revenue: 2400, unitsSold: 2 })
+    expect(result.topSkus[0]).toMatchObject({ variantId: VARIANT_ID, revenue: 2400n, unitsSold: 2 })
   })
 
   it('rejects users without an active seller shop', async () => {
@@ -176,7 +176,7 @@ describe('ProductAnalyticsService', () => {
       addToCart: 0,
       orders: 0,
       unitsSold: 0,
-      revenue: 0,
+      revenue: 0n,
       conversionRate: 0,
       currency: null,
       topSkus: [],
@@ -220,7 +220,7 @@ describe('ProductAnalyticsService', () => {
     expect(repo.findProductRankingCandidates).toHaveBeenCalledWith([SHOP_ID], 'tee')
     expect(result.pagination).toEqual({ page: 1, limit: 2, total: 2, totalPages: 1 })
     expect(result.items[0]!.productId).toBe(PRODUCT_2_ID)
-    expect(result.items[0]!.revenue).toBe(5000)
+    expect(result.items[0]!.revenue).toBe(5000n)
   })
 
   it('ranks product revenue globally before paging and retains deterministic ties', async () => {
@@ -244,11 +244,27 @@ describe('ProductAnalyticsService', () => {
     const first = await service.getProducts(createActor(), { page: 1, limit: 2, sort: 'revenue' })
     const second = await service.getProducts(createActor(), { page: 2, limit: 2, sort: 'revenue' })
 
-    expect(first.items.map((item) => [item.productId, item.revenue])).toEqual([['product-c', 900], ['product-b', 200]])
-    expect(second.items.map((item) => [item.productId, item.revenue])).toEqual([['product-d', 200], ['product-a', 100]])
+    expect(first.items.map((item) => [item.productId, item.revenue])).toEqual([['product-c', 900n], ['product-b', 200n]])
+    expect(second.items.map((item) => [item.productId, item.revenue])).toEqual([['product-d', 200n], ['product-a', 100n]])
     expect(first.pagination).toEqual({ page: 1, limit: 2, total: 4, totalPages: 2 })
     expect(repo.findProductsByIds).toHaveBeenNthCalledWith(1, [SHOP_ID], ['product-c', 'product-b'])
     expect(repo.findProductsByIds).toHaveBeenNthCalledWith(2, [SHOP_ID], ['product-d', 'product-a'])
+  })
+
+  it('orders lifetime revenue differing by one cent above MAX_SAFE before paging', async () => {
+    const products = [createProduct({ id: 'product-a', title: 'A' }), createProduct({ id: 'product-z', title: 'Z' })]
+    vi.mocked(repo.findProductRankingCandidates).mockResolvedValue(products.map(({ id, title }) => ({ id, title })))
+    vi.mocked(repo.findProductsByIds).mockImplementation(async (_shopIds, ids) => products.filter((product) => ids.includes(product.id)))
+    vi.mocked(repo.countProductViews).mockResolvedValue([])
+    vi.mocked(repo.countProductAddToCart).mockResolvedValue([])
+    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([
+      createOrderItem({ lineTotal: 9007199254740992n, variant: { id: 'variant-a', productId: 'product-a' } }),
+      createOrderItem({ lineTotal: 9007199254740993n, variant: { id: 'variant-z', productId: 'product-z' } }),
+    ])
+    const result = await service.getProducts(createActor(), { page: 1, limit: 1, sort: 'revenue' })
+    expect(result.items.map((item) => [item.productId, item.revenue])).toEqual([['product-z', 9007199254740993n]])
+    const summary = await service.getSummary(createActor(), { range: '7d' })
+    expect(summary.revenue).toBe(18014398509481985n)
   })
 
   it('ranks SKU revenue globally before paging', async () => {
@@ -269,8 +285,8 @@ describe('ProductAnalyticsService', () => {
     const first = await service.getSkus(createActor(), { page: 1, limit: 2, sort: 'revenue' })
     const second = await service.getSkus(createActor(), { page: 2, limit: 2, sort: 'revenue' })
 
-    expect(first.items.map((item) => [item.variantId, item.revenue])).toEqual([['variant-c', 900], ['variant-b', 200]])
-    expect(second.items.map((item) => [item.variantId, item.revenue])).toEqual([['variant-a', 100]])
+    expect(first.items.map((item) => [item.variantId, item.revenue])).toEqual([['variant-c', 900n], ['variant-b', 200n]])
+    expect(second.items.map((item) => [item.variantId, item.revenue])).toEqual([['variant-a', 100n]])
     expect(repo.findVariantsByIds).toHaveBeenNthCalledWith(1, [SHOP_ID], ['variant-c', 'variant-b'])
     expect(repo.findVariantsByIds).toHaveBeenNthCalledWith(2, [SHOP_ID], ['variant-a'])
   })
@@ -283,8 +299,8 @@ describe('ProductAnalyticsService', () => {
     })
 
     expect(result.items).toEqual([
-      expect.objectContaining({ date: '2026-06-02', views: 1, addToCart: 0, orders: 0, unitsSold: 0, revenue: 0 }),
-      expect.objectContaining({ date: '2026-06-03', views: 1, addToCart: 1, orders: 1, unitsSold: 2, revenue: 2400 }),
+      expect.objectContaining({ date: '2026-06-02', views: 1, addToCart: 0, orders: 0, unitsSold: 0, revenue: 0n }),
+      expect.objectContaining({ date: '2026-06-03', views: 1, addToCart: 1, orders: 1, unitsSold: 2, revenue: 2400n }),
     ])
   })
 

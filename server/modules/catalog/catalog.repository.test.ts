@@ -125,7 +125,7 @@ describe('PrismaCatalogRepository', () => {
     expect(result).toEqual({
       categories: [{ id: 'cat-1', slug: 'fashion', name: 'Fashion', count: 2, active: true }],
       brands: [{ id: 'brand-1', slug: 'acme', name: 'Acme', count: 1, active: true }],
-      price: { min: 1000, max: 3000, currency: 'THB' },
+      price: { min: 1000n, max: 3000n, currency: 'THB' },
     })
     expect(productGroupBy).toHaveBeenNthCalledWith(1, expect.objectContaining({
       by: ['categoryId'],

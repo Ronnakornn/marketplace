@@ -1,3 +1,4 @@
+import { moneyNumber, moneyInteger } from '#server/lib/money.ts'
 import type {
   Checkout,
   FlashSaleReservation,
@@ -312,10 +313,11 @@ export class PrismaPaymentRepository implements IPaymentRepository {
     }
     const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { userId: true, subtotal: true, discountTotal: true } })
     if (!order) return
-    const cashbackCoins = Math.floor(Math.max(0, Number(order.subtotal) - Number(order.discountTotal)) / 10_000)
+    const eligibleCashback = moneyInteger(order.subtotal) - moneyInteger(order.discountTotal)
+    const cashbackCoins = moneyNumber((eligibleCashback > 0n ? eligibleCashback : 0n) / 10_000n)
     if (!cashbackCoins) return
     const wallet = await this.prisma.buyerCoinWallet.upsert({ where: { userId: order.userId }, update: { balance: { increment: cashbackCoins }, lifetimeEarned: { increment: cashbackCoins } }, create: { userId: order.userId, balance: cashbackCoins, lifetimeEarned: cashbackCoins } })
-    const debtPayment = Math.min(cashbackCoins, Number(wallet.debtBalance))
+    const debtPayment = moneyInteger(wallet.debtBalance) < BigInt(cashbackCoins) ? moneyNumber(wallet.debtBalance) : cashbackCoins
     const settledWallet = debtPayment > 0
       ? await this.prisma.buyerCoinWallet.update({ where: { id: wallet.id }, data: { balance: { decrement: debtPayment }, debtBalance: { decrement: debtPayment }, version: { increment: 1 } } })
       : wallet

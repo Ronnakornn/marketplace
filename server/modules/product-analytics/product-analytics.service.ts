@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -46,7 +47,7 @@ export interface ProductAnalyticsSummary {
   addToCart: number
   orders: number
   unitsSold: number
-  revenue: number
+  revenue: bigint
   conversionRate: number
   currency: string | null
   topSkus: ProductAnalyticsSkuMetric[]
@@ -63,7 +64,7 @@ export interface ProductAnalyticsDailyItem {
   addToCart: number
   orders: number
   unitsSold: number
-  revenue: number
+  revenue: bigint
   conversionRate: number
 }
 
@@ -92,7 +93,7 @@ export interface ProductAnalyticsProductMetric {
   addToCart: number
   orders: number
   unitsSold: number
-  revenue: number
+  revenue: bigint
   conversionRate: number
   currency: string | null
 }
@@ -110,7 +111,7 @@ export interface ProductAnalyticsSkuMetric {
   addToCartQuantity: number
   orders: number
   unitsSold: number
-  revenue: number
+  revenue: bigint
   currency: string | null
 }
 
@@ -127,7 +128,7 @@ interface MetricBucket {
   addToCartQuantity: number
   orderIds: Set<string>
   unitsSold: number
-  revenue: number
+  revenue: bigint
   currencies: Set<string>
 }
 
@@ -187,7 +188,7 @@ export class ProductAnalyticsService {
       addToCart: 0,
       orders: 0,
       unitsSold: 0,
-      revenue: 0,
+      revenue: 0n,
       conversionRate: 0,
     }))
     const byDate = new Map(items.map((item) => [item.date, item]))
@@ -391,7 +392,7 @@ export class ProductAnalyticsService {
       const bucket = this.bucket(buckets, item.variant.productId)
       bucket.orderIds.add(item.order.id)
       bucket.unitsSold += item.quantity
-      bucket.revenue += Number(item.lineTotal)
+      bucket.revenue += moneyInteger(item.lineTotal)
       bucket.currencies.add(item.currency)
     }
 
@@ -437,7 +438,7 @@ export class ProductAnalyticsService {
       const bucket = this.bucket(buckets, item.variantId)
       bucket.orderIds.add(item.order.id)
       bucket.unitsSold += item.quantity
-      bucket.revenue += Number(item.lineTotal)
+      bucket.revenue += moneyInteger(item.lineTotal)
       bucket.currencies.add(item.currency)
     }
     return buckets
@@ -451,11 +452,11 @@ export class ProductAnalyticsService {
     const orderIds = new Set<string>()
     const currencies = new Set<string>()
     let unitsSold = 0
-    let revenue = 0
+    let revenue = 0n
     for (const item of orderItems) {
       orderIds.add(item.order.id)
       unitsSold += item.quantity
-      revenue += Number(item.lineTotal)
+      revenue += moneyInteger(item.lineTotal)
       currencies.add(item.currency)
     }
     const viewCount = views.reduce((total, row) => total + row.count, 0)
@@ -513,7 +514,7 @@ export class ProductAnalyticsService {
   private compare(a: object, b: object, key: string, descending: boolean): number {
     const av = (a as Record<string, unknown>)[key]
     const bv = (b as Record<string, unknown>)[key]
-    const result = typeof av === 'string' && typeof bv === 'string'
+    const result = typeof av === 'bigint' && typeof bv === 'bigint' ? av < bv ? -1 : av > bv ? 1 : 0 : typeof av === 'string' && typeof bv === 'string'
       ? av.localeCompare(bv)
       : Number(av ?? 0) - Number(bv ?? 0)
     if (result !== 0) return descending ? -result : result
@@ -525,7 +526,7 @@ export class ProductAnalyticsService {
   private bucket(map: Map<string, MetricBucket>, key: string): MetricBucket {
     let bucket = map.get(key)
     if (!bucket) {
-      bucket = { views: 0, addToCart: 0, addToCartQuantity: 0, orderIds: new Set(), unitsSold: 0, revenue: 0, currencies: new Set() }
+      bucket = { views: 0, addToCart: 0, addToCartQuantity: 0, orderIds: new Set(), unitsSold: 0, revenue: 0n, currencies: new Set() }
       map.set(key, bucket)
     }
     return bucket
@@ -584,7 +585,7 @@ export class ProductAnalyticsService {
       const bucket = byDate.get(key)
       if (!bucket) continue
       bucket.unitsSold += item.quantity
-      bucket.revenue += Number(item.lineTotal)
+      bucket.revenue += moneyInteger(item.lineTotal)
       orderIds.add(`${key}:${item.order.id}`)
     }
     for (const key of orderIds) {

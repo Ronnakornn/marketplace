@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -31,7 +32,7 @@ export interface PayoutResponse {
     id: string
     name: string
   }
-  amount: number
+  amount: bigint
   currency: string
   status: string
   approvedById: string | null
@@ -160,7 +161,7 @@ export class PayoutService {
         shopId: payout.shopId,
         payoutId: payout.id,
         type: 'payout_rejected',
-        amount: Number(payout.amount),
+        amount: moneyInteger(payout.amount),
         currency: payout.currency,
         description: 'Payout reserve released after rejection',
       })
@@ -235,7 +236,7 @@ export class PayoutService {
       throw new WalletServiceError('Payout currency must match its wallet', 409, 'WALLET_CURRENCY_MISMATCH')
     }
     const balance = await repo.sumLedger(payout.walletId, payout.currency)
-    if (balance < 0) {
+    if (balance < 0n) {
       throw new WalletServiceError('Payout cannot proceed while the wallet is unfunded', 409, 'INSUFFICIENT_BALANCE', {
         availableBalanceCents: balance,
       })
@@ -262,7 +263,7 @@ export class PayoutService {
         id: payout.shop.id,
         name: payout.shop.name,
       },
-      amount: Number(payout.amount),
+      amount: moneyInteger(payout.amount),
       currency: payout.currency,
       status: payout.status,
       approvedById: payout.approvedById,

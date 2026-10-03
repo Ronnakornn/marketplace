@@ -153,7 +153,7 @@ describe('AiSearchService', () => {
       productId: 'p1',
       title: 'Cotton Shirt',
       price: {
-        minPrice: 1200,
+        minPrice: 1200n,
         maxPrice: null,
         currency: 'USD',
       },

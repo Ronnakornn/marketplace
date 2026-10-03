@@ -1,3 +1,4 @@
+import { moneyNumber } from '#server/lib/money.ts'
 import type { PaymentStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -45,7 +46,7 @@ export class PaymentService {
       eventType: input.eventType,
       paymentId: payment.id,
       orderId: payment.orderId,
-      amount: Number(payment.amount),
+      amount: moneyNumber(payment.amount),
     })
   }
 
@@ -57,7 +58,7 @@ export class PaymentService {
       id: payment.id,
       orderId: payment.orderId,
       orderNo: payment.order.orderNumber,
-      amountCents: Number(payment.amount),
+      amountCents: payment.amount.toString(),
       currency: payment.currency,
       status: payment.status,
     }
@@ -93,9 +94,9 @@ export class PaymentService {
       if (payment.orderId !== order.id) {
         throw new PaymentServiceError('Payment does not belong to order', 409, 'PAYMENT_STATE_CONFLICT')
       }
-      if (Number(payment.amount) !== input.amount) {
+      if (moneyNumber(payment.amount) !== input.amount) {
         throw new PaymentServiceError('Webhook amount does not match payment amount', 400, 'AMOUNT_MISMATCH', {
-          expectedamount: Number(payment.amount),
+          expectedamount: moneyNumber(payment.amount),
           receivedamount: input.amount,
         })
       }

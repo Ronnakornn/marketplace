@@ -1,3 +1,4 @@
+import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
@@ -23,46 +24,47 @@ export function createPayoutRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof WalletServiceError) {
-        return httpStatus(error.status, {
+        return moneyHttpError(error.status, toMoneyDto({
           error: { code: error.code, message: error.message, details: error.details ?? {} },
-        })
+        }))
       }
     })
     .post('/api/seller/payouts', ({ authContext, body }: any) =>
-      container.payoutService.createSellerPayout(actor(authContext), body), {
+      moneyResponse(container.payoutService.createSellerPayout(actor(authContext), body)), {
       withAuth: true,
       withSellerOperational: true,
       body: PayoutRequestBody,
     })
     .get('/api/seller/payouts', ({ authContext }: any) =>
-      container.payoutService.listSellerPayouts(actor(authContext)), {
+      moneyResponse(container.payoutService.listSellerPayouts(actor(authContext))), {
       withAuth: true,
       withSellerOperational: true,
     })
     .get('/api/admin/payouts', ({ authContext, query }: any) =>
-      container.payoutService.listAdminPayouts(actor(authContext), query), {
+      moneyResponse(container.payoutService.listAdminPayouts(actor(authContext), query)), {
       withRole: 'ADMIN',
       query: t.Object({ status: t.Optional(t.String()) }),
     })
     .get('/api/admin/payouts/:payoutId', ({ authContext, params }: any) =>
-      container.payoutService.getAdminPayout(actor(authContext), params.payoutId), {
+      moneyResponse(container.payoutService.getAdminPayout(actor(authContext), params.payoutId)), {
       withRole: 'ADMIN',
       params: t.Object({ payoutId: t.String({ format: 'uuid' }) }),
     })
     .patch('/api/admin/payouts/:payoutId/approve', ({ authContext, params }: any) =>
-      container.payoutService.approveAdminPayout(actor(authContext), params.payoutId), {
+      moneyResponse(container.payoutService.approveAdminPayout(actor(authContext), params.payoutId)), {
       withRole: 'ADMIN',
       params: t.Object({ payoutId: t.String({ format: 'uuid' }) }),
     })
     .patch('/api/admin/payouts/:payoutId/reject', ({ authContext, params, body }: any) =>
-      container.payoutService.rejectAdminPayout(actor(authContext), params.payoutId, body), {
+      moneyResponse(container.payoutService.rejectAdminPayout(actor(authContext), params.payoutId, body)), {
       withRole: 'ADMIN',
       params: t.Object({ payoutId: t.String({ format: 'uuid' }) }),
       body: RejectBody,
     })
     .patch('/api/admin/payouts/:payoutId/mark-paid', ({ authContext, params, body }: any) =>
-      container.payoutService.markAdminPayoutPaid(actor(authContext), params.payoutId, body), {
+      moneyResponse(container.payoutService.markAdminPayoutPaid(actor(authContext), params.payoutId, body)), {
       withRole: 'ADMIN',
       params: t.Object({ payoutId: t.String({ format: 'uuid' }) }),
       body: MarkPaidBody,

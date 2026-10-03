@@ -1,3 +1,4 @@
+import { moneyInteger, moneyMin, moneyMax } from '#server/lib/money.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheService } from '#server/modules/cache'
@@ -34,8 +35,8 @@ export interface ProductSearchItem {
   productId: string
   title: string
   coverImage: string | null
-  minPrice: number
-  maxPrice: number | null
+  minPrice: bigint
+  maxPrice: bigint | null
   ratingSummary: {
     averageRating: number
     totalReviewCount: number
@@ -53,7 +54,7 @@ export interface ProductSearchItem {
     title: string
     titleTh?: string | null
     titleEn?: string | null
-    price: number
+    price: bigint
     currency: string
     stock: number
     optionValues: Array<{
@@ -319,9 +320,9 @@ export class SearchService {
   }
 
   private toSearchItem(product: SearchProductRecord, locale: ContentLocale): ProductSearchItem {
-    const price = product.variants.map((variant) => Number(variant.price))
-    const minPrice = Math.min(...price)
-    const maxPrice = Math.max(...price)
+    const price = product.variants.map((variant) => moneyInteger(variant.price))
+    const minPrice = moneyMin(price)
+    const maxPrice = moneyMax(price)
     const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0)
     const totalReviewCount = product.reviews.length
     const averageRating = totalReviewCount === 0 ? 0 : Number((totalRating / totalReviewCount).toFixed(2))
@@ -355,7 +356,7 @@ export class SearchService {
         title: localizedText(locale, { th: variant.titleTh, en: variant.titleEn, fallback: variant.title }) ?? variant.title,
         titleTh: variant.titleTh,
         titleEn: variant.titleEn,
-        price: Number(variant.price),
+        price: moneyInteger(variant.price),
         currency: variant.currency,
         stock: variant.inventory ? Math.max(0, variant.inventory.quantityOnHand - variant.inventory.quantityReserved) : 0,
         optionValues: variant.optionValues.map(({ optionValue }) => ({
@@ -441,9 +442,9 @@ export class SearchService {
     const sorted = [...items]
     switch (sort) {
       case 'price_asc':
-        return sorted.sort((a, b) => a.minPrice - b.minPrice || a.title.localeCompare(b.title))
+        return sorted.sort((a, b) => (a.minPrice < b.minPrice ? -1 : a.minPrice > b.minPrice ? 1 : 0) || a.title.localeCompare(b.title))
       case 'price_desc':
-        return sorted.sort((a, b) => b.minPrice - a.minPrice || a.title.localeCompare(b.title))
+        return sorted.sort((a, b) => (b.minPrice < a.minPrice ? -1 : b.minPrice > a.minPrice ? 1 : 0) || a.title.localeCompare(b.title))
       case 'top_sales':
         return sorted.sort((a, b) => b.soldCount - a.soldCount || a.title.localeCompare(b.title))
       case 'rating':

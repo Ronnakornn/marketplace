@@ -78,8 +78,8 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
     const profile = await prisma.sellerProfile.create({ data: { userId: user.id } })
     const shop = await prisma.shop.create({ data: { ownerId: user.id, sellerProfileId: profile.id, name: 'Test shop', slug: tag, contactEmail: user.email, contactPhone: '0800000000', status: 'ACTIVE' } })
     const product = await prisma.product.create({ data: { shopId: shop.id, title: 'Test item', slug: tag, status: 'ACTIVE' } })
-    const variant = await prisma.productVariant.create({ data: { productId: product.id, sku: tag, title: 'Default', price: 1000, inventory: { create: { quantityOnHand: 10 } } } })
-    const cart = await prisma.cart.create({ data: { userId: user.id, items: { create: { variantId: variant.id, quantity: 6, unitPrice: 1000 } } } })
+    const variant = await prisma.productVariant.create({ data: { productId: product.id, sku: tag, title: 'Default', price: 1000n, inventory: { create: { quantityOnHand: 10 } } } })
+    const cart = await prisma.cart.create({ data: { userId: user.id, items: { create: { variantId: variant.id, quantity: 6, unitPrice: 1000n } } } })
     const address = await prisma.address.create({ data: { userId: user.id, recipientName: 'Buyer', line1: '1 Road', city: 'Bangkok', postalCode: '10110', country: 'TH' } })
     const repo = new PrismaCheckoutRepository(context, prisma)
     const snapshot = (await repo.findCartForCheckout(cart.id))!
@@ -195,7 +195,7 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
     expect(await refundDebits(data.result.orderId)).toEqual([-1n, -1n])
     const wallets = services().wallets
     const summaries = await Promise.all(data.fixtures.map((shop) => wallets.getSellerWallet(shop.user)))
-    expect(summaries.map((summary) => summary.availableBalanceCents)).toEqual([-1, -1])
+    expect(summaries.map((summary) => summary.availableBalanceCents)).toEqual([-1n, -1n])
   })
 
   it('serializes different simultaneous refunds against the remaining shop allocations', async () => {
@@ -296,8 +296,8 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
     const first = await fixture()
     const second = await fixture()
     const modules = services()
-    await prisma.cartItem.updateMany({ where: { cartId: first.cart.id }, data: { unitPrice: 1 } })
-    await prisma.cartItem.create({ data: { cartId: first.cart.id, variantId: second.variant.id, quantity: 2, unitPrice: 1 } })
+    await prisma.cartItem.updateMany({ where: { cartId: first.cart.id }, data: { unitPrice: 1n } })
+    await prisma.cartItem.create({ data: { cartId: first.cart.id, variantId: second.variant.id, quantity: 2, unitPrice: 1n } })
     await prisma.shopSetting.create({ data: { shopId: first.shop.id, shippingFee: 100 } })
     await prisma.shopSetting.create({ data: { shopId: second.shop.id, shippingFee: 200 } })
     const coupon = await prisma.coupon.create({ data: { shopId: first.shop.id, code: randomUUID().toUpperCase(), discountType: 'FIXED_AMOUNT', discountValue: 1000 } })
@@ -345,7 +345,7 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
     const first = await fixture()
     const second = await fixture()
     const { checkout, jobs } = services()
-    await prisma.cartItem.create({ data: { cartId: first.cart.id, variantId: second.variant.id, quantity: 2, unitPrice: 1000 } })
+    await prisma.cartItem.create({ data: { cartId: first.cart.id, variantId: second.variant.id, quantity: 2, unitPrice: 1000n } })
     const result = await checkout.createCheckout(first.user, { cartId: first.cart.id, addressId: first.input.address.id, paymentMethod: 'card' })
     const order = await prisma.order.findUniqueOrThrow({ where: { id: result.orderId } })
     await prisma.checkout.update({ where: { id: order.checkoutId }, data: { expiresAt: new Date(0) } })

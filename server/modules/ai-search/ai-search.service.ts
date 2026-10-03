@@ -1,3 +1,4 @@
+import { moneyInteger, moneyMin, moneyMax } from '#server/lib/money.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheService } from '#server/modules/cache'
@@ -28,8 +29,8 @@ export interface AiSearchProductItem {
     slug: string
   } | null
   price: {
-    minPrice: number
-    maxPrice: number | null
+    minPrice: bigint
+    maxPrice: bigint | null
     currency: string
   }
   rating: {
@@ -165,8 +166,8 @@ export class AiSearchService {
 
   private toProductItem(product: AiSearchProductRecord, locale: ContentLocale): AiSearchProductItem {
     const price = product.variants.map((variant) => variant.price)
-    const minPrice = Math.min(...price.map((price: string | bigint) => Number(price)));
-    const maxPrice = Math.max(...price.map((price: string | bigint) => Number(price)));
+    const minPrice = moneyMin(price.map(moneyInteger));
+    const maxPrice = moneyMax(price.map(moneyInteger));
     const currency = product.variants[0]?.currency ?? 'USD'
     const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0)
     const totalReviewCount = product.reviews.length

@@ -1,3 +1,4 @@
+import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { SearchServiceError } from './search.errors.ts'
@@ -29,22 +30,23 @@ const SuggestionsQuerySchema = t.Object({
 export function createSearchRoutes(container: ServiceContainer) {
   return new Elysia()
     .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof SearchServiceError) {
-        return httpStatus(error.status, {
+        return moneyHttpError(error.status, toMoneyDto({
           error: {
             code: error.code,
             message: error.message,
             details: error.details ?? {},
           },
-        })
+        }))
       }
     })
     .get('/api/search/products', ({ query }: any) =>
-      container.searchService.searchProducts(query), {
+      moneyResponse(container.searchService.searchProducts(query)), {
       query: SearchQuerySchema,
     })
     .get('/api/search/suggestions', ({ query }: any) =>
-      container.searchService.getSuggestions(query), {
+      moneyResponse(container.searchService.getSuggestions(query)), {
       query: SuggestionsQuerySchema,
     })
 }

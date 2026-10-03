@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { FraudCase, Prisma, PrismaClient } from '#generated/client/client.ts'
 import type { FraudCaseStatus, FraudEntityType, FraudRiskLevel } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -30,7 +31,7 @@ export interface FraudOrderRiskContext {
     id: string
     userId: string
     checkoutId: string
-    grandTotal: number
+    grandTotal: bigint
     status: string
     paymentStatus: string
     createdAt: Date
@@ -46,7 +47,7 @@ export interface FraudOrderRiskContext {
 export interface FraudRefundRiskContext {
   refund: {
     id: string
-    amount: number
+    amount: bigint
     order: {
       userId: string
     }
@@ -129,7 +130,7 @@ export class PrismaFraudRepository implements IFraudRepository {
       }),
     ])
 
-    return { order: { ...order, grandTotal: Number(order.grandTotal) }, userOrderCount, sameUserFailedPayments, sameUserCancelledOrders }
+    return { order: { ...order, grandTotal: moneyInteger(order.grandTotal) }, userOrderCount, sameUserFailedPayments, sameUserCancelledOrders }
   }
 
   async getRefundRiskContext(refundId: string): Promise<FraudRefundRiskContext> {
@@ -153,7 +154,7 @@ export class PrismaFraudRepository implements IFraudRepository {
       this.prisma.refund.count({ where: { order: { userId: refund.order.userId } } }),
     ])
 
-    return { refund: { ...refund, amount: Number(refund.amount) }, userOrderCount, userRefundCount }
+    return { refund: { ...refund, amount: moneyInteger(refund.amount) }, userOrderCount, userRefundCount }
   }
 
   async getAffiliateRiskContext(affiliateId: string): Promise<FraudAffiliateRiskContext> {

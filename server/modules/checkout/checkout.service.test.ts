@@ -645,7 +645,7 @@ describe('CheckoutService', () => {
 
   it('applies buyer coins within the balance and twenty-percent subtotal cap', async () => {
     const service = await setupSuccess()
-    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(10)
+    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(10n)
 
     const quote = await service.quoteCheckout(createActor(), {
       cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -659,7 +659,7 @@ describe('CheckoutService', () => {
 
   it('does not spend coins that cannot reduce the post-coupon subtotal', async () => {
     const service = await setupSuccess({ couponDiscountCents: 2400 })
-    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(10)
+    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(10n)
 
     await expect(service.quoteCheckout(createActor(), {
       cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -763,7 +763,7 @@ describe('CheckoutQuoteEvaluator', () => {
         createItem({ id: 'three', shopId: 'shop-two', variantId: 'variant-three', price: 999, quantity: 2, shippingFee: 450 }),
       ] }),
     })
-    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(20)
+    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(20n)
     const quote = await service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', couponCode: 'SAVE', coinsToUse: 12 })
     expect(quote).toMatchObject({ subtotal: 6395, discountTotal: 1840, shippingTotal: 800, taxTotal: 0, grandTotal: 5355, coinsApplied: 12 })
     expect(quote.items).toEqual([
@@ -784,7 +784,7 @@ describe('CheckoutQuoteEvaluator', () => {
     { subtotal: 500, coins: 1, rejected: false, grandTotal: 400 },
   ])('checks coin cap at the $subtotal-satang boundary', async ({ subtotal, coins, rejected, grandTotal }) => {
     const service = await setupSuccess({ cart: createCart({ items: [createItem({ price: subtotal, quantity: 1, shippingFee: 0 })] }) })
-    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(20)
+    vi.mocked(repo.findBuyerCoinBalance).mockResolvedValue(20n)
     const quote = service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', coinsToUse: coins })
     if (rejected) await expect(quote).rejects.toMatchObject({ code: 'CHECKOUT_FAILED' })
     else expect(await quote).toMatchObject({ subtotal, discountTotal: 100, grandTotal })

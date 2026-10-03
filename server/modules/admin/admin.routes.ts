@@ -1,3 +1,4 @@
+import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
@@ -78,23 +79,24 @@ export function createAdminRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
+      if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof AdminServiceError || error instanceof RefundServiceError) {
-        return httpStatus(error.status, {
+        return moneyHttpError(error.status, toMoneyDto({
           error: {
             code: error.code,
             message: error.message,
             details: error.details,
           },
-        })
+        }))
       }
     })
-    .get('/api/admin/dashboard', ({ authContext }: any) => container.adminService.getDashboard(adminActor(authContext)), {
+    .get('/api/admin/dashboard', ({ authContext }: any) => moneyResponse(container.adminService.getDashboard(adminActor(authContext))), {
       withRole: 'ADMIN',
     })
-    .get('/api/admin/reports', ({ authContext }: any) => container.adminService.getReports(adminActor(authContext)), {
+    .get('/api/admin/reports', ({ authContext }: any) => moneyResponse(container.adminService.getReports(adminActor(authContext))), {
       withRole: 'ADMIN',
     })
-    .get('/api/admin/commissions', ({ authContext, query }: any) => container.adminService.listCommissions(adminActor(authContext), query), {
+    .get('/api/admin/commissions', ({ authContext, query }: any) => moneyResponse(container.adminService.listCommissions(adminActor(authContext), query)), {
       withRole: 'ADMIN',
       query: t.Composite([
         PaginationQuery,
@@ -106,26 +108,26 @@ export function createAdminRoutes(container: ServiceContainer) {
     })
     .patch(
       '/api/admin/commissions/:commissionId/status',
-      ({ authContext, params: { commissionId }, body }: any) => container.adminService.updateCommissionStatus(adminActor(authContext), commissionId, body),
+      ({ authContext, params: { commissionId }, body }: any) => moneyResponse(container.adminService.updateCommissionStatus(adminActor(authContext), commissionId, body)),
       {
         withRole: 'ADMIN',
         params: t.Object({ commissionId: t.String({ format: 'uuid' }) }),
         body: CommissionStatusBody,
       },
     )
-    .get('/api/admin/settings', ({ authContext }: any) => container.adminService.listSystemSettings(adminActor(authContext)), {
+    .get('/api/admin/settings', ({ authContext }: any) => moneyResponse(container.adminService.listSystemSettings(adminActor(authContext))), {
       withRole: 'ADMIN',
     })
     .put(
       '/api/admin/settings/:key',
-      ({ authContext, params: { key }, body }: any) => container.adminService.upsertSystemSetting(adminActor(authContext), key, body),
+      ({ authContext, params: { key }, body }: any) => moneyResponse(container.adminService.upsertSystemSetting(adminActor(authContext), key, body)),
       {
         withRole: 'ADMIN',
         params: t.Object({ key: t.String({ minLength: 2, maxLength: 120 }) }),
         body: SystemSettingWriteBody,
       },
     )
-    .get('/api/admin/users', ({ authContext, query }: any) => container.adminService.listUsers(adminActor(authContext), query), {
+    .get('/api/admin/users', ({ authContext, query }: any) => moneyResponse(container.adminService.listUsers(adminActor(authContext), query)), {
       withRole: 'ADMIN',
       query: t.Composite([
         PaginationQuery,
@@ -135,7 +137,7 @@ export function createAdminRoutes(container: ServiceContainer) {
         }),
       ]),
     })
-    .get('/api/admin/brands', ({ authContext, query }: any) => container.adminService.listBrands(adminActor(authContext), query), {
+    .get('/api/admin/brands', ({ authContext, query }: any) => moneyResponse(container.adminService.listBrands(adminActor(authContext), query)), {
       withRole: 'ADMIN',
       query: t.Composite([
         PaginationQuery,
@@ -145,93 +147,93 @@ export function createAdminRoutes(container: ServiceContainer) {
         }),
       ]),
     })
-    .post('/api/admin/brands', ({ authContext, body }: any) => container.adminService.createBrand(adminActor(authContext), body), {
+    .post('/api/admin/brands', ({ authContext, body }: any) => moneyResponse(container.adminService.createBrand(adminActor(authContext), body)), {
       withRole: 'ADMIN',
       body: BrandWriteBody,
     })
-    .patch('/api/admin/brands/:brandId', ({ authContext, params: { brandId }, body }: any) => container.adminService.updateBrand(adminActor(authContext), brandId, body), {
+    .patch('/api/admin/brands/:brandId', ({ authContext, params: { brandId }, body }: any) => moneyResponse(container.adminService.updateBrand(adminActor(authContext), brandId, body)), {
       withRole: 'ADMIN',
       params: t.Object({ brandId: t.String({ format: 'uuid' }) }),
       body: BrandUpdateBody,
     })
-    .patch('/api/admin/brands/:brandId/deactivate', ({ authContext, params: { brandId } }: any) => container.adminService.deactivateBrand(adminActor(authContext), brandId), {
+    .patch('/api/admin/brands/:brandId/deactivate', ({ authContext, params: { brandId } }: any) => moneyResponse(container.adminService.deactivateBrand(adminActor(authContext), brandId)), {
       withRole: 'ADMIN',
       params: t.Object({ brandId: t.String({ format: 'uuid' }) }),
     })
-    .patch('/api/admin/brands/:brandId/reactivate', ({ authContext, params: { brandId } }: any) => container.adminService.reactivateBrand(adminActor(authContext), brandId), {
+    .patch('/api/admin/brands/:brandId/reactivate', ({ authContext, params: { brandId } }: any) => moneyResponse(container.adminService.reactivateBrand(adminActor(authContext), brandId)), {
       withRole: 'ADMIN',
       params: t.Object({ brandId: t.String({ format: 'uuid' }) }),
     })
-    .post('/api/admin/users', ({ authContext, body }: any) => container.adminService.createUser(adminActor(authContext), body), {
+    .post('/api/admin/users', ({ authContext, body }: any) => moneyResponse(container.adminService.createUser(adminActor(authContext), body)), {
       withRole: 'ADMIN',
       body: UserWriteBody,
     })
-    .patch('/api/admin/users/:userId', ({ authContext, params: { userId }, body }: any) => container.adminService.updateUser(adminActor(authContext), userId, body), {
+    .patch('/api/admin/users/:userId', ({ authContext, params: { userId }, body }: any) => moneyResponse(container.adminService.updateUser(adminActor(authContext), userId, body)), {
       withRole: 'ADMIN',
       params: t.Object({ userId: t.String() }),
       body: UserUpdateBody,
     })
-    .patch('/api/admin/users/:userId/role', ({ authContext, params: { userId }, body }: any) => container.adminService.updateUserRole(adminActor(authContext), userId, body.role), {
+    .patch('/api/admin/users/:userId/role', ({ authContext, params: { userId }, body }: any) => moneyResponse(container.adminService.updateUserRole(adminActor(authContext), userId, body.role)), {
       withRole: 'ADMIN',
       params: t.Object({ userId: t.String() }),
       body: RoleBody,
     })
     .patch(
       '/api/admin/users/:userId/status',
-      ({ authContext, params: { userId }, body }: any) => container.adminService.updateUserStatus(adminActor(authContext), userId, body.status),
+      ({ authContext, params: { userId }, body }: any) => moneyResponse(container.adminService.updateUserStatus(adminActor(authContext), userId, body.status)),
       {
         withRole: 'ADMIN',
         params: t.Object({ userId: t.String() }),
         body: StatusBody,
       },
     )
-    .delete('/api/admin/users/:userId', ({ authContext, params: { userId } }: any) => container.adminService.deleteUser(adminActor(authContext), userId), {
+    .delete('/api/admin/users/:userId', ({ authContext, params: { userId } }: any) => moneyResponse(container.adminService.deleteUser(adminActor(authContext), userId)), {
       withRole: 'ADMIN',
       params: t.Object({ userId: t.String() }),
     })
-    .get('/api/admin/shops', ({ authContext, query }: any) => container.adminService.listShops(adminActor(authContext), query), {
+    .get('/api/admin/shops', ({ authContext, query }: any) => moneyResponse(container.adminService.listShops(adminActor(authContext), query)), {
       withRole: 'ADMIN',
       query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()) })]),
     })
-    .post('/api/admin/shops', ({ authContext, body }: any) => container.adminService.createShop(adminActor(authContext), body), {
+    .post('/api/admin/shops', ({ authContext, body }: any) => moneyResponse(container.adminService.createShop(adminActor(authContext), body)), {
       withRole: 'ADMIN',
       body: ShopWriteBody,
     })
-    .get('/api/admin/shops/:shopId', ({ authContext, params: { shopId } }: any) => container.adminService.getShop(adminActor(authContext), shopId), {
+    .get('/api/admin/shops/:shopId', ({ authContext, params: { shopId } }: any) => moneyResponse(container.adminService.getShop(adminActor(authContext), shopId)), {
       withRole: 'ADMIN',
       params: t.Object({ shopId: t.String() }),
     })
-    .patch('/api/admin/shops/:shopId', ({ authContext, params: { shopId }, body }: any) => container.adminService.updateShop(adminActor(authContext), shopId, body), {
+    .patch('/api/admin/shops/:shopId', ({ authContext, params: { shopId }, body }: any) => moneyResponse(container.adminService.updateShop(adminActor(authContext), shopId, body)), {
       withRole: 'ADMIN',
       params: t.Object({ shopId: t.String() }),
       body: ShopUpdateBody,
     })
-    .delete('/api/admin/shops/:shopId', ({ authContext, params: { shopId } }: any) => container.adminService.deleteShop(adminActor(authContext), shopId), {
+    .delete('/api/admin/shops/:shopId', ({ authContext, params: { shopId } }: any) => moneyResponse(container.adminService.deleteShop(adminActor(authContext), shopId)), {
       withRole: 'ADMIN',
       params: t.Object({ shopId: t.String() }),
     })
     .patch(
       '/api/admin/shops/:shopId/status',
-      ({ authContext, params: { shopId }, body }: any) => container.adminService.updateShopStatus(adminActor(authContext), shopId, body.status),
+      ({ authContext, params: { shopId }, body }: any) => moneyResponse(container.adminService.updateShopStatus(adminActor(authContext), shopId, body.status)),
       {
         withRole: 'ADMIN',
         params: t.Object({ shopId: t.String() }),
         body: StatusBody,
       },
     )
-    .get('/api/admin/products', ({ authContext, query }: any) => container.adminService.listProducts(adminActor(authContext), query), {
+    .get('/api/admin/products', ({ authContext, query }: any) => moneyResponse(container.adminService.listProducts(adminActor(authContext), query)), {
       withRole: 'ADMIN',
       query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()) })]),
     })
     .get(
       '/api/admin/products/:productId',
-      ({ authContext, params: { productId } }: any) => container.adminService.getProduct(adminActor(authContext), productId),
+      ({ authContext, params: { productId } }: any) => moneyResponse(container.adminService.getProduct(adminActor(authContext), productId)),
       {
         withRole: 'ADMIN',
         params: t.Object({ productId: t.String() }),
       },
     )
-    .get('/api/admin/orders', ({ authContext, query }: any) => container.adminService.listOrders(adminActor(authContext), query), {
+    .get('/api/admin/orders', ({ authContext, query }: any) => moneyResponse(container.adminService.listOrders(adminActor(authContext), query)), {
       withRole: 'ADMIN',
       query: t.Composite([
         PaginationQuery,
@@ -245,52 +247,52 @@ export function createAdminRoutes(container: ServiceContainer) {
     })
     .get(
       '/api/admin/orders/:orderId',
-      ({ authContext, params: { orderId } }: any) => container.adminService.getOrder(adminActor(authContext), orderId),
+      ({ authContext, params: { orderId } }: any) => moneyResponse(container.adminService.getOrder(adminActor(authContext), orderId)),
       {
         withRole: 'ADMIN',
         params: t.Object({ orderId: t.String() }),
       },
     )
     .post('/api/admin/orders/:orderId/refunds', ({ authContext, params, body }: any) =>
-      container.adminService.createSettlementRefund(adminActor(authContext), params.orderId, body), {
+      moneyResponse(container.adminService.createSettlementRefund(adminActor(authContext), params.orderId, body)), {
       withRole: 'ADMIN',
       params: t.Object({ orderId: t.String({ format: 'uuid' }) }),
       body: SettlementRefundPlanSchema,
     })
-    .get('/api/admin/refunds', ({ authContext, query }: any) => container.adminService.listRefunds(adminActor(authContext), query), {
+    .get('/api/admin/refunds', ({ authContext, query }: any) => moneyResponse(container.adminService.listRefunds(adminActor(authContext), query)), {
       withRole: 'ADMIN',
       query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()) })]),
     })
     .get(
       '/api/admin/refunds/:refundId',
-      ({ authContext, params: { refundId } }: any) => container.adminService.getRefund(adminActor(authContext), refundId),
+      ({ authContext, params: { refundId } }: any) => moneyResponse(container.adminService.getRefund(adminActor(authContext), refundId)),
       {
         withRole: 'ADMIN',
         params: t.Object({ refundId: t.String() }),
       },
     )
     .patch('/api/admin/refunds/:refundId/plan', ({ authContext, params, body }: any) =>
-      container.adminService.prepareSettlementRefund(adminActor(authContext), params.refundId, body), {
+      moneyResponse(container.adminService.prepareSettlementRefund(adminActor(authContext), params.refundId, body)), {
       withRole: 'ADMIN',
       params: t.Object({ refundId: t.String({ format: 'uuid' }) }),
       body: SettlementRefundPlanSchema,
     })
     .patch(
       '/api/admin/refunds/:refundId/status',
-      ({ authContext, params: { refundId }, body }: any) => container.adminService.updateRefundStatus(adminActor(authContext), refundId, body),
+      ({ authContext, params: { refundId }, body }: any) => moneyResponse(container.adminService.updateRefundStatus(adminActor(authContext), refundId, body)),
       {
         withRole: 'ADMIN',
         params: t.Object({ refundId: t.String() }),
         body: RefundStatusBody,
       },
     )
-    .get('/api/admin/returns', ({ authContext, query }: any) => container.adminService.listReturns(adminActor(authContext), query), {
+    .get('/api/admin/returns', ({ authContext, query }: any) => moneyResponse(container.adminService.listReturns(adminActor(authContext), query)), {
       withRole: 'ADMIN',
       query: t.Composite([PaginationQuery, t.Object({ status: t.Optional(t.String()) })]),
     })
     .get(
       '/api/admin/returns/:returnId',
-      ({ authContext, params: { returnId } }: any) => container.adminService.getReturn(adminActor(authContext), returnId),
+      ({ authContext, params: { returnId } }: any) => moneyResponse(container.adminService.getReturn(adminActor(authContext), returnId)),
       {
         withRole: 'ADMIN',
         params: t.Object({ returnId: t.String() }),
@@ -298,7 +300,7 @@ export function createAdminRoutes(container: ServiceContainer) {
     )
     .patch(
       '/api/admin/returns/:returnId/status',
-      ({ authContext, params: { returnId }, body }: any) => container.adminService.updateReturnStatus(adminActor(authContext), returnId, body.status),
+      ({ authContext, params: { returnId }, body }: any) => moneyResponse(container.adminService.updateReturnStatus(adminActor(authContext), returnId, body.status)),
       {
         withRole: 'ADMIN',
         params: t.Object({ returnId: t.String() }),

@@ -22,7 +22,7 @@ export interface FraudSignalInput {
   repeatedCouponUse?: number
   sameDeviceAccounts?: number
   affiliateSelfReferral?: boolean
-  orderamount?: number
+  orderamount?: bigint | number
   checkoutDurationSeconds?: number | null
   cancelledOrders?: number
 }

@@ -67,9 +67,9 @@ describe.skipIf(!url)('numeric analytics and sold counts on PostgreSQL', () => {
     const nextProducts = await service.getProducts(actor, { ...query, page: 2 })
     const skus = await service.getSkus(actor, query)
 
-    expect(products.items.map((item) => [item.productId, item.revenue])).toEqual([[f.products[2]!.product.id, 900], [f.products[1]!.product.id, 200]])
-    expect(nextProducts.items.map((item) => [item.productId, item.revenue])).toEqual([[f.products[0]!.product.id, 100]])
-    expect(skus.items.map((item) => [item.variantId, item.revenue])).toEqual([[f.products[2]!.variant.id, 900], [f.products[1]!.variant.id, 200]])
+    expect(products.items.map((item) => [item.productId, item.revenue])).toEqual([[f.products[2]!.product.id, 900n], [f.products[1]!.product.id, 200n]])
+    expect(nextProducts.items.map((item) => [item.productId, item.revenue])).toEqual([[f.products[0]!.product.id, 100n]])
+    expect(skus.items.map((item) => [item.variantId, item.revenue])).toEqual([[f.products[2]!.variant.id, 900n], [f.products[1]!.variant.id, 200n]])
     expect(products.pagination).toEqual({ page: 1, limit: 2, total: 3, totalPages: 2 })
   })
 
@@ -126,7 +126,7 @@ describe.skipIf(!url)('numeric analytics and sold counts on PostgreSQL', () => {
 
     const recommendations = new RecommendationService(context, new PrismaRecommendationRepository(context, db))
     const search = new SearchService(context, new PrismaSearchRepository(context, db))
-    for (const [shopFixture, target, expected, expectedRevenue] of [[canceled, canceledProduct, 9, 900], [retained, retainedProduct, 12, 1200]] as const) {
+    for (const [shopFixture, target, expected, expectedRevenue] of [[canceled, canceledProduct, 9, 900n], [retained, retainedProduct, 12, 1200n]] as const) {
       const recommended = await recommendations.getRelated(shopFixture.products[0]!.product.id, { limit: 20 })
       const searched = await search.searchProducts({ q: shopFixture.tag, limit: 20 })
       expect.soft(recommended.items.find((item) => item.productId === target.product.id)?.soldCount).toBe(expected)

@@ -1,3 +1,4 @@
+import { moneyNumber } from '#server/lib/money.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { WalletServiceError } from '#server/modules/wallet/wallet.errors.ts'
@@ -28,7 +29,7 @@ export class CommissionService {
     if (!Number.isSafeInteger(grossamount) || grossamount < 0) {
       throw new WalletServiceError('Gross amount must be a non-negative integer', 400, 'COMMISSION_RULE_NOT_FOUND')
     }
-    const commissionamount = Number(BigInt(grossamount) * BigInt(this.commissionBps) / 10000n)
+    const commissionamount = moneyNumber(BigInt(grossamount) * BigInt(this.commissionBps) / 10000n)
     return {
       grossamount,
       commissionamount,

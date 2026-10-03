@@ -1,3 +1,4 @@
+import { moneyNumber } from '#server/lib/money.ts'
 import { PromotionServiceError } from '#server/modules/promotion/promotion.errors.ts'
 import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import { CheckoutServiceError } from './checkout.errors.ts'
@@ -140,7 +141,7 @@ export class CheckoutQuoteEvaluator {
       this.assertAmount(subtotal, 'Item subtotal')
       const shop = item.variant.product.shop
       if (!shippingByShop.has(shop.id)) {
-        const shippingFee = Number(shop.settings?.shippingFee ?? 0)
+        const shippingFee = this.toBoundedAmount(shop.settings?.shippingFee ?? 0)
         this.assertAmount(shippingFee, 'Shipping fee')
         shippingByShop.set(shop.id, shippingFee)
       }
@@ -176,12 +177,12 @@ export class CheckoutQuoteEvaluator {
         await repo.lockFlashSaleItemForCheckout(flashSaleItem.id)
         flashSaleItem = await repo.findActiveFlashSaleItemForCheckout(item.variantId, now)
       }
-      const regularPrice = Number(item.variant.price)
+      const regularPrice = this.toBoundedAmount(item.variant.price)
       this.assertAmount(regularPrice, 'Variant price', 1)
       if (!flashSaleItem) {
         return { ...item, unitPrice: regularPrice }
       }
-      const salePrice = Number(flashSaleItem.salePrice)
+      const salePrice = this.toBoundedAmount(flashSaleItem.salePrice)
       this.assertAmount(salePrice, 'Flash sale price')
       if (salePrice === 0 || salePrice >= regularPrice) return { ...item, unitPrice: regularPrice }
       return { ...item, unitPrice: salePrice, flashSaleItemId: flashSaleItem.id }
@@ -231,12 +232,12 @@ export class CheckoutQuoteEvaluator {
     if (!coins) return 0
     if (lockWallet) await repo.lockBuyerCoinWallet(userId)
     const balance = await repo.findBuyerCoinBalance(userId)
-    this.assertAmount(balance, 'Coin balance')
+    if (balance < 0n) throw new CheckoutServiceError('Coin balance must be a non-negative integer', 400, 'CHECKOUT_FAILED')
     const maximum = Math.min(
-      Number(BigInt(subtotal) / 500n),
-      Number(BigInt(Math.max(0, subtotal - existingDiscount)) / 100n),
+      moneyNumber(BigInt(subtotal) / 500n),
+      moneyNumber(BigInt(Math.max(0, subtotal - existingDiscount)) / 100n),
     )
-    if (coins > balance || coins > maximum) {
+    if (BigInt(coins) > balance || coins > maximum) {
       throw new CheckoutServiceError(
         'Coin redemption exceeds available balance or the 20% item subtotal cap',
         400,
@@ -244,6 +245,10 @@ export class CheckoutQuoteEvaluator {
       )
     }
     return coins
+  }
+
+  private toBoundedAmount(value: bigint | number): number {
+    try { return moneyNumber(value) } catch { throw new CheckoutServiceError('Amount must be a safe integer', 400, 'CHECKOUT_FAILED') }
   }
 
   private assertAmount(value: number, label: string, minimum = 0): void {

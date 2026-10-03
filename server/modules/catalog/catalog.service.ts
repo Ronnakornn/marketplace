@@ -1,3 +1,4 @@
+import { moneyInteger } from '#server/lib/money.ts'
 import type { ProductStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -1513,7 +1514,7 @@ export class CatalogService {
     if (!hasPrimaryImage) {
       throw new CatalogServiceError('Active products require a primary image', 400, 'PRODUCT_PUBLISH_NOT_READY')
     }
-    const hasActivePaidVariant = existing.variants.some((variant) => variant.status === 'ACTIVE' && Number(variant.price) > 0)
+    const hasActivePaidVariant = existing.variants.some((variant) => variant.status === 'ACTIVE' && moneyInteger(variant.price) > 0n)
     if (!hasActivePaidVariant) {
       throw new CatalogServiceError('Active products require at least one active priced variant', 400, 'PRODUCT_PUBLISH_NOT_READY')
     }
@@ -2001,10 +2002,10 @@ export class CatalogService {
   }
 
   private validatePriceRange(minPrice?: number, maxPrice?: number): void {
-    if (minPrice !== undefined && (!Number.isInteger(minPrice) || minPrice < 0)) {
+    if (minPrice !== undefined && (!Number.isSafeInteger(minPrice) || minPrice < 0)) {
       throw new CatalogServiceError('Minimum price must be a non-negative integer in cents', 400, 'CATALOG_QUERY_INVALID')
     }
-    if (maxPrice !== undefined && (!Number.isInteger(maxPrice) || maxPrice < 0)) {
+    if (maxPrice !== undefined && (!Number.isSafeInteger(maxPrice) || maxPrice < 0)) {
       throw new CatalogServiceError('Maximum price must be a non-negative integer in cents', 400, 'CATALOG_QUERY_INVALID')
     }
     if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
