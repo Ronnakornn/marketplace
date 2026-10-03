@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signUp } from "#/lib/auth-client";
 import { useTranslations } from "#/i18n/client";
 import { SocialSignInButtons } from "./SocialSignInButtons";
@@ -15,10 +15,13 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
   const signupMutation = useMutation({ mutationFn: () => signUp.email({ name, email, password }) });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!hydrated) return;
     setError(null);
     try {
       const result = await signupMutation.mutateAsync();
@@ -61,6 +64,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               id="name"
               type="text"
               required
+              disabled={!hydrated}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t("auth.namePlaceholder")}
@@ -79,6 +83,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               id="email"
               type="email"
               required
+              disabled={!hydrated}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("auth.emailPlaceholder")}
@@ -97,6 +102,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               id="password"
               type="password"
               required
+              disabled={!hydrated}
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -107,7 +113,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
 
           <button
             type="submit"
-            disabled={signupMutation.isPending}
+            disabled={!hydrated || signupMutation.isPending}
             className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {signupMutation.isPending ? t("auth.creatingAccount") : t("auth.createAccount")}

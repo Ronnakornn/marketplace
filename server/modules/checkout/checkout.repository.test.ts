@@ -49,6 +49,7 @@ describe('PrismaCheckoutRepository', () => {
         create: vi.fn().mockResolvedValue({ id: 'flash-reservation-1' }),
       },
       $queryRaw: vi.fn().mockResolvedValue([]),
+      $executeRaw: vi.fn().mockResolvedValue(1),
     }
     const repository = new PrismaCheckoutRepository(
       { logger: createLogger(), config: { environment: 'test' } },
@@ -156,6 +157,14 @@ describe('PrismaCheckoutRepository', () => {
       }),
     }))
     expect(prisma.$queryRaw).toHaveBeenCalled()
+    // A concurrent sale may invalidate the cart snapshot before reservation.
+    prisma.$executeRaw.mockResolvedValueOnce(0)
+    prisma.order.create.mockClear()
+    await expect(repository.commitCheckout(input)).rejects.toMatchObject({ code: 'INSUFFICIENT_STOCK' })
+    expect(prisma.order.create).not.toHaveBeenCalled()
+    const sql = prisma.$executeRaw.mock.calls[0]![0].join('?')
+    expect(sql).toContain('"quantityOnHand" - "quantityReserved" >=')
+
     expect(prisma.flashSaleReservation.aggregate).toHaveBeenNthCalledWith(2, expect.objectContaining({
       where: expect.objectContaining({
         flashSaleItemId: 'flash-item-1',
@@ -178,6 +187,7 @@ describe('PrismaCheckoutRepository', () => {
       cart: { update: vi.fn().mockResolvedValue({}) },
       cartItem: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
       $queryRaw: vi.fn().mockResolvedValue([]),
+      $executeRaw: vi.fn().mockResolvedValue(1),
     }
     const repository = new PrismaCheckoutRepository(
       { logger: createLogger(), config: { environment: 'test' } }, prisma as unknown as PrismaClient,

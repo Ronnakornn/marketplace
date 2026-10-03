@@ -1,0 +1,36 @@
+{
+  "pass": true,
+  "elapsedMs": 18020,
+  "retryGapsMs": {
+    "transient": [
+      5035,
+      10024
+    ],
+    "permanent": [
+      5033,
+      10025
+    ]
+  },
+  "failedJobRetained": "failed",
+  "exhaustedLog": true,
+  "reconnectMs": 1381,
+  "notifications": 21,
+  "distribution": {
+    "worker-1": 14,
+    "worker-2": 7
+  },
+  "inFlightCloseWaited": true,
+  "counts": {
+    "active": 0,
+    "completed": 23,
+    "delayed": 0,
+    "failed": 1,
+    "paused": 0,
+    "prioritized": 0,
+    "waiting": 0,
+    "waiting-children": 0
+  },
+  "userId": "8dc97119-771c-42a2-87c8-9b6a99294340",
+  "redisVersion": "5.0.14.1",
+  "skipVersionCheck": false
+}

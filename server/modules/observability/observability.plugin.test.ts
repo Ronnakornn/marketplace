@@ -27,6 +27,7 @@ function createApp(appContext = createAppContext(), metrics = new MetricsCollect
   return new Elysia()
     .use(createObservabilityPlugin(appContext, metrics, {
       requestLoggingEnabled: true,
+      successfulRequestSampleRate: 1,
       slowRequestMs,
       metricsEnabled: true,
       healthCheckTimeoutMs: 100,
@@ -91,5 +92,39 @@ describe('observability plugin', () => {
       requestId: 'req-slow',
       path: '/slow',
     }))
+  })
+
+  it('samples slow warnings while counting every slow request', async () => {
+    const appContext = createAppContext('production')
+    const metrics = new MetricsCollector()
+    const app = new Elysia()
+      .use(createObservabilityPlugin(appContext, metrics, {
+        requestLoggingEnabled: true,
+        successfulRequestSampleRate: 0.1,
+        slowRequestMs: 1,
+        metricsEnabled: true,
+        healthCheckTimeoutMs: 100,
+      }))
+      .get('/slow', async () => { await new Promise(resolve => setTimeout(resolve, 2)); return { ok: true } })
+    for (let index = 0; index < 20; index++) await app.handle(new Request('http://localhost/slow'))
+    expect(appContext.logger.warn).toHaveBeenCalledTimes(2)
+    expect(metrics.snapshot().requests.slow).toBe(20)
+  })
+
+  it('samples successful access logs while preserving metrics for every request', async () => {
+    const appContext = createAppContext('production')
+    const metrics = new MetricsCollector()
+    const app = new Elysia()
+      .use(createObservabilityPlugin(appContext, metrics, {
+        requestLoggingEnabled: true,
+        successfulRequestSampleRate: 0.1,
+        slowRequestMs: 10_000,
+        metricsEnabled: true,
+        healthCheckTimeoutMs: 100,
+      }))
+      .get('/ok', () => ({ ok: true }))
+    await Promise.all(Array.from({ length: 20 }, () => app.handle(new Request('http://localhost/ok'))))
+    expect(appContext.logger.info).toHaveBeenCalledTimes(2)
+    expect(metrics.snapshot().requests.total).toBe(20)
   })
 })

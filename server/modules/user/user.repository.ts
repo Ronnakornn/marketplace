@@ -33,6 +33,15 @@ export interface CreateVerificationData {
   expiresAt: Date
 }
 
+export interface CompletePasswordResetData {
+  userId: string
+  accountId: string
+  passwordHash: string
+  verificationId: string
+  identifier: string
+  value: string
+}
+
 export type BuyerAddress = Address
 export type FavoriteProductRecord = FavoriteProduct & {
   product: Product & {
@@ -75,6 +84,7 @@ export interface IUserRepository {
   deleteVerification(id: string): Promise<void>
   findCredentialAccount(userId: string): Promise<Account | null>
   updateCredentialPassword(accountId: string, passwordHash: string): Promise<Account>
+  completePasswordReset(data: CompletePasswordResetData): Promise<boolean>
   delete(id: string): Promise<User>
   promoteByEmails(emails: string[]): Promise<number>
   listAddresses(userId: string): Promise<BuyerAddress[]>
@@ -373,6 +383,26 @@ export class PrismaUserRepository implements IUserRepository {
   findShopFollow(userId: string, shopId: string): Promise<ShopFollow | null> {
     return this.prisma.shopFollow.findUnique({
       where: { userId_shopId: { userId, shopId } },
+    })
+  }
+
+  completePasswordReset(data: CompletePasswordResetData): Promise<boolean> {
+    this.logger.info('PrismaUserRepository.completePasswordReset', { userId: data.userId })
+    return this.prisma.$transaction(async (tx) => {
+      // Serialize resets for this user, including distinct outstanding OTPs.
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${data.userId} FOR UPDATE`
+      const consumed = await tx.verification.deleteMany({ where: {
+        id: data.verificationId, identifier: data.identifier, value: data.value,
+        expiresAt: { gt: new Date() },
+      } })
+      if (consumed.count !== 1) return false
+      await tx.account.update({
+        where: { id: data.accountId, userId: data.userId, providerId: 'credential' },
+        data: { password: data.passwordHash },
+      })
+      await tx.session.deleteMany({ where: { userId: data.userId } })
+      await tx.verification.deleteMany({ where: { identifier: data.identifier } })
+      return true
     })
   }
 

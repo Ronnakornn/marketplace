@@ -186,8 +186,15 @@ export class UserService {
     const account = await this.repo.findCredentialAccount(user.id)
     if (!account) throw new UserServiceError('Password credential not found', 400)
 
-    await this.repo.updateCredentialPassword(account.id, await hashPassword(newPassword))
-    await this.repo.deleteVerification(verification.id)
+    const completed = await this.repo.completePasswordReset({
+      userId: user.id,
+      accountId: account.id,
+      passwordHash: await hashPassword(newPassword),
+      verificationId: verification.id,
+      identifier: verification.identifier,
+      value: verification.value,
+    })
+    if (!completed) throw new UserServiceError('Invalid or expired reset code', 400)
     return { success: true }
   }
 

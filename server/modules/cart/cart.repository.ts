@@ -139,12 +139,21 @@ export class PrismaCartRepository implements ICartRepository {
     const existing = await this.findActiveCartByUserId(userId)
     if (existing) return existing
 
-    return this.prisma.cart.create({
-      data: {
-        userId,
-        status: 'ACTIVE',
-      },
-      include: cartInclude,
+    return this.prisma.$transaction(async (tx) => {
+      // A first-page GET and add-item request can both observe no active cart.
+      // Serialize creation for this buyer and recheck after acquiring the lock.
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`
+      const current = await tx.cart.findFirst({
+        where: { userId, status: 'ACTIVE' },
+        include: cartInclude,
+        orderBy: { createdAt: 'desc' },
+      })
+      if (current) return current
+
+      return tx.cart.create({
+        data: { userId, status: 'ACTIVE' },
+        include: cartInclude,
+      })
     })
   }
 
@@ -189,7 +198,7 @@ export class PrismaCartRepository implements ICartRepository {
   }
 
   createItem(data: CreateCartItemData): Promise<CartItemDetail> {
-    this.logger.info('PrismaCartRepository.createItem', { cartId: data.cartId, variantId: data.variantId })
+    this.logger.debug('PrismaCartRepository.createItem', { cartId: data.cartId, variantId: data.variantId })
     return this.prisma.cartItem.create({
       data,
       include: itemInclude,

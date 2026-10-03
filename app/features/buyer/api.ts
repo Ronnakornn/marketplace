@@ -1,7 +1,7 @@
 "use client";
 
 import { defaultCurrency } from "#/i18n/config";
-import { requestApi } from "#/lib/api-client";
+import { ApiClientError, requestApi } from "#/lib/api-client";
 import { api } from "#/lib/eden";
 import type { Treaty } from "@elysiajs/eden";
 
@@ -341,16 +341,27 @@ export async function removeCartItem(itemId: string): Promise<void> {
 
 export async function createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
   const { data, error } = await api.api.checkout.post(input);
-  if (error) throw error;
+  if (error) throw checkoutApiError(error);
   if (!data) throw new Error("Checkout returned no data");
   return data;
 }
 
 export async function quoteCheckout(input: CheckoutQuoteInput): Promise<CheckoutQuote> {
   const { data, error } = await api.api.checkout.quote.post(input);
-  if (error) throw error;
+  if (error) throw checkoutApiError(error);
   if (!data) throw new Error("Checkout quote returned no data");
   return data;
+}
+
+function checkoutApiError(error: { status: number; value: unknown }): ApiClientError {
+  const payload = toRecord(error.value);
+  const failure = toRecord(payload.error);
+  return new ApiClientError(
+    readString(failure.message, readString(payload.message, readString(error.value, "Checkout request failed"))),
+    error.status,
+    readString(failure.code, readString(payload.code)) || undefined,
+    failure.details ?? payload.details,
+  );
 }
 
 export async function fetchAddresses(): Promise<BuyerAddress[]> {

@@ -3,7 +3,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { InputHTMLAttributes, LabelHTMLAttributes, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CheckoutPage } from "./CheckoutPage";
@@ -133,6 +133,25 @@ function renderCheckoutPage() {
 }
 
 describe("CheckoutPage", () => {
+  it("submits once for rapid clicks in one batch and allows retry after a network failure", async () => {
+    let rejectRequest!: (error: Error) => void;
+    vi.mocked(createCheckout).mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectRequest = reject; }));
+    renderCheckoutPage();
+    const button = await screen.findByRole("button", { name: "Place order" }) as HTMLButtonElement;
+    await waitFor(() => expect(button.disabled).toBe(false));
+    act(() => {
+      button.click();
+      button.click();
+    });
+    await waitFor(() => expect(createCheckout).toHaveBeenCalledTimes(1));
+    await act(async () => { rejectRequest(new Error("Network disconnected")); });
+    expect(await screen.findByText("Network disconnected")).toBeTruthy();
+    await waitFor(() => expect(button.disabled).toBe(false));
+    fireEvent.click(button);
+    await waitFor(() => expect(createCheckout).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("link", { name: "Continue to payment" })).toBeTruthy();
+  });
+
   beforeEach(() => {
     vi.mocked(useBuyerCoins).mockReturnValue({ data: { balance: 20, pendingBalance: 0, lifetimeEarned: 20, entries: [] } } as any);
     vi.mocked(fetchCart).mockResolvedValue({

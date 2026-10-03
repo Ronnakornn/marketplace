@@ -115,3 +115,11 @@ Shipping Provider:
 - Buyer routes validate resource ownership.
 - Admin routes validate admin role.
 - Webhook routes validate provider signatures.
+
+## Password reset session safety
+
+Completing a password reset consumes a still-valid OTP, changes the credential,
+and revokes every session for the user in one transaction. Concurrent replay is
+rejected; failure to update the credential rolls back OTP consumption and session
+revocation. Other outstanding reset codes for that identifier are also removed.
+This does not change the separate authenticated change-password policy.

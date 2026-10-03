@@ -1,0 +1,14 @@
+$ vitest run --exclude "**/e2e/**"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:23560) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:21384) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ Test Files  157 passed (157)
+      Tests  1069 passed (1069)
+   Start at  01:28:45
+   Duration  38.69s (transform 4.49s, setup 0ms, import 36.04s, tests 56.62s, environment 33.04s)
+

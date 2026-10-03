@@ -84,6 +84,7 @@ function createRepoMock(): IUserRepository {
     deleteVerification: vi.fn(),
     findCredentialAccount: vi.fn(),
     updateCredentialPassword: vi.fn(),
+    completePasswordReset: vi.fn(),
     delete: vi.fn(),
     promoteByEmails: vi.fn(),
     listAddresses: vi.fn(),
@@ -358,8 +359,7 @@ describe("UserService", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-    vi.mocked(repo.updateCredentialPassword).mockResolvedValue({} as any)
-    vi.mocked(repo.deleteVerification).mockResolvedValue()
+    vi.mocked(repo.completePasswordReset).mockResolvedValue(true)
 
     const service = new UserService(createAppContext(), repo)
 
@@ -368,8 +368,23 @@ describe("UserService", () => {
       "PASSWORD_RESET:user@example.com",
       expect.stringMatching(/^[a-f0-9]{64}$/),
     )
-    expect(repo.updateCredentialPassword).toHaveBeenCalledWith("account-1", "hashed:new-password")
-    expect(repo.deleteVerification).toHaveBeenCalledWith("verification-1")
+    expect(repo.completePasswordReset).toHaveBeenCalledWith({
+      userId: "user-1", accountId: "account-1", passwordHash: "hashed:new-password",
+      verificationId: "verification-1", identifier: "PASSWORD_RESET:user@example.com", value: "123456",
+    })
+    expect(repo.updateCredentialPassword).not.toHaveBeenCalled()
+    expect(repo.deleteVerification).not.toHaveBeenCalled()
+  })
+
+  it("rejects a reset whose OTP was consumed while the password was being hashed", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findByEmail).mockResolvedValue(createUser())
+    vi.mocked(repo.findVerification).mockResolvedValue({ id: "verification-1", identifier: "PASSWORD_RESET:user@example.com", value: "hash", expiresAt: new Date(Date.now() + 60_000) } as any)
+    vi.mocked(repo.findCredentialAccount).mockResolvedValue({ id: "account-1" } as any)
+    vi.mocked(repo.completePasswordReset).mockResolvedValue(false)
+    const service = new UserService(createAppContext(), repo)
+    await expect(service.completePasswordReset("user@example.com", "123456", "new-password")).rejects.toMatchObject({ message: "Invalid or expired reset code", status: 400 })
+    expect(repo.updateCredentialPassword).not.toHaveBeenCalled()
   })
 
   it("requires the current password when changing password", async () => {

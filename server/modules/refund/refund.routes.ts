@@ -2,6 +2,7 @@ import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
 import { RefundServiceError } from './refund.errors.ts'
+import { AdminServiceError } from '#server/modules/admin/admin.errors.ts'
 
 const RefundParamsSchema = t.Object({
   refundId: t.String({ format: 'uuid' }),
@@ -9,13 +10,14 @@ const RefundParamsSchema = t.Object({
 
 const ProcessRefundBodySchema = t.Optional(t.Object({
   status: t.Optional(t.Union([t.Literal('processing'), t.Literal('success'), t.Literal('failed')])),
+  externalReference: t.Optional(t.String({ minLength: 1, maxLength: 200 })),
 }))
 
 export function createRefundRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
-      if (error instanceof RefundServiceError) {
+      if (error instanceof RefundServiceError || error instanceof AdminServiceError) {
         return httpStatus(error.status, {
           error: {
             code: error.code,
@@ -34,8 +36,13 @@ export function createRefundRoutes(container: ServiceContainer) {
       withRole: 'ADMIN',
       params: RefundParamsSchema,
     })
-    .patch('/api/admin/refunds/:refundId/process', ({ authContext, params, body }: any) =>
-      container.refundService.processAdminRefund(authContext!.user, params.refundId, body?.status), {
+    .patch('/api/admin/refunds/:refundId/process', async ({ authContext, params, body }: any) => {
+      await container.adminService.updateRefundStatus(authContext!.user, params.refundId, {
+        status: (body?.status ?? 'processing').toUpperCase(),
+        externalReference: body?.externalReference,
+      })
+      return container.refundService.getAdminRefund(authContext!.user, params.refundId)
+    }, {
       withRole: 'ADMIN',
       params: RefundParamsSchema,
       body: ProcessRefundBodySchema,

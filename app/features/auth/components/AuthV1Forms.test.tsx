@@ -1,9 +1,11 @@
 /**
  * @vitest-environment jsdom
  */
+import { renderToString } from "react-dom/server";
+import { hydrateRoot } from "react-dom/client";
 import { type ReactElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render as testingRender, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as testingRender, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChangePasswordForm, ForgotPasswordForm, ResetPasswordForm, VerifyEmailForm } from "./AuthV1Forms";
 import { changePassword, completePasswordReset, requestPasswordResetOtp, verifyEmailOtp } from "#/features/auth/api";
@@ -99,5 +101,43 @@ describe("Auth v1 forms", () => {
     expect(await screen.findByText("Current password is invalid")).toBeTruthy();
     expect(screen.getByLabelText("Current password")).toHaveProperty("value", "old-password");
     expect(screen.getByLabelText("New password")).toHaveProperty("value", "new-password");
+  });
+});
+
+
+describe("Auth form hydration", () => {
+  it.each([
+    { label: "verify email", Form: VerifyEmailForm, values: { "verify-email": "typed@example.com", "verify-otp": "123456" }, api: verifyEmailOtp, expected: { email: "typed@example.com", otp: "123456" } },
+    { label: "forgot password", Form: ForgotPasswordForm, values: { "reset-request-email": "typed@example.com" }, api: requestPasswordResetOtp, expected: "typed@example.com" },
+    { label: "reset password", Form: ResetPasswordForm, values: { "reset-email": "typed@example.com", "reset-otp": "123456", "reset-new-password": "new-password" }, api: completePasswordReset, expected: { email: "typed@example.com", otp: "123456", newPassword: "new-password" } },
+    { label: "change password", Form: ChangePasswordForm, values: { "current-password": "old-password", "new-password": "new-password" }, api: changePassword, expected: { currentPassword: "old-password", newPassword: "new-password" } },
+  ])("keeps $label inert before hydration and submits typed values afterward", async ({ Form, values, api, expected }) => {
+    vi.clearAllMocks();
+    // Keep submission pending so response handlers cannot clear the entered values.
+    vi.mocked(api).mockImplementation(() => new Promise<void>(() => {}));
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const tree = <QueryClientProvider client={client}><I18nProvider locale="en" messages={enMessages} fallbackMessages={enMessages}><Form /></I18nProvider></QueryClientProvider>;
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(tree);
+    document.body.append(container);
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    try {
+      const controls = Array.from(container.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button"));
+      expect(controls.length).toBeGreaterThan(1);
+      for (const control of controls) expect(control.disabled).toBe(true);
+      await act(async () => { root = hydrateRoot(container, tree); });
+      await waitFor(() => { for (const control of controls) expect(control.disabled).toBe(false); });
+      for (const [id, value] of Object.entries(values)) {
+        const input = container.querySelector<HTMLInputElement>(`#${id}`)!;
+        fireEvent.change(input, { target: { value } });
+        expect(input.value).toBe(value);
+      }
+      fireEvent.click(container.querySelector<HTMLButtonElement>('button[type="submit"]')!);
+      await waitFor(() => expect(api).toHaveBeenCalledWith(expected));
+    } finally {
+      if (root) await act(async () => { root!.unmount(); });
+      container.remove();
+      client.clear();
+    }
   });
 });

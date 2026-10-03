@@ -27,7 +27,6 @@ function createRepoMock(): IRefundRepository {
   return {
     listRefunds: vi.fn(),
     findRefundById: vi.fn(),
-    updateRefundStatus: vi.fn(),
     completeRefundSuccess: vi.fn(),
   }
 }
@@ -101,7 +100,6 @@ describe('RefundService', () => {
     service = new RefundService(createAppContext(), repo)
     vi.mocked(repo.listRefunds).mockResolvedValue([createRefund()])
     vi.mocked(repo.findRefundById).mockResolvedValue(createRefund())
-    vi.mocked(repo.updateRefundStatus).mockImplementation(async (_id, status) => createRefund(status))
     vi.mocked(repo.completeRefundSuccess).mockResolvedValue(createRefund('SUCCESS'))
   })
 
@@ -110,31 +108,9 @@ describe('RefundService', () => {
     await expect(service.listAdminRefunds(createActor('USER'))).rejects.toMatchObject({ code: 'REFUND_FORBIDDEN' })
   })
 
-  it('marks a pending refund as processing', async () => {
-    const result = await service.processAdminRefund(createActor(), 'refund-1', 'processing')
-
-    expect(repo.updateRefundStatus).toHaveBeenCalledWith('88888888-8888-4888-8888-888888888888', 'PROCESSING')
-    expect(result.status).toBe('processing')
-  })
-
-  it('marks a processing refund as success', async () => {
-    vi.mocked(repo.findRefundById).mockResolvedValue(createRefund('PROCESSING'))
-
-    const result = await service.processAdminRefund(createActor(), 'refund-1', 'success')
-
-    expect(repo.completeRefundSuccess).toHaveBeenCalledWith('88888888-8888-4888-8888-888888888888', 'PROCESSING')
-    expect(repo.updateRefundStatus).not.toHaveBeenCalled()
-    expect(result.status).toBe('success')
-  })
-
-  it('rejects invalid refund transitions', async () => {
-    await expect(service.processAdminRefund(createActor(), 'refund-1', 'success')).rejects.toMatchObject({
-      code: 'INVALID_REFUND_STATE',
-    })
-
-    vi.mocked(repo.findRefundById).mockResolvedValue(createRefund('SUCCESS'))
-    await expect(service.processAdminRefund(createActor(), 'refund-1', 'processing')).rejects.toMatchObject({
-      code: 'INVALID_REFUND_STATE',
-    })
+  it('returns the current refund and reports missing records', async () => {
+    await expect(service.getAdminRefund(createActor(), 'refund-1')).resolves.toMatchObject({ status: 'pending' })
+    vi.mocked(repo.findRefundById).mockResolvedValue(null)
+    await expect(service.getAdminRefund(createActor(), 'missing')).rejects.toMatchObject({ code: 'REFUND_NOT_FOUND' })
   })
 })

@@ -1,0 +1,25 @@
+{
+  "buyers": 100,
+  "orders": 300,
+  "orderStatuses": [
+    "PENDING_PAYMENT"
+  ],
+  "totalMinorUnits": 300000,
+  "inventories": [
+    {
+      "quantityOnHand": 500,
+      "quantityReserved": 300
+    }
+  ],
+  "payments": [
+    {
+      "_count": 300,
+      "status": "PENDING"
+    }
+  ],
+  "catalogDataset": {
+    "products": 127,
+    "variants": 141,
+    "shops": 83
+  }
+}

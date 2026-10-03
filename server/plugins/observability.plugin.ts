@@ -11,6 +11,10 @@ export function createObservabilityPlugin(
   metrics: MetricsCollector,
   config: ObservabilityConfig,
 ) {
+  let completedRequests = 0
+  const sampleEvery = config.successfulRequestSampleRate > 0
+    ? Math.max(1, Math.round(1 / config.successfulRequestSampleRate))
+    : Number.POSITIVE_INFINITY
   return new Elysia({ name: 'observability' })
     .derive(({ request, set }) => {
       const requestId = request.headers.get('x-request-id') || uuidv4()
@@ -23,7 +27,9 @@ export function createObservabilityPlugin(
       const statusCode = Number(set.status ?? 200)
       metrics.recordRequest(durationMs, statusCode, config.slowRequestMs)
 
-      if (config.requestLoggingEnabled) {
+      completedRequests++
+      const sampled = completedRequests % sampleEvery === 0
+      if (config.requestLoggingEnabled && (statusCode >= 400 || sampled)) {
         appContext.logger.info('HTTP request completed', {
           requestId,
           method: request.method,
@@ -33,7 +39,7 @@ export function createObservabilityPlugin(
         })
       }
 
-      if (durationMs >= config.slowRequestMs) {
+      if (durationMs >= config.slowRequestMs && sampled) {
         appContext.logger.warn('Slow HTTP request', {
           requestId,
           method: request.method,

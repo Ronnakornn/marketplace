@@ -57,6 +57,38 @@ function createClient(): CacheClient {
 }
 
 describe('CacheService', () => {
+  it('shares concurrent cold reads instead of exhausting database connections', async () => {
+    const service = new CacheService(createAppContext(), createConfig(), createClient())
+    const fetcher = vi.fn(async () => ({ items: [1] }))
+    const results = await Promise.all(Array.from({ length: 1000 }, () => service.remember('cold', fetcher)))
+    expect(results).toHaveLength(1000)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
+  it('shares failures only while in flight and allows the next request to retry', async () => {
+    const service = new CacheService(createAppContext(), createConfig(), createClient())
+    const fetcher = vi.fn().mockRejectedValueOnce(new Error('database unavailable')).mockResolvedValueOnce(2)
+    const results = await Promise.allSettled(Array.from({ length: 10 }, () => service.remember('retry', fetcher)))
+    expect(results.every(result => result.status === 'rejected')).toBe(true)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    await expect(service.remember('retry', fetcher)).resolves.toBe(2)
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not publish an in-flight stale result after invalidation', async () => {
+    const service = new CacheService(createAppContext(), createConfig(), createClient())
+    let finish!: (value: number) => void
+    let started!: () => void
+    const ready = new Promise<void>(resolve => { started = resolve })
+    const oldRead = service.remember('cold', () => { started(); return new Promise<number>(resolve => { finish = resolve }) })
+    await ready
+    await service.deleteByPattern('*')
+    await expect(service.remember('cold', async () => 2)).resolves.toBe(2)
+    finish(1)
+    await oldRead
+    await expect(service.get('cold')).resolves.toBe(2)
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -216,6 +248,22 @@ describe('CacheService', () => {
 
     await expect(service.get(service.keys.productDetail('product-1'))).resolves.toBeNull()
     await expect(service.get(service.keys.productSearch({ q: 'available' }))).resolves.toBeNull()
+  })
+
+  it('batches rapid global inventory invalidations and keeps a trailing refresh', async () => {
+    vi.useFakeTimers()
+    try {
+      const service = new CacheService(createAppContext(), createConfig(), createClient())
+      const deleteByPattern = vi.spyOn(service, 'deleteByPattern')
+      const invalidation = new CacheInvalidation(service)
+      await invalidation.invalidateInventory()
+      await Promise.all(Array.from({ length: 20 }, () => invalidation.invalidateInventory()))
+      expect(deleteByPattern).toHaveBeenCalledTimes(3)
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(deleteByPattern).toHaveBeenCalledTimes(6)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('no cart/checkout/payment data is cached by supported key builders', () => {

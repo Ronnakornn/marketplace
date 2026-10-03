@@ -157,9 +157,9 @@ vi.mock("#/features/product/queries", () => ({
       queryFn: () => queryMocks.reviewsQueryFn(normalized),
     };
   },
-  publicProductRatingSummaryQueryOptions: () => ({
-    queryKey: ["product", "public", "rating-summary", "product-1"],
-    queryFn: queryMocks.ratingSummaryQueryFn,
+  publicProductRatingSummaryQueryOptions: (productId: string) => ({
+    queryKey: ["product", "public", "rating-summary", productId],
+    queryFn: () => queryMocks.ratingSummaryQueryFn(productId),
   }),
   publicProductQuestionsQueryOptions: (input: { productId?: string; page?: number; answerStatus?: string; sort?: string } | string = "product-1") => {
     const normalized = typeof input === "string" ? { productId: input, page: 1 } : input;
@@ -738,6 +738,26 @@ describe("DealsPage buyer states", () => {
 });
 
 describe("ProductDetailPage buyer transaction states", () => {
+  it("waits for a slug to resolve before fetching UUID-only product subresources", async () => {
+    let resolveProduct!: (value: unknown) => void;
+    queryMocks.productDetailQueryFn.mockImplementation(() => new Promise(resolve => { resolveProduct = resolve; }));
+    queryMocks.reviewsQueryFn.mockClear();
+    queryMocks.questionsQueryFn.mockClear();
+    queryMocks.ratingSummaryQueryFn.mockClear();
+    renderWithClient(<ProductDetailPage productId="summer-bag" />);
+    await waitFor(() => expect(resolveProduct).toBeTypeOf("function"));
+    expect(queryMocks.reviewsQueryFn).not.toHaveBeenCalled();
+    expect(queryMocks.questionsQueryFn).not.toHaveBeenCalled();
+    expect(queryMocks.ratingSummaryQueryFn).not.toHaveBeenCalled();
+    const id = "5f210b44-092b-47d5-a19c-cbd36100a016";
+    resolveProduct({ ...createProductDetailFixture(), id });
+    await waitFor(() => {
+      expect(queryMocks.reviewsQueryFn).toHaveBeenCalledWith(expect.objectContaining({ productId: id }));
+      expect(queryMocks.questionsQueryFn).toHaveBeenCalledWith(expect.objectContaining({ productId: id }));
+      expect(queryMocks.ratingSummaryQueryFn).toHaveBeenCalledWith(id);
+    });
+  });
+
   it("requires option selection before adding to cart and sends selected quantity", async () => {
     renderWithClient(<ProductDetailPage productId="product-1" />);
 
@@ -1170,7 +1190,7 @@ describe("ProductDetailPage buyer transaction states", () => {
     renderWithClient(<ProductDetailPage productId="product-1" />);
 
     expect(await screen.findByText("All ratings")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Load more reviews" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Load more reviews" }));
 
     expect(await screen.findByText("Second Buyer")).toBeTruthy();
     expect(screen.getByText("First Buyer")).toBeTruthy();
@@ -1254,7 +1274,7 @@ describe("ProductDetailPage buyer transaction states", () => {
     renderWithClient(<ProductDetailPage productId="product-1" />);
 
     expect(await screen.findByText("Questions & answers")).toBeTruthy();
-    expect(screen.getByText("Does this include a dust bag?")).toBeTruthy();
+    expect(await screen.findByText("Does this include a dust bag?")).toBeTruthy();
     expect(screen.getByText("Seller answer from Demo Shop")).toBeTruthy();
     expect(screen.getByText("Yes, the dust bag is included.")).toBeTruthy();
   });
@@ -1297,7 +1317,7 @@ describe("ProductDetailPage buyer transaction states", () => {
     renderWithClient(<ProductDetailPage productId="product-1" />);
 
     expect(await screen.findByText("All questions")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Load more questions" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Load more questions" }));
 
     expect(await screen.findByText("Second question?")).toBeTruthy();
     expect(screen.getByText("First question?")).toBeTruthy();

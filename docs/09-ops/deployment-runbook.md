@@ -183,8 +183,10 @@ Important log fields:
 
 Database:
 - daily automated backups minimum
-- point-in-time recovery recommended
+- accepted launch target: RPO <= 15 minutes and RTO <= 60 minutes
+- daily backups alone do not meet this RPO; configure and verify PITR/WAL archival or another recovery mechanism that provides a recoverable point no older than 15 minutes
 - test restore process regularly
+- measure complete application recovery and data reconciliation on production-scale staging; a small local dump/restore does not establish these targets
 
 Repository helpers:
 

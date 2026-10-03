@@ -24,6 +24,8 @@
     "preview": "next start --port 3000",
     "test": "vitest run --exclude \"**/e2e/**\"",
     "test:e2e": "bun run scripts/assert-e2e-database.ts && bun run db:migrate:deploy && bun run db:seed && playwright test",
+    "test:e2e:buyer-seller": "bun run scripts/assert-e2e-database.ts && bun run db:migrate:deploy && bun run db:seed && playwright test e2e/buyer-lifecycle.spec.ts e2e/commerce-edge-flows.spec.ts e2e/finance-lifecycle.spec.ts e2e/auth-lifecycle.spec.ts e2e/checkout-resilience.spec.ts --project=chromium --headed",
+    "test:load": "bun run scripts/production-load-test.ts",
     "test:push:http": "playwright test --config playwright.push-http.config.ts",
     "audit:i18n": "bun run scripts/i18n-audit.ts",
     "db:generate": "bunx prisma generate",

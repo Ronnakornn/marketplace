@@ -58,6 +58,7 @@ export interface IShipmentCreationRepository {
 
 export interface IShipmentRepository extends IShipmentCreationRepository {
   transaction<T>(callback: (repo: IShipmentRepository) => Promise<T>): Promise<T>
+  lockShipmentOrder(shipmentId: string): Promise<void>
   findSellerShops(ownerId: string): Promise<Pick<Shop, 'id'>[]>
   findSellerShipments(shopIds: string[]): Promise<SellerShipment[]>
   findSellerShipmentById(shipmentId: string, shopIds: string[]): Promise<SellerShipment | null>
@@ -130,6 +131,16 @@ export class PrismaShipmentRepository implements IShipmentRepository {
         },
       },
     })
+  }
+
+  async lockShipmentOrder(shipmentId: string): Promise<void> {
+    // Serialize sibling shipment transitions before reading their aggregate state.
+    // The caller holds this lock until its shipment/item/order transaction commits.
+    await this.prisma.$queryRaw`
+      SELECT "id" FROM "Order"
+      WHERE "id" = (SELECT "orderId" FROM "Shipment" WHERE "id" = ${shipmentId}::uuid)
+      FOR UPDATE
+    `
   }
 
   createShipment(input: ShipmentCreateInput): Promise<ShipmentWithItems> {

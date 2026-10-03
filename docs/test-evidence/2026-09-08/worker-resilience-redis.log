@@ -1,0 +1,23 @@
+[48076] 08 Sep 00:04:22.840 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+[48076] 08 Sep 00:04:22.840 # Redis version=5.0.14.1, bits=64, commit=ec77f72d, modified=0, pid=48076, just started
+[48076] 08 Sep 00:04:22.840 # Configuration loaded
+[48076] 08 Sep 00:04:22.842 * Running mode=standalone, port=56380.
+[48076] 08 Sep 00:04:22.842 # Server initialized
+[48076] 08 Sep 00:04:22.842 * Ready to accept connections
+[48076] 08 Sep 00:04:38.370 # User requested shutdown...
+[48076] 08 Sep 00:04:38.370 * Calling fsync() on the AOF file.
+[48076] 08 Sep 00:04:38.370 * Saving the final RDB snapshot before exiting.
+[48076] 08 Sep 00:04:38.373 * DB saved on disk
+[48076] 08 Sep 00:04:38.373 # Redis is now ready to exit, bye bye...
+[21492] 08 Sep 00:04:39.834 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+[21492] 08 Sep 00:04:39.834 # Redis version=5.0.14.1, bits=64, commit=ec77f72d, modified=0, pid=21492, just started
+[21492] 08 Sep 00:04:39.834 # Configuration loaded
+[21492] 08 Sep 00:04:39.838 * Running mode=standalone, port=56380.
+[21492] 08 Sep 00:04:39.838 # Server initialized
+[21492] 08 Sep 00:04:39.842 * DB loaded from append only file: 0.003 seconds
+[21492] 08 Sep 00:04:39.842 * Ready to accept connections
+[21492] 08 Sep 00:04:40.769 # User requested shutdown...
+[21492] 08 Sep 00:04:40.769 * Calling fsync() on the AOF file.
+[21492] 08 Sep 00:04:40.769 * Saving the final RDB snapshot before exiting.
+[21492] 08 Sep 00:04:40.771 * DB saved on disk
+[21492] 08 Sep 00:04:40.771 # Redis is now ready to exit, bye bye...

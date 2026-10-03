@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Role } from '#generated/client/enums.ts'
 import { PromotionServiceError } from '#server/modules/promotion/promotion.errors.ts'
+import type { CacheInvalidation } from '#server/modules/cache'
 import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import type {
   CheckoutAddress,
@@ -34,6 +35,7 @@ function createAppContext() {
 function createRepoMock(): ICheckoutRepository {
   return {
     transaction: vi.fn(async (callback) => callback(repo as ICheckoutRepository)),
+    lockCartForCheckout: vi.fn(),
     findCartForCheckout: vi.fn(),
     findAddressForUser: vi.fn(),
     findCouponByCode: vi.fn(),
@@ -208,6 +210,7 @@ async function setupSuccess(overrides: {
   couponShopId?: string | null
   freeShippingShopIds?: string[]
   couponError?: PromotionServiceError
+  cacheInvalidation?: CacheInvalidation
 } = {}) {
   repo = createRepoMock()
   promotionService = {
@@ -237,6 +240,7 @@ async function setupSuccess(overrides: {
     createAppContext(),
     repo,
     new CheckoutQuoteEvaluator(promotionService as PromotionService),
+    overrides.cacheInvalidation,
   )
 }
 
@@ -298,6 +302,23 @@ describe('CheckoutService', () => {
     })
 
     expect(result.paymentUrl).toBe('/en/payment/mock/14141414-1414-4141-8141-141414141414')
+  })
+
+  it('invalidates inventory cache only after the checkout transaction commits', async () => {
+    const events: string[] = []
+    const cacheInvalidation = { invalidateInventory: vi.fn(async () => { events.push('invalidate'); return 0 }) } as unknown as CacheInvalidation
+    const service = await setupSuccess({ cacheInvalidation })
+    vi.mocked(repo.transaction).mockImplementationOnce(async (callback) => {
+      const result = await callback(repo)
+      events.push('commit')
+      return result
+    })
+    await service.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      paymentMethod: 'card',
+    })
+    expect(events).toEqual(['commit', 'invalidate'])
   })
 
   it('rejects cash on delivery because fulfillment does not support COD settlement', async () => {

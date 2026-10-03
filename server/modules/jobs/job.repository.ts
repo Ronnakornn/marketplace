@@ -131,6 +131,10 @@ export class PrismaJobRepository implements IJobRepository {
         paymentStatus: 'CANCELED',
       },
     })
+    await this.prisma.shopOrder.updateMany({
+      where: { orderId },
+      data: { status: 'CANCELED', version: { increment: 1 } },
+    })
   }
 
   async releaseCouponReservation(orderId: string): Promise<void> {

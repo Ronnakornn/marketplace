@@ -96,6 +96,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     ...publicProductDetailQueryOptions({ productId, locale }),
     select: normalizePublicProduct,
   });
+  const resolvedProductId = productQuery.data?.id ?? "";
   const relatedQuery = useQuery({
     ...publicRelatedProductsQueryOptions({ productId, limit: 8, locale }),
     select: normalizePublicProducts,
@@ -107,7 +108,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   });
   const reviewsQuery = useQuery({
     ...publicProductReviewsQueryOptions({
-      productId,
+      productId: resolvedProductId,
       rating: reviewRatingFilter,
       hasMedia: reviewContentFilter === "media" ? true : undefined,
       hasComment: reviewContentFilter === "comment" ? true : undefined,
@@ -116,25 +117,28 @@ export function ProductDetailPage({ productId }: { productId: string }) {
       limit: PRODUCT_DETAIL_REVIEW_PAGE_LIMIT,
     }),
     select: normalizePublicProductReviewsPage,
+    enabled: Boolean(resolvedProductId),
   });
   const ratingSummaryQuery = useQuery({
-    ...publicProductRatingSummaryQueryOptions(productId),
+    ...publicProductRatingSummaryQueryOptions(resolvedProductId),
     select: normalizePublicProductRatingSummary,
+    enabled: Boolean(resolvedProductId),
   });
   const questionsQuery = useQuery({
     ...publicProductQuestionsQueryOptions({
-      productId,
+      productId: resolvedProductId,
       answerStatus: questionAnswerStatus,
       sort: questionSort,
       page: questionPage,
       limit: PRODUCT_DETAIL_QUESTION_PAGE_LIMIT,
     }),
     select: normalizePublicProductQuestionsPage,
+    enabled: Boolean(resolvedProductId),
   });
   const favoriteQuery = useQuery({
-    queryKey: ["buyer-favorite-status", productId],
-    queryFn: () => fetchFavoriteStatus(productId),
-    enabled: canFetchBuyerState,
+    queryKey: ["buyer-favorite-status", resolvedProductId],
+    queryFn: () => fetchFavoriteStatus(resolvedProductId),
+    enabled: canFetchBuyerState && Boolean(resolvedProductId),
   });
   const shopId = productQuery.data?.shop.id ?? "";
   const followQuery = useQuery({
@@ -160,10 +164,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const favoriteMutation = useMutation({
     mutationFn: async () => {
       if (!session) throw new Error(t("common.login"));
-      return favoriteQuery.data ? removeFavoriteProduct(productId) : addFavoriteProduct(productId);
+      return favoriteQuery.data ? removeFavoriteProduct(resolvedProductId) : addFavoriteProduct(resolvedProductId);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["buyer-favorite-status", productId] });
+      void queryClient.invalidateQueries({ queryKey: ["buyer-favorite-status", resolvedProductId] });
       void queryClient.invalidateQueries({ queryKey: ["buyer-favorites"] });
     },
   });
@@ -187,10 +191,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     },
   });
   const questionMutation = useMutation({
-    mutationFn: (question: string) => createProductQuestion(productId, question),
+    mutationFn: (question: string) => createProductQuestion(resolvedProductId, question),
     onSuccess: () => {
       setQuestionText("");
-      void queryClient.invalidateQueries({ queryKey: productQueryKeys.public.questions(productId) });
+      void queryClient.invalidateQueries({ queryKey: productQueryKeys.public.questions(resolvedProductId) });
     },
   });
   const cartItemCount = cartQuery.data?.shops.reduce(

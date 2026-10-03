@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CoinsIcon, CreditCardIcon, MapPinIcon, PackageCheckIcon, TicketIcon, TruckIcon } from "lucide-react";
@@ -39,6 +39,7 @@ export function CheckoutPage() {
   const [coinsToUse, setCoinsToUse] = useState(0);
   const paymentMethod = "card";
   const [selectedAddressId, setSelectedAddressId] = useState("");
+  const checkoutSubmitting = useRef(false);
   const localePath = useLocalePath();
   const locale = useLocale();
   const t = useTranslations();
@@ -80,6 +81,9 @@ export function CheckoutPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
     },
+    onSettled: () => {
+      checkoutSubmitting.current = false;
+    },
   });
   const handleApplyCoupon = () => {
     const trimmed = couponInput.trim();
@@ -98,6 +102,13 @@ export function CheckoutPage() {
     setCoinInput(String(applied));
   };
   const canPlaceOrder = Boolean(addressId) && quoteQuery.isSuccess && !quoteQuery.isLoading;
+  const handlePlaceOrder = () => {
+    if (checkoutSubmitting.current || !canPlaceOrder || checkoutMutation.isSuccess) return;
+    // Mutation state renders asynchronously; claim the submission synchronously
+    // so two clicks in the same browser event batch cannot both create checkout.
+    checkoutSubmitting.current = true;
+    checkoutMutation.mutate();
+  };
   const couponRejected = quoteQuery.data?.coupon?.applied === false;
 
   const renderQuoteTotal = () => {
@@ -279,7 +290,7 @@ export function CheckoutPage() {
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div className="text-lg font-bold">{renderQuoteTotal()}</div>
-            <Button className="h-12 min-w-40 rounded-2xl bg-orange-600 hover:bg-orange-700" disabled={checkoutMutation.isPending || !canPlaceOrder} onClick={() => checkoutMutation.mutate()}>
+            <Button className="h-12 min-w-40 rounded-2xl bg-orange-600 hover:bg-orange-700" disabled={checkoutMutation.isPending || !canPlaceOrder} onClick={handlePlaceOrder}>
               {t("checkout.placeOrder")}
             </Button>
           </div>

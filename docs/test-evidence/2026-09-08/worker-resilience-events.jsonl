@@ -1,0 +1,190 @@
+{"time":1788800662914,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_email"}
+{"time":1788800662919,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_email"}
+{"time":1788800662924,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_email","jobId":"1"}
+{"time":1788800662925,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_email"}
+{"time":1788800662925,"worker":"shared","level":"info","msg":"JobService.sendEmail","to":"retry@example.test","subject":"transient"}
+{"time":1788800662925,"worker":"shared","level":"error","msg":"JobService.process.failure","jobName":"send_email","error":"injected temporary transport failure"}
+{"time":1788800662927,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_email","jobId":"2"}
+{"time":1788800662928,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_email"}
+{"time":1788800662928,"worker":"shared","level":"info","msg":"JobService.sendEmail","to":"retry@example.test","subject":"permanent"}
+{"time":1788800662928,"worker":"shared","level":"error","msg":"JobService.process.failure","jobName":"send_email","error":"injected temporary transport failure"}
+{"time":1788800662930,"worker":"worker-1","level":"error","msg":"Job worker failed job","jobName":"send_email","jobId":"1","attemptsMade":1,"attemptsAllowed":3,"exhausted":false,"code":"JOB_FAILED","error":"Job failed"}
+{"time":1788800662931,"worker":"worker-2","level":"error","msg":"Job worker failed job","jobName":"send_email","jobId":"2","attemptsMade":1,"attemptsAllowed":3,"exhausted":false,"code":"JOB_FAILED","error":"Job failed"}
+{"time":1788800667959,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_email","jobId":"1"}
+{"time":1788800667959,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_email"}
+{"time":1788800667959,"worker":"shared","level":"info","msg":"JobService.sendEmail","to":"retry@example.test","subject":"transient"}
+{"time":1788800667960,"worker":"shared","level":"error","msg":"JobService.process.failure","jobName":"send_email","error":"injected temporary transport failure"}
+{"time":1788800667960,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_email","jobId":"2"}
+{"time":1788800667961,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_email"}
+{"time":1788800667961,"worker":"shared","level":"info","msg":"JobService.sendEmail","to":"retry@example.test","subject":"permanent"}
+{"time":1788800667961,"worker":"shared","level":"error","msg":"JobService.process.failure","jobName":"send_email","error":"injected temporary transport failure"}
+{"time":1788800667962,"worker":"worker-1","level":"error","msg":"Job worker failed job","jobName":"send_email","jobId":"1","attemptsMade":2,"attemptsAllowed":3,"exhausted":false,"code":"JOB_FAILED","error":"Job failed"}
+{"time":1788800667962,"worker":"worker-2","level":"error","msg":"Job worker failed job","jobName":"send_email","jobId":"2","attemptsMade":2,"attemptsAllowed":3,"exhausted":false,"code":"JOB_FAILED","error":"Job failed"}
+{"time":1788800677983,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_email","jobId":"1"}
+{"time":1788800677984,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_email"}
+{"time":1788800677984,"worker":"shared","level":"info","msg":"JobService.sendEmail","to":"retry@example.test","subject":"transient"}
+{"time":1788800677984,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_email","result":{"ok":true,"code":"EMAIL_SENT","processedCount":1}}
+{"time":1788800677985,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_email","jobId":"2"}
+{"time":1788800677986,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_email"}
+{"time":1788800677986,"worker":"shared","level":"info","msg":"JobService.sendEmail","to":"retry@example.test","subject":"permanent"}
+{"time":1788800677986,"worker":"shared","level":"error","msg":"JobService.process.failure","jobName":"send_email","error":"injected temporary transport failure"}
+{"time":1788800677988,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_email","jobId":"1"}
+{"time":1788800677989,"worker":"worker-2","level":"error","msg":"Job worker failed job","jobName":"send_email","jobId":"2","attemptsMade":3,"attemptsAllowed":3,"exhausted":true,"code":"JOB_RETRY_EXHAUSTED","error":"Job failed"}
+{"time":1788800677989,"worker":"events","level":"error","msg":"Job queue recorded failed job","jobId":"2","failedReason":"Job failed","code":"JOB_FAILED"}
+{"time":1788800678331,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678334,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678336,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678337,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678339,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678340,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678341,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678343,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678344,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678346,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678347,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678351,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678353,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678354,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678356,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678358,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678359,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678361,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678362,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678366,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678439,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678439,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678439,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678440,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678500,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_notification"}
+{"time":1788800678547,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678548,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678548,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678548,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678717,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678717,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678717,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678718,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678936,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678937,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678937,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800678937,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800679200,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800679200,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800679200,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800679201,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"msg":"queue-error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800679513,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800679514,"worker":"worker-2","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800679514,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800679515,"worker":"worker-1","level":"error","msg":"Job worker error","error":"connect ECONNREFUSED 127.0.0.1:56380"}
+{"time":1788800679887,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"3"}
+{"time":1788800679887,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679888,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679898,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"4"}
+{"time":1788800679899,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679899,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679902,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679907,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"3"}
+{"time":1788800679907,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"5"}
+{"time":1788800679908,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679908,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679910,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679920,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"5"}
+{"time":1788800679921,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"6"}
+{"time":1788800679921,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679922,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679925,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679930,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"6"}
+{"time":1788800679930,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"7"}
+{"time":1788800679931,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679931,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679933,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679935,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"7"}
+{"time":1788800679936,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"8"}
+{"time":1788800679936,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679936,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679939,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679942,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"8"}
+{"time":1788800679943,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"9"}
+{"time":1788800679943,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679943,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679949,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679952,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"9"}
+{"time":1788800679952,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"10"}
+{"time":1788800679952,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679953,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679955,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679957,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"10"}
+{"time":1788800679957,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"11"}
+{"time":1788800679958,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679958,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679960,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679964,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"11"}
+{"time":1788800679965,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"12"}
+{"time":1788800679965,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679965,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679966,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679967,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679968,"worker":"worker-2","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"4"}
+{"time":1788800679969,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"13"}
+{"time":1788800679969,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679969,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679971,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"12"}
+{"time":1788800679971,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"14"}
+{"time":1788800679972,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679972,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679974,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679975,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679979,"worker":"worker-2","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"13"}
+{"time":1788800679980,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"15"}
+{"time":1788800679980,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679980,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679982,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"14"}
+{"time":1788800679982,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"16"}
+{"time":1788800679982,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679983,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679984,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679985,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679986,"worker":"worker-2","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"15"}
+{"time":1788800679986,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"17"}
+{"time":1788800679987,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679987,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679989,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"16"}
+{"time":1788800679989,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"18"}
+{"time":1788800679990,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679990,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800679995,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679997,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800679998,"worker":"worker-2","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"17"}
+{"time":1788800679999,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"19"}
+{"time":1788800679999,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800679999,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800680000,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"18"}
+{"time":1788800680001,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"20"}
+{"time":1788800680001,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800680001,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800680003,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800680004,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800680005,"worker":"worker-2","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"19"}
+{"time":1788800680006,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"21"}
+{"time":1788800680006,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800680007,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800680011,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"20"}
+{"time":1788800680012,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"22"}
+{"time":1788800680012,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800680012,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800680014,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800680015,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800680016,"worker":"worker-2","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"21"}
+{"time":1788800680017,"worker":"worker-2","level":"info","msg":"Job worker started job","jobName":"send_notification","jobId":"23"}
+{"time":1788800680017,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_notification"}
+{"time":1788800680018,"worker":"shared","level":"info","msg":"PrismaJobRepository.createNotification","userId":"8dc97119-771c-42a2-87c8-9b6a99294340","type":"payment_expired"}
+{"time":1788800680019,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"22"}
+{"time":1788800680021,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_notification","result":{"ok":true,"code":"NOTIFICATION_SENT","processedCount":1}}
+{"time":1788800680022,"worker":"worker-2","level":"info","msg":"Job worker completed job","jobName":"send_notification","jobId":"23"}
+{"time":1788800680427,"worker":"shared","level":"info","msg":"BullMqQueueProducer.enqueue","jobName":"send_email"}
+{"time":1788800680430,"worker":"worker-1","level":"info","msg":"Job worker started job","jobName":"send_email","jobId":"24"}
+{"time":1788800680431,"worker":"shared","level":"info","msg":"JobService.process.start","jobName":"send_email"}
+{"time":1788800680431,"worker":"shared","level":"info","msg":"JobService.sendEmail","to":"drain@example.test","subject":"drain"}
+{"time":1788800680747,"worker":"shared","level":"info","msg":"JobService.process.success","jobName":"send_email","result":{"ok":true,"code":"EMAIL_SENT","processedCount":1}}
+{"time":1788800680752,"worker":"worker-1","level":"info","msg":"Job worker completed job","jobName":"send_email","jobId":"24"}

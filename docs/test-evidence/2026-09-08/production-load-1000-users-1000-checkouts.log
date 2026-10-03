@@ -1,0 +1,5 @@
+(node:22212) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Prepared 1000 authenticated users; starting 1 minute workload
+Load progress: 60s, 25811 requests, 424 errors, 949/983 checkouts, freeMemoryMiB=10826
+Load FAIL: 26864 requests, 424 errors, 983/1000 checkouts. Report: D:\GitHub\marketplace\docs\test-evidence\2026-09-08\production-load-1000-users-1000-checkouts-1-minute.json

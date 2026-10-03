@@ -8,6 +8,8 @@ const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/
 export class CacheService {
   private logger: ILogger
   private unavailableUntilMs = 0
+  private readonly pending = new Map<string, Promise<unknown>>()
+  private invalidationVersion = 0
   readonly keys: CacheKeyBuilder
 
   constructor(
@@ -70,16 +72,27 @@ export class CacheService {
     }
   }
 
-  async remember<T>(key: string, fetcher: () => Promise<T>, options: CacheSetOptions = {}): Promise<T> {
-    const cached = await this.get<T>(key)
-    if (cached !== null) return cached
-
-    const value = await fetcher()
-    await this.set(key, value, options)
-    return value
+  remember<T>(key: string, fetcher: () => Promise<T>, options: CacheSetOptions = {}): Promise<T> {
+    const existing = this.pending.get(key)
+    if (existing) return existing as Promise<T>
+    const version = this.invalidationVersion
+    const work = (async () => {
+      const cached = await this.get<T>(key)
+      if (cached !== null) return cached
+      const value = await fetcher()
+      // A mutation may have invalidated this read while its query was running.
+      if (version === this.invalidationVersion) await this.set(key, value, options)
+      return value
+    })().finally(() => {
+      if (this.pending.get(key) === work) this.pending.delete(key)
+    })
+    this.pending.set(key, work)
+    return work
   }
 
   async delete(key: string): Promise<number> {
+    this.invalidationVersion++
+    this.pending.clear()
     if (!this.isEnabled()) return 0
     try {
       await this.client!.del(key)
@@ -96,6 +109,8 @@ export class CacheService {
   }
 
   async deleteByPattern(pattern: string): Promise<number> {
+    this.invalidationVersion++
+    this.pending.clear()
     if (!this.isEnabled()) return 0
 
     try {

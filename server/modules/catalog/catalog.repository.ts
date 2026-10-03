@@ -398,6 +398,7 @@ export interface ICatalogRepository {
   findShopById(id: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findFirstShopByOwnerId(ownerId: string): Promise<Pick<Shop, 'id' | 'ownerId' | 'status'> | null>
   findProductById(id: string): Promise<CatalogProductDetail | null>
+  resolvePublicProductId(idOrSlug: string): Promise<string | null>
   findProductMetrics(productIds: string[]): Promise<CatalogProductMetric[]>
   findRelatedProducts(product: Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'>, limit: number): Promise<CatalogProductListItem[]>
   findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>>
@@ -773,6 +774,17 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     })
   }
 
+  async resolvePublicProductId(idOrSlug: string): Promise<string | null> {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        OR: [...(UUID_PATTERN.test(idOrSlug) ? [{ id: idOrSlug }] : []), { slug: idOrSlug }],
+        status: 'ACTIVE', deletedAt: null, shop: { status: 'ACTIVE' },
+      },
+      select: { id: true },
+    })
+    return product?.id ?? null
+  }
+
   findProductById(id: string): Promise<CatalogProductDetail | null> {
     this.logger.debug('PrismaCatalogRepository.findProductById', { id })
     return this.prisma.product.findFirst({
@@ -863,7 +875,9 @@ export class PrismaCatalogRepository implements ICatalogRepository {
         },
       }
     }
-    const [rows, totalCount] = await this.prisma.$transaction([
+    // These read-committed listing queries never shared a stable snapshot.
+    // Avoid holding a transaction connection across relation loading.
+    const [rows, totalCount] = await Promise.all([
       this.prisma.product.findMany({
         where,
         include: productInclude,
@@ -895,7 +909,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     this.logger.debug('PrismaCatalogRepository.findProductFacets', { filters })
     const where = this.buildProductWhere(filters)
     const variantWhere = this.buildVariantFacetWhere(where)
-    const [categoryGroups, brandGroups, priceRange] = await this.prisma.$transaction([
+    const [categoryGroups, brandGroups, priceRange] = await Promise.all([
       this.prisma.product.groupBy({
         by: ['categoryId'],
         where: { ...where, categoryId: { not: null } },
@@ -919,7 +933,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
 
     const categoryIds = categoryGroups.map((group) => group.categoryId).filter((id): id is string => Boolean(id))
     const brandIds = brandGroups.map((group) => group.brandId).filter((id): id is string => Boolean(id))
-    const [categories, brands, firstVariant] = await this.prisma.$transaction([
+    const [categories, brands, firstVariant] = await Promise.all([
       this.prisma.category.findMany({
         where: { id: { in: categoryIds }, isActive: true },
         select: { id: true, slug: true, name: true },

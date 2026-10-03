@@ -273,6 +273,8 @@ export interface ReorderCategorySpecsData {
 
 export class CatalogService {
   private logger: ILogger
+  private readonly pendingMetrics = new Map<string, Promise<CatalogProductMetric[]>>()
+  private readonly pendingVisibility = new Map<string, Promise<string | null>>()
 
   constructor(
     appContext: AppContext,
@@ -287,7 +289,18 @@ export class CatalogService {
   }
 
   getPublicProductMetrics(productIds: string[]): Promise<CatalogProductMetric[]> {
-    return this.repo.findProductMetrics(productIds)
+    if (productIds.length === 0) return Promise.resolve([])
+    const ids = [...new Set(productIds)]
+    const key = JSON.stringify(ids)
+    const pending = this.pendingMetrics.get(key)
+    if (pending) return pending
+    // Share only work already in progress. A later read starts a fresh query,
+    // so sales/review changes do not wait for a metrics cache TTL to expire.
+    const request = Promise.resolve()
+      .then(() => this.repo.findProductMetrics(ids))
+      .finally(() => { this.pendingMetrics.delete(key) })
+    this.pendingMetrics.set(key, request)
+    return request
   }
 
   async listCategories(localeInput?: string): Promise<CatalogCategoryListItem[]> {
@@ -573,10 +586,15 @@ export class CatalogService {
   async getPublicProductDetail(id: string, localeInput?: string): Promise<CatalogProductDetail> {
     this.logger.debug('CatalogService.getPublicProductDetail', { id })
     const locale = resolveContentLocale(localeInput)
+    // Every incoming slug shares the canonical UUID cache entry invalidated by
+    // seller, inventory, and payment mutations. Resolve visibility before cache
+    // access so renamed slugs and suspended shops cannot expose stale products.
+    const canonicalId = this.cache ? await this.resolvePublicProductId(id) : id
+    if (!canonicalId) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     const product = this.cache
       ? await this.cache.remember(
-          this.cache.keys.productDetail(id, locale),
-          () => this.repo.findProductById(id),
+          this.cache.keys.productDetail(canonicalId, locale),
+          () => this.repo.findProductById(canonicalId),
           { ttlSeconds: this.cache.ttl().product },
         )
       : await this.repo.findProductById(id)
@@ -585,6 +603,16 @@ export class CatalogService {
     }
     const [enriched] = await this.attachPublicProductMetrics([product])
     return this.preparePublicProduct(enriched!, locale)
+  }
+
+  private resolvePublicProductId(id: string): Promise<string | null> {
+    const existing = this.pendingVisibility.get(id)
+    if (existing) return existing
+    // No TTL: the next request after completion checks current visibility again.
+    const request = Promise.resolve().then(() => this.repo.resolvePublicProductId(id))
+      .finally(() => { this.pendingVisibility.delete(id) })
+    this.pendingVisibility.set(id, request)
+    return request
   }
 
   async listRelatedProducts(id: string, data: RelatedProductsData = {}): Promise<CatalogProductListItem[]> {
@@ -1397,7 +1425,15 @@ export class CatalogService {
 
   private async loadProductFacets(filters: Parameters<ICatalogRepository['findProductFacets']>[0]): Promise<ProductListingFacets> {
     try {
-      return await this.repo.findProductFacets(filters)
+      // Facets share the listing invalidation namespace, so price, stock and
+      // catalog mutations refresh both rather than retaining stale filter ranges.
+      return this.cache
+        ? await this.cache.remember(
+          this.cache.keys.productList({ ...filters, view: 'facets' }),
+          () => this.repo.findProductFacets(filters),
+          { ttlSeconds: this.cache.ttl().product },
+        )
+        : await this.repo.findProductFacets(filters)
     } catch (error) {
       this.logger.warn('CatalogService.loadProductFacets failed', { error })
       return this.emptyProductFacets()

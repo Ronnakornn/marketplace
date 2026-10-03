@@ -43,6 +43,7 @@ function createRepoMock(): ICatalogRepository {
     findShopById: vi.fn(),
     findFirstShopByOwnerId: vi.fn(),
     findProductById: vi.fn(),
+    resolvePublicProductId: vi.fn(async (id: string) => id),
     findProductMetrics: vi.fn(async (productIds: string[]) => productIds.map((productId) => ({
       productId,
       rating: 0,
@@ -279,6 +280,16 @@ function createCategorySpec(overrides: Record<string, unknown> = {}): any {
 }
 
 describe('CatalogService', () => {
+  it('shares concurrent visibility checks but queries again after completion', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.resolvePublicProductId).mockResolvedValue(null)
+    const service = new CatalogService(createAppContext(), repo, createCacheService())
+    const results = await Promise.allSettled(Array.from({ length: 100 }, () => service.getPublicProductDetail('missing')))
+    expect(results.every(result => result.status === 'rejected')).toBe(true)
+    expect(repo.resolvePublicProductId).toHaveBeenCalledTimes(1)
+    await expect(service.getPublicProductDetail('missing')).rejects.toThrow('Product not found')
+    expect(repo.resolvePublicProductId).toHaveBeenCalledTimes(2)
+  })
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -503,6 +514,39 @@ describe('CatalogService', () => {
     await service.listPublicProducts({ keyword: 'tee' })
 
     expect(repo.findProducts).toHaveBeenCalledTimes(1)
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(1)
+  })
+
+  it('shares overlapping metrics queries but refreshes after they complete', async () => {
+    const repo = createRepoMock()
+    const service = new CatalogService(createAppContext(), repo)
+    const metrics = [{ productId: 'product-one', rating: 4, ratingCount: 1, soldCount: 2 }]
+    let resolve!: (value: typeof metrics) => void
+    vi.mocked(repo.findProductMetrics).mockReturnValueOnce(new Promise(done => { resolve = done }))
+    const first = service.getPublicProductMetrics(['product-one'])
+    const second = service.getPublicProductMetrics(['product-one'])
+    await Promise.resolve()
+    expect(repo.findProductMetrics).toHaveBeenCalledTimes(1)
+    resolve(metrics)
+    expect(await Promise.all([first, second])).toEqual([metrics, metrics])
+    const updated = [{ ...metrics[0]!, soldCount: 3 }]
+    vi.mocked(repo.findProductMetrics).mockResolvedValueOnce(updated)
+    expect(await service.getPublicProductMetrics(['product-one'])).toEqual(updated)
+    expect(repo.findProductMetrics).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries metrics after a shared query rejects', async () => {
+    const repo = createRepoMock()
+    const service = new CatalogService(createAppContext(), repo)
+    vi.mocked(repo.findProductMetrics).mockRejectedValueOnce(new Error('temporary DB failure'))
+    const results = await Promise.allSettled([
+      service.getPublicProductMetrics(['product-one']),
+      service.getPublicProductMetrics(['product-one']),
+    ])
+    expect(results.every(result => result.status === 'rejected')).toBe(true)
+    vi.mocked(repo.findProductMetrics).mockResolvedValueOnce([])
+    await expect(service.getPublicProductMetrics(['product-one'])).resolves.toEqual([])
+    expect(repo.findProductMetrics).toHaveBeenCalledTimes(2)
   })
 
   it('product detail uses cache after first database fallback', async () => {

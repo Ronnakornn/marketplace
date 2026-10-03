@@ -182,6 +182,7 @@ export class ShipmentService {
     this.logger.info('ShipmentService.packSellerShipment', { actorId: actor.id, shipmentId })
 
     const response = await this.repo.transaction(async (txRepo) => {
+      await txRepo.lockShipmentOrder(shipmentId)
       const shipment = await this.findSellerShipment(txRepo, actor.id, shipmentId)
       this.assertTransition(shipment.status, 'PACKED')
 
@@ -205,14 +206,13 @@ export class ShipmentService {
     this.logger.info('ShipmentService.shipSellerShipment', { actorId: actor.id, shipmentId, carrier })
 
     const response = await this.repo.transaction(async (txRepo) => {
+      await txRepo.lockShipmentOrder(shipmentId)
       const shipment = await this.findSellerShipment(txRepo, actor.id, shipmentId)
       this.assertTransition(shipment.status, 'SHIPPED')
 
       const updated = await txRepo.updateShipmentShipped(shipment.id, carrier, trackingNo, new Date())
       await txRepo.updateOrderItemsStatus(this.getOrderItemIds(updated), 'SHIPPED')
-      if (updated.order.status === 'PAID' || updated.order.status === 'PROCESSING') {
-        await txRepo.updateOrderStatus(updated.orderId, 'SHIPPED')
-      }
+      await txRepo.updateOrderStatus(updated.orderId, this.orderFulfillmentStatus(updated))
       return this.toSellerShipmentResponse(updated)
     })
     await this.publishBestEffort('shipment.shipped', response.id, actor.id, {
@@ -236,15 +236,14 @@ export class ShipmentService {
     this.logger.info('ShipmentService.deliverAdminShipment', { actorId: actor.id, shipmentId })
 
     const response = await this.repo.transaction(async (txRepo) => {
+      await txRepo.lockShipmentOrder(shipmentId)
       const shipment = await txRepo.findShipmentById(shipmentId)
       if (!shipment) throw new ShipmentServiceError('Shipment not found', 404, 'SHIPMENT_NOT_FOUND')
       this.assertTransition(shipment.status, 'DELIVERED')
 
       const updated = await txRepo.updateShipmentDelivered(shipment.id, new Date())
       await txRepo.updateOrderItemsStatus(this.getOrderItemIds(updated), 'DELIVERED')
-      if (this.allOrderShipmentsDelivered(updated)) {
-        await txRepo.updateOrderStatus(updated.orderId, 'DELIVERED')
-      }
+      await txRepo.updateOrderStatus(updated.orderId, this.orderFulfillmentStatus(updated))
       return this.toSellerShipmentResponse(updated)
     })
     await this.walletService?.createEarningsForCompletedOrder(response.orderId)
@@ -310,10 +309,11 @@ export class ShipmentService {
     return shipment.items.map((item) => item.orderItemId)
   }
 
-  private allOrderShipmentsDelivered(shipment: SellerShipment): boolean {
-    return shipment.order.shipments.every((orderShipment) =>
-      orderShipment.id === shipment.id ? shipment.status === 'DELIVERED' : orderShipment.status === 'DELIVERED',
-    )
+  private orderFulfillmentStatus(shipment: SellerShipment): 'DELIVERED' | 'SHIPPED' | 'PARTIALLY_FULFILLED' {
+    const statuses = shipment.order.shipments.map((sibling) => sibling.id === shipment.id ? shipment.status : sibling.status)
+    if (statuses.length > 0 && statuses.every((status) => status === 'DELIVERED')) return 'DELIVERED'
+    if (statuses.length > 0 && statuses.every((status) => status === 'SHIPPED' || status === 'DELIVERED')) return 'SHIPPED'
+    return 'PARTIALLY_FULFILLED'
   }
 
   private toSellerShipmentResponse(shipment: SellerShipment): ShipmentResponse {

@@ -97,6 +97,7 @@ export interface CreatedCheckoutOrder {
 
 export interface ICheckoutRepository extends IPromotionValidationRepository {
   transaction<T>(callback: (repo: ICheckoutRepository) => Promise<T>): Promise<T>
+  lockCartForCheckout(cartId: string): Promise<void>
   findCartForCheckout(cartId: string): Promise<CheckoutCart | null>
   findAddressForUser(addressId: string, userId: string): Promise<CheckoutAddress | null>
   lockCouponForCheckout(couponId: string): Promise<void>
@@ -152,6 +153,14 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     }
 
     return client.$transaction((tx) => callback(new PrismaCheckoutRepository({ logger: this.logger, config: { environment: 'transaction' } }, tx)))
+  }
+
+  async lockCartForCheckout(cartId: string): Promise<void> {
+    // Call only inside the commit transaction, before reading the cart snapshot.
+    // Parent lock serializes checkout and new item inserts (their FK key-share
+    // lock); child locks stop quantity edits/deletes while the quote is committed.
+    await this.prisma.$queryRaw`SELECT "id" FROM "Cart" WHERE "id" = ${cartId} FOR UPDATE`
+    await this.prisma.$queryRaw`SELECT "id" FROM "CartItem" WHERE "cartId" = ${cartId} ORDER BY "id" FOR UPDATE`
   }
 
   findCartForCheckout(cartId: string): Promise<CheckoutCart | null> {
@@ -221,7 +230,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
   }
 
   async commitCheckout(input: CheckoutCommitmentInput): Promise<CreatedCheckoutOrder> {
-    this.logger.info('PrismaCheckoutRepository.commitCheckout', { cartId: input.cartId, userId: input.userId })
+    this.logger.debug('PrismaCheckoutRepository.commitCheckout', { cartId: input.cartId, userId: input.userId })
     const quote = input.acceptedQuote
 
     const checkout = await this.prisma.checkout.create({
@@ -248,20 +257,14 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         })
       }
 
-      const reserveResult = await this.prisma.inventory.updateMany({
-        where: {
-          variantId: item.variantId,
-          quantityReserved: {
-            lte: inventory.quantityOnHand - item.quantity,
-          },
-        },
-        data: {
-          quantityReserved: {
-            increment: item.quantity,
-          },
-        },
-      })
-      if (reserveResult.count !== 1) {
+      const reservedCount = await this.prisma.$executeRaw`
+        UPDATE "Inventory"
+        SET "quantityReserved" = "quantityReserved" + ${item.quantity},
+            "version" = "version" + 1, "updatedAt" = NOW()
+        WHERE "variantId" = ${item.variantId}::uuid
+          AND "quantityOnHand" - "quantityReserved" >= ${item.quantity}
+      `
+      if (reservedCount !== 1) {
         throw new CheckoutServiceError('Requested quantity exceeds available stock', 409, 'INSUFFICIENT_STOCK', {
           variantId: item.variantId,
         })

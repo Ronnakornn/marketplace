@@ -90,6 +90,15 @@ describe('SellerShopService', () => {
     service = new SellerShopService(createAppContext(), repo)
   })
 
+  it('sorts multiple shops when Prisma returns ISO date strings', async () => {
+    vi.mocked(repo.listOwnedShops).mockResolvedValue(JSON.parse(JSON.stringify([
+      createShop({ id: 'later', createdAt: new Date('2026-06-01') }),
+      createShop({ id: 'earlier', createdAt: new Date('2026-05-01') }),
+    ])))
+    const result = await service.listOwnedShops({ id: 'seller-1', role: 'USER' })
+    expect(result.shops.map((shop) => shop.id)).toEqual(['earlier', 'later'])
+  })
+
   it('lists owned shops and active shop context', async () => {
     await expect(service.listOwnedShops({ id: 'seller-1', role: 'USER' })).resolves.toMatchObject({
       maxShopCount: 5,

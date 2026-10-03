@@ -1,6 +1,9 @@
 import type { CacheService } from './cache.service.ts'
 
 export class CacheInvalidation {
+  private inventoryInvalidationDueAt = 0
+  private inventoryInvalidationTimer?: ReturnType<typeof setTimeout>
+
   constructor(private cache: CacheService) {}
 
   async invalidateProductListsAndSearch(): Promise<number> {
@@ -41,7 +44,24 @@ export class CacheInvalidation {
 
   async invalidateInventory(productId?: string): Promise<number> {
     if (productId) return this.invalidateProduct(productId)
-    return this.invalidateProductListsAndSearch()
+    const now = Date.now()
+    if (now >= this.inventoryInvalidationDueAt) {
+      this.inventoryInvalidationDueAt = now + 1_000
+      return this.invalidateProductListsAndSearch()
+    }
+    // Reservations can arrive many times per second. One trailing invalidation
+    // keeps cached availability at most one second behind without running KEYS
+    // for every checkout. Checkout still validates stock from PostgreSQL.
+    if (!this.inventoryInvalidationTimer) {
+      const delay = this.inventoryInvalidationDueAt - now
+      this.inventoryInvalidationTimer = setTimeout(() => {
+        this.inventoryInvalidationTimer = undefined
+        this.inventoryInvalidationDueAt = Date.now() + 1_000
+        void this.invalidateProductListsAndSearch()
+      }, delay)
+      this.inventoryInvalidationTimer.unref?.()
+    }
+    return 0
   }
 
   async invalidateSellerDashboard(shopId: string): Promise<number> {

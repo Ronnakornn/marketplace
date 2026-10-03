@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { isolateActorPage } from './browser-context';
 
 export type AdminIdentity = {
   email: string;
@@ -16,6 +17,7 @@ export const financeAdmin: AdminIdentity = {
 };
 
 export async function signInAdmin(page: Page, identity: AdminIdentity = primaryAdmin) {
+  await isolateActorPage(page);
   await page.context().clearCookies();
   const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
   const response = await page.request.post("/api/auth/sign-in/email", {

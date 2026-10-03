@@ -191,6 +191,7 @@ describe('CartService', () => {
       unitPrice: 1590,
       currency: 'USD',
     })
+    expect(repo.findOrCreateActiveCart).toHaveBeenCalledTimes(1)
   })
 
   it('records add-to-cart analytics after a successful add', async () => {

@@ -21,7 +21,7 @@ const frontendHostname = new URL(frontendUrl).hostname;
 
 const apiCommand = useProductionServers
   ? `cross-env NODE_ENV=production API_PORT=${apiPort} BETTER_AUTH_TRUSTED_ORIGINS=${frontendUrl} bun run server/index.ts`
-  : `cross-env NODE_ENV=development API_PORT=${apiPort} RATE_LIMIT_ENABLED=false BETTER_AUTH_TRUSTED_ORIGINS=${frontendUrl} bun run --watch server/index.ts`;
+  : `cross-env NODE_ENV=development API_PORT=${apiPort} RATE_LIMIT_ENABLED=false BETTER_AUTH_TRUSTED_ORIGINS=${frontendUrl} bun run server/index.ts`;
 const frontendCommand = useProductionServers
   ? `cross-env NODE_ENV=production NEXT_DIST_DIR=${nextDistDir} API_BASE_URL=${apiUrl} next start --port ${frontendPort}`
   : `cross-env NODE_ENV=development NEXT_DIST_DIR=${nextDistDir} NEXT_ALLOWED_DEV_ORIGINS=${frontendHostname} API_BASE_URL=${apiUrl} next dev --port ${frontendPort}`;
@@ -40,6 +40,7 @@ export default defineConfig({
   ],
   use: {
     baseURL: frontendUrl,
+    launchOptions: { slowMo: Number(process.env.PLAYWRIGHT_SLOW_MO ?? 0) },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -62,21 +63,27 @@ export default defineConfig({
     },
     {
       name: "firefox",
-      testMatch: /seller-routes\.spec\.ts/,
+      testMatch: /(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards)\.spec\.ts/,
       dependencies: ["setup"],
       use: { ...devices["Desktop Firefox"], storageState: "test-results/.auth/seller.json" },
     },
     {
       name: "webkit",
-      testMatch: /seller-routes\.spec\.ts/,
+      testMatch: /(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards)\.spec\.ts/,
       dependencies: ["setup"],
       use: { ...devices["Desktop Safari"], storageState: "test-results/.auth/seller.json" },
     },
     {
       name: "mobile-chromium",
-      testMatch: /seller-routes\.spec\.ts/,
+      testMatch: /(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards)\.spec\.ts/,
       dependencies: ["setup"],
       use: { ...devices["Pixel 7"], storageState: "test-results/.auth/seller.json" },
+    },
+    {
+      name: "mobile-webkit",
+      testMatch: /(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards)\.spec\.ts/,
+      dependencies: ["setup"],
+      use: { ...devices["iPhone 13"], storageState: "test-results/.auth/seller.json" },
     },
   ],
   webServer: [

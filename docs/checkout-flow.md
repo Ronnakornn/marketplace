@@ -46,7 +46,10 @@ flowchart TD
 ```
 
 Rules:
+- Checkout locks the cart and its current item rows before reading the purchase snapshot inside the transaction. Concurrent submissions re-read after the prior commit, so consumed items cannot create another order. Unselected items and later additions remain usable in the active cart.
+- The checkout UI blocks immediate repeated submission and allows retry after a failed request. If the response is lost after commit, the buyer can recover the existing order from order history; retry does not promise replaying the original response.
 - Stock is reserved before the buyer enters payment to prevent oversell.
+- Reservation updates compare on-hand and reserved quantities in the same SQL update. Seller stock changes read under a row lock and cannot reduce on-hand below active reservations.
 - Reservations must expire and release automatically if checkout is abandoned.
 - The browser return page can show pending status, but it must not mark payment successful.
 - Payment success is accepted only from a verified provider webhook.

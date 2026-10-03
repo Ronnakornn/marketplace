@@ -29,6 +29,7 @@ function createAppContext() {
 function createRepoMock(): IShipmentRepository {
   return {
     transaction: vi.fn(async (callback) => callback(repo)),
+    lockShipmentOrder: vi.fn(),
     findOrderForShipmentCreation: vi.fn(),
     createShipment: vi.fn(),
     findSellerShops: vi.fn(),
@@ -407,6 +408,36 @@ describe('ShipmentService', () => {
         trackingNumber: 'TRACK-1',
       },
     })
+  })
+
+  it.each([
+    ['PENDING_PACK', 'PARTIALLY_FULFILLED'],
+    ['PACKED', 'PARTIALLY_FULFILLED'],
+    ['SHIPPED', 'SHIPPED'],
+    ['DELIVERED', 'SHIPPED'],
+  ] as const)('shipping one shop with sibling %s gives aggregate order %s', async (siblingStatus, orderStatus) => {
+    vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
+    vi.mocked(repo.findSellerShipmentById).mockResolvedValue(createSellerShipment({ status: 'PACKED' }))
+    const updated = createSellerShipment({ status: 'SHIPPED' })
+    updated.order.shipments.push({ ...updated.order.shipments[0], id: 'shipment-2', shopId: 'shop-2', status: siblingStatus })
+    vi.mocked(repo.updateShipmentShipped).mockResolvedValue(updated)
+
+    await service.shipSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-1', { carrier: 'Test', trackingNo: 'TRACK-1' })
+
+    expect(repo.updateOrderStatus).toHaveBeenCalledWith('order-1', orderStatus)
+    expect(vi.mocked(repo.lockShipmentOrder).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(repo.findSellerShipmentById).mock.invocationCallOrder[0]!)
+  })
+
+  it('delivery of one shop keeps the order partial while another shop is still packing', async () => {
+    vi.mocked(repo.findShipmentById).mockResolvedValue(createSellerShipment({ status: 'SHIPPED' }))
+    const updated = createSellerShipment({ status: 'DELIVERED' })
+    updated.order.shipments.push({ ...updated.order.shipments[0], id: 'shipment-2', shopId: 'shop-2', status: 'PENDING_PACK' })
+    vi.mocked(repo.updateShipmentDelivered).mockResolvedValue(updated)
+
+    await service.deliverAdminShipment({ id: 'admin-1', role: 'ADMIN' }, 'shipment-1', { evidenceReference: 'DELIVERED-1' })
+
+    expect(repo.updateOrderStatus).toHaveBeenCalledWith('order-1', 'PARTIALLY_FULFILLED')
+    expect(vi.mocked(repo.lockShipmentOrder).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(repo.findShipmentById).mock.invocationCallOrder[0]!)
   })
 
   it('lets admin confirm carrier delivery and only marks order delivered when all shipments are delivered', async () => {

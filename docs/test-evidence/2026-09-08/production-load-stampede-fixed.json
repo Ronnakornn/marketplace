@@ -1,0 +1,105 @@
+{
+  "startedAt": "2026-09-07T18:35:43.382Z",
+  "finishedAt": "2026-09-07T18:38:23.816Z",
+  "pass": false,
+  "fatal": null,
+  "interrupted": false,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "architecture": "x64",
+    "runtime": "Node 22.12.0",
+    "logicalCpus": 12,
+    "cpuModel": "12th Gen Intel(R) Core(TM) i5-12450H",
+    "totalMemoryBytes": 25372323840,
+    "initialFreeMemoryBytes": 11853832192
+  },
+  "fixture": {
+    "tag": "ccabc7e3-1e0c-4ac0-b6f5-89fb7d94df96",
+    "productId": "41faf468-2fda-4568-b3d9-957c5f052762",
+    "variantId": "5e27eb34-c531-4556-a2e0-c542fed66c8e"
+  },
+  "catalogDataset": {
+    "products": 342,
+    "variants": 356,
+    "shops": 270
+  },
+  "scope": "Local HTTP catalog and authenticated pending checkout; no payment completion or external provider calls; unique fixtures retained in disposable database",
+  "configured": {
+    "users": 1000,
+    "minutes": 1,
+    "checkoutsPerMinute": 1000,
+    "thinkMs": 1000,
+    "timeoutMs": 10000,
+    "p95LimitMs": 1000,
+    "errorLimit": 0.01,
+    "fetchConcurrencyLimit": null,
+    "clientIpModel": "synthetic distinct IP per user; target must enable TRUST_PROXY=true for this local harness"
+  },
+  "actualDurationSeconds": 62.22108720000001,
+  "requests": 41797,
+  "errors": 109,
+  "errorRate": 0.0026078426681340767,
+  "p95Ms": 1302.3187000000034,
+  "checkoutAttempts": 1000,
+  "checkoutSuccesses": 999,
+  "expectedCheckouts": 1000,
+  "endpoints": {
+    "cart-add": {
+      "requests": 1000,
+      "errors": 1,
+      "errorRate": 0.001,
+      "p95Ms": 3980.19200000001,
+      "statuses": {
+        "200": 999,
+        "network": 1
+      },
+      "failureTypes": {
+        "ECONNREFUSED": 1
+      }
+    },
+    "catalog-list": {
+      "requests": 19634,
+      "errors": 108,
+      "errorRate": 0.005500662116736274,
+      "p95Ms": 1320.2562000000034,
+      "statuses": {
+        "200": 19526,
+        "network": 108
+      },
+      "failureTypes": {
+        "ECONNREFUSED": 108
+      }
+    },
+    "checkout-quote": {
+      "requests": 999,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 2112.7982000000047,
+      "statuses": {
+        "200": 999
+      },
+      "failureTypes": {}
+    },
+    "checkout-create": {
+      "requests": 999,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 1140.4247000000032,
+      "statuses": {
+        "200": 999
+      },
+      "failureTypes": {}
+    },
+    "catalog-detail": {
+      "requests": 19165,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 895.1235999999917,
+      "statuses": {
+        "200": 19165
+      },
+      "failureTypes": {}
+    }
+  }
+}

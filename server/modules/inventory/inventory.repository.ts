@@ -147,13 +147,16 @@ export class PrismaInventoryRepository implements IInventoryRepository {
     })
   }
 
-  ensureInventory(variantId: string, tx?: InventoryTx): Promise<Inventory> {
+  async ensureInventory(variantId: string, tx?: InventoryTx): Promise<Inventory> {
     this.logger.info('PrismaInventoryRepository.ensureInventory', { variantId })
-    return (tx ?? this.prisma).inventory.upsert({
+    const inventory = await (tx ?? this.prisma).inventory.upsert({
       where: { variantId },
       create: { variantId },
       update: {},
     })
+    if (!tx) return inventory
+    await tx.$queryRaw`SELECT "id" FROM "Inventory" WHERE "variantId" = ${variantId}::uuid FOR UPDATE`
+    return tx.inventory.findUniqueOrThrow({ where: { variantId } })
   }
 
   updateInventory(inventoryId: string, data: Prisma.InventoryUpdateInput, tx?: InventoryTx): Promise<Inventory> {

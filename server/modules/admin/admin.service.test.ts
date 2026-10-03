@@ -73,7 +73,7 @@ function createRepoMock(): IAdminRepository {
 }
 
 function createRefundRepoMock(): IRefundRepository {
-  return { listRefunds: vi.fn(), findRefundById: vi.fn(), updateRefundStatus: vi.fn(), completeRefundSuccess: vi.fn() }
+  return { listRefunds: vi.fn(), findRefundById: vi.fn(), completeRefundSuccess: vi.fn() }
 }
 
 function actor(role: Role = 'ADMIN') {
@@ -548,6 +548,13 @@ describe('AdminService', () => {
       externalReference: 'REF-1',
     })).resolves.toMatchObject({ status: 'SUCCESS', externalReference: 'REF-1' })
     expect(refundRepo.completeRefundSuccess).toHaveBeenCalledWith('refund-1', 'PROCESSING', expect.objectContaining({ completedById: 'admin-1', externalReference: 'REF-1' }))
+  })
+
+  it('records the processor when adopting a legacy processing refund', async () => {
+    vi.mocked(repo.findRefundById).mockResolvedValueOnce({ ...refund('PROCESSING'), processingById: null })
+    vi.mocked(repo.updateRefundStatus).mockResolvedValueOnce({ ...refund('PROCESSING'), processingById: 'admin-1' })
+    await service.updateRefundStatus(actor(), 'refund-1', { status: 'PROCESSING' })
+    expect(repo.updateRefundStatus).toHaveBeenCalledWith('refund-1', 'PROCESSING', expect.objectContaining({ processingById: 'admin-1' }))
   })
 
   it('lists and updates return escalations', async () => {

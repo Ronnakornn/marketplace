@@ -85,7 +85,7 @@ export class CartService {
   async addItem(actor: CartActor, data: AddCartItemData): Promise<CartResponse> {
     this.assertBuyer(actor)
     this.assertPositiveQuantity(data.quantity)
-    this.logger.info('CartService.addItem', { actorId: actor.id, variantId: data.variantId })
+    this.logger.debug('CartService.addItem', { actorId: actor.id, variantId: data.variantId })
 
     const cart = await this.repo.findOrCreateActiveCart(actor.id)
     const variant = await this.repo.findVariantForCart(data.variantId)
@@ -95,20 +95,21 @@ export class CartService {
     const nextQuantity = (existing?.quantity ?? 0) + data.quantity
     this.assertStockAvailable(variant!, nextQuantity)
 
-    if (existing) {
-      await this.repo.updateItemQuantity(existing.id, nextQuantity)
-    } else {
-      await this.repo.createItem({
+    const savedItem = existing
+      ? await this.repo.updateItemQuantity(existing.id, nextQuantity)
+      : await this.repo.createItem({
         cartId: cart.id,
         variantId: variant!.id,
         quantity: data.quantity,
         unitPrice: this.toMoneyNumber(this.getVariantPrice(variant!)),
         currency: variant!.currency,
       })
-    }
-
-    await this.recordAddToCartAnalytics(actor, variant!, data)
-    return this.getCart(actor)
+    // Analytics is explicitly best-effort and must not delay the cart response.
+    void this.recordAddToCartAnalytics(actor, variant!, data)
+    const items = existing
+      ? cart.items.map(item => item.id === existing.id ? savedItem : item)
+      : [...cart.items, savedItem]
+    return this.toCartResponse({ ...cart, items }, resolveContentLocale(undefined))
   }
 
   async updateItem(actor: CartActor, itemId: string, data: UpdateCartItemData): Promise<CartResponse> {

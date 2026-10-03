@@ -1,6 +1,7 @@
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
+import { RefundServiceError } from '#server/modules/refund/refund.errors.ts'
 import { AdminServiceError } from './admin.errors.ts'
 
 const PaginationQuery = t.Object({
@@ -75,7 +76,7 @@ export function createAdminRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
-      if (error instanceof AdminServiceError) {
+      if (error instanceof AdminServiceError || error instanceof RefundServiceError) {
         return httpStatus(error.status, {
           error: {
             code: error.code,

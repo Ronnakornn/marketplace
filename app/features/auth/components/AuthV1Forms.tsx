@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "#/i18n/client";
 import { changePassword, completePasswordReset, requestPasswordResetOtp, resendEmailVerification, verifyEmailOtp } from "#/features/auth/api";
 
 export function VerifyEmailForm() {
   const t = useTranslations();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [otp, setOtp] = useState("");
@@ -21,6 +23,7 @@ export function VerifyEmailForm() {
 
   async function handleVerify(event: React.FormEvent) {
     event.preventDefault();
+    if (!hydrated) return;
     setError(null);
     setMessage(null);
     try {
@@ -33,6 +36,7 @@ export function VerifyEmailForm() {
   }
 
   async function handleResend() {
+    if (!hydrated) return;
     setError(null);
     setMessage(null);
     try {
@@ -47,13 +51,13 @@ export function VerifyEmailForm() {
     <AuthShell title={t("auth.verifyEmailTitle")} description={t("auth.verifyEmailDescription")}>
       <StatusMessage message={message} error={error} />
       <form onSubmit={handleVerify} className="space-y-4">
-        <TextField id="verify-email" label={t("auth.email")} type="email" value={email} onChange={setEmail} required />
-        <TextField id="verify-otp" label={t("auth.verificationCode")} value={otp} onChange={setOtp} required minLength={4} inputMode="numeric" />
-        <button type="submit" disabled={loading !== null} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+        <TextField disabled={!hydrated} id="verify-email" label={t("auth.email")} type="email" value={email} onChange={setEmail} required />
+        <TextField disabled={!hydrated} id="verify-otp" label={t("auth.verificationCode")} value={otp} onChange={setOtp} required minLength={4} inputMode="numeric" />
+        <button type="submit" disabled={!hydrated || loading !== null} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
           {loading === "verify" ? t("auth.verifying") : t("auth.verifyEmail")}
         </button>
       </form>
-      <button type="button" onClick={handleResend} disabled={loading !== null} className="mt-3 w-full rounded-full border border-[var(--line)] px-5 py-2.5 text-sm font-semibold text-[var(--sea-ink)] disabled:cursor-not-allowed disabled:opacity-50">
+      <button type="button" onClick={handleResend} disabled={!hydrated || loading !== null} className="mt-3 w-full rounded-full border border-[var(--line)] px-5 py-2.5 text-sm font-semibold text-[var(--sea-ink)] disabled:cursor-not-allowed disabled:opacity-50">
         {loading === "resend" ? t("auth.sending") : t("auth.resendCode")}
       </button>
     </AuthShell>
@@ -62,6 +66,8 @@ export function VerifyEmailForm() {
 
 export function ForgotPasswordForm() {
   const t = useTranslations();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +75,7 @@ export function ForgotPasswordForm() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (!hydrated) return;
     setError(null);
     setMessage(null);
     try {
@@ -83,8 +90,8 @@ export function ForgotPasswordForm() {
     <AuthShell title={t("auth.resetPasswordTitle")} description={t("auth.resetPasswordDescription")}>
       <StatusMessage message={message} error={error} />
       <form onSubmit={handleSubmit} className="space-y-4">
-        <TextField id="reset-request-email" label={t("auth.email")} type="email" value={email} onChange={setEmail} required />
-        <button type="submit" disabled={resetRequestMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+        <TextField disabled={!hydrated} id="reset-request-email" label={t("auth.email")} type="email" value={email} onChange={setEmail} required />
+        <button type="submit" disabled={!hydrated || resetRequestMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
           {resetRequestMutation.isPending ? t("auth.sending") : t("auth.sendResetCode")}
         </button>
       </form>
@@ -97,6 +104,8 @@ export function ForgotPasswordForm() {
 
 export function ResetPasswordForm() {
   const t = useTranslations();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
@@ -107,6 +116,7 @@ export function ResetPasswordForm() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (!hydrated) return;
     setError(null);
     try {
       await resetMutation.mutateAsync({ email, otp, newPassword });
@@ -120,10 +130,10 @@ export function ResetPasswordForm() {
     <AuthShell title={t("auth.setNewPassword")} description={t("auth.setNewPasswordDescription")}>
       <StatusMessage error={error} />
       <form onSubmit={handleSubmit} className="space-y-4">
-        <TextField id="reset-email" label={t("auth.email")} type="email" value={email} onChange={setEmail} required />
-        <TextField id="reset-otp" label={t("auth.resetCode")} value={otp} onChange={setOtp} required minLength={4} inputMode="numeric" />
-        <TextField id="reset-new-password" label={t("auth.newPassword")} type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
-        <button type="submit" disabled={resetMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+        <TextField disabled={!hydrated} id="reset-email" label={t("auth.email")} type="email" value={email} onChange={setEmail} required />
+        <TextField disabled={!hydrated} id="reset-otp" label={t("auth.resetCode")} value={otp} onChange={setOtp} required minLength={4} inputMode="numeric" />
+        <TextField disabled={!hydrated} id="reset-new-password" label={t("auth.newPassword")} type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
+        <button type="submit" disabled={!hydrated || resetMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
           {resetMutation.isPending ? t("common.saving") : t("auth.saveNewPassword")}
         </button>
       </form>
@@ -133,6 +143,8 @@ export function ResetPasswordForm() {
 
 export function ChangePasswordForm() {
   const t = useTranslations();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -141,6 +153,7 @@ export function ChangePasswordForm() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (!hydrated) return;
     setError(null);
     setMessage(null);
     try {
@@ -157,9 +170,9 @@ export function ChangePasswordForm() {
     <AuthShell title={t("auth.changePasswordTitle")} description={t("auth.changePasswordDescription")}>
       <StatusMessage message={message} error={error} />
       <form onSubmit={handleSubmit} className="space-y-4">
-        <TextField id="current-password" label={t("auth.currentPassword")} type="password" value={currentPassword} onChange={setCurrentPassword} required />
-        <TextField id="new-password" label={t("auth.newPassword")} type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
-        <button type="submit" disabled={changeMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+        <TextField disabled={!hydrated} id="current-password" label={t("auth.currentPassword")} type="password" value={currentPassword} onChange={setCurrentPassword} required />
+        <TextField disabled={!hydrated} id="new-password" label={t("auth.newPassword")} type="password" value={newPassword} onChange={setNewPassword} required minLength={8} />
+        <button type="submit" disabled={!hydrated || changeMutation.isPending} className="w-full rounded-full bg-[var(--lagoon-deep)] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
           {changeMutation.isPending ? t("common.saving") : t("auth.changePasswordAction")}
         </button>
       </form>

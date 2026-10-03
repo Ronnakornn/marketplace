@@ -1,0 +1,82 @@
+{
+  "startedAt": "2026-09-07T16:19:56.729Z",
+  "finishedAt": "2026-09-07T16:52:09.621Z",
+  "pass": true,
+  "fatal": null,
+  "interrupted": false,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "architecture": "x64",
+    "logicalCpus": 12,
+    "cpuModel": "12th Gen Intel(R) Core(TM) i5-12450H",
+    "totalMemoryBytes": 25372323840,
+    "initialFreeMemoryBytes": 7402160128
+  },
+  "scope": "Local HTTP catalog and authenticated pending checkout; no payment completion or external provider calls; unique fixtures retained in disposable database",
+  "configured": {
+    "users": 100,
+    "minutes": 30,
+    "checkoutsPerMinute": 10,
+    "thinkMs": 1000,
+    "timeoutMs": 10000,
+    "p95LimitMs": 1000,
+    "errorLimit": 0.01,
+    "clientIpModel": "synthetic distinct IP per user; target must enable TRUST_PROXY=true for this local harness"
+  },
+  "actualDurationSeconds": 1801.006136,
+  "requests": 165702,
+  "errors": 0,
+  "errorRate": 0,
+  "p95Ms": 319.188300000038,
+  "checkoutAttempts": 300,
+  "checkoutSuccesses": 300,
+  "expectedCheckouts": 300,
+  "endpoints": {
+    "catalog-list": {
+      "requests": 82424,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 398.7738000000827,
+      "statuses": {
+        "200": 82424
+      }
+    },
+    "cart-add": {
+      "requests": 300,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 412.2391999999527,
+      "statuses": {
+        "200": 300
+      }
+    },
+    "checkout-quote": {
+      "requests": 300,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 68.95259999996051,
+      "statuses": {
+        "200": 300
+      }
+    },
+    "checkout-create": {
+      "requests": 300,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 172.10089999996126,
+      "statuses": {
+        "200": 300
+      }
+    },
+    "catalog-detail": {
+      "requests": 82378,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 178.1069000000134,
+      "statuses": {
+        "200": 82378
+      }
+    }
+  }
+}

@@ -97,6 +97,9 @@ export class InventoryService {
     await this.requireSellerVariantAccess(actor, variantId)
     const inventory = await this.repo.transaction(async (tx) => {
       const current = await this.repo.ensureInventory(variantId, tx)
+      if (data.quantityOnHand !== undefined && data.quantityOnHand < current.quantityReserved) {
+        throw new InventoryServiceError('On-hand quantity cannot be lower than reserved quantity', 409, 'INSUFFICIENT_STOCK')
+      }
       const quantityDelta = data.quantityOnHand === undefined ? 0 : data.quantityOnHand - current.quantityOnHand
       const updated = await this.repo.updateInventory(current.id, update, tx)
       await this.createMovement(current, updated, 'ADJUSTMENT', quantityDelta, {

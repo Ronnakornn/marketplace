@@ -168,4 +168,10 @@ describe("buyer shell smoke", () => {
     renderWithClient(<MobileBottomNavigation />);
     expect([...document.querySelectorAll("nav a")].every((link) => !link.className.includes("bg-orange-50"))).toBe(true);
   });
+
+  it.each(["/cart", "/checkout", "/payment/return", "/orders/order-id/review", "/orders/order-id/returns/new"])("leaves the fixed action bar accessible on %s", (path) => {
+    pathname = `/en${path}`;
+    const { container } = renderWithClient(<MobileBottomNavigation />);
+    expect(container.querySelector("nav")).toBeNull();
+  });
 });

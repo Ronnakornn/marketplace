@@ -1,0 +1,99 @@
+{
+  "startedAt": "2026-09-07T19:24:53.742Z",
+  "finishedAt": "2026-09-07T19:27:16.716Z",
+  "pass": true,
+  "fatal": null,
+  "interrupted": false,
+  "machine": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "architecture": "x64",
+    "runtime": "Node 22.12.0",
+    "logicalCpus": 12,
+    "cpuModel": "12th Gen Intel(R) Core(TM) i5-12450H",
+    "totalMemoryBytes": 25372323840,
+    "initialFreeMemoryBytes": 6770536448
+  },
+  "fixture": {
+    "tag": "55386519-a7d3-4ff4-ad02-7dda44ec27bb",
+    "productId": "41b38297-f037-4aa7-bcc4-682c2285a9ad",
+    "variantId": "3893abf5-0e1b-4036-bd11-ead16c9b08b4"
+  },
+  "catalogDataset": {
+    "products": 354,
+    "variants": 368,
+    "shops": 282
+  },
+  "scope": "Local HTTP catalog and authenticated pending checkout; no payment completion or external provider calls; unique fixtures retained in disposable database",
+  "configured": {
+    "users": 1000,
+    "minutes": 1,
+    "checkoutsPerMinute": 1000,
+    "thinkMs": 1000,
+    "timeoutMs": 10000,
+    "p95LimitMs": 1000,
+    "errorLimit": 0.01,
+    "fetchConcurrencyLimit": null,
+    "clientIpModel": "synthetic distinct IP per user; target must enable TRUST_PROXY=true for this local harness"
+  },
+  "actualDurationSeconds": 61.03171539999999,
+  "requests": 61684,
+  "errors": 0,
+  "errorRate": 0,
+  "p95Ms": 51.3234999999986,
+  "checkoutAttempts": 1000,
+  "checkoutSuccesses": 1000,
+  "expectedCheckouts": 1000,
+  "endpoints": {
+    "cart-add": {
+      "requests": 1000,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 207.0179000000062,
+      "statuses": {
+        "200": 1000
+      },
+      "failureTypes": {}
+    },
+    "catalog-list": {
+      "requests": 29684,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 56.44689999999537,
+      "statuses": {
+        "200": 29684
+      },
+      "failureTypes": {}
+    },
+    "checkout-quote": {
+      "requests": 1000,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 67.50690000000759,
+      "statuses": {
+        "200": 1000
+      },
+      "failureTypes": {}
+    },
+    "checkout-create": {
+      "requests": 1000,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 145.254099999991,
+      "statuses": {
+        "200": 1000
+      },
+      "failureTypes": {}
+    },
+    "catalog-detail": {
+      "requests": 29000,
+      "errors": 0,
+      "errorRate": 0,
+      "p95Ms": 9.000299999999697,
+      "statuses": {
+        "200": 29000
+      },
+      "failureTypes": {}
+    }
+  }
+}

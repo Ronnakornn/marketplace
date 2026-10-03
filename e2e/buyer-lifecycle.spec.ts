@@ -1,27 +1,37 @@
+import { isolateActorPage, newActorContext } from './helpers/browser-context';
 import { expect, test } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import en from "../messages/en.json" with { type: "json" };
 import { prisma } from "#server/lib/prisma.ts";
 import { signPaymentWebhookBody } from "#server/modules/payment/payment.webhook-signature.ts";
 import type { PaymentWebhookBody } from "#server/modules/payment/payment.types.ts";
 import { signIn } from "./helpers/storefront";
+import { demoSeller } from "./helpers/seller";
+import type { Page } from "@playwright/test";
 
-const lifecycleBuyer = { email: "buyer.lifecycle.e2e@example.com", password: "DemoPass123!" };
-const lifecycleProductSlug = "e2e-buyer-lifecycle-product";
-let checkoutVariantId = "";
+async function signInThroughUi(page: Page, identity: { email: string; password: string }, next: string) {
+  await page.goto(`/en/login?next=${encodeURIComponent(next)}`);
+  await page.getByLabel(en.auth.email, { exact: true }).fill(identity.email);
+  await page.getByLabel(en.auth.password, { exact: true }).fill(identity.password);
+  await page.getByRole("button", { name: en.auth.signIn, exact: true }).click();
+  await expect(page).toHaveURL(next);
+}
+
+const fixtureRunId = randomUUID();
+const lifecycleBuyer = { email: `buyer.lifecycle.${fixtureRunId}@example.test`, password: "DemoPass123!" };
+const lifecycleProductSlug = `e2e-buyer-lifecycle-${fixtureRunId}`;
+let fixtureBuyerId = "";
 let deliveredOrderId = "";
 let deliveredItemId = "";
 let fixtureProductId = "";
 const createdOrderIds = new Set<string>();
 
 async function deleteCheckoutOrders() {
+  // Delete only this worker's fixtures, never another browser project's orders.
+  if (!fixtureBuyerId) return;
   const oldOrders = await prisma.order.findMany({
-    where: {
-      OR: [
-        { orderNumber: { startsWith: "E2E-BUYER-LIFECYCLE-" } },
-        { payments: { some: { events: { some: { providerEventId: { startsWith: "buyer-ui-e2e-" } } } } } },
-      ],
-    },
+    where: { userId: fixtureBuyerId },
     select: { id: true },
   });
   for (const { id } of oldOrders) createdOrderIds.add(id);
@@ -55,10 +65,7 @@ async function deleteReviewAndReturnArtifacts() {
 }
 
 test.beforeAll(async () => {
-  await deleteCheckoutOrders();
-  const oldBuyer = await prisma.user.findUnique({ where: { email: lifecycleBuyer.email }, select: { id: true } });
-  if (oldBuyer) await prisma.user.delete({ where: { id: oldBuyer.id } });
-  await prisma.product.deleteMany({ where: { slug: lifecycleProductSlug } });
+  // Unique URL/SKU per worker avoids reusing cached products deleted by earlier projects.
 
   const [shop, category] = await Promise.all([
     prisma.shop.findFirst({ where: { slug: "urban-thread-co" } }),
@@ -70,6 +77,7 @@ test.beforeAll(async () => {
   const buyer = await prisma.user.create({
     data: { name: "Buyer Lifecycle E2E", email: lifecycleBuyer.email, role: "USER", status: "ACTIVE", emailVerified: true },
   });
+  fixtureBuyerId = buyer.id;
   await prisma.account.create({
     data: { providerId: "credential", accountId: buyer.id, userId: buyer.id, password: await hashPassword(lifecycleBuyer.password), issuer: "local:credential" },
   });
@@ -82,10 +90,9 @@ test.beforeAll(async () => {
   });
   fixtureProductId = product.id;
   const variant = await prisma.productVariant.create({
-    data: { productId: product.id, sku: "E2E-BUYER-LIFECYCLE", title: "Default", price: BigInt(12_900), currency: "THB", status: "ACTIVE" },
+    data: { productId: product.id, sku: `E2E-BUYER-LIFECYCLE-${fixtureRunId}`, title: "Default", price: BigInt(12_900), currency: "THB", status: "ACTIVE" },
   });
   await prisma.inventory.create({ data: { variantId: variant.id, quantityOnHand: 20, quantityReserved: 0 } });
-  checkoutVariantId = variant.id;
 
   const cart = await prisma.cart.create({ data: { userId: buyer.id, status: "CHECKED_OUT" } });
   const checkout = await prisma.checkout.create({
@@ -117,66 +124,109 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("buyer completes checkout in the UI and sees a verified paid order", async ({ browser }) => {
-  const context = await browser.newContext({ baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000" });
+test("buyer purchases through the UI, seller ships, and buyer sees matching tracking", async ({ browser, baseURL }) => {
+  test.setTimeout(120_000);
+  const context = await newActorContext(browser, { baseURL, storageState: { cookies: [], origins: [] } });
   const page = await context.newPage();
-  await signIn(page, lifecycleBuyer);
+  const sellerContext = await newActorContext(browser, { baseURL, storageState: { cookies: [], origins: [] } });
+  try {
+    await test.step("Buyer signs in and adds a product through the storefront", async () => {
+      const subresources = ['reviews', 'rating-summary', 'questions'].map((resource) =>
+        page.waitForResponse((response) => new URL(response.url()).pathname === `/api/products/${fixtureProductId}/${resource}`));
+      await signInThroughUi(page, lifecycleBuyer, `/en/products/${lifecycleProductSlug}`);
+      for (const response of await Promise.all(subresources)) {
+        expect(response.ok(), `Product subresource failed: ${response.status()}`).toBeTruthy();
+      }
 
-  const clear = await page.request.delete("/api/cart");
-  expect(clear.ok(), await clear.text()).toBeTruthy();
-  const added = await page.request.post("/api/cart/items", { data: { variantId: checkoutVariantId, quantity: 1 } });
-  expect(added.ok(), await added.text()).toBeTruthy();
+      const clear = await page.request.delete("/api/cart");
+      expect(clear.ok(), await clear.text()).toBeTruthy();
+      const cartResponse = page.waitForResponse((response) => response.url().endsWith("/api/cart/items") && response.request().method() === "POST");
+      await page.getByRole("button", { name: en.product.addToCart, exact: true }).click();
+      const added = await cartResponse;
+      expect(added.ok(), await added.text()).toBeTruthy();
+      await page.goto("/en/cart");
+      await expect(page.getByText("Buyer Lifecycle E2E Product").first()).toBeVisible();
+    });
 
-  await page.goto("/en/checkout");
-  const placeOrder = page.getByRole("button", { name: en.checkout.placeOrder });
-  await expect(placeOrder).toBeEnabled();
-  await placeOrder.click();
+    await page.goto("/en/checkout");
+    const placeOrder = page.getByRole("button", { name: en.checkout.placeOrder });
+    await expect(placeOrder).toBeEnabled();
+    await placeOrder.click();
 
-  const paymentLink = page.getByRole("link", { name: en.checkout.viewPaymentStatus });
-  await expect(paymentLink).toBeVisible();
-  const paymentUrl = await paymentLink.getAttribute("href");
-  expect(paymentUrl).toBeTruthy();
-  const checkoutUrl = new URL(paymentUrl!, "http://localhost");
-  const paymentId = checkoutUrl.searchParams.get("paymentId") ?? checkoutUrl.pathname.split("/").at(-1)!;
-  const checkoutOrderId = checkoutUrl.searchParams.get("orderId");
-  expect(paymentId).toBeTruthy();
+    const paymentLink = page.getByRole("link", { name: en.checkout.viewPaymentStatus });
+    await expect(paymentLink).toBeVisible();
+    const paymentUrl = await paymentLink.getAttribute("href");
+    expect(paymentUrl).toBeTruthy();
+    const checkoutUrl = new URL(paymentUrl!, "http://localhost");
+    const paymentId = checkoutUrl.searchParams.get("paymentId") ?? checkoutUrl.pathname.split("/").at(-1)!;
+    const checkoutOrderId = checkoutUrl.searchParams.get("orderId");
+    expect(paymentId).toBeTruthy();
 
-  const payment = await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } });
-  const orderId = checkoutOrderId ?? payment.orderId;
-  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
-  createdOrderIds.add(order.id);
-  const webhookSecret = process.env.PAYMENT_WEBHOOK_SECRET;
-  expect(webhookSecret, "PAYMENT_WEBHOOK_SECRET is required for buyer lifecycle E2E").toBeTruthy();
-  const timestamp = new Date();
-  const webhook: PaymentWebhookBody = {
-    provider: payment.provider,
-    providerRef: `buyer-ui-e2e-${payment.id}-${timestamp.getTime()}`,
-    eventType: "payment.paid",
-    paymentId: payment.id,
-    orderId: order.id,
-    amount: Number(payment.amount),
-  };
-  const webhookResponse = await page.request.post("/api/payment/webhook", {
-    data: webhook,
-    headers: {
-      "x-payment-timestamp": String(Math.floor(timestamp.getTime() / 1000)),
-      "x-payment-signature": signPaymentWebhookBody(webhook, webhookSecret!, timestamp),
-    },
-  });
-  expect(webhookResponse.ok(), await webhookResponse.text()).toBeTruthy();
+    const payment = await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } });
+    const orderId = checkoutOrderId ?? payment.orderId;
+    const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+    createdOrderIds.add(order.id);
+    const webhookSecret = process.env.PAYMENT_WEBHOOK_SECRET;
+    expect(webhookSecret, "PAYMENT_WEBHOOK_SECRET is required for buyer lifecycle E2E").toBeTruthy();
+    const timestamp = new Date();
+    const webhook: PaymentWebhookBody = {
+      provider: payment.provider,
+      providerRef: `buyer-ui-e2e-${payment.id}-${timestamp.getTime()}`,
+      eventType: "payment.paid",
+      paymentId: payment.id,
+      orderId: order.id,
+      amount: Number(payment.amount),
+    };
+    const webhookResponse = await page.request.post("/api/payment/webhook", {
+      data: webhook,
+      headers: {
+        "x-payment-timestamp": String(Math.floor(timestamp.getTime() / 1000)),
+        "x-payment-signature": signPaymentWebhookBody(webhook, webhookSecret!, timestamp),
+      },
+    });
+    expect(webhookResponse.ok(), await webhookResponse.text()).toBeTruthy();
 
-  await page.goto(`/en/payment/return?orderId=${order.id}`);
-  await expect(page.getByText(en.buyer.paymentConfirmed).first()).toBeVisible();
-  await page.getByRole("link", { name: en.buyer.viewOrder }).click();
-  await expect(page).toHaveURL(`/en/orders/${order.id}`);
-  await expect(page.getByText(order.orderNumber)).toBeVisible();
-  await page.getByRole("link", { name: en.order.trackOrder }).click();
-  await expect(page).toHaveURL(`/en/orders/${order.id}/tracking`);
-  await context.close();
+    await page.goto(`/en/payment/return?orderId=${order.id}`);
+    await expect(page.getByText(en.buyer.paymentConfirmed).first()).toBeVisible();
+    await page.getByRole("link", { name: en.buyer.viewOrder }).click();
+    await expect(page).toHaveURL(`/en/orders/${order.id}`);
+    await expect(page.getByText(order.orderNumber)).toBeVisible();
+    await page.getByRole("link", { name: en.order.trackOrder }).click();
+    await expect(page).toHaveURL(`/en/orders/${order.id}/tracking`);
+    const trackingNumber = `E2E-${order.id}`;
+    await test.step("Seller signs in, packs the paid order, and submits tracking", async () => {
+      const sellerPage = await sellerContext.newPage();
+      await signInThroughUi(sellerPage, demoSeller, "/en/seller/orders");
+      const row = sellerPage.getByRole("row").filter({ hasText: order.orderNumber });
+      await expect(row).toHaveCount(1);
+      const labels = en.seller.manage.pages.orders;
+      const ship = row.getByRole("button", { name: labels.ship, exact: true });
+      await expect(ship).toBeDisabled();
+      await row.getByRole("button", { name: labels.markPacked, exact: true }).click();
+      await expect(ship).toBeEnabled();
+      await row.getByRole("textbox", { name: labels.carrier, exact: true }).fill("E2E Express");
+      await row.getByRole("textbox", { name: labels.tracking, exact: true }).fill(trackingNumber);
+      const shippedResponse = sellerPage.waitForResponse((response) => response.url().endsWith("/ship") && response.request().method() === "PATCH");
+      await ship.click();
+      const shipped = await shippedResponse;
+      expect(shipped.ok(), await shipped.text()).toBeTruthy();
+      await expect(ship).toBeDisabled();
+    });
+    await test.step("Buyer sees the seller's tracking after reloading", async () => {
+      await page.bringToFront();
+      await page.reload();
+      await expect(page.getByText(`E2E Express ${trackingNumber}`, { exact: true })).toBeVisible();
+      const shipment = await prisma.shipment.findFirstOrThrow({ where: { orderId: order.id } });
+      expect(shipment).toMatchObject({ status: "SHIPPED", trackingNumber, carrier: "E2E Express" });
+    });
+  } finally {
+    await sellerContext.close();
+    await context.close();
+  }
 });
 
 test("buyer submits a review and a return for an eligible delivered item", async ({ browser }) => {
-  const context = await browser.newContext({ baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000" });
+  const context = await newActorContext(browser, { baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000" });
   const page = await context.newPage();
   await signIn(page, lifecycleBuyer);
 
@@ -196,3 +246,6 @@ test("buyer submits a review and a return for an eligible delivered item", async
   await expect(page.getByText(en.buyer.returnSubmitted)).toBeVisible();
   await context.close();
 });
+
+// Each local browser client gets its own production rate-limit bucket.
+test.beforeEach(async ({ page }) => { await isolateActorPage(page); });

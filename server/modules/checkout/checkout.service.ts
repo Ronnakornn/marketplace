@@ -72,9 +72,10 @@ export class CheckoutService {
     if (this.paymentConfig.provider === 'disabled') {
       throw new CheckoutServiceError('Payment checkout is not configured', 503, 'PAYMENT_UNAVAILABLE')
     }
-    this.logger.info('CheckoutService.createCheckout', { actorId: actor.id, cartId: data.cartId })
+    this.logger.debug('CheckoutService.createCheckout', { actorId: actor.id, cartId: data.cartId })
 
-    return this.repo.transaction(async (txRepo) => {
+    const response = await this.repo.transaction(async (txRepo) => {
+      await txRepo.lockCartForCheckout(data.cartId)
       const cart = await txRepo.findCartForCheckout(data.cartId)
       this.assertCart(actor, cart)
       const items = this.selectCartItems(cart.items, data.cartItemIds)
@@ -104,13 +105,11 @@ export class CheckoutService {
           acceptedQuote: evaluation.acceptedQuote,
         })
 
-      await this.cacheInvalidation?.invalidateInventory()
-
       return {
         orderId: result.order.id,
         orderNo: result.order.orderNumber,
         paymentId: result.payment.id,
-        paymentStatus: 'pending',
+        paymentStatus: 'pending' as const,
         paymentUrl: createPaymentCheckoutUrl(this.paymentConfig, {
           paymentId: result.payment.id,
           orderId: result.order.id,
@@ -122,12 +121,16 @@ export class CheckoutService {
         totalCents: totals.grandTotal,
       }
     })
+    // Do not hold a database transaction connection while Redis scans/deletes
+    // listing caches. The committed reservation remains the source of truth.
+    await this.cacheInvalidation?.invalidateInventory()
+    return response
   }
 
   async quoteCheckout(actor: CheckoutActor, data: QuoteCheckoutData): Promise<CheckoutQuote> {
     this.assertBuyer(actor)
     if (!data.cartId) throw new CheckoutServiceError('Cart id is required', 400, 'CHECKOUT_CART_REQUIRED')
-    this.logger.info('CheckoutService.quoteCheckout', { actorId: actor.id, cartId: data.cartId })
+    this.logger.debug('CheckoutService.quoteCheckout', { actorId: actor.id, cartId: data.cartId })
 
     const cart = await this.repo.findCartForCheckout(data.cartId)
     this.assertCart(actor, cart)

@@ -127,7 +127,7 @@ export class SellerShopService {
     const sorted = [...shops].sort((a, b) => {
       if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1
       if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1
-      return a.createdAt.getTime() - b.createdAt.getTime()
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     })
 
     return {

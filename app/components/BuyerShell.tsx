@@ -232,6 +232,11 @@ export function MobileBottomNavigation({ prefetchLinks = true }: { prefetchLinks
   const pathname = usePathname();
   const t = useTranslations();
   const localePath = useLocalePath();
+  // These pages provide their own fixed bottom actions. Rendering both bars
+  // at the same position blocks checkout, review and return submission on mobile.
+  const hasActionBar = ["/cart", "/checkout", "/payment/return"].some((path) => pathname === localePath(path))
+    || (pathname.startsWith(`${localePath("/orders")}/`) && /\/(review|returns\/new)$/.test(pathname));
+  if (hasActionBar) return null;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.4rem)] pt-1.5 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:hidden">
       <div className="mx-auto grid max-w-md grid-cols-6">

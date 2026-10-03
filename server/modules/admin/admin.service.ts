@@ -13,6 +13,7 @@ import type {
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { AuditLogService } from '#server/modules/audit-log'
+import type { EventPublisherService } from '#server/modules/event-bus'
 import type { IRefundRepository } from '#server/modules/refund/refund.repository.ts'
 import { isAPIError } from 'better-auth/api'
 import { auth } from '#server/lib/auth.ts'
@@ -174,6 +175,7 @@ export class AdminService {
     private repository: IAdminRepository,
     private auditLogService?: AuditLogService,
     private refundRepository?: IRefundRepository,
+    private eventPublisher?: EventPublisherService,
   ) {
     this.logger = appContext.logger
   }
@@ -584,7 +586,7 @@ export class AdminService {
     if (!existing) {
       throw new AdminServiceError('Refund not found', 404, 'REFUND_NOT_FOUND')
     }
-    if (existing.status === status) {
+    if (existing.status === status && !(status === 'PROCESSING' && !existing.processingById)) {
       return existing
     }
     if (existing.status === 'SUCCESS' || existing.status === 'FAILED' || (status === 'SUCCESS' && existing.status !== 'PROCESSING')) {
@@ -594,7 +596,7 @@ export class AdminService {
     if (status === 'SUCCESS' && !externalReference) {
       throw new AdminServiceError('External refund reference is required', 400, 'INVALID_STATUS_TRANSITION')
     }
-    if (status === 'SUCCESS' && existing.processingById === actor.id) {
+    if (status === 'SUCCESS' && (!existing.processingById || existing.processingById === actor.id)) {
       throw new AdminServiceError('Refund must be completed by a different administrator', 409, 'INVALID_STATUS_TRANSITION')
     }
     this.logger.info('AdminService.updateRefundStatus', { actorId: actor.id, refundId, status })
@@ -617,6 +619,17 @@ export class AdminService {
     await this.auditStatusChange(actor, 'REFUND_STATUS_CHANGED', 'Refund', refundId, existing, updated, {
       externalReference: status === 'SUCCESS' ? externalReference : undefined,
     }, false)
+    if (status === 'SUCCESS') {
+      try {
+        await this.eventPublisher?.publish({
+          eventName: 'refund.succeeded', aggregateType: 'refund', aggregateId: refundId,
+          actorUserId: actor.id,
+          data: { refundId, orderId: updated.orderId, paymentId: updated.paymentId, amount: Number(updated.amount) },
+        })
+      } catch (error) {
+        this.logger.warn('Refund notification publish failed', { refundId, error: String(error) })
+      }
+    }
     return updated
   }
 

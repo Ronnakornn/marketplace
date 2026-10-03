@@ -147,6 +147,19 @@ describe('InventoryService', () => {
     setup()
   })
 
+  it('rejects seller reductions below active reservations without changing stock', async () => {
+    await expect(service.updateSellerInventory(createActor() as any, 'variant-1', {
+      quantityOnHand: 1, reason: 'Stock count',
+    })).rejects.toMatchObject({ code: 'INSUFFICIENT_STOCK' })
+    expect(repo.updateInventory).not.toHaveBeenCalled()
+    expect(repo.createMovement).not.toHaveBeenCalled()
+  })
+
+  it('allows seller reductions exactly to the reserved quantity', async () => {
+    await service.updateSellerInventory(createActor() as any, 'variant-1', { quantityOnHand: 2, reason: 'Stock count' })
+    expect(repo.updateInventory).toHaveBeenCalledWith('inventory-1', { quantityOnHand: 2 }, expect.anything())
+  })
+
   it('prevents overselling without mutation side effects', async () => {
     vi.mocked(repo.ensureInventory).mockResolvedValue(createInventory({ quantityOnHand: 2, quantityReserved: 1 }))
 

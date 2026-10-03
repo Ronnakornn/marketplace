@@ -12,6 +12,7 @@ import type {
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { calculateReturnRefund } from '#server/modules/refund/refund-amount.service.ts'
 
 type ReturnTx = Omit<
   PrismaClient,
@@ -241,13 +242,18 @@ export class PrismaReturnRepository implements IReturnRepository {
     })
   }
 
-  createPendingRefundForReturn(returnRecord: ReturnRecord): Promise<Refund> {
-    const orderItem = returnRecord.items[0]?.orderItem
-    const payment = returnRecord.order.payments?.find((row) => row.status === 'SUCCEEDED') ?? returnRecord.order.payments?.[0]
+  async createPendingRefundForReturn(returnRecord: ReturnRecord): Promise<Refund> {
+    const payment = returnRecord.order.payments.find((row) => row.status === 'SUCCEEDED')
+    if (!payment) throw new Error('Refund requires a successful payment')
+    const [shopOrder, orderItems] = await Promise.all([
+      this.prisma.shopOrder.findUniqueOrThrow({ where: { orderId_shopId: { orderId: returnRecord.orderId, shopId: returnRecord.shopId } }, select: { subtotal: true, discountTotal: true } }),
+      this.prisma.orderItem.findMany({ where: { orderId: returnRecord.orderId, shopId: returnRecord.shopId }, select: { id: true, lineTotal: true, quantity: true } }),
+    ])
+    const amount = calculateReturnRefund(shopOrder, orderItems, returnRecord.items)
     this.logger.info('PrismaReturnRepository.createPendingRefundForReturn', {
       returnId: returnRecord.id,
       orderId: returnRecord.orderId,
-      amount: orderItem?.lineTotal,
+      amount: Number(amount),
     })
     return this.prisma.refund.create({
       data: {
@@ -255,7 +261,7 @@ export class PrismaReturnRepository implements IReturnRepository {
         paymentId: payment!.id,
         returnRequestId: returnRecord.id,
         status: 'PENDING',
-        amount: orderItem!.lineTotal,
+        amount,
         reason: returnRecord.reason,
       },
     })
