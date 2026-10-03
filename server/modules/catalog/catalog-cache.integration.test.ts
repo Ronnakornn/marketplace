@@ -6,6 +6,8 @@ import { CacheInvalidation, CacheService } from '#server/modules/cache'
 import { createRedisCacheClient } from '#server/modules/cache/cache.client.ts'
 import { PrismaCatalogRepository } from './catalog.repository.ts'
 import { CatalogService } from './catalog.service.ts'
+import { InventoryService, PrismaInventoryRepository } from '#server/modules/inventory'
+import { ActiveShopResolver, PrismaOwnershipGuardRepository } from '#server/modules/security'
 
 const url = process.env.COMMERCE_TEST_DATABASE_URL
 const redisUrl = process.env.CACHE_TEST_REDIS_URL
@@ -54,7 +56,9 @@ describe.skipIf(!url || !redisUrl)('catalog invalidation on real Redis and Postg
     for (const identifier of [product.slug, product.id]) for (const locale of ['th', 'en']) {
       expect(Number((await service.getPublicProductDetail(identifier, locale)).variants[0]!.price)).toBe(12500)
     }
-    await service.updateSellerInventory({ id: user.id, role: 'USER' }, variant.id, { quantityOnHand: 3 })
+    const inventory = new InventoryService(context, new PrismaInventoryRepository(context, prisma),
+      new ActiveShopResolver(new PrismaOwnershipGuardRepository(context, prisma)), new CacheInvalidation(cache))
+    await inventory.updateSellerInventory({ id: user.id, role: 'USER' }, variant.id, { quantityOnHand: 3, reason: 'cycle count' })
     expect((await service.getPublicProductDetail(product.slug, 'en')).variants[0]!.inventory?.quantityOnHand).toBe(3)
     const renamedSlug = `renamed-${tag}`
     await service.updateProduct({ id: user.id, role: 'USER' }, product.id, { slug: renamedSlug })

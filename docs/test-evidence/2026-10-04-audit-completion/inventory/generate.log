@@ -1,0 +1,10 @@
+$ bunx prisma generate
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+
+✔ Generated Prisma Client (7.9.1) to .\generated\client in 983ms
+
+✔ Generated prismabox to .\generated\prismabox in 2.37s

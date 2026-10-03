@@ -8,6 +8,7 @@ import type {
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
+import type { CacheInvalidation } from '#server/modules/cache'
 import { SecurityError } from '#server/modules/security/security.errors.ts'
 import { InventoryServiceError } from './inventory.errors.ts'
 import type {
@@ -21,6 +22,8 @@ export interface InventoryActor {
   id: string
   role?: string
 }
+
+export const MAX_INVENTORY_QUANTITY = 2_147_483_647
 
 export interface SellerInventoryUpdateData {
   quantityOnHand?: number
@@ -72,6 +75,7 @@ export class InventoryService {
     appContext: AppContext,
     private repo: IInventoryRepository,
     private activeShopResolver?: ActiveShopResolver,
+    private cacheInvalidation?: CacheInvalidation,
   ) {
     this.logger = appContext.logger
   }
@@ -112,6 +116,10 @@ export class InventoryService {
     })
     const hydrated = await this.repo.findInventoryByVariantId(inventory.variantId)
     if (!hydrated) throw new InventoryServiceError('Inventory not found', 404, 'INVENTORY_NOT_FOUND')
+    await Promise.all([
+      this.cacheInvalidation?.invalidateVariant(hydrated.variant.product.id),
+      this.cacheInvalidation?.invalidateSellerDashboard(hydrated.variant.product.shopId),
+    ])
     return this.toResponse(hydrated)
   }
 
@@ -248,7 +256,7 @@ export class InventoryService {
     if (!variant) throw new InventoryServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
     if (this.activeShopResolver) {
       try {
-        await this.activeShopResolver.requireActiveShop(actor.id, variant.product.shopId)
+        await this.activeShopResolver.requireActiveShopAccess(actor.id, variant.product.shopId, { permissions: ['inventory'] })
       } catch (error) {
         if (error instanceof SecurityError) {
           throw new InventoryServiceError(error.message, error.status, error.code, error.details)
@@ -262,7 +270,8 @@ export class InventoryService {
 
   private async resolveSellerShops(actor: InventoryActor) {
     if (!this.activeShopResolver) throw new InventoryServiceError('Seller shop access required', 403, 'SELLER_SHOP_NOT_ACTIVE')
-    const shops = await this.activeShopResolver.resolveActiveShops(actor.id)
+    const accesses = await this.activeShopResolver.resolveActiveShopAccesses(actor.id, { permissions: ['inventory'] })
+    const shops = accesses.map(({ shop }) => shop)
     if (shops.length === 0) throw new InventoryServiceError('Active seller shop not found', 403, 'SELLER_SHOP_NOT_ACTIVE')
     return shops
   }
@@ -332,8 +341,8 @@ export class InventoryService {
   }
 
   private validateNonNegativeInteger(value: number, label: string): void {
-    if (!Number.isInteger(value) || value < 0) {
-      throw new InventoryServiceError(`${label} must be a non-negative integer`, 400, 'INVENTORY_VALIDATION_FAILED')
+    if (!Number.isInteger(value) || value < 0 || value > MAX_INVENTORY_QUANTITY) {
+      throw new InventoryServiceError(`${label} must be an integer between 0 and ${MAX_INVENTORY_QUANTITY}`, 400, 'INVENTORY_VALIDATION_FAILED')
     }
   }
 

@@ -1,0 +1,13 @@
+$ vitest run --exclude "**/e2e/**" server/modules/inventory/inventory-boundary.integration.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/inventory/checkout-race.json"
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+ ✓ server/modules/inventory/inventory-boundary.integration.test.ts (24 tests) 1001ms
+     ✓ rejects reductions below held stock through the composed route  326ms
+
+ Test Files  1 passed (1)
+      Tests  24 passed (24)
+   Start at  04:52:18
+   Duration  2.18s (transform 487ms, setup 0ms, import 1.03s, tests 1.00s, environment 0ms)
+
+JSON report written to C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/docs/test-evidence/2026-10-04-audit-completion/inventory/checkout-race.json

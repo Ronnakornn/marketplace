@@ -201,7 +201,7 @@ export function createContainer(): ServiceContainer {
   const cartService = new CartService(appContext, cartRepo, trackingService)
   const discoveryRepo = new PrismaDiscoveryRepository(appContext, prisma)
   const inventoryRepo = new PrismaInventoryRepository(appContext, prisma)
-  const inventoryService = new InventoryService(appContext, inventoryRepo, activeShopResolver)
+  const inventoryService = new InventoryService(appContext, inventoryRepo, activeShopResolver, cacheInvalidation)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
   const orderService = new OrderService(appContext, orderRepo, activeShopResolver)
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)

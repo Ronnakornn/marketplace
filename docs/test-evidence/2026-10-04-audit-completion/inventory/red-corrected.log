@@ -1,0 +1,167 @@
+$ vitest run --exclude "**/e2e/**" server/modules/inventory/inventory-boundary.integration.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/inventory/red-corrected.json"
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts (20 tests | 9 failed) 1175ms
+     × rejects reductions below held stock through the composed route 410ms
+     × sets stock exactly to held quantity and records one audited version 62ms
+     × records metadata-only edits without changing physical stock 48ms
+     ✓ rejects invalid input before writes {} 34ms
+     × rejects invalid input before writes {"quantityOnHand":11} 34ms
+     ✓ rejects invalid input before writes {"quantityOnHand":-1,"reason":"count"} 25ms
+     ✓ rejects invalid input before writes {"quantityOnHand":1.5,"reason":"count"} 21ms
+     × rejects invalid input before writes {"quantityOnHand":2147483648,"reason":"count"} 59ms
+     × rejects invalid input before writes {"reorderLevel":2147483648,"reason":"count"} 64ms
+     ✓ rejects an outsider with another active shop 74ms
+     ✓ enforces readiness before reading the target variant 33ms
+     ✓ rejects edits to a suspended shop 18ms
+     × uses the accepted MANAGER inventory permission 38ms
+     × uses the accepted WAREHOUSE inventory permission 45ms
+     ✓ uses the accepted SUPPORT inventory permission 23ms
+     ✓ rolls back stock and version when movement persistence fails 30ms
+     × invalidates only affected detail and dashboard after a successful commit 24ms
+     ✓ serializes held-stock edits when reservation acquires the lock first 38ms
+     ✓ serializes held-stock edits when seller acquires the lock first 29ms
+     ✓ records a complete stock and version chain under concurrent seller edits 33ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects reductions below held stock through the composed route
+AssertionError: expected 200 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 200
+
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:92:29
+     90|     const data = await fixture()
+     91|     const response = await data.patch({ quantityOnHand: 5, reason: 'co…
+     92|     expect(response.status).toBe(409)
+       |                             ^
+     93|     expect(await response.json()).toMatchObject({ error: { code: 'INSU…
+     94|     await unchanged(data.inventory.id)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > sets stock exactly to held quantity and records one audited version
+AssertionError: expected { …(7) } to match object { quantityOnHand: 6, …(2) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "availableStock": 0,
+    "quantityOnHand": 6,
+    "quantityReserved": 6,
+  }
+
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:101:35
+     99|     const response = await data.patch({ quantityOnHand: 6, quantityRes…
+    100|     expect(response.status).toBe(200)
+    101|     expect(await response.json()).toMatchObject({ quantityOnHand: 6, q…
+       |                                   ^
+    102|     expect(await db.inventory.findUniqueOrThrow({ where: { id: data.in…
+    103|       quantityOnHand: 6, quantityReserved: 6, version: 2,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > records metadata-only edits without changing physical stock
+AssertionError: expected { …(7) } to match object { quantityOnHand: 10, …(3) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "quantityOnHand": 10,
+    "quantityReserved": 6,
+    "reorderLevel": 4,
+-   "version": 2,
++   "version": 1,
+  }
+
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:115:88
+    113|     const data = await fixture()
+    114|     expect((await data.patch({ reorderLevel: 4, reason: 'threshold' })…
+    115|     expect(await db.inventory.findUniqueOrThrow({ where: { id: data.in…
+       |                                                                                        ^
+    116|       quantityOnHand: 10, quantityReserved: 6, reorderLevel: 4, versio…
+    117|     })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects invalid input before writes {"quantityOnHand":11}
+AssertionError: expected [ 400, 422 ] to include 200
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:128:24
+    126|     const data = await fixture()
+    127|     const response = await data.patch(body)
+    128|     expect([400, 422]).toContain(response.status)
+       |                        ^
+    129|     await unchanged(data.inventory.id)
+    130|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects invalid input before writes {"quantityOnHand":2147483648,"reason":"count"}
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects invalid input before writes {"reorderLevel":2147483648,"reason":"count"}
+AssertionError: expected [ 400, 422 ] to include 500
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:128:24
+    126|     const data = await fixture()
+    127|     const response = await data.patch(body)
+    128|     expect([400, 422]).toContain(response.status)
+       |                        ^
+    129|     await unchanged(data.inventory.id)
+    130|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > uses the accepted MANAGER inventory permission
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > uses the accepted WAREHOUSE inventory permission
+AssertionError: expected 403 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 403
+
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:164:29
+    162|     vi.mocked(getAuthContext).mockResolvedValue({ user } as Awaited<Re…
+    163|     const response = await target.patch({ quantityOnHand: 12, reason: …
+    164|     expect(response.status).toBe(role === 'SUPPORT' ? 403 : 200)
+       |                             ^
+    165|     if (role === 'SUPPORT') await unchanged(target.inventory.id)
+    166|     else {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > invalidates only affected detail and dashboard after a successful commit
+AssertionError: expected 200 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 200
+
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:192:81
+    190|     const unrelated = [data.cache.keys.productDetail(randomUUID()), da…
+    191|     for (const key of [...affected, ...unrelated]) await data.cache.se…
+    192|     expect((await data.patch({ quantityOnHand: 5, reason: 'invalid' })…
+       |                                                                                 ^
+    193|     for (const key of affected) expect(await data.cache.get(key)).toBe…
+    194|     expect((await data.patch({ quantityOnHand: 12, reason: 'count' }))…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 11 passed (20)
+   Start at  04:45:21
+   Duration  2.33s (transform 453ms, setup 0ms, import 1.02s, tests 1.17s, environment 0ms)
+
+JSON report written to C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/docs/test-evidence/2026-10-04-audit-completion/inventory/red-corrected.json
+error: script "test" exited with code 1

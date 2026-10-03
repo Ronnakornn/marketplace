@@ -167,11 +167,6 @@ export interface UpsertProductVideoData {
   sortOrder?: number
 }
 
-export interface UpdateInventoryData {
-  quantityOnHand?: number
-  reorderLevel?: number
-}
-
 export interface UpdateImageOrderData {
   images: Array<{
     id: string
@@ -1101,33 +1096,6 @@ export class CatalogService {
     await this.cacheInvalidation?.invalidateVariant(productId)
     await this.invalidateSellerDashboardForShop(variant.product.shopId)
     return deleted
-  }
-
-  async updateSellerInventory(actor: CatalogActor, variantId: string, data: UpdateInventoryData) {
-    this.logger.info('CatalogService.updateSellerInventory', { actorId: actor.id, variantId })
-    if (Object.keys(data).length === 0) {
-      throw new CatalogServiceError('At least one inventory field is required', 400, 'INVENTORY_VALIDATION_FAILED')
-    }
-    const update: UpdateInventoryData = {}
-    if (data.quantityOnHand !== undefined) {
-      if (!Number.isInteger(data.quantityOnHand) || data.quantityOnHand < 0) {
-        throw new CatalogServiceError('Quantity on hand must be a non-negative integer', 400, 'INVENTORY_VALIDATION_FAILED')
-      }
-      update.quantityOnHand = data.quantityOnHand
-    }
-    if (data.reorderLevel !== undefined) {
-      if (!Number.isInteger(data.reorderLevel) || data.reorderLevel < 0) {
-        throw new CatalogServiceError('Reorder level must be a non-negative integer', 400, 'INVENTORY_VALIDATION_FAILED')
-      }
-      update.reorderLevel = data.reorderLevel
-    }
-    const variant = await this.repo.findVariantById(variantId)
-    if (!variant) throw new CatalogServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
-    const product = await this.getManageableProduct(actor, variant.productId)
-    const inventory = await this.repo.updateVariantInventory(variantId, update)
-    await this.cacheInvalidation?.invalidateVariant(variant.productId)
-    await this.invalidateSellerDashboardForShop(product.shopId)
-    return inventory
   }
 
   private async invalidateSellerDashboardForShop(shopId: string): Promise<void> {

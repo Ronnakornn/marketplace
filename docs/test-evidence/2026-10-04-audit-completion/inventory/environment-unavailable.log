@@ -1,0 +1,290 @@
+$ vitest run --exclude "**/e2e/**" server/modules/inventory/inventory-boundary.integration.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/inventory/red.json"
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts (17 tests | 17 failed) 172ms
+     × rejects reductions below held stock through the composed route 103ms
+     × sets stock exactly to held quantity and records one audited version 3ms
+     × records metadata-only edits without changing physical stock 3ms
+     × rejects invalid input before writes {} 2ms
+     × rejects invalid input before writes {"quantityOnHand":11} 2ms
+     × rejects invalid input before writes {"quantityOnHand":-1,"reason":"count"} 2ms
+     × rejects invalid input before writes {"quantityOnHand":1.5,"reason":"count"} 2ms
+     × rejects invalid input before writes {"quantityOnHand":2147483648,"reason":"count"} 2ms
+     × rejects invalid input before writes {"reorderLevel":2147483648,"reason":"count"} 6ms
+     × rejects an outsider with another active shop 3ms
+     × enforces readiness before reading the target variant 2ms
+     × rejects edits to a suspended shop 2ms
+     × uses the accepted MANAGER inventory permission 2ms
+     × uses the accepted WAREHOUSE inventory permission 2ms
+     × uses the accepted SUPPORT inventory permission 2ms
+     × rolls back stock and version when movement persistence fails 2ms
+     × invalidates only affected detail and dashboard after a successful commit 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects reductions below held stock through the composed route
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:90:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > sets stock exactly to held quantity and records one audited version
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:98:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > records metadata-only edits without changing physical stock
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:113:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects invalid input before writes {}
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects invalid input before writes {"quantityOnHand":11}
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects invalid input before writes {"quantityOnHand":-1,"reason":"count"}
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects invalid input before writes {"quantityOnHand":1.5,"reason":"count"}
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects invalid input before writes {"quantityOnHand":2147483648,"reason":"count"}
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects invalid input before writes {"reorderLevel":2147483648,"reason":"count"}
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:126:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects an outsider with another active shop
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:133:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > enforces readiness before reading the target variant
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:140:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rejects edits to a suspended shop
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:150:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > uses the accepted MANAGER inventory permission
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > uses the accepted WAREHOUSE inventory permission
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > uses the accepted SUPPORT inventory permission
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:158:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > rolls back stock and version when movement persistence fails
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:178:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  server/modules/inventory/inventory-boundary.integration.test.ts > composed inventory boundary on PostgreSQL > invalidates only affected detail and dashboard after a successful commit
+PrismaClientKnownRequestError:
+Invalid `db.user.create()` invocation in
+C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/server/modules/inventory/inventory-boundary.integration.test.ts:60:32
+
+  57
+  58 async function fixture(reserved = 6) {
+  59   const tag = randomUUID()
+→ 60   const user = await db.user.create(
+Can't reach database server at 127.0.0.1:55439
+ ❯ Jr.handleRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:237:12
+ ❯ Jr.handleAndLogRequestError D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a D:/GitHub/marketplace/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ fixture server/modules/inventory/inventory-boundary.integration.test.ts:60:18
+     58|   async function fixture(reserved = 6) {
+     59|     const tag = randomUUID()
+     60|     const user = await db.user.create({ data: { name: 'Inventory owner…
+       |                  ^
+     61|     const profile = await db.sellerProfile.create({ data: { userId: us…
+     62|     const shop = await db.shop.create({ data: { ownerId: user.id, sell…
+ ❯ server/modules/inventory/inventory-boundary.integration.test.ts:188:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  17 failed (17)
+   Start at  04:43:04
+   Duration  2.09s (transform 507ms, setup 0ms, import 1.10s, tests 172ms, environment 0ms)
+
+JSON report written to C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/docs/test-evidence/2026-10-04-audit-completion/inventory/red.json
+error: script "test" exited with code 1

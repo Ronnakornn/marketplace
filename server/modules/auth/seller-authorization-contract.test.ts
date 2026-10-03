@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const sellerRouteFiles = [
+  'server/modules/inventory/inventory.routes.ts',
   'server/modules/seller-onboarding/seller-onboarding.routes.ts',
   'server/modules/order/order.routes.ts',
   'server/modules/catalog/catalog.routes.ts',
@@ -16,6 +17,7 @@ const sellerRouteFiles = [
 ]
 
 const sellerOperationalRouteFiles = [
+  'server/modules/inventory/inventory.routes.ts',
   'server/modules/order/order.routes.ts',
   'server/modules/catalog/catalog.routes.ts',
   'server/modules/promotion/promotion.routes.ts',

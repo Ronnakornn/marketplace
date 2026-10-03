@@ -1,0 +1,1 @@
+server/modules/inventory/inventory-boundary.integration.test.ts(26,75): error TS2353: Object literal may only specify known properties, and 'fatal' does not exist in type 'ILogger'.

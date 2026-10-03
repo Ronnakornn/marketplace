@@ -13,6 +13,14 @@ vi.mock('#server/modules/auth/auth.context.ts', () => ({
   getAuthContext: vi.fn(),
 }))
 
+vi.mock('#server/lib/prisma.ts', () => ({
+  prisma: {
+    shop: { count: vi.fn(async () => 1) },
+    shopStaff: { count: vi.fn(async () => 0) },
+    sellerApplication: { findFirst: vi.fn(async () => null) },
+  },
+}))
+
 function createContainer() {
   return {
     inventoryService: {
@@ -36,6 +44,7 @@ function mockAuth() {
       name: 'Seller',
       role: 'USER',
       status: 'ACTIVE',
+      emailVerified: true,
     },
   } as any)
 }

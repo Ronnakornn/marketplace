@@ -1,0 +1,24 @@
+$ vitest run --exclude "**/e2e/**" server/modules/inventory/inventory-boundary.integration.test.ts server/modules/inventory/inventory.service.test.ts server/modules/inventory/inventory.routes.test.ts server/modules/inventory/inventory-concurrency.integration.test.ts server/modules/catalog/catalog.service.test.ts server/modules/catalog/catalog.routes.test.ts server/modules/catalog/catalog-cache.integration.test.ts server/modules/auth/seller-authorization-contract.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/inventory/green-complete.json"
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+ ✓ server/modules/inventory/inventory-concurrency.integration.test.ts (3 tests) 820ms
+     ✓ applies concurrent commit exactly once  408ms
+ ✓ server/modules/inventory/inventory-boundary.integration.test.ts (22 tests) 796ms
+     ✓ rejects reductions below held stock through the composed route  313ms
+(node:31928) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/catalog/catalog-cache.integration.test.ts (1 test) 707ms
+     ✓ refreshes warmed slug and UUID details after seller edits and rejects stale visibility  685ms
+ ✓ server/modules/catalog/catalog.routes.test.ts (14 tests) 124ms
+ ✓ server/modules/catalog/catalog.service.test.ts (63 tests) 77ms
+ ✓ server/modules/inventory/inventory.routes.test.ts (4 tests) 35ms
+ ✓ server/modules/inventory/inventory.service.test.ts (8 tests) 14ms
+ ✓ server/modules/auth/seller-authorization-contract.test.ts (3 tests) 6ms
+
+ Test Files  8 passed (8)
+      Tests  118 passed (118)
+   Start at  04:50:06
+   Duration  5.84s (transform 502ms, setup 0ms, import 2.26s, tests 2.58s, environment 1ms)
+
+JSON report written to C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/docs/test-evidence/2026-10-04-audit-completion/inventory/green-complete.json

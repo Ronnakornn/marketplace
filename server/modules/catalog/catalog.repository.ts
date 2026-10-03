@@ -300,11 +300,6 @@ export interface UpsertProductVideoRecord {
   sortOrder?: number
 }
 
-export interface UpdateInventoryRecord {
-  quantityOnHand?: number
-  reorderLevel?: number
-}
-
 export type CatalogProductListItem = Omit<Product, 'titleTh' | 'titleEn' | 'descriptionTh' | 'descriptionEn'> & {
   titleTh?: string | null
   titleEn?: string | null
@@ -417,7 +412,6 @@ export interface ICatalogRepository {
   updateVariant(id: string, data: UpdateVariantRecord): Promise<CatalogVariantRecord>
   deleteVariant(id: string): Promise<CatalogVariantRecord>
   findVariantById(id: string): Promise<(CatalogVariantRecord & { product: CatalogProductRecord }) | null>
-  updateVariantInventory(variantId: string, data: UpdateInventoryRecord): Promise<NonNullable<CatalogProductListItem['variants'][number]['inventory']>>
   findLatestModerationCase(productId: string): Promise<CatalogModerationCaseRecord | null>
   createModerationAction(productId: string, actorId: string, action: string, note?: string | null): Promise<CatalogModerationCaseRecord>
 }
@@ -1285,19 +1279,6 @@ export class PrismaCatalogRepository implements ICatalogRepository {
         },
         include: { actions: { orderBy: { createdAt: 'desc' } } },
       })
-    })
-  }
-
-  updateVariantInventory(variantId: string, data: UpdateInventoryRecord): Promise<NonNullable<CatalogProductListItem['variants'][number]['inventory']>> {
-    this.logger.info('PrismaCatalogRepository.updateVariantInventory', { variantId })
-    return this.prisma.inventory.upsert({
-      where: { variantId },
-      create: {
-        variantId,
-        quantityOnHand: data.quantityOnHand ?? 0,
-        reorderLevel: data.reorderLevel ?? 0,
-      },
-      update: data,
     })
   }
 

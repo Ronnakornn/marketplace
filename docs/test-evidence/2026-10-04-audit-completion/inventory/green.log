@@ -1,0 +1,20 @@
+$ vitest run --exclude "**/e2e/**" server/modules/inventory/inventory-boundary.integration.test.ts server/modules/inventory/inventory.service.test.ts server/modules/inventory/inventory.routes.test.ts server/modules/inventory/inventory-concurrency.integration.test.ts server/modules/catalog/catalog.service.test.ts server/modules/catalog/catalog.routes.test.ts server/modules/auth/seller-authorization-contract.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/inventory/green.json"
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+ ✓ server/modules/inventory/inventory-boundary.integration.test.ts (20 tests) 792ms
+     ✓ rejects reductions below held stock through the composed route  311ms
+ ✓ server/modules/inventory/inventory-concurrency.integration.test.ts (3 tests) 831ms
+     ✓ applies concurrent commit exactly once  415ms
+ ✓ server/modules/catalog/catalog.routes.test.ts (14 tests) 126ms
+ ✓ server/modules/catalog/catalog.service.test.ts (63 tests) 80ms
+ ✓ server/modules/inventory/inventory.routes.test.ts (4 tests) 40ms
+ ✓ server/modules/inventory/inventory.service.test.ts (8 tests) 14ms
+ ✓ server/modules/auth/seller-authorization-contract.test.ts (3 tests) 5ms
+
+ Test Files  7 passed (7)
+      Tests  115 passed (115)
+   Start at  04:47:38
+   Duration  4.42s (transform 482ms, setup 0ms, import 1.64s, tests 1.89s, environment 1ms)
+
+JSON report written to C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace/docs/test-evidence/2026-10-04-audit-completion/inventory/green.json

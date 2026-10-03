@@ -101,8 +101,8 @@ function createRepo(): IInventoryRepository {
 
 function createActiveShopResolver() {
   return {
-    resolveActiveShops: vi.fn().mockResolvedValue([{ id: 'shop-1', ownerId: 'seller-1', status: 'ACTIVE' }]),
-    requireActiveShop: vi.fn().mockResolvedValue({ id: 'shop-1', ownerId: 'seller-1', status: 'ACTIVE' }),
+    resolveActiveShopAccesses: vi.fn().mockResolvedValue([{ shop: { id: 'shop-1', ownerId: 'seller-1', status: 'ACTIVE' } }]),
+    requireActiveShopAccess: vi.fn().mockResolvedValue({ shop: { id: 'shop-1', ownerId: 'seller-1', status: 'ACTIVE' } }),
   } as any
 }
 
@@ -221,7 +221,7 @@ describe('InventoryService', () => {
   })
 
   it('enforces seller ownership for seller inventory reads', async () => {
-    activeShopResolver.requireActiveShop.mockRejectedValue(new InventoryServiceError('forbidden', 403, 'SELLER_SHOP_NOT_ACTIVE'))
+    activeShopResolver.requireActiveShopAccess.mockRejectedValue(new InventoryServiceError('forbidden', 403, 'SELLER_SHOP_NOT_ACTIVE'))
 
     await expect(service.getSellerInventory(createActor(), 'variant-1')).rejects.toMatchObject({
       code: 'SELLER_SHOP_NOT_ACTIVE',

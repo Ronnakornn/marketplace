@@ -71,7 +71,6 @@ function createRepoMock(): ICatalogRepository {
     updateVariant: vi.fn(),
     deleteVariant: vi.fn(),
     findVariantById: vi.fn(),
-    updateVariantInventory: vi.fn(),
     findLatestModerationCase: vi.fn(),
     createModerationAction: vi.fn(),
   }
@@ -1774,44 +1773,6 @@ describe('CatalogService', () => {
     await service.deleteVariant(createActor(), product.id, variant.id)
 
     expect(repo.deleteVariant).toHaveBeenCalledWith(variant.id)
-  })
-
-  it('updates seller inventory while preserving reserved stock ownership rules', async () => {
-    const repo = createRepoMock()
-    const product = createProduct({ ownerId: 'seller-1' })
-    const variant = createVariant({ productId: product.id })
-    vi.mocked(repo.findVariantById).mockResolvedValue({ ...variant, product })
-    vi.mocked(repo.findProductById).mockResolvedValue(product)
-    vi.mocked(repo.updateVariantInventory).mockResolvedValue({
-      id: 'inventory-1',
-      quantityOnHand: 12,
-      quantityReserved: 3,
-      reorderLevel: 4,
-      updatedAt: new Date('2026-05-12T00:00:00.000Z'),
-    })
-    const service = new CatalogService(createAppContext(), repo)
-
-    await expect(service.updateSellerInventory(createActor(), variant.id, {
-      quantityOnHand: 12,
-      reorderLevel: 4,
-    })).resolves.toMatchObject({ quantityOnHand: 12, quantityReserved: 3, reorderLevel: 4 })
-
-    expect(repo.updateVariantInventory).toHaveBeenCalledWith(variant.id, {
-      quantityOnHand: 12,
-      reorderLevel: 4,
-    })
-  })
-
-  it('rejects invalid seller inventory quantities', async () => {
-    const repo = createRepoMock()
-    const service = new CatalogService(createAppContext(), repo)
-
-    await expect(service.updateSellerInventory(createActor(), 'variant-1', {
-      quantityOnHand: -1,
-    })).rejects.toMatchObject({
-      status: 400,
-      code: 'INVENTORY_VALIDATION_FAILED',
-    })
   })
 
   it('maps duplicate SKU or slug errors to conflict', async () => {
