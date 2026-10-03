@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Elysia } from 'elysia'
+import type { ServiceContainer } from '#server/context/app-context.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { SearchService } from '#server/modules/search/search.service.ts'
 import type { AiSearchConfig } from './ai-search.config.ts'
@@ -6,6 +8,7 @@ import { AiSearchServiceError } from './ai-search.errors.ts'
 import { AiSearchService } from './ai-search.service.ts'
 import type { IEmbeddingService } from './embedding.service.ts'
 import type { AiSearchProductRecord, IVectorSearchAdapter } from './vector-search.adapter.ts'
+import { createAiSearchRoutes } from './ai-search.routes.ts'
 
 function createLogger() {
   return {
@@ -171,6 +174,20 @@ describe('AiSearchService', () => {
       description: 'เสื้อนุ่มใส่ทุกวัน',
       category: expect.objectContaining({ name: 'แฟชั่น' }),
     })
+  })
+
+  it.each([[0.123444, 0.1234], [0.123456, 0.1235]])('rounds supplied semantic score %s to %s in service and actual API', async (score, expected) => {
+    vi.mocked(vectorSearch.searchProducts).mockResolvedValue([{ product: product(), score }])
+    const result = await service.search({ query: 'cotton', locale: 'en' })
+    expect(result.semanticMatches).toEqual([{ productId: 'p1', score: expected, title: 'Cotton Shirt' }])
+    const app = new Elysia().use(createAiSearchRoutes({ aiSearchService: service } as unknown as ServiceContainer))
+    const response = await app.handle(new Request('http://localhost/api/ai-search', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ query: 'cotton', locale: 'en' }),
+    }))
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.semanticMatches).toEqual([{ productId: 'p1', score: expected, title: 'Cotton Shirt' }])
+    expect(body.items[0].price).toEqual({ minPrice: '1200', maxPrice: null, currency: 'USD' })
   })
 
   it('falls back to normal search when vector search is unavailable', async () => {
