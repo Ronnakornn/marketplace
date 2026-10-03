@@ -1,0 +1,42 @@
+$ vitest run --exclude "**/e2e/**" server/modules/recommendation/recommendation-numeric.integration.test.ts
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+ ❯ server/modules/recommendation/recommendation-numeric.integration.test.ts (4 tests | 1 failed) 672ms
+     × excludes source, wrong category, inactive product/variant/shop and canceled sold lines 92ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/recommendation/recommendation-numeric.integration.test.ts > recommendation numeric thresholds on PostgreSQL > excludes source, wrong category, inactive product/variant/shop and canceled sold lines
+AssertionError: expected [ { …(4) } ] to deeply equal [ { …(4) } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "id": "5e8deec8-f4f0-4289-8c93-5148d4c2d1c1",
+      "price": 1000n,
+-     "sold": 9,
++     "sold": 109,
+      "stock": 1,
+    },
+  ]
+
+ ❯ server/modules/recommendation/recommendation-numeric.integration.test.ts:62:129
+     60|     await thresholdSale(db, f, { ...valid, quantity: 100, amount: 1000…
+     61|     const result = await service.getSimilar(f.product.id, { limit: 20 …
+     62|     expect(result.items.map((item) => ({ id: item.productId, price: it…
+       |                                                                                                                                 ^
+     63|     const response = await app.handle(new Request(`http://localhost/ap…
+     64|     expect(response.status).toBe(200)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  05:57:17
+   Duration  1.26s (transform 227ms, setup 0ms, import 438ms, tests 672ms, environment 0ms)
+
+error: script "test" exited with code 1

@@ -1,0 +1,10 @@
+$ vitest run --exclude "**/e2e/**" server/modules/product-analytics/product-analytics-thresholds.integration.test.ts
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  05:58:40
+   Duration  1.78s (transform 331ms, setup 0ms, import 896ms, tests 699ms, environment 0ms)
+

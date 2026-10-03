@@ -1,0 +1,10 @@
+$ vitest run --exclude "**/e2e/**" server/modules/recommendation server/modules/product-analytics
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+
+ Test Files  8 passed (8)
+      Tests  53 passed (53)
+   Start at  05:59:55
+   Duration  3.20s (transform 747ms, setup 0ms, import 4.14s, tests 4.28s, environment 1ms)
+
