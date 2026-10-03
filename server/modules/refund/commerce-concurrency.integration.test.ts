@@ -94,6 +94,55 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
     return { user, shop, variant, cart, repo, input }
   }
 
+  async function refundFixture(prices: readonly number[]) {
+    const fixtures = await Promise.all(prices.map(() => fixture()))
+    fixtures.sort((a, b) => a.shop.id.localeCompare(b.shop.id))
+    const first = fixtures[0]
+    if (!first) throw new Error('Refund fixture requires a shop')
+    for (const [index, data] of fixtures.entries()) {
+      const price = prices[index]
+      if (price === undefined) throw new Error('Refund fixture requires a price')
+      await prisma.productVariant.update({ where: { id: data.variant.id }, data: { price } })
+      if (data === first) {
+        await prisma.cartItem.updateMany({ where: { cartId: first.cart.id }, data: { quantity: 1, unitPrice: price } })
+      } else {
+        await prisma.cartItem.create({ data: { cartId: first.cart.id, variantId: data.variant.id, quantity: 1, unitPrice: price } })
+      }
+    }
+    const modules = services()
+    const result = await modules.checkout.createCheckout(first.user, { cartId: first.cart.id, addressId: first.input.address.id, paymentMethod: 'card' })
+    await modules.payments.handleWebhook(event(result))
+    const admin = await prisma.user.create({ data: { name: 'Refund admin', email: `${randomUUID()}@example.test`, role: 'ADMIN' } })
+    const completingAdmin = await prisma.user.create({ data: { name: 'Completing admin', email: `${randomUUID()}@example.test`, role: 'ADMIN' } })
+    const refunds = new PrismaRefundRepository(context, prisma)
+    return {
+      first, fixtures, result, admin, completingAdmin,
+      createRefund: (amount: number, returnRequestId?: string) => prisma.refund.create({ data: {
+        orderId: result.orderId, paymentId: result.paymentId, status: 'PROCESSING', processingById: admin.id, amount, returnRequestId,
+      } }),
+      createReturn: async (shopId: string) => {
+        const item = await prisma.orderItem.findFirstOrThrow({ where: { orderId: result.orderId, shopId } })
+        return prisma.returnRequest.create({ data: {
+          orderId: result.orderId, shopId, userId: first.user.id, status: 'APPROVED', reason: 'Numeric refund test',
+          items: { create: { orderItemId: item.id, quantity: item.quantity } },
+        } })
+      },
+      completeRefund: (refundId: string) => refunds.completeRefundSuccess(refundId, 'PROCESSING', {
+        completedById: completingAdmin.id, externalReference: `REF-${refundId}`, completedAt: new Date(),
+      }),
+    }
+  }
+
+  async function refundDebits(orderId: string): Promise<bigint[]> {
+    const shops = await prisma.shopOrder.findMany({ where: { orderId }, orderBy: { shopId: 'asc' } })
+    return Promise.all(shops.map(async (shop) => {
+      const entries = await prisma.walletLedgerEntry.aggregate({
+        where: { orderId, shopId: shop.shopId, type: 'refund_adjustment' }, _sum: { amount: true },
+      })
+      return entries._sum.amount ?? 0n
+    }))
+  }
+
   it('rejects stale stock after another transaction changes on-hand and reservations', async () => {
     const { repo, input, variant, cart } = await fixture()
     // Represents payment commitment plus another checkout after the cart was read.
@@ -128,34 +177,98 @@ describe.skipIf(!url)('commerce transactions on PostgreSQL', () => {
   })
 
   it('preserves each shop allocation when an order-wide refund is split into separate cents', async () => {
-    const first = await fixture()
-    const second = await fixture()
-    await prisma.productVariant.updateMany({ where: { id: { in: [first.variant.id, second.variant.id] } }, data: { price: 1 } })
-    await prisma.cartItem.updateMany({ where: { cartId: first.cart.id }, data: { quantity: 1, unitPrice: 1 } })
-    await prisma.cartItem.create({ data: { cartId: first.cart.id, variantId: second.variant.id, quantity: 1, unitPrice: 1 } })
-    const modules = services()
-    const result = await modules.checkout.createCheckout(first.user, { cartId: first.cart.id, addressId: first.input.address.id, paymentMethod: 'card' })
-    expect(result.totalCents).toBe(2)
-    await modules.payments.handleWebhook(event(result))
-    const admin = await prisma.user.create({ data: { name: 'Refund admin', email: `${randomUUID()}@example.test`, role: 'ADMIN' } })
-    const completingAdmin = await prisma.user.create({ data: { name: 'Completing admin', email: `${randomUUID()}@example.test`, role: 'ADMIN' } })
-    const refunds = new PrismaRefundRepository(context, prisma)
-    const records = await Promise.all([1, 2].map(() => prisma.refund.create({ data: {
-      orderId: result.orderId, paymentId: result.paymentId, status: 'PROCESSING', processingById: admin.id, amount: 1,
-    } })))
+    const data = await refundFixture([1, 1])
+    expect(data.result.totalCents).toBe(2)
+    const records = await Promise.all([data.createRefund(1), data.createRefund(1)])
     for (const refund of records) {
-      await expect(refunds.completeRefundSuccess(refund.id, 'PROCESSING', {
-        completedById: completingAdmin.id, externalReference: `REF-${refund.id}`,
-      })).resolves.toMatchObject({ status: 'SUCCESS', amount: 1n })
+      await expect(data.completeRefund(refund.id)).resolves.toMatchObject({ status: 'SUCCESS', amount: 1n })
+      await expect(data.completeRefund(refund.id)).resolves.toBeNull()
     }
-    const shops = await prisma.shopOrder.findMany({ where: { orderId: result.orderId }, orderBy: { shopId: 'asc' } })
-    const amounts = await Promise.all(shops.map(async (shop) => {
-      const entries = await prisma.walletLedgerEntry.aggregate({
-        where: { orderId: result.orderId, shopId: shop.shopId, type: 'refund_adjustment' }, _sum: { amount: true },
-      })
-      return entries._sum.amount ?? 0n
-    }))
-    expect(amounts).toEqual([-1n, -1n])
+    expect(await refundDebits(data.result.orderId)).toEqual([-1n, -1n])
+    const wallets = services().wallets
+    const summaries = await Promise.all(data.fixtures.map((shop) => wallets.getSellerWallet(shop.user)))
+    expect(summaries.map((summary) => summary.availableBalanceCents)).toEqual([-1, -1])
+  })
+
+  it('serializes different simultaneous refunds against the remaining shop allocations', async () => {
+    const data = await refundFixture([1, 1])
+    const records = await Promise.all([data.createRefund(1), data.createRefund(1)])
+    const completed = await Promise.all(records.map((refund) => data.completeRefund(refund.id)))
+    expect(completed.map((refund) => refund?.status)).toEqual(['SUCCESS', 'SUCCESS'])
+    expect(await refundDebits(data.result.orderId)).toEqual([-1n, -1n])
+  })
+
+  it('never credits a shop when cumulative rounding lowers its ideal refund share', async () => {
+    const data = await refundFixture([2, 1, 2])
+    expect(data.result.totalCents).toBe(5)
+    for (let index = 0; index < 2; index += 1) {
+      const refund = await data.createRefund(1)
+      await expect(data.completeRefund(refund.id)).resolves.toMatchObject({ status: 'SUCCESS', amount: 1n })
+    }
+    expect(await refundDebits(data.result.orderId)).toEqual([0n, -1n, -1n])
+    const third = await data.createRefund(1)
+    await expect(data.completeRefund(third.id)).resolves.toMatchObject({ status: 'SUCCESS', amount: 1n })
+    expect(await refundDebits(data.result.orderId)).toEqual([0n, -1n, -2n])
+    const remaining = await data.createRefund(2)
+    await expect(data.completeRefund(remaining.id)).resolves.toMatchObject({ status: 'SUCCESS', amount: 2n })
+    expect(await refundDebits(data.result.orderId)).toEqual([-2n, -1n, -2n])
+    expect(await prisma.walletLedgerEntry.count({ where: { orderId: data.result.orderId, type: 'refund_adjustment', amount: { gt: 0 } } })).toBe(0)
+  })
+
+  it('uses actual shop-specific refunds when allocating the remaining order-wide refund', async () => {
+    const data = await refundFixture([100, 100])
+    const returned = await data.createReturn(data.first.shop.id)
+    const targetRefund = await data.createRefund(100, returned.id)
+    await expect(data.completeRefund(targetRefund.id)).resolves.toMatchObject({ status: 'SUCCESS', amount: 100n })
+    expect(await refundDebits(data.result.orderId)).toEqual([-100n, 0n])
+    const remainder = await data.createRefund(100)
+    await expect(data.completeRefund(remainder.id)).resolves.toMatchObject({ status: 'SUCCESS', amount: 100n })
+    expect(await refundDebits(data.result.orderId)).toEqual([-100n, -100n])
+  })
+
+  it('rejects a targeted refund above its shop remainder without changing committed amounts', async () => {
+    const data = await refundFixture([100, 100])
+    const previous = await data.createRefund(100)
+    await expect(data.completeRefund(previous.id)).resolves.toMatchObject({ status: 'SUCCESS', amount: 100n })
+    expect(await refundDebits(data.result.orderId)).toEqual([-50n, -50n])
+    const returned = await data.createReturn(data.first.shop.id)
+    const excess = await data.createRefund(60, returned.id)
+    await expect(data.completeRefund(excess.id)).rejects.toMatchObject({ status: 409, code: 'INVALID_REFUND_STATE' })
+    expect(await prisma.refund.findUnique({ where: { id: excess.id } })).toMatchObject({ status: 'PROCESSING' })
+    expect(await refundDebits(data.result.orderId)).toEqual([-50n, -50n])
+    expect(await prisma.walletLedgerEntry.count({ where: { refundId: excess.id } })).toBe(0)
+  })
+
+  it('rejects successful historical refunds with missing allocations before writing a new refund', async () => {
+    const data = await refundFixture([100, 100])
+    const historical = await prisma.refund.create({ data: {
+      orderId: data.result.orderId, paymentId: data.result.paymentId, status: 'SUCCESS', amount: 20,
+      processingById: data.admin.id, completedById: data.completingAdmin.id, externalReference: 'LEGACY-MISSING-ALLOCATION',
+    } })
+    const next = await data.createRefund(10)
+    await expect(data.completeRefund(next.id)).rejects.toMatchObject({ status: 409, code: 'INVALID_REFUND_STATE' })
+    expect(await prisma.refund.findUnique({ where: { id: next.id } })).toMatchObject({ status: 'PROCESSING', amount: 10n })
+    expect(await prisma.refund.findUnique({ where: { id: historical.id } })).toMatchObject({ status: 'SUCCESS', amount: 20n })
+    expect(await refundDebits(data.result.orderId)).toEqual([0n, 0n])
+    expect(await prisma.walletLedgerEntry.count({ where: { refundId: next.id } })).toBe(0)
+  })
+
+  it('rejects an already overdrawn shop history without silently repairing previous money', async () => {
+    const data = await refundFixture([1, 3])
+    const historical = await prisma.refund.create({ data: {
+      orderId: data.result.orderId, paymentId: data.result.paymentId, status: 'SUCCESS', amount: 2,
+      processingById: data.admin.id, completedById: data.completingAdmin.id, externalReference: 'LEGACY-OVERDRAWN',
+    } })
+    const wallet = await prisma.shopWallet.create({ data: { shopId: data.first.shop.id, currency: 'THB' } })
+    await prisma.walletLedgerEntry.create({ data: {
+      orderId: data.result.orderId, refundId: historical.id, walletId: wallet.id, shopId: data.first.shop.id,
+      type: 'refund_adjustment', amount: -2, currency: 'THB',
+    } })
+    const next = await data.createRefund(1)
+    await expect(data.completeRefund(next.id)).rejects.toMatchObject({ status: 409, code: 'INVALID_REFUND_STATE' })
+    expect(await prisma.refund.findUnique({ where: { id: next.id } })).toMatchObject({ status: 'PROCESSING', amount: 1n })
+    expect(await refundDebits(data.result.orderId)).toEqual([-2n, 0n])
+    expect(await prisma.walletLedgerEntry.count({ where: { refundId: next.id } })).toBe(0)
   })
 
   it('rolls back refund status and ledger entries when coin settlement fails', async () => {

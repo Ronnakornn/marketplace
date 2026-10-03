@@ -1,0 +1,10 @@
+$ vitest run --exclude "**/e2e/**" server/modules/refund/refund.repository.test.ts
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+   Start at  03:01:41
+   Duration  257ms (transform 70ms, setup 0ms, import 93ms, tests 31ms, environment 0ms)
+

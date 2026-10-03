@@ -137,3 +137,22 @@ Comment review แยกตรวจเฉพาะ comment ที่เพิ�
 การเปลี่ยน skills ใต้ `.agents/`, `.claude/` และ `skills-lock.json` ที่เกิดร่วมใน workspace ไม่ใช่ส่วนของ numeric audit และไม่ถูกนำไปรวม commit โดยอัตโนมัติ
 
 คำสั่งและ environment สำหรับรันซ้ำอยู่ใน [evidence README](test-evidence/2026-10-04-numeric/README.md) ไม่มี push/deploy หรือ schema change ในงานนี้
+
+## รอบเพิ่มเติมหลัง domain modeling
+
+ผู้ใช้เลือกให้ร้านรับค่าส่งและจ่าย carrier แล้วใน [ADR-0004](adr/0004-shops-receive-shipping-charges.md)
+การรับภาระส่วนลดและฐาน/การคืน commission ยังรอการตัดสินใจ
+สูตรรายได้ร้านยังไม่ได้เปลี่ยนตามนโยบายใหม่
+
+พบและแก้บั๊ก refund ย่อยหลายครั้งที่อาจหักร้านเดิมเกิน cash allocation
+เคส PostgreSQL สองร้านจ่ายร้านละ 1 สตางค์ คืนครั้งละ 1 สตางค์สองครั้ง
+ก่อนแก้ได้ ledger 0/-2 หลังแก้ได้ -1/-1 ทั้ง sequential/replay และ concurrent completion
+ใช้ยอดหักจริงสะสมและตรวจประวัติก่อนเขียนเงินเพิ่ม
+
+รอบนี้ผ่าน 1,279 Vitest ไม่ผ่านศูนย์ ข้ามสอง Redis integration cases และ Typecheck ผ่าน
+Commerce PostgreSQL ผ่านครบ 20 เคส Amount/repository/commerce suites รวม 52 เคสผ่าน
+ไม่มี browser หรือ provider ภายนอกรันใหม่ ข้อจำกัด BigInt serialization เดิมยังอยู่
+ประวัติ refund ที่ขาดหรือถูกหักเกินแล้วต้อง reconciliation แยก ไม่ซ่อมเงินเก่าโดยอัตโนมัติ
+
+[หลักฐานรอบเพิ่มเติม](test-evidence/2026-10-04-refund-allocation/README.md)
+และ [แบบคำนวณ](refund-allocation-design.md) แยกผลรอบนี้จากหลักฐาน audit เดิม

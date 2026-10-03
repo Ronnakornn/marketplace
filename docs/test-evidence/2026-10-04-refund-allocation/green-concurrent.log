@@ -1,0 +1,12 @@
+$ vitest run --exclude "**/e2e/**" server/modules/refund/commerce-concurrency.integration.test.ts -t "different simultaneous refunds"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:28432) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 14 skipped (15)
+   Start at  02:56:32
+   Duration  2.33s (transform 537ms, setup 0ms, import 1.56s, tests 624ms, environment 0ms)
+

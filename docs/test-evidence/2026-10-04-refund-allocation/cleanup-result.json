@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-10-03T20:10:51.3682614Z",
+  "postgresStopExit": 0,
+  "scope": "Task-owned isolated PostgreSQL only; no data deletion",
+  "retainedPath": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\marketplace-numeric-pg-8eaba08c00d24e849724037394816a1b",
+  "postgresStatusExit": 3,
+  "postgresStopped": true,
+  "redisStarted": false
+}

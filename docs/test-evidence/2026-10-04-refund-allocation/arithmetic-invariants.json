@@ -1,0 +1,19 @@
+{
+  "evidence": "pure finite-state arithmetic",
+  "source": "server/modules/refund/refund-amount.service.ts",
+  "scope": {
+    "shops": 3,
+    "minimumCap": 0,
+    "maximumCap": 5,
+    "ui": false,
+    "database": false,
+    "provider": false,
+    "arbitraryPartialPartitionIndependence": false
+  },
+  "states": 9261,
+  "orderPlans": 55566,
+  "feasibleIdealPlans": 34755,
+  "fullRefundPlans": 9261,
+  "targetedPlans": 74088,
+  "failures": 0
+}

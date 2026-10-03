@@ -1,4 +1,38 @@
 import type { OrderItem, ReturnItem, ShopOrder } from '#generated/client/client.ts'
+import { RefundServiceError } from './refund.errors.ts'
+
+export type RefundAllocationScope = { kind: 'order' } | { kind: 'shop'; shopId: string }
+export type ShopRefundPosition = Pick<ShopOrder, 'shopId' | 'grandTotal'> & { refundedAmount: bigint }
+
+/** Allocate only new debits, conserving the refund and respecting each shop's remaining cap. */
+export function calculateRefundDebits(input: {
+  amount: bigint
+  scope: RefundAllocationScope
+  shops: readonly ShopRefundPosition[]
+}): Array<{ shopId: string; amount: bigint }> {
+  const shops = [...input.shops].sort((a, b) => a.shopId.localeCompare(b.shopId))
+  const invalid = () => new RefundServiceError('Refund exceeds the remaining shop allocation', 409, 'INVALID_REFUND_STATE')
+  if (input.amount < 0n || new Set(shops.map((shop) => shop.shopId)).size !== shops.length
+    || shops.some((shop) => shop.refundedAmount < 0n || shop.refundedAmount > BigInt(shop.grandTotal))) {
+    throw invalid()
+  }
+  if (input.scope.kind === 'shop') {
+    const targetShopId = input.scope.shopId
+    const shop = shops.find((shop) => shop.shopId === targetShopId)
+    if (!shop || input.amount > BigInt(shop.grandTotal) - shop.refundedAmount) throw invalid()
+    return shops.map((shop) => ({ shopId: shop.shopId, amount: shop.shopId === targetShopId ? input.amount : 0n }))
+  }
+  const refunded = shops.reduce((sum, shop) => sum + shop.refundedAmount, 0n)
+  const total = shops.reduce((sum, shop) => sum + BigInt(shop.grandTotal), 0n)
+  if (refunded + input.amount > total) throw invalid()
+  const targets = allocateRefundAmount(refunded + input.amount, shops.map((shop) => BigInt(shop.grandTotal)))
+  const deficits = shops.map((shop, index) => {
+    const difference = targets[index] - shop.refundedAmount
+    return difference > 0n ? difference : 0n
+  })
+  const amounts = allocateRefundAmount(input.amount, deficits)
+  return shops.map((shop, index) => ({ shopId: shop.shopId, amount: amounts[index] }))
+}
 
 /** Allocate every minor unit once. Callers supply a stable ordering of weights. */
 export function allocateRefundAmount(amount: bigint, weights: readonly bigint[]): bigint[] {

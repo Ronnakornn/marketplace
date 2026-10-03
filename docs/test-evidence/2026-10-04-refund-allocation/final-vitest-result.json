@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-10-03T20:04:35.3168046Z",
+  "exitCode": 0,
+  "redis": "optional Redis gates not enabled",
+  "postgres": "127.0.0.1:55439/marketplace_test_numeric",
+  "command": "bun run test --reporter=json --outputFile=docs/test-evidence/2026-10-04-refund-allocation/final-vitest.json",
+  "scope": "All Vitest with commerce and queue PostgreSQL gates enabled; no browser or real provider"
+}

@@ -1,0 +1,91 @@
+$ vitest run --exclude "**/e2e/**" server/modules/refund/refund-amount.service.test.ts
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ❯ server/modules/refund/refund-amount.service.test.ts (9 tests | 5 failed) 22ms
+     × allocates successive cents to each shop without repeating the rounding debit 4ms
+     × conserves the new refund when cumulative proportions would credit a shop 1ms
+     × exhausts only remaining caps after a targeted return 0ms
+     × rejects targeted over-refunds, missing shops and overdrawn legacy allocations 4ms
+     × returns no positive allocation for a zero refund 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/refund/refund-amount.service.test.ts > refund amounts > allocates successive cents to each shop without repeating the rounding debit
+TypeError: calculateRefundDebits is not a function
+ ❯ server/modules/refund/refund-amount.service.test.ts:6:12
+      4| describe('refund amounts', () => {
+      5|   it('allocates successive cents to each shop without repeating the ro…
+      6|     expect(calculateRefundDebits({ amount: 1n, scope: { kind: 'order' …
+       |            ^
+      7|       { shopId: 'b', grandTotal: 1n, refundedAmount: 0n },
+      8|       { shopId: 'a', grandTotal: 1n, refundedAmount: 0n },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  server/modules/refund/refund-amount.service.test.ts > refund amounts > conserves the new refund when cumulative proportions would credit a shop
+TypeError: calculateRefundDebits is not a function
+ ❯ server/modules/refund/refund-amount.service.test.ts:17:12
+     15|
+     16|   it('conserves the new refund when cumulative proportions would credi…
+     17|     expect(calculateRefundDebits({ amount: 1n, scope: { kind: 'order' …
+       |            ^
+     18|       { shopId: 'a', grandTotal: 2n, refundedAmount: 0n },
+     19|       { shopId: 'b', grandTotal: 1n, refundedAmount: 1n },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  server/modules/refund/refund-amount.service.test.ts > refund amounts > exhausts only remaining caps after a targeted return
+TypeError: calculateRefundDebits is not a function
+ ❯ server/modules/refund/refund-amount.service.test.ts:25:12
+     23|
+     24|   it('exhausts only remaining caps after a targeted return', () => {
+     25|     expect(calculateRefundDebits({ amount: 6n, scope: { kind: 'shop', …
+       |            ^
+     26|       { shopId: 'a', grandTotal: 10n, refundedAmount: 0n },
+     27|       { shopId: 'b', grandTotal: 10n, refundedAmount: 0n },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  server/modules/refund/refund-amount.service.test.ts > refund amounts > rejects targeted over-refunds, missing shops and overdrawn legacy allocations
+AssertionError: expected error to match asymmetric matcher
+
+- Expected
++ Received
+
+- ObjectContaining {
+-   "code": "INVALID_REFUND_STATE",
+-   "status": 409,
++ TypeError {
++   "message": "(0 , __vite_ssr_import_1__.calculateRefundDebits) is not a function",
+  }
+
+ ❯ server/modules/refund/refund-amount.service.test.ts:46:50
+     44|       { amount: 0n, scope: { kind: 'order' }, shops: [{ shopId: 'a', g…
+     45|     ] satisfies Parameters<typeof calculateRefundDebits>[0][]) {
+     46|       expect(() => calculateRefundDebits(input)).toThrow(expect.object…
+       |                                                  ^
+     47|     }
+     48|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  server/modules/refund/refund-amount.service.test.ts > refund amounts > returns no positive allocation for a zero refund
+TypeError: calculateRefundDebits is not a function
+ ❯ server/modules/refund/refund-amount.service.test.ts:51:12
+     49|
+     50|   it('returns no positive allocation for a zero refund', () => {
+     51|     expect(calculateRefundDebits({ amount: 0n, scope: { kind: 'order' …
+       |            ^
+     52|       { shopId: 'a', grandTotal: 1n, refundedAmount: 0n },
+     53|       { shopId: 'b', grandTotal: 1n, refundedAmount: 1n },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 4 passed (9)
+   Start at  02:50:45
+   Duration  220ms (transform 29ms, setup 0ms, import 45ms, tests 22ms, environment 0ms)
+
+error: script "test" exited with code 1

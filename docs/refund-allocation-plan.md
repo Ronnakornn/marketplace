@@ -2,20 +2,20 @@
 
 ## Bug fix workflow
 
-- [ ] Reproduce it yourself on the matching surface via the control skill.
-- [ ] Binary-search the cause.
-- [ ] Plan the fix.
-- [ ] Verify on the same surface.
-- [ ] Stage the commits so the failing repro lands before the fix in git history.
-- [ ] Run Opening a PR. Skip unless a PR is requested; this task remains local.
+- [x] Reproduce it yourself on the matching surface via the control skill.
+- [x] Binary-search the cause.
+- [x] Plan the fix.
+- [x] Verify on the same surface.
+- [x] Stage the commits so the failing repro lands before the fix in git history. Red reproduction is committed in `fa3c4f8` before the fix.
+- [x] Run Opening a PR. Skip because no PR was requested; this task remains local.
 
 ## Architect phases
 
-- [ ] Ground.
-- [ ] Sketch.
-- [ ] Agree. No human checkpoint requested for this arithmetic fix.
-- [ ] Implement.
-- [ ] Scrap. Skip if the chosen shape survives verification.
+- [x] Ground.
+- [x] Sketch.
+- [x] Agree. No human checkpoint requested for this arithmetic fix.
+- [x] Implement.
+- [x] Scrap. Skip because the chosen shape passed verification.
 
 ## Scope and expected behavior
 
@@ -45,3 +45,21 @@ one scoped implementation, one independent source review, and database plus
 typecheck/test verification. Preserve unrelated skill changes.
 
 Append red/green and design checkpoints to `numeric-audit-decisions.tsv`.
+
+## Result
+
+The original PostgreSQL reproduction now passes, including seller wallet service
+response parity. Seven added database cases cover sequential cents/replay,
+simultaneous different refunds, decreasing ideal components, mixed return/order
+refunds, over-return rejection, missing history, and already overdrawn history.
+All 20 commerce database cases pass, including the existing rollback case.
+
+The focused amount/repository/database suites pass 52 cases. The complete Vitest
+run passes 1,279, fails zero, and skips two Redis integration cases. Typecheck
+passes. Pure finite arithmetic exploration has zero failures. No browser or
+external provider run is claimed for this backend increment.
+
+Source review found no blocking issues. Its cross-payment history coverage gap
+was closed by a literal repository regression. Existing unsafe legacy BigInt
+serialization remains outside this fix. Evidence is in
+`test-evidence/2026-10-04-refund-allocation/README.md`.

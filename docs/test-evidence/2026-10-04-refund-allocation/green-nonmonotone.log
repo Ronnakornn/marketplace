@@ -1,0 +1,12 @@
+$ vitest run --exclude "**/e2e/**" server/modules/refund/commerce-concurrency.integration.test.ts -t "cumulative rounding lowers"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:2884) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 15 skipped (16)
+   Start at  02:57:22
+   Duration  2.12s (transform 473ms, setup 0ms, import 1.28s, tests 703ms, environment 0ms)
+

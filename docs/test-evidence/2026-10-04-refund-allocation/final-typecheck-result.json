@@ -1,0 +1,5 @@
+{
+  "exitCode": 0,
+  "command": "bunx tsc --noEmit",
+  "timestamp": "2026-10-03T20:04:16.3802177Z"
+}
