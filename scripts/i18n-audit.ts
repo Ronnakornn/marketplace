@@ -76,6 +76,13 @@ const additionalScopedFiles = [
   "app/features/seller/components/SellerOnboardingPages.tsx",
 ];
 
+const developerInvariantExceptions = [{
+  file: "app/i18n/client.tsx",
+  value: "Display number must be finite",
+  throwContext: "throw new RangeError(",
+  reason: "useFormatters.number rejects invalid programmer input; this diagnostic is not rendered UI copy",
+}];
+
 const documentedExceptions = [
   "test files and fixtures are excluded by filename",
   "import paths, dynamic imports, and module specifiers are excluded",
@@ -85,6 +92,7 @@ const documentedExceptions = [
   "provider brand names such as Google and Facebook are excluded",
   "enum/status raw values and API normalizer fallback data are excluded when they are not JSX-visible literals",
   "product, shop, order, address, notification, chat, review, and other user/API-provided data is not translated by this audit",
+  ...developerInvariantExceptions.map((exception) => `${exception.file}: ${exception.throwContext}${JSON.stringify(exception.value)}), ${exception.reason}`),
 ];
 
 const textBearingAttributes = new Set([
@@ -254,6 +262,9 @@ function hardcodedEnglishFindings(): Finding[] {
     for (const match of source.matchAll(stringPattern)) {
       const raw = match[0];
       const value = match[1] === "`" ? match[2] : unquote(raw);
+      const beforeLiteral = source.slice(0, match.index ?? 0).trimEnd();
+      if (developerInvariantExceptions.some((exception) => exception.file === file && exception.value === value
+        && beforeLiteral.endsWith(exception.throwContext))) continue;
       if (!isProbablyUiString(source, match.index ?? 0, raw, value)) continue;
       findings.push({
         type: "hardcoded-english",

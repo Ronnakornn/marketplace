@@ -66,6 +66,11 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <Info label={t("order.payment")} value={formatOrderStatus(orderQuery.data.paymentStatus, t)} />
                 <Info label={t("common.total")} value={formatMoney(orderQuery.data.totalCents, orderQuery.data.currency)} />
+                {orderQuery.data.taxTotals ? <>
+                  <Info label={t("checkout.taxIncluded")} value={formatMoney(orderQuery.data.taxTotals.includedTaxTotal, orderQuery.data.currency)} />
+                  <Info label={t("checkout.taxAdded")} value={formatMoney(orderQuery.data.taxTotals.taxTotal, orderQuery.data.currency)} />
+                  <Info label={t("checkout.taxReported")} value={formatMoney(orderQuery.data.taxTotals.reportedTaxTotal, orderQuery.data.currency)} />
+                </> : null}
               </div>
               {orderQuery.data.status === "PENDING_PAYMENT" && ["PENDING", "REQUIRES_ACTION"].includes(orderQuery.data.paymentStatus) ? (
                 <div className="mt-4 border-t border-slate-100 pt-4">

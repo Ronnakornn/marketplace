@@ -43,8 +43,8 @@ export function decimalMoneyNumber(value: number | string): number {
   return minorUnits
 }
 
-type MonetaryKey = `${string}Cents` | 'price' | 'unitPrice' | 'lineTotal' | 'amount' | 'subtotal' | 'grandTotal' | 'discountTotal' | 'shippingTotal' | 'taxTotal' | 'salePrice' | 'originalPrice' | 'minPrice' | 'maxPrice' | 'revenue' | 'discountValue' | 'minOrder' | 'maxDiscount' | 'shippingFee'
-const monetaryKeys = new Set(['price', 'unitPrice', 'lineTotal', 'amount', 'subtotal', 'grandTotal', 'discountTotal', 'shippingTotal', 'taxTotal', 'salePrice', 'originalPrice', 'minPrice', 'maxPrice', 'revenue', 'discountValue', 'minOrder', 'maxDiscount', 'shippingFee'])
+type MonetaryKey = `${string}Cents` | 'price' | 'unitPrice' | 'lineTotal' | 'amount' | 'subtotal' | 'grandTotal' | 'discountTotal' | 'shippingTotal' | 'taxTotal' | 'includedTaxTotal' | 'addedTaxTotal' | 'reportedTaxTotal' | 'salePrice' | 'originalPrice' | 'minPrice' | 'maxPrice' | 'revenue' | 'discountValue' | 'minOrder' | 'maxDiscount' | 'shippingFee'
+const monetaryKeys = new Set(['price', 'unitPrice', 'lineTotal', 'amount', 'subtotal', 'grandTotal', 'discountTotal', 'shippingTotal', 'taxTotal', 'includedTaxTotal', 'addedTaxTotal', 'reportedTaxTotal', 'salePrice', 'originalPrice', 'minPrice', 'maxPrice', 'revenue', 'discountValue', 'minOrder', 'maxDiscount', 'shippingFee'])
 type MonetaryDtoField<T, K> = K extends MonetaryKey ? T extends number ? string : MoneyDto<T> : MoneyDto<T>
 
 export type MoneyDto<T> = T extends bigint | Prisma.Decimal ? string

@@ -6,6 +6,8 @@ import type {
   AffiliateLink,
   Order,
   OrderItem,
+  ItemSaleSnapshot,
+  ShopSaleSnapshot,
   PrismaClient,
   Product,
   Shop,
@@ -24,7 +26,7 @@ export type AffiliateLinkRecord = AffiliateLink & {
 }
 
 export type AffiliateOrderRecord = Order & {
-  items: OrderItem[]
+  items: Array<OrderItem & { saleSnapshot?: (ItemSaleSnapshot & { shopSale: Pick<ShopSaleSnapshot, 'policyVersion'> }) | null }>
 }
 
 export interface CreateAffiliateLinkInput {
@@ -54,6 +56,7 @@ export interface CreateAffiliateCommissionInput {
   commissionBps: number
   commissionCents: bigint
   currency: string
+  itemBasis: readonly { orderItemId: string; originalQuantity: number; originalEligibleNet: bigint }[]
 }
 
 export interface AffiliateTargetOption {
@@ -291,7 +294,7 @@ export class PrismaAffiliateRepository implements IAffiliateRepository {
   findOrderForCommission(orderId: string): Promise<AffiliateOrderRecord | null> {
     return this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: true },
+      include: { items: { include: { saleSnapshot: { include: { shopSale: { select: { policyVersion: true } } } } } } },
     })
   }
 
@@ -310,6 +313,7 @@ export class PrismaAffiliateRepository implements IAffiliateRepository {
         commissionBps: input.commissionBps,
         commission: input.commissionCents,
         currency: input.currency,
+        itemBases: { create: input.itemBasis.map((item) => ({ ...item })) },
       },
     })
   }
@@ -318,19 +322,20 @@ export class PrismaAffiliateRepository implements IAffiliateRepository {
     const affiliate = await this.prisma.affiliate.findUnique({ where: { userId }, select: { id: true } })
     if (!affiliate) return { clicks: 0, conversions: 0, commissionCents: 0n }
 
-    const [clicks, conversions, commission] = await Promise.all([
+    const [clicks, conversions, commission, reversals] = await Promise.all([
       this.prisma.affiliateClick.count({ where: { affiliateId: affiliate.id } }),
       this.prisma.affiliateCommission.count({ where: { affiliateId: affiliate.id, status: { not: 'VOID' } } }),
       this.prisma.affiliateCommission.aggregate({
         where: { affiliateId: affiliate.id, status: { not: 'VOID' } },
         _sum: { commission: true },
       }),
+      this.prisma.affiliateRefundReversal.aggregate({ where: { commission: { affiliateId: affiliate.id, status: { not: 'VOID' } } }, _sum: { amount: true } }),
     ])
 
     return {
       clicks,
       conversions,
-      commissionCents: moneyInteger(commission._sum.commission ?? 0n),
+      commissionCents: moneyInteger(commission._sum.commission ?? 0n) - moneyInteger(reversals._sum.amount ?? 0n),
     }
   }
 }

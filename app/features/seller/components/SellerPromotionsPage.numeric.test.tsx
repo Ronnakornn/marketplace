@@ -62,7 +62,7 @@ describe('seller coupon numeric form', () => {
     },
   )
   it('shows server debt separately from the signed available balance', () => {
-    walletData = { availableBalanceCents: -8500, sellerDebtCents: 8100, currency: 'THB', shopName: 'Shop' }
+    walletData = { availableBalanceCents: '-8500', sellerDebtCents: '8100', currency: 'THB', shopName: 'Shop' }
     render(<SellerFinancePage />)
     expect(screen.getByText('-8500')).toBeTruthy()
     expect(screen.getByText('8100')).toBeTruthy()
@@ -70,7 +70,7 @@ describe('seller coupon numeric form', () => {
     expect(screen.getByText('seller.manage.pages.finance.debtRecovery')).toBeTruthy()
   })
   it('does not label a reservation shortfall as debt when the server reports no debt', () => {
-    walletData = { availableBalanceCents: -8500, sellerDebtCents: 0, currency: 'THB', shopName: 'Shop' }
+    walletData = { availableBalanceCents: '-8500', sellerDebtCents: '0', currency: 'THB', shopName: 'Shop' }
     render(<SellerFinancePage />)
     expect(screen.getByText('-8500')).toBeTruthy()
     expect(screen.queryByText('seller.manage.pages.finance.sellerDebt')).toBeNull()

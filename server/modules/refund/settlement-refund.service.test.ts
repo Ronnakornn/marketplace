@@ -3,19 +3,86 @@ import { completeSettlementRefundPlan, createSettlementRefundPlan, validateSettl
 
 function fixture(): SettlementRefundState {
   return { orderId: 'order', currency: 'THB', history: [],
-    shops: [{ id: 'shop-order', orderId: 'order', shopId: 'shop', currency: 'THB', saleSnapshot: {
+    shops: [{ id: 'shop-order', orderId: 'order', shopId: 'shop', currency: 'THB', subtotal: 100n, discountTotal: 20n, shippingTotal: 5n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 85n, saleSnapshot: {
       shopOrderId: 'shop-order', policyVersion: 1, currency: 'THB', commissionBase: 100n, commissionBps: 1000, originalCommission: 10n,
       originalShipping: 5n, buyerShipping: 5n, sellerShippingWaiver: 0n, platformShippingSubsidy: 0n, recognizedAt: null,
+      taxRatePpm: null, taxMode: null, taxFundingBasis: null, taxableShipping: null, taxShippingBasis: null, taxRounding: null, taxCustodian: null, taxExclusiveFunding: null, taxPolicyRevision: null,
+      sellerGrossMerchandise: null, sellerGrossShipping: null, buyerShippingNet: null, buyerShippingTax: null, platformShippingNet: null, platformShippingTax: null, includedTaxTotal: null, addedTaxTotal: null, reportedTaxTotal: null,
     } }],
     items: [{ id: 'item', orderId: 'order', shopId: 'shop', quantity: 1, lineTotal: 100n, saleSnapshot: {
       orderItemId: 'item', shopOrderId: 'shop-order', originalQuantity: 1, grossMerchandise: 100n, sellerCouponDiscount: 0n,
       platformCouponDiscount: 20n, coinDiscount: 0n, buyerMerchandise: 80n, couponId: 'coupon', couponCode: 'PLATFORM',
+      buyerMerchandiseNet: null, buyerMerchandiseTax: null, platformCouponNet: null, platformCouponTax: null, coinFundingNet: null, coinFundingTax: null, originalCashbackEligibleNet: null, originalAffiliateEligibleNet: null,
+      shopCouponId: null, shopCouponCode: null, platformCouponId: null, platformCouponCode: null,
     } }],
   }
 }
 const merchandiseReturn = { items: [{ orderItemId: 'item', quantity: 1 }], shipping: [] }
 
+function inclusiveFixture(quantity: number, gross: bigint, net: bigint, tax: bigint): SettlementRefundState {
+  const state = fixture()
+  const shop = state.shops[0]!
+  const sale = shop.saleSnapshot!
+  Object.assign(shop, { subtotal: gross, discountTotal: 0n, shippingTotal: 0n, taxTotal: 0n, includedTaxTotal: tax, reportedTaxTotal: tax, grandTotal: gross })
+  Object.assign(sale, { policyVersion: 2, commissionBase: net, originalCommission: net * 1000n / 10000n, originalShipping: 0n, buyerShipping: 0n,
+    taxRatePpm: 70000, taxMode: 'INCLUSIVE', taxFundingBasis: 'SELLER_AFTER_SHOP_COUPON', taxableShipping: false, taxShippingBasis: 'SELLER_SHIPPING_AFTER_WAIVER', taxRounding: 'LINE_HALF_UP', taxCustodian: 'SELLER', taxExclusiveFunding: 'BUYER', taxPolicyRevision: 'original-7',
+    sellerGrossMerchandise: gross, sellerGrossShipping: 0n, buyerShippingNet: 0n, buyerShippingTax: 0n, platformShippingNet: 0n, platformShippingTax: 0n, includedTaxTotal: tax, addedTaxTotal: 0n, reportedTaxTotal: tax })
+  const item = state.items[0]!
+  Object.assign(item, { quantity, lineTotal: gross })
+  Object.assign(item.saleSnapshot!, { originalQuantity: quantity, grossMerchandise: gross, platformCouponDiscount: 0n, buyerMerchandise: gross,
+    buyerMerchandiseNet: net, buyerMerchandiseTax: tax, platformCouponNet: 0n, platformCouponTax: 0n, coinFundingNet: 0n, coinFundingTax: 0n, originalCashbackEligibleNet: net, originalAffiliateEligibleNet: net, couponId: null, couponCode: null })
+  return state
+}
+
+function recordSuccess(state: SettlementRefundState, plan: ReturnType<typeof completeSettlementRefundPlan>, id: string) {
+  state.history = [...state.history, { id, status: 'SUCCESS', amount: plan.amount, itemAllocations: plan.items, shopAllocations: plan.shops }]
+}
+
 describe('snapshot settlement refund planning', () => {
+  it('exhausts original net94/tax7 in three quantities with literal cash33/33/35', () => {
+    const state = inclusiveFixture(3, 101n, 94n, 7n)
+    const results = [0, 1, 2].map((index) => {
+      const plan = completeSettlementRefundPlan(state, createSettlementRefundPlan(state, merchandiseReturn))
+      recordSuccess(state, plan, String(index))
+      return plan
+    })
+    expect(results.map((plan) => plan.amount)).toEqual([33n, 33n, 35n])
+    expect(results.map((plan) => plan.items[0]?.cashMerchandise)).toEqual([31n, 31n, 32n])
+    expect(results.map((plan) => plan.items[0]?.buyerTaxRefund)).toEqual([2n, 2n, 3n])
+    expect(results.map((plan) => plan.shops[0]?.commissionReversal)).toEqual([2n, 3n, 4n])
+    expect(() => createSettlementRefundPlan(state, merchandiseReturn)).toThrow(/remaining item/)
+  })
+
+  it('keeps atomic net nonnegative when quantity12→13 has gross-floor delta0 and tax1', () => {
+    const state = inclusiveFixture(25, 23n, 21n, 2n)
+    const first = completeSettlementRefundPlan(state, createSettlementRefundPlan(state, { items: [{ orderItemId: 'item', quantity: 12 }], shipping: [] }))
+    recordSuccess(state, first, 'first')
+    const next = completeSettlementRefundPlan(state, createSettlementRefundPlan(state, merchandiseReturn))
+    expect(next.items[0]).toMatchObject({ successfulQuantityBefore: 12, cashMerchandise: 0n, buyerTaxRefund: 1n })
+    expect(next.amount).toBe(1n)
+  })
+
+  it('reserves one same-item interval and releases confirmed failure without consuming it', () => {
+    const state = inclusiveFixture(3, 101n, 94n, 7n)
+    const pending = createSettlementRefundPlan(state, merchandiseReturn)
+    state.history = [{ id: 'pending', status: 'PROCESSING', amount: pending.amount, itemAllocations: pending.items, shopAllocations: pending.shops }]
+    expect(() => createSettlementRefundPlan(state, merchandiseReturn)).toThrow(/reserved refund/)
+    state.history = [{ ...state.history[0]!, status: 'FAILED' }]
+    const retry = completeSettlementRefundPlan(state, createSettlementRefundPlan(state, merchandiseReturn))
+    expect(retry.amount).toBe(33n)
+    expect(retry.items[0]?.successfulQuantityBefore).toBe(0)
+  })
+
+  it('rejects missing v2 tax facts and discontinuous successful quantity history', () => {
+    const missing = inclusiveFixture(3, 101n, 94n, 7n)
+    missing.items[0]!.saleSnapshot!.buyerMerchandiseTax = null
+    expect(() => createSettlementRefundPlan(missing, merchandiseReturn)).toThrow(/tax snapshot/)
+    const state = inclusiveFixture(3, 101n, 94n, 7n)
+    const original = completeSettlementRefundPlan(state, createSettlementRefundPlan(state, merchandiseReturn))
+    original.items[0]!.successfulQuantityBefore = 1
+    recordSuccess(state, original, 'corrupt')
+    expect(() => validateSettlementRefundState(state)).toThrow(/intervals|inconsistent/)
+  })
   it('conserves the accepted combined funding example independently of coupon APIs', () => {
     const state = fixture()
     const item = state.items[0]!
@@ -36,8 +103,8 @@ describe('snapshot settlement refund planning', () => {
     const state = fixture()
     const plan = completeSettlementRefundPlan(state, createSettlementRefundPlan(state, merchandiseReturn))
     expect(plan.amount).toBe(80n)
-    expect(plan.items).toEqual([{ orderItemId: 'item', quantity: 1, cashMerchandise: 80n, platformCouponReversal: 20n, coinFundingReversal: 0n }])
-    expect(plan.shops).toEqual([{ shopOrderId: 'shop-order', buyerShippingRefund: 0n, platformShippingReversal: 0n, commissionReversal: 10n, shippingCause: 'NONE' }])
+    expect(plan.items).toEqual([{ orderItemId: 'item', quantity: 1, successfulQuantityBefore: 0, cashMerchandise: 80n, buyerTaxRefund: 0n, platformCouponReversal: 20n, platformCouponTaxReversal: 0n, coinFundingReversal: 0n, coinTaxReversal: 0n }])
+    expect(plan.shops).toEqual([{ shopOrderId: 'shop-order', buyerShippingRefund: 0n, buyerShippingTaxRefund: 0n, platformShippingReversal: 0n, platformShippingTaxReversal: 0n, commissionReversal: 10n, shippingCause: 'NONE' }])
   })
 
   it('reverses a fully subsidized zero-cash item and its fee', () => {
@@ -88,10 +155,13 @@ describe('snapshot settlement refund planning', () => {
     expect(createSettlementRefundPlan(state, merchandiseReturn).amount).toBe(80n)
   })
 
-  it('rejects partial quantities before freezing an external cash amount', () => {
+  it('freezes partial quantities from original cumulative funding rights', () => {
     const state = fixture()
     state.items[0]!.quantity = state.items[0]!.saleSnapshot!.originalQuantity = 2
-    expect(() => createSettlementRefundPlan(state, merchandiseReturn)).toThrowError(/full order-item/)
+    const plan = completeSettlementRefundPlan(state, createSettlementRefundPlan(state, merchandiseReturn))
+    expect(plan.amount).toBe(40n)
+    expect(plan.items[0]).toMatchObject({ quantity: 1, cashMerchandise: 40n, platformCouponReversal: 10n })
+    expect(plan.shops[0]?.commissionReversal).toBe(5n)
   })
 
   it('rejects a historical component mismatch even below its original cap', () => {

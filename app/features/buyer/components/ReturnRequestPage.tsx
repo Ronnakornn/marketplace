@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RotateCcwIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
@@ -21,27 +21,35 @@ type ReturnReasonKey = (typeof reasonKeys)[number];
 export function ReturnRequestPage({ orderId }: { orderId: string }) {
   const localePath = useLocalePath();
   const t = useTranslations();
+  const queryClient = useQueryClient();
+  const [quantityInput, setQuantityInput] = useState("1");
   const [selectedItemId, setSelectedItemId] = useState("");
   const [reason, setReason] = useState<ReturnReasonKey>(reasonKeys[0]);
   const [description, setDescription] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const orderQuery = useQuery({ queryKey: ["buyer-order", orderId], queryFn: () => fetchOrder(orderId) });
   const eligibleItems = useMemo(
-    () => (orderQuery.data?.items ?? []).filter((item) => item.fulfillmentStatus.toLowerCase() === "delivered"),
+    () => (orderQuery.data?.items ?? []).filter((item) => item.fulfillmentStatus.toLowerCase() === "delivered" && item.remainingReturnQuantity > 0 && !item.hasActiveReturn),
     [orderQuery.data?.items],
   );
   const selected = selectedItemId || eligibleItems[0]?.id || "";
+  const selectedItem = eligibleItems.find((item) => item.id === selected);
+  const quantity = Number(quantityInput);
+  const validQuantity = Number.isInteger(quantity) && quantity > 0 && quantity <= (selectedItem?.remainingReturnQuantity ?? 0);
   const returnMutation = useMutation({
     mutationFn: async () => {
+      if (!validQuantity) throw new Error(t("buyer.invalidReturnQuantity"));
       const uploads = await Promise.all(imageFiles.map((file) => uploadBuyerImage(file, t("buyer.uploadFailed"))));
       return createReturnRequest({
         orderId,
         orderItemId: selected,
+        quantity,
         reason: t(reason),
         description,
         uploadIds: uploads.map((upload) => upload.id),
       });
     },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-order", orderId] }),
   });
 
   return (
@@ -50,6 +58,7 @@ export function ReturnRequestPage({ orderId }: { orderId: string }) {
       <div className="mx-auto max-w-3xl space-y-4 px-3 pb-28 pt-4">
         {orderQuery.isLoading ? <BuyerLoadingList /> : null}
         {orderQuery.isError ? <BuyerErrorState message={orderQuery.error.message} onRetry={() => void orderQuery.refetch()} /> : null}
+        {returnMutation.isSuccess ? <p role="status" className="text-sm text-emerald-700">{t("buyer.returnSubmitted")}</p> : null}
         {orderQuery.data && eligibleItems.length === 0 ? (
           <BuyerEmptyState title={t("buyer.noItemsEligibleForReturn")} description={t("buyer.returnEligibilityDescription")} />
         ) : null}
@@ -59,13 +68,19 @@ export function ReturnRequestPage({ orderId }: { orderId: string }) {
             <div className="mt-4 space-y-2">
               {eligibleItems.map((item) => (
                 <label key={item.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-3 has-[:checked]:border-orange-200 has-[:checked]:bg-orange-50">
-                  <input type="radio" name="returnItem" value={item.id} checked={selected === item.id} onChange={() => setSelectedItemId(item.id)} className="mt-1 accent-orange-600" />
+                  <input type="radio" name="returnItem" value={item.id} checked={selected === item.id} onChange={() => { setSelectedItemId(item.id); setQuantityInput("1"); }} className="mt-1 accent-orange-600" />
                   <span>
                     <span className="font-semibold text-slate-950">{item.productTitle}</span>
                     <span className="block text-sm text-slate-500">{item.variantTitle} - {item.shopName}</span>
                   </span>
                 </label>
               ))}
+            </div>
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="return-quantity">{t("buyer.returnQuantity")}</Label>
+              <Input id="return-quantity" type="number" min="1" max={selectedItem?.remainingReturnQuantity ?? 0} step="1" value={quantityInput} onChange={(event) => setQuantityInput(event.target.value)} />
+              <p className="text-sm text-slate-600">{t("buyer.returnRemaining").replace("{count}", String(selectedItem?.remainingReturnQuantity ?? 0))}</p>
+              {!validQuantity ? <p role="alert" className="text-sm text-red-600">{t("buyer.invalidReturnQuantity")}</p> : null}
             </div>
             <div className="mt-4 space-y-2">
               <Label htmlFor="return-reason">{t("buyer.reason")}</Label>
@@ -89,12 +104,11 @@ export function ReturnRequestPage({ orderId }: { orderId: string }) {
               <p className="text-xs text-slate-500">{t("buyer.selectedImageCount").replace("{count}", String(imageFiles.length))}</p>
             </div>
             {returnMutation.isError ? <p className="mt-3 text-sm text-red-600">{returnMutation.error.message}</p> : null}
-            {returnMutation.isSuccess ? <p className="mt-3 text-sm text-emerald-700">{t("buyer.returnSubmitted")}</p> : null}
           </section>
         ) : null}
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">
           <div className="mx-auto flex max-w-3xl gap-2">
-            <Button className="flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700" disabled={!selected || returnMutation.isPending} onClick={() => returnMutation.mutate()}>
+            <Button className="flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700" disabled={!selected || !validQuantity || returnMutation.isPending || returnMutation.isSuccess} onClick={() => returnMutation.mutate()}>
               {t("buyer.submitRequest")}
             </Button>
             <Button asChild variant="outline" className="rounded-2xl">

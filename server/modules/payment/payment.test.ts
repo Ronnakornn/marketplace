@@ -447,6 +447,46 @@ describe('PaymentService', () => {
     })
   })
 
+  it.each([-1, 0.5, 9007199254740992, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])('rejects malformed webhook amount %s before transaction or settlement effects', async (amount) => {
+    const service = await setup()
+    await expect(service.handleWebhook({ ...baseBody, amount })).rejects.toMatchObject({ status: 400, code: 'INVALID_WEBHOOK_EVENT' })
+    expect(repo.transaction).not.toHaveBeenCalled()
+    expect(repo.lockWebhookEvent).not.toHaveBeenCalled()
+    expect(repo.lockPayment).not.toHaveBeenCalled()
+    expect(repo.findPayment).not.toHaveBeenCalled()
+    expect(repo.createWebhookEvent).not.toHaveBeenCalled()
+    expect(repo.applyPaymentStateTransition).not.toHaveBeenCalled()
+    expect(transactionContext.affiliate.createCommission).not.toHaveBeenCalled()
+    expect(transactionContext.shipment.createShipment).not.toHaveBeenCalled()
+    expect(eventPublisher.publish).not.toHaveBeenCalled()
+  })
+
+  it('refuses malformed money even when its provider event reference was already processed', async () => {
+    const service = await setup()
+    vi.mocked(repo.findWebhookEvent).mockResolvedValue({ id: 'event-1' } as never)
+    await expect(service.handleWebhook({ ...baseBody, amount: Number.NaN })).rejects.toMatchObject({ status: 400, code: 'INVALID_WEBHOOK_EVENT' })
+    expect(repo.transaction).not.toHaveBeenCalled()
+    expect(repo.findWebhookEvent).not.toHaveBeenCalled()
+  })
+
+  it('returns exact canonical monetary mismatch diagnostics', async () => {
+    const service = await setup(createPayment('PENDING', { amount: 9007199254740991n }))
+    await expect(service.handleWebhook({ ...baseBody, amount: 9007199254740990 })).rejects.toMatchObject({
+      code: 'AMOUNT_MISMATCH', details: { expectedamount: '9007199254740991', receivedamount: '9007199254740990' },
+    })
+    expect(repo.createWebhookEvent).not.toHaveBeenCalled()
+    expect(repo.applyPaymentStateTransition).not.toHaveBeenCalled()
+  })
+
+  it.each([0, 9007199254740991])('accepts the safe provider amount endpoint %s and preserves payment settlement', async (amount) => {
+    const service = await setup(createPayment('PENDING', { amount: BigInt(amount) }))
+    await expect(service.handleWebhook({ ...baseBody, amount })).resolves.toEqual({ ok: true, code: 'PAYMENT_PAID' })
+    expect(repo.transaction).toHaveBeenCalledOnce()
+    expect(repo.createWebhookEvent).toHaveBeenCalledWith({ ...baseBody, amount })
+    expect(repo.applyPaymentStateTransition).toHaveBeenCalledOnce()
+    expect(eventPublisher.publish).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ amount }) }))
+  })
+
   it('fails when order is unknown or payment belongs to another order', async () => {
     const payment = createPayment('PENDING', { orderId: '22222222-2222-4222-8222-222222222222' })
     const service = await setup(payment)

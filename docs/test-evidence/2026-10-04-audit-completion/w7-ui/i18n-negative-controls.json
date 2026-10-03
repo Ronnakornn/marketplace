@@ -1,0 +1,30 @@
+[
+  {
+    "case": "exact programmer invariant",
+    "expectedExit": 0,
+    "actualExit": 0,
+    "stdout": "i18n audit passed.\nKey parity: 1 en keys, 1 th keys.\nPlaceholder parity: ok.\nScoped Thai/hardcoded findings covered by baseline: 0.\n",
+    "stderr": ""
+  },
+  {
+    "case": "same text rendered in JSX",
+    "expectedExit": 1,
+    "actualExit": 1,
+    "stdout": "",
+    "stderr": "i18n audit failed.\n\nNew unbaselined scoped i18n findings:\nBy file: app/i18n/client.tsx (1)\n- hardcoded-english app/i18n/client.tsx:1 \"Display number must be finite\"\n  Move visible buyer-facing English text to a translation key or document a narrower exception.\n"
+  },
+  {
+    "case": "different RangeError message",
+    "expectedExit": 1,
+    "actualExit": 1,
+    "stdout": "",
+    "stderr": "i18n audit failed.\n\nNew unbaselined scoped i18n findings:\nBy file: app/i18n/client.tsx (1)\n- hardcoded-english app/i18n/client.tsx:1 \"Choose a valid number\"\n  Move visible buyer-facing English text to a translation key or document a narrower exception.\n"
+  },
+  {
+    "case": "same invariant in another module",
+    "expectedExit": 1,
+    "actualExit": 1,
+    "stdout": "",
+    "stderr": "i18n audit failed.\n\nNew unbaselined scoped i18n findings:\nBy file: app/features/buyer/Invariant.tsx (1)\n- hardcoded-english app/features/buyer/Invariant.tsx:1 \"Display number must be finite\"\n  Move visible buyer-facing English text to a translation key or document a narrower exception.\n"
+  }
+]

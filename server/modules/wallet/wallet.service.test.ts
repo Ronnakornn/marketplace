@@ -34,6 +34,7 @@ function walletRecord(ownerId = 'seller-1'): WalletRecord {
 function snapshottedOrder(): CompletedOrderRecord {
   const now = new Date('2026-10-04T00:00:00Z')
   return {
+      includedTaxTotal: 0n, reportedTaxTotal: 0n,
     id: 'order-1', checkoutId: 'checkout-1', userId: 'buyer-1', orderNumber: 'ORD-1', status: 'DELIVERED', paymentStatus: 'SUCCEEDED',
     subtotal: 100000n, discountTotal: 12000n, shippingTotal: 4000n, taxTotal: 0n, grandTotal: 92000n, currency: 'THB',
     shippingName: 'Buyer', shippingPhone: null, shippingLine1: '1 Road', shippingLine2: null, shippingCity: 'Bangkok',
@@ -43,16 +44,19 @@ function snapshottedOrder(): CompletedOrderRecord {
       variantTitle: 'Default', variantSku: 'SKU', shopName: 'Shop', shopSlug: 'shop', quantity: 1,
       unitPrice: 100000n, lineTotal: 100000n, currency: 'THB', fulfillmentStatus: 'DELIVERED',
       saleSnapshot: {
+      buyerMerchandiseNet: null, buyerMerchandiseTax: null, platformCouponNet: null, platformCouponTax: null, coinFundingNet: null, coinFundingTax: null, originalCashbackEligibleNet: null, originalAffiliateEligibleNet: null, shopCouponId: null, shopCouponCode: null, platformCouponId: null, platformCouponCode: null,
         orderItemId: 'item-1', shopOrderId: 'shop-order-1', originalQuantity: 1, grossMerchandise: 100000n,
         sellerCouponDiscount: 10000n, platformCouponDiscount: 0n, coinDiscount: 2000n, buyerMerchandise: 88000n,
         couponId: 'coupon-1', couponCode: 'TEN_OFF', refundAllocations: [],
       },
     }],
     shopOrders: [{
+      includedTaxTotal: 0n, reportedTaxTotal: 0n,
       id: 'shop-order-1', orderId: 'order-1', shopId: 'shop-1', status: 'DELIVERED', fulfillmentStatus: 'DELIVERED',
       subtotal: 100000n, discountTotal: 12000n, shippingTotal: 4000n, taxTotal: 0n, grandTotal: 92000n,
       currency: 'THB', version: 1, createdAt: now, updatedAt: now,
       saleSnapshot: {
+      taxRatePpm: null, taxMode: null, taxFundingBasis: null, taxableShipping: null, taxShippingBasis: null, taxRounding: null, taxCustodian: null, taxExclusiveFunding: null, taxPolicyRevision: null, sellerGrossMerchandise: null, sellerGrossShipping: null, buyerShippingNet: null, buyerShippingTax: null, platformShippingNet: null, platformShippingTax: null, includedTaxTotal: null, addedTaxTotal: null, reportedTaxTotal: null,
         shopOrderId: 'shop-order-1', policyVersion: 1, currency: 'THB', commissionBase: 90000n, commissionBps: 1000,
         originalCommission: 9000n, originalShipping: 4000n, buyerShipping: 4000n, sellerShippingWaiver: 0n,
         platformShippingSubsidy: 0n, recognizedAt: null, refundAllocations: [],
@@ -140,9 +144,11 @@ describe('WalletService', () => {
     const itemSale = order.items[0].saleSnapshot
     const shopSale = order.shopOrders?.[0].saleSnapshot
     if (!itemSale || !shopSale) throw new Error('Test snapshot missing')
-    itemSale.refundAllocations = [{ id: 'item-refund', refundId: 'refund-1', orderItemId: 'item-1', quantity: 1,
+    itemSale.refundAllocations = [{
+      successfulQuantityBefore: 0, buyerTaxRefund: 0n, platformCouponTaxReversal: 0n, coinTaxReversal: 0n,  id: 'item-refund', refundId: 'refund-1', orderItemId: 'item-1', quantity: 1,
       cashMerchandise: 88000n, platformCouponReversal: 0n, coinFundingReversal: 2000n, refund: { status: 'SUCCESS' } }]
-    shopSale.refundAllocations = [{ id: 'shop-refund', refundId: 'refund-1', shopOrderId: 'shop-order-1',
+    shopSale.refundAllocations = [{
+      buyerShippingTaxRefund: 0n, platformShippingTaxReversal: 0n,  id: 'shop-refund', refundId: 'refund-1', shopOrderId: 'shop-order-1',
       buyerShippingRefund: 0n, platformShippingReversal: 0n, commissionReversal: 9000n,
       shippingCause: 'CHANGE_OF_MIND', walletPostedAt: null, refund: { status: 'SUCCESS' } }]
     vi.mocked(repo.findCompletedOrder).mockResolvedValue(order)
@@ -173,9 +179,11 @@ describe('WalletService', () => {
     const itemSale = order.items[0].saleSnapshot
     const shopSale = order.shopOrders?.[0].saleSnapshot
     if (!itemSale || !shopSale) throw new Error('Test snapshot missing')
-    itemSale.refundAllocations = [{ id: 'item-refund', refundId: 'refund-1', orderItemId: 'item-1', quantity: 1,
+    itemSale.refundAllocations = [{
+      successfulQuantityBefore: 0, buyerTaxRefund: 0n, platformCouponTaxReversal: 0n, coinTaxReversal: 0n,  id: 'item-refund', refundId: 'refund-1', orderItemId: 'item-1', quantity: 1,
       cashMerchandise: 88000n, platformCouponReversal: 0n, coinFundingReversal: 2000n, refund: { status: 'SUCCESS' } }]
-    shopSale.refundAllocations = [{ id: 'shop-refund', refundId: 'refund-1', shopOrderId: 'shop-order-1',
+    shopSale.refundAllocations = [{
+      buyerShippingTaxRefund: 0n, platformShippingTaxReversal: 0n,  id: 'shop-refund', refundId: 'refund-1', shopOrderId: 'shop-order-1',
       buyerShippingRefund: 4000n, platformShippingReversal: 0n, commissionReversal: 9000n,
       shippingCause: 'SELLER_FAULT', walletPostedAt: null, refund: { status: 'SUCCESS' } }]
     vi.mocked(repo.findCompletedOrder).mockResolvedValue(order)
@@ -195,6 +203,7 @@ describe('WalletService', () => {
 
   it('completed order creates earning ledger and commission is deducted', async () => {
     vi.mocked(repo.findCompletedOrder).mockResolvedValue({
+      includedTaxTotal: 0n, reportedTaxTotal: 0n,
       id: 'order-1',
       checkoutId: 'checkout-1',
       userId: 'buyer-1',

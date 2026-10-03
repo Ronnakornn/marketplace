@@ -15,6 +15,8 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { calculateReturnRefund } from '#server/modules/refund/refund-amount.service.ts'
 import { loadRefundSettlementState, saveRefundSettlementPlan } from '#server/modules/refund/refund.repository.ts'
+import { ReturnServiceError } from './return.errors.ts'
+import type { SettlementRefundState } from '#server/modules/refund/settlement-refund.service.ts'
 import { createSettlementRefundPlan, invalidSettlementRefund } from '#server/modules/refund/settlement-refund.service.ts'
 
 type ReturnTx = Omit<
@@ -25,6 +27,7 @@ type ReturnTx = Omit<
 export type ReturnOrderItem = OrderItem & {
   order: Order & {
     payments: Payment[]
+    refunds: Refund[]
   }
   returnItems: Array<ReturnItem & {
     returnRequest: Pick<ReturnRequest, 'id' | 'status'>
@@ -56,6 +59,9 @@ export interface CreateReturnInput {
 
 export interface IReturnRepository {
   transaction<T>(callback: (repo: IReturnRepository) => Promise<T>): Promise<T>
+  lockOrder(orderId: string): Promise<void>
+  findReturnOrderId(returnId: string): Promise<string | null>
+  findReturnSettlementState(orderId: string, currency: string): Promise<SettlementRefundState | null>
   findOrderItemForReturn(orderItemId: string): Promise<ReturnOrderItem | null>
   findUploadsByIds(uploadIds: string[]): Promise<ReturnUpload[]>
   createReturn(input: CreateReturnInput): Promise<ReturnRecord>
@@ -108,6 +114,19 @@ export class PrismaReturnRepository implements IReturnRepository {
     )
   }
 
+  async lockOrder(orderId: string): Promise<void> {
+    await this.prisma.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${orderId}::uuid FOR UPDATE`
+  }
+
+  async findReturnOrderId(returnId: string): Promise<string | null> {
+    const reference = await this.prisma.returnRequest.findUnique({ where: { id: returnId }, select: { orderId: true } })
+    return reference?.orderId ?? null
+  }
+
+  findReturnSettlementState(orderId: string, currency: string): Promise<SettlementRefundState | null> {
+    return loadRefundSettlementState(this.prisma, orderId, currency)
+  }
+
   findOrderItemForReturn(orderItemId: string): Promise<ReturnOrderItem | null> {
     this.logger.debug('PrismaReturnRepository.findOrderItemForReturn', { orderItemId })
     return this.prisma.orderItem.findUnique({
@@ -118,6 +137,7 @@ export class PrismaReturnRepository implements IReturnRepository {
             payments: {
               orderBy: { createdAt: 'desc' },
             },
+            refunds: true,
           },
         },
         returnItems: {
@@ -240,16 +260,18 @@ export class PrismaReturnRepository implements IReturnRepository {
 
   updateReturnStatus(returnId: string, status: ReturnStatus): Promise<ReturnRecord> {
     this.logger.info('PrismaReturnRepository.updateReturnStatus', { returnId, status })
-    return this.prisma.returnRequest.update({
-      where: { id: returnId },
-      data: { status },
-      include: returnInclude,
-    })
+    return this.updateRequestedReturn(returnId, status)
+  }
+
+  private async updateRequestedReturn(returnId: string, status: ReturnStatus): Promise<ReturnRecord> {
+    const updated = await this.prisma.returnRequest.updateMany({ where: { id: returnId, status: 'REQUESTED' }, data: { status } })
+    if (updated.count !== 1) throw new ReturnServiceError('Return is no longer requested', 409, 'INVALID_RETURN_STATE')
+    return this.prisma.returnRequest.findUniqueOrThrow({ where: { id: returnId }, include: returnInclude })
   }
 
   async createPendingRefundForReturn(returnRecord: ReturnRecord): Promise<Refund> {
     if (!this.inTransaction) return this.transaction((repository) => repository.createPendingRefundForReturn(returnRecord))
-    await this.prisma.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${returnRecord.orderId}::uuid FOR UPDATE`
+    await this.lockOrder(returnRecord.orderId)
     const payment = returnRecord.order.payments.find((row) => row.status === 'SUCCEEDED')
     if (!payment) throw new Error('Refund requires a successful payment')
     const state = await loadRefundSettlementState(this.prisma, returnRecord.orderId, returnRecord.order.currency)

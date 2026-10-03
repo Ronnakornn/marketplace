@@ -32,6 +32,10 @@ export interface CreateCheckoutData {
   cartItemIds?: string[]
   addressId: string
   couponCode?: string
+  shopCouponCode?: string
+  platformCouponCode?: string
+  acceptedQuoteFingerprint?: string
+  acceptedTaxPolicyRevision?: string
   coinsToUse?: number
   paymentMethod: string
   shippingMethod?: string
@@ -42,6 +46,8 @@ export interface QuoteCheckoutData {
   cartId: string
   cartItemIds?: string[]
   couponCode?: string
+  shopCouponCode?: string
+  platformCouponCode?: string
   coinsToUse?: number
 }
 
@@ -87,10 +93,17 @@ export class CheckoutService {
         userId: actor.id,
         items,
         couponCode: data.couponCode,
+        shopCouponCode: data.shopCouponCode,
+        platformCouponCode: data.platformCouponCode,
         coinsToUse: data.coinsToUse,
         policy: 'commit',
       })
       const totals = evaluation.acceptedQuote.totals
+      if ((evaluation.acceptedQuote.settlementPolicyVersion === 2 && (!data.acceptedQuoteFingerprint || !data.acceptedTaxPolicyRevision))
+        || (data.acceptedQuoteFingerprint !== undefined && data.acceptedQuoteFingerprint !== evaluation.quote.quoteFingerprint)
+        || (data.acceptedTaxPolicyRevision !== undefined && data.acceptedTaxPolicyRevision !== evaluation.quote.taxPolicyRevision)) {
+        throw new CheckoutServiceError('Checkout quote changed; review and accept the replacement quote', 409, 'QUOTE_CHANGED', { quote: evaluation.quote })
+      }
       const orderNumber = this.createOrderNumber()
       const checkoutExpiresAt = new Date(Date.now() + CHECKOUT_RESERVATION_MINUTES * 60 * 1000)
 
@@ -140,6 +153,8 @@ export class CheckoutService {
       userId: actor.id,
       items,
       couponCode: data.couponCode,
+      shopCouponCode: data.shopCouponCode,
+      platformCouponCode: data.platformCouponCode,
       coinsToUse: data.coinsToUse,
       policy: 'estimate',
     })

@@ -11,6 +11,7 @@ const ReturnParamsSchema = t.Object({
 const CreateReturnBodySchema = t.Object({
   orderId: t.String({ format: 'uuid' }),
   orderItemId: t.String({ format: 'uuid' }),
+  quantity: t.Optional(t.Integer({ minimum: 1, maximum: 2147483647 })),
   reason: t.String({ minLength: 1 }),
   description: t.Optional(t.String()),
   uploadIds: t.Optional(t.Array(t.String({ format: 'uuid' }), { maxItems: 5 })),

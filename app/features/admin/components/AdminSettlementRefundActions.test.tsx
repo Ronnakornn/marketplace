@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { PrepareCancellationRefund, RefundSettlementActions } from "./AdminSettlementRefundActions";
 
 const { prepare, updatePlan, updateStatus } = vi.hoisted(() => ({ prepare: vi.fn(), updatePlan: vi.fn(), updateStatus: vi.fn() }));
-let planData: { amount: bigint; payment: { currency: string } } | undefined;
+let planData: { amount: string; payment: { currency: string } } | undefined;
 let planError: unknown;
 vi.mock("#/i18n/client", () => ({ useTranslations: () => (key: string) => key === "admin.refunds.planUpdatedReview" ? "Review the new total {amount}" : key }));
 vi.mock("#/components/ui/button", () => ({ Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) => <button {...props}>{children}</button> }));
@@ -24,9 +24,9 @@ function order(): Parameters<typeof PrepareCancellationRefund>[0]["order"] {
     shipments: [{ status: "PENDING" }], refunds: [], shopOrders: [{ id: "shop-order-1", shopId: "shop-1", saleSnapshot: { policyVersion: 1 } }] };
 }
 function refund(): Parameters<typeof RefundSettlementActions>[0]["refund"] {
-  return { id: "refund-1", status: "PENDING", amount: 8300n, order: { orderNumber: "ORD-1", shopOrders: order().shopOrders },
-    itemAllocations: [{ orderItemId: "item-1", quantity: 2 }],
-    shopAllocations: [{ shopOrderId: "shop-order-1", shippingCause: "NONE", buyerShippingRefund: 0n }] };
+  return { payment: { currency: "THB" }, id: "refund-1", status: "PENDING", amount: "8300", order: { orderNumber: "ORD-1", shopOrders: order().shopOrders },
+    itemAllocations: [{ orderItemId: "item-1", quantity: 2, remainingQuantity: 3, cashMerchandise: "8300", buyerTaxRefund: "0", platformCouponReversal: "0", platformCouponTaxReversal: "0", coinFundingReversal: "0", coinTaxReversal: "0" }],
+    shopAllocations: [{ shopOrderId: "shop-order-1", shippingCause: "NONE", buyerShippingRefund: "0", buyerShippingTaxRefund: "0", platformShippingReversal: "0", platformShippingTaxReversal: "0" }] };
 }
 beforeEach(() => { planData = undefined; planError = undefined; vi.clearAllMocks(); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -62,8 +62,8 @@ describe("settlement refund review controls", () => {
       items: [{ orderItemId: "item-1", quantity: 2 }], shipping: [{ shopOrderId: "shop-order-1", cause: "SELLER_FAULT" }],
     } }, expect.objectContaining({ onSuccess: expect.any(Function) }));
     expect(updateStatus).not.toHaveBeenCalled();
-    planData = { amount: 8700n, payment: { currency: "THB" } };
-    view.rerender(<RefundSettlementActions refund={{ ...data, amount: 8700n, shopAllocations: [{ shopOrderId: "shop-order-1", shippingCause: "SELLER_FAULT", buyerShippingRefund: 400n }] }} />);
+    planData = { amount: "8700", payment: { currency: "THB" } };
+    view.rerender(<RefundSettlementActions refund={{ ...data, amount: "8700", shopAllocations: [{ shopOrderId: "shop-order-1", shippingCause: "SELLER_FAULT", buyerShippingRefund: "400", buyerShippingTaxRefund: "0", platformShippingReversal: "0", platformShippingTaxReversal: "0" }] }} />);
     expect(screen.getByRole("status").textContent).toMatch(/87\.00/);
     expect(screen.getByRole("button", { name: "Process" }).hasAttribute("disabled")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Process" }));
@@ -78,14 +78,14 @@ describe("settlement refund review controls", () => {
   });
 
   it("preserves the final cent in the server review total at the safe integer boundary", () => {
-    planData = { amount: 9007199254740991n, payment: { currency: "THB" } };
+    planData = { amount: "9007199254740991", payment: { currency: "THB" } };
     render(<RefundSettlementActions refund={refund()} />);
     expect(screen.getByRole("status").textContent).toContain("90,071,992,547,409.91");
   });
 
   it("uses an internal evidence reference to complete a zero-cash adjustment", () => {
     const prompt = vi.spyOn(window, "prompt").mockReturnValue("INTERNAL-1");
-    render(<RefundSettlementActions refund={{ ...refund(), amount: 0n, status: "PROCESSING" }} />);
+    render(<RefundSettlementActions refund={{ ...refund(), amount: "0", status: "PROCESSING" }} />);
     fireEvent.click(screen.getByRole("button", { name: "Complete" }));
     expect(prompt).toHaveBeenCalledWith("admin.refunds.internalReferencePrompt");
     expect(updateStatus).toHaveBeenCalledWith({ id: "refund-1", status: "SUCCESS", externalReference: "INTERNAL-1" });
@@ -99,4 +99,37 @@ describe("settlement refund review controls", () => {
     expect(screen.getByRole("alert").textContent).toBe("Shipping has already been refunded");
     expect(screen.getByRole("button", { name: "Process" }).hasAttribute("disabled")).toBe(true);
   });
+  it("saves a partial quantity using the authoritative remaining capacity", () => {
+    render(<RefundSettlementActions refund={refund()} />);
+    fireEvent.change(screen.getByRole("spinbutton", { name: "admin.refunds.quantity 1" }), { target: { value: "1" } });
+    expect(screen.getByRole("button", { name: "Process" })).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "admin.refunds.updatePlan" }));
+    expect(updatePlan).toHaveBeenCalledWith({ refundId: "refund-1", plan: { items: [{ orderItemId: "item-1", quantity: 1 }], shipping: [{ shopOrderId: "shop-order-1", cause: "NONE" }] } }, expect.objectContaining({ onSuccess: expect.any(Function) }));
+  });
+
+  it.each(["0", "4", "1.5"])("blocks an invalid partial quantity %s without updating rights", (quantity) => {
+    render(<RefundSettlementActions refund={refund()} />);
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: quantity } });
+    expect(screen.getByRole("button", { name: "admin.refunds.updatePlan" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Process" })).toHaveProperty("disabled", true);
+    expect(updatePlan).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { cash: "31", tax: "2", amount: "33", cashLabel: "0.31", taxLabel: "0.02" },
+    { cash: "31", tax: "2", amount: "33", cashLabel: "0.31", taxLabel: "0.02" },
+    { cash: "32", tax: "3", amount: "35", cashLabel: "0.32", taxLabel: "0.03" },
+  ])("shows original net $cash and tax $tax separately for a cash refund of $amount", (scenario) => {
+    const data = refund();
+    data.amount = scenario.amount;
+    if (!data.itemAllocations?.[0]) throw new Error("Missing original item allocation");
+    data.itemAllocations[0].cashMerchandise = scenario.cash;
+    data.itemAllocations[0].buyerTaxRefund = scenario.tax;
+    data.order.shopOrders = [{ id: "shop-order-1", shopId: "shop-1", saleSnapshot: { policyVersion: 2 } }];
+    render(<RefundSettlementActions refund={data} />);
+    expect(screen.getByText(/admin.refunds.merchandiseNet:/).textContent).toContain(scenario.cashLabel);
+    expect(screen.getByText(/admin.refunds.buyerTax:/).textContent).toContain(scenario.taxLabel);
+    expect(screen.getByRole("spinbutton")).toBeTruthy();
+  });
+
 });

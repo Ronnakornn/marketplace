@@ -1,4 +1,5 @@
 import { moneyNumber, moneyInteger } from '#server/lib/money.ts'
+import { validateFrozenSaleEconomics } from '#server/modules/checkout/sale-economics.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -124,11 +125,12 @@ export class WalletService {
     if (!shops?.length || order.items.some((item) => !item.saleSnapshot) || shops.some((shop) => !shop.saleSnapshot)) throw invalid()
     const plans = shops.map((shop) => {
       const sale = shop.saleSnapshot
-      if (!sale || sale.policyVersion !== 1 || sale.currency !== order.currency || shop.currency !== order.currency
+      if (!sale || ![1, 2].includes(sale.policyVersion) || sale.currency !== order.currency || shop.currency !== order.currency
         || sale.shopOrderId !== shop.id || shop.orderId !== order.id || !Number.isInteger(sale.commissionBps)
         || sale.commissionBps < 0 || sale.commissionBps > 10000) throw invalid()
       const items = order.items.filter((item) => item.shopId === shop.shopId)
       if (!items.length) throw invalid()
+      if (sale.policyVersion === 2) return this.versionTwoRecognitionPlan(order, shop, items)
       let merchandise = 0n
       let grossTotal = 0n
       let cash = 0n
@@ -194,7 +196,15 @@ export class WalletService {
       || shops.reduce((sum, shop) => sum + BigInt(shop.subtotal), 0n) !== BigInt(order.subtotal)
       || shops.reduce((sum, shop) => sum + BigInt(shop.discountTotal), 0n) !== BigInt(order.discountTotal)
       || shops.reduce((sum, shop) => sum + BigInt(shop.shippingTotal), 0n) !== BigInt(order.shippingTotal)
-      || BigInt(order.taxTotal) !== 0n) throw invalid()
+      || shops.reduce((sum, shop) => sum + BigInt(shop.taxTotal), 0n) !== BigInt(order.taxTotal)) throw invalid()
+    if (shops.some((shop) => shop.saleSnapshot?.policyVersion === 2)) {
+      const first = shops[0]!.saleSnapshot!
+      if (shops.some((shop) => shop.saleSnapshot?.policyVersion !== 2 || shop.saleSnapshot.taxPolicyRevision !== first.taxPolicyRevision
+        || shop.saleSnapshot.taxRatePpm !== first.taxRatePpm || shop.saleSnapshot.taxMode !== first.taxMode
+        || shop.saleSnapshot.taxFundingBasis !== first.taxFundingBasis || shop.saleSnapshot.taxableShipping !== first.taxableShipping)
+        || shops.reduce((sum, shop) => sum + shop.includedTaxTotal, 0n) !== order.includedTaxTotal
+        || shops.reduce((sum, shop) => sum + shop.reportedTaxTotal, 0n) !== order.reportedTaxTotal) throw invalid()
+    }
     for (const { shop, sale, earning, fee } of plans.sort((a, b) => a.shop.shopId.localeCompare(b.shop.shopId))) {
       if (sale.recognizedAt) continue
       if (await repo.hasOrderEarnings(order.id, shop.shopId)) throw invalid()
@@ -202,11 +212,64 @@ export class WalletService {
       this.assertWalletCurrency(wallet.currency, order.currency)
       await repo.lockWallet(wallet.id)
       await repo.createLedgerEntry({ walletId: wallet.id, shopId: shop.shopId, type: 'order_earning', amount: earning,
-        currency: order.currency, orderId: order.id, description: `Order earning for ${order.orderNumber}`, metadata: { settlementPolicyVersion: 1 } })
+        currency: order.currency, orderId: order.id, description: `Order earning for ${order.orderNumber}`, metadata: { settlementPolicyVersion: sale.policyVersion } })
       if (fee > 0) await repo.createLedgerEntry({ walletId: wallet.id, shopId: shop.shopId, type: 'commission_fee', amount: -fee,
         currency: order.currency, orderId: order.id, description: `Platform commission for ${order.orderNumber}`, metadata: { commissionBps: sale.commissionBps } })
       await repo.recognizeShopSale(shop.id, new Date())
     }
+  }
+
+  private versionTwoRecognitionPlan(order: CompletedOrderRecord, shop: NonNullable<CompletedOrderRecord['shopOrders']>[number], items: CompletedOrderRecord['items']) {
+    const invalid = () => new WalletServiceError('Settlement snapshot or refund allocation is inconsistent', 409, 'INVALID_PAYOUT_STATE')
+    const sale = shop.saleSnapshot
+    if (!sale) throw invalid()
+    const snapshots = items.map((item) => {
+      const snapshot = item.saleSnapshot
+      if (!snapshot || snapshot.shopOrderId !== shop.id || snapshot.orderItemId !== item.id || snapshot.originalQuantity !== item.quantity
+        || item.orderId !== order.id || item.currency !== order.currency || snapshot.grossMerchandise !== item.lineTotal
+        || item.unitPrice < 0n || item.lineTotal !== item.unitPrice * BigInt(item.quantity)) throw invalid()
+      return snapshot
+    })
+    let original: ReturnType<typeof validateFrozenSaleEconomics>
+    try { original = validateFrozenSaleEconomics(sale, snapshots, shop) } catch { throw invalid() }
+    let reversedGross = 0n
+    let reversedNet = 0n
+    for (const snapshot of snapshots) {
+      const line = original.items.find((line) => line.cartItemId === snapshot.orderItemId)
+      if (!line) throw invalid()
+      const pools = [line.buyer.net, line.buyer.tax, line.platformCoupon.net, line.platformCoupon.tax, line.coins.net, line.coins.tax]
+      const completed = snapshot.refundAllocations.filter((allocation) => allocation.refund.status === 'SUCCESS')
+        .sort((a, b) => a.successfulQuantityBefore - b.successfulQuantityBefore)
+      let quantity = 0
+      for (const allocation of completed) {
+        if (!Number.isInteger(allocation.quantity) || allocation.quantity <= 0 || allocation.successfulQuantityBefore !== quantity
+          || quantity + allocation.quantity > snapshot.originalQuantity) throw invalid()
+        const amounts = [allocation.cashMerchandise, allocation.buyerTaxRefund, allocation.platformCouponReversal, allocation.platformCouponTaxReversal, allocation.coinFundingReversal, allocation.coinTaxReversal]
+        for (let index = 0; index < pools.length; index++) {
+          const expected = pools[index]! * BigInt(quantity + allocation.quantity) / BigInt(snapshot.originalQuantity) - pools[index]! * BigInt(quantity) / BigInt(snapshot.originalQuantity)
+          if (amounts[index] !== expected) throw invalid()
+        }
+        reversedGross += amounts.reduce((sum, amount) => sum + amount, 0n)
+        reversedNet += allocation.cashMerchandise + allocation.platformCouponReversal + allocation.coinFundingReversal
+        quantity += allocation.quantity
+      }
+    }
+    const allocations = sale.refundAllocations.filter((allocation) => allocation.refund.status === 'SUCCESS')
+    if (snapshots.some((snapshot) => snapshot.refundAllocations.some((allocation) => allocation.refund.status === 'SUCCESS' && !allocations.some((shopAllocation) => shopAllocation.refundId === allocation.refundId)))) throw invalid()
+    const shipping = allocations.reduce((sum, allocation) => {
+      if ([allocation.buyerShippingRefund, allocation.buyerShippingTaxRefund, allocation.platformShippingReversal, allocation.platformShippingTaxReversal, allocation.commissionReversal].some((amount) => amount < 0n)
+        || (!sale.recognizedAt && allocation.walletPostedAt)) throw invalid()
+      return { buyerNet: sum.buyerNet + allocation.buyerShippingRefund, buyerTax: sum.buyerTax + allocation.buyerShippingTaxRefund,
+        platformNet: sum.platformNet + allocation.platformShippingReversal, platformTax: sum.platformTax + allocation.platformShippingTaxReversal,
+        fee: sum.fee + allocation.commissionReversal }
+    }, { buyerNet: 0n, buyerTax: 0n, platformNet: 0n, platformTax: 0n, fee: 0n })
+    if (shipping.buyerNet > original.buyerShipping.net || shipping.buyerTax > original.buyerShipping.tax
+      || shipping.platformNet > original.platformShipping.net || shipping.platformTax > original.platformShipping.tax
+      || shipping.fee !== (original.commissionBase === 0n ? 0n : sale.originalCommission * reversedNet / original.commissionBase)) throw invalid()
+    const earning = moneyNumber(original.sellerGrossMerchandise + original.sellerGrossShipping - reversedGross - shipping.buyerNet - shipping.buyerTax - shipping.platformNet - shipping.platformTax)
+    const fee = moneyNumber(sale.originalCommission - shipping.fee)
+    if (earning < 0 || fee < 0) throw invalid()
+    return { shop, sale, earning, fee }
   }
 
   async applyRefundAdjustment(shopId: string, refundId: string, orderId: string, amount: number, currency = 'THB'): Promise<void> {

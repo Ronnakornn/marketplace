@@ -1416,6 +1416,9 @@ model CartItem {
 }
 
 model Checkout {
+  includedTaxTotal BigInt @default(0)
+  reportedTaxTotal BigInt @default(0)
+
   id            String         @id @default(uuid()) @db.Uuid
   cartId        String         @db.Uuid
   userId        String         @db.Uuid
@@ -1491,6 +1494,9 @@ model InventoryMovement {
 }
 
 model Order {
+  includedTaxTotal BigInt @default(0)
+  reportedTaxTotal BigInt @default(0)
+
   id                 String        @id @default(uuid()) @db.Uuid
   checkoutId         String        @unique @db.Uuid
   userId             String        @db.Uuid
@@ -1540,6 +1546,9 @@ model Order {
 }
 
 model ShopOrder {
+  includedTaxTotal BigInt @default(0)
+  reportedTaxTotal BigInt @default(0)
+
   id                String            @id @default(uuid()) @db.Uuid
   orderId           String            @db.Uuid
   shopId            String            @db.Uuid
@@ -1592,6 +1601,7 @@ model OrderItem {
   returnItems   ReturnItem[]
   shipmentItems ShipmentItem[]
   saleSnapshot  ItemSaleSnapshot?
+  affiliateBases AffiliateCommissionItem[]
 
   @@index([orderId, shopId])
   @@index([shopId, fulfillmentStatus])
@@ -1833,6 +1843,7 @@ model Refund {
   sellerTransactions SellerTransaction[]
   itemAllocations    RefundItemAllocation[]
   shopAllocations    RefundShopAllocation[]
+  affiliateReversals AffiliateRefundReversal[]
 
   @@index([orderId, status])
   @@index([paymentId])
@@ -1849,6 +1860,25 @@ enum RefundShippingCause {
 }
 
 model ShopSaleSnapshot {
+  taxRatePpm Int?
+  taxMode String?
+  taxFundingBasis String?
+  taxableShipping Boolean?
+  taxShippingBasis String?
+  taxRounding String?
+  taxCustodian String?
+  taxExclusiveFunding String?
+  taxPolicyRevision String?
+  sellerGrossMerchandise BigInt?
+  sellerGrossShipping BigInt?
+  buyerShippingNet BigInt?
+  buyerShippingTax BigInt?
+  platformShippingNet BigInt?
+  platformShippingTax BigInt?
+  includedTaxTotal BigInt?
+  addedTaxTotal BigInt?
+  reportedTaxTotal BigInt?
+
   shopOrderId             String                 @id @db.Uuid
   policyVersion           Int                    @default(1)
   currency                String
@@ -1866,6 +1896,19 @@ model ShopSaleSnapshot {
 }
 
 model ItemSaleSnapshot {
+  buyerMerchandiseNet BigInt?
+  buyerMerchandiseTax BigInt?
+  platformCouponNet BigInt?
+  platformCouponTax BigInt?
+  coinFundingNet BigInt?
+  coinFundingTax BigInt?
+  originalCashbackEligibleNet BigInt?
+  originalAffiliateEligibleNet BigInt?
+  shopCouponId String? @db.Uuid
+  shopCouponCode String?
+  platformCouponId String? @db.Uuid
+  platformCouponCode String?
+
   orderItemId            String                 @id @db.Uuid
   shopOrderId            String                 @db.Uuid
   originalQuantity       Int
@@ -1884,6 +1927,11 @@ model ItemSaleSnapshot {
 }
 
 model RefundItemAllocation {
+  successfulQuantityBefore Int @default(0)
+  buyerTaxRefund BigInt @default(0)
+  platformCouponTaxReversal BigInt @default(0)
+  coinTaxReversal BigInt @default(0)
+
   id                     String           @id @default(uuid()) @db.Uuid
   refundId               String           @db.Uuid
   orderItemId            String           @db.Uuid
@@ -1899,6 +1947,9 @@ model RefundItemAllocation {
 }
 
 model RefundShopAllocation {
+  buyerShippingTaxRefund BigInt @default(0)
+  platformShippingTaxReversal BigInt @default(0)
+
   id                       String              @id @default(uuid()) @db.Uuid
   refundId                 String              @db.Uuid
   shopOrderId              String              @db.Uuid
@@ -2417,10 +2468,39 @@ model AffiliateCommission {
   link      AffiliateLink   @relation(fields: [linkId], references: [id], onDelete: Cascade)
   click     AffiliateClick? @relation(fields: [clickId], references: [id], onDelete: SetNull)
   order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemBases AffiliateCommissionItem[]
+  refundReversals AffiliateRefundReversal[]
 
   @@index([affiliateId, createdAt])
   @@index([linkId, createdAt])
   @@index([status])
+}
+
+model AffiliateCommissionItem {
+  id String @id @default(uuid()) @db.Uuid
+  commissionId String @db.Uuid
+  orderItemId String @db.Uuid
+  originalQuantity Int
+  originalEligibleNet BigInt
+  commission AffiliateCommission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@unique([commissionId, orderItemId])
+  @@index([orderItemId])
+}
+
+model AffiliateRefundReversal {
+  id String @id @default(uuid()) @db.Uuid
+  commissionId String @db.Uuid
+  refundId String @db.Uuid
+  eligibleNetReversed BigInt
+  amount BigInt
+  createdAt DateTime @default(now())
+  commission AffiliateCommission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  refund Refund @relation(fields: [refundId], references: [id], onDelete: Cascade)
+
+  @@unique([commissionId, refundId])
+  @@index([refundId])
 }
 
 enum CoinLedgerEntryType {

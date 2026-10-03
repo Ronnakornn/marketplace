@@ -25,6 +25,8 @@ export interface OrderItemResponse {
   variantTitle: string
   variantSku: string
   quantity: number
+  remainingReturnQuantity: number
+  hasActiveReturn: boolean
   unitPrice: bigint
   lineTotal: bigint
   currency: string
@@ -90,6 +92,8 @@ export interface OrderDetailResponse {
     discountTotal: bigint
     shippingTotal: bigint
     taxTotal: bigint
+    includedTaxTotal: bigint
+    reportedTaxTotal: bigint
     grandTotal: bigint
     currency: string
   }
@@ -196,10 +200,12 @@ export class OrderService {
         discountTotal: total.discountTotal + this.toMoneyInteger(shopOrder.discountTotal),
         shippingTotal: total.shippingTotal + this.toMoneyInteger(shopOrder.shippingTotal),
         taxTotal: total.taxTotal + this.toMoneyInteger(shopOrder.taxTotal),
+        includedTaxTotal: total.includedTaxTotal + this.toMoneyInteger(shopOrder.includedTaxTotal),
+        reportedTaxTotal: total.reportedTaxTotal + this.toMoneyInteger(shopOrder.reportedTaxTotal),
         grandTotal: total.grandTotal + this.toMoneyInteger(shopOrder.grandTotal),
         currency: shopOrder.currency,
       }),
-      { subtotal: 0n, discountTotal: 0n, shippingTotal: 0n, taxTotal: 0n, grandTotal: 0n, currency: order.currency },
+      { subtotal: 0n, discountTotal: 0n, shippingTotal: 0n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 0n, currency: order.currency },
     )
     return { ...this.toOrderResponse(order, items, shipments), totals }
   }
@@ -220,6 +226,8 @@ export class OrderService {
         discountTotal: this.toMoneyInteger(order.discountTotal),
         shippingTotal: this.toMoneyInteger(order.shippingTotal),
         taxTotal: this.toMoneyInteger(order.taxTotal),
+        includedTaxTotal: this.toMoneyInteger(order.includedTaxTotal),
+        reportedTaxTotal: this.toMoneyInteger(order.reportedTaxTotal),
         grandTotal: this.toMoneyInteger(order.grandTotal),
         currency: order.currency,
       },
@@ -255,7 +263,7 @@ export class OrderService {
     return [...groups.values()]
   }
 
-  private toItemResponse(item: OrderItem): OrderItemResponse {
+  private toItemResponse(item: OrderItem & { remainingReturnQuantity?: number; hasActiveReturn?: boolean }): OrderItemResponse {
     return {
       id: item.id,
       shopId: item.shopId,
@@ -264,6 +272,8 @@ export class OrderService {
       variantTitle: item.variantTitle,
       variantSku: item.variantSku,
       quantity: item.quantity,
+      remainingReturnQuantity: item.remainingReturnQuantity ?? 0,
+      hasActiveReturn: item.hasActiveReturn ?? false,
       unitPrice: this.toMoneyInteger(item.unitPrice),
       lineTotal: this.toMoneyInteger(item.lineTotal),
       currency: item.currency,

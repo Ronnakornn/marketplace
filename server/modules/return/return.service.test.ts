@@ -26,6 +26,9 @@ function createAppContext(): AppContext {
 function createRepoMock(): IReturnRepository {
   return {
     transaction: vi.fn(async (callback) => callback(repo)),
+    lockOrder: vi.fn(),
+    findReturnOrderId: vi.fn(),
+    findReturnSettlementState: vi.fn(),
     findOrderItemForReturn: vi.fn(),
     findUploadsByIds: vi.fn(),
     createReturn: vi.fn(),
@@ -99,6 +102,7 @@ function createOrderItem(overrides: Partial<{
       createdAt: now,
       updatedAt: now,
       payments: [createPayment()],
+      refunds: [],
     },
     returnItems: overrides.returnStatus ? [{
       id: '55555555-5555-4555-8555-555555555555',
@@ -180,6 +184,8 @@ function setup() {
   repo = createRepoMock()
   eventPublisher = { publish: vi.fn().mockResolvedValue(undefined) }
   service = new ReturnService(createAppContext(), repo, undefined, eventPublisher as any)
+  vi.mocked(repo.findReturnOrderId).mockResolvedValue('11111111-1111-4111-8111-111111111111')
+  vi.mocked(repo.findReturnSettlementState).mockResolvedValue(null)
   vi.mocked(repo.findOrderItemForReturn).mockResolvedValue(createOrderItem())
   vi.mocked(repo.findUploadsByIds).mockResolvedValue([])
   vi.mocked(repo.createReturn).mockResolvedValue(createReturnRecord())
@@ -328,4 +334,30 @@ describe('ReturnService', () => {
     expect(repo.transaction).toHaveBeenCalled()
     expect(eventPublisher.publish).not.toHaveBeenCalled()
   })
+
+  it.each([0, -1, 0.5, 2147483648])('rejects invalid quantities before creating a Return: %s', async quantity => {
+    await expect(service.createReturn(createActor(), {
+      orderId: '11111111-1111-4111-8111-111111111111',
+      orderItemId: '22222222-2222-4222-8222-222222222222', quantity, reason: 'Damaged',
+    })).rejects.toMatchObject({ code: 'INVALID_RETURN_QUANTITY' })
+    expect(repo.createReturn).not.toHaveBeenCalled()
+  })
+
+  it('rejects a partial legacy quantity without original settlement evidence', async () => {
+    await expect(service.createReturn(createActor(), {
+      orderId: '11111111-1111-4111-8111-111111111111',
+      orderItemId: '22222222-2222-4222-8222-222222222222', quantity: 1, reason: 'Damaged',
+    })).rejects.toMatchObject({ code: 'INVALID_RETURN_STATE' })
+    expect(repo.createReturn).not.toHaveBeenCalled()
+  })
+
+  it('does not approve a Return without a successful payment', async () => {
+    const data = createReturnRecord()
+    data.order.payments = [createPayment('FAILED')]
+    vi.mocked(repo.findSellerReturnById).mockResolvedValue(data)
+    await expect(service.approveSellerReturn(sellerActor(), data.id)).rejects.toMatchObject({ code: 'INVALID_RETURN_STATE' })
+    expect(repo.updateReturnStatus).not.toHaveBeenCalled()
+    expect(repo.createPendingRefundForReturn).not.toHaveBeenCalled()
+  })
+
 })

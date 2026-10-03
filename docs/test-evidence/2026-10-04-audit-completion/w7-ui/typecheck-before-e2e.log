@@ -1,0 +1,1 @@
+e2e/finance-lifecycle.spec.ts(4,32): error TS6133: 'createPartialFinanceFixture' is declared but its value is never read.

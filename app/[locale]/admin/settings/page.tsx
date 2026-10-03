@@ -1,3 +1,4 @@
+import { AdminTaxPolicyEditor } from "#/features/admin/components/AdminTaxPolicyEditor";
 import { AdminPageIntro, AdminSettingsManager, AdminSpaceCat } from "#/features/admin";
 
 export default function AdminSettingsPage() {
@@ -6,6 +7,7 @@ export default function AdminSettingsPage() {
       <AdminPageIntro eyebrow="admin.pages.settings.eyebrow" title="admin.pages.settings.title" description="admin.pages.settings.description">
         <AdminSpaceCat mode="dashboard" />
       </AdminPageIntro>
+      <AdminTaxPolicyEditor />
       <AdminSettingsManager />
     </div>
   );

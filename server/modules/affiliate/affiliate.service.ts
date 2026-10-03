@@ -4,7 +4,8 @@ import type { Affiliate, AffiliateCommission, AffiliateLink } from '#generated/c
 import type { AffiliateStatus, AffiliateTargetType } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import { AffiliateServiceError } from './affiliate.errors.ts'
-import type { IAffiliateCommissionRepository, IAffiliateRepository } from './affiliate.repository.ts'
+import type { AffiliateOrderRecord, IAffiliateCommissionRepository, IAffiliateRepository } from './affiliate.repository.ts'
+import { allocateRefundAmount } from '#server/modules/refund/refund-amount.service.ts'
 
 const DEFAULT_ATTRIBUTION_WINDOW_DAYS = 30
 const DEFAULT_COMMISSION_BPS = 500
@@ -197,7 +198,8 @@ export class AffiliateService {
       throw new AffiliateServiceError('Self-referral is not allowed', 403, 'AFFILIATE_FORBIDDEN')
     }
 
-    const eligiblesubtotal = this.calculateEligiblesubtotal(order)
+    const itemBasis = this.originalItemBasis(order)
+    const eligiblesubtotal = moneyNumber(itemBasis.reduce((sum, item) => sum + item.originalEligibleNet, 0n))
     if (eligiblesubtotal <= 0) return null
     const commissionCents = BigInt(eligiblesubtotal) * BigInt(this.config.commissionBps) / 10000n
     if (commissionCents <= 0) return null
@@ -211,14 +213,35 @@ export class AffiliateService {
       commissionBps: this.config.commissionBps,
       commissionCents,
       currency: order.currency,
+      itemBasis,
     })
   }
 
-  private calculateEligiblesubtotal(order: { subtotal: number | bigint; discountTotal: number | bigint; items: Array<{ lineTotal: number | bigint }> }): number {
-    const itemsubtotal = order.items.reduce((sum, item) => sum + moneyInteger(item.lineTotal), 0n)
-    const subtotal = itemsubtotal || moneyInteger(order.subtotal)
-    const eligible = subtotal - moneyInteger(order.discountTotal)
-    return moneyNumber(eligible > 0n ? eligible : 0n)
+  private originalItemBasis(order: AffiliateOrderRecord) {
+    const items = [...order.items].sort((a, b) => a.id.localeCompare(b.id))
+    const invalid = () => new AffiliateServiceError('Original affiliate merchandise basis is inconsistent', 409, 'INVALID_AFFILIATE_TARGET')
+    if (!items.length || new Set(items.map((item) => item.id)).size !== items.length || items.some((item) => !Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 2_147_483_647 || moneyInteger(item.lineTotal) < 0n)) throw invalid()
+    const snapshots = items.filter((item) => item.saleSnapshot).length
+    let bases: bigint[]
+    if (snapshots) {
+      if (snapshots !== items.length) throw invalid()
+      bases = items.map((item) => {
+        const sale = item.saleSnapshot!
+        if (sale.originalQuantity !== item.quantity || sale.orderItemId !== item.id || sale.grossMerchandise !== moneyInteger(item.lineTotal)) throw invalid()
+        const version = sale.shopSale.policyVersion
+        if (version !== 1 && version !== 2) throw invalid()
+        if (version === 2 && [sale.buyerMerchandiseNet, sale.buyerMerchandiseTax, sale.platformCouponNet, sale.platformCouponTax, sale.coinFundingNet, sale.coinFundingTax].some((value) => value === null || value < 0n)) throw invalid()
+        const basis = version === 1 ? sale.buyerMerchandise : sale.originalAffiliateEligibleNet
+        if (basis === null || basis < 0n || version === 2 && basis !== sale.buyerMerchandiseNet) throw invalid()
+        return basis
+      })
+    } else {
+      const subtotal = items.reduce((sum, item) => sum + moneyInteger(item.lineTotal), 0n)
+      const eligible = subtotal - moneyInteger(order.discountTotal)
+      if (subtotal !== moneyInteger(order.subtotal) || eligible < 0n || moneyInteger(order.taxTotal) !== 0n) throw invalid()
+      bases = allocateRefundAmount(eligible, items.map((item) => moneyInteger(item.lineTotal)))
+    }
+    return items.map((item, index) => ({ orderItemId: item.id, originalQuantity: item.quantity, originalEligibleNet: bases[index]! }))
   }
 
   private async assertValidTarget(targetType: AffiliateTargetType, targetId: string): Promise<void> {

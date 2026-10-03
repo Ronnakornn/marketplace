@@ -96,8 +96,8 @@ export class PaymentService {
       }
       if (moneyNumber(payment.amount) !== input.amount) {
         throw new PaymentServiceError('Webhook amount does not match payment amount', 400, 'AMOUNT_MISMATCH', {
-          expectedamount: moneyNumber(payment.amount),
-          receivedamount: input.amount,
+          expectedamount: payment.amount.toString(),
+          receivedamount: input.amount.toString(),
         })
       }
 
@@ -167,6 +167,9 @@ export class PaymentService {
   private validateInput(
     input: PaymentWebhookBody,
   ): asserts input is PaymentWebhookBody & { eventType: PaymentWebhookEventType } {
+    if (!Number.isSafeInteger(input.amount) || input.amount < 0) {
+      throw new PaymentServiceError('Webhook amount must be a nonnegative safe integer in minor units', 400, 'INVALID_WEBHOOK_EVENT')
+    }
     if (input.provider !== this.paymentConfig.provider) {
       throw new PaymentServiceError('Unsupported webhook provider', 400, 'INVALID_WEBHOOK_EVENT')
     }

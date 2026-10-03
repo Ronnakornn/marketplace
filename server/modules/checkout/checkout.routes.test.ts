@@ -15,6 +15,10 @@ vi.mock('#server/modules/auth/auth.context.ts', () => ({
 
 function createContainer() {
   return {
+    adminService: {
+      listSystemSettings: vi.fn().mockResolvedValue([]),
+      upsertSystemSetting: vi.fn().mockImplementation(async (_actor, _key, input) => ({ value: { ...input.value, revision: 'saved-revision' } })),
+    },
     checkoutService: {
       quoteCheckout: vi.fn().mockResolvedValue({
         subtotal: 2400, discountTotal: 0, shippingTotal: 500, taxTotal: 0, grandTotal: 2900,
@@ -136,5 +140,39 @@ describe('checkout routes', () => {
       expect.objectContaining({ role: 'ADMIN' }),
       validBody,
     )
+  })
+
+  it('protects tax policy reads and writes with the ADMIN macro', async () => {
+    mockAuth('USER')
+    const container = createContainer()
+    const app = createApp(container)
+    const read = await app.handle(new Request('http://localhost/api/admin/checkout/tax-policy'))
+    const write = await app.handle(new Request('http://localhost/api/admin/checkout/tax-policy', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ratePpm: 0 }) }))
+    expect(read.status).toBe(403)
+    expect(write.status).toBe(403)
+    expect(container.adminService.listSystemSettings).not.toHaveBeenCalled()
+    expect(container.adminService.upsertSystemSetting).not.toHaveBeenCalled()
+  })
+
+  it('returns the saved revision and rejects incomplete nonzero policies before writing', async () => {
+    mockAuth('ADMIN')
+    const container = createContainer()
+    const app = createApp(container)
+    const invalid = await app.handle(new Request('http://localhost/api/admin/checkout/tax-policy', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ratePpm: 70000 }) }))
+    expect(invalid.status).toBe(400)
+    expect(container.adminService.upsertSystemSetting).not.toHaveBeenCalled()
+    const saved = await app.handle(new Request('http://localhost/api/admin/checkout/tax-policy', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ratePpm: 0 }) }))
+    expect(saved.status).toBe(200)
+    expect(await saved.json()).toMatchObject({ policy: { revision: 'saved-revision', ratePpm: 0, mode: 'EXCLUSIVE' } })
+  })
+
+  it('serializes included/added/reported tax exactly with the displayed quote acceptance fields', async () => {
+    mockAuth('USER')
+    const container = createContainer()
+    container.checkoutService.quoteCheckout.mockResolvedValue({ subtotal: 10700, discountTotal: 0, shippingTotal: 0, taxTotal: 0, includedTaxTotal: 700, addedTaxTotal: 0, reportedTaxTotal: 700, grandTotal: 10700,
+      currency: 'THB', taxMode: 'INCLUSIVE', taxPolicyRevision: 'policy-v2', quoteFingerprint: 'a'.repeat(64), couponOutcomes: [], coupon: null, coinsApplied: 0, items: [], shops: [] })
+    const response = await createApp(container).handle(new Request('http://localhost/api/checkout/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cartId: validBody.cartId, cartItemIds: validBody.cartItemIds }) }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ taxTotal: '0', includedTaxTotal: '700', addedTaxTotal: '0', reportedTaxTotal: '700', grandTotal: '10700', quoteFingerprint: 'a'.repeat(64), taxPolicyRevision: 'policy-v2' })
   })
 })

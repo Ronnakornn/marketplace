@@ -54,7 +54,7 @@ const pendingPayment = {
   id: "14141414-1414-4141-8141-141414141414",
   orderId: "13131313-1313-4131-8131-131313131313",
   orderNo: "ORD-TEST",
-  amountCents: 2900,
+  amountCents: "2900",
   currency: "THB",
   status: "PENDING",
 } as const;

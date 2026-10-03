@@ -33,6 +33,8 @@ import type {
 } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { PrismaReturnRepository } from '#server/modules/return/return.repository.ts'
+import { AdminServiceError } from './admin.errors.ts'
 
 export interface AdminPaginationInput {
   page: number
@@ -119,10 +121,11 @@ export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 's
     shopOrders?: Array<Pick<ShopOrder, 'id' | 'shopId'> & { saleSnapshot: Pick<ShopSaleSnapshot, 'policyVersion'> | null }>
   }
   payment: Pick<Payment, 'id' | 'provider' | 'status' | 'amount' | 'currency'>
-  itemAllocations?: Array<Pick<RefundItemAllocation, 'orderItemId' | 'quantity'> & {
-    itemSale?: { orderItem: Pick<OrderItem, 'shopId'> & { variant: Pick<ProductVariant, 'productId'> } }
+  itemAllocations?: Array<Pick<RefundItemAllocation, 'orderItemId' | 'quantity' | 'successfulQuantityBefore' | 'cashMerchandise' | 'buyerTaxRefund' | 'platformCouponReversal' | 'platformCouponTaxReversal' | 'coinFundingReversal' | 'coinTaxReversal'> & {
+    remainingQuantity: number
+    itemSale?: { originalQuantity: number; orderItem: Pick<OrderItem, 'shopId' | 'productTitle' | 'variantTitle'> & { variant: Pick<ProductVariant, 'productId'> } }
   }>
-  shopAllocations?: Array<Pick<RefundShopAllocation, 'shopOrderId' | 'shippingCause' | 'buyerShippingRefund'>>
+  shopAllocations?: Array<Pick<RefundShopAllocation, 'shopOrderId' | 'shippingCause' | 'buyerShippingRefund' | 'buyerShippingTaxRefund' | 'platformShippingReversal' | 'platformShippingTaxReversal'>>
 }
 export type AdminReturnRecord = ReturnRequest & {
   order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId' | 'currency'>
@@ -312,8 +315,8 @@ const orderInclude = {
 } as const
 
 const refundInclude = {
-  itemAllocations: { select: { orderItemId: true, quantity: true, itemSale: { select: { orderItem: { select: { shopId: true, variant: { select: { productId: true } } } } } } } },
-  shopAllocations: { select: { shopOrderId: true, shippingCause: true, buyerShippingRefund: true } },
+  itemAllocations: { select: { orderItemId: true, quantity: true, successfulQuantityBefore: true, cashMerchandise: true, buyerTaxRefund: true, platformCouponReversal: true, platformCouponTaxReversal: true, coinFundingReversal: true, coinTaxReversal: true, itemSale: { select: { originalQuantity: true, orderItem: { select: { shopId: true, productTitle: true, variantTitle: true, variant: { select: { productId: true } } } } } } } },
+  shopAllocations: { select: { shopOrderId: true, shippingCause: true, buyerShippingRefund: true, buyerShippingTaxRefund: true, platformShippingReversal: true, platformShippingTaxReversal: true } },
   id: true,
   orderId: true,
   paymentId: true,
@@ -395,6 +398,10 @@ const returnInclude = {
     orderBy: { createdAt: 'desc' },
   },
 } as const
+
+function withRefundCapacity(row: Prisma.RefundGetPayload<{ select: typeof refundInclude }>): AdminRefundRecord {
+  return { ...row, itemAllocations: row.itemAllocations.map((item) => ({ ...item, remainingQuantity: item.itemSale.originalQuantity >= item.successfulQuantityBefore && item.successfulQuantityBefore >= 0 ? item.itemSale.originalQuantity - item.successfulQuantityBefore : 0 })) }
+}
 
 const commissionSelect = {
   id: true,
@@ -906,13 +913,13 @@ export class PrismaAdminRepository implements IAdminRepository {
   listRefunds(filters: { status?: RefundStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminRefundRecord>> {
     const where: Prisma.RefundWhereInput = filters.status ? { status: filters.status } : {}
     return this.paginate(
-      this.prisma.refund.findMany({ where, select: refundInclude, orderBy: { createdAt: 'desc' }, ...this.toSkipTake(pagination) }),
+      this.prisma.refund.findMany({ where, select: refundInclude, orderBy: { createdAt: 'desc' }, ...this.toSkipTake(pagination) }).then((rows) => rows.map(withRefundCapacity)),
       this.prisma.refund.count({ where }),
     )
   }
 
   findRefundById(refundId: string): Promise<AdminRefundRecord | null> {
-    return this.prisma.refund.findUnique({ where: { id: refundId }, select: refundInclude })
+    return this.prisma.refund.findUnique({ where: { id: refundId }, select: refundInclude }).then((row) => row ? withRefundCapacity(row) : null)
   }
 
   async updateRefundStatus(
@@ -920,9 +927,23 @@ export class PrismaAdminRepository implements IAdminRepository {
     expectedStatus: RefundStatus,
     data: Partial<Pick<Refund, 'status' | 'processingById' | 'completedById' | 'externalReference' | 'processingAt' | 'completedAt'>>,
   ): Promise<AdminRefundRecord | null> {
-    const result = await this.prisma.refund.updateMany({ where: { id: refundId, status: expectedStatus }, data })
-    if (result.count !== 1) return null
-    return this.findRefundById(refundId)
+    return this.prisma.$transaction(async (tx) => {
+      const reference = await tx.refund.findUnique({ where: { id: refundId }, select: { orderId: true } })
+      if (!reference) return null
+      await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${reference.orderId}::uuid FOR UPDATE`
+      const current = await tx.refund.findUnique({ where: { id: refundId } })
+      if (!current || current.status !== expectedStatus || current.status === 'SUCCESS' || current.status === 'FAILED') return null
+      if (current.status === 'PROCESSING' && data.status === 'PENDING') throw new AdminServiceError('An in-progress external refund cannot be replanned', 409, 'INVALID_STATUS_TRANSITION')
+      if (data.status === 'SUCCESS') throw new AdminServiceError('Refund success requires settlement completion', 409, 'INVALID_STATUS_TRANSITION')
+      const result = await tx.refund.updateMany({ where: { id: refundId, status: expectedStatus }, data })
+      if (result.count !== 1) return null
+      if (data.status === 'FAILED' && current.returnRequestId) {
+        const cancelled = await tx.returnRequest.updateMany({ where: { id: current.returnRequestId, orderId: current.orderId, status: { in: ['APPROVED', 'RECEIVED'] } }, data: { status: 'CANCELLED' } })
+        if (cancelled.count !== 1) throw new AdminServiceError('Failed refund return state is inconsistent', 409, 'INVALID_STATUS_TRANSITION')
+      }
+      const updated = await tx.refund.findUnique({ where: { id: refundId }, select: refundInclude })
+      return updated ? withRefundCapacity(updated) : null
+    })
   }
 
   listReturns(filters: { status?: ReturnStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminReturnRecord>> {
@@ -938,7 +959,23 @@ export class PrismaAdminRepository implements IAdminRepository {
   }
 
   updateReturnStatus(returnId: string, status: ReturnStatus): Promise<AdminReturnRecord> {
-    return this.prisma.returnRequest.update({ where: { id: returnId }, data: { status }, include: returnInclude })
+    return this.prisma.$transaction(async (tx) => {
+      const reference = await tx.returnRequest.findUnique({ where: { id: returnId }, select: { orderId: true, userId: true } })
+      if (!reference) throw new AdminServiceError('Return not found', 404, 'RETURN_NOT_FOUND')
+      await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${reference.orderId}::uuid FOR UPDATE`
+      const current = await tx.returnRequest.findUniqueOrThrow({ where: { id: returnId }, include: returnInclude })
+      if (current.status === status) return current
+      const allowed: Record<ReturnStatus, readonly ReturnStatus[]> = { REQUESTED: ['APPROVED', 'REJECTED', 'CANCELLED'], APPROVED: ['RECEIVED'], RECEIVED: [], REJECTED: [], COMPLETED: [], CANCELLED: [] }
+      if (!allowed[current.status].includes(status)) throw new AdminServiceError('Invalid return status transition', 409, 'INVALID_STATUS_TRANSITION')
+      const updated = await tx.returnRequest.update({ where: { id: returnId }, data: { status }, include: returnInclude })
+      if (status === 'APPROVED') {
+        const returns = new PrismaReturnRepository({ logger: this.logger, config: { environment: 'transaction' } }, tx, true)
+        const approved = await returns.findBuyerReturnById(returnId, reference.userId)
+        if (!approved) throw new AdminServiceError('Return not found', 404, 'RETURN_NOT_FOUND')
+        await returns.createPendingRefundForReturn(approved)
+      }
+      return updated
+    })
   }
 
   private async paginate<T>(itemsPromise: Promise<T[]>, totalPromise: Promise<number>): Promise<AdminPaginatedResult<T>> {

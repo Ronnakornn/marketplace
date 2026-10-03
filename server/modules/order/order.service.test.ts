@@ -46,6 +46,8 @@ function createOrder(): OrderRecord {
     discountTotal: BigInt(0),
     shippingTotal: BigInt(500),
     taxTotal: BigInt(0),
+    includedTaxTotal: 0n,
+    reportedTaxTotal: 0n,
     grandTotal: BigInt(5500),
     currency: 'USD',
     shippingName: 'Jane Buyer',
@@ -59,8 +61,8 @@ function createOrder(): OrderRecord {
     createdAt: now,
     updatedAt: now,
     shopOrders: [
-      { shopId: 'shop-1', subtotal: 2400n, discountTotal: 0n, shippingTotal: 200n, taxTotal: 0n, grandTotal: 2600n, currency: 'USD' },
-      { shopId: 'shop-2', subtotal: 2600n, discountTotal: 0n, shippingTotal: 300n, taxTotal: 0n, grandTotal: 2900n, currency: 'USD' },
+      { shopId: 'shop-1', subtotal: 2400n, discountTotal: 0n, shippingTotal: 200n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 2600n, currency: 'USD' },
+      { shopId: 'shop-2', subtotal: 2600n, discountTotal: 0n, shippingTotal: 300n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 2900n, currency: 'USD' },
     ],
     items: [
       {
@@ -265,7 +267,7 @@ describe('OrderService', () => {
     expect(result[0]!.shipments).toHaveLength(1)
     expect(result[0]!.shipments[0]!.shopId).toBe('shop-1')
     expect(result[0]!.shops).toHaveLength(1)
-    expect(result[0]!.totals).toEqual({ subtotal: 2400n, discountTotal: 0n, shippingTotal: 200n, taxTotal: 0n, grandTotal: 2600n, currency: 'USD' })
+    expect(result[0]!.totals).toEqual({ subtotal: 2400n, discountTotal: 0n, shippingTotal: 200n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 2600n, currency: 'USD' })
   })
 
   it('uses authorized shop snapshots for discounted seller totals while preserving buyer totals', async () => {
@@ -280,10 +282,10 @@ describe('OrderService', () => {
     vi.mocked(repo.findSellerOrderById).mockResolvedValue(order)
     vi.mocked(repo.findBuyerOrderById).mockResolvedValue(order)
     const seller = await service.getSellerOrder({ id: 'seller-1', role: 'USER' }, order.id)
-    expect(seller.totals).toEqual({ subtotal: 2400n, discountTotal: 200n, shippingTotal: 200n, taxTotal: 0n, grandTotal: 2400n, currency: 'USD' })
+    expect(seller.totals).toEqual({ subtotal: 2400n, discountTotal: 200n, shippingTotal: 200n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 2400n, currency: 'USD' })
     expect(seller.items.map(item => item.shopId)).toEqual(['shop-1'])
     const buyer = await service.getBuyerOrder({ id: 'buyer-1', role: 'USER' }, order.id)
-    expect(buyer.totals).toEqual({ subtotal: 5000n, discountTotal: 500n, shippingTotal: 500n, taxTotal: 0n, grandTotal: 5000n, currency: 'USD' })
+    expect(buyer.totals).toEqual({ subtotal: 5000n, discountTotal: 500n, shippingTotal: 500n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 5000n, currency: 'USD' })
   })
 
   it('uses the active shop resolver for staff totals and sums only its authorized shop snapshots', async () => {
@@ -291,7 +293,7 @@ describe('OrderService', () => {
     const staffService = new OrderService(createAppContext(), repo, access)
     vi.mocked(repo.findSellerOrders).mockResolvedValue([createOrder()])
     const orders = await staffService.listSellerOrders({ id: 'staff-2', role: 'USER' })
-    expect(orders[0]!.totals).toEqual({ subtotal: 2600n, discountTotal: 0n, shippingTotal: 300n, taxTotal: 0n, grandTotal: 2900n, currency: 'USD' })
+    expect(orders[0]!.totals).toEqual({ subtotal: 2600n, discountTotal: 0n, shippingTotal: 300n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 2900n, currency: 'USD' })
     expect(orders[0]!.items.map(item => item.shopId)).toEqual(['shop-2'])
     expect(access.resolveActiveShops).toHaveBeenCalledWith('staff-2')
   })

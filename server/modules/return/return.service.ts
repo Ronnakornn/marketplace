@@ -5,6 +5,8 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
 import type { EventPublisherService } from '#server/modules/event-bus'
+import { RefundServiceError } from '#server/modules/refund/refund.errors.ts'
+import type { ReturnOrderItem } from './return.repository.ts'
 import { ReturnServiceError } from './return.errors.ts'
 import type { IReturnRepository, ReturnRecord, ReturnUpload } from './return.repository.ts'
 
@@ -18,6 +20,7 @@ export interface ReturnActor {
 export interface CreateReturnInput {
   orderId: string
   orderItemId: string
+  quantity?: number
   reason: string
   description?: string
   uploadIds?: string[]
@@ -72,6 +75,7 @@ export class ReturnService {
     this.logger.info('ReturnService.createReturn', { actorId: actor.id, orderItemId: input.orderItemId })
 
     const created = await this.repo.transaction(async (txRepo) => {
+      await txRepo.lockOrder(input.orderId)
       const orderItem = await txRepo.findOrderItemForReturn(input.orderItemId)
       if (!orderItem || orderItem.orderId !== input.orderId) {
         throw new ReturnServiceError('Order item not found', 404, 'ORDER_ITEM_NOT_FOUND')
@@ -85,6 +89,7 @@ export class ReturnService {
       if (orderItem.returnItems.some((item) => ACTIVE_RETURN_STATUSES.has(item.returnRequest.status))) {
         throw new ReturnServiceError('Order item already has an active return', 409, 'RETURN_ALREADY_EXISTS')
       }
+      const quantity = await this.resolveReturnQuantity(txRepo, orderItem, input.quantity)
       const images = await this.resolveReturnImages(txRepo, actor, input.uploadIds)
 
       const returnRecord = await txRepo.createReturn({
@@ -92,7 +97,7 @@ export class ReturnService {
         userId: actor.id,
         shopId: orderItem.shopId,
         orderItemId: orderItem.id,
-        quantity: orderItem.quantity,
+        quantity,
         reason,
         description: this.normalizeOptionalText(input.description),
         images,
@@ -119,6 +124,7 @@ export class ReturnService {
   async cancelBuyerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
     this.assertBuyer(actor)
     return this.repo.transaction(async (txRepo) => {
+      await this.lockReturnOrder(txRepo, returnId)
       const returnRecord = await txRepo.findBuyerReturnById(returnId, actor.id)
       if (!returnRecord) throw new ReturnServiceError('Return not found', 404, 'RETURN_NOT_FOUND')
       if (returnRecord.status !== 'REQUESTED') {
@@ -143,6 +149,7 @@ export class ReturnService {
 
   async approveSellerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
     const approved = await this.repo.transaction(async (txRepo) => {
+      await this.lockReturnOrder(txRepo, returnId)
       const returnRecord = await this.findSellerReturn(txRepo, actor.id, returnId)
       if (returnRecord.status !== 'REQUESTED') {
         throw new ReturnServiceError('Only requested returns can be approved', 409, 'INVALID_RETURN_STATE')
@@ -164,6 +171,7 @@ export class ReturnService {
 
   async rejectSellerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
     const rejected = await this.repo.transaction(async (txRepo) => {
+      await this.lockReturnOrder(txRepo, returnId)
       const returnRecord = await this.findSellerReturn(txRepo, actor.id, returnId)
       if (returnRecord.status !== 'REQUESTED') {
         throw new ReturnServiceError('Only requested returns can be rejected', 409, 'INVALID_RETURN_STATE')
@@ -172,6 +180,49 @@ export class ReturnService {
     })
     await this.publishReturnEvent('return.rejected', rejected, actor.id)
     return rejected
+  }
+
+  private async lockReturnOrder(repo: IReturnRepository, returnId: string): Promise<void> {
+    const orderId = await repo.findReturnOrderId(returnId)
+    if (!orderId) throw new ReturnServiceError('Return not found', 404, 'RETURN_NOT_FOUND')
+    await repo.lockOrder(orderId)
+  }
+
+  private async resolveReturnQuantity(repo: IReturnRepository, item: ReturnOrderItem, requested: number | undefined): Promise<number> {
+    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 2147483647) {
+      throw new ReturnServiceError('Original item quantity is invalid', 409, 'INVALID_RETURN_STATE')
+    }
+    let settlement
+    try {
+      settlement = await repo.findReturnSettlementState(item.orderId, item.order.currency)
+    } catch (error) {
+      if (error instanceof RefundServiceError) throw new ReturnServiceError(error.message, 409, 'INVALID_RETURN_STATE')
+      throw error
+    }
+    let successful = 0
+    if (settlement) {
+      const original = settlement.items.find((row) => row.id === item.id)?.saleSnapshot
+      if (!original || original.originalQuantity !== item.quantity) throw new ReturnServiceError('Original return entitlement is incomplete', 409, 'INVALID_RETURN_STATE')
+      for (const refund of settlement.history) {
+        const rows = refund.itemAllocations.filter((row) => row.orderItemId === item.id)
+        if (rows.length && ['PENDING', 'PROCESSING'].includes(refund.status)) {
+          throw new ReturnServiceError('Order item already has an active refund', 409, 'RETURN_ALREADY_EXISTS')
+        }
+        if (refund.status === 'SUCCESS') successful += rows.reduce((sum, row) => sum + row.quantity, 0)
+      }
+    } else if (item.order.refunds.some((refund) => ['SUCCESS', 'PENDING', 'PROCESSING'].includes(refund.status))
+      || item.returnItems.some((row) => row.returnRequest.status === 'COMPLETED')) {
+      throw new ReturnServiceError('Legacy return rights require original settlement evidence', 409, 'INVALID_RETURN_STATE')
+    }
+    const remaining = item.quantity - successful
+    const quantity = requested ?? remaining
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 2147483647 || quantity > remaining) {
+      throw new ReturnServiceError('Return quantity exceeds the remaining original quantity', 409, 'INVALID_RETURN_QUANTITY', { remainingQuantity: remaining })
+    }
+    if (!settlement && quantity !== item.quantity) {
+      throw new ReturnServiceError('Partial returns require original settlement evidence', 409, 'INVALID_RETURN_STATE')
+    }
+    return quantity
   }
 
   private async publishReturnEvent(
@@ -223,7 +274,7 @@ export class ReturnService {
   }
 
   private getRefundablePayment(returnRecord: ReturnRecord) {
-    return returnRecord.order.payments.find((payment) => payment.status === 'SUCCEEDED') ?? returnRecord.order.payments[0] ?? null
+    return returnRecord.order.payments.find((payment) => payment.status === 'SUCCEEDED') ?? null
   }
 
   private normalizeOptionalText(value: string | undefined): string | null {

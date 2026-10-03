@@ -2,9 +2,10 @@ import type { Order, Payment, Prisma, PrismaClient, Refund, RefundStatus } from 
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { reverseBuyerCoinsForRefund } from '#server/modules/promotion/buyer-coin.transitions.ts'
+import { reverseOriginalAffiliateForRefund } from '#server/modules/affiliate/affiliate-refund.repository.ts'
 import { calculateRefundDebits } from './refund-amount.service.ts'
 import { RefundServiceError } from './refund.errors.ts'
-import { completeSettlementRefundPlan, createSettlementRefundPlan, invalidSettlementRefund, validateSettlementRefundState, type SettlementRefundIntent, type SettlementRefundPlan, type SettlementRefundState } from './settlement-refund.service.ts'
+import { completeSettlementRefundPlan, createSettlementRefundPlan, invalidSettlementRefund, settlementItemGross, settlementShippingGross, validateSettlementRefundState, type SettlementRefundIntent, type SettlementRefundPlan, type SettlementRefundState } from './settlement-refund.service.ts'
 
 export type RefundRecord = Refund & {
   order: Order
@@ -43,7 +44,7 @@ export async function loadRefundSettlementState(tx: RefundSettlementClient, orde
     if (past.orderId !== orderId || past.payment.orderId !== orderId || past.payment.id !== past.paymentId || past.payment.currency !== currency
       || past.payment.status !== 'SUCCEEDED' || BigInt(past.amount) < 0n) invalidSettlementRefund()
     if (past.returnRequest && (past.returnRequest.orderId !== orderId || past.itemAllocations.some((allocation) => items.find((item) => item.id === allocation.orderItemId)?.shopId !== past.returnRequest?.shopId))) invalidSettlementRefund()
-    if (past.status === 'SUCCESS') {
+    if (['SUCCESS', 'PENDING', 'PROCESSING'].includes(past.status)) {
       const total = (paymentTotals.get(past.paymentId) ?? 0n) + BigInt(past.amount)
       if (total > BigInt(past.payment.amount)) invalidSettlementRefund()
       paymentTotals.set(past.paymentId, total)
@@ -53,7 +54,7 @@ export async function loadRefundSettlementState(tx: RefundSettlementClient, orde
   validateSettlementRefundState(state)
   if (shops.some((shop) => {
     const sale = shop.saleSnapshot
-    if (!sale || BigInt(shop.taxTotal) !== 0n) return true
+    if (!sale || sale.policyVersion === 1 && BigInt(shop.taxTotal) !== 0n) return true
     const cash = items.filter((item) => item.saleSnapshot?.shopOrderId === shop.id).reduce((sum, item) => sum + BigInt(item.saleSnapshot?.buyerMerchandise ?? 0n), 0n)
     return cash + BigInt(sale.buyerShipping) !== BigInt(shop.grandTotal)
   })) invalidSettlementRefund('Sale cash snapshot does not match the shop order')
@@ -76,6 +77,12 @@ export async function saveRefundSettlementPlan(tx: RefundSettlementClient, refun
   await tx.refundShopAllocation.deleteMany({ where: { refundId } })
   if (plan.items.length) await tx.refundItemAllocation.createMany({ data: plan.items.map((item) => ({ ...item, refundId })) })
   if (plan.shops.length) await tx.refundShopAllocation.createMany({ data: plan.shops.map((shop) => ({ ...shop, refundId })) })
+}
+
+async function completeOriginatingReturn(tx: Prisma.TransactionClient, refund: Pick<Refund, 'returnRequestId' | 'orderId'>): Promise<void> {
+  if (!refund.returnRequestId) return
+  const completed = await tx.returnRequest.updateMany({ where: { id: refund.returnRequestId, orderId: refund.orderId, status: { in: ['APPROVED', 'RECEIVED'] } }, data: { status: 'COMPLETED' } })
+  if (completed.count !== 1) invalidSettlementRefund('Return cannot be completed from its current state')
 }
 
 async function applyPreShipmentCancellation(tx: Prisma.TransactionClient, state: SettlementRefundState, plan: SettlementRefundPlan, refundId: string, completedById: string): Promise<void> {
@@ -132,7 +139,7 @@ export class PrismaRefundRepository implements IRefundRepository {
 
   constructor(
     appContext: AppContext,
-    private prisma: PrismaClient,
+    private prisma: Pick<PrismaClient, '$transaction' | 'refund'>,
   ) {
     this.logger = appContext.logger
   }
@@ -143,6 +150,7 @@ export class PrismaRefundRepository implements IRefundRepository {
       const order = await tx.order.findUnique({ where: { id: orderId }, include: { payments: { where: { status: 'SUCCEEDED' }, orderBy: { createdAt: 'desc' } } } })
       const payment = order?.payments[0]
       if (!order || !payment || payment.currency !== order.currency || BigInt(payment.amount) !== BigInt(order.grandTotal)) invalidSettlementRefund('Refund requires a successful original payment')
+      if (intent.items.length && await tx.returnItem.count({ where: { orderItemId: { in: intent.items.map((item) => item.orderItemId) }, returnRequest: { status: { in: ['REQUESTED', 'APPROVED', 'RECEIVED'] } } } })) invalidSettlementRefund('Order item already has an active return')
       const state = await loadRefundSettlementState(tx, orderId, order.currency)
       if (!state) invalidSettlementRefund('Legacy sale requires reviewed refund allocation')
       const plan = createSettlementRefundPlan(state, intent)
@@ -214,7 +222,7 @@ export class PrismaRefundRepository implements IRefundRepository {
       const settlement = await loadRefundSettlementState(tx, refund.orderId, refund.payment.currency, refundId)
       if (settlement) {
         if (refund.payment.status !== 'SUCCEEDED') invalidSettlementRefund('Refund requires a successful original payment')
-        const paidRefunds = settlement.history.filter((past) => past.status === 'SUCCESS').reduce((sum, past) => sum + BigInt(past.amount), 0n)
+        const paidRefunds = settlement.history.filter((past) => ['SUCCESS', 'PENDING', 'PROCESSING'].includes(past.status)).reduce((sum, past) => sum + BigInt(past.amount), 0n)
         if (BigInt(refund.amount) < 0n || paidRefunds + BigInt(refund.amount) > BigInt(refund.payment.amount)) invalidSettlementRefund('Refund exceeds remaining payment amount')
         const plan = completeSettlementRefundPlan(settlement, { items: refund.itemAllocations, shops: refund.shopAllocations, amount: BigInt(refund.amount) })
         if (refund.shopAllocations.some((shop) => shop.walletPostedAt !== null)
@@ -230,24 +238,28 @@ export class PrismaRefundRepository implements IRefundRepository {
           await tx.refundShopAllocation.update({ where: { refundId_shopOrderId: { refundId, shopOrderId: shop.id } }, data: { commissionReversal: allocation.commissionReversal } })
           if (!shop.saleSnapshot.recognizedAt) continue
           const itemIds = new Set(settlement.items.filter((item) => item.saleSnapshot?.shopOrderId === shop.id).map((item) => item.id))
-          const debit = plan.items.filter((item) => itemIds.has(item.orderItemId)).reduce((sum, item) => sum + BigInt(item.cashMerchandise) + BigInt(item.platformCouponReversal) + BigInt(item.coinFundingReversal), 0n) + BigInt(allocation.buyerShippingRefund) + BigInt(allocation.platformShippingReversal)
+          const debit = plan.items.filter((item) => itemIds.has(item.orderItemId)).reduce((sum, item) => sum + settlementItemGross(item), 0n) + settlementShippingGross(allocation)
           const wallet = await tx.shopWallet.upsert({ where: { shopId: shop.shopId }, create: { shopId: shop.shopId, currency: refund.payment.currency }, update: {} })
           if (wallet.currency !== refund.payment.currency) invalidSettlementRefund('Refund wallet currency mismatch')
           await tx.$queryRaw`SELECT "id" FROM "ShopWallet" WHERE "id" = ${wallet.id}::uuid FOR UPDATE`
-          if (debit > 0n) await tx.walletLedgerEntry.create({ data: { walletId: wallet.id, shopId: shop.shopId, orderId: refund.orderId, refundId, type: 'refund_adjustment', amount: -debit, currency: refund.payment.currency, description: 'Sale entitlement reversed', metadata: { policyVersion: 1, shopOrderId: shop.id } } })
-          if (allocation.commissionReversal > 0n) await tx.walletLedgerEntry.create({ data: { walletId: wallet.id, shopId: shop.shopId, orderId: refund.orderId, refundId, type: 'commission_fee', amount: allocation.commissionReversal, currency: refund.payment.currency, description: 'Original commission reversed', metadata: { policyVersion: 1, shopOrderId: shop.id, reversal: true } } })
+          if (debit > 0n) await tx.walletLedgerEntry.create({ data: { walletId: wallet.id, shopId: shop.shopId, orderId: refund.orderId, refundId, type: 'refund_adjustment', amount: -debit, currency: refund.payment.currency, description: 'Sale entitlement reversed', metadata: { policyVersion: shop.saleSnapshot.policyVersion, shopOrderId: shop.id } } })
+          if (allocation.commissionReversal > 0n) await tx.walletLedgerEntry.create({ data: { walletId: wallet.id, shopId: shop.shopId, orderId: refund.orderId, refundId, type: 'commission_fee', amount: allocation.commissionReversal, currency: refund.payment.currency, description: 'Original commission reversed', metadata: { policyVersion: shop.saleSnapshot.policyVersion, shopOrderId: shop.id, reversal: true } } })
           await tx.refundShopAllocation.update({ where: { refundId_shopOrderId: { refundId, shopOrderId: shop.id } }, data: { walletPostedAt: new Date() } })
         }
         const buyerWallet = await tx.buyerCoinWallet.findUnique({ where: { userId: refund.order.userId }, select: { id: true } })
         if (buyerWallet) await tx.$queryRaw`SELECT "id" FROM "BuyerCoinWallet" WHERE "id" = ${buyerWallet.id}::uuid FOR UPDATE`
         const completedItems = [...settlement.history.filter((past) => past.status === 'SUCCESS').flatMap((past) => past.itemAllocations), ...plan.items]
         await reverseBuyerCoinsForRefund(tx, { refundId, orderId: refund.orderId, refundAmount: refund.amount, orderGrandTotal: refund.order.grandTotal, userId: refund.order.userId,
-          coinFundingTargetCents: completedItems.reduce((sum, item) => sum + BigInt(item.coinFundingReversal), 0n),
+          coinFundingTargetCents: completedItems.reduce((sum, item) => sum + item.coinFundingReversal + item.coinTaxReversal, 0n),
           coinFundingTotalCents: settlement.items.reduce((sum, item) => sum + BigInt(item.saleSnapshot?.coinDiscount ?? 0n), 0n),
           merchandiseCashTarget: completedItems.reduce((sum, item) => sum + BigInt(item.cashMerchandise), 0n),
-          merchandiseCashTotal: settlement.items.reduce((sum, item) => sum + BigInt(item.saleSnapshot?.buyerMerchandise ?? 0n), 0n) })
+          merchandiseCashTotal: settlement.items.reduce((sum, item) => sum + BigInt(item.saleSnapshot?.originalCashbackEligibleNet ?? item.saleSnapshot?.buyerMerchandise ?? 0n), 0n) })
+        await reverseOriginalAffiliateForRefund(tx, { orderId: refund.orderId, refundId, currency: refund.payment.currency, items: plan.items })
+        await completeOriginatingReturn(tx, refund)
         return tx.refund.findUnique({ where: { id: refundId }, include: refundInclude })
       }
+      const legacyAward = await tx.affiliateCommission.findUnique({ where: { orderId: refund.orderId }, select: { status: true } })
+      if (legacyAward && legacyAward.status !== 'VOID') invalidSettlementRefund('Legacy affiliate refund requires original merchandise allocations')
       const shops = await tx.shopOrder.findMany({
         where: { orderId: refund.orderId }, orderBy: { shopId: 'asc' },
         select: { shopId: true, grandTotal: true, currency: true },
@@ -325,6 +337,7 @@ export class PrismaRefundRepository implements IRefundRepository {
         orderGrandTotal: refund.order.grandTotal,
         userId: refund.order.userId,
       })
+      await completeOriginatingReturn(tx, refund)
       return tx.refund.findUnique({ where: { id: refundId }, include: refundInclude })
     })
   }

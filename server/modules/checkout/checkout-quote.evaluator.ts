@@ -1,3 +1,6 @@
+import { calculateCheckoutEconomics, checkoutFingerprint } from './checkout-economics.ts'
+import { parseFrozenTaxPolicy } from './sale-economics.ts'
+import { allocateRefundAmount } from '#server/modules/refund/refund-amount.service.ts'
 import { moneyNumber } from '#server/lib/money.ts'
 import { PromotionServiceError } from '#server/modules/promotion/promotion.errors.ts'
 import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
@@ -21,6 +24,13 @@ export interface CheckoutQuote {
   taxTotal: number
   grandTotal: number
   currency: string
+  includedTaxTotal: number
+  addedTaxTotal: number
+  reportedTaxTotal: number
+  taxMode: 'INCLUSIVE' | 'EXCLUSIVE'
+  taxPolicyRevision: string
+  quoteFingerprint: string
+  couponOutcomes: CouponOutcome[]
   coupon: CouponOutcome | null
   coinsApplied: number
   items: Array<{ id: string; shopId: string; unitPrice: number; lineTotal: number }>
@@ -35,13 +45,15 @@ export interface CheckoutQuoteEvaluation {
 export interface EvaluateCheckoutQuoteInput {
   userId: string
   items: CheckoutCartItem[]
+  shopCouponCode?: string
+  platformCouponCode?: string
   couponCode?: string
   coinsToUse?: number
   policy: 'estimate' | 'commit'
 }
 
 export class CheckoutQuoteEvaluator {
-  constructor(private promotionService: PromotionService) {}
+  constructor(private promotionService: PromotionService, private v2Supported = process.env['CHECKOUT_V2_SETTLEMENT_ENABLED'] === 'true') {}
 
   async evaluate(
     repo: ICheckoutRepository,
@@ -49,73 +61,73 @@ export class CheckoutQuoteEvaluator {
   ): Promise<CheckoutQuoteEvaluation> {
     const items = await this.priceItems(repo, input.items, input.policy)
     const baseTotals = this.calculateTotals(items)
-    let couponValidation = null
-    let coupon: CouponOutcome | null = null
-
-    if (input.couponCode) {
+    const taxPolicy = parseFrozenTaxPolicy(await repo.readTaxPolicy())
+    const explicitStack = input.shopCouponCode !== undefined || input.platformCouponCode !== undefined
+    if (input.couponCode && explicitStack) throw new CheckoutServiceError('Use either legacy coupon or named shop/platform coupons', 400, 'INVALID_COUPON')
+    const versionTwo = taxPolicy.ratePpm !== 0 || explicitStack
+    if (versionTwo && !this.v2Supported) throw new CheckoutServiceError('Version-two tax settlement is not enabled', 503, 'TAX_SETTLEMENT_UNAVAILABLE')
+    type ValidatedCoupon = Awaited<ReturnType<PromotionService['validateCouponForsubtotal']>>
+    let sellerCoupon: ValidatedCoupon | null = null
+    let platformCoupon: ValidatedCoupon | null = null
+    const couponOutcomes: CouponOutcome[] = []
+    const adjustments = new Map<string, number>()
+    const validate = async (code: string, kind?: 'shop' | 'platform') => {
       try {
-        couponValidation = await this.validateCoupon(repo, input.userId, input.couponCode, items)
+        let coupon = await this.validateCoupon(repo, input.userId, code, items, adjustments)
+        if ((kind === 'shop' && !coupon.couponShopId) || (kind === 'platform' && coupon.couponShopId)) throw new CheckoutServiceError('Coupon funding scope does not match its slot', 400, 'INVALID_COUPON')
         if (input.policy === 'commit') {
-          await repo.lockCouponForCheckout(couponValidation.couponId)
-          couponValidation = await this.validateCoupon(repo, input.userId, input.couponCode, items)
+          await repo.lockCouponForCheckout(coupon.couponId)
+          coupon = await this.validateCoupon(repo, input.userId, code, items, adjustments)
+          if ((kind === 'shop' && !coupon.couponShopId) || (kind === 'platform' && coupon.couponShopId)) throw new CheckoutServiceError('Coupon funding scope does not match its slot', 400, 'INVALID_COUPON')
         }
-        coupon = { code: couponValidation.couponCode, applied: true }
+        this.assertAmount(coupon.discount, 'Coupon discount')
+        const eligibleSubtotal = items.filter((item) => !coupon.couponShopId || item.variant.product.shop.id === coupon.couponShopId)
+          .reduce((sum, item) => sum + item.unitPrice * item.quantity - (adjustments.get(item.id) ?? 0), 0)
+        coupon = { ...coupon, discount: Math.min(coupon.discount, eligibleSubtotal), discountCents: Math.min(coupon.discount, eligibleSubtotal) }
+        couponOutcomes.push({ code: coupon.couponCode, applied: true })
+        return coupon
       } catch (error) {
         if (input.policy === 'estimate' && error instanceof CheckoutServiceError && error.code === 'INVALID_COUPON') {
-          coupon = {
-            code: (error.details?.couponCode as string | undefined) ?? input.couponCode.trim().toUpperCase(),
-            applied: false,
-            reason: (error.details?.reason as string | undefined) ?? 'INVALID_COUPON',
-          }
-        } else {
-          throw error
+          couponOutcomes.push({ code: code.trim().toUpperCase(), applied: false, reason: typeof error.details?.reason === 'string' ? error.details.reason : 'INVALID_COUPON' })
+          return null
         }
+        throw error
       }
     }
-
-    const couponDiscount = couponValidation?.discount ?? 0
+    if (input.couponCode) {
+      const legacy = await validate(input.couponCode)
+      if (legacy?.couponShopId) sellerCoupon = legacy
+      else platformCoupon = legacy
+    } else {
+      if (input.shopCouponCode !== undefined) sellerCoupon = await validate(input.shopCouponCode, 'shop')
+      if (sellerCoupon) {
+        const stable = [...items].sort((a, b) => a.variant.product.shop.id.localeCompare(b.variant.product.shop.id) || a.id.localeCompare(b.id))
+        const discounts = allocateRefundAmount(BigInt(sellerCoupon.discount), stable.map((item) => item.variant.product.shop.id === sellerCoupon!.couponShopId ? BigInt(item.unitPrice) * BigInt(item.quantity) : 0n))
+        stable.forEach((item, index) => adjustments.set(item.id, moneyNumber(discounts[index]!)))
+      }
+      if (input.platformCouponCode !== undefined) platformCoupon = await validate(input.platformCouponCode, 'platform')
+    }
+    const couponDiscount = (sellerCoupon?.discount ?? 0) + (platformCoupon?.discount ?? 0)
     this.assertAmount(couponDiscount, 'Coupon discount')
-    const coinsApplied = await this.resolveCoinRedemption(
-      repo,
-      input.userId,
-      input.coinsToUse,
-      baseTotals.subtotal,
-      couponDiscount,
-      input.policy === 'commit',
-    )
-    const freeShippingShopIds = couponValidation?.freeShippingShopIds ?? []
-    const totals = this.calculateTotals(items, couponDiscount + coinsApplied * 100, freeShippingShopIds)
-    const quotedItems = items.map((item) => ({
-      id: item.id,
-      shopId: item.variant.product.shop.id,
-      unitPrice: item.unitPrice,
-      lineTotal: item.unitPrice * item.quantity,
-    }))
-    const shopSubtotals = new Map<string, number>()
-    for (const item of quotedItems) {
-      shopSubtotals.set(item.shopId, (shopSubtotals.get(item.shopId) ?? 0) + item.lineTotal)
-    }
-
-    return {
-      quote: {
-        ...totals,
-        coupon,
-        coinsApplied,
-        items: quotedItems,
-        shops: [...shopSubtotals].map(([shopId, subtotal]) => ({ shopId, subtotal })),
-      },
-      acceptedQuote: {
-        totals,
-        items,
-        coupon: couponValidation ? { id: couponValidation.couponId } : null,
-        couponCode: couponValidation?.couponCode,
-        couponDiscount,
-        couponShopId: couponValidation?.couponShopId ?? null,
-        coinDiscount: coinsApplied * 100,
-        freeShippingShopIds,
-        coinsToUse: coinsApplied,
-      },
-    }
+    const coinsApplied = await this.resolveCoinRedemption(repo, input.userId, input.coinsToUse, baseTotals.subtotal, couponDiscount, input.policy === 'commit')
+    const funding = { sellerCouponDiscount: sellerCoupon?.discount ?? 0, sellerCouponShopId: sellerCoupon?.couponShopId ?? null,
+      platformCouponDiscount: platformCoupon?.discount ?? 0, coinDiscount: coinsApplied * 100,
+      sellerFreeShippingShopIds: sellerCoupon?.freeShippingShopIds ?? [], platformFreeShippingShopIds: platformCoupon?.freeShippingShopIds ?? [] }
+    const computed = calculateCheckoutEconomics(items, funding, taxPolicy)
+    const totals = computed.totals
+    const coupons = [sellerCoupon, platformCoupon].filter((coupon) => coupon !== null).map((coupon) => ({ id: coupon.couponId, code: coupon.couponCode, shopId: coupon.couponShopId }))
+    const quoteFingerprint = checkoutFingerprint({ taxPolicy, funding, coupons, totals,
+      items: computed.stableItems.map((item) => ({ id: item.id, quantity: item.quantity, unitPrice: item.unitPrice, variantId: item.variantId, flashSaleItemId: item.flashSaleItemId ?? null })),
+      shops: computed.shops.map((shop) => ({ shopId: shop.shopId, originalShipping: shop.originalShipping, economics: shop.economics })) })
+    const legacy = sellerCoupon ?? platformCoupon
+    return { quote: { ...totals, taxMode: taxPolicy.mode, taxPolicyRevision: taxPolicy.revision, quoteFingerprint, couponOutcomes,
+        coupon: couponOutcomes[0] ?? null, coinsApplied,
+        items: computed.stableItems.map((item) => ({ id: item.id, shopId: item.variant.product.shop.id, unitPrice: item.unitPrice, lineTotal: item.unitPrice * item.quantity })),
+        shops: computed.shops.map((shop) => ({ shopId: shop.shopId, subtotal: moneyNumber(shop.economics.items.reduce((sum, item) => sum + item.grossMerchandise, 0n)) })) },
+      acceptedQuote: { totals, items: computed.stableItems, coupon: legacy ? { id: legacy.couponId } : null, couponCode: legacy?.couponCode,
+        couponDiscount, couponShopId: sellerCoupon?.couponShopId ?? null, coinDiscount: coinsApplied * 100,
+        freeShippingShopIds: [...new Set([...funding.sellerFreeShippingShopIds, ...funding.platformFreeShippingShopIds])], coinsToUse: coinsApplied,
+        funding, taxPolicy, coupons, settlementPolicyVersion: versionTwo ? 2 : 1 } }
   }
 
   private calculateTotals(
@@ -194,11 +206,12 @@ export class CheckoutQuoteEvaluator {
     userId: string,
     couponCode: string,
     items: CheckoutPricedItem[],
+    adjustments: ReadonlyMap<string, number> = new Map(),
   ) {
     const subtotals = new Map<string, number>()
     for (const item of items) {
       const shopId = item.variant.product.shop.id
-      subtotals.set(shopId, (subtotals.get(shopId) ?? 0) + item.unitPrice * item.quantity)
+      subtotals.set(shopId, (subtotals.get(shopId) ?? 0) + item.unitPrice * item.quantity - (adjustments.get(item.id) ?? 0))
     }
     const shopSubtotals = [...subtotals].map(([shopId, subtotal]) => ({ shopId, subtotal }))
     try {

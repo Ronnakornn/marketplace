@@ -13,8 +13,8 @@ describe("normalizeMarketplaceHome", () => {
           endsAt: new Date("2026-01-02T00:00:00.000Z"),
           items: [{
             id: "item-1",
-            salePrice: 900,
-            originalPrice: 1200,
+            salePrice: "900",
+            originalPrice: "1200",
             stockLimit: 10,
             soldCount: 2,
             availableStock: 3,

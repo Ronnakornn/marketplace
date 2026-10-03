@@ -39,6 +39,7 @@ function setup(returnShopId: string | null = 'shop-1') {
       create: vi.fn(async (_input: { data: DebitWrite }) => ({})),
     },
     buyerCoinWallet: { findUnique: vi.fn(async () => null) },
+    affiliateCommission: { findUnique: vi.fn(async () => null) },
   }
   const prisma = { $transaction: vi.fn(async (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx)) }
   const repo = new PrismaRefundRepository({ logger: { info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }, config: { environment: 'test' } }, prisma as unknown as PrismaClient)
@@ -60,8 +61,8 @@ function snapshotSetup(recognized = true) {
     originalCommission: 1000n, originalShipping: 0n, buyerShipping: 0n, sellerShippingWaiver: 0n, platformShippingSubsidy: 0n, recognizedAt: recognized ? new Date() : null }
   const itemSnapshot = { orderItemId: 'item-1', shopOrderId: 'shop-order-1', originalQuantity: 1, grossMerchandise: 10000n, sellerCouponDiscount: 0n,
     platformCouponDiscount: 2000n, coinDiscount: 0n, buyerMerchandise: 8000n, couponId: null, couponCode: null }
-  const itemAllocation = { id: 'item-allocation', refundId: 'refund-1', orderItemId: 'item-1', quantity: 1, cashMerchandise: 8000n, platformCouponReversal: 2000n, coinFundingReversal: 0n }
-  const shopAllocation = { id: 'shop-allocation', refundId: 'refund-1', shopOrderId: 'shop-order-1', buyerShippingRefund: 0n, platformShippingReversal: 0n, commissionReversal: 0n, shippingCause: 'NONE', walletPostedAt: null }
+  const itemAllocation = { id: 'item-allocation', refundId: 'refund-1', orderItemId: 'item-1', quantity: 1, successfulQuantityBefore: 0, cashMerchandise: 8000n, buyerTaxRefund: 0n, platformCouponReversal: 2000n, platformCouponTaxReversal: 0n, coinFundingReversal: 0n, coinTaxReversal: 0n }
+  const shopAllocation = { id: 'shop-allocation', refundId: 'refund-1', shopOrderId: 'shop-order-1', buyerShippingRefund: 0n, buyerShippingTaxRefund: 0n, platformShippingReversal: 0n, platformShippingTaxReversal: 0n, commissionReversal: 0n, shippingCause: 'NONE', walletPostedAt: null }
   original.refund.payment.amount = original.refund.order.grandTotal = 8000n
   Object.assign(original.refund, { payment: { ...original.refund.payment, status: 'SUCCEEDED' }, itemAllocations: [itemAllocation], shopAllocations: [shopAllocation] })
   const shops = [{ id: 'shop-order-1', orderId: 'order-1', shopId: 'shop-1', grandTotal: 8000n, taxTotal: 0n, currency: 'THB', saleSnapshot: snapshot }]
@@ -71,6 +72,7 @@ function snapshotSetup(recognized = true) {
     refundShopAllocation: { update: vi.fn(async () => ({})), deleteMany: vi.fn(async () => ({})), createMany: vi.fn(async () => ({})) },
     refundItemAllocation: { deleteMany: vi.fn(async () => ({})), createMany: vi.fn(async () => ({})) },
     shipment: { count: vi.fn(async () => 0) },
+    affiliateCommission: { findUnique: vi.fn(async () => null) },
   })
   Object.assign(tx.refund, { update: vi.fn(async () => ({})) })
   return { ...original, tx, snapshot, itemSnapshot, itemAllocation, shopAllocation, shops }

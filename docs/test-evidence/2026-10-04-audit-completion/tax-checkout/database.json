@@ -1,0 +1,175 @@
+{
+  "capturedAt": "2026-10-03T23:16:43.693Z",
+  "database": {
+    "database": "marketplace_test_tax",
+    "version": "PostgreSQL 17.4 on x86_64-windows, compiled by msvc-19.42.34436, 64-bit"
+  },
+  "isolatedFrom": "marketplace_test_completion",
+  "connection": {
+    "host": "127.0.0.1",
+    "port": 55439,
+    "database": "marketplace_test_tax"
+  },
+  "schemaAuthority": "prisma/schema.prisma and Prisma migrate deploy",
+  "migrations": [
+    {
+      "migration_name": "20260517053000_init",
+      "checksum": "95bd3be4b21f4c25129dc7771775bb7877475735d4d7c6f441fbbaf1f5b75136",
+      "finished_at": "2026-10-03T22:56:40.102Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260519090000_seller_identity_backfill",
+      "checksum": "86b235662c2ff6886b7590f70694e2b61b9349a8b2d206e7582ef3a921343c34",
+      "finished_at": "2026-10-03T22:56:40.227Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260808090000_storefront_localized_content",
+      "checksum": "e44c0090dfd1bc8ee87952f255b4a52276f4fe5de0940b63b51a355ccc98e21e",
+      "finished_at": "2026-10-03T22:56:40.230Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260808160000_shop_view_event_type",
+      "checksum": "b0959788d78433224eca7819ceaac2a5e9d3768dc33134702b263055a94db762",
+      "finished_at": "2026-10-03T22:56:40.247Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260809010000_admin_moderation_fields",
+      "checksum": "9d050054e7ed9ba96707ea6fc8cab36cebc00ea78c99289360602c03f516fa8a",
+      "finished_at": "2026-10-03T22:56:40.258Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260812093000_add_push_subscriptions",
+      "checksum": "56a4f80b6b19530875b12a159d6577c7a68cca8af6aaa372702d2809df377caf",
+      "finished_at": "2026-10-03T22:56:40.269Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260813013000_coupon_redemption_lifecycle",
+      "checksum": "852c3d675830b8539b79e831965746cc17267a7359c6dfcde932d7c6901d13de",
+      "finished_at": "2026-10-03T22:56:40.280Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260820010000_payout_external_reference",
+      "checksum": "c89e770b79ca5e86658d73e1cf85f8d9e092160bf71602df0f12538823f0d31c",
+      "finished_at": "2026-10-03T22:56:40.282Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260820011000_refund_two_person_control",
+      "checksum": "2a9f5e99ff1afd6d11251218dd5ea3ecde5b96b669fbcec43d4ea4362d9ec6b5",
+      "finished_at": "2026-10-03T22:56:40.289Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260820190000_buyer_coupon_claims",
+      "checksum": "bd31dc9c87b9bb06170fa353492051e3d867bc67c7655b20f38e5ad998184277",
+      "finished_at": "2026-10-03T22:56:40.301Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260820210000_admin_system_settings",
+      "checksum": "cd5d65a78307a5f32a735f27a49e2bf745c46f588cfe4a6d559978f907f9373b",
+      "finished_at": "2026-10-03T22:56:40.308Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260821193000_add_better_auth_account_issuer",
+      "checksum": "fb2836966042cf537a9d23b4c17b33fc7821380fdb6ab3abd80153e9ca34f267",
+      "finished_at": "2026-10-03T22:56:40.311Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260823120000_restore_pending_review_status",
+      "checksum": "3ddf9c3394a923a6ff0cd9f143f866939c5b4a3a63951812cda10945228008b2",
+      "finished_at": "2026-10-03T22:56:40.314Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260823130000_publish_products_without_review",
+      "checksum": "eb306e63044451afb826fcac3db591166bfac0608b0104c7aba22ea357467926",
+      "finished_at": "2026-10-03T22:56:40.318Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260823160000_add_shop_shipping_fee",
+      "checksum": "d75e4fb387ad8fd0cbfd651b037ab1c784719d03d57fd07af8633d6dc2583a31",
+      "finished_at": "2026-10-03T22:56:40.321Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260904150000_add_flash_sale_reservations",
+      "checksum": "585417721a5bc47a4e94358bfb235247d3085b4242d298df364caadeeee2db51",
+      "finished_at": "2026-10-03T22:56:40.358Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260904160000_reconcile_schema",
+      "checksum": "a5f1bfd10ae2a4da5ffe250f74c70b5099aa7553f89fea59572e505f5cfddf61",
+      "finished_at": "2026-10-03T22:56:40.997Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20260904161000_add_buyer_coin_debt_balance",
+      "checksum": "35079375fbd540cb4a7c57d0deef02e2f16de5b2f53f44fd7969f3d069089b8c",
+      "finished_at": "2026-10-03T22:56:40.999Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20261004040000_add_settlement_snapshots",
+      "checksum": "7d2254fc76427b3b2212843e8551970d834ad5e9f149672d8b3bebe995a68d2a",
+      "finished_at": "2026-10-03T22:56:41.039Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20261004060000_audit_historical_order_snapshots",
+      "checksum": "6f004be4ddaca79f42a40efa89ee869e8bcecfa75e00cf23424a2df91023c5aa",
+      "finished_at": "2026-10-03T22:56:41.041Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20261004082000_affiliate_original_refund_rights",
+      "checksum": "13831ef0ed2a7fd71c19922877989c2adbf470d0ae18fed196448763ff5358f8",
+      "finished_at": "2026-10-03T22:56:41.056Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    },
+    {
+      "migration_name": "20261004090000_sale_tax_snapshots",
+      "checksum": "53fd6b2403cc6d1fc1ae5ada897654157a893f3c56e92c85bc1b6be163716ae3",
+      "finished_at": "2026-10-03T22:56:41.063Z",
+      "rolled_back_at": null,
+      "applied_steps_count": 1
+    }
+  ],
+  "migrationCount": 22,
+  "taxSettingRowsAfterTests": 0,
+  "rollout": "CheckoutQuoteEvaluator(..., true) only inside dedicated DB fixtures; environment default remains false",
+  "run": "TAX_TEST_DATABASE_URL=postgres://postgres@127.0.0.1:55439/marketplace_test_tax bunx vitest run [owned checkout/wallet/payment/admin/jobs files]",
+  "sourceTest": "server/modules/checkout/tax-sale.integration.test.ts"
+}

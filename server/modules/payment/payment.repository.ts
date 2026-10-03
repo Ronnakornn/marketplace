@@ -311,9 +311,17 @@ export class PrismaPaymentRepository implements IPaymentRepository {
       await this.prisma.buyerCoinLedger.update({ where: { id: entry.id }, data: { status: 'USED' } })
       await this.prisma.buyerCoinWallet.update({ where: { id: entry.walletId }, data: { pendingBalance: { decrement: entry.amount }, lifetimeSpent: { increment: entry.amount } } })
     }
-    const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { userId: true, subtotal: true, discountTotal: true } })
+    const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { userId: true, subtotal: true, discountTotal: true,
+      items: { select: { saleSnapshot: { select: { originalCashbackEligibleNet: true, shopSale: { select: { policyVersion: true } } } } } } } })
     if (!order) return
-    const eligibleCashback = moneyInteger(order.subtotal) - moneyInteger(order.discountTotal)
+    const versionTwo = order.items?.some((item) => item.saleSnapshot?.shopSale.policyVersion === 2)
+    const eligibleCashback = versionTwo
+      ? order.items.reduce((sum, item) => {
+        if (!item.saleSnapshot || item.saleSnapshot.shopSale.policyVersion !== 2 || item.saleSnapshot.originalCashbackEligibleNet === null
+          || item.saleSnapshot.originalCashbackEligibleNet < 0n) throw new Error('Original cashback net basis is missing')
+        return sum + item.saleSnapshot.originalCashbackEligibleNet
+      }, 0n)
+      : moneyInteger(order.subtotal) - moneyInteger(order.discountTotal)
     const cashbackCoins = moneyNumber((eligibleCashback > 0n ? eligibleCashback : 0n) / 10_000n)
     if (!cashbackCoins) return
     const wallet = await this.prisma.buyerCoinWallet.upsert({ where: { userId: order.userId }, update: { balance: { increment: cashbackCoins }, lifetimeEarned: { increment: cashbackCoins } }, create: { userId: order.userId, balance: cashbackCoins, lifetimeEarned: cashbackCoins } })

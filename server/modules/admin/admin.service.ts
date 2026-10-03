@@ -1,4 +1,6 @@
 import { moneyInteger } from '#server/lib/money.ts'
+import { randomUUID } from 'node:crypto'
+import { parseFrozenTaxPolicy } from '#server/modules/checkout/sale-economics.ts'
 import type { Prisma } from '#generated/client/client.ts'
 import type {
   AffiliateCommissionStatus,
@@ -257,7 +259,12 @@ export class AdminService {
       throw new AdminServiceError('Setting key must use lowercase letters, numbers, dots, underscores, or dashes', 400, 'INVALID_ADMIN_INPUT')
     }
     const valueType = this.parseEnum<SettingValueType>(input.valueType ?? 'JSON', SETTING_VALUE_TYPES)
-    const value = this.normalizeSystemSettingValue(input.value, valueType)
+    let value = this.normalizeSystemSettingValue(input.value, valueType)
+    if (key === 'checkout.tax') {
+      if (valueType !== 'JSON' || value === null) throw new AdminServiceError('Tax policy must contain JSON', 400, 'INVALID_ADMIN_INPUT')
+      try { value = { ...parseFrozenTaxPolicy(value), revision: randomUUID() } }
+      catch { throw new AdminServiceError('Tax policy must be complete and supported', 400, 'INVALID_ADMIN_INPUT') }
+    }
     const description = input.description?.trim() || null
     if (description && description.length > 500) {
       throw new AdminServiceError('Setting description is too long', 400, 'INVALID_ADMIN_INPUT')
@@ -276,8 +283,8 @@ export class AdminService {
       actor,
       'SystemSetting',
       updated.id,
-      existing ? { key: existing.key, valueType: existing.valueType, description: existing.description, isPublic: existing.isPublic } : null,
-      { key: updated.key, valueType: updated.valueType, description: updated.description, isPublic: updated.isPublic },
+      existing ? { key: existing.key, valueType: existing.valueType, description: existing.description, isPublic: existing.isPublic, ...(key === 'checkout.tax' ? { value: existing.value } : {}) } : null,
+      { key: updated.key, valueType: updated.valueType, description: updated.description, isPublic: updated.isPublic, ...(key === 'checkout.tax' ? { value: updated.value } : {}) },
       { valueChanged: existing?.value !== updated.value },
     )
     return updated
@@ -636,6 +643,7 @@ export class AdminService {
     if (existing.status === 'SUCCESS' || existing.status === 'FAILED' || (status === 'SUCCESS' && existing.status !== 'PROCESSING')) {
       throw new AdminServiceError('Invalid refund status transition', 409, 'INVALID_STATUS_TRANSITION')
     }
+    if (existing.status === 'PROCESSING' && status === 'PENDING') throw new AdminServiceError('An in-progress external refund cannot be replanned', 409, 'INVALID_STATUS_TRANSITION')
     const externalReference = input.externalReference?.trim()
     if (status === 'SUCCESS' && !externalReference) {
       throw new AdminServiceError('External refund reference is required', 400, 'INVALID_STATUS_TRANSITION')
@@ -715,8 +723,8 @@ export class AdminService {
     if (existing.status === status) return existing
     const allowed: Record<ReturnStatus, ReturnStatus[]> = {
       REQUESTED: ['APPROVED', 'REJECTED', 'CANCELLED'],
-      APPROVED: ['RECEIVED', 'COMPLETED', 'REJECTED'],
-      RECEIVED: ['COMPLETED'],
+      APPROVED: ['RECEIVED'],
+      RECEIVED: [],
       REJECTED: [],
       COMPLETED: [],
       CANCELLED: [],

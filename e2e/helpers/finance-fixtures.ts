@@ -56,3 +56,38 @@ export async function createFinanceFixture(db: ReturnType<typeof financeDatabase
   }
   return { buyer, seller, admin, secondAdmin, shop, wallet, order, items };
 }
+
+export async function createPartialFinanceFixture(db: ReturnType<typeof financeDatabase>, coins = false) {
+    const f = await createFinanceFixture(db, true)
+    const item = f.items[0]!
+    await db.orderItem.delete({ where: { id: f.items[1]!.id } })
+    const totals = coins
+      ? { subtotal: 303n, discountTotal: 303n, shippingTotal: 0n, taxTotal: 0n, includedTaxTotal: 20n, reportedTaxTotal: 20n, grandTotal: 0n }
+      : { subtotal: 123n, discountTotal: 22n, shippingTotal: 0n, taxTotal: 0n, includedTaxTotal: 7n, reportedTaxTotal: 7n, grandTotal: 101n }
+    const net = coins ? 280n : 94n
+    const tax = coins ? 20n : 7n
+    const fee = coins ? 28n : 9n
+    await db.checkout.update({ where: { id: f.order.checkoutId }, data: totals })
+    await db.order.update({ where: { id: f.order.id }, data: totals })
+    await db.shopOrder.updateMany({ where: { orderId: f.order.id }, data: totals })
+    await db.payment.updateMany({ where: { orderId: f.order.id }, data: { amount: totals.grandTotal } })
+    await db.orderItem.update({ where: { id: item.id }, data: { quantity: 3, unitPrice: coins ? 101n : 41n, lineTotal: totals.subtotal } })
+    const shopOrder = await db.shopOrder.findFirstOrThrow({ where: { orderId: f.order.id } })
+    await db.shopSaleSnapshot.update({ where: { shopOrderId: shopOrder.id }, data: { policyVersion: 2,
+      commissionBase: net, originalCommission: fee, originalShipping: 0n, buyerShipping: 0n, platformShippingSubsidy: 0n,
+      taxRatePpm: 70000, taxMode: 'INCLUSIVE', taxFundingBasis: 'SELLER_AFTER_SHOP_COUPON', taxableShipping: false,
+      taxShippingBasis: 'SELLER_SHIPPING_AFTER_WAIVER', taxRounding: 'LINE_HALF_UP', taxCustodian: 'SELLER', taxExclusiveFunding: 'BUYER', taxPolicyRevision: 'original-fixture',
+      sellerGrossMerchandise: coins ? 300n : 101n, sellerGrossShipping: 0n, buyerShippingNet: 0n, buyerShippingTax: 0n, platformShippingNet: 0n, platformShippingTax: 0n,
+      includedTaxTotal: tax, addedTaxTotal: 0n, reportedTaxTotal: tax } })
+    await db.itemSaleSnapshot.update({ where: { orderItemId: item.id }, data: { originalQuantity: 3, grossMerchandise: totals.subtotal, sellerCouponDiscount: coins ? 3n : 22n,
+      buyerMerchandise: coins ? 0n : 101n, coinDiscount: coins ? 300n : 0n, buyerMerchandiseNet: coins ? 0n : 94n, buyerMerchandiseTax: coins ? 0n : 7n,
+      platformCouponNet: 0n, platformCouponTax: 0n, coinFundingNet: coins ? 280n : 0n, coinFundingTax: coins ? 20n : 0n,
+      originalCashbackEligibleNet: coins ? 0n : 94n, originalAffiliateEligibleNet: coins ? 0n : 94n } })
+    await db.walletLedgerEntry.updateMany({ where: { walletId: f.wallet.id, type: 'order_earning' }, data: { amount: coins ? 300n : 101n } })
+    await db.walletLedgerEntry.updateMany({ where: { walletId: f.wallet.id, type: 'commission_fee' }, data: { amount: -fee } })
+    if (coins) {
+      const wallet = await db.buyerCoinWallet.create({ data: { userId: f.buyer.id, balance: 0n, lifetimeSpent: 3n } })
+      await db.buyerCoinLedger.create({ data: { walletId: wallet.id, userId: f.buyer.id, orderId: f.order.id, type: 'SPENT', status: 'USED', amount: 3n } })
+    }
+    return { ...f, item, shopOrder };
+}

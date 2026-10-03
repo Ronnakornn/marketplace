@@ -1,5 +1,6 @@
+"use client";
+
 import { compareMinorUnits, type MinorUnitValue } from "#/lib/money";
-﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";

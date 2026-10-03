@@ -34,6 +34,7 @@ function createAppContext() {
 
 function createRepoMock(): ICheckoutRepository {
   return {
+    readTaxPolicy: vi.fn(async () => null),
     transaction: vi.fn(async (callback) => callback(repo as ICheckoutRepository)),
     lockCartForCheckout: vi.fn(),
     findCartForCheckout: vi.fn(),
@@ -284,6 +285,9 @@ describe('CheckoutService', () => {
           discountTotal: 240,
           shippingTotal: 500,
           taxTotal: 0,
+          includedTaxTotal: 0,
+          addedTaxTotal: 0,
+          reportedTaxTotal: 0,
           grandTotal: 2660,
           currency: 'THB',
         },

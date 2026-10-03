@@ -91,6 +91,8 @@ const order = {
   discountTotal: BigInt(1_000),
   shippingTotal: BigInt(500),
   taxTotal: BigInt(0),
+  includedTaxTotal: 0n,
+  reportedTaxTotal: 0n,
   grandTotal: BigInt(9_500),
   currency: 'USD',
   shippingName: 'Buyer',

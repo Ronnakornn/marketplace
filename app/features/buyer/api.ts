@@ -31,7 +31,11 @@ export interface BuyerCart {
   currency: string;
 }
 
+type BuyerOrderResponse = NonNullable<Treaty.Data<ReturnType<ReturnType<typeof api.api.orders>["get"]>>>;
+type BuyerOrderReturnRights = Pick<BuyerOrderResponse["items"][number], "remainingReturnQuantity" | "hasActiveReturn">;
+
 export interface BuyerOrder {
+  taxTotals?: Pick<BuyerOrderResponse["totals"], "taxTotal" | "includedTaxTotal" | "reportedTaxTotal">;
   id: string;
   orderNo: string;
   status: string;
@@ -48,7 +52,7 @@ export interface BuyerOrder {
     lineTotal: MinorUnitValue;
     shopName: string;
     fulfillmentStatus: string;
-  }>;
+  } & BuyerOrderReturnRights>;
   shipments: Array<{
     id: string;
     shopId: string;
@@ -180,13 +184,7 @@ export interface ReviewInput {
   uploadIds?: string[];
 }
 
-export interface ReturnRequestInput {
-  orderId: string;
-  orderItemId: string;
-  reason: string;
-  description?: string;
-  uploadIds?: string[];
-}
+export type ReturnRequestInput = Parameters<typeof api.api.returns.post>[0];
 
 export type CheckoutResult = NonNullable<Treaty.Data<ReturnType<typeof api.api.checkout.post>>>;
 export type CheckoutQuoteInput = Parameters<typeof api.api.checkout.quote.post>[0];
@@ -591,6 +589,9 @@ function normalizeOrder(input: unknown): BuyerOrder {
       lineTotal: minorUnitsText(item.lineTotal),
       shopName: readString(item.shopName, "Shop"),
       fulfillmentStatus: readString(item.fulfillmentStatus, "pending"),
+      remainingReturnQuantity: typeof item.remainingReturnQuantity === "number" && Number.isInteger(item.remainingReturnQuantity)
+        && item.remainingReturnQuantity >= 0 && item.remainingReturnQuantity <= 2147483647 ? item.remainingReturnQuantity : 0,
+      hasActiveReturn: item.hasActiveReturn !== false,
     };
   });
   const shipments = readArray(record.shipments).map((shipmentInput) => {
@@ -617,6 +618,11 @@ function normalizeOrder(input: unknown): BuyerOrder {
     orderNo: readString(record.orderNo, readString(record.orderNumber, "Order")),
     status: readString(record.status, "pending"),
     paymentStatus: readString(record.paymentStatus, "pending"),
+    taxTotals: toRecord(record.totals).reportedTaxTotal === undefined ? undefined : {
+      taxTotal: minorUnitsText(toRecord(record.totals).taxTotal),
+      includedTaxTotal: minorUnitsText(toRecord(record.totals).includedTaxTotal),
+      reportedTaxTotal: minorUnitsText(toRecord(record.totals).reportedTaxTotal),
+    },
     totalCents: minorUnitsText(record.totalCents ?? record.grandTotal ?? toRecord(record.totals).grandTotal),
     currency: readString(record.currency, readString(toRecord(record.totals).currency, defaultCurrency)),
     createdAt: readString(record.createdAt, new Date().toISOString()),

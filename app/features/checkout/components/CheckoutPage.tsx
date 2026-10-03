@@ -1,6 +1,6 @@
 "use client";
 
-import { parseMinorUnits, type MinorUnitValue } from "#/lib/money";
+import { compareMinorUnits, parseMinorUnits, type MinorUnitValue } from "#/lib/money";
 
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -20,6 +20,10 @@ import { useBuyerCoins } from "#/features/promotion/hooks/useBuyerCoins";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
+type CouponSelection =
+  | { kind: "legacy"; code: string | null }
+  | { kind: "stack"; shopCode: string | null; platformCode: string | null };
+
 const COUPON_REASON_KEYS = {
   COUPON_NOT_FOUND: "checkout.couponReasonNotFound",
   COUPON_FORBIDDEN: "checkout.couponReasonInvalid",
@@ -36,7 +40,12 @@ export function CheckoutPage() {
   const searchParams = useSearchParams();
   const requestedVoucher = searchParams?.get("voucher")?.trim().slice(0, 64) ?? "";
   const [couponInput, setCouponInput] = useState(requestedVoucher);
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(requestedVoucher || null);
+  const [couponSelection, setCouponSelection] = useState<CouponSelection>({ kind: "legacy", code: requestedVoucher || null });
+  const [shopCouponInput, setShopCouponInput] = useState("");
+  const [platformCouponInput, setPlatformCouponInput] = useState("");
+  const appliedCoupon = couponSelection.kind === "legacy" ? couponSelection.code : null;
+  const shopCouponCode = couponSelection.kind === "stack" ? couponSelection.shopCode : null;
+  const platformCouponCode = couponSelection.kind === "stack" ? couponSelection.platformCode : null;
   const [coinInput, setCoinInput] = useState("");
   const [coinsToUse, setCoinsToUse] = useState(0);
   const paymentMethod = "card";
@@ -61,19 +70,28 @@ export function CheckoutPage() {
   const itemCount = selectedItemIds.length;
   const cartId = cartQuery.data?.id ?? null;
   const quoteQuery = useQuery({
-    queryKey: ["checkout-quote", cartId, selectedItemIds, appliedCoupon, coinsToUse, locale],
-    queryFn: () => quoteCheckout({ cartId: cartId as string, cartItemIds: selectedItemIds, couponCode: appliedCoupon ?? undefined, coinsToUse }),
+    queryKey: ["checkout-quote", cartId, selectedItemIds, appliedCoupon, shopCouponCode, platformCouponCode, coinsToUse, locale],
+    queryFn: () => {
+      if (!cartId) throw new Error(t("checkout.emptyTitle"));
+      return quoteCheckout({ cartId, cartItemIds: selectedItemIds, couponCode: appliedCoupon ?? undefined,
+        shopCouponCode: shopCouponCode ?? undefined, platformCouponCode: platformCouponCode ?? undefined, coinsToUse });
+    },
     enabled: Boolean(cartId) && itemCount > 0,
   });
   const checkoutMutation = useMutation({
     mutationFn: () => {
       if (!cartQuery.data?.id) throw new Error(t("checkout.emptyTitle"));
       if (!addressId) throw new Error(t("checkout.noAddressDescription"));
+      if (!quoteQuery.data?.quoteFingerprint || !quoteQuery.data.taxPolicyRevision) throw new Error(t("checkout.quoteError"));
       return createCheckout({
         cartId: cartQuery.data.id,
         cartItemIds: selectedItemIds,
         addressId,
         couponCode: appliedCoupon || undefined,
+        shopCouponCode: shopCouponCode ?? undefined,
+        platformCouponCode: platformCouponCode ?? undefined,
+        acceptedQuoteFingerprint: quoteQuery.data.quoteFingerprint,
+        acceptedTaxPolicyRevision: quoteQuery.data.taxPolicyRevision,
         coinsToUse,
         paymentMethod,
         shippingMethod: "standard",
@@ -83,6 +101,7 @@ export function CheckoutPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
     },
+    onError: () => { void quoteQuery.refetch(); },
     onSettled: () => {
       checkoutSubmitting.current = false;
     },
@@ -95,11 +114,16 @@ export function CheckoutPage() {
   const handleApplyCoupon = () => {
     const trimmed = couponInput.trim();
     if (!trimmed) return;
-    setAppliedCoupon(trimmed);
+    setCouponSelection({ kind: "legacy", code: trimmed });
   };
   const handleClearCoupon = () => {
-    setAppliedCoupon(null);
+    setCouponSelection({ kind: "legacy", code: null });
     setCouponInput("");
+  };
+  const applyNamedCoupon = (slot: "shop" | "platform", code: string | null) => {
+    setCouponSelection({ kind: "stack",
+      shopCode: slot === "shop" ? code : shopCouponCode,
+      platformCode: slot === "platform" ? code : platformCouponCode });
   };
   const handleApplyCoins = () => {
     let requested: bigint;
@@ -111,7 +135,8 @@ export function CheckoutPage() {
     setCoinsToUse(applied);
     setCoinInput(String(applied));
   };
-  const canPlaceOrder = Boolean(addressId) && quoteQuery.isSuccess && !quoteQuery.isLoading;
+  const canPlaceOrder = Boolean(addressId) && quoteQuery.isSuccess && !quoteQuery.isFetching
+    && Boolean(quoteQuery.data?.quoteFingerprint && quoteQuery.data.taxPolicyRevision);
   const handlePlaceOrder = () => {
     if (checkoutSubmitting.current || !canPlaceOrder || checkoutMutation.isSuccess) return;
     // Mutation state renders asynchronously; claim the submission synchronously
@@ -231,6 +256,27 @@ export function CheckoutPage() {
                     </Button>
                   </div>
                 ) : null}
+                <p className="mt-4 text-xs text-slate-600">{t("checkout.couponStackOrder")}</p>
+                {([
+                  { slot: "shop", input: shopCouponInput, setInput: setShopCouponInput, code: shopCouponCode, label: "checkout.shopCoupon", applyLabel: "checkout.applyShopCoupon" },
+                  { slot: "platform", input: platformCouponInput, setInput: setPlatformCouponInput, code: platformCouponCode, label: "checkout.platformCoupon", applyLabel: "checkout.applyPlatformCoupon" },
+                ] as const).map((field) => {
+                  const outcomeIndex = field.slot === "platform" && shopCouponCode ? 1 : 0;
+                  const candidate = quoteQuery.data?.couponOutcomes?.[outcomeIndex];
+                  const outcome = candidate?.code.toUpperCase() === field.code?.toUpperCase() ? candidate : undefined;
+                  return <div key={field.slot} className="mt-3 space-y-2">
+                    <Label htmlFor={`checkout-${field.slot}-coupon`}>{t(field.label)}</Label>
+                    <div className="flex gap-2">
+                      <Input id={`checkout-${field.slot}-coupon`} value={field.input} onChange={(event) => field.setInput(event.target.value)} />
+                      <Button type="button" variant="outline" disabled={!field.input.trim()} onClick={() => applyNamedCoupon(field.slot, field.input.trim())}>{t(field.applyLabel)}</Button>
+                    </div>
+                    {field.code ? <div className="flex items-center justify-between gap-2 text-sm">
+                      <span>{t(outcome?.applied === true ? "checkout.couponApplied" : "checkout.couponNotApplied").replace("{code}", field.code)}</span>
+                      <Button type="button" variant="ghost" size="sm" aria-label={`${t("checkout.couponRemove")} ${t(field.label)}`} onClick={() => applyNamedCoupon(field.slot, null)}>{t("checkout.couponRemove")}</Button>
+                    </div> : null}
+                    {outcome?.applied === false ? <p role="alert" className="text-sm text-red-600">{t(Object.entries(COUPON_REASON_KEYS).find(([reason]) => reason === outcome.reason)?.[1] ?? "checkout.couponReasonInvalid")}</p> : null}
+                  </div>;
+                })}
                 {quoteQuery.data?.coupon && quoteQuery.data.coupon.applied === false ? (
                   <p className="mt-2 text-sm text-red-600">
                     {t(COUPON_REASON_KEYS[quoteQuery.data.coupon.reason as keyof typeof COUPON_REASON_KEYS] ?? "checkout.couponReasonInvalid")}
@@ -263,7 +309,7 @@ export function CheckoutPage() {
                     <span className="font-semibold text-slate-950">{renderQuotedAmount(quotedShops.get(shop.shopId)?.subtotal)}</span>
                   </div>
                 ))}
-                {quoteQuery.data && quoteQuery.data.discountTotal > 0 ? (
+                {quoteQuery.data && compareMinorUnits(quoteQuery.data.discountTotal, 0) > 0 ? (
                   <div className="flex justify-between gap-3 text-sm">
                     <span className="text-slate-700">{t("checkout.discount")}</span>
                     <span className="font-semibold text-emerald-700">-{formatMoney(quoteQuery.data.discountTotal, quoteQuery.data.currency)}</span>
@@ -275,6 +321,11 @@ export function CheckoutPage() {
                     <span className="font-semibold text-slate-950">{formatMoney(quoteQuery.data.shippingTotal, quoteQuery.data.currency)}</span>
                   </div>
                 ) : null}
+                {quoteQuery.data?.taxMode ? <div className="flex justify-between gap-3 text-sm" data-testid="checkout-tax-disclosure">
+                  <span className="text-slate-700">{t(quoteQuery.data.taxMode === "INCLUSIVE" ? "checkout.taxIncluded" : "checkout.taxAdded")}</span>
+                  <span className="font-semibold text-slate-950">{renderQuotedAmount(quoteQuery.data.taxMode === "INCLUSIVE"
+                    ? quoteQuery.data.includedTaxTotal : quoteQuery.data.addedTaxTotal ?? quoteQuery.data.taxTotal)}</span>
+                </div> : null}
                 <div className="border-t border-slate-200 pt-3">
                   <div className="flex justify-between text-lg font-bold">
                     <span>{t("checkout.total")}</span>

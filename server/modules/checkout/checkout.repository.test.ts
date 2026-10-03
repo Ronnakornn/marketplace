@@ -36,13 +36,13 @@ describe('PrismaCheckoutRepository', () => {
       items: [{ id: 'item', unitPrice: 9007199254740991, quantity: 1,
         variant: { product: { shop: { id: 'shop-1', settings: { shippingFee: 4000 } } } } }],
     } } as unknown as CheckoutCommitmentInput
-    await expect(repo.commitCheckout(input)).rejects.toMatchObject({ status: 400, code: 'CHECKOUT_FAILED' })
+    await expect(repo.commitCheckout(input)).rejects.toMatchObject({ status: 409, code: 'INVALID_MONEY_AMOUNT' })
     expect(prisma.checkout.create).not.toHaveBeenCalled()
     expect(prisma.order.create).not.toHaveBeenCalled()
     expect(prisma.payment.create).not.toHaveBeenCalled()
   })
 
-  it('creates order item totals when the Prisma result extension returns BigInt prices as numbers', async () => {
+  it('persists exact bigint item and shop totals from bounded operational quote prices', async () => {
     const order = { id: 'order-1' }
     const payment = { id: 'payment-1' }
     const prisma = {
@@ -157,9 +157,9 @@ describe('PrismaCheckoutRepository', () => {
         shopOrders: {
           create: [expect.objectContaining({
             shopId: 'shop-1',
-            subtotal: 2400,
-            shippingTotal: 350,
-            grandTotal: 2750,
+            subtotal: 2400n,
+            shippingTotal: 350n,
+            grandTotal: 2750n,
           })],
         },
         items: {
@@ -211,10 +211,10 @@ describe('PrismaCheckoutRepository', () => {
 
   it.each([
     { name: 'shop and coin discounts', prices: [1000, 2000], shipping: [100, 200], coupon: 1000, couponShopId: 'shop-1',
-      coins: 600, subtotal: 3000, discount: 1600, shippingTotal: 300, grand: 1700, discounts: [1000, 600], shopTotals: [100, 1600] },
+      coins: 600, subtotal: 3000, discount: 1600, shippingTotal: 300, grand: 1700, discounts: [1000n, 600n], shopTotals: [100n, 1600n] },
     { name: 'near-limit proportional discount', prices: [6004799503160660, 3002399751580331], shipping: [0, 0], coupon: 9007199254740891, couponShopId: null,
       coins: 0, subtotal: 9007199254740991, discount: 9007199254740891, shippingTotal: 0, grand: 100,
-      discounts: [6004799503160593, 3002399751580298], shopTotals: [67, 33] },
+      discounts: [6004799503160593n, 3002399751580298n], shopTotals: [67n, 33n] },
   ])('keeps two-shop settlement totals exact for $name', async (example) => {
     const prisma = {
       checkout: { create: vi.fn().mockResolvedValue({ id: 'checkout-1' }) },
@@ -253,14 +253,14 @@ describe('PrismaCheckoutRepository', () => {
     await repository.commitCheckout(input)
 
     const orderData = prisma.order.create.mock.calls[0]![0].data
-    const shopOrders = orderData.shopOrders.create as Array<{ subtotal: number; discountTotal: number; shippingTotal: number; grandTotal: number }>
+    const shopOrders = orderData.shopOrders.create as Array<{ subtotal: bigint; discountTotal: bigint; shippingTotal: bigint; grandTotal: bigint }>
     expect(shopOrders).toHaveLength(2)
     expect(shopOrders.map((row) => row.discountTotal)).toEqual(example.discounts)
     expect(shopOrders.map((row) => row.grandTotal)).toEqual(example.shopTotals)
-    expect(shopOrders.reduce((sum, row) => sum + row.subtotal, 0)).toBe(orderData.subtotal)
-    expect(shopOrders.reduce((sum, row) => sum + row.discountTotal, 0)).toBe(orderData.discountTotal)
-    expect(shopOrders.reduce((sum, row) => sum + row.shippingTotal, 0)).toBe(orderData.shippingTotal)
-    expect(shopOrders.reduce((sum, row) => sum + row.grandTotal, 0)).toBe(orderData.grandTotal)
+    expect(shopOrders.reduce((sum, row) => sum + row.subtotal, 0n)).toBe(BigInt(orderData.subtotal))
+    expect(shopOrders.reduce((sum, row) => sum + row.discountTotal, 0n)).toBe(BigInt(orderData.discountTotal))
+    expect(shopOrders.reduce((sum, row) => sum + row.shippingTotal, 0n)).toBe(BigInt(orderData.shippingTotal))
+    expect(shopOrders.reduce((sum, row) => sum + row.grandTotal, 0n)).toBe(BigInt(orderData.grandTotal))
     const snapshots = prisma.itemSaleSnapshot.createMany.mock.calls[0][0].data
     if (example.couponShopId) {
       expect(snapshots.map((row: { sellerCouponDiscount: bigint; platformCouponDiscount: bigint; coinDiscount: bigint; buyerMerchandise: bigint }) =>
