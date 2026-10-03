@@ -354,6 +354,59 @@ erDiagram
     string status
     bigint amount
     string reason
+    string processingById FK
+    string completedById FK
+    string externalReference
+    datetime processingAt
+    datetime completedAt
+  }
+
+  SHOP_SALE_SNAPSHOT {
+    string shopOrderId PK, FK
+    int policyVersion
+    string currency
+    bigint commissionBase
+    int commissionBps
+    bigint originalCommission
+    bigint originalShipping
+    bigint buyerShipping
+    bigint sellerShippingWaiver
+    bigint platformShippingSubsidy
+    datetime recognizedAt
+  }
+
+  ITEM_SALE_SNAPSHOT {
+    string orderItemId PK, FK
+    string shopOrderId FK
+    int originalQuantity
+    bigint grossMerchandise
+    bigint sellerCouponDiscount
+    bigint platformCouponDiscount
+    bigint coinDiscount
+    bigint buyerMerchandise
+    string couponId
+    string couponCode
+  }
+
+  REFUND_ITEM_ALLOCATION {
+    string id PK
+    string refundId FK
+    string orderItemId FK
+    int quantity
+    bigint cashMerchandise
+    bigint platformCouponReversal
+    bigint coinFundingReversal
+  }
+
+  REFUND_SHOP_ALLOCATION {
+    string id PK
+    string refundId FK
+    string shopOrderId FK
+    bigint buyerShippingRefund
+    bigint platformShippingReversal
+    bigint commissionReversal
+    string shippingCause
+    datetime walletPostedAt
   }
 
   RETURN_REQUEST {
@@ -470,6 +523,15 @@ erDiagram
   RETURN_REQUEST ||--o| REFUND : may_create
   REFUND ||--o{ WALLET_LEDGER_ENTRY : adjusts
   REFUND ||--o{ SELLER_TRANSACTION : adjusts
+  USER ||--o{ REFUND : processes
+  USER ||--o{ REFUND : completes
+  SHOP_ORDER ||--o| SHOP_SALE_SNAPSHOT : retains_original_policy
+  ORDER_ITEM ||--o| ITEM_SALE_SNAPSHOT : retains_original_funding
+  SHOP_SALE_SNAPSHOT ||--o{ ITEM_SALE_SNAPSHOT : groups
+  REFUND ||--o{ REFUND_ITEM_ALLOCATION : reserves_items
+  REFUND ||--o{ REFUND_SHOP_ALLOCATION : reserves_shop_rights
+  ITEM_SALE_SNAPSHOT ||--o{ REFUND_ITEM_ALLOCATION : reverses
+  SHOP_SALE_SNAPSHOT ||--o{ REFUND_SHOP_ALLOCATION : reverses
   ORDER ||--o{ WALLET_LEDGER_ENTRY : settles
   ORDER ||--o{ SELLER_TRANSACTION : earns
   SELLER_PAYOUT ||--o{ WALLET_LEDGER_ENTRY : settles
@@ -498,3 +560,7 @@ Notes:
 - `INVENTORY_RESERVATION` holds stock during checkout and expires if checkout is abandoned.
 - `PAYMENT.status = SUCCEEDED` must be set from verified `PAYMENT_EVENT` webhook data, not from browser redirect state.
 - Seller finance is tracked through `SHOP_WALLET`, `WALLET_LEDGER_ENTRY`, `SELLER_TRANSACTION`, and `SELLER_PAYOUT`.
+- New checkout snapshots use policy version 1 under [ADR-0005](adr/0005-discount-funding-and-refundable-commission.md). Legacy Orders may have no snapshots; partially missing snapshots are rejected by settlement services.
+- `ITEM_SALE_SNAPSHOT.couponId` and `couponCode` are retained identity values, not a foreign key to a mutable Coupon. Allocation foreign keys point to the original sale snapshots.
+- Refund item pairs `(refundId, orderItemId)` and shop pairs `(refundId, shopOrderId)` are unique. Active refund plans consume original rights; monetary caps and full-item quantity validation belong to services.
+- `recognizedAt` and `walletPostedAt` track economic posting. Shipping causes are NONE, PRE_SHIPMENT_CANCEL, SELLER_FAULT, and CHANGE_OF_MIND. Seller debt derives from the ledger excluding reversible reservations; no debt entity is added.

@@ -207,6 +207,13 @@ Enum refund_status {
   FAILED
 }
 
+Enum refund_shipping_cause {
+  NONE
+  PRE_SHIPMENT_CANCEL
+  SELLER_FAULT
+  CHANGE_OF_MIND
+}
+
 Enum return_status {
   REQUESTED
   APPROVED
@@ -872,12 +879,79 @@ Table refunds {
   id uuid [pk]
   order_id uuid [not null, ref: > orders.id]
   payment_id uuid [not null, ref: > payments.id]
-  return_request_id uuid [unique]
+  return_request_id uuid [unique, ref: > return_requests.id]
   status refund_status [not null, default: "PENDING"]
   amount bigint [not null]
   reason text
+  processing_by_id uuid [ref: > users.id]
+  completed_by_id uuid [ref: > users.id]
+  external_reference varchar
+  processing_at timestamp
+  completed_at timestamp
   created_at timestamp [not null]
   updated_at timestamp [not null]
+}
+
+Table shop_sale_snapshots {
+  shop_order_id uuid [pk, ref: - shop_orders.id]
+  policy_version int [not null, default: 1]
+  currency varchar [not null]
+  commission_base bigint [not null]
+  commission_bps int [not null]
+  original_commission bigint [not null]
+  original_shipping bigint [not null]
+  buyer_shipping bigint [not null]
+  seller_shipping_waiver bigint [not null]
+  platform_shipping_subsidy bigint [not null]
+  recognized_at timestamp
+}
+
+Table item_sale_snapshots {
+  order_item_id uuid [pk, ref: - order_items.id]
+  shop_order_id uuid [not null, ref: > shop_sale_snapshots.shop_order_id]
+  original_quantity int [not null]
+  gross_merchandise bigint [not null]
+  seller_coupon_discount bigint [not null]
+  platform_coupon_discount bigint [not null]
+  coin_discount bigint [not null]
+  buyer_merchandise bigint [not null]
+  coupon_id uuid
+  coupon_code varchar
+
+  indexes {
+    shop_order_id
+  }
+}
+
+Table refund_item_allocations {
+  id uuid [pk]
+  refund_id uuid [not null, ref: > refunds.id]
+  order_item_id uuid [not null, ref: > item_sale_snapshots.order_item_id]
+  quantity int [not null]
+  cash_merchandise bigint [not null]
+  platform_coupon_reversal bigint [not null]
+  coin_funding_reversal bigint [not null]
+
+  indexes {
+    (refund_id, order_item_id) [unique]
+    order_item_id
+  }
+}
+
+Table refund_shop_allocations {
+  id uuid [pk]
+  refund_id uuid [not null, ref: > refunds.id]
+  shop_order_id uuid [not null, ref: > shop_sale_snapshots.shop_order_id]
+  buyer_shipping_refund bigint [not null, default: 0]
+  platform_shipping_reversal bigint [not null, default: 0]
+  commission_reversal bigint [not null, default: 0]
+  shipping_cause refund_shipping_cause [not null, default: "NONE"]
+  wallet_posted_at timestamp
+
+  indexes {
+    (refund_id, shop_order_id) [unique]
+    shop_order_id
+  }
 }
 
 Table return_requests {
