@@ -1,0 +1,15 @@
+$ vitest run --exclude "**/e2e/**" server/modules/refund/shared-buyer-coins.integration.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/shared-buyer-coins.json"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:21116) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/refund/shared-buyer-coins.integration.test.ts (3 tests) 1294ms
+     ✓ serializes separate orders with initial available coins 0n  674ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  05:12:11
+   Duration  1.81s (transform 220ms, setup 0ms, import 380ms, tests 1.29s, environment 0ms)
+
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/shared-buyer-coins.json

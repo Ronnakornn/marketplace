@@ -55,7 +55,7 @@ at a time; long runtime checks are scheduled to avoid build/browser contention.
   protection, stock/version/movement accounting, ownership and concurrent writes.
 - [ ] W2. Preserve exact minor units throughout database read, aggregate, API and
   displays. Test MAX_SAFE boundaries and signed/lifetime aggregates explicitly.
-- [ ] W3. Verify multiple refunds sharing one buyer coin wallet under actual
+- [x] W3. Verify multiple refunds sharing one buyer coin wallet under actual
   PostgreSQL concurrency, rollback and retry, repairing discovered defects.
 - [ ] W4. Add literal threshold cases and UI/API/DB parity for cashback, reviews,
   search badges/prices/ratings, flash availability, recommendations, AI score,
