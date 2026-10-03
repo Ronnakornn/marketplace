@@ -156,8 +156,8 @@ describe('ProductAnalyticsService', () => {
 
     expect(repo.findVariantRankingCandidates).toHaveBeenCalledWith([SHOP_ID], PRODUCT_ID)
     expect(repo.countProductAddToCart).toHaveBeenCalledWith([SHOP_ID], expect.objectContaining({
-      from: new Date('2026-06-01T00:00:00.000Z'),
-      to: new Date('2026-06-07T23:59:59.999Z'),
+      from: new Date('2026-05-31T17:00:00.000Z'),
+      to: new Date('2026-06-07T16:59:59.999Z'),
     }), PRODUCT_ID)
     expect(repo.findPaidOrderItems).toHaveBeenCalledWith([SHOP_ID], expect.any(Object), PRODUCT_ID)
   })

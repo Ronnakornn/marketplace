@@ -1,0 +1,9 @@
+
+ RUN  v4.1.11 C:/Users/ASUS/.codex/worktrees/audit-inventory/marketplace
+
+
+ Test Files  3 passed (3)
+      Tests  38 passed (38)
+   Start at  05:17:52
+   Duration  971ms (transform 393ms, setup 0ms, import 762ms, tests 486ms, environment 0ms)
+

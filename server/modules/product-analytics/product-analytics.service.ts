@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
+import { CALENDAR_DAY_MILLISECONDS, parseReportingDate, reportingDateKey, reportingDayRange, shiftCalendarDate } from '#server/lib/reporting-calendar.ts'
 import { ProductAnalyticsServiceError } from './product-analytics.errors.ts'
 import type {
   AnalyticsAddToCartRow,
@@ -19,6 +20,7 @@ const MAX_PAGE_LIMIT = 100
 const DEFAULT_PAGE_LIMIT = 20
 const LOW_PERFORMING_LIMIT = 5
 const TOP_SKU_LIMIT = 5
+const MAX_CUSTOM_RANGE_DAYS = 366
 
 const PRODUCT_SORTS = new Set(['views', 'addToCart', 'orders', 'unitsSold', 'revenue', 'conversionRate', 'title'])
 const SKU_SORTS = new Set(['addToCart', 'orders', 'unitsSold', 'revenue', 'sku'])
@@ -280,44 +282,43 @@ export class ProductAnalyticsService {
       if (!query.from || !query.to) {
         throw new ProductAnalyticsServiceError('Custom range requires from and to dates', 400, 'ANALYTICS_DATE_RANGE_INVALID')
       }
-      const from = this.startOfDay(this.parseDate(query.from, 'from'))
-      const to = this.endOfDay(this.parseDate(query.to, 'to'))
+      const from = this.parseDate(query.from, 'from')
+      const to = reportingDayRange(this.parseDate(query.to, 'to')).to
       if (from > to) {
         throw new ProductAnalyticsServiceError('From date must be before to date', 400, 'ANALYTICS_DATE_RANGE_INVALID')
+      }
+      const calendarDays = (new Date(`${query.to}T00:00:00Z`).getTime() - new Date(`${query.from}T00:00:00Z`).getTime()) / CALENDAR_DAY_MILLISECONDS + 1
+      if (calendarDays > MAX_CUSTOM_RANGE_DAYS) {
+        throw new ProductAnalyticsServiceError(`Custom range must not exceed ${MAX_CUSTOM_RANGE_DAYS} days`, 400, 'ANALYTICS_DATE_RANGE_INVALID')
       }
       return { from, to }
     }
 
     const days = range === '7d' ? 7 : range === '90d' ? 90 : 30
-    const to = this.endOfDay(now)
-    const from = this.startOfDay(new Date(to.getTime() - (days - 1) * 24 * 60 * 60 * 1000))
+    const to = reportingDayRange(now).to
+    const from = parseReportingDate(shiftCalendarDate(reportingDateKey(now), -(days - 1)))!
     return { from, to }
   }
 
   private parseDate(value: string, field: string): Date {
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) {
-      throw new ProductAnalyticsServiceError(`${field} must be a valid ISO date`, 400, 'ANALYTICS_DATE_RANGE_INVALID')
+    const date = parseReportingDate(value)
+    if (!date || value < '0001-01-02' || value > '9999-12-30') {
+      throw new ProductAnalyticsServiceError(`${field} must be a valid YYYY-MM-DD calendar date`, 400, 'ANALYTICS_DATE_RANGE_INVALID')
     }
     return date
-  }
-
-  private startOfDay(date: Date): Date {
-    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0))
-  }
-
-  private endOfDay(date: Date): Date {
-    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999))
   }
 
   private normalizePagination(query: ProductAnalyticsQuery): { page: number; limit: number } {
     const page = query.page ?? 1
     const limit = query.limit ?? DEFAULT_PAGE_LIMIT
-    if (!Number.isInteger(page) || page < 1) {
+    if (!Number.isSafeInteger(page) || page < 1) {
       throw new ProductAnalyticsServiceError('Page must be a positive integer', 400, 'ANALYTICS_PAGINATION_INVALID')
     }
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_LIMIT) {
       throw new ProductAnalyticsServiceError(`Limit must be between 1 and ${MAX_PAGE_LIMIT}`, 400, 'ANALYTICS_PAGINATION_INVALID')
+    }
+    if (!Number.isSafeInteger((page - 1) * limit)) {
+      throw new ProductAnalyticsServiceError('Page offset must be a safe integer', 400, 'ANALYTICS_PAGINATION_INVALID')
     }
     return { page, limit }
   }
@@ -550,18 +551,17 @@ export class ProductAnalyticsService {
 
   private dateKeys(range: AnalyticsDateRange): string[] {
     const keys: string[] = []
-    const cursor = this.startOfDay(range.from)
-    while (cursor <= range.to) {
-      keys.push(this.dateKeyFromDate(cursor))
-      cursor.setUTCDate(cursor.getUTCDate() + 1)
+    let key = reportingDateKey(range.from)
+    const last = reportingDateKey(range.to)
+    while (key <= last) {
+      keys.push(key)
+      key = shiftCalendarDate(key, 1)
     }
     return keys
   }
 
   private dateKeyFromDate(value: Date | string): string {
-    const date = value instanceof Date ? value : new Date(value)
-    if (Number.isNaN(date.getTime())) return ''
-    return date.toISOString().slice(0, 10)
+    return reportingDateKey(value)
   }
 
   private fillDailyFromRawLogs(

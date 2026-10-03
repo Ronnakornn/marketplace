@@ -3,6 +3,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { CacheService } from '#server/modules/cache'
 import type { ActiveShopResolver } from '#server/modules/security'
+import { reportingDayRange, reportingMonthRange } from '#server/lib/reporting-calendar.ts'
 import { SellerDashboardServiceError } from './seller-dashboard.errors.ts'
 import type {
   ISellerDashboardRepository,
@@ -269,13 +270,12 @@ export class SellerDashboardService {
 
   private toSalesSummary(items: SellerSalesOrderItem[]): SellerSalesSummaryResponse {
     const now = new Date()
-    const todayStart = new Date(now)
-    todayStart.setHours(0, 0, 0, 0)
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const today = reportingDayRange(now)
+    const month = reportingMonthRange(now)
 
     return {
-      todaySalesCents: this.sumSales(items.filter((item) => item.order.createdAt >= todayStart)),
-      thisMonthSalesCents: this.sumSales(items.filter((item) => item.order.createdAt >= monthStart)),
+      todaySalesCents: this.sumSales(items.filter((item) => item.order.createdAt >= today.from && item.order.createdAt <= today.to)),
+      thisMonthSalesCents: this.sumSales(items.filter((item) => item.order.createdAt >= month.from && item.order.createdAt <= month.to)),
       totalSalesCents: this.sumSales(items),
     }
   }
