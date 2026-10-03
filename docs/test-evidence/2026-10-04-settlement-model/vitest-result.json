@@ -1,0 +1,6 @@
+{
+  "timestamp": "2026-10-03T19:30:32.0905736Z",
+  "exitCode": 0,
+  "scope": "Documentation-only increment; optional PostgreSQL and Redis gates not activated",
+  "command": "bun run test --reporter=json --outputFile=docs/test-evidence/2026-10-04-settlement-model/vitest.json"
+}

@@ -1,0 +1,23 @@
+{
+  "weights": [
+    "2",
+    "1",
+    "2"
+  ],
+  "prior": [
+    "0",
+    "1",
+    "1"
+  ],
+  "next": [
+    "1",
+    "0",
+    "2"
+  ],
+  "delta": [
+    "1",
+    "-1",
+    "1"
+  ],
+  "scope": "Existing pure allocator; not settlement completion"
+}

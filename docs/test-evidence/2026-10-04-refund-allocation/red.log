@@ -1,0 +1,41 @@
+$ vitest run --exclude "**/e2e/**" server/modules/refund/commerce-concurrency.integration.test.ts -t "preserves each shop allocation"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:2040) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts (14 tests | 1 failed | 13 skipped) 609ms
+     × preserves each shop allocation when an order-wide refund is split into separate cents 590ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/refund/commerce-concurrency.integration.test.ts > commerce transactions on PostgreSQL > preserves each shop allocation when an order-wide refund is split into separate cents
+AssertionError: expected [ 0n, -2n ] to deeply equal [ -1n, -1n ]
+
+- Expected
++ Received
+
+  [
+-   -1n,
+-   -1n,
++   0n,
++   -2n,
+  ]
+
+ ❯ server/modules/refund/commerce-concurrency.integration.test.ts:158:21
+    156|       return entries._sum.amount ?? 0n
+    157|     }))
+    158|     expect(amounts).toEqual([-1n, -1n])
+       |                     ^
+    159|   })
+    160|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  02:39:06
+   Duration  2.04s (transform 472ms, setup 0ms, import 1.29s, tests 609ms, environment 0ms)
+
+error: script "test" exited with code 1

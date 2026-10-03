@@ -22,25 +22,14 @@ _Avoid_: Product rejection, pending review
 
 ### Checkout Quote
 
-An estimate of the amount payable for one [[Cart]] at a point in time.
-Comprises subtotal, discount, shipping, tax, and grand total. Produced by the
-server, never by the client — see ADR-0001.
-
-A Quote is **not a promise**. The amount actually charged when an Order is
-created may differ if conditions change in between — a coupon reaching its
-usage limit, stock running out. Producing a Quote writes nothing and reserves
-no stock.
-
-A coupon that cannot be applied does not invalidate a Quote; the Quote is
-returned with the coupon marked as not applied, and the amount reflects that.
-This is the opposite of Order creation, where an unusable coupon stops the
-whole operation.
+An estimate of the amount a buyer would pay for a Checkout Selection at a point
+in time. The committed Order amount may differ when purchase conditions change.
+_Avoid_: Guaranteed price, payment amount
 
 ### Cart
 
-A buyer's collection of items awaiting purchase. A Cart knows its items and
-their prices. It does not know about coupons or shipping — the same Cart
-yields different amounts under different [[Checkout Quote]]s.
+A buyer's collection of items awaiting purchase. A Checkout Selection identifies
+which Cart Items the buyer wants to purchase together.
 
 ### Guest Cart
 
@@ -73,6 +62,106 @@ return or refund step. Return Approval is not Refund Completion.
 
 A decision declining a seller's Payout Request. A Payout Rejection includes a
 reason the requester can act on and is not a failed transfer.
+
+## Pricing and settlement
+
+### Merchandise Subtotal
+
+The sum of item prices multiplied by purchased quantities before checkout
+coupon and coin discounts. Shipping charges and tax are separate amounts.
+_Avoid_: Revenue, seller earnings, amount paid
+
+### Shop Order
+
+The portion of a buyer's Order belonging to one Shop, including that Shop's items
+and checkout amounts.
+_Avoid_: Shipment, seller payout
+
+### Coupon Scope
+
+The set of purchases eligible for a Coupon. Eligibility does not identify who
+bears the cost of the discount.
+_Avoid_: Discount funding
+
+### Discount Funding
+
+The responsibility of a Shop, the marketplace, or both for the economic cost of
+a discount given to a buyer.
+_Avoid_: Coupon scope, discount allocation
+
+### Discount Allocation
+
+The division of a buyer's discount among Shop Orders or items. Allocation alone
+does not determine which party funds the discount.
+_Avoid_: Discount funding
+
+### Buyer Coins
+
+The marketplace reward units that a buyer can redeem for a checkout discount.
+_Avoid_: Cash, seller wallet balance
+
+### Shipping Charge
+
+The amount charged to a buyer for shipping a Shop Order and owed to its Shop.
+The Shop is responsible for the carrier cost, which is a separate amount.
+_Avoid_: Carrier cost, seller earnings
+
+### Buyer Cash Payment
+
+The money collected from a buyer for an Order after checkout discounts, including
+shipping charges and tax.
+_Avoid_: Merchandise subtotal, seller earnings
+
+### Seller Earnings
+
+The amount credited to a Shop for its sales after the applicable settlement
+adjustments. Seller Earnings and Buyer Cash Payment are distinct amounts.
+_Avoid_: Order total, sales revenue, payout
+
+### Platform Commission
+
+The fee the marketplace charges a Shop for a sale. Its calculation base and
+refund treatment belong to the settlement policy.
+_Avoid_: Affiliate commission, payment provider fee
+
+### Affiliate Commission
+
+The reward attributable to an affiliate for an eligible referred sale.
+_Avoid_: Platform commission
+
+### Settlement
+
+The determination and recording of the amounts owed to each party in a sale or
+refund.
+_Avoid_: Payment success, seller payout
+
+### Buyer Cash Refund
+
+Money returned to a buyer against a previously collected payment. Coin
+restoration and seller settlement reversal are separate adjustments.
+_Avoid_: Return approval, seller debit
+
+### Seller Settlement Reversal
+
+An adjustment that reverses a Shop's economic entitlement for a refunded sale.
+Its amount depends on discount funding, shipping entitlement, and fee treatment.
+_Avoid_: Buyer cash refund
+
+### Commission Reversal
+
+An adjustment returning previously charged Platform Commission for a refunded
+sale.
+_Avoid_: Buyer cash refund, seller settlement reversal
+
+### Seller Payout
+
+A transfer of a Shop's available funds to its external bank account.
+_Avoid_: Seller earnings, settlement
+
+### Seller Debt
+
+An amount a Shop owes the marketplace after debits exceed its retained funds.
+_Avoid_: Buyer coin debt, payout failure
 
 ## Seller Operations
 

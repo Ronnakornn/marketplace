@@ -1,0 +1,49 @@
+{
+  "linkFailures": [],
+  "passed": true,
+  "timestamp": "2026-10-03T19:34:17.0854256Z",
+  "scenarioChecks": [
+    {
+      "actual": 8500,
+      "expected": 8500,
+      "name": "current buyer cash"
+    },
+    {
+      "actual": 9000,
+      "expected": 9000,
+      "name": "current seller earning"
+    },
+    {
+      "actual": 1000,
+      "expected": 1000,
+      "name": "separate merchandise refund"
+    },
+    {
+      "actual": 500,
+      "expected": 500,
+      "name": "separate full cash refund"
+    },
+    {
+      "actual": 8500,
+      "expected": 8500,
+      "name": "seller-funded conservation"
+    },
+    {
+      "actual": 10500,
+      "expected": 10500,
+      "name": "platform-funded conservation"
+    },
+    {
+      "actual": 9500,
+      "expected": 9500,
+      "name": "split-funded conservation"
+    },
+    {
+      "actual": 8500,
+      "expected": 8500,
+      "name": "net-base commission conservation"
+    }
+  ],
+  "scope": "Document link and literal scenario consistency only; not settlement implementation verification",
+  "localLinksChecked": 14
+}
