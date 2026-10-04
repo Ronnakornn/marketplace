@@ -1,0 +1,128 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:29356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  x  1 [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures INCLUSIVE tax and checkout stacks original shop and platform funding (2.6m)
+  x  2 [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding (2.6m)
+
+
+  1) [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures INCLUSIVE tax and checkout stacks original shop and platform funding 
+
+    Test timeout of 150000ms exceeded.
+
+    Error: apiRequestContext.put: Test ended.
+    Browser logs:
+
+    <launching> C:\Users\ASUS\AppData\Local\ms-playwright\chromium_headless_shell-1234\chrome-headless-shell-win64\chrome-headless-shell.exe --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=C:\Users\ASUS\AppData\Local\Temp\playwright_chromiumdev_profile-VW6Pyj --remote-debugging-pipe --no-startup-window
+    <launched> pid=26524
+    [pid=26524][err] [1004/063726.701:INFO:CONSOLE:777] "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=26524][err] [1004/063726.784:INFO:CONSOLE:777] "[HMR] connected", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=26524][err] [1004/063727.343:INFO:CONSOLE:777] "[Fast Refresh] rebuilding", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=26524][err] [1004/063727.455:INFO:CONSOLE:777] "[Fast Refresh] done in 211ms", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=26524][err] [1004/063727.559:INFO:CONSOLE:777] "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=26524][err] [1004/063727.573:INFO:CONSOLE:777] "[HMR] connected", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=26524] <gracefully close start>
+
+      78 |       if (originalPolicy) {
+      79 |         const { ratePpm, mode, fundingBasis, taxableShipping, shippingBasis, rounding, custodian, exclusiveTaxFunding } = originalPolicy;
+    > 80 |         const restored = await admin.request.put('/api/admin/checkout/tax-policy', { data: { ratePpm, mode, fundingBasis, taxableShipping, shippingBasis, rounding, custodian, exclusiveTaxFunding } });
+         |                                              ^
+      81 |         expect(restored.ok(), await restored.text()).toBeTruthy();
+      82 |       }
+      83 |       await adminContext.close();
+        at D:\GitHub\marketplace\e2e\numeric-tax.spec.ts:80:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\error-context.md
+
+    attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding 
+
+    Test timeout of 150000ms exceeded.
+
+    Error: apiRequestContext.put: Test ended.
+    Browser logs:
+
+    <launching> C:\Users\ASUS\AppData\Local\ms-playwright\chromium_headless_shell-1234\chrome-headless-shell-win64\chrome-headless-shell.exe --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=C:\Users\ASUS\AppData\Local\Temp\playwright_chromiumdev_profile-u0JtWS --remote-debugging-pipe --no-startup-window
+    <launched> pid=29824
+    [pid=29824][err] [1004/064003.509:INFO:CONSOLE:777] "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=29824][err] [1004/064003.625:INFO:CONSOLE:777] "[HMR] connected", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=29824][err] [1004/064004.159:INFO:CONSOLE:777] "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=29824][err] [1004/064004.181:INFO:CONSOLE:777] "[HMR] connected", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js (777)
+    [pid=29824] <gracefully close start>
+
+      78 |       if (originalPolicy) {
+      79 |         const { ratePpm, mode, fundingBasis, taxableShipping, shippingBasis, rounding, custodian, exclusiveTaxFunding } = originalPolicy;
+    > 80 |         const restored = await admin.request.put('/api/admin/checkout/tax-policy', { data: { ratePpm, mode, fundingBasis, taxableShipping, shippingBasis, rounding, custodian, exclusiveTaxFunding } });
+         |                                              ^
+      81 |         expect(restored.ok(), await restored.text()).toBeTruthy();
+      82 |       }
+      83 |       await adminContext.close();
+        at D:\GitHub\marketplace\e2e\numeric-tax.spec.ts:80:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\error-context.md
+
+    attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-tax-chromium\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures INCLUSIVE tax and checkout stacks original shop and platform funding 
+    [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding 

@@ -66,7 +66,7 @@
           {
             "code": "FIELD_MISMATCH",
             "kind": "PAYOUT",
-            "id": "74459465-b306-458d-832c-bce30113e0b7",
+            "id": "bb384459-db7b-422c-8b6b-86c531ceac73",
             "field": "amount",
             "expected": "9007199254740990",
             "received": "9007199254740991"
@@ -120,13 +120,13 @@
           {
             "code": "UNSUPPORTED_CURRENCY",
             "kind": "REFUND",
-            "id": "492e49fe-ab2b-42c7-84c2-a567dd8ff4a9",
+            "id": "6f225a71-a66e-4d94-9e68-464264c63584",
             "received": "ZZZ"
           },
           {
             "code": "FIELD_MISMATCH",
             "kind": "REFUND",
-            "id": "492e49fe-ab2b-42c7-84c2-a567dd8ff4a9",
+            "id": "6f225a71-a66e-4d94-9e68-464264c63584",
             "field": "currency",
             "expected": "THB",
             "received": "ZZZ"
@@ -187,17 +187,17 @@
           {
             "code": "FIELD_MISMATCH",
             "kind": "REFUND",
-            "id": "492e49fe-ab2b-42c7-84c2-a567dd8ff4a9",
+            "id": "6f225a71-a66e-4d94-9e68-464264c63584",
             "field": "paymentId",
-            "expected": "8f4bb4eb-c11f-4a21-ad13-492f5eb8952a",
-            "received": "47823785-8523-44e5-8c6e-a9e0c9aa5396"
+            "expected": "9f6c774f-bce1-41fa-8933-40e233efa300",
+            "received": "d7658690-ffed-471d-a8d6-25e77381c899"
           },
           {
             "code": "FIELD_MISMATCH",
             "kind": "PAYOUT",
-            "id": "74459465-b306-458d-832c-bce30113e0b7",
+            "id": "bb384459-db7b-422c-8b6b-86c531ceac73",
             "field": "externalReference",
-            "expected": "bank-e4affd3b-c3f9-4514-bb2e-23956cbe61cc",
+            "expected": "bank-d45568e2-8779-4ac9-ad2e-0821af895ed6",
             "received": "unknown-bank-reference"
           }
         ],
@@ -294,19 +294,19 @@
           {
             "code": "CONFLICTING_DUPLICATE",
             "kind": "PAYOUT",
-            "id": "74459465-b306-458d-832c-bce30113e0b7",
+            "id": "bb384459-db7b-422c-8b6b-86c531ceac73",
             "field": "recordId",
             "received": "fixture-payout"
           },
           {
             "code": "LOCAL_ROW_MISSING",
             "kind": "PAYMENT",
-            "id": "81b130e8-89d3-4d6d-8de0-28c989dd4433"
+            "id": "f29db8f3-0794-4fde-bb72-b6174fe1b46a"
           },
           {
             "code": "EXTERNAL_ROW_MISSING",
             "kind": "PAYMENT",
-            "id": "81b130e8-89d3-4d6d-8de0-28c989dd4433"
+            "id": "f29db8f3-0794-4fde-bb72-b6174fe1b46a"
           }
         ],
         "totals": [

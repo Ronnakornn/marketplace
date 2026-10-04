@@ -1,0 +1,151 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:19368) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:29452) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 19 tests using 1 worker
+
+  ok  1 [chromium] › e2e\numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves (9.4s)
+  ok  2 [chromium] › e2e\numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case (2.9s)
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer] 
+  ok  3 [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping (12.1s)
+  ok  4 [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping (6.2s)
+  ok  5 [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping (6.2s)
+  ok  6 [chromium] › e2e\numeric-analytics.spec.ts:13:1 › paid analytics reconciles ten views to ten percent and revenue ranking across pages (5.0s)
+  ok  7 [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (4.4s)
+  ok  8 [chromium] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (3.6s)
+  ok  9 [chromium] › e2e\numeric-boundaries.spec.ts:70:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (2.8s)
+  ok 10 [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for repriced basket (7.9s)
+  ok 11 [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for coupon and coins (6.7s)
+  ok 12 [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for flash price with coupon and coins (5.3s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 13 [chromium] › e2e\numeric-projections.spec.ts:88:1 › published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI (4.4s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 14 [chromium] › e2e\numeric-projections.spec.ts:155:1 › search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory (3.3s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 15 [chromium] › e2e\numeric-projections.spec.ts:215:1 › related rail prices match Catalog API and DB while similar API includes500/1500 edges only (1.6s)
+  x  16 [chromium] › e2e\numeric-reporting.spec.ts:19:1 › seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents (12.3s)
+  x  17 [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (3.4s)
+  ok 18 [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures INCLUSIVE tax and checkout stacks original shop and platform funding (5.2s)
+  ok 19 [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding (4.9s)
+
+
+  1) [chromium] › e2e\numeric-reporting.spec.ts:19:1 › seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('img', { name: '2026-09-30 views: 1', exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByRole('img', { name: '2026-09-30 views: 1', exact: true })
+
+
+      78 |   for (const day of windows) {
+      79 |     for (const label of [en.seller.analytics.trendViews, en.seller.analytics.trendAddToCart, en.seller.analytics.trendOrders]) {
+    > 80 |       await expect(page.getByRole("img", { name: `${label.replace("{date}", day.date)}: ${day.count}`, exact: true })).toBeVisible();
+         |                                                                                                                        ^
+      81 |     }
+      82 |   }
+      83 |   const productRow = page.getByRole("row").filter({ hasText: shop.product.title });
+        at D:\GitHub\marketplace\e2e\numeric-reporting.spec.ts:80:120
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+
+    Error: {"error":{"code":"INVALID_REQUEST","message":"{\n  \"type\": \"validation\",\n  \"on\": \"body\",\n  \"property\": \"/shippingFeeBaht\",\n  \"message\": \"Unexpected property\",\n  \"summary\": \"Property 'shippingFeeBaht' should not be provided\",\n  \"expected\": {},\n  \"found\": {\n    \"shippingFeeBaht\": \"49.95\"\n  },\n  \"errors\": [\n    {\n      \"type\": 42,\n      \"schema\": {\n        \"additionalProperties\": false,\n        \"type\": \"object\",\n        \"properties\": {\n          \"autoAcceptOrder\": {\n            \"type\": \"boolean\"\n          },\n          \"allowCod\": {\n            \"type\": \"boolean\"\n          },\n          \"chatEnabled\": {\n            \"type\": \"boolean\"\n          },\n          \"vacationMode\": {\n            \"type\": \"boolean\"\n          },\n          \"defaultShippingProvider\": {\n            \"anyOf\": [\n              {\n                \"type\": \"null\"\n              },\n              {\n                \"type\": \"string\"\n              }\n            ]\n          },\n          \"returnPolicy\": {\n            \"anyOf\": [\n              {\n                \"type\": \"null\"\n              },\n              {\n                \"type\": \"string\"\n              }\n            ]\n          },\n          \"shippingPolicy\": {\n            \"anyOf\": [\n              {\n                \"type\": \"null\"\n              },\n              {\n                \"type\": \"string\"\n              }\n            ]\n          }\n        }\n      },\n      \"path\": \"/shippingFeeBaht\",\n      \"value\": \"49.95\",\n      \"message\": \"Unexpected property\",\n      \"errors\": [],\n      \"summary\": \"Property 'shippingFeeBaht' should not be provided\"\n    },\n    {\n      \"summary\": \"Expected all values to match\",\n      \"type\": 29,\n      \"schema\": {\n        \"type\": \"object\",\n        \"allOf\": [\n          {\n            \"additionalProperties\": false,\n            \"type\": \"object\",\n            \"properties\": {\n              \"autoAcceptOrder\": {\n                \"type\": \"boolean\"\n              },\n              \"allowCod\": {\n                \"type\": \"boolean\"\n              },\n              \"chatEnabled\": {\n                \"type\": \"boolean\"\n              },\n              \"vacationMode\": {\n                \"type\": \"boolean\"\n              },\n              \"defaultShippingProvider\": {\n                \"anyOf\": [\n                  {\n                    \"type\": \"null\"\n                  },\n                  {\n                    \"type\": \"string\"\n                  }\n                ]\n              },\n              \"returnPolicy\": {\n                \"anyOf\": [\n                  {\n                    \"type\": \"null\"\n                  },\n                  {\n                    \"type\": \"string\"\n                  }\n                ]\n              },\n              \"shippingPolicy\": {\n                \"anyOf\": [\n                  {\n                    \"type\": \"null\"\n                  },\n                  {\n                    \"type\": \"string\"\n                  }\n                ]\n              }\n            }\n          },\n          {\n            \"type\": \"object\",\n            \"properties\": {\n              \"returnPolicyTh\": {\n                \"anyOf\": [\n                  {\n                    \"maxLength\": 5000,\n                    \"type\": \"string\"\n                  },\n                  {\n                    \"type\": \"null\"\n                  }\n                ]\n              },\n              \"returnPolicyEn\": {\n                \"anyOf\": [\n                  {\n                    \"maxLength\": 5000,\n                    \"type\": \"string\"\n                  },\n                  {\n                    \"type\": \"null\"\n                  }\n                ]\n              },\n              \"shippingPolicyTh\": {\n                \"anyOf\": [\n                  {\n                    \"maxLength\": 5000,\n                    \"type\": \"string\"\n                  },\n                  {\n                    \"type\": \"null\"\n                  }\n                ]\n              },\n              \"shippingPolicyEn\": {\n                \"anyOf\": [\n                  {\n                    \"maxLength\": 5000,\n                    \"type\": \"string\"\n                  },\n                  {\n                    \"type\": \"null\"\n                  }\n                ]\n              },\n              \"shippingFeeBaht\": {\n                \"anyOf\": [\n                  {\n                    \"minimum\": 0,\n                    \"maximum\": 100000,\n                    \"type\": \"number\"\n                  },\n                  {\n                    \"pattern\": \"^\\\\d+(?:\\\\.\\\\d{1,2})?$\",\n                    \"type\": \"string\"\n                  }\n                ]\n              }\n            }\n          }\n        ],\n        \"additionalProperties\": false\n      },\n      \"path\": \"\",\n      \"value\": {\n        \"shippingFeeBaht\": \"49.95\"\n      },\n      \"message\": \"Expected all values to match\",\n      \"errors\": []\n    }\n  ]\n}","requestId":"166d72e7-9c2a-4a5d-89af-d64ab7c51639"}}
+
+    expect(received).toBeTruthy()
+
+    Received: false
+
+      23 |   const saved = await savedResponse;
+      24 |   expect(saved.request().postDataJSON()).toMatchObject({ shippingFeeBaht: '49.95' });
+    > 25 |   expect(saved.ok(), await saved.text()).toBeTruthy();
+         |                                          ^
+      26 |   expect(await saved.json()).toMatchObject({ shopId: shop.id, shippingFeeBaht: 49.95 });
+      27 |   expect(await prisma.shopSetting.findUniqueOrThrow({ where: { shopId: shop.id } })).toMatchObject({ shippingFee: 4995n });
+      28 |   await expect(page.getByText(en.seller.manage.shippingFeeSaved, { exact: true })).toBeVisible();
+        at D:\GitHub\marketplace\e2e\numeric-shipping.spec.ts:25:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [chromium] › e2e\numeric-reporting.spec.ts:19:1 › seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents 
+    [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+  17 passed (2.0m)

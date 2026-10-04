@@ -1,0 +1,651 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/finance-lifecycle.spec.ts",
+      "e2e/numeric-home-freshness.spec.ts",
+      "--grep",
+      "snapshot refund plan shows|new homepage server",
+      "--project=chromium",
+      "--project=firefox",
+      "--project=webkit",
+      "--project=mobile-chromium",
+      "--project=mobile-webkit",
+      "--no-deps",
+      "--max-failures=5",
+      "--reporter=list,json",
+      "--output=docs/test-evidence/2026-10-04-audit-completion/browser-production-final"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 5,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-final",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-final",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-final",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-final",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-final",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-final",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-final",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "finance-lifecycle.spec.ts",
+      "file": "finance-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6790,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:33:20.167Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "seller-refund-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-chromium\\attachments\\seller-refund-balance-24ad4f801fd5b4720c94a2317271da504fe734c7.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-8e6bdbaadd95f5f6f1d2",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8350,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:33:29.567Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "seller-refund-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-firefox\\attachments\\seller-refund-balance-e1724d515194aafff3ce140f9c127e0617febfa1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-4adfdbe9da317625ec59",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 23007,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:33:41.853Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "seller-refund-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-webkit\\attachments\\seller-refund-balance-b9e0f9c5200e4f1d65c9d349741e18c47a98d080.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-2ff5cd59db4505b5f54a",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5903,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:34:10.818Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "seller-refund-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-mobile-chromium\\attachments\\seller-refund-balance-e0fb5ffa12108ced6371e1880d4712dbdf9b20e8.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-ab11a3299d559121bb28",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14959,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:34:19.404Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "seller-refund-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\finance-lifecycle-snapshot-9f373-nd-reconciles-UI-API-and-DB-mobile-webkit\\attachments\\seller-refund-balance-1a65df0731a3edc2f0fe87a81ecc2b8c9d5ba365.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-238cd7a20e225306473d",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-home-freshness.spec.ts",
+      "file": "numeric-home-freshness.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1515,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:33:27.301Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "homepage-freshness-a",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-chromium\\attachments\\homepage-freshness-a-8e4c288494701b13c83df1105c0ef1896c548570.png"
+                    },
+                    {
+                      "name": "homepage-freshness-b",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-chromium\\attachments\\homepage-freshness-b-d133f8a67bf2fe7458cd9713b4c7890cf03b5f6f.png"
+                    },
+                    {
+                      "name": "homepage-ui-api-db-freshness",
+                      "contentType": "application/json",
+                      "body": "ewogICJzdG9ja1N0YXRlU291cmNlIjogIlNlZWRlZCBwcm9qZWN0aW9uIHByZWNvbmRpdGlvbjsgY2hlY2tvdXQgcmVzZXJ2YXRpb24gbGlmZWN5Y2xlIGlzIGNvdmVyZWQgc2VwYXJhdGVseSBieSBudW1lcmljLXNoaXBwaW5nLnNwZWMudHMuIiwKICAiZmlyc3QiOiB7CiAgICAiYXBpIjogewogICAgICAiaWQiOiAiMTdjYjc0NDgtOThiNS00OTU4LTkyN2YtMWIyNjNiMmI3Y2ZmIiwKICAgICAgInRpdGxlIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLTk3ZGItNGQzZC1iOWYyLWEwMzk4ODk2ODkzNSIsCiAgICAgICJkZXNjcmlwdGlvbiI6IG51bGwsCiAgICAgICJzdGFydHNBdCI6ICIyMDI2LTEwLTA0VDAwOjMzOjI2LjU0N1oiLAogICAgICAiZW5kc0F0IjogIjIwMjYtMTAtMDRUMDA6MzU6MjcuNTQ3WiIsCiAgICAgICJpdGVtcyI6IFsKICAgICAgICB7CiAgICAgICAgICAiaWQiOiAiNmI4ZTVkYjktYTM0OC00Yjg0LWExMjMtYTQzZjIxN2I3ZjFmIiwKICAgICAgICAgICJzYWxlUHJpY2UiOiAiOTAwMCIsCiAgICAgICAgICAib3JpZ2luYWxQcmljZSI6ICIxMDAwMCIsCiAgICAgICAgICAic3RvY2tMaW1pdCI6IDIwLAogICAgICAgICAgInNvbGRDb3VudCI6IDAsCiAgICAgICAgICAiYXZhaWxhYmxlU3RvY2siOiAxLAogICAgICAgICAgInJhdGluZyI6IDAsCiAgICAgICAgICAicGVyVXNlckxpbWl0IjogMSwKICAgICAgICAgICJwcm9kdWN0IjogewogICAgICAgICAgICAiaWQiOiAiZjEwMmFiYzEtYmY3OC00MzVmLWFiYjgtODdhNjE5OGY1Y2ZjIiwKICAgICAgICAgICAgInRpdGxlIjogIkV4dGVuZGVkIHByb2R1Y3QgNzY3MDA0MjIiLAogICAgICAgICAgICAic2x1ZyI6ICI3OWNmZDVlYy0zNDZjLTRmOTUtYWQ1My1mMmQwY2U4Mzg1YzYiLAogICAgICAgICAgICAiY292ZXJJbWFnZSI6IG51bGwsCiAgICAgICAgICAgICJzaG9wIjogewogICAgICAgICAgICAgICJpZCI6ICIwMDAwMDAwMC05N2RiLTRkM2QtYjlmMi1hMDM5ODg5Njg5MzUiLAogICAgICAgICAgICAgICJuYW1lIjogIkV4dGVuZGVkIFNob3AgOGYzNjgzY2YiLAogICAgICAgICAgICAgICJzbHVnIjogImZhZDY1ZDI3LWQ0NmEtNDgyMS04OThkLWI3M2Q0Nzg5ZmIyOCIKICAgICAgICAgICAgfQogICAgICAgICAgfSwKICAgICAgICAgICJ2YXJpYW50IjogewogICAgICAgICAgICAiaWQiOiAiOWYxZDEwYTgtODRiMi00MjczLTg0MmItNDA5ZjA0MzQ1NzZjIiwKICAgICAgICAgICAgInNrdSI6ICI0MGIyNDliZi01Y2Y2LTQxMTEtYTFkOS1iMDBlOWRiNDRlMDMiLAogICAgICAgICAgICAidGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAgICJjdXJyZW5jeSI6ICJUSEIiCiAgICAgICAgICB9CiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgImRiIjogewogICAgICAiY2FtcGFpZ25JZCI6ICIxN2NiNzQ0OC05OGI1LTQ5NTgtOTI3Zi0xYjI2M2IyYjdjZmYiLAogICAgICAic2FsZVByaWNlIjogIjkwMDAiLAogICAgICAicXVhbnRpdHlPbkhhbmQiOiAxLAogICAgICAicXVhbnRpdHlSZXNlcnZlZCI6IDAKICAgIH0sCiAgICAidWkiOiB7CiAgICAgICJoZWFkaW5nIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLTk3ZGItNGQzZC1iOWYyLWEwMzk4ODk2ODkzNSIsCiAgICAgICJwcmljZSI6ICJUSELCoDkwLjAwIiwKICAgICAgImFkZEVuYWJsZWQiOiB0cnVlCiAgICB9CiAgfSwKICAic2Vjb25kIjogewogICAgImFwaSI6IHsKICAgICAgImlkIjogIjY0Zjk0NjQ1LTY0MzctNDQ2Ny04YjE1LTZmMGI2MDA2MGMyNiIsCiAgICAgICJ0aXRsZSI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC05N2RiLTRkM2QtYjlmMi1hMDM5ODg5Njg5MzUiLAogICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAic3RhcnRzQXQiOiAiMjAyNi0xMC0wNFQwMDozMzoyNy4yNDVaIiwKICAgICAgImVuZHNBdCI6ICIyMDI2LTEwLTA0VDAwOjM0OjU4LjI0NVoiLAogICAgICAiaXRlbXMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogIjhkODJlNWNmLWU4ZTEtNDdkZi04ZGJjLWFkN2U0YmI5YzZkZiIsCiAgICAgICAgICAic2FsZVByaWNlIjogIjgwMDAiLAogICAgICAgICAgIm9yaWdpbmFsUHJpY2UiOiAiMTAwMDAiLAogICAgICAgICAgInN0b2NrTGltaXQiOiAyMCwKICAgICAgICAgICJzb2xkQ291bnQiOiAwLAogICAgICAgICAgImF2YWlsYWJsZVN0b2NrIjogMCwKICAgICAgICAgICJyYXRpbmciOiAwLAogICAgICAgICAgInBlclVzZXJMaW1pdCI6IDEsCiAgICAgICAgICAicHJvZHVjdCI6IHsKICAgICAgICAgICAgImlkIjogImYxMDJhYmMxLWJmNzgtNDM1Zi1hYmI4LTg3YTYxOThmNWNmYyIsCiAgICAgICAgICAgICJ0aXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDc2NzAwNDIyIiwKICAgICAgICAgICAgInNsdWciOiAiNzljZmQ1ZWMtMzQ2Yy00Zjk1LWFkNTMtZjJkMGNlODM4NWM2IiwKICAgICAgICAgICAgImNvdmVySW1hZ2UiOiBudWxsLAogICAgICAgICAgICAic2hvcCI6IHsKICAgICAgICAgICAgICAiaWQiOiAiMDAwMDAwMDAtOTdkYi00ZDNkLWI5ZjItYTAzOTg4OTY4OTM1IiwKICAgICAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIDhmMzY4M2NmIiwKICAgICAgICAgICAgICAic2x1ZyI6ICJmYWQ2NWQyNy1kNDZhLTQ4MjEtODk4ZC1iNzNkNDc4OWZiMjgiCiAgICAgICAgICAgIH0KICAgICAgICAgIH0sCiAgICAgICAgICAidmFyaWFudCI6IHsKICAgICAgICAgICAgImlkIjogIjlmMWQxMGE4LTg0YjItNDI3My04NDJiLTQwOWYwNDM0NTc2YyIsCiAgICAgICAgICAgICJza3UiOiAiNDBiMjQ5YmYtNWNmNi00MTExLWExZDktYjAwZTlkYjQ0ZTAzIiwKICAgICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgICAiY3VycmVuY3kiOiAiVEhCIgogICAgICAgICAgfQogICAgICAgIH0KICAgICAgXQogICAgfSwKICAgICJkYiI6IHsKICAgICAgImNhbXBhaWduSWQiOiAiNjRmOTQ2NDUtNjQzNy00NDY3LThiMTUtNmYwYjYwMDYwYzI2IiwKICAgICAgInNhbGVQcmljZSI6ICI4MDAwIiwKICAgICAgInF1YW50aXR5T25IYW5kIjogMSwKICAgICAgInF1YW50aXR5UmVzZXJ2ZWQiOiAxCiAgICB9LAogICAgInVpIjogewogICAgICAiaGVhZGluZyI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC05N2RiLTRkM2QtYjlmMi1hMDM5ODg5Njg5MzUiLAogICAgICAicHJpY2UiOiAiVEhCwqA4MC4wMCIsCiAgICAgICJhZGREaXNhYmxlZCI6IHRydWUKICAgIH0KICB9LAogICJoeWRyYXRpb25FcnJvcnMiOiBbXQp9"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "77e958d8767152168176-2306e9ab8b6bb3e14e3d",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2210,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:33:38.629Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "homepage-freshness-a",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-firefox\\attachments\\homepage-freshness-a-2a33df3d1668fb73c28c5116cf73bc169cce25db.png"
+                    },
+                    {
+                      "name": "homepage-freshness-b",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-firefox\\attachments\\homepage-freshness-b-26cee74566be0e50fcf9d3c2a3cc74e215492d8d.png"
+                    },
+                    {
+                      "name": "homepage-ui-api-db-freshness",
+                      "contentType": "application/json",
+                      "body": "ewogICJzdG9ja1N0YXRlU291cmNlIjogIlNlZWRlZCBwcm9qZWN0aW9uIHByZWNvbmRpdGlvbjsgY2hlY2tvdXQgcmVzZXJ2YXRpb24gbGlmZWN5Y2xlIGlzIGNvdmVyZWQgc2VwYXJhdGVseSBieSBudW1lcmljLXNoaXBwaW5nLnNwZWMudHMuIiwKICAiZmlyc3QiOiB7CiAgICAiYXBpIjogewogICAgICAiaWQiOiAiMDdmN2Q4NGMtNjIwOS00ZGUyLWE4MWUtYTcxYjc4MzMyNWE2IiwKICAgICAgInRpdGxlIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLThhM2UtNDg4My1iYmExLTJkN2E1NzUxNjI3MCIsCiAgICAgICJkZXNjcmlwdGlvbiI6IG51bGwsCiAgICAgICJzdGFydHNBdCI6ICIyMDI2LTEwLTA0VDAwOjMzOjM3Ljk3OVoiLAogICAgICAiZW5kc0F0IjogIjIwMjYtMTAtMDRUMDA6MzU6MzguOTc5WiIsCiAgICAgICJpdGVtcyI6IFsKICAgICAgICB7CiAgICAgICAgICAiaWQiOiAiMTVlN2YxYzMtYzgxNC00NTk2LWEwNWUtMTExNTE4Nzc4MTQ4IiwKICAgICAgICAgICJzYWxlUHJpY2UiOiAiOTAwMCIsCiAgICAgICAgICAib3JpZ2luYWxQcmljZSI6ICIxMDAwMCIsCiAgICAgICAgICAic3RvY2tMaW1pdCI6IDIwLAogICAgICAgICAgInNvbGRDb3VudCI6IDAsCiAgICAgICAgICAiYXZhaWxhYmxlU3RvY2siOiAxLAogICAgICAgICAgInJhdGluZyI6IDAsCiAgICAgICAgICAicGVyVXNlckxpbWl0IjogMSwKICAgICAgICAgICJwcm9kdWN0IjogewogICAgICAgICAgICAiaWQiOiAiN2U5ZmRkMzktNzRmNC00ODIxLWEyNTQtMTAzNzRjYzkxMTE4IiwKICAgICAgICAgICAgInRpdGxlIjogIkV4dGVuZGVkIHByb2R1Y3QgMGMzMWU5YzgiLAogICAgICAgICAgICAic2x1ZyI6ICJhZjQxMjJmNy0yNGRmLTRiMjYtYjMyNS1mNDhlMWJhMGM4ZTAiLAogICAgICAgICAgICAiY292ZXJJbWFnZSI6IG51bGwsCiAgICAgICAgICAgICJzaG9wIjogewogICAgICAgICAgICAgICJpZCI6ICIwMDAwMDAwMC04YTNlLTQ4ODMtYmJhMS0yZDdhNTc1MTYyNzAiLAogICAgICAgICAgICAgICJuYW1lIjogIkV4dGVuZGVkIFNob3AgODZlMGM4ZTMiLAogICAgICAgICAgICAgICJzbHVnIjogImU1ZjZiYTVjLTE2OTgtNGQ5NS05N2ZhLTJhNzEzYzU3MDc2MCIKICAgICAgICAgICAgfQogICAgICAgICAgfSwKICAgICAgICAgICJ2YXJpYW50IjogewogICAgICAgICAgICAiaWQiOiAiN2E3NjMyMzUtZmFmZi00N2E3LWIwMDEtZmY4OTMzNzg5NmMzIiwKICAgICAgICAgICAgInNrdSI6ICI2YWFkYTkwNi0wMTAzLTRjZTAtYmUzMS0wN2IzY2U2ZTM3ZWEiLAogICAgICAgICAgICAidGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAgICJjdXJyZW5jeSI6ICJUSEIiCiAgICAgICAgICB9CiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgImRiIjogewogICAgICAiY2FtcGFpZ25JZCI6ICIwN2Y3ZDg0Yy02MjA5LTRkZTItYTgxZS1hNzFiNzgzMzI1YTYiLAogICAgICAic2FsZVByaWNlIjogIjkwMDAiLAogICAgICAicXVhbnRpdHlPbkhhbmQiOiAxLAogICAgICAicXVhbnRpdHlSZXNlcnZlZCI6IDAKICAgIH0sCiAgICAidWkiOiB7CiAgICAgICJoZWFkaW5nIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLThhM2UtNDg4My1iYmExLTJkN2E1NzUxNjI3MCIsCiAgICAgICJwcmljZSI6ICJUSELCoDkwLjAwIiwKICAgICAgImFkZEVuYWJsZWQiOiB0cnVlCiAgICB9CiAgfSwKICAic2Vjb25kIjogewogICAgImFwaSI6IHsKICAgICAgImlkIjogIjVmMDY1NTA5LWViZmMtNDg2Zi1iYTA4LTc4YjMyODAyNTA4ZSIsCiAgICAgICJ0aXRsZSI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC04YTNlLTQ4ODMtYmJhMS0yZDdhNTc1MTYyNzAiLAogICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAic3RhcnRzQXQiOiAiMjAyNi0xMC0wNFQwMDozMzozOC45NzBaIiwKICAgICAgImVuZHNBdCI6ICIyMDI2LTEwLTA0VDAwOjM1OjA5Ljk3MFoiLAogICAgICAiaXRlbXMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogImJjM2FlZGNiLTJkN2YtNGQ5NC1iZjdmLTllMjNlYTBlNDEyYSIsCiAgICAgICAgICAic2FsZVByaWNlIjogIjgwMDAiLAogICAgICAgICAgIm9yaWdpbmFsUHJpY2UiOiAiMTAwMDAiLAogICAgICAgICAgInN0b2NrTGltaXQiOiAyMCwKICAgICAgICAgICJzb2xkQ291bnQiOiAwLAogICAgICAgICAgImF2YWlsYWJsZVN0b2NrIjogMCwKICAgICAgICAgICJyYXRpbmciOiAwLAogICAgICAgICAgInBlclVzZXJMaW1pdCI6IDEsCiAgICAgICAgICAicHJvZHVjdCI6IHsKICAgICAgICAgICAgImlkIjogIjdlOWZkZDM5LTc0ZjQtNDgyMS1hMjU0LTEwMzc0Y2M5MTExOCIsCiAgICAgICAgICAgICJ0aXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDBjMzFlOWM4IiwKICAgICAgICAgICAgInNsdWciOiAiYWY0MTIyZjctMjRkZi00YjI2LWIzMjUtZjQ4ZTFiYTBjOGUwIiwKICAgICAgICAgICAgImNvdmVySW1hZ2UiOiBudWxsLAogICAgICAgICAgICAic2hvcCI6IHsKICAgICAgICAgICAgICAiaWQiOiAiMDAwMDAwMDAtOGEzZS00ODgzLWJiYTEtMmQ3YTU3NTE2MjcwIiwKICAgICAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIDg2ZTBjOGUzIiwKICAgICAgICAgICAgICAic2x1ZyI6ICJlNWY2YmE1Yy0xNjk4LTRkOTUtOTdmYS0yYTcxM2M1NzA3NjAiCiAgICAgICAgICAgIH0KICAgICAgICAgIH0sCiAgICAgICAgICAidmFyaWFudCI6IHsKICAgICAgICAgICAgImlkIjogIjdhNzYzMjM1LWZhZmYtNDdhNy1iMDAxLWZmODkzMzc4OTZjMyIsCiAgICAgICAgICAgICJza3UiOiAiNmFhZGE5MDYtMDEwMy00Y2UwLWJlMzEtMDdiM2NlNmUzN2VhIiwKICAgICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgICAiY3VycmVuY3kiOiAiVEhCIgogICAgICAgICAgfQogICAgICAgIH0KICAgICAgXQogICAgfSwKICAgICJkYiI6IHsKICAgICAgImNhbXBhaWduSWQiOiAiNWYwNjU1MDktZWJmYy00ODZmLWJhMDgtNzhiMzI4MDI1MDhlIiwKICAgICAgInNhbGVQcmljZSI6ICI4MDAwIiwKICAgICAgInF1YW50aXR5T25IYW5kIjogMSwKICAgICAgInF1YW50aXR5UmVzZXJ2ZWQiOiAxCiAgICB9LAogICAgInVpIjogewogICAgICAiaGVhZGluZyI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC04YTNlLTQ4ODMtYmJhMS0yZDdhNTc1MTYyNzAiLAogICAgICAicHJpY2UiOiAiVEhCwqA4MC4wMCIsCiAgICAgICJhZGREaXNhYmxlZCI6IHRydWUKICAgIH0KICB9LAogICJoeWRyYXRpb25FcnJvcnMiOiBbXQp9"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "77e958d8767152168176-46112341f21edf19bc5e",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4687,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:34:05.203Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "homepage-freshness-a",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-webkit\\attachments\\homepage-freshness-a-c319cbc0f81cb74163bc73428e59c7fb45c06e83.png"
+                    },
+                    {
+                      "name": "homepage-freshness-b",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-webkit\\attachments\\homepage-freshness-b-679cb9045c499a6747d4a0b0e23ef385bfb22ab2.png"
+                    },
+                    {
+                      "name": "homepage-ui-api-db-freshness",
+                      "contentType": "application/json",
+                      "body": "ewogICJzdG9ja1N0YXRlU291cmNlIjogIlNlZWRlZCBwcm9qZWN0aW9uIHByZWNvbmRpdGlvbjsgY2hlY2tvdXQgcmVzZXJ2YXRpb24gbGlmZWN5Y2xlIGlzIGNvdmVyZWQgc2VwYXJhdGVseSBieSBudW1lcmljLXNoaXBwaW5nLnNwZWMudHMuIiwKICAiZmlyc3QiOiB7CiAgICAiYXBpIjogewogICAgICAiaWQiOiAiZWY2YzQ4YTctZDE4Ni00NDIwLWJjYTYtOTc1ZWFiYjhhOGY4IiwKICAgICAgInRpdGxlIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLTFiNTctNGNhMC04MDU4LTBhYmQ2MjBjNTY5ZiIsCiAgICAgICJkZXNjcmlwdGlvbiI6IG51bGwsCiAgICAgICJzdGFydHNBdCI6ICIyMDI2LTEwLTA0VDAwOjM0OjA0LjU4NloiLAogICAgICAiZW5kc0F0IjogIjIwMjYtMTAtMDRUMDA6MzY6MDUuNTg2WiIsCiAgICAgICJpdGVtcyI6IFsKICAgICAgICB7CiAgICAgICAgICAiaWQiOiAiOGM5MmE5N2UtM2NhOC00YmE4LWI5YmYtM2RkMDUyNzQ3N2QwIiwKICAgICAgICAgICJzYWxlUHJpY2UiOiAiOTAwMCIsCiAgICAgICAgICAib3JpZ2luYWxQcmljZSI6ICIxMDAwMCIsCiAgICAgICAgICAic3RvY2tMaW1pdCI6IDIwLAogICAgICAgICAgInNvbGRDb3VudCI6IDAsCiAgICAgICAgICAiYXZhaWxhYmxlU3RvY2siOiAxLAogICAgICAgICAgInJhdGluZyI6IDAsCiAgICAgICAgICAicGVyVXNlckxpbWl0IjogMSwKICAgICAgICAgICJwcm9kdWN0IjogewogICAgICAgICAgICAiaWQiOiAiMjkwNzc0YzgtZTJjNS00Mzk0LWJhMWUtZDM4ZWQ4MmFkNTkyIiwKICAgICAgICAgICAgInRpdGxlIjogIkV4dGVuZGVkIHByb2R1Y3QgMWEwODAyYmMiLAogICAgICAgICAgICAic2x1ZyI6ICJiODBiZDAzYS01NWFiLTQzMmYtOWExZi1jZjAwN2E0YTY2ZWIiLAogICAgICAgICAgICAiY292ZXJJbWFnZSI6IG51bGwsCiAgICAgICAgICAgICJzaG9wIjogewogICAgICAgICAgICAgICJpZCI6ICIwMDAwMDAwMC0xYjU3LTRjYTAtODA1OC0wYWJkNjIwYzU2OWYiLAogICAgICAgICAgICAgICJuYW1lIjogIkV4dGVuZGVkIFNob3AgNmQyMTNiNTYiLAogICAgICAgICAgICAgICJzbHVnIjogIjhjYjM3Nzc0LTAyNDEtNGMzNS1hYWJhLWYyZGZmOGU0MzFjMSIKICAgICAgICAgICAgfQogICAgICAgICAgfSwKICAgICAgICAgICJ2YXJpYW50IjogewogICAgICAgICAgICAiaWQiOiAiN2FkYzU4NDQtNTY2OS00ZjNlLTg2ZjEtZDZiMjlkY2JjNGMwIiwKICAgICAgICAgICAgInNrdSI6ICIyMDdmYzI4ZS05ZDU2LTQ0NTYtODM1OS05MGI3MDIwNTYzNzMiLAogICAgICAgICAgICAidGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAgICJjdXJyZW5jeSI6ICJUSEIiCiAgICAgICAgICB9CiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgImRiIjogewogICAgICAiY2FtcGFpZ25JZCI6ICJlZjZjNDhhNy1kMTg2LTQ0MjAtYmNhNi05NzVlYWJiOGE4ZjgiLAogICAgICAic2FsZVByaWNlIjogIjkwMDAiLAogICAgICAicXVhbnRpdHlPbkhhbmQiOiAxLAogICAgICAicXVhbnRpdHlSZXNlcnZlZCI6IDAKICAgIH0sCiAgICAidWkiOiB7CiAgICAgICJoZWFkaW5nIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLTFiNTctNGNhMC04MDU4LTBhYmQ2MjBjNTY5ZiIsCiAgICAgICJwcmljZSI6ICJUSELCoDkwLjAwIiwKICAgICAgImFkZEVuYWJsZWQiOiB0cnVlCiAgICB9CiAgfSwKICAic2Vjb25kIjogewogICAgImFwaSI6IHsKICAgICAgImlkIjogImY2MDU2OTAyLTk4YjYtNDYyZi04N2RkLTIzMzBkYzY5MmFkNCIsCiAgICAgICJ0aXRsZSI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC0xYjU3LTRjYTAtODA1OC0wYWJkNjIwYzU2OWYiLAogICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAic3RhcnRzQXQiOiAiMjAyNi0xMC0wNFQwMDozNDowNy4xNjZaIiwKICAgICAgImVuZHNBdCI6ICIyMDI2LTEwLTA0VDAwOjM1OjM4LjE2NloiLAogICAgICAiaXRlbXMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogIjg1OTZhNTAyLTVhM2UtNDc0ZC04ZjJmLWE0MDU3ODk3N2MyOCIsCiAgICAgICAgICAic2FsZVByaWNlIjogIjgwMDAiLAogICAgICAgICAgIm9yaWdpbmFsUHJpY2UiOiAiMTAwMDAiLAogICAgICAgICAgInN0b2NrTGltaXQiOiAyMCwKICAgICAgICAgICJzb2xkQ291bnQiOiAwLAogICAgICAgICAgImF2YWlsYWJsZVN0b2NrIjogMCwKICAgICAgICAgICJyYXRpbmciOiAwLAogICAgICAgICAgInBlclVzZXJMaW1pdCI6IDEsCiAgICAgICAgICAicHJvZHVjdCI6IHsKICAgICAgICAgICAgImlkIjogIjI5MDc3NGM4LWUyYzUtNDM5NC1iYTFlLWQzOGVkODJhZDU5MiIsCiAgICAgICAgICAgICJ0aXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDFhMDgwMmJjIiwKICAgICAgICAgICAgInNsdWciOiAiYjgwYmQwM2EtNTVhYi00MzJmLTlhMWYtY2YwMDdhNGE2NmViIiwKICAgICAgICAgICAgImNvdmVySW1hZ2UiOiBudWxsLAogICAgICAgICAgICAic2hvcCI6IHsKICAgICAgICAgICAgICAiaWQiOiAiMDAwMDAwMDAtMWI1Ny00Y2EwLTgwNTgtMGFiZDYyMGM1NjlmIiwKICAgICAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIDZkMjEzYjU2IiwKICAgICAgICAgICAgICAic2x1ZyI6ICI4Y2IzNzc3NC0wMjQxLTRjMzUtYWFiYS1mMmRmZjhlNDMxYzEiCiAgICAgICAgICAgIH0KICAgICAgICAgIH0sCiAgICAgICAgICAidmFyaWFudCI6IHsKICAgICAgICAgICAgImlkIjogIjdhZGM1ODQ0LTU2NjktNGYzZS04NmYxLWQ2YjI5ZGNiYzRjMCIsCiAgICAgICAgICAgICJza3UiOiAiMjA3ZmMyOGUtOWQ1Ni00NDU2LTgzNTktOTBiNzAyMDU2MzczIiwKICAgICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgICAiY3VycmVuY3kiOiAiVEhCIgogICAgICAgICAgfQogICAgICAgIH0KICAgICAgXQogICAgfSwKICAgICJkYiI6IHsKICAgICAgImNhbXBhaWduSWQiOiAiZjYwNTY5MDItOThiNi00NjJmLTg3ZGQtMjMzMGRjNjkyYWQ0IiwKICAgICAgInNhbGVQcmljZSI6ICI4MDAwIiwKICAgICAgInF1YW50aXR5T25IYW5kIjogMSwKICAgICAgInF1YW50aXR5UmVzZXJ2ZWQiOiAxCiAgICB9LAogICAgInVpIjogewogICAgICAiaGVhZGluZyI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC0xYjU3LTRjYTAtODA1OC0wYWJkNjIwYzU2OWYiLAogICAgICAicHJpY2UiOiAiVEhCwqA4MC4wMCIsCiAgICAgICJhZGREaXNhYmxlZCI6IHRydWUKICAgIH0KICB9LAogICJoeWRyYXRpb25FcnJvcnMiOiBbXQp9"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "77e958d8767152168176-cb8bf8cb94e5fdcca1d9",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1645,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:34:17.054Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "homepage-freshness-a",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-mobile-chromium\\attachments\\homepage-freshness-a-dc8a8d607cf5471c4ed559f9554ff5dd32e04fb7.png"
+                    },
+                    {
+                      "name": "homepage-freshness-b",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-mobile-chromium\\attachments\\homepage-freshness-b-7e37249f745b3bd2959deba152b0a657f80c5d87.png"
+                    },
+                    {
+                      "name": "homepage-ui-api-db-freshness",
+                      "contentType": "application/json",
+                      "body": "ewogICJzdG9ja1N0YXRlU291cmNlIjogIlNlZWRlZCBwcm9qZWN0aW9uIHByZWNvbmRpdGlvbjsgY2hlY2tvdXQgcmVzZXJ2YXRpb24gbGlmZWN5Y2xlIGlzIGNvdmVyZWQgc2VwYXJhdGVseSBieSBudW1lcmljLXNoaXBwaW5nLnNwZWMudHMuIiwKICAiZmlyc3QiOiB7CiAgICAiYXBpIjogewogICAgICAiaWQiOiAiMWZlM2JiYWEtNmJlZS00NDg2LThiZTQtMGU0MDBmMGMxZDZkIiwKICAgICAgInRpdGxlIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLWFhODEtNDdiMS04ZDExLTg5OTI4ZWNkZWU3MyIsCiAgICAgICJkZXNjcmlwdGlvbiI6IG51bGwsCiAgICAgICJzdGFydHNBdCI6ICIyMDI2LTEwLTA0VDAwOjM0OjE2LjI5OFoiLAogICAgICAiZW5kc0F0IjogIjIwMjYtMTAtMDRUMDA6MzY6MTcuMjk4WiIsCiAgICAgICJpdGVtcyI6IFsKICAgICAgICB7CiAgICAgICAgICAiaWQiOiAiZTJiMzJiYTAtZjljZS00ZTdmLWI1NWEtZGI2ZjMwMWY1MzY1IiwKICAgICAgICAgICJzYWxlUHJpY2UiOiAiOTAwMCIsCiAgICAgICAgICAib3JpZ2luYWxQcmljZSI6ICIxMDAwMCIsCiAgICAgICAgICAic3RvY2tMaW1pdCI6IDIwLAogICAgICAgICAgInNvbGRDb3VudCI6IDAsCiAgICAgICAgICAiYXZhaWxhYmxlU3RvY2siOiAxLAogICAgICAgICAgInJhdGluZyI6IDAsCiAgICAgICAgICAicGVyVXNlckxpbWl0IjogMSwKICAgICAgICAgICJwcm9kdWN0IjogewogICAgICAgICAgICAiaWQiOiAiOTU2YmU2N2ItNmI3Zi00NTUwLWI3MzAtY2Y1NjY1MDk5YTBkIiwKICAgICAgICAgICAgInRpdGxlIjogIkV4dGVuZGVkIHByb2R1Y3QgNGM3MWUyYTIiLAogICAgICAgICAgICAic2x1ZyI6ICJiYWM1NWY2NC05MjM5LTRlYzQtODI3NS04NTI1NzI3ZmQzOTIiLAogICAgICAgICAgICAiY292ZXJJbWFnZSI6IG51bGwsCiAgICAgICAgICAgICJzaG9wIjogewogICAgICAgICAgICAgICJpZCI6ICIwMDAwMDAwMC1hYTgxLTQ3YjEtOGQxMS04OTkyOGVjZGVlNzMiLAogICAgICAgICAgICAgICJuYW1lIjogIkV4dGVuZGVkIFNob3AgNmM2ZjE1MGQiLAogICAgICAgICAgICAgICJzbHVnIjogIjcyMTZmYjcxLTEzNGUtNDRmMy1iOTdmLWYyYTBlY2IwM2NkNyIKICAgICAgICAgICAgfQogICAgICAgICAgfSwKICAgICAgICAgICJ2YXJpYW50IjogewogICAgICAgICAgICAiaWQiOiAiMjE1NWMyYzAtYjViZi00NWJlLTg4ZDktNDhjNjdhOTJlMTllIiwKICAgICAgICAgICAgInNrdSI6ICJjNDI5YzA1Ni03ZDUwLTQ1MTUtOTY1My05MGFkNzc1OTQwMWEiLAogICAgICAgICAgICAidGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAgICJjdXJyZW5jeSI6ICJUSEIiCiAgICAgICAgICB9CiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgImRiIjogewogICAgICAiY2FtcGFpZ25JZCI6ICIxZmUzYmJhYS02YmVlLTQ0ODYtOGJlNC0wZTQwMGYwYzFkNmQiLAogICAgICAic2FsZVByaWNlIjogIjkwMDAiLAogICAgICAicXVhbnRpdHlPbkhhbmQiOiAxLAogICAgICAicXVhbnRpdHlSZXNlcnZlZCI6IDAKICAgIH0sCiAgICAidWkiOiB7CiAgICAgICJoZWFkaW5nIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLWFhODEtNDdiMS04ZDExLTg5OTI4ZWNkZWU3MyIsCiAgICAgICJwcmljZSI6ICJUSELCoDkwLjAwIiwKICAgICAgImFkZEVuYWJsZWQiOiB0cnVlCiAgICB9CiAgfSwKICAic2Vjb25kIjogewogICAgImFwaSI6IHsKICAgICAgImlkIjogImVhYzVmNjZmLTIzMDctNGQxMy1iMDFmLTMzNDNjNjYzNTlkMyIsCiAgICAgICJ0aXRsZSI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC1hYTgxLTQ3YjEtOGQxMS04OTkyOGVjZGVlNzMiLAogICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAic3RhcnRzQXQiOiAiMjAyNi0xMC0wNFQwMDozNDoxNi45OTFaIiwKICAgICAgImVuZHNBdCI6ICIyMDI2LTEwLTA0VDAwOjM1OjQ3Ljk5MVoiLAogICAgICAiaXRlbXMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogIjUwNjQ4Yjg0LWJkODgtNDNmOC05OWQ3LTEwNzhjZDA0OTVkMSIsCiAgICAgICAgICAic2FsZVByaWNlIjogIjgwMDAiLAogICAgICAgICAgIm9yaWdpbmFsUHJpY2UiOiAiMTAwMDAiLAogICAgICAgICAgInN0b2NrTGltaXQiOiAyMCwKICAgICAgICAgICJzb2xkQ291bnQiOiAwLAogICAgICAgICAgImF2YWlsYWJsZVN0b2NrIjogMCwKICAgICAgICAgICJyYXRpbmciOiAwLAogICAgICAgICAgInBlclVzZXJMaW1pdCI6IDEsCiAgICAgICAgICAicHJvZHVjdCI6IHsKICAgICAgICAgICAgImlkIjogIjk1NmJlNjdiLTZiN2YtNDU1MC1iNzMwLWNmNTY2NTA5OWEwZCIsCiAgICAgICAgICAgICJ0aXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDRjNzFlMmEyIiwKICAgICAgICAgICAgInNsdWciOiAiYmFjNTVmNjQtOTIzOS00ZWM0LTgyNzUtODUyNTcyN2ZkMzkyIiwKICAgICAgICAgICAgImNvdmVySW1hZ2UiOiBudWxsLAogICAgICAgICAgICAic2hvcCI6IHsKICAgICAgICAgICAgICAiaWQiOiAiMDAwMDAwMDAtYWE4MS00N2IxLThkMTEtODk5MjhlY2RlZTczIiwKICAgICAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIDZjNmYxNTBkIiwKICAgICAgICAgICAgICAic2x1ZyI6ICI3MjE2ZmI3MS0xMzRlLTQ0ZjMtYjk3Zi1mMmEwZWNiMDNjZDciCiAgICAgICAgICAgIH0KICAgICAgICAgIH0sCiAgICAgICAgICAidmFyaWFudCI6IHsKICAgICAgICAgICAgImlkIjogIjIxNTVjMmMwLWI1YmYtNDViZS04OGQ5LTQ4YzY3YTkyZTE5ZSIsCiAgICAgICAgICAgICJza3UiOiAiYzQyOWMwNTYtN2Q1MC00NTE1LTk2NTMtOTBhZDc3NTk0MDFhIiwKICAgICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgICAiY3VycmVuY3kiOiAiVEhCIgogICAgICAgICAgfQogICAgICAgIH0KICAgICAgXQogICAgfSwKICAgICJkYiI6IHsKICAgICAgImNhbXBhaWduSWQiOiAiZWFjNWY2NmYtMjMwNy00ZDEzLWIwMWYtMzM0M2M2NjM1OWQzIiwKICAgICAgInNhbGVQcmljZSI6ICI4MDAwIiwKICAgICAgInF1YW50aXR5T25IYW5kIjogMSwKICAgICAgInF1YW50aXR5UmVzZXJ2ZWQiOiAxCiAgICB9LAogICAgInVpIjogewogICAgICAiaGVhZGluZyI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC1hYTgxLTQ3YjEtOGQxMS04OTkyOGVjZGVlNzMiLAogICAgICAicHJpY2UiOiAiVEhCwqA4MC4wMCIsCiAgICAgICJhZGREaXNhYmxlZCI6IHRydWUKICAgIH0KICB9LAogICJoeWRyYXRpb25FcnJvcnMiOiBbXQp9"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "77e958d8767152168176-3b486db11c28d132bcc7",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4036,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:34:34.683Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "homepage-freshness-a",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-mobile-webkit\\attachments\\homepage-freshness-a-7fc2144bb03b104325b421e507834fd2457d145f.png"
+                    },
+                    {
+                      "name": "homepage-freshness-b",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-final\\numeric-home-freshness-new-a02e0-e-and-physical-availability-mobile-webkit\\attachments\\homepage-freshness-b-970edba07473e642acd5cffae70e4a3c59cbc6b0.png"
+                    },
+                    {
+                      "name": "homepage-ui-api-db-freshness",
+                      "contentType": "application/json",
+                      "body": "ewogICJzdG9ja1N0YXRlU291cmNlIjogIlNlZWRlZCBwcm9qZWN0aW9uIHByZWNvbmRpdGlvbjsgY2hlY2tvdXQgcmVzZXJ2YXRpb24gbGlmZWN5Y2xlIGlzIGNvdmVyZWQgc2VwYXJhdGVseSBieSBudW1lcmljLXNoaXBwaW5nLnNwZWMudHMuIiwKICAiZmlyc3QiOiB7CiAgICAiYXBpIjogewogICAgICAiaWQiOiAiMDZlM2VlNWYtYmE1ZS00YWI2LWI0YmMtN2E0NWJmYjUxMWQzIiwKICAgICAgInRpdGxlIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLWM5NWEtNDYwOC1iODViLWU5ZGE4MzkzYjE3NCIsCiAgICAgICJkZXNjcmlwdGlvbiI6IG51bGwsCiAgICAgICJzdGFydHNBdCI6ICIyMDI2LTEwLTA0VDAwOjM0OjM0LjA1MFoiLAogICAgICAiZW5kc0F0IjogIjIwMjYtMTAtMDRUMDA6MzY6MzUuMDUwWiIsCiAgICAgICJpdGVtcyI6IFsKICAgICAgICB7CiAgICAgICAgICAiaWQiOiAiNzNmYmU3MzktOWMxMy00YjE0LTk3MjYtNjg0ZWY4ZDQ4YWM1IiwKICAgICAgICAgICJzYWxlUHJpY2UiOiAiOTAwMCIsCiAgICAgICAgICAib3JpZ2luYWxQcmljZSI6ICIxMDAwMCIsCiAgICAgICAgICAic3RvY2tMaW1pdCI6IDIwLAogICAgICAgICAgInNvbGRDb3VudCI6IDAsCiAgICAgICAgICAiYXZhaWxhYmxlU3RvY2siOiAxLAogICAgICAgICAgInJhdGluZyI6IDAsCiAgICAgICAgICAicGVyVXNlckxpbWl0IjogMSwKICAgICAgICAgICJwcm9kdWN0IjogewogICAgICAgICAgICAiaWQiOiAiYjY5NzkxY2ItNzkzNy00MmMzLTg1YTAtMjIxYzU1MmY2ZDUwIiwKICAgICAgICAgICAgInRpdGxlIjogIkV4dGVuZGVkIHByb2R1Y3QgMTdkOGRhNWQiLAogICAgICAgICAgICAic2x1ZyI6ICJlM2Q0YzYxZC00ZWZlLTRlMDYtOWFlZS01OTViODdjOTdkNWYiLAogICAgICAgICAgICAiY292ZXJJbWFnZSI6IG51bGwsCiAgICAgICAgICAgICJzaG9wIjogewogICAgICAgICAgICAgICJpZCI6ICIwMDAwMDAwMC1jOTVhLTQ2MDgtYjg1Yi1lOWRhODM5M2IxNzQiLAogICAgICAgICAgICAgICJuYW1lIjogIkV4dGVuZGVkIFNob3AgMDhmOWZkOGMiLAogICAgICAgICAgICAgICJzbHVnIjogIjkzNDcxYmI5LTM4MGQtNDc1NS04N2E5LTY4ZGM4MTZjMzA1MCIKICAgICAgICAgICAgfQogICAgICAgICAgfSwKICAgICAgICAgICJ2YXJpYW50IjogewogICAgICAgICAgICAiaWQiOiAiOGRlOTNjNTItZDRkOC00NmViLTllN2QtYjg0ZGFmZjViZTgyIiwKICAgICAgICAgICAgInNrdSI6ICI1NWZhNDI0Zi1lNmYyLTQ1YTAtYTRkMS00OWVjZmI2NTUwOTIiLAogICAgICAgICAgICAidGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAgICJjdXJyZW5jeSI6ICJUSEIiCiAgICAgICAgICB9CiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgImRiIjogewogICAgICAiY2FtcGFpZ25JZCI6ICIwNmUzZWU1Zi1iYTVlLTRhYjYtYjRiYy03YTQ1YmZiNTExZDMiLAogICAgICAic2FsZVByaWNlIjogIjkwMDAiLAogICAgICAicXVhbnRpdHlPbkhhbmQiOiAxLAogICAgICAicXVhbnRpdHlSZXNlcnZlZCI6IDAKICAgIH0sCiAgICAidWkiOiB7CiAgICAgICJoZWFkaW5nIjogIkZyZXNobmVzcyBBIDAwMDAwMDAwLWM5NWEtNDYwOC1iODViLWU5ZGE4MzkzYjE3NCIsCiAgICAgICJwcmljZSI6ICJUSELCoDkwLjAwIiwKICAgICAgImFkZEVuYWJsZWQiOiB0cnVlCiAgICB9CiAgfSwKICAic2Vjb25kIjogewogICAgImFwaSI6IHsKICAgICAgImlkIjogIjFmZjIxYzNkLWFjZjYtNDI2Zi1hYmVkLWVkYmU4NTY2NGQyMyIsCiAgICAgICJ0aXRsZSI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC1jOTVhLTQ2MDgtYjg1Yi1lOWRhODM5M2IxNzQiLAogICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAic3RhcnRzQXQiOiAiMjAyNi0xMC0wNFQwMDozNDozNi4yOThaIiwKICAgICAgImVuZHNBdCI6ICIyMDI2LTEwLTA0VDAwOjM2OjA3LjI5OFoiLAogICAgICAiaXRlbXMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogIjg3M2Y0MTc0LWIzYjctNGQxZi1iNDczLWJlM2FiOWMwYjc5OSIsCiAgICAgICAgICAic2FsZVByaWNlIjogIjgwMDAiLAogICAgICAgICAgIm9yaWdpbmFsUHJpY2UiOiAiMTAwMDAiLAogICAgICAgICAgInN0b2NrTGltaXQiOiAyMCwKICAgICAgICAgICJzb2xkQ291bnQiOiAwLAogICAgICAgICAgImF2YWlsYWJsZVN0b2NrIjogMCwKICAgICAgICAgICJyYXRpbmciOiAwLAogICAgICAgICAgInBlclVzZXJMaW1pdCI6IDEsCiAgICAgICAgICAicHJvZHVjdCI6IHsKICAgICAgICAgICAgImlkIjogImI2OTc5MWNiLTc5MzctNDJjMy04NWEwLTIyMWM1NTJmNmQ1MCIsCiAgICAgICAgICAgICJ0aXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDE3ZDhkYTVkIiwKICAgICAgICAgICAgInNsdWciOiAiZTNkNGM2MWQtNGVmZS00ZTA2LTlhZWUtNTk1Yjg3Yzk3ZDVmIiwKICAgICAgICAgICAgImNvdmVySW1hZ2UiOiBudWxsLAogICAgICAgICAgICAic2hvcCI6IHsKICAgICAgICAgICAgICAiaWQiOiAiMDAwMDAwMDAtYzk1YS00NjA4LWI4NWItZTlkYTgzOTNiMTc0IiwKICAgICAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIDA4ZjlmZDhjIiwKICAgICAgICAgICAgICAic2x1ZyI6ICI5MzQ3MWJiOS0zODBkLTQ3NTUtODdhOS02OGRjODE2YzMwNTAiCiAgICAgICAgICAgIH0KICAgICAgICAgIH0sCiAgICAgICAgICAidmFyaWFudCI6IHsKICAgICAgICAgICAgImlkIjogIjhkZTkzYzUyLWQ0ZDgtNDZlYi05ZTdkLWI4NGRhZmY1YmU4MiIsCiAgICAgICAgICAgICJza3UiOiAiNTVmYTQyNGYtZTZmMi00NWEwLWE0ZDEtNDllY2ZiNjU1MDkyIiwKICAgICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgICAiY3VycmVuY3kiOiAiVEhCIgogICAgICAgICAgfQogICAgICAgIH0KICAgICAgXQogICAgfSwKICAgICJkYiI6IHsKICAgICAgImNhbXBhaWduSWQiOiAiMWZmMjFjM2QtYWNmNi00MjZmLWFiZWQtZWRiZTg1NjY0ZDIzIiwKICAgICAgInNhbGVQcmljZSI6ICI4MDAwIiwKICAgICAgInF1YW50aXR5T25IYW5kIjogMSwKICAgICAgInF1YW50aXR5UmVzZXJ2ZWQiOiAxCiAgICB9LAogICAgInVpIjogewogICAgICAiaGVhZGluZyI6ICJGcmVzaG5lc3MgQiAwMDAwMDAwMC1jOTVhLTQ2MDgtYjg1Yi1lOWRhODM5M2IxNzQiLAogICAgICAicHJpY2UiOiAiVEhCwqA4MC4wMCIsCiAgICAgICJhZGREaXNhYmxlZCI6IHRydWUKICAgIH0KICB9LAogICJoeWRyYXRpb25FcnJvcnMiOiBbXQp9"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "77e958d8767152168176-b584484c7ee2ffce2686",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-04T00:33:16.238Z",
+    "duration": 83120.14000000001,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

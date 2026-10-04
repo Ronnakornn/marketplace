@@ -1,0 +1,1105 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/numeric-commerce.spec.ts",
+      "e2e/numeric-boundaries.spec.ts",
+      "e2e/numeric-analytics.spec.ts",
+      "e2e/numeric-tax.spec.ts",
+      "e2e/numeric-projections.spec.ts",
+      "e2e/numeric-admin-projections.spec.ts",
+      "e2e/numeric-shipping.spec.ts",
+      "e2e/numeric-reporting.spec.ts",
+      "--project=chromium",
+      "--no-deps",
+      "--max-failures=5",
+      "--reporter=list,json",
+      "--output=docs/test-evidence/2026-10-04-audit-completion/browser-numeric-complete-chromium"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 5,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-complete-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-complete-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-complete-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-complete-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-complete-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-complete-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-complete-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "numeric-admin-projections.spec.ts",
+      "file": "numeric-admin-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7806,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:08:37.070Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "fraud-refund-threshold-and-workflow",
+                      "contentType": "application/json",
+                      "body": "ewogICJvcmFjbGUiOiB7CiAgICAicmVmdW5kUm93cyI6IDMsCiAgICAib3JkZXJzQXRUaHJlc2hvbGQiOiA2LAogICAgIm9yZGVyc0JlbG93VGhyZXNob2xkIjogNywKICAgICJzY29yZUF0VGhyZXNob2xkIjogNzUsCiAgICAic2NvcmVCZWxvd1RocmVzaG9sZCI6IDAKICB9LAogICJyYXRpb0Rpc3BsYXllZEluVWkiOiBmYWxzZSwKICAiYXRUaHJlc2hvbGQiOiB7CiAgICAicmlza1Njb3JlIjogNzUsCiAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJoaWdoX3JlZnVuZF9yYXRlIgogICAgXSwKICAgICJjYXNlIjogewogICAgICAiaWQiOiAiNTAwN2ZhZDQtMWFiYy00OGE2LTgxMjctOTAyZDEzNTJiNTdjIiwKICAgICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICAgImVudGl0eUlkIjogImQ0NWViODg4LTcyZmQtNDI2ZS1hZWY0LTM5MzBmMzM2MjNmYiIsCiAgICAgICJ1c2VySWQiOiAiMmI3Yzc3YjUtOWFjOS00YjI4LWI2ZGYtYzA4MTIwOTQ1MzU1IiwKICAgICAgInJpc2tTY29yZSI6IDc1LAogICAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgICAicmVhc29ucyI6IFsKICAgICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgICAgXSwKICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgInJldmlld2VkQnkiOiBudWxsLAogICAgICAicmV2aWV3ZWRBdCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowODozNy43OTRaIgogICAgfSwKICAgICJibG9ja2VkIjogZmFsc2UKICB9LAogICJiZWxvd1RocmVzaG9sZCI6IHsKICAgICJyaXNrU2NvcmUiOiAwLAogICAgInJpc2tMZXZlbCI6ICJsb3ciLAogICAgInJlYXNvbnMiOiBbXSwKICAgICJjYXNlIjogbnVsbCwKICAgICJibG9ja2VkIjogZmFsc2UKICB9LAogICJvcGVuQXBpIjogewogICAgImlkIjogIjUwMDdmYWQ0LTFhYmMtNDhhNi04MTI3LTkwMmQxMzUyYjU3YyIsCiAgICAiZW50aXR5VHlwZSI6ICJSRUZVTkQiLAogICAgImVudGl0eUlkIjogImQ0NWViODg4LTcyZmQtNDI2ZS1hZWY0LTM5MzBmMzM2MjNmYiIsCiAgICAidXNlcklkIjogIjJiN2M3N2I1LTlhYzktNGIyOC1iNmRmLWMwODEyMDk0NTM1NSIsCiAgICAicmlza1Njb3JlIjogNzUsCiAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJoaWdoX3JlZnVuZF9yYXRlIgogICAgXSwKICAgICJzdGF0dXMiOiAiT1BFTiIsCiAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAicmV2aWV3ZWRBdCI6IG51bGwsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDg6MzcuNzk0WiIKICB9LAogICJyZXNvbHZlZEFwaSI6IHsKICAgICJpZCI6ICI1MDA3ZmFkNC0xYWJjLTQ4YTYtODEyNy05MDJkMTM1MmI1N2MiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICJkNDVlYjg4OC03MmZkLTQyNmUtYWVmNC0zOTMwZjMzNjIzZmIiLAogICAgInVzZXJJZCI6ICIyYjdjNzdiNS05YWM5LTRiMjgtYjZkZi1jMDgxMjA5NDUzNTUiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFU09MVkVEIiwKICAgICJyZXZpZXdlZEJ5IjogIjFiZjRjN2FjLTAzNjgtNDY0Zi1iYTRmLTlmOGZkN2E0Y2M2MCIsCiAgICAicmV2aWV3ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA4OjQ0LjQ5OVoiLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA4OjM3Ljc5NFoiCiAgfSwKICAicmV2aWV3ZWREYiI6IHsKICAgICJpZCI6ICI1MDA3ZmFkNC0xYWJjLTQ4YTYtODEyNy05MDJkMTM1MmI1N2MiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICJkNDVlYjg4OC03MmZkLTQyNmUtYWVmNC0zOTMwZjMzNjIzZmIiLAogICAgInVzZXJJZCI6ICIyYjdjNzdiNS05YWM5LTRiMjgtYjZkZi1jMDgxMjA5NDUzNTUiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFVklFV0VEIiwKICAgICJtZXRhZGF0YSI6IHsKICAgICAgInNpZ25hbHMiOiB7CiAgICAgICAgInJlZnVuZFJhdGUiOiAwLjUsCiAgICAgICAgInJlZnVuZENvdW50IjogMwogICAgICB9CiAgICB9LAogICAgInJldmlld2VkQnlJZCI6ICIxYmY0YzdhYy0wMzY4LTQ2NGYtYmE0Zi05ZjhmZDdhNGNjNjAiLAogICAgInJldmlld2VkQXQiOiAiMjAyNi0xMC0wNFQwMDowODo0NC40OTlaIiwKICAgICJyZXNvbHZlZEJ5SWQiOiBudWxsLAogICAgInJlc29sdmVkQXQiOiBudWxsLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA4OjM3Ljc5NFoiLAogICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA4OjQ0LjUwOFoiCiAgfSwKICAicmVzb2x2ZWREYiI6IHsKICAgICJpZCI6ICI1MDA3ZmFkNC0xYWJjLTQ4YTYtODEyNy05MDJkMTM1MmI1N2MiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICJkNDVlYjg4OC03MmZkLTQyNmUtYWVmNC0zOTMwZjMzNjIzZmIiLAogICAgInVzZXJJZCI6ICIyYjdjNzdiNS05YWM5LTRiMjgtYjZkZi1jMDgxMjA5NDUzNTUiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFU09MVkVEIiwKICAgICJtZXRhZGF0YSI6IHsKICAgICAgInNpZ25hbHMiOiB7CiAgICAgICAgInJlZnVuZFJhdGUiOiAwLjUsCiAgICAgICAgInJlZnVuZENvdW50IjogMwogICAgICB9CiAgICB9LAogICAgInJldmlld2VkQnlJZCI6ICIxYmY0YzdhYy0wMzY4LTQ2NGYtYmE0Zi05ZjhmZDdhNGNjNjAiLAogICAgInJldmlld2VkQXQiOiAiMjAyNi0xMC0wNFQwMDowODo0NC40OTlaIiwKICAgICJyZXNvbHZlZEJ5SWQiOiAiMWJmNGM3YWMtMDM2OC00NjRmLWJhNGYtOWY4ZmQ3YTRjYzYwIiwKICAgICJyZXNvbHZlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDg6NDQuNjQ5WiIsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDg6MzcuNzk0WiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDg6NDQuNjU0WiIKICB9Cn0="
+                    },
+                    {
+                      "name": "fraud-refund-threshold-and-workflow-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-admin-projections--036d8-admin-reviews-then-resolves-chromium\\attachments\\fraud-refund-threshold-and-workflow-ui-30e691a977628de6ca320c287fa409d8b2a945e8.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8f0ecf80b2bf0228ab34",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1989,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:08:44.990Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "fraud-score100-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJvcmFjbGUiOiB7CiAgICAiZmFpbGVkUGF5bWVudHMiOiAzLAogICAgImNhbmNlbGxlZE9yZGVycyI6IDMsCiAgICAiYW1vdW50Q2VudHMiOiAiMTAwMDAwIiwKICAgICJjaGVja291dFNlY29uZHMiOiA2MCwKICAgICJzY29yZSI6IDEwMAogIH0sCiAgImV2YWx1YXRpb25zIjogWwogICAgewogICAgICAicmlza1Njb3JlIjogMTAwLAogICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgInJlYXNvbnMiOiBbCiAgICAgICAgIm1hbnlfZmFpbGVkX3BheW1lbnRzIiwKICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICAgInJlcGVhdGVkX2NhbmNlbGxlZF9vcmRlcnMiCiAgICAgIF0sCiAgICAgICJjYXNlIjogewogICAgICAgICJpZCI6ICJjNDI2MWVlZC0zYTg5LTQ4ZmYtOWVjYS0wNzJlMTdiMjZlNzkiLAogICAgICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICAgICAiZW50aXR5SWQiOiAiNDE2NGY1MTUtMjdlMC00MzQyLWE1NmYtMmUwYmNiZjQ3M2E0IiwKICAgICAgICAidXNlcklkIjogImM2MTUwYTJiLWViNTYtNDc4MC05ZGNmLTQxMWVkMmQxMDE1MyIsCiAgICAgICAgInJpc2tTY29yZSI6IDEwMCwKICAgICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgICAicmVhc29ucyI6IFsKICAgICAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAgICJzdXNwaWNpb3VzX3JhcGlkX2NoZWNrb3V0IiwKICAgICAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgICAgIF0sCiAgICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAgICAgInJldmlld2VkQXQiOiBudWxsLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowODo0NS4zNTZaIgogICAgICB9LAogICAgICAiYmxvY2tlZCI6IGZhbHNlCiAgICB9LAogICAgewogICAgICAicmlza1Njb3JlIjogMTAwLAogICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgInJlYXNvbnMiOiBbCiAgICAgICAgIm1hbnlfZmFpbGVkX3BheW1lbnRzIiwKICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICAgInJlcGVhdGVkX2NhbmNlbGxlZF9vcmRlcnMiCiAgICAgIF0sCiAgICAgICJjYXNlIjogewogICAgICAgICJpZCI6ICJjNDI2MWVlZC0zYTg5LTQ4ZmYtOWVjYS0wNzJlMTdiMjZlNzkiLAogICAgICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICAgICAiZW50aXR5SWQiOiAiNDE2NGY1MTUtMjdlMC00MzQyLWE1NmYtMmUwYmNiZjQ3M2E0IiwKICAgICAgICAidXNlcklkIjogImM2MTUwYTJiLWViNTYtNDc4MC05ZGNmLTQxMWVkMmQxMDE1MyIsCiAgICAgICAgInJpc2tTY29yZSI6IDEwMCwKICAgICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgICAicmVhc29ucyI6IFsKICAgICAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAgICJzdXNwaWNpb3VzX3JhcGlkX2NoZWNrb3V0IiwKICAgICAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgICAgIF0sCiAgICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAgICAgInJldmlld2VkQXQiOiBudWxsLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowODo0NS4zNTZaIgogICAgICB9LAogICAgICAiYmxvY2tlZCI6IGZhbHNlCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImlkIjogImM0MjYxZWVkLTNhODktNDhmZi05ZWNhLTA3MmUxN2IyNmU3OSIsCiAgICAiZW50aXR5VHlwZSI6ICJPUkRFUiIsCiAgICAiZW50aXR5SWQiOiAiNDE2NGY1MTUtMjdlMC00MzQyLWE1NmYtMmUwYmNiZjQ3M2E0IiwKICAgICJ1c2VySWQiOiAiYzYxNTBhMmItZWI1Ni00NzgwLTlkY2YtNDExZWQyZDEwMTUzIiwKICAgICJyaXNrU2NvcmUiOiAxMDAsCiAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICJyZWFzb25zIjogWwogICAgICAibWFueV9mYWlsZWRfcGF5bWVudHMiLAogICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgInN1c3BpY2lvdXNfcmFwaWRfY2hlY2tvdXQiLAogICAgICAicmVwZWF0ZWRfY2FuY2VsbGVkX29yZGVycyIKICAgIF0sCiAgICAic3RhdHVzIjogIk9QRU4iLAogICAgInJldmlld2VkQnkiOiBudWxsLAogICAgInJldmlld2VkQXQiOiBudWxsLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA4OjQ1LjM1NloiCiAgfSwKICAiZGIiOiB7CiAgICAiaWQiOiAiYzQyNjFlZWQtM2E4OS00OGZmLTllY2EtMDcyZTE3YjI2ZTc5IiwKICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICJlbnRpdHlJZCI6ICI0MTY0ZjUxNS0yN2UwLTQzNDItYTU2Zi0yZTBiY2JmNDczYTQiLAogICAgInVzZXJJZCI6ICJjNjE1MGEyYi1lYjU2LTQ3ODAtOWRjZi00MTFlZDJkMTAxNTMiLAogICAgInJpc2tTY29yZSI6IDEwMCwKICAgICJyaXNrTGV2ZWwiOiAiY3JpdGljYWwiLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICJhYm5vcm1hbF9vcmRlcl9hbW91bnQiLAogICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgXSwKICAgICJzdGF0dXMiOiAiT1BFTiIsCiAgICAibWV0YWRhdGEiOiB7CiAgICAgICJzaWduYWxzIjogewogICAgICAgICJvcmRlcmFtb3VudCI6ICIxMDAwMDAiLAogICAgICAgICJmYWlsZWRQYXltZW50cyI6IDMsCiAgICAgICAgImNhbmNlbGxlZE9yZGVycyI6IDMsCiAgICAgICAgImNoZWNrb3V0RHVyYXRpb25TZWNvbmRzIjogNjAKICAgICAgfQogICAgfSwKICAgICJyZXZpZXdlZEJ5SWQiOiBudWxsLAogICAgInJldmlld2VkQXQiOiBudWxsLAogICAgInJlc29sdmVkQnlJZCI6IG51bGwsCiAgICAicmVzb2x2ZWRBdCI6IG51bGwsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDg6NDUuMzU2WiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDg6NDUuMzcyWiIKICB9Cn0="
+                    },
+                    {
+                      "name": "fraud-score100-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-admin-projections--42bfa-valuation-persists-one-case-chromium\\attachments\\fraud-score100-parity-ui-a14d1f831bbe2aed4d0d94b56e9b0a766a9a3ab5.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-666141175b42df19c649",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6792,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:08:46.990Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cashback-threshold-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJpbnRlcm5hbE1vY2tTaW11bGF0aW9uIjogdHJ1ZSwKICAiZXh0ZXJuYWxQcm92aWRlclZlcmlmaWVkIjogZmFsc2UsCiAgIm9yYWNsZSI6IHsKICAgICJncm9zc0NlbnRzIjogIjEwMDAwIiwKICAgICJzZWxsZXJDb3Vwb25DZW50cyI6ICIxIiwKICAgICJvcmlnaW5hbE5ldENlbnRzIjogIjk5OTkiLAogICAgInNoaXBwaW5nQ2VudHMiOiAiNTAwMCIsCiAgICAicGFpZENlbnRzIjogIjE0OTk5IiwKICAgICJjYXNoYmFja0NvaW5zIjogIjAiCiAgfSwKICAic25hcHNob3QiOiB7CiAgICAiYnV5ZXJNZXJjaGFuZGlzZU5ldCI6ICI5OTk5IiwKICAgICJidXllck1lcmNoYW5kaXNlVGF4IjogIjAiLAogICAgInBsYXRmb3JtQ291cG9uTmV0IjogIjAiLAogICAgInBsYXRmb3JtQ291cG9uVGF4IjogIjAiLAogICAgImNvaW5GdW5kaW5nTmV0IjogIjAiLAogICAgImNvaW5GdW5kaW5nVGF4IjogIjAiLAogICAgIm9yaWdpbmFsQ2FzaGJhY2tFbGlnaWJsZU5ldCI6ICI5OTk5IiwKICAgICJvcmlnaW5hbEFmZmlsaWF0ZUVsaWdpYmxlTmV0IjogIjk5OTkiLAogICAgInNob3BDb3Vwb25JZCI6ICIyYTM0NGUwZC1lMmNiLTQwYzUtYWZiNi02OWFlMWJkN2MyYzgiLAogICAgInNob3BDb3Vwb25Db2RlIjogIkM5MzI1NjVELTRFMzUtNDU5Ny05NjFELUI5REU2M0I3M0VEMSIsCiAgICAicGxhdGZvcm1Db3Vwb25JZCI6IG51bGwsCiAgICAicGxhdGZvcm1Db3Vwb25Db2RlIjogbnVsbCwKICAgICJvcmRlckl0ZW1JZCI6ICJmOTc2OTZhMC0zYjNkLTQzYTMtYTliOS05MjM4YWJhMzMwN2YiLAogICAgInNob3BPcmRlcklkIjogImUzZTYwM2U4LTIwMTEtNDI5MC1iNGJlLTViNmMzMjYzZmQ4MyIsCiAgICAib3JpZ2luYWxRdWFudGl0eSI6IDEsCiAgICAiZ3Jvc3NNZXJjaGFuZGlzZSI6ICIxMDAwMCIsCiAgICAic2VsbGVyQ291cG9uRGlzY291bnQiOiAiMSIsCiAgICAicGxhdGZvcm1Db3Vwb25EaXNjb3VudCI6ICIwIiwKICAgICJjb2luRGlzY291bnQiOiAiMCIsCiAgICAiYnV5ZXJNZXJjaGFuZGlzZSI6ICI5OTk5IiwKICAgICJjb3Vwb25JZCI6ICIyYTM0NGUwZC1lMmNiLTQwYzUtYWZiNi02OWFlMWJkN2MyYzgiLAogICAgImNvdXBvbkNvZGUiOiAiQzkzMjU2NUQtNEUzNS00NTk3LTk2MUQtQjlERTYzQjczRUQxIgogIH0sCiAgInNob3BTbmFwc2hvdCI6IHsKICAgICJ0YXhSYXRlUHBtIjogMCwKICAgICJ0YXhNb2RlIjogIklOQ0xVU0lWRSIsCiAgICAidGF4RnVuZGluZ0Jhc2lzIjogIlNFTExFUl9BRlRFUl9TSE9QX0NPVVBPTiIsCiAgICAidGF4YWJsZVNoaXBwaW5nIjogZmFsc2UsCiAgICAidGF4U2hpcHBpbmdCYXNpcyI6ICJTRUxMRVJfU0hJUFBJTkdfQUZURVJfV0FJVkVSIiwKICAgICJ0YXhSb3VuZGluZyI6ICJMSU5FX0hBTEZfVVAiLAogICAgInRheEN1c3RvZGlhbiI6ICJTRUxMRVIiLAogICAgInRheEV4Y2x1c2l2ZUZ1bmRpbmciOiAiQlVZRVIiLAogICAgInRheFBvbGljeVJldmlzaW9uIjogImRjZmNjOTdlLTNmMDEtNDgyZi1hOGE0LWYwNmJkNTdiMzQ4OCIsCiAgICAic2VsbGVyR3Jvc3NNZXJjaGFuZGlzZSI6ICI5OTk5IiwKICAgICJzZWxsZXJHcm9zc1NoaXBwaW5nIjogIjUwMDAiLAogICAgImJ1eWVyU2hpcHBpbmdOZXQiOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZ1RheCI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nTmV0IjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdUYXgiOiAiMCIsCiAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICJhZGRlZFRheFRvdGFsIjogIjAiLAogICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAic2hvcE9yZGVySWQiOiAiZTNlNjAzZTgtMjAxMS00MjkwLWI0YmUtNWI2YzMyNjNmZDgzIiwKICAgICJwb2xpY3lWZXJzaW9uIjogMiwKICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgImNvbW1pc3Npb25CYXNlIjogIjk5OTkiLAogICAgImNvbW1pc3Npb25CcHMiOiAxMDAwLAogICAgIm9yaWdpbmFsQ29tbWlzc2lvbiI6ICI5OTkiLAogICAgIm9yaWdpbmFsU2hpcHBpbmciOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZyI6ICI1MDAwIiwKICAgICJzZWxsZXJTaGlwcGluZ1dhaXZlciI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nU3Vic2lkeSI6ICIwIiwKICAgICJyZWNvZ25pemVkQXQiOiBudWxsCiAgfSwKICAid2FsbGV0IjogewogICAgImlkIjogIjU0MjliNmRkLTFlN2UtNDYzNC04MzQ1LTE0NTcyZmNhYzNhZCIsCiAgICAidXNlcklkIjogIjQ5MTQ0NmJmLTA0NmItNGM3NS1hZTFjLTI1MjRiOTgxMjE3YyIsCiAgICAiYmFsYW5jZSI6ICIwIiwKICAgICJwZW5kaW5nQmFsYW5jZSI6ICIwIiwKICAgICJkZWJ0QmFsYW5jZSI6ICIwIiwKICAgICJsaWZldGltZUVhcm5lZCI6ICIwIiwKICAgICJsaWZldGltZVNwZW50IjogIjAiLAogICAgInZlcnNpb24iOiAxLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA4OjQ5LjM4NFoiLAogICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA4OjQ5LjM4OVoiCiAgfSwKICAibGVkZ2VyIjogW10sCiAgImFwaSI6IHsKICAgICJiYWxhbmNlIjogIjAiLAogICAgInBlbmRpbmdCYWxhbmNlIjogIjAiLAogICAgImRlYnRCYWxhbmNlIjogIjAiLAogICAgImxpZmV0aW1lRWFybmVkIjogIjAiLAogICAgImxpZmV0aW1lU3BlbnQiOiAiMCIsCiAgICAiZW50cmllcyI6IFtdLAogICAgIm5leHRDdXJzb3IiOiBudWxsCiAgfQp9"
+                    },
+                    {
+                      "name": "cashback-threshold-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\\attachments\\cashback-threshold-parity-ui-da026e8d85c75586e63ed4767780a1f20f04abea.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-d0af0b64ca1db8e8a193",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5058,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:08:53.792Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cashback-threshold-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJpbnRlcm5hbE1vY2tTaW11bGF0aW9uIjogdHJ1ZSwKICAiZXh0ZXJuYWxQcm92aWRlclZlcmlmaWVkIjogZmFsc2UsCiAgIm9yYWNsZSI6IHsKICAgICJncm9zc0NlbnRzIjogIjEwMDAxIiwKICAgICJzZWxsZXJDb3Vwb25DZW50cyI6ICIxIiwKICAgICJvcmlnaW5hbE5ldENlbnRzIjogIjEwMDAwIiwKICAgICJzaGlwcGluZ0NlbnRzIjogIjUwMDAiLAogICAgInBhaWRDZW50cyI6ICIxNTAwMCIsCiAgICAiY2FzaGJhY2tDb2lucyI6ICIxIgogIH0sCiAgInNuYXBzaG90IjogewogICAgImJ1eWVyTWVyY2hhbmRpc2VOZXQiOiAiMTAwMDAiLAogICAgImJ1eWVyTWVyY2hhbmRpc2VUYXgiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25OZXQiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25UYXgiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdOZXQiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdUYXgiOiAiMCIsCiAgICAib3JpZ2luYWxDYXNoYmFja0VsaWdpYmxlTmV0IjogIjEwMDAwIiwKICAgICJvcmlnaW5hbEFmZmlsaWF0ZUVsaWdpYmxlTmV0IjogIjEwMDAwIiwKICAgICJzaG9wQ291cG9uSWQiOiAiZmZmNGYzYjAtZjk5ZS00ODZkLWE0ZGEtOThkYjAyYTQwYzA3IiwKICAgICJzaG9wQ291cG9uQ29kZSI6ICJBREJENjNGMi0zNThFLTRGQTctOTgxMy1GREYxQ0RGMTQxNDMiLAogICAgInBsYXRmb3JtQ291cG9uSWQiOiBudWxsLAogICAgInBsYXRmb3JtQ291cG9uQ29kZSI6IG51bGwsCiAgICAib3JkZXJJdGVtSWQiOiAiMjJlNTVhY2ItYzNlMi00YjVkLTkwYzctNWVmNGRjZmZkNmQxIiwKICAgICJzaG9wT3JkZXJJZCI6ICI1NzQ0NGJjOC02NDliLTQwNDItODdjOS0zN2VjMzA3ZTMwMmIiLAogICAgIm9yaWdpbmFsUXVhbnRpdHkiOiAxLAogICAgImdyb3NzTWVyY2hhbmRpc2UiOiAiMTAwMDEiLAogICAgInNlbGxlckNvdXBvbkRpc2NvdW50IjogIjEiLAogICAgInBsYXRmb3JtQ291cG9uRGlzY291bnQiOiAiMCIsCiAgICAiY29pbkRpc2NvdW50IjogIjAiLAogICAgImJ1eWVyTWVyY2hhbmRpc2UiOiAiMTAwMDAiLAogICAgImNvdXBvbklkIjogImZmZjRmM2IwLWY5OWUtNDg2ZC1hNGRhLTk4ZGIwMmE0MGMwNyIsCiAgICAiY291cG9uQ29kZSI6ICJBREJENjNGMi0zNThFLTRGQTctOTgxMy1GREYxQ0RGMTQxNDMiCiAgfSwKICAic2hvcFNuYXBzaG90IjogewogICAgInRheFJhdGVQcG0iOiAwLAogICAgInRheE1vZGUiOiAiSU5DTFVTSVZFIiwKICAgICJ0YXhGdW5kaW5nQmFzaXMiOiAiU0VMTEVSX0FGVEVSX1NIT1BfQ09VUE9OIiwKICAgICJ0YXhhYmxlU2hpcHBpbmciOiBmYWxzZSwKICAgICJ0YXhTaGlwcGluZ0Jhc2lzIjogIlNFTExFUl9TSElQUElOR19BRlRFUl9XQUlWRVIiLAogICAgInRheFJvdW5kaW5nIjogIkxJTkVfSEFMRl9VUCIsCiAgICAidGF4Q3VzdG9kaWFuIjogIlNFTExFUiIsCiAgICAidGF4RXhjbHVzaXZlRnVuZGluZyI6ICJCVVlFUiIsCiAgICAidGF4UG9saWN5UmV2aXNpb24iOiAiYTM4N2RiMDEtZmYxNi00MTkxLTg1ZjItZjA1NTIwZmE5MzVkIiwKICAgICJzZWxsZXJHcm9zc01lcmNoYW5kaXNlIjogIjEwMDAwIiwKICAgICJzZWxsZXJHcm9zc1NoaXBwaW5nIjogIjUwMDAiLAogICAgImJ1eWVyU2hpcHBpbmdOZXQiOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZ1RheCI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nTmV0IjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdUYXgiOiAiMCIsCiAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICJhZGRlZFRheFRvdGFsIjogIjAiLAogICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAic2hvcE9yZGVySWQiOiAiNTc0NDRiYzgtNjQ5Yi00MDQyLTg3YzktMzdlYzMwN2UzMDJiIiwKICAgICJwb2xpY3lWZXJzaW9uIjogMiwKICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgImNvbW1pc3Npb25CYXNlIjogIjEwMDAwIiwKICAgICJjb21taXNzaW9uQnBzIjogMTAwMCwKICAgICJvcmlnaW5hbENvbW1pc3Npb24iOiAiMTAwMCIsCiAgICAib3JpZ2luYWxTaGlwcGluZyI6ICI1MDAwIiwKICAgICJidXllclNoaXBwaW5nIjogIjUwMDAiLAogICAgInNlbGxlclNoaXBwaW5nV2FpdmVyIjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdTdWJzaWR5IjogIjAiLAogICAgInJlY29nbml6ZWRBdCI6IG51bGwKICB9LAogICJ3YWxsZXQiOiB7CiAgICAiaWQiOiAiZjkwNzE5NzYtODA0Ny00NjcwLThhMTYtMmNkYTY3ZDBjYjMwIiwKICAgICJ1c2VySWQiOiAiODljMTBjNDQtNDAyYi00YmYyLWFmYWItY2RkMWMzMzM3NWQzIiwKICAgICJiYWxhbmNlIjogIjEiLAogICAgInBlbmRpbmdCYWxhbmNlIjogIjAiLAogICAgImRlYnRCYWxhbmNlIjogIjAiLAogICAgImxpZmV0aW1lRWFybmVkIjogIjEiLAogICAgImxpZmV0aW1lU3BlbnQiOiAiMCIsCiAgICAidmVyc2lvbiI6IDEsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDg6NTUuNzQ4WiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDg6NTcuNjYwWiIKICB9LAogICJsZWRnZXIiOiBbCiAgICB7CiAgICAgICJpZCI6ICJlMTQwZjU4YS05NmM0LTRjZjQtOTE3NC05YzVlOTJjNDQ1YWYiLAogICAgICAid2FsbGV0SWQiOiAiZjkwNzE5NzYtODA0Ny00NjcwLThhMTYtMmNkYTY3ZDBjYjMwIiwKICAgICAgInVzZXJJZCI6ICI4OWMxMGM0NC00MDJiLTRiZjItYWZhYi1jZGQxYzMzMzc1ZDMiLAogICAgICAib3JkZXJJZCI6ICJkODRhNmEwYy03ZjBkLTRjOWMtYjI0Yi01ODk0ODFjMzZiMTAiLAogICAgICAidHlwZSI6ICJFQVJORUQiLAogICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICJhbW91bnQiOiAiMSIsCiAgICAgICJiYWxhbmNlQWZ0ZXIiOiAiMSIsCiAgICAgICJyZWFzb24iOiAiMSUgb3JkZXIgY2FzaGJhY2siLAogICAgICAicmVmZXJlbmNlVHlwZSI6ICJPUkRFUl9DQVNIQkFDSyIsCiAgICAgICJyZWZlcmVuY2VJZCI6ICJkODRhNmEwYy03ZjBkLTRjOWMtYjI0Yi01ODk0ODFjMzZiMTAiLAogICAgICAiZXhwaXJlc0F0IjogbnVsbCwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA4OjU3LjYzOVoiCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImJhbGFuY2UiOiAiMSIsCiAgICAicGVuZGluZ0JhbGFuY2UiOiAiMCIsCiAgICAiZGVidEJhbGFuY2UiOiAiMCIsCiAgICAibGlmZXRpbWVFYXJuZWQiOiAiMSIsCiAgICAibGlmZXRpbWVTcGVudCI6ICIwIiwKICAgICJlbnRyaWVzIjogWwogICAgICB7CiAgICAgICAgImlkIjogImUxNDBmNThhLTk2YzQtNGNmNC05MTc0LTljNWU5MmM0NDVhZiIsCiAgICAgICAgInR5cGUiOiAiRUFSTkVEIiwKICAgICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICAgImFtb3VudCI6ICIxIiwKICAgICAgICAicmVhc29uIjogIjElIG9yZGVyIGNhc2hiYWNrIiwKICAgICAgICAib3JkZXJJZCI6ICJkODRhNmEwYy03ZjBkLTRjOWMtYjI0Yi01ODk0ODFjMzZiMTAiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowODo1Ny42MzlaIgogICAgICB9CiAgICBdLAogICAgIm5leHRDdXJzb3IiOiBudWxsCiAgfQp9"
+                    },
+                    {
+                      "name": "cashback-threshold-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\\attachments\\cashback-threshold-parity-ui-13954946e3ee74644e3e3d5c88ea4ee78574533b.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-6a528228b206c161e76c",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5191,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:08:58.860Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cashback-threshold-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJpbnRlcm5hbE1vY2tTaW11bGF0aW9uIjogdHJ1ZSwKICAiZXh0ZXJuYWxQcm92aWRlclZlcmlmaWVkIjogZmFsc2UsCiAgIm9yYWNsZSI6IHsKICAgICJncm9zc0NlbnRzIjogIjEwMDAyIiwKICAgICJzZWxsZXJDb3Vwb25DZW50cyI6ICIxIiwKICAgICJvcmlnaW5hbE5ldENlbnRzIjogIjEwMDAxIiwKICAgICJzaGlwcGluZ0NlbnRzIjogIjUwMDAiLAogICAgInBhaWRDZW50cyI6ICIxNTAwMSIsCiAgICAiY2FzaGJhY2tDb2lucyI6ICIxIgogIH0sCiAgInNuYXBzaG90IjogewogICAgImJ1eWVyTWVyY2hhbmRpc2VOZXQiOiAiMTAwMDEiLAogICAgImJ1eWVyTWVyY2hhbmRpc2VUYXgiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25OZXQiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25UYXgiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdOZXQiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdUYXgiOiAiMCIsCiAgICAib3JpZ2luYWxDYXNoYmFja0VsaWdpYmxlTmV0IjogIjEwMDAxIiwKICAgICJvcmlnaW5hbEFmZmlsaWF0ZUVsaWdpYmxlTmV0IjogIjEwMDAxIiwKICAgICJzaG9wQ291cG9uSWQiOiAiOWNjMGQyZDQtMWY3OC00ZjgxLWE0MjMtNmVhZjY5NzI0MTQ3IiwKICAgICJzaG9wQ291cG9uQ29kZSI6ICJEODlDRDA2MC0yQUQ5LTQ5RTgtQTBBNy01OUEwN0E3NEQwNTUiLAogICAgInBsYXRmb3JtQ291cG9uSWQiOiBudWxsLAogICAgInBsYXRmb3JtQ291cG9uQ29kZSI6IG51bGwsCiAgICAib3JkZXJJdGVtSWQiOiAiMTI2OGZmMTAtM2IwYS00YmIwLTgzZTUtYTFjNDlmNmZlNjdkIiwKICAgICJzaG9wT3JkZXJJZCI6ICI4MDM3ODAyNC1kNTJhLTQxYjYtYjNhMy1mY2Q3Y2U0MzUxYzkiLAogICAgIm9yaWdpbmFsUXVhbnRpdHkiOiAxLAogICAgImdyb3NzTWVyY2hhbmRpc2UiOiAiMTAwMDIiLAogICAgInNlbGxlckNvdXBvbkRpc2NvdW50IjogIjEiLAogICAgInBsYXRmb3JtQ291cG9uRGlzY291bnQiOiAiMCIsCiAgICAiY29pbkRpc2NvdW50IjogIjAiLAogICAgImJ1eWVyTWVyY2hhbmRpc2UiOiAiMTAwMDEiLAogICAgImNvdXBvbklkIjogIjljYzBkMmQ0LTFmNzgtNGY4MS1hNDIzLTZlYWY2OTcyNDE0NyIsCiAgICAiY291cG9uQ29kZSI6ICJEODlDRDA2MC0yQUQ5LTQ5RTgtQTBBNy01OUEwN0E3NEQwNTUiCiAgfSwKICAic2hvcFNuYXBzaG90IjogewogICAgInRheFJhdGVQcG0iOiAwLAogICAgInRheE1vZGUiOiAiSU5DTFVTSVZFIiwKICAgICJ0YXhGdW5kaW5nQmFzaXMiOiAiU0VMTEVSX0FGVEVSX1NIT1BfQ09VUE9OIiwKICAgICJ0YXhhYmxlU2hpcHBpbmciOiBmYWxzZSwKICAgICJ0YXhTaGlwcGluZ0Jhc2lzIjogIlNFTExFUl9TSElQUElOR19BRlRFUl9XQUlWRVIiLAogICAgInRheFJvdW5kaW5nIjogIkxJTkVfSEFMRl9VUCIsCiAgICAidGF4Q3VzdG9kaWFuIjogIlNFTExFUiIsCiAgICAidGF4RXhjbHVzaXZlRnVuZGluZyI6ICJCVVlFUiIsCiAgICAidGF4UG9saWN5UmV2aXNpb24iOiAiYjQzMzA1ZTktOWYxMi00M2VjLWFiYjktOGVlODE5ZjA4MTY2IiwKICAgICJzZWxsZXJHcm9zc01lcmNoYW5kaXNlIjogIjEwMDAxIiwKICAgICJzZWxsZXJHcm9zc1NoaXBwaW5nIjogIjUwMDAiLAogICAgImJ1eWVyU2hpcHBpbmdOZXQiOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZ1RheCI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nTmV0IjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdUYXgiOiAiMCIsCiAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICJhZGRlZFRheFRvdGFsIjogIjAiLAogICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAic2hvcE9yZGVySWQiOiAiODAzNzgwMjQtZDUyYS00MWI2LWIzYTMtZmNkN2NlNDM1MWM5IiwKICAgICJwb2xpY3lWZXJzaW9uIjogMiwKICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgImNvbW1pc3Npb25CYXNlIjogIjEwMDAxIiwKICAgICJjb21taXNzaW9uQnBzIjogMTAwMCwKICAgICJvcmlnaW5hbENvbW1pc3Npb24iOiAiMTAwMCIsCiAgICAib3JpZ2luYWxTaGlwcGluZyI6ICI1MDAwIiwKICAgICJidXllclNoaXBwaW5nIjogIjUwMDAiLAogICAgInNlbGxlclNoaXBwaW5nV2FpdmVyIjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdTdWJzaWR5IjogIjAiLAogICAgInJlY29nbml6ZWRBdCI6IG51bGwKICB9LAogICJ3YWxsZXQiOiB7CiAgICAiaWQiOiAiZDIwOGIyMjctNTg2OC00NTk4LWI2MDYtODg0NzliMjEzOThjIiwKICAgICJ1c2VySWQiOiAiOGJjNTRmOTUtMDU4ZS00NThlLWIwMzQtNmU4YzgwZTYzMWQ5IiwKICAgICJiYWxhbmNlIjogIjEiLAogICAgInBlbmRpbmdCYWxhbmNlIjogIjAiLAogICAgImRlYnRCYWxhbmNlIjogIjAiLAogICAgImxpZmV0aW1lRWFybmVkIjogIjEiLAogICAgImxpZmV0aW1lU3BlbnQiOiAiMCIsCiAgICAidmVyc2lvbiI6IDEsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6MDEuMDUxWiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6MDMuMDI3WiIKICB9LAogICJsZWRnZXIiOiBbCiAgICB7CiAgICAgICJpZCI6ICI2ZWI5ZGFkMS03MzUyLTQxY2ItYjQ5ZS1kYjdhOWZiYmEyNzciLAogICAgICAid2FsbGV0SWQiOiAiZDIwOGIyMjctNTg2OC00NTk4LWI2MDYtODg0NzliMjEzOThjIiwKICAgICAgInVzZXJJZCI6ICI4YmM1NGY5NS0wNThlLTQ1OGUtYjAzNC02ZThjODBlNjMxZDkiLAogICAgICAib3JkZXJJZCI6ICI0ZGM0NjNmMi1iYjAxLTRhNTYtOTAzMy03NGViMzYyOTE4ZjkiLAogICAgICAidHlwZSI6ICJFQVJORUQiLAogICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICJhbW91bnQiOiAiMSIsCiAgICAgICJiYWxhbmNlQWZ0ZXIiOiAiMSIsCiAgICAgICJyZWFzb24iOiAiMSUgb3JkZXIgY2FzaGJhY2siLAogICAgICAicmVmZXJlbmNlVHlwZSI6ICJPUkRFUl9DQVNIQkFDSyIsCiAgICAgICJyZWZlcmVuY2VJZCI6ICI0ZGM0NjNmMi1iYjAxLTRhNTYtOTAzMy03NGViMzYyOTE4ZjkiLAogICAgICAiZXhwaXJlc0F0IjogbnVsbCwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjAyLjk4NVoiCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImJhbGFuY2UiOiAiMSIsCiAgICAicGVuZGluZ0JhbGFuY2UiOiAiMCIsCiAgICAiZGVidEJhbGFuY2UiOiAiMCIsCiAgICAibGlmZXRpbWVFYXJuZWQiOiAiMSIsCiAgICAibGlmZXRpbWVTcGVudCI6ICIwIiwKICAgICJlbnRyaWVzIjogWwogICAgICB7CiAgICAgICAgImlkIjogIjZlYjlkYWQxLTczNTItNDFjYi1iNDllLWRiN2E5ZmJiYTI3NyIsCiAgICAgICAgInR5cGUiOiAiRUFSTkVEIiwKICAgICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICAgImFtb3VudCI6ICIxIiwKICAgICAgICAicmVhc29uIjogIjElIG9yZGVyIGNhc2hiYWNrIiwKICAgICAgICAib3JkZXJJZCI6ICI0ZGM0NjNmMi1iYjAxLTRhNTYtOTAzMy03NGViMzYyOTE4ZjkiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowOTowMi45ODVaIgogICAgICB9CiAgICBdLAogICAgIm5leHRDdXJzb3IiOiBudWxsCiAgfQp9"
+                    },
+                    {
+                      "name": "cashback-threshold-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\\attachments\\cashback-threshold-parity-ui-9e4cfbc5dadb2d069d9ab6a2bb0ec6ff6a05154f.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8dd6e483bb27b0108f0e",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "numeric-analytics.spec.ts",
+      "file": "numeric-analytics.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3407,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:04.101Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "numeric-analytics",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-analytics-paid-ana-40682-evenue-ranking-across-pages-chromium\\attachments\\numeric-analytics-beac516a5fc1161cbaf48406521d3eb0a9dbe0ff.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "95c37ffc69b5969c2188-d99f42e90c4834c2b24f",
+          "file": "numeric-analytics.spec.ts",
+          "line": 13,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-boundaries.spec.ts",
+      "file": "numeric-boundaries.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4415,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:07.544Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-f9ef4915940651e087a0",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "production route composition prevents seller stock below active holds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3803,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:11.969Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-562c8ed60413d7c27269",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3025,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:15.783Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-6b0cf4e1c8d9d949e369",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 70,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-commerce.spec.ts",
+      "file": "numeric-commerce.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "UI, API and database preserve exact satang for repriced basket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8451,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:18.842Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "checkout-repriced",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-commerce-UI-API-an-ab517--satang-for-repriced-basket-chromium\\attachments\\checkout-repriced-3a0991f749ee6be78ac950779d54dc747e3483e0.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-a5bb7c007f569e4742d4",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6461,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:27.306Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "checkout-coupon-coins",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\\attachments\\checkout-coupon-coins-6efedbffb1a78d3363addb00869da4865a0b53c6.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-e1284c5bbf24db1d975f",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5298,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:33.778Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "checkout-flash",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\\attachments\\checkout-flash-b0cc9e1e55cfb1f48630456ca4c98527f3160ee1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-9843ad93eff828c1f800",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "numeric-projections.spec.ts",
+      "file": "numeric-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4123,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:39.125Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "published-product-ratings-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJwcm9kdWN0RGIiOiB7CiAgICAiX2NvdW50IjogMywKICAgICJfc3VtIjogewogICAgICAicmF0aW5nIjogMTMKICAgIH0KICB9LAogICJwcm9kdWN0U3VtbWFyeSI6IHsKICAgICJhdmVyYWdlUmF0aW5nIjogNC4zMywKICAgICJ0b3RhbFJldmlld0NvdW50IjogMywKICAgICJkaXN0cmlidXRpb24iOiB7CiAgICAgICIxIjogMCwKICAgICAgIjIiOiAwLAogICAgICAiMyI6IDEsCiAgICAgICI0IjogMCwKICAgICAgIjUiOiAyCiAgICB9CiAgfSwKICAiZmlyc3RQYWdlIjogewogICAgIml0ZW1zIjogWwogICAgICB7CiAgICAgICAgImlkIjogImE4MGI3NDJkLWU1YWYtNDA4YS1hZThjLWZiY2Q4NjU2OTYwYyIsCiAgICAgICAgInByb2R1Y3RJZCI6ICJjOWIwNmQ4NC02ZTk4LTQ5NGEtYWJmMS1hZTFjN2VmMTUxYTgiLAogICAgICAgICJvcmRlckl0ZW1JZCI6ICIxN2UzZWEzNy01ODE2LTQ0ZDAtOTFkOC00ZGM4NGJiNDJiYjIiLAogICAgICAgICJ1c2VySWQiOiAiMmUzNjU5YzQtOTY3ZC00MjlhLTkwMDQtNjJmNTRkNGZhOWU5IiwKICAgICAgICAidXNlck5hbWUiOiAiRXh0ZW5kZWQgRTJFIEJ1eWVyIiwKICAgICAgICAicmF0aW5nIjogMywKICAgICAgICAiY29tbWVudCI6ICJQcm9kdWN0IGZlZWRiYWNrIDIgUFVCTElTSEVEIiwKICAgICAgICAiaW1hZ2VzIjogW10sCiAgICAgICAgIm1lZGlhIjogW10sCiAgICAgICAgInN0YXR1cyI6ICJQVUJMSVNIRUQiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowOTozOS40NDFaIiwKICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6MzkuNDQxWiIsCiAgICAgICAgInNuYXBzaG90IjogewogICAgICAgICAgInByb2R1Y3RUaXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDY5NGNiMTNhIiwKICAgICAgICAgICJwcm9kdWN0U2x1ZyI6ICJjM2IxMGQ2MS0wYzY0LTRmZTgtYmIwNi05YmY5NGQ2ZjRhMDIiLAogICAgICAgICAgInZhcmlhbnRUaXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICJ2YXJpYW50U2t1IjogImQ5NDQ4NDE3LWVjYjYtNGY1MC05YjNiLTkyNDcxNDM3MTI0YiIsCiAgICAgICAgICAic2hvcE5hbWUiOiAiRXh0ZW5kZWQgU2hvcCA3MWYzNDQ4YiIsCiAgICAgICAgICAic2hvcFNsdWciOiAiZDY2NDE2NjYtYmRhMi00YjI0LWFjNjItODkzYjU5YTMxMjE5IgogICAgICAgIH0KICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6ICJjOWMwNTU5ZS0wYjc4LTQ5ODAtODdhZC1hMTc5OTY2MjRhYWEiLAogICAgICAgICJwcm9kdWN0SWQiOiAiYzliMDZkODQtNmU5OC00OTRhLWFiZjEtYWUxYzdlZjE1MWE4IiwKICAgICAgICAib3JkZXJJdGVtSWQiOiAiMTA0MDFjMzQtODNjNC00M2NmLTg1ZjItOTRiOTM1OWE1MzIzIiwKICAgICAgICAidXNlcklkIjogIjJlMzY1OWM0LTk2N2QtNDI5YS05MDA0LTYyZjU0ZDRmYTllOSIsCiAgICAgICAgInVzZXJOYW1lIjogIkV4dGVuZGVkIEUyRSBCdXllciIsCiAgICAgICAgInJhdGluZyI6IDUsCiAgICAgICAgImNvbW1lbnQiOiAiUHJvZHVjdCBmZWVkYmFjayAxIFBVQkxJU0hFRCIsCiAgICAgICAgImltYWdlcyI6IFtdLAogICAgICAgICJtZWRpYSI6IFtdLAogICAgICAgICJzdGF0dXMiOiAiUFVCTElTSEVEIiwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6MzkuNDMwWiIsCiAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjM5LjQzMFoiLAogICAgICAgICJzbmFwc2hvdCI6IHsKICAgICAgICAgICJwcm9kdWN0VGl0bGUiOiAiRXh0ZW5kZWQgcHJvZHVjdCA2OTRjYjEzYSIsCiAgICAgICAgICAicHJvZHVjdFNsdWciOiAiYzNiMTBkNjEtMGM2NC00ZmU4LWJiMDYtOWJmOTRkNmY0YTAyIiwKICAgICAgICAgICJ2YXJpYW50VGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAidmFyaWFudFNrdSI6ICJkOTQ0ODQxNy1lY2I2LTRmNTAtOWIzYi05MjQ3MTQzNzEyNGIiLAogICAgICAgICAgInNob3BOYW1lIjogIkV4dGVuZGVkIFNob3AgNzFmMzQ0OGIiLAogICAgICAgICAgInNob3BTbHVnIjogImQ2NjQxNjY2LWJkYTItNGIyNC1hYzYyLTg5M2I1OWEzMTIxOSIKICAgICAgICB9CiAgICAgIH0KICAgIF0sCiAgICAibWV0YSI6IHsKICAgICAgInBhZ2UiOiAxLAogICAgICAibGltaXQiOiAyLAogICAgICAidG90YWxDb3VudCI6IDMsCiAgICAgICJoYXNOZXh0UGFnZSI6IHRydWUKICAgIH0KICB9LAogICJzZWNvbmRQYWdlIjogewogICAgIml0ZW1zIjogWwogICAgICB7CiAgICAgICAgImlkIjogImQ3NTIxOTYyLTJhNjgtNGRhMC04NGJkLWYyMDUwOTJmYmMwNSIsCiAgICAgICAgInByb2R1Y3RJZCI6ICJjOWIwNmQ4NC02ZTk4LTQ5NGEtYWJmMS1hZTFjN2VmMTUxYTgiLAogICAgICAgICJvcmRlckl0ZW1JZCI6ICI4NTI4NDA5Yi0yNTg1LTQ0OGEtYTVmNi05MmVlNjMzYjRkNTAiLAogICAgICAgICJ1c2VySWQiOiAiMmUzNjU5YzQtOTY3ZC00MjlhLTkwMDQtNjJmNTRkNGZhOWU5IiwKICAgICAgICAidXNlck5hbWUiOiAiRXh0ZW5kZWQgRTJFIEJ1eWVyIiwKICAgICAgICAicmF0aW5nIjogNSwKICAgICAgICAiY29tbWVudCI6ICJQcm9kdWN0IGZlZWRiYWNrIDAgUFVCTElTSEVEIiwKICAgICAgICAiaW1hZ2VzIjogW10sCiAgICAgICAgIm1lZGlhIjogW10sCiAgICAgICAgInN0YXR1cyI6ICJQVUJMSVNIRUQiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowOTozOS40MTFaIiwKICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6MzkuNDExWiIsCiAgICAgICAgInNuYXBzaG90IjogewogICAgICAgICAgInByb2R1Y3RUaXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDY5NGNiMTNhIiwKICAgICAgICAgICJwcm9kdWN0U2x1ZyI6ICJjM2IxMGQ2MS0wYzY0LTRmZTgtYmIwNi05YmY5NGQ2ZjRhMDIiLAogICAgICAgICAgInZhcmlhbnRUaXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICJ2YXJpYW50U2t1IjogImQ5NDQ4NDE3LWVjYjYtNGY1MC05YjNiLTkyNDcxNDM3MTI0YiIsCiAgICAgICAgICAic2hvcE5hbWUiOiAiRXh0ZW5kZWQgU2hvcCA3MWYzNDQ4YiIsCiAgICAgICAgICAic2hvcFNsdWciOiAiZDY2NDE2NjYtYmRhMi00YjI0LWFjNjItODkzYjU5YTMxMjE5IgogICAgICAgIH0KICAgICAgfQogICAgXSwKICAgICJtZXRhIjogewogICAgICAicGFnZSI6IDIsCiAgICAgICJsaW1pdCI6IDIsCiAgICAgICJ0b3RhbENvdW50IjogMywKICAgICAgImhhc05leHRQYWdlIjogZmFsc2UKICAgIH0KICB9Cn0="
+                    },
+                    {
+                      "name": "published-product-ratings",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\attachments\\published-product-ratings-5509d56dde9d0adaa933a4c40bf03fae63d4ef51.png"
+                    },
+                    {
+                      "name": "published-shop-ratings-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJzaG9wRGIiOiB7CiAgICAiX2NvdW50IjogMywKICAgICJfc3VtIjogewogICAgICAicmF0aW5nIjogMTQKICAgIH0KICB9LAogICJzaG9wU3VtbWFyeSI6IHsKICAgICJhdmVyYWdlUmF0aW5nIjogNC42NywKICAgICJ0b3RhbFJldmlld0NvdW50IjogMywKICAgICJkaXN0cmlidXRpb24iOiB7CiAgICAgICIxIjogMCwKICAgICAgIjIiOiAwLAogICAgICAiMyI6IDAsCiAgICAgICI0IjogMSwKICAgICAgIjUiOiAyCiAgICB9CiAgfSwKICAic2hvcEZlZWQiOiB7CiAgICAiaXRlbXMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiAiNmUyOWUzNzctYmU5ZC00ZTM0LTkwYWQtMmZmNDRhZGYxZWQ0IiwKICAgICAgICAidXNlck5hbWUiOiAiRXh0ZW5kZWQgRTJFIEJ1eWVyIiwKICAgICAgICAicmF0aW5nIjogNCwKICAgICAgICAiY29tbWVudCI6ICJTaG9wIGZlZWRiYWNrIDIgUFVCTElTSEVEIiwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6MzkuNDQzWiIKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6ICIxMmYyMWU2NC0zOThhLTQ1NDEtOGNlYi1iNDM2ZWU5ZDY2ZGYiLAogICAgICAgICJ1c2VyTmFtZSI6ICJFeHRlbmRlZCBFMkUgQnV5ZXIiLAogICAgICAgICJyYXRpbmciOiA1LAogICAgICAgICJjb21tZW50IjogIlNob3AgZmVlZGJhY2sgMSBQVUJMSVNIRUQiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowOTozOS40MzFaIgogICAgICB9CiAgICBdLAogICAgIm1ldGEiOiB7CiAgICAgICJwYWdlIjogMSwKICAgICAgInBhZ2VTaXplIjogMiwKICAgICAgInRvdGFsQ291bnQiOiAzLAogICAgICAiaGFzTmV4dFBhZ2UiOiB0cnVlCiAgICB9CiAgfSwKICAic3RvcmVkQXZlcmFnZSI6ICI0LjY3IiwKICAic3RvcmVkQ291bnQiOiAzCn0="
+                    },
+                    {
+                      "name": "published-shop-ratings",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\attachments\\published-shop-ratings-ab42664c3a58da596e9989f3c2d72816dab0b651.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-dfe277cab74bcc76e063",
+          "file": "numeric-projections.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2783,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:43.257Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "search-stock-badges-facets-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJyZXN1bHQiOiB7CiAgICAiaXRlbXMiOiBbCiAgICAgIHsKICAgICAgICAicHJvZHVjdElkIjogIjFjMjJlMjY3LTYwN2MtNGQ4MC04ZGE3LWUzY2E1NGQxODhkOSIsCiAgICAgICAgInRpdGxlIjogIlByb2plY3Rpb24tMjU0OTA5OGYtYTcxMS00ODg5LWE1YzYtOTE2YzQ0NDA0Yzk1IG5ldzEwMCIsCiAgICAgICAgImNvdmVySW1hZ2UiOiBudWxsLAogICAgICAgICJtaW5QcmljZSI6ICIyMDAwIiwKICAgICAgICAibWF4UHJpY2UiOiBudWxsLAogICAgICAgICJyYXRpbmdTdW1tYXJ5IjogewogICAgICAgICAgImF2ZXJhZ2VSYXRpbmciOiA0LAogICAgICAgICAgInRvdGFsUmV2aWV3Q291bnQiOiAxCiAgICAgICAgfSwKICAgICAgICAic29sZENvdW50IjogMTAwLAogICAgICAgICJzaG9wIjogewogICAgICAgICAgImlkIjogIjAwMDAwMDAwLTdhMWEtNDY3Ni04MDA0LWY3MmI1YWNhZDVkNSIsCiAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIGQyNzQ4NThjIiwKICAgICAgICAgICJzbHVnIjogIjRkZjEyNmZlLTQ4YTAtNDQ1Mi05NzJiLTAzNDQzNDA5N2JkOCIsCiAgICAgICAgICAibG9jYXRpb24iOiBudWxsCiAgICAgICAgfSwKICAgICAgICAidmFyaWFudHMiOiBbCiAgICAgICAgICB7CiAgICAgICAgICAgICJpZCI6ICI4MGY5ZDVjOS1kNGU2LTQ5ZTYtYmU5My0wMzRhODEwNTY5NWUiLAogICAgICAgICAgICAic2t1IjogIjk2MjAxNTU0LWNiMzktNGZmMi1iNDI2LTBkMTE0YmUyMTU1NiIsCiAgICAgICAgICAgICJ0aXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgICAidGl0bGVFbiI6IG51bGwsCiAgICAgICAgICAgICJwcmljZSI6ICIyMDAwIiwKICAgICAgICAgICAgImN1cnJlbmN5IjogIlRIQiIsCiAgICAgICAgICAgICJzdG9jayI6IDEsCiAgICAgICAgICAgICJvcHRpb25WYWx1ZXMiOiBbXQogICAgICAgICAgfQogICAgICAgIF0sCiAgICAgICAgIm9wdGlvbnMiOiBbXSwKICAgICAgICAiYmFkZ2VzIjogWwogICAgICAgICAgIm5ldyIsCiAgICAgICAgICAiYmVzdF9zZWxsZXIiLAogICAgICAgICAgImluX3N0b2NrIgogICAgICAgIF0KICAgICAgfSwKICAgICAgewogICAgICAgICJwcm9kdWN0SWQiOiAiYzgyYzJmNWMtNjQwYS00Yjc2LThmYjctMzUwNzk0Mjk4ZWE5IiwKICAgICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi0yNTQ5MDk4Zi1hNzExLTQ4ODktYTVjNi05MTZjNDQ0MDRjOTUgb2xkOTkiLAogICAgICAgICJjb3ZlckltYWdlIjogbnVsbCwKICAgICAgICAibWluUHJpY2UiOiAiMTAwMCIsCiAgICAgICAgIm1heFByaWNlIjogbnVsbCwKICAgICAgICAicmF0aW5nU3VtbWFyeSI6IHsKICAgICAgICAgICJhdmVyYWdlUmF0aW5nIjogMywKICAgICAgICAgICJ0b3RhbFJldmlld0NvdW50IjogMQogICAgICAgIH0sCiAgICAgICAgInNvbGRDb3VudCI6IDk5LAogICAgICAgICJzaG9wIjogewogICAgICAgICAgImlkIjogIjAwMDAwMDAwLTdhMWEtNDY3Ni04MDA0LWY3MmI1YWNhZDVkNSIsCiAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIGQyNzQ4NThjIiwKICAgICAgICAgICJzbHVnIjogIjRkZjEyNmZlLTQ4YTAtNDQ1Mi05NzJiLTAzNDQzNDA5N2JkOCIsCiAgICAgICAgICAibG9jYXRpb24iOiBudWxsCiAgICAgICAgfSwKICAgICAgICAidmFyaWFudHMiOiBbCiAgICAgICAgICB7CiAgICAgICAgICAgICJpZCI6ICI3NDNhMzRiYS1kODgwLTRlMjUtYWI4NS00OTQ0YTkwNjljNjMiLAogICAgICAgICAgICAic2t1IjogImU0N2IxN2QwLTQ3YTQtNDE0ZC1hYjNmLTFhY2RhZThjNTAyMiIsCiAgICAgICAgICAgICJ0aXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgICAidGl0bGVFbiI6IG51bGwsCiAgICAgICAgICAgICJwcmljZSI6ICIxMDAwIiwKICAgICAgICAgICAgImN1cnJlbmN5IjogIlRIQiIsCiAgICAgICAgICAgICJzdG9jayI6IDEsCiAgICAgICAgICAgICJvcHRpb25WYWx1ZXMiOiBbXQogICAgICAgICAgfQogICAgICAgIF0sCiAgICAgICAgIm9wdGlvbnMiOiBbXSwKICAgICAgICAiYmFkZ2VzIjogWwogICAgICAgICAgImluX3N0b2NrIgogICAgICAgIF0KICAgICAgfQogICAgXSwKICAgICJtZXRhIjogewogICAgICAidG90YWxDb3VudCI6IDIsCiAgICAgICJwYWdlIjogMSwKICAgICAgInBhZ2VTaXplIjogMjAsCiAgICAgICJoYXNOZXh0UGFnZSI6IGZhbHNlLAogICAgICAicXVlcnkiOiB7CiAgICAgICAgInEiOiAiUHJvamVjdGlvbi0yNTQ5MDk4Zi1hNzExLTQ4ODktYTVjNi05MTZjNDQ0MDRjOTUiLAogICAgICAgICJzb3J0IjogInRvcF9zYWxlcyIKICAgICAgfQogICAgfSwKICAgICJmYWNldHMiOiB7CiAgICAgICJjYXRlZ29yaWVzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICIwYzQ1MDdlOS01ZGM0LTQxYjAtYWEzNS1iOWY1ZmY0YjFiMTAiLAogICAgICAgICAgInNsdWciOiAiYTlmY2M5MjMtMGVkYS00NWM2LWFjMzYtMWI1YTkxOTMwYTY1IiwKICAgICAgICAgICJuYW1lIjogIlByb2plY3Rpb24tMjU0OTA5OGYtYTcxMS00ODg5LWE1YzYtOTE2YzQ0NDA0Yzk1IiwKICAgICAgICAgICJjb3VudCI6IDIsCiAgICAgICAgICAiYWN0aXZlIjogZmFsc2UKICAgICAgICB9CiAgICAgIF0sCiAgICAgICJicmFuZHMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogIjEwMWRlZWIyLTQwODctNGI4MC04ZGY4LTY1Mzc3NWMzYzdkNCIsCiAgICAgICAgICAibmFtZSI6ICJCcmFuZC1Qcm9qZWN0aW9uLTI1NDkwOThmLWE3MTEtNDg4OS1hNWM2LTkxNmM0NDQwNGM5NSIsCiAgICAgICAgICAic2x1ZyI6ICI0NDExMjUyMy0xYTg3LTQ2YjMtYjFmNC03Yjg2MmI1M2VjZTEiLAogICAgICAgICAgImNvdW50IjogMiwKICAgICAgICAgICJhY3RpdmUiOiBmYWxzZQogICAgICAgIH0KICAgICAgXSwKICAgICAgInByaWNlIjogewogICAgICAgICJtaW4iOiAiMTAwMCIsCiAgICAgICAgIm1heCI6ICIyMDAwIiwKICAgICAgICAiY3VycmVuY3kiOiAiVEhCIgogICAgICB9CiAgICB9LAogICAgInBhZ2luYXRpb24iOiB7CiAgICAgICJwYWdlIjogMSwKICAgICAgImxpbWl0IjogMjAsCiAgICAgICJ0b3RhbCI6IDIsCiAgICAgICJ0b3RhbFBhZ2VzIjogMSwKICAgICAgIm5leHRDdXJzb3IiOiBudWxsLAogICAgICAiaGFzTmV4dFBhZ2UiOiBmYWxzZQogICAgfSwKICAgICJmaWx0ZXJzIjogewogICAgICAicSI6ICJQcm9qZWN0aW9uLTI1NDkwOThmLWE3MTEtNDg4OS1hNWM2LTkxNmM0NDQwNGM5NSIsCiAgICAgICJpblN0b2NrIjogdHJ1ZQogICAgfSwKICAgICJzb3J0IjogInRvcF9zYWxlcyIKICB9LAogICJibG9ja2VkU3RvY2siOiB7CiAgICAib25IYW5kIjogMywKICAgICJyZXNlcnZlZCI6IDMKICB9LAogICJzb2xkIjogewogICAgIl9zdW0iOiB7CiAgICAgICJxdWFudGl0eSI6IDEwMAogICAgfQogIH0KfQ=="
+                    },
+                    {
+                      "name": "search-stock-badges-facets",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-projections-search-9e118-tory-and-reserved-inventory-chromium\\attachments\\search-stock-badges-facets-d9d010caf6fb80ad76914e4e54ee703818009a05.png"
+                    },
+                    {
+                      "name": "search-rating-price-filter-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJmaWx0ZXJlZCI6IHsKICAgICJpdGVtcyI6IFsKICAgICAgewogICAgICAgICJwcm9kdWN0SWQiOiAiMWMyMmUyNjctNjA3Yy00ZDgwLThkYTctZTNjYTU0ZDE4OGQ5IiwKICAgICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi0yNTQ5MDk4Zi1hNzExLTQ4ODktYTVjNi05MTZjNDQ0MDRjOTUgbmV3MTAwIiwKICAgICAgICAiY292ZXJJbWFnZSI6IG51bGwsCiAgICAgICAgIm1pblByaWNlIjogIjIwMDAiLAogICAgICAgICJtYXhQcmljZSI6IG51bGwsCiAgICAgICAgInJhdGluZ1N1bW1hcnkiOiB7CiAgICAgICAgICAiYXZlcmFnZVJhdGluZyI6IDQsCiAgICAgICAgICAidG90YWxSZXZpZXdDb3VudCI6IDEKICAgICAgICB9LAogICAgICAgICJzb2xkQ291bnQiOiAxMDAsCiAgICAgICAgInNob3AiOiB7CiAgICAgICAgICAiaWQiOiAiMDAwMDAwMDAtN2ExYS00Njc2LTgwMDQtZjcyYjVhY2FkNWQ1IiwKICAgICAgICAgICJuYW1lIjogIkV4dGVuZGVkIFNob3AgZDI3NDg1OGMiLAogICAgICAgICAgInNsdWciOiAiNGRmMTI2ZmUtNDhhMC00NDUyLTk3MmItMDM0NDM0MDk3YmQ4IiwKICAgICAgICAgICJsb2NhdGlvbiI6IG51bGwKICAgICAgICB9LAogICAgICAgICJ2YXJpYW50cyI6IFsKICAgICAgICAgIHsKICAgICAgICAgICAgImlkIjogIjgwZjlkNWM5LWQ0ZTYtNDllNi1iZTkzLTAzNGE4MTA1Njk1ZSIsCiAgICAgICAgICAgICJza3UiOiAiOTYyMDE1NTQtY2IzOS00ZmYyLWI0MjYtMGQxMTRiZTIxNTU2IiwKICAgICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICAgICAgICJ0aXRsZUVuIjogbnVsbCwKICAgICAgICAgICAgInByaWNlIjogIjIwMDAiLAogICAgICAgICAgICAiY3VycmVuY3kiOiAiVEhCIiwKICAgICAgICAgICAgInN0b2NrIjogMSwKICAgICAgICAgICAgIm9wdGlvblZhbHVlcyI6IFtdCiAgICAgICAgICB9CiAgICAgICAgXSwKICAgICAgICAib3B0aW9ucyI6IFtdLAogICAgICAgICJiYWRnZXMiOiBbCiAgICAgICAgICAibmV3IiwKICAgICAgICAgICJiZXN0X3NlbGxlciIsCiAgICAgICAgICAiaW5fc3RvY2siCiAgICAgICAgXQogICAgICB9CiAgICBdLAogICAgIm1ldGEiOiB7CiAgICAgICJ0b3RhbENvdW50IjogMSwKICAgICAgInBhZ2UiOiAxLAogICAgICAicGFnZVNpemUiOiAyMCwKICAgICAgImhhc05leHRQYWdlIjogZmFsc2UsCiAgICAgICJxdWVyeSI6IHsKICAgICAgICAicSI6ICJQcm9qZWN0aW9uLTI1NDkwOThmLWE3MTEtNDg4OS1hNWM2LTkxNmM0NDQwNGM5NSIsCiAgICAgICAgIm1pblByaWNlIjogIjEwMDAiLAogICAgICAgICJtYXhQcmljZSI6ICIyMDAwIiwKICAgICAgICAic29ydCI6ICJ0b3Bfc2FsZXMiCiAgICAgIH0KICAgIH0sCiAgICAiZmFjZXRzIjogewogICAgICAiY2F0ZWdvcmllcyI6IFsKICAgICAgICB7CiAgICAgICAgICAiaWQiOiAiMGM0NTA3ZTktNWRjNC00MWIwLWFhMzUtYjlmNWZmNGIxYjEwIiwKICAgICAgICAgICJzbHVnIjogImE5ZmNjOTIzLTBlZGEtNDVjNi1hYzM2LTFiNWE5MTkzMGE2NSIsCiAgICAgICAgICAibmFtZSI6ICJQcm9qZWN0aW9uLTI1NDkwOThmLWE3MTEtNDg4OS1hNWM2LTkxNmM0NDQwNGM5NSIsCiAgICAgICAgICAiY291bnQiOiAyLAogICAgICAgICAgImFjdGl2ZSI6IGZhbHNlCiAgICAgICAgfQogICAgICBdLAogICAgICAiYnJhbmRzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICIxMDFkZWViMi00MDg3LTRiODAtOGRmOC02NTM3NzVjM2M3ZDQiLAogICAgICAgICAgIm5hbWUiOiAiQnJhbmQtUHJvamVjdGlvbi0yNTQ5MDk4Zi1hNzExLTQ4ODktYTVjNi05MTZjNDQ0MDRjOTUiLAogICAgICAgICAgInNsdWciOiAiNDQxMTI1MjMtMWE4Ny00NmIzLWIxZjQtN2I4NjJiNTNlY2UxIiwKICAgICAgICAgICJjb3VudCI6IDIsCiAgICAgICAgICAiYWN0aXZlIjogZmFsc2UKICAgICAgICB9CiAgICAgIF0sCiAgICAgICJwcmljZSI6IHsKICAgICAgICAibWluIjogIjEwMDAiLAogICAgICAgICJtYXgiOiAiMjAwMCIsCiAgICAgICAgImN1cnJlbmN5IjogIlRIQiIKICAgICAgfQogICAgfSwKICAgICJwYWdpbmF0aW9uIjogewogICAgICAicGFnZSI6IDEsCiAgICAgICJsaW1pdCI6IDIwLAogICAgICAidG90YWwiOiAxLAogICAgICAidG90YWxQYWdlcyI6IDEsCiAgICAgICJuZXh0Q3Vyc29yIjogbnVsbCwKICAgICAgImhhc05leHRQYWdlIjogZmFsc2UKICAgIH0sCiAgICAiZmlsdGVycyI6IHsKICAgICAgInEiOiAiUHJvamVjdGlvbi0yNTQ5MDk4Zi1hNzExLTQ4ODktYTVjNi05MTZjNDQ0MDRjOTUiLAogICAgICAibWluUHJpY2UiOiAiMTAwMCIsCiAgICAgICJtYXhQcmljZSI6ICIyMDAwIiwKICAgICAgInJhdGluZyI6IDQsCiAgICAgICJpblN0b2NrIjogdHJ1ZQogICAgfSwKICAgICJzb3J0IjogInRvcF9zYWxlcyIKICB9Cn0="
+                    },
+                    {
+                      "name": "search-rating-price-filter",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-projections-search-9e118-tory-and-reserved-inventory-chromium\\attachments\\search-rating-price-filter-69964e876fb0acb647f8029190718cd4b67becd5.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-6b1b9bc411bde5c7bf1d",
+          "file": "numeric-projections.spec.ts",
+          "line": 155,
+          "column": 1
+        },
+        {
+          "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1485,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:46.048Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "related-and-similar-price-contracts-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJyZWxhdGVkIjogWwogICAgewogICAgICAiaWQiOiAiYTJiMzM5ZmYtNzJiZi00OGUzLTlhNzQtZGJjNTNiM2VkZTIzIiwKICAgICAgInNob3BJZCI6ICIwMDAwMDAwMC05OTFlLTRlNmMtYTE4Ni0xZjVkMGYzYzI1ZmQiLAogICAgICAic2VsbGVyUHJvZmlsZUlkIjogImVkNWMyOGM0LTU0ZDQtNDViZi05MWVkLTdiOTQ3MDkxODdiZiIsCiAgICAgICJzZWxsZXJJZGVudGl0eUhhc2giOiBudWxsLAogICAgICAiY2F0ZWdvcnlJZCI6ICI0ZmJjMzg3OS05OWVhLTQwMjQtYmVmZS00OTViMmFhYWE2MTgiLAogICAgICAiYnJhbmRJZCI6ICJkNjBlNTVjYi03ODc1LTQ4NjctYTIzMi1jZmM3ZTJjMmYzMjkiLAogICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi01MzJkMWJlZS0yZWI1LTRiYzgtOTFjYy04YTUxYzM0NWNmMzMgb3V0c2lkZTE1MDEiLAogICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICJ0aXRsZUVuIjogbnVsbCwKICAgICAgInNsdWciOiAiYjI0NmIyODUtNTE4ZS00MWU1LTljN2QtNWJjZGE1Y2MyNTMzIiwKICAgICAgImRlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgImRlc2NyaXB0aW9uVGgiOiBudWxsLAogICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICJtZXRhVGl0bGUiOiBudWxsLAogICAgICAibWV0YURlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgIndhcnJhbnR5SW5mbyI6IG51bGwsCiAgICAgICJjb25kaXRpb24iOiBudWxsLAogICAgICAiY291bnRyeU9mT3JpZ2luIjogbnVsbCwKICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAicHJvZHVjdEZpbmdlcnByaW50SGFzaCI6IG51bGwsCiAgICAgICJkdXBsaWNhdGVTdGF0dXMiOiAiVU5LTk9XTiIsCiAgICAgICJkdXBsaWNhdGVPZlByb2R1Y3RJZCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wMVQwMDowMDowNC4wMDBaIiwKICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIyOFoiLAogICAgICAiZGVsZXRlZEF0IjogbnVsbCwKICAgICAgImNhdGVnb3J5IjogewogICAgICAgICJpZCI6ICI0ZmJjMzg3OS05OWVhLTQwMjQtYmVmZS00OTViMmFhYWE2MTgiLAogICAgICAgICJuYW1lIjogIlByb2plY3Rpb24tNTMyZDFiZWUtMmViNS00YmM4LTkxY2MtOGE1MWMzNDVjZjMzIiwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAic2x1ZyI6ICIzOTczY2U4Ni05ZWVhLTQ1YTgtYmQ3Zi00MTY4MWVhMjE2YTMiLAogICAgICAgICJpc0FjdGl2ZSI6IHRydWUKICAgICAgfSwKICAgICAgImJyYW5kIjogewogICAgICAgICJpZCI6ICJkNjBlNTVjYi03ODc1LTQ4NjctYTIzMi1jZmM3ZTJjMmYzMjkiLAogICAgICAgICJuYW1lIjogIkJyYW5kLVByb2plY3Rpb24tNTMyZDFiZWUtMmViNS00YmM4LTkxY2MtOGE1MWMzNDVjZjMzIiwKICAgICAgICAic2x1ZyI6ICIzZjhhMDI5NC0wYWI1LTRmYzAtYTc5ZS1lNGQ1MTI4NDRkNTIiLAogICAgICAgICJjb2RlIjogbnVsbCwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvblRoIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICAgImxvZ29VcmwiOiBudWxsLAogICAgICAgICJ3ZWJzaXRlVXJsIjogbnVsbCwKICAgICAgICAiY291bnRyeUNvZGUiOiBudWxsLAogICAgICAgICJzb3J0T3JkZXIiOiAwLAogICAgICAgICJpc0ZlYXR1cmVkIjogZmFsc2UsCiAgICAgICAgImlzQWN0aXZlIjogdHJ1ZSwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDYuMjE1WiIsCiAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIxNVoiCiAgICAgIH0sCiAgICAgICJoaWdobGlnaHRzIjogW10sCiAgICAgICJhdHRyaWJ1dGVzIjogW10sCiAgICAgICJvcHRpb25zIjogW10sCiAgICAgICJpbWFnZXMiOiBbXSwKICAgICAgInZpZGVvIjogbnVsbCwKICAgICAgInNob3AiOiB7CiAgICAgICAgImlkIjogIjAwMDAwMDAwLTk5MWUtNGU2Yy1hMTg2LTFmNWQwZjNjMjVmZCIsCiAgICAgICAgIm5hbWUiOiAiRXh0ZW5kZWQgU2hvcCBiMjcxMGQ3ZiIsCiAgICAgICAgInNsdWciOiAiYzk4ODg0YmMtYTI4Zi00MjM3LWFhMGYtNDBiMWU2ZmZlZDA3IiwKICAgICAgICAib3duZXJJZCI6ICJlZTQ3YWIzMS1hN2JkLTRlYTAtOTFlZi02YTY4OTQyMzEyYTMiLAogICAgICAgICJzdGF0dXMiOiAiQUNUSVZFIiwKICAgICAgICAibG9nb1VybCI6IG51bGwsCiAgICAgICAgImNvdmVyVXJsIjogbnVsbCwKICAgICAgICAicmF0aW5nQXZlcmFnZSI6ICIwIiwKICAgICAgICAicmF0aW5nQ291bnQiOiAwLAogICAgICAgICJmb2xsb3dlckNvdW50IjogMCwKICAgICAgICAicHJvZHVjdENvdW50IjogMCwKICAgICAgICAiYWRkcmVzc2VzIjogW10KICAgICAgfSwKICAgICAgInZhcmlhbnRzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICIyODQ2MmE5My1hN2JkLTQ5YWYtOWNjYS0xNmE0OTQ3NjlmYzUiLAogICAgICAgICAgInByb2R1Y3RJZCI6ICJhMmIzMzlmZi03MmJmLTQ4ZTMtOWE3NC1kYmM1M2IzZWRlMjMiLAogICAgICAgICAgInNrdSI6ICI0ZWI5MjczMC04ZjhjLTQ5YTktOTgxNC1kMzg2NTEzYWMwZWMiLAogICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgInRpdGxlRW4iOiBudWxsLAogICAgICAgICAgInByaWNlIjogIjE1MDEiLAogICAgICAgICAgImN1cnJlbmN5IjogIlRIQiIsCiAgICAgICAgICAic3RhdHVzIjogIkFDVElWRSIsCiAgICAgICAgICAib3B0aW9uQ29tYmluYXRpb25LZXkiOiBudWxsLAogICAgICAgICAgIndlaWdodEdyYW1zIjogbnVsbCwKICAgICAgICAgICJsZW5ndGhNbSI6IG51bGwsCiAgICAgICAgICAid2lkdGhNbSI6IG51bGwsCiAgICAgICAgICAiaGVpZ2h0TW0iOiBudWxsLAogICAgICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIyOVoiLAogICAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIyOVoiLAogICAgICAgICAgImludmVudG9yeSI6IHsKICAgICAgICAgICAgImlkIjogImJjZDU1OGVhLWE3YmQtNDAxZi1iMDhiLTRhNjNkMzExN2RjMCIsCiAgICAgICAgICAgICJ2YXJpYW50SWQiOiAiMjg0NjJhOTMtYTdiZC00OWFmLTljY2EtMTZhNDk0NzY5ZmM1IiwKICAgICAgICAgICAgInF1YW50aXR5T25IYW5kIjogMywKICAgICAgICAgICAgInF1YW50aXR5UmVzZXJ2ZWQiOiAyLAogICAgICAgICAgICAicmVvcmRlckxldmVsIjogMCwKICAgICAgICAgICAgInZlcnNpb24iOiAxLAogICAgICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDYuMjI5WiIKICAgICAgICAgIH0sCiAgICAgICAgICAib3B0aW9uVmFsdWVzIjogW10KICAgICAgICB9CiAgICAgIF0sCiAgICAgICJyYXRpbmciOiAwLAogICAgICAicmF0aW5nU3VtbWFyeSI6IHsKICAgICAgICAiYXZlcmFnZVJhdGluZyI6IDAsCiAgICAgICAgInRvdGFsUmV2aWV3Q291bnQiOiAwCiAgICAgIH0sCiAgICAgICJzb2xkQ291bnQiOiAwCiAgICB9LAogICAgewogICAgICAiaWQiOiAiNWM1MjUwOWUtODZmNy00YTU2LTg2YWEtYzIxNzJiMjMzYTBkIiwKICAgICAgInNob3BJZCI6ICIwMDAwMDAwMC05OTFlLTRlNmMtYTE4Ni0xZjVkMGYzYzI1ZmQiLAogICAgICAic2VsbGVyUHJvZmlsZUlkIjogImVkNWMyOGM0LTU0ZDQtNDViZi05MWVkLTdiOTQ3MDkxODdiZiIsCiAgICAgICJzZWxsZXJJZGVudGl0eUhhc2giOiBudWxsLAogICAgICAiY2F0ZWdvcnlJZCI6ICI0ZmJjMzg3OS05OWVhLTQwMjQtYmVmZS00OTViMmFhYWE2MTgiLAogICAgICAiYnJhbmRJZCI6ICJkNjBlNTVjYi03ODc1LTQ4NjctYTIzMi1jZmM3ZTJjMmYzMjkiLAogICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi01MzJkMWJlZS0yZWI1LTRiYzgtOTFjYy04YTUxYzM0NWNmMzMgZWRnZTE1MDAiLAogICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICJ0aXRsZUVuIjogbnVsbCwKICAgICAgInNsdWciOiAiY2RmNTg4NjctMTI2YS00YzI4LWFjZmMtMWI0NDUzZTdiZDQ0IiwKICAgICAgImRlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgImRlc2NyaXB0aW9uVGgiOiBudWxsLAogICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICJtZXRhVGl0bGUiOiBudWxsLAogICAgICAibWV0YURlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgIndhcnJhbnR5SW5mbyI6IG51bGwsCiAgICAgICJjb25kaXRpb24iOiBudWxsLAogICAgICAiY291bnRyeU9mT3JpZ2luIjogbnVsbCwKICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAicHJvZHVjdEZpbmdlcnByaW50SGFzaCI6IG51bGwsCiAgICAgICJkdXBsaWNhdGVTdGF0dXMiOiAiVU5LTk9XTiIsCiAgICAgICJkdXBsaWNhdGVPZlByb2R1Y3RJZCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wMVQwMDowMDowMy4wMDBaIiwKICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIyNVoiLAogICAgICAiZGVsZXRlZEF0IjogbnVsbCwKICAgICAgImNhdGVnb3J5IjogewogICAgICAgICJpZCI6ICI0ZmJjMzg3OS05OWVhLTQwMjQtYmVmZS00OTViMmFhYWE2MTgiLAogICAgICAgICJuYW1lIjogIlByb2plY3Rpb24tNTMyZDFiZWUtMmViNS00YmM4LTkxY2MtOGE1MWMzNDVjZjMzIiwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAic2x1ZyI6ICIzOTczY2U4Ni05ZWVhLTQ1YTgtYmQ3Zi00MTY4MWVhMjE2YTMiLAogICAgICAgICJpc0FjdGl2ZSI6IHRydWUKICAgICAgfSwKICAgICAgImJyYW5kIjogewogICAgICAgICJpZCI6ICJkNjBlNTVjYi03ODc1LTQ4NjctYTIzMi1jZmM3ZTJjMmYzMjkiLAogICAgICAgICJuYW1lIjogIkJyYW5kLVByb2plY3Rpb24tNTMyZDFiZWUtMmViNS00YmM4LTkxY2MtOGE1MWMzNDVjZjMzIiwKICAgICAgICAic2x1ZyI6ICIzZjhhMDI5NC0wYWI1LTRmYzAtYTc5ZS1lNGQ1MTI4NDRkNTIiLAogICAgICAgICJjb2RlIjogbnVsbCwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvblRoIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICAgImxvZ29VcmwiOiBudWxsLAogICAgICAgICJ3ZWJzaXRlVXJsIjogbnVsbCwKICAgICAgICAiY291bnRyeUNvZGUiOiBudWxsLAogICAgICAgICJzb3J0T3JkZXIiOiAwLAogICAgICAgICJpc0ZlYXR1cmVkIjogZmFsc2UsCiAgICAgICAgImlzQWN0aXZlIjogdHJ1ZSwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDYuMjE1WiIsCiAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIxNVoiCiAgICAgIH0sCiAgICAgICJoaWdobGlnaHRzIjogW10sCiAgICAgICJhdHRyaWJ1dGVzIjogW10sCiAgICAgICJvcHRpb25zIjogW10sCiAgICAgICJpbWFnZXMiOiBbXSwKICAgICAgInZpZGVvIjogbnVsbCwKICAgICAgInNob3AiOiB7CiAgICAgICAgImlkIjogIjAwMDAwMDAwLTk5MWUtNGU2Yy1hMTg2LTFmNWQwZjNjMjVmZCIsCiAgICAgICAgIm5hbWUiOiAiRXh0ZW5kZWQgU2hvcCBiMjcxMGQ3ZiIsCiAgICAgICAgInNsdWciOiAiYzk4ODg0YmMtYTI4Zi00MjM3LWFhMGYtNDBiMWU2ZmZlZDA3IiwKICAgICAgICAib3duZXJJZCI6ICJlZTQ3YWIzMS1hN2JkLTRlYTAtOTFlZi02YTY4OTQyMzEyYTMiLAogICAgICAgICJzdGF0dXMiOiAiQUNUSVZFIiwKICAgICAgICAibG9nb1VybCI6IG51bGwsCiAgICAgICAgImNvdmVyVXJsIjogbnVsbCwKICAgICAgICAicmF0aW5nQXZlcmFnZSI6ICIwIiwKICAgICAgICAicmF0aW5nQ291bnQiOiAwLAogICAgICAgICJmb2xsb3dlckNvdW50IjogMCwKICAgICAgICAicHJvZHVjdENvdW50IjogMCwKICAgICAgICAiYWRkcmVzc2VzIjogW10KICAgICAgfSwKICAgICAgInZhcmlhbnRzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICI2MzVmZWZhOC0yZjcwLTRkYTItOThiYS03NTFjMTNlMzgyM2IiLAogICAgICAgICAgInByb2R1Y3RJZCI6ICI1YzUyNTA5ZS04NmY3LTRhNTYtODZhYS1jMjE3MmIyMzNhMGQiLAogICAgICAgICAgInNrdSI6ICJhMDI0NzdmOS05YzNkLTRjYjQtOWMxZi01ZWI1NTcxZWE5YzEiLAogICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgInRpdGxlRW4iOiBudWxsLAogICAgICAgICAgInByaWNlIjogIjE1MDAiLAogICAgICAgICAgImN1cnJlbmN5IjogIlRIQiIsCiAgICAgICAgICAic3RhdHVzIjogIkFDVElWRSIsCiAgICAgICAgICAib3B0aW9uQ29tYmluYXRpb25LZXkiOiBudWxsLAogICAgICAgICAgIndlaWdodEdyYW1zIjogbnVsbCwKICAgICAgICAgICJsZW5ndGhNbSI6IG51bGwsCiAgICAgICAgICAid2lkdGhNbSI6IG51bGwsCiAgICAgICAgICAiaGVpZ2h0TW0iOiBudWxsLAogICAgICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIyNloiLAogICAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIyNloiLAogICAgICAgICAgImludmVudG9yeSI6IHsKICAgICAgICAgICAgImlkIjogIjM3ZGM3ZDZjLWYzNTctNGI4OS1iMDZmLTUwNjM1NDNmYjZiZiIsCiAgICAgICAgICAgICJ2YXJpYW50SWQiOiAiNjM1ZmVmYTgtMmY3MC00ZGEyLTk4YmEtNzUxYzEzZTM4MjNiIiwKICAgICAgICAgICAgInF1YW50aXR5T25IYW5kIjogMywKICAgICAgICAgICAgInF1YW50aXR5UmVzZXJ2ZWQiOiAyLAogICAgICAgICAgICAicmVvcmRlckxldmVsIjogMCwKICAgICAgICAgICAgInZlcnNpb24iOiAxLAogICAgICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDYuMjI2WiIKICAgICAgICAgIH0sCiAgICAgICAgICAib3B0aW9uVmFsdWVzIjogW10KICAgICAgICB9CiAgICAgIF0sCiAgICAgICJyYXRpbmciOiAwLAogICAgICAicmF0aW5nU3VtbWFyeSI6IHsKICAgICAgICAiYXZlcmFnZVJhdGluZyI6IDAsCiAgICAgICAgInRvdGFsUmV2aWV3Q291bnQiOiAwCiAgICAgIH0sCiAgICAgICJzb2xkQ291bnQiOiAwCiAgICB9LAogICAgewogICAgICAiaWQiOiAiOTFiM2QwYTUtZjJjOS00Nzg4LTlhNWItNTUxNDc5Y2M1NWE4IiwKICAgICAgInNob3BJZCI6ICIwMDAwMDAwMC05OTFlLTRlNmMtYTE4Ni0xZjVkMGYzYzI1ZmQiLAogICAgICAic2VsbGVyUHJvZmlsZUlkIjogImVkNWMyOGM0LTU0ZDQtNDViZi05MWVkLTdiOTQ3MDkxODdiZiIsCiAgICAgICJzZWxsZXJJZGVudGl0eUhhc2giOiBudWxsLAogICAgICAiY2F0ZWdvcnlJZCI6ICI0ZmJjMzg3OS05OWVhLTQwMjQtYmVmZS00OTViMmFhYWE2MTgiLAogICAgICAiYnJhbmRJZCI6ICJkNjBlNTVjYi03ODc1LTQ4NjctYTIzMi1jZmM3ZTJjMmYzMjkiLAogICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi01MzJkMWJlZS0yZWI1LTRiYzgtOTFjYy04YTUxYzM0NWNmMzMgZWRnZTUwMCIsCiAgICAgICJ0aXRsZVRoIjogbnVsbCwKICAgICAgInRpdGxlRW4iOiBudWxsLAogICAgICAic2x1ZyI6ICJkMGViZWRkMy04YjlkLTQyMTctODFhZS1lOTFhNjIzOWI4Y2EiLAogICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAiZGVzY3JpcHRpb25UaCI6IG51bGwsCiAgICAgICJkZXNjcmlwdGlvbkVuIjogbnVsbCwKICAgICAgIm1ldGFUaXRsZSI6IG51bGwsCiAgICAgICJtZXRhRGVzY3JpcHRpb24iOiBudWxsLAogICAgICAid2FycmFudHlJbmZvIjogbnVsbCwKICAgICAgImNvbmRpdGlvbiI6IG51bGwsCiAgICAgICJjb3VudHJ5T2ZPcmlnaW4iOiBudWxsLAogICAgICAic3RhdHVzIjogIkFDVElWRSIsCiAgICAgICJwcm9kdWN0RmluZ2VycHJpbnRIYXNoIjogbnVsbCwKICAgICAgImR1cGxpY2F0ZVN0YXR1cyI6ICJVTktOT1dOIiwKICAgICAgImR1cGxpY2F0ZU9mUHJvZHVjdElkIjogbnVsbCwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAxVDAwOjAwOjAyLjAwMFoiLAogICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDYuMjIyWiIsCiAgICAgICJkZWxldGVkQXQiOiBudWxsLAogICAgICAiY2F0ZWdvcnkiOiB7CiAgICAgICAgImlkIjogIjRmYmMzODc5LTk5ZWEtNDAyNC1iZWZlLTQ5NWIyYWFhYTYxOCIsCiAgICAgICAgIm5hbWUiOiAiUHJvamVjdGlvbi01MzJkMWJlZS0yZWI1LTRiYzgtOTFjYy04YTUxYzM0NWNmMzMiLAogICAgICAgICJuYW1lVGgiOiBudWxsLAogICAgICAgICJuYW1lRW4iOiBudWxsLAogICAgICAgICJzbHVnIjogIjM5NzNjZTg2LTllZWEtNDVhOC1iZDdmLTQxNjgxZWEyMTZhMyIsCiAgICAgICAgImlzQWN0aXZlIjogdHJ1ZQogICAgICB9LAogICAgICAiYnJhbmQiOiB7CiAgICAgICAgImlkIjogImQ2MGU1NWNiLTc4NzUtNDg2Ny1hMjMyLWNmYzdlMmMyZjMyOSIsCiAgICAgICAgIm5hbWUiOiAiQnJhbmQtUHJvamVjdGlvbi01MzJkMWJlZS0yZWI1LTRiYzgtOTFjYy04YTUxYzM0NWNmMzMiLAogICAgICAgICJzbHVnIjogIjNmOGEwMjk0LTBhYjUtNGZjMC1hNzllLWU0ZDUxMjg0NGQ1MiIsCiAgICAgICAgImNvZGUiOiBudWxsLAogICAgICAgICJuYW1lVGgiOiBudWxsLAogICAgICAgICJuYW1lRW4iOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvbiI6IG51bGwsCiAgICAgICAgImRlc2NyaXB0aW9uVGgiOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvbkVuIjogbnVsbCwKICAgICAgICAibG9nb1VybCI6IG51bGwsCiAgICAgICAgIndlYnNpdGVVcmwiOiBudWxsLAogICAgICAgICJjb3VudHJ5Q29kZSI6IG51bGwsCiAgICAgICAgInNvcnRPcmRlciI6IDAsCiAgICAgICAgImlzRmVhdHVyZWQiOiBmYWxzZSwKICAgICAgICAiaXNBY3RpdmUiOiB0cnVlLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowOTo0Ni4yMTVaIiwKICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDYuMjE1WiIKICAgICAgfSwKICAgICAgImhpZ2hsaWdodHMiOiBbXSwKICAgICAgImF0dHJpYnV0ZXMiOiBbXSwKICAgICAgIm9wdGlvbnMiOiBbXSwKICAgICAgImltYWdlcyI6IFtdLAogICAgICAidmlkZW8iOiBudWxsLAogICAgICAic2hvcCI6IHsKICAgICAgICAiaWQiOiAiMDAwMDAwMDAtOTkxZS00ZTZjLWExODYtMWY1ZDBmM2MyNWZkIiwKICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIGIyNzEwZDdmIiwKICAgICAgICAic2x1ZyI6ICJjOTg4ODRiYy1hMjhmLTQyMzctYWEwZi00MGIxZTZmZmVkMDciLAogICAgICAgICJvd25lcklkIjogImVlNDdhYjMxLWE3YmQtNGVhMC05MWVmLTZhNjg5NDIzMTJhMyIsCiAgICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAgICJsb2dvVXJsIjogbnVsbCwKICAgICAgICAiY292ZXJVcmwiOiBudWxsLAogICAgICAgICJyYXRpbmdBdmVyYWdlIjogIjAiLAogICAgICAgICJyYXRpbmdDb3VudCI6IDAsCiAgICAgICAgImZvbGxvd2VyQ291bnQiOiAwLAogICAgICAgICJwcm9kdWN0Q291bnQiOiAwLAogICAgICAgICJhZGRyZXNzZXMiOiBbXQogICAgICB9LAogICAgICAidmFyaWFudHMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogImM0NTBkMTY2LTM5NzQtNGU4Yi05ZDAzLTNkMDJjZGI2NGI1ZiIsCiAgICAgICAgICAicHJvZHVjdElkIjogIjkxYjNkMGE1LWYyYzktNDc4OC05YTViLTU1MTQ3OWNjNTVhOCIsCiAgICAgICAgICAic2t1IjogIjJjODI2NzIzLTUwOGYtNDVjYS1iZTY0LWIzMjJmODdjMmQxYyIsCiAgICAgICAgICAidGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICAgICAidGl0bGVFbiI6IG51bGwsCiAgICAgICAgICAicHJpY2UiOiAiNTAwIiwKICAgICAgICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAgICAgIm9wdGlvbkNvbWJpbmF0aW9uS2V5IjogbnVsbCwKICAgICAgICAgICJ3ZWlnaHRHcmFtcyI6IG51bGwsCiAgICAgICAgICAibGVuZ3RoTW0iOiBudWxsLAogICAgICAgICAgIndpZHRoTW0iOiBudWxsLAogICAgICAgICAgImhlaWdodE1tIjogbnVsbCwKICAgICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowOTo0Ni4yMjNaIiwKICAgICAgICAgICJ1cGRhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowOTo0Ni4yMjNaIiwKICAgICAgICAgICJpbnZlbnRvcnkiOiB7CiAgICAgICAgICAgICJpZCI6ICJjNmM4NTc3My05NDZkLTQ3Y2MtYTA2OS0yMTY4NDg1NGVhM2UiLAogICAgICAgICAgICAidmFyaWFudElkIjogImM0NTBkMTY2LTM5NzQtNGU4Yi05ZDAzLTNkMDJjZGI2NGI1ZiIsCiAgICAgICAgICAgICJxdWFudGl0eU9uSGFuZCI6IDMsCiAgICAgICAgICAgICJxdWFudGl0eVJlc2VydmVkIjogMiwKICAgICAgICAgICAgInJlb3JkZXJMZXZlbCI6IDAsCiAgICAgICAgICAgICJ2ZXJzaW9uIjogMSwKICAgICAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIyM1oiCiAgICAgICAgICB9LAogICAgICAgICAgIm9wdGlvblZhbHVlcyI6IFtdCiAgICAgICAgfQogICAgICBdLAogICAgICAicmF0aW5nIjogMCwKICAgICAgInJhdGluZ1N1bW1hcnkiOiB7CiAgICAgICAgImF2ZXJhZ2VSYXRpbmciOiAwLAogICAgICAgICJ0b3RhbFJldmlld0NvdW50IjogMAogICAgICB9LAogICAgICAic29sZENvdW50IjogMAogICAgfSwKICAgIHsKICAgICAgImlkIjogIjk4NTBkYzI0LTZkNmMtNDZkMS1hNzJkLWIzM2FmNzY0MGNmMSIsCiAgICAgICJzaG9wSWQiOiAiMDAwMDAwMDAtOTkxZS00ZTZjLWExODYtMWY1ZDBmM2MyNWZkIiwKICAgICAgInNlbGxlclByb2ZpbGVJZCI6ICJlZDVjMjhjNC01NGQ0LTQ1YmYtOTFlZC03Yjk0NzA5MTg3YmYiLAogICAgICAic2VsbGVySWRlbnRpdHlIYXNoIjogbnVsbCwKICAgICAgImNhdGVnb3J5SWQiOiAiNGZiYzM4NzktOTllYS00MDI0LWJlZmUtNDk1YjJhYWFhNjE4IiwKICAgICAgImJyYW5kSWQiOiAiZDYwZTU1Y2ItNzg3NS00ODY3LWEyMzItY2ZjN2UyYzJmMzI5IiwKICAgICAgInRpdGxlIjogIlByb2plY3Rpb24tNTMyZDFiZWUtMmViNS00YmM4LTkxY2MtOGE1MWMzNDVjZjMzIG91dHNpZGU0OTkiLAogICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICJ0aXRsZUVuIjogbnVsbCwKICAgICAgInNsdWciOiAiZDk1ODYzNmMtODM3ZC00MWRhLTlkN2UtYjBlYzg0YTk0Mjk5IiwKICAgICAgImRlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgImRlc2NyaXB0aW9uVGgiOiBudWxsLAogICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICJtZXRhVGl0bGUiOiBudWxsLAogICAgICAibWV0YURlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgIndhcnJhbnR5SW5mbyI6IG51bGwsCiAgICAgICJjb25kaXRpb24iOiBudWxsLAogICAgICAiY291bnRyeU9mT3JpZ2luIjogbnVsbCwKICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAicHJvZHVjdEZpbmdlcnByaW50SGFzaCI6IG51bGwsCiAgICAgICJkdXBsaWNhdGVTdGF0dXMiOiAiVU5LTk9XTiIsCiAgICAgICJkdXBsaWNhdGVPZlByb2R1Y3RJZCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wMVQwMDowMDowMS4wMDBaIiwKICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIyMFoiLAogICAgICAiZGVsZXRlZEF0IjogbnVsbCwKICAgICAgImNhdGVnb3J5IjogewogICAgICAgICJpZCI6ICI0ZmJjMzg3OS05OWVhLTQwMjQtYmVmZS00OTViMmFhYWE2MTgiLAogICAgICAgICJuYW1lIjogIlByb2plY3Rpb24tNTMyZDFiZWUtMmViNS00YmM4LTkxY2MtOGE1MWMzNDVjZjMzIiwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAic2x1ZyI6ICIzOTczY2U4Ni05ZWVhLTQ1YTgtYmQ3Zi00MTY4MWVhMjE2YTMiLAogICAgICAgICJpc0FjdGl2ZSI6IHRydWUKICAgICAgfSwKICAgICAgImJyYW5kIjogewogICAgICAgICJpZCI6ICJkNjBlNTVjYi03ODc1LTQ4NjctYTIzMi1jZmM3ZTJjMmYzMjkiLAogICAgICAgICJuYW1lIjogIkJyYW5kLVByb2plY3Rpb24tNTMyZDFiZWUtMmViNS00YmM4LTkxY2MtOGE1MWMzNDVjZjMzIiwKICAgICAgICAic2x1ZyI6ICIzZjhhMDI5NC0wYWI1LTRmYzAtYTc5ZS1lNGQ1MTI4NDRkNTIiLAogICAgICAgICJjb2RlIjogbnVsbCwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvblRoIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICAgImxvZ29VcmwiOiBudWxsLAogICAgICAgICJ3ZWJzaXRlVXJsIjogbnVsbCwKICAgICAgICAiY291bnRyeUNvZGUiOiBudWxsLAogICAgICAgICJzb3J0T3JkZXIiOiAwLAogICAgICAgICJpc0ZlYXR1cmVkIjogZmFsc2UsCiAgICAgICAgImlzQWN0aXZlIjogdHJ1ZSwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDYuMjE1WiIsCiAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ2LjIxNVoiCiAgICAgIH0sCiAgICAgICJoaWdobGlnaHRzIjogW10sCiAgICAgICJhdHRyaWJ1dGVzIjogW10sCiAgICAgICJvcHRpb25zIjogW10sCiAgICAgICJpbWFnZXMiOiBbXSwKICAgICAgInZpZGVvIjogbnVsbCwKICAgICAgInNob3AiOiB7CiAgICAgICAgImlkIjogIjAwMDAwMDAwLTk5MWUtNGU2Yy1hMTg2LTFmNWQwZjNjMjVmZCIsCiAgICAgICAgIm5hbWUiOiAiRXh0ZW5kZWQgU2hvcCBiMjcxMGQ3ZiIsCiAgICAgICAgInNsdWciOiAiYzk4ODg0YmMtYTI4Zi00MjM3LWFhMGYtNDBiMWU2ZmZlZDA3IiwKICAgICAgICAib3duZXJJZCI6ICJlZTQ3YWIzMS1hN2JkLTRlYTAtOTFlZi02YTY4OTQyMzEyYTMiLAogICAgICAgICJzdGF0dXMiOiAiQUNUSVZFIiwKICAgICAgICAibG9nb1VybCI6IG51bGwsCiAgICAgICAgImNvdmVyVXJsIjogbnVsbCwKICAgICAgICAicmF0aW5nQXZlcmFnZSI6ICIwIiwKICAgICAgICAicmF0aW5nQ291bnQiOiAwLAogICAgICAgICJmb2xsb3dlckNvdW50IjogMCwKICAgICAgICAicHJvZHVjdENvdW50IjogMCwKICAgICAgICAiYWRkcmVzc2VzIjogW10KICAgICAgfSwKICAgICAgInZhcmlhbnRzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICI4MmE3NmRkOS03OWQ2LTQ4NjYtODU5NC1mMzc3ZWI0NTdkMzIiLAogICAgICAgICAgInByb2R1Y3RJZCI6ICI5ODUwZGMyNC02ZDZjLTQ2ZDEtYTcyZC1iMzNhZjc2NDBjZjEiLAogICAgICAgICAgInNrdSI6ICJlMDdjYjk2Yi1lNjNhLTQ0MTAtYjE2NC0zOWUxOGQ1NmZmZDUiLAogICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgInRpdGxlRW4iOiBudWxsLAogICAgICAgICAgInByaWNlIjogIjQ5OSIsCiAgICAgICAgICAiY3VycmVuY3kiOiAiVEhCIiwKICAgICAgICAgICJzdGF0dXMiOiAiQUNUSVZFIiwKICAgICAgICAgICJvcHRpb25Db21iaW5hdGlvbktleSI6IG51bGwsCiAgICAgICAgICAid2VpZ2h0R3JhbXMiOiBudWxsLAogICAgICAgICAgImxlbmd0aE1tIjogbnVsbCwKICAgICAgICAgICJ3aWR0aE1tIjogbnVsbCwKICAgICAgICAgICJoZWlnaHRNbSI6IG51bGwsCiAgICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDYuMjIxWiIsCiAgICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDYuMjIxWiIsCiAgICAgICAgICAiaW52ZW50b3J5IjogewogICAgICAgICAgICAiaWQiOiAiMGQ2NGRkZjctYjQ0Ny00OTY3LTk5NGMtMjg5ODc1ODgxMWE5IiwKICAgICAgICAgICAgInZhcmlhbnRJZCI6ICI4MmE3NmRkOS03OWQ2LTQ4NjYtODU5NC1mMzc3ZWI0NTdkMzIiLAogICAgICAgICAgICAicXVhbnRpdHlPbkhhbmQiOiAzLAogICAgICAgICAgICAicXVhbnRpdHlSZXNlcnZlZCI6IDIsCiAgICAgICAgICAgICJyZW9yZGVyTGV2ZWwiOiAwLAogICAgICAgICAgICAidmVyc2lvbiI6IDEsCiAgICAgICAgICAgICJ1cGRhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowOTo0Ni4yMjFaIgogICAgICAgICAgfSwKICAgICAgICAgICJvcHRpb25WYWx1ZXMiOiBbXQogICAgICAgIH0KICAgICAgXSwKICAgICAgInJhdGluZyI6IDAsCiAgICAgICJyYXRpbmdTdW1tYXJ5IjogewogICAgICAgICJhdmVyYWdlUmF0aW5nIjogMCwKICAgICAgICAidG90YWxSZXZpZXdDb3VudCI6IDAKICAgICAgfSwKICAgICAgInNvbGRDb3VudCI6IDAKICAgIH0KICBdLAogICJzaW1pbGFyIjogewogICAgIml0ZW1zIjogWwogICAgICB7CiAgICAgICAgInByb2R1Y3RJZCI6ICI1YzUyNTA5ZS04NmY3LTRhNTYtODZhYS1jMjE3MmIyMzNhMGQiLAogICAgICAgICJ0aXRsZSI6ICJQcm9qZWN0aW9uLTUzMmQxYmVlLTJlYjUtNGJjOC05MWNjLThhNTFjMzQ1Y2YzMyBlZGdlMTUwMCIsCiAgICAgICAgIm1pblByaWNlIjogIjE1MDAiLAogICAgICAgICJ2YXJpYW50SWQiOiAiNjM1ZmVmYTgtMmY3MC00ZGEyLTk4YmEtNzUxYzEzZTM4MjNiIiwKICAgICAgICAidmFyaWFudFRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICJza3UiOiAiYTAyNDc3ZjktOWMzZC00Y2I0LTljMWYtNWViNTU3MWVhOWMxIiwKICAgICAgICAiY3VycmVuY3kiOiAiVEhCIiwKICAgICAgICAic3RvY2siOiAxLAogICAgICAgICJzb2xkQ291bnQiOiAwLAogICAgICAgICJzaG9wIjogewogICAgICAgICAgImlkIjogIjAwMDAwMDAwLTk5MWUtNGU2Yy1hMTg2LTFmNWQwZjNjMjVmZCIsCiAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIGIyNzEwZDdmIgogICAgICAgIH0KICAgICAgfSwKICAgICAgewogICAgICAgICJwcm9kdWN0SWQiOiAiOTFiM2QwYTUtZjJjOS00Nzg4LTlhNWItNTUxNDc5Y2M1NWE4IiwKICAgICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi01MzJkMWJlZS0yZWI1LTRiYzgtOTFjYy04YTUxYzM0NWNmMzMgZWRnZTUwMCIsCiAgICAgICAgIm1pblByaWNlIjogIjUwMCIsCiAgICAgICAgInZhcmlhbnRJZCI6ICJjNDUwZDE2Ni0zOTc0LTRlOGItOWQwMy0zZDAyY2RiNjRiNWYiLAogICAgICAgICJ2YXJpYW50VGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgInNrdSI6ICIyYzgyNjcyMy01MDhmLTQ1Y2EtYmU2NC1iMzIyZjg3YzJkMWMiLAogICAgICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgICAgICJzdG9jayI6IDEsCiAgICAgICAgInNvbGRDb3VudCI6IDAsCiAgICAgICAgInNob3AiOiB7CiAgICAgICAgICAiaWQiOiAiMDAwMDAwMDAtOTkxZS00ZTZjLWExODYtMWY1ZDBmM2MyNWZkIiwKICAgICAgICAgICJuYW1lIjogIkV4dGVuZGVkIFNob3AgYjI3MTBkN2YiCiAgICAgICAgfQogICAgICB9CiAgICBdLAogICAgInBhZ2luYXRpb24iOiB7CiAgICAgICJwYWdlIjogMSwKICAgICAgImxpbWl0IjogMjAsCiAgICAgICJoYXNOZXh0UGFnZSI6IGZhbHNlCiAgICB9CiAgfSwKICAic3RvcmVkUHJpY2VzIjogWwogICAgIjQ5OSIsCiAgICAiNTAwIiwKICAgICIxNTAwIiwKICAgICIxNTAxIgogIF0KfQ=="
+                    },
+                    {
+                      "name": "related-and-similar-price-contracts",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-projections-relate-3daae-includes500-1500-edges-only-chromium\\attachments\\related-and-similar-price-contracts-99e8b333a34ef1d408934212a7e07f9c521169bf.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-ebb95a7abf358eb31335",
+          "file": "numeric-projections.spec.ts",
+          "line": 215,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-reporting.spec.ts",
+      "file": "numeric-reporting.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2456,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:47.574Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "bangkok-three-day-report",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\\attachments\\bangkok-three-day-report-358de0480eca4c40a1a7e7ef1d454aa713da1374.png"
+                    },
+                    {
+                      "name": "bangkok-single-day-report",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\\attachments\\bangkok-single-day-report-d0d8aced325199d155236f1e133c536c169e3063.png"
+                    },
+                    {
+                      "name": "bangkok-reporting-api-db",
+                      "contentType": "application/json",
+                      "body": "ewogICJoaXN0b3JpY2FsUGFpZFByZWNvbmRpdGlvbiI6IHRydWUsCiAgInBheW1lbnRMaWZlY3ljbGVWZXJpZmllZEhlcmUiOiBmYWxzZSwKICAiZGFzaGJvYXJkQ3VycmVudERhdGVGcm96ZW4iOiBmYWxzZSwKICAiZGFpbHlDaGFydFNob3dzUmV2ZW51ZSI6IGZhbHNlLAogICJpbnN0YW50cyI6IFsKICAgIHsKICAgICAgImluc3RhbnQiOiAiMjAyNi0wOS0zMFQxNjo1OTo1OS45OTlaIiwKICAgICAgImFtb3VudCI6ICIxIgogICAgfSwKICAgIHsKICAgICAgImluc3RhbnQiOiAiMjAyNi0wOS0zMFQxNzowMDowMC4wMDBaIiwKICAgICAgImFtb3VudCI6ICIyIgogICAgfSwKICAgIHsKICAgICAgImluc3RhbnQiOiAiMjAyNi0xMC0wMVQxNjo1OTo1OS45OTlaIiwKICAgICAgImFtb3VudCI6ICI0IgogICAgfSwKICAgIHsKICAgICAgImluc3RhbnQiOiAiMjAyNi0xMC0wMVQxNzowMDowMC4wMDBaIiwKICAgICAgImFtb3VudCI6ICI4IgogICAgfSwKICAgIHsKICAgICAgImluc3RhbnQiOiAiMjAyNi0xMC0zMVQxNzowMDowMC4wMDBaIiwKICAgICAgImFtb3VudCI6ICIxNiIKICAgIH0KICBdLAogICJ3aW5kb3dzIjogWwogICAgewogICAgICAiZGF0ZSI6ICIyMDI2LTA5LTMwIiwKICAgICAgImZyb20iOiAiMjAyNi0wOS0yOVQxNzowMDowMC4wMDBaIiwKICAgICAgInRvIjogIjIwMjYtMDktMzBUMTY6NTk6NTkuOTk5WiIsCiAgICAgICJjb3VudCI6IDEsCiAgICAgICJyZXZlbnVlIjogIjEiCiAgICB9LAogICAgewogICAgICAiZGF0ZSI6ICIyMDI2LTEwLTAxIiwKICAgICAgImZyb20iOiAiMjAyNi0wOS0zMFQxNzowMDowMC4wMDBaIiwKICAgICAgInRvIjogIjIwMjYtMTAtMDFUMTY6NTk6NTkuOTk5WiIsCiAgICAgICJjb3VudCI6IDIsCiAgICAgICJyZXZlbnVlIjogIjYiCiAgICB9LAogICAgewogICAgICAiZGF0ZSI6ICIyMDI2LTEwLTAyIiwKICAgICAgImZyb20iOiAiMjAyNi0xMC0wMVQxNzowMDowMC4wMDBaIiwKICAgICAgInRvIjogIjIwMjYtMTAtMDJUMTY6NTk6NTkuOTk5WiIsCiAgICAgICJjb3VudCI6IDEsCiAgICAgICJyZXZlbnVlIjogIjgiCiAgICB9CiAgXSwKICAib3JkZXJzIjogWwogICAgewogICAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAgICJpZCI6ICJlYzBmMjYzYy03NDc4LTQzNGUtYTcyYS1kYjQxNzEyNWZmZjQiLAogICAgICAiY2hlY2tvdXRJZCI6ICIzZTI1ZDY1ZC04MDMxLTQwZGMtYmFmYS1kNzRjOWI3YjQ4YjgiLAogICAgICAidXNlcklkIjogIjcyY2ZiZGMzLTk5NDItNGUzNy04ZWI5LTlhZWQwMTM2ZjRkYSIsCiAgICAgICJvcmRlck51bWJlciI6ICJSRVBPUlRJTkctN2Y2ZTU0NGEtNjA4OC00ZTQ4LTlmNGQtYzFkZWMxZGUzOWU1IiwKICAgICAgInN0YXR1cyI6ICJQQUlEIiwKICAgICAgInBheW1lbnRTdGF0dXMiOiAiU1VDQ0VFREVEIiwKICAgICAgInN1YnRvdGFsIjogIjEiLAogICAgICAiZGlzY291bnRUb3RhbCI6ICIwIiwKICAgICAgInNoaXBwaW5nVG90YWwiOiAiMCIsCiAgICAgICJ0YXhUb3RhbCI6ICIwIiwKICAgICAgImdyYW5kVG90YWwiOiAiMSIsCiAgICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgICAic2hpcHBpbmdOYW1lIjogIkV4dGVuZGVkIEUyRSBCdXllciIsCiAgICAgICJzaGlwcGluZ1Bob25lIjogbnVsbCwKICAgICAgInNoaXBwaW5nTGluZTEiOiAiMSBUZXN0IFJvYWQiLAogICAgICAic2hpcHBpbmdMaW5lMiI6IG51bGwsCiAgICAgICJzaGlwcGluZ0NpdHkiOiAiQmFuZ2tvayIsCiAgICAgICJzaGlwcGluZ1JlZ2lvbiI6IG51bGwsCiAgICAgICJzaGlwcGluZ1Bvc3RhbENvZGUiOiAiMTAxMTAiLAogICAgICAic2hpcHBpbmdDb3VudHJ5IjogIlRIIiwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTA5LTMwVDE2OjU5OjU5Ljk5OVoiLAogICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDcuODAxWiIKICAgIH0sCiAgICB7CiAgICAgICJpbmNsdWRlZFRheFRvdGFsIjogIjAiLAogICAgICAicmVwb3J0ZWRUYXhUb3RhbCI6ICIwIiwKICAgICAgImlkIjogIjg5NmUyN2M5LTQwYTMtNGUzYy04MWNhLWJiNWFhYjZlNDkzZCIsCiAgICAgICJjaGVja291dElkIjogImU1MDU4MGJkLTUyYTUtNDJiMS05NjZiLTkwNjgwMDFjNDc2YSIsCiAgICAgICJ1c2VySWQiOiAiNzJjZmJkYzMtOTk0Mi00ZTM3LThlYjktOWFlZDAxMzZmNGRhIiwKICAgICAgIm9yZGVyTnVtYmVyIjogIlJFUE9SVElORy0xZmQ1M2ZhYS1mYzdkLTQxNDgtYjU3Zi0zMTg0ZTBjZmUwOGUiLAogICAgICAic3RhdHVzIjogIlBBSUQiLAogICAgICAicGF5bWVudFN0YXR1cyI6ICJTVUNDRUVERUQiLAogICAgICAic3VidG90YWwiOiAiMiIsCiAgICAgICJkaXNjb3VudFRvdGFsIjogIjAiLAogICAgICAic2hpcHBpbmdUb3RhbCI6ICIwIiwKICAgICAgInRheFRvdGFsIjogIjAiLAogICAgICAiZ3JhbmRUb3RhbCI6ICIyIiwKICAgICAgImN1cnJlbmN5IjogIlRIQiIsCiAgICAgICJzaGlwcGluZ05hbWUiOiAiRXh0ZW5kZWQgRTJFIEJ1eWVyIiwKICAgICAgInNoaXBwaW5nUGhvbmUiOiBudWxsLAogICAgICAic2hpcHBpbmdMaW5lMSI6ICIxIFRlc3QgUm9hZCIsCiAgICAgICJzaGlwcGluZ0xpbmUyIjogbnVsbCwKICAgICAgInNoaXBwaW5nQ2l0eSI6ICJCYW5na29rIiwKICAgICAgInNoaXBwaW5nUmVnaW9uIjogbnVsbCwKICAgICAgInNoaXBwaW5nUG9zdGFsQ29kZSI6ICIxMDExMCIsCiAgICAgICJzaGlwcGluZ0NvdW50cnkiOiAiVEgiLAogICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMDktMzBUMTc6MDA6MDAuMDAwWiIsCiAgICAgICJ1cGRhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowOTo0Ny44MjRaIgogICAgfSwKICAgIHsKICAgICAgImluY2x1ZGVkVGF4VG90YWwiOiAiMCIsCiAgICAgICJyZXBvcnRlZFRheFRvdGFsIjogIjAiLAogICAgICAiaWQiOiAiNjk0OGFjYTMtM2ZlMy00ZDVhLWE1ZGUtZDY1Y2JhYmFkODVmIiwKICAgICAgImNoZWNrb3V0SWQiOiAiNTBmMzQ4NTYtZWEzZS00MWQ1LTgxYTQtODYwY2ZiODk4YzRkIiwKICAgICAgInVzZXJJZCI6ICI3MmNmYmRjMy05OTQyLTRlMzctOGViOS05YWVkMDEzNmY0ZGEiLAogICAgICAib3JkZXJOdW1iZXIiOiAiUkVQT1JUSU5HLWM2MTc4ODE0LTE1MWMtNDg4MC05MmRkLTkwZDA2Y2U5OWE4MSIsCiAgICAgICJzdGF0dXMiOiAiUEFJRCIsCiAgICAgICJwYXltZW50U3RhdHVzIjogIlNVQ0NFRURFRCIsCiAgICAgICJzdWJ0b3RhbCI6ICI0IiwKICAgICAgImRpc2NvdW50VG90YWwiOiAiMCIsCiAgICAgICJzaGlwcGluZ1RvdGFsIjogIjAiLAogICAgICAidGF4VG90YWwiOiAiMCIsCiAgICAgICJncmFuZFRvdGFsIjogIjQiLAogICAgICAiY3VycmVuY3kiOiAiVEhCIiwKICAgICAgInNoaXBwaW5nTmFtZSI6ICJFeHRlbmRlZCBFMkUgQnV5ZXIiLAogICAgICAic2hpcHBpbmdQaG9uZSI6IG51bGwsCiAgICAgICJzaGlwcGluZ0xpbmUxIjogIjEgVGVzdCBSb2FkIiwKICAgICAgInNoaXBwaW5nTGluZTIiOiBudWxsLAogICAgICAic2hpcHBpbmdDaXR5IjogIkJhbmdrb2siLAogICAgICAic2hpcHBpbmdSZWdpb24iOiBudWxsLAogICAgICAic2hpcHBpbmdQb3N0YWxDb2RlIjogIjEwMTEwIiwKICAgICAgInNoaXBwaW5nQ291bnRyeSI6ICJUSCIsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wMVQxNjo1OTo1OS45OTlaIiwKICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ3LjgzMVoiCiAgICB9LAogICAgewogICAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAgICJpZCI6ICI4ZmQ1OWE5YS1kYzZlLTQ2MTMtOTVlMC00YTVjNjFkOGI5MGMiLAogICAgICAiY2hlY2tvdXRJZCI6ICIzYzY5M2I4NC1hZTE0LTRmODAtYmJjYy1kODY0MmQ3ODcyYTUiLAogICAgICAidXNlcklkIjogIjcyY2ZiZGMzLTk5NDItNGUzNy04ZWI5LTlhZWQwMTM2ZjRkYSIsCiAgICAgICJvcmRlck51bWJlciI6ICJSRVBPUlRJTkctNTA3ZGEwNDQtMjllYi00NTk0LWJjYzctODY1ZTE5NmQwNDM2IiwKICAgICAgInN0YXR1cyI6ICJQQUlEIiwKICAgICAgInBheW1lbnRTdGF0dXMiOiAiU1VDQ0VFREVEIiwKICAgICAgInN1YnRvdGFsIjogIjgiLAogICAgICAiZGlzY291bnRUb3RhbCI6ICIwIiwKICAgICAgInNoaXBwaW5nVG90YWwiOiAiMCIsCiAgICAgICJ0YXhUb3RhbCI6ICIwIiwKICAgICAgImdyYW5kVG90YWwiOiAiOCIsCiAgICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgICAic2hpcHBpbmdOYW1lIjogIkV4dGVuZGVkIEUyRSBCdXllciIsCiAgICAgICJzaGlwcGluZ1Bob25lIjogbnVsbCwKICAgICAgInNoaXBwaW5nTGluZTEiOiAiMSBUZXN0IFJvYWQiLAogICAgICAic2hpcHBpbmdMaW5lMiI6IG51bGwsCiAgICAgICJzaGlwcGluZ0NpdHkiOiAiQmFuZ2tvayIsCiAgICAgICJzaGlwcGluZ1JlZ2lvbiI6IG51bGwsCiAgICAgICJzaGlwcGluZ1Bvc3RhbENvZGUiOiAiMTAxMTAiLAogICAgICAic2hpcHBpbmdDb3VudHJ5IjogIlRIIiwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAxVDE3OjAwOjAwLjAwMFoiLAogICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDk6NDcuODM4WiIKICAgIH0sCiAgICB7CiAgICAgICJpbmNsdWRlZFRheFRvdGFsIjogIjAiLAogICAgICAicmVwb3J0ZWRUYXhUb3RhbCI6ICIwIiwKICAgICAgImlkIjogIjk2Y2U2Y2I4LThjZTEtNGJmZC1iYzNlLTI3OTI5YzE1MDczOSIsCiAgICAgICJjaGVja291dElkIjogImEyYTM0ZWU3LTZlOTMtNDNjYy1iMDU1LWZkNWFlMjdjZjBmZiIsCiAgICAgICJ1c2VySWQiOiAiNzJjZmJkYzMtOTk0Mi00ZTM3LThlYjktOWFlZDAxMzZmNGRhIiwKICAgICAgIm9yZGVyTnVtYmVyIjogIlJFUE9SVElORy01YjYxOTRiNy1jYTQ1LTQ5MzgtYmVkMC0yYzQ0MTQ2NWRiYTUiLAogICAgICAic3RhdHVzIjogIlBBSUQiLAogICAgICAicGF5bWVudFN0YXR1cyI6ICJTVUNDRUVERUQiLAogICAgICAic3VidG90YWwiOiAiMTYiLAogICAgICAiZGlzY291bnRUb3RhbCI6ICIwIiwKICAgICAgInNoaXBwaW5nVG90YWwiOiAiMCIsCiAgICAgICJ0YXhUb3RhbCI6ICIwIiwKICAgICAgImdyYW5kVG90YWwiOiAiMTYiLAogICAgICAiY3VycmVuY3kiOiAiVEhCIiwKICAgICAgInNoaXBwaW5nTmFtZSI6ICJFeHRlbmRlZCBFMkUgQnV5ZXIiLAogICAgICAic2hpcHBpbmdQaG9uZSI6IG51bGwsCiAgICAgICJzaGlwcGluZ0xpbmUxIjogIjEgVGVzdCBSb2FkIiwKICAgICAgInNoaXBwaW5nTGluZTIiOiBudWxsLAogICAgICAic2hpcHBpbmdDaXR5IjogIkJhbmdrb2siLAogICAgICAic2hpcHBpbmdSZWdpb24iOiBudWxsLAogICAgICAic2hpcHBpbmdQb3N0YWxDb2RlIjogIjEwMTEwIiwKICAgICAgInNoaXBwaW5nQ291bnRyeSI6ICJUSCIsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0zMVQxNzowMDowMC4wMDBaIiwKICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjA5OjQ3Ljg0NloiCiAgICB9CiAgXSwKICAiZGJEYXlzIjogWwogICAgewogICAgICAiZGF0ZSI6ICIyMDI2LTA5LTMwIiwKICAgICAgInNhbGVzIjogewogICAgICAgICJfc3VtIjogewogICAgICAgICAgImxpbmVUb3RhbCI6ICIxIiwKICAgICAgICAgICJxdWFudGl0eSI6IDEKICAgICAgICB9LAogICAgICAgICJfY291bnQiOiB7CiAgICAgICAgICAiX2FsbCI6IDEKICAgICAgICB9CiAgICAgIH0sCiAgICAgICJ2aWV3cyI6IDEsCiAgICAgICJhZGRUb0NhcnQiOiAxCiAgICB9LAogICAgewogICAgICAiZGF0ZSI6ICIyMDI2LTEwLTAxIiwKICAgICAgInNhbGVzIjogewogICAgICAgICJfc3VtIjogewogICAgICAgICAgImxpbmVUb3RhbCI6ICI2IiwKICAgICAgICAgICJxdWFudGl0eSI6IDIKICAgICAgICB9LAogICAgICAgICJfY291bnQiOiB7CiAgICAgICAgICAiX2FsbCI6IDIKICAgICAgICB9CiAgICAgIH0sCiAgICAgICJ2aWV3cyI6IDIsCiAgICAgICJhZGRUb0NhcnQiOiAyCiAgICB9LAogICAgewogICAgICAiZGF0ZSI6ICIyMDI2LTEwLTAyIiwKICAgICAgInNhbGVzIjogewogICAgICAgICJfc3VtIjogewogICAgICAgICAgImxpbmVUb3RhbCI6ICI4IiwKICAgICAgICAgICJxdWFudGl0eSI6IDEKICAgICAgICB9LAogICAgICAgICJfY291bnQiOiB7CiAgICAgICAgICAiX2FsbCI6IDEKICAgICAgICB9CiAgICAgIH0sCiAgICAgICJ2aWV3cyI6IDEsCiAgICAgICJhZGRUb0NhcnQiOiAxCiAgICB9CiAgXSwKICAiYWxsRGFpbHlBcGkiOiB7CiAgICAiaXRlbXMiOiBbCiAgICAgIHsKICAgICAgICAiZGF0ZSI6ICIyMDI2LTA5LTMwIiwKICAgICAgICAidmlld3MiOiAxLAogICAgICAgICJhZGRUb0NhcnQiOiAxLAogICAgICAgICJvcmRlcnMiOiAxLAogICAgICAgICJ1bml0c1NvbGQiOiAxLAogICAgICAgICJyZXZlbnVlIjogIjEiLAogICAgICAgICJjb252ZXJzaW9uUmF0ZSI6IDEKICAgICAgfSwKICAgICAgewogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMDEiLAogICAgICAgICJ2aWV3cyI6IDIsCiAgICAgICAgImFkZFRvQ2FydCI6IDIsCiAgICAgICAgIm9yZGVycyI6IDIsCiAgICAgICAgInVuaXRzU29sZCI6IDIsCiAgICAgICAgInJldmVudWUiOiAiNiIsCiAgICAgICAgImNvbnZlcnNpb25SYXRlIjogMQogICAgICB9LAogICAgICB7CiAgICAgICAgImRhdGUiOiAiMjAyNi0xMC0wMiIsCiAgICAgICAgInZpZXdzIjogMSwKICAgICAgICAiYWRkVG9DYXJ0IjogMSwKICAgICAgICAib3JkZXJzIjogMSwKICAgICAgICAidW5pdHNTb2xkIjogMSwKICAgICAgICAicmV2ZW51ZSI6ICI4IiwKICAgICAgICAiY29udmVyc2lvblJhdGUiOiAxCiAgICAgIH0KICAgIF0KICB9LAogICJvbmVEYWlseUFwaSI6IHsKICAgICJpdGVtcyI6IFsKICAgICAgewogICAgICAgICJkYXRlIjogIjIwMjYtMTAtMDEiLAogICAgICAgICJ2aWV3cyI6IDIsCiAgICAgICAgImFkZFRvQ2FydCI6IDIsCiAgICAgICAgIm9yZGVycyI6IDIsCiAgICAgICAgInVuaXRzU29sZCI6IDIsCiAgICAgICAgInJldmVudWUiOiAiNiIsCiAgICAgICAgImNvbnZlcnNpb25SYXRlIjogMQogICAgICB9CiAgICBdCiAgfSwKICAic3VtbWFyeUFwaSI6IHsKICAgICJ2aWV3cyI6IDIsCiAgICAiYWRkVG9DYXJ0IjogMiwKICAgICJvcmRlcnMiOiAyLAogICAgInVuaXRzU29sZCI6IDIsCiAgICAicmV2ZW51ZSI6ICI2IiwKICAgICJjb252ZXJzaW9uUmF0ZSI6IDEsCiAgICAiY3VycmVuY3kiOiAiVEhCIiwKICAgICJ0b3BTa3VzIjogWwogICAgICB7CiAgICAgICAgInByb2R1Y3RJZCI6ICJhZmI5NGUwOC1lYmY3LTQ1OTUtODc2MS0yOTcyMmRiYWYxOTUiLAogICAgICAgICJwcm9kdWN0VGl0bGUiOiAiRXh0ZW5kZWQgcHJvZHVjdCBkZGU3ZjBmOCIsCiAgICAgICAgInByb2R1Y3RTbHVnIjogIjhhOTdmMTAyLThmZjUtNDRkMi1iYmZkLTE2ZmFkOTczYzQ2MSIsCiAgICAgICAgInZhcmlhbnRJZCI6ICIwOGVmMjY3ZS0zMGQ3LTQ1ODMtODBmYi0xYjkwNTE1YmY4OTkiLAogICAgICAgICJza3UiOiAiYTdkMGNhMWEtYzVkYy00NGUzLWFjMjItNTFhY2MyZTc0MDgxIiwKICAgICAgICAidGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAgICJ2aWV3cyI6IDAsCiAgICAgICAgImFkZFRvQ2FydCI6IDIsCiAgICAgICAgImFkZFRvQ2FydFF1YW50aXR5IjogNiwKICAgICAgICAib3JkZXJzIjogMiwKICAgICAgICAidW5pdHNTb2xkIjogMiwKICAgICAgICAicmV2ZW51ZSI6ICI2IiwKICAgICAgICAiY3VycmVuY3kiOiAiVEhCIgogICAgICB9CiAgICBdLAogICAgImxvd1BlcmZvcm1pbmdQcm9kdWN0cyI6IFtdCiAgfQp9"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c71c32851697e135a070-5c931499643f1bb9fd62",
+          "file": "numeric-reporting.spec.ts",
+          "line": 19,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-shipping.spec.ts",
+      "file": "numeric-shipping.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2539,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m400\u001b[39m\nReceived: \u001b[31m422\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m400\u001b[39m\nReceived: \u001b[31m422\u001b[39m\n    at D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts:31:28",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts",
+                      "column": 28,
+                      "line": 31
+                    },
+                    "snippet": "  29 |\n  30 |   const invalid = await page.request.patch(settingsPath, { data: { shippingFeeBaht: '49.951' } });\n> 31 |   expect(invalid.status()).toBe(400);\n     |                            ^\n  32 |   expect(await prisma.shopSetting.findUniqueOrThrow({ where: { shopId: shop.id } })).toMatchObject({ shippingFee: 4995n });\n  33 |   const settings = await page.request.get(settingsPath);\n  34 |   expect(settings.ok(), await settings.text()).toBeTruthy();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts",
+                        "column": 28,
+                        "line": 31
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m400\u001b[39m\nReceived: \u001b[31m422\u001b[39m\n\n  29 |\n  30 |   const invalid = await page.request.patch(settingsPath, { data: { shippingFeeBaht: '49.951' } });\n> 31 |   expect(invalid.status()).toBe(400);\n     |                            ^\n  32 |   expect(await prisma.shopSetting.findUniqueOrThrow({ where: { shopId: shop.id } })).toMatchObject({ shippingFee: 4995n });\n  33 |   const settings = await page.request.get(settingsPath);\n  34 |   expect(settings.ok(), await settings.text()).toBeTruthy();\n    at D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts:31:28"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:50.067Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts",
+                    "column": 28,
+                    "line": 31
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "96ad7778b2646b078299-2a7aeefdecc5ac6c2f94",
+          "file": "numeric-shipping.spec.ts",
+          "line": 12,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-tax.spec.ts",
+      "file": "numeric-tax.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5191,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:53.865Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "original-tax-checkout",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\\attachments\\original-tax-checkout-982a9dc99bbf41371ef99b58bf2cba5a9f44436c.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-37970fd0ed25950cb34a",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4794,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:09:59.167Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "original-tax-checkout",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-complete-chromium\\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\\attachments\\original-tax-checkout-a7fe2b18aa114699f6ac2545cfd4bb48631f58c6.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-af1868fc42b70355e01e",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-04T00:08:31.147Z",
+    "duration": 93534.55500000001,
+    "expected": 18,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

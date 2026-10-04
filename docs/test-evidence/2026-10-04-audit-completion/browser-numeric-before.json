@@ -1,0 +1,1100 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/numeric-commerce.spec.ts",
+      "e2e/numeric-boundaries.spec.ts",
+      "e2e/numeric-analytics.spec.ts",
+      "e2e/numeric-tax.spec.ts",
+      "e2e/numeric-projections.spec.ts",
+      "e2e/numeric-admin-projections.spec.ts",
+      "--project=chromium",
+      "--no-deps",
+      "--max-failures=6",
+      "--reporter=list,json",
+      "--output=docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 6,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "numeric-admin-projections.spec.ts",
+      "file": "numeric-admin-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6650,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:45:25.819Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "fraud-refund-threshold-and-workflow",
+                      "contentType": "application/json",
+                      "body": "ewogICJvcmFjbGUiOiB7CiAgICAicmVmdW5kUm93cyI6IDMsCiAgICAib3JkZXJzQXRUaHJlc2hvbGQiOiA2LAogICAgIm9yZGVyc0JlbG93VGhyZXNob2xkIjogNywKICAgICJzY29yZUF0VGhyZXNob2xkIjogNzUsCiAgICAic2NvcmVCZWxvd1RocmVzaG9sZCI6IDAKICB9LAogICJyYXRpb0Rpc3BsYXllZEluVWkiOiBmYWxzZSwKICAiYXRUaHJlc2hvbGQiOiB7CiAgICAicmlza1Njb3JlIjogNzUsCiAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJoaWdoX3JlZnVuZF9yYXRlIgogICAgXSwKICAgICJjYXNlIjogewogICAgICAiaWQiOiAiNzM0MTM0NGUtM2M4Yy00ZTliLWExYjAtZTJjYjY5YTRjODhhIiwKICAgICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICAgImVudGl0eUlkIjogImFhNDZkNzQ0LWVkZGMtNDU1Ny1iNDE3LWQ5MGUzNDUwYjcwOCIsCiAgICAgICJ1c2VySWQiOiAiOTVkZWM5ODMtZWQzMy00MDQ4LTg4YjItNDcyNWZiOWNiZDQzIiwKICAgICAgInJpc2tTY29yZSI6IDc1LAogICAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgICAicmVhc29ucyI6IFsKICAgICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgICAgXSwKICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgInJldmlld2VkQnkiOiBudWxsLAogICAgICAicmV2aWV3ZWRBdCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo0NToyNi40NDFaIgogICAgfSwKICAgICJibG9ja2VkIjogZmFsc2UKICB9LAogICJiZWxvd1RocmVzaG9sZCI6IHsKICAgICJyaXNrU2NvcmUiOiAwLAogICAgInJpc2tMZXZlbCI6ICJsb3ciLAogICAgInJlYXNvbnMiOiBbXSwKICAgICJjYXNlIjogbnVsbCwKICAgICJibG9ja2VkIjogZmFsc2UKICB9LAogICJvcGVuQXBpIjogewogICAgImlkIjogIjczNDEzNDRlLTNjOGMtNGU5Yi1hMWIwLWUyY2I2OWE0Yzg4YSIsCiAgICAiZW50aXR5VHlwZSI6ICJSRUZVTkQiLAogICAgImVudGl0eUlkIjogImFhNDZkNzQ0LWVkZGMtNDU1Ny1iNDE3LWQ5MGUzNDUwYjcwOCIsCiAgICAidXNlcklkIjogIjk1ZGVjOTgzLWVkMzMtNDA0OC04OGIyLTQ3MjVmYjljYmQ0MyIsCiAgICAicmlza1Njb3JlIjogNzUsCiAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJoaWdoX3JlZnVuZF9yYXRlIgogICAgXSwKICAgICJzdGF0dXMiOiAiT1BFTiIsCiAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAicmV2aWV3ZWRBdCI6IG51bGwsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NDU6MjYuNDQxWiIKICB9LAogICJyZXNvbHZlZEFwaSI6IHsKICAgICJpZCI6ICI3MzQxMzQ0ZS0zYzhjLTRlOWItYTFiMC1lMmNiNjlhNGM4OGEiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICJhYTQ2ZDc0NC1lZGRjLTQ1NTctYjQxNy1kOTBlMzQ1MGI3MDgiLAogICAgInVzZXJJZCI6ICI5NWRlYzk4My1lZDMzLTQwNDgtODhiMi00NzI1ZmI5Y2JkNDMiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFU09MVkVEIiwKICAgICJyZXZpZXdlZEJ5IjogIjk3NjExOWFkLTkyMTYtNDhkOS1iOTkzLWU3YWFkYmQ2MWUzYyIsCiAgICAicmV2aWV3ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjQ1OjMyLjA3MFoiLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjQ1OjI2LjQ0MVoiCiAgfSwKICAicmV2aWV3ZWREYiI6IHsKICAgICJpZCI6ICI3MzQxMzQ0ZS0zYzhjLTRlOWItYTFiMC1lMmNiNjlhNGM4OGEiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICJhYTQ2ZDc0NC1lZGRjLTQ1NTctYjQxNy1kOTBlMzQ1MGI3MDgiLAogICAgInVzZXJJZCI6ICI5NWRlYzk4My1lZDMzLTQwNDgtODhiMi00NzI1ZmI5Y2JkNDMiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFVklFV0VEIiwKICAgICJtZXRhZGF0YSI6IHsKICAgICAgInNpZ25hbHMiOiB7CiAgICAgICAgInJlZnVuZFJhdGUiOiAwLjUsCiAgICAgICAgInJlZnVuZENvdW50IjogMwogICAgICB9CiAgICB9LAogICAgInJldmlld2VkQnlJZCI6ICI5NzYxMTlhZC05MjE2LTQ4ZDktYjk5My1lN2FhZGJkNjFlM2MiLAogICAgInJldmlld2VkQXQiOiAiMjAyNi0xMC0wM1QyMzo0NTozMi4wNzBaIiwKICAgICJyZXNvbHZlZEJ5SWQiOiBudWxsLAogICAgInJlc29sdmVkQXQiOiBudWxsLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjQ1OjI2LjQ0MVoiLAogICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjQ1OjMyLjA4NFoiCiAgfSwKICAicmVzb2x2ZWREYiI6IHsKICAgICJpZCI6ICI3MzQxMzQ0ZS0zYzhjLTRlOWItYTFiMC1lMmNiNjlhNGM4OGEiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICJhYTQ2ZDc0NC1lZGRjLTQ1NTctYjQxNy1kOTBlMzQ1MGI3MDgiLAogICAgInVzZXJJZCI6ICI5NWRlYzk4My1lZDMzLTQwNDgtODhiMi00NzI1ZmI5Y2JkNDMiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFU09MVkVEIiwKICAgICJtZXRhZGF0YSI6IHsKICAgICAgInNpZ25hbHMiOiB7CiAgICAgICAgInJlZnVuZFJhdGUiOiAwLjUsCiAgICAgICAgInJlZnVuZENvdW50IjogMwogICAgICB9CiAgICB9LAogICAgInJldmlld2VkQnlJZCI6ICI5NzYxMTlhZC05MjE2LTQ4ZDktYjk5My1lN2FhZGJkNjFlM2MiLAogICAgInJldmlld2VkQXQiOiAiMjAyNi0xMC0wM1QyMzo0NTozMi4wNzBaIiwKICAgICJyZXNvbHZlZEJ5SWQiOiAiOTc2MTE5YWQtOTIxNi00OGQ5LWI5OTMtZTdhYWRiZDYxZTNjIiwKICAgICJyZXNvbHZlZEF0IjogIjIwMjYtMTAtMDNUMjM6NDU6MzIuMjI2WiIsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NDU6MjYuNDQxWiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NDU6MzIuMjMxWiIKICB9Cn0="
+                    },
+                    {
+                      "name": "fraud-refund-threshold-and-workflow-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--036d8-admin-reviews-then-resolves-chromium\\attachments\\fraud-refund-threshold-and-workflow-ui-a14d9c195b703e8c007b114a14af72d4caac7c99.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8f0ecf80b2bf0228ab34",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2235,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:45:32.571Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "fraud-score100-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJvcmFjbGUiOiB7CiAgICAiZmFpbGVkUGF5bWVudHMiOiAzLAogICAgImNhbmNlbGxlZE9yZGVycyI6IDMsCiAgICAiYW1vdW50Q2VudHMiOiAiMTAwMDAwIiwKICAgICJjaGVja291dFNlY29uZHMiOiA2MCwKICAgICJzY29yZSI6IDEwMAogIH0sCiAgImV2YWx1YXRpb25zIjogWwogICAgewogICAgICAicmlza1Njb3JlIjogMTAwLAogICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgInJlYXNvbnMiOiBbCiAgICAgICAgIm1hbnlfZmFpbGVkX3BheW1lbnRzIiwKICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICAgInJlcGVhdGVkX2NhbmNlbGxlZF9vcmRlcnMiCiAgICAgIF0sCiAgICAgICJjYXNlIjogewogICAgICAgICJpZCI6ICJmZGZiNjZjOS0xNTJiLTQ3MzQtYWY2Ni1hNmVhMjQwODc4MGUiLAogICAgICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICAgICAiZW50aXR5SWQiOiAiOTQyZGQ1YWUtYzE2MC00ZTY2LTg2YzAtMmFiMTMxMDMwNDJkIiwKICAgICAgICAidXNlcklkIjogIjM4ZWYyNTUyLTI4NjQtNDJmZi1iMTRkLTA5M2Q3MzcyMzVjYyIsCiAgICAgICAgInJpc2tTY29yZSI6IDEwMCwKICAgICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgICAicmVhc29ucyI6IFsKICAgICAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAgICJzdXNwaWNpb3VzX3JhcGlkX2NoZWNrb3V0IiwKICAgICAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgICAgIF0sCiAgICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAgICAgInJldmlld2VkQXQiOiBudWxsLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo0NTozMi45OTJaIgogICAgICB9LAogICAgICAiYmxvY2tlZCI6IGZhbHNlCiAgICB9LAogICAgewogICAgICAicmlza1Njb3JlIjogMTAwLAogICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgInJlYXNvbnMiOiBbCiAgICAgICAgIm1hbnlfZmFpbGVkX3BheW1lbnRzIiwKICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICAgInJlcGVhdGVkX2NhbmNlbGxlZF9vcmRlcnMiCiAgICAgIF0sCiAgICAgICJjYXNlIjogewogICAgICAgICJpZCI6ICJmZGZiNjZjOS0xNTJiLTQ3MzQtYWY2Ni1hNmVhMjQwODc4MGUiLAogICAgICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICAgICAiZW50aXR5SWQiOiAiOTQyZGQ1YWUtYzE2MC00ZTY2LTg2YzAtMmFiMTMxMDMwNDJkIiwKICAgICAgICAidXNlcklkIjogIjM4ZWYyNTUyLTI4NjQtNDJmZi1iMTRkLTA5M2Q3MzcyMzVjYyIsCiAgICAgICAgInJpc2tTY29yZSI6IDEwMCwKICAgICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgICAicmVhc29ucyI6IFsKICAgICAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAgICJzdXNwaWNpb3VzX3JhcGlkX2NoZWNrb3V0IiwKICAgICAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgICAgIF0sCiAgICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAgICAgInJldmlld2VkQXQiOiBudWxsLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo0NTozMi45OTJaIgogICAgICB9LAogICAgICAiYmxvY2tlZCI6IGZhbHNlCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImlkIjogImZkZmI2NmM5LTE1MmItNDczNC1hZjY2LWE2ZWEyNDA4NzgwZSIsCiAgICAiZW50aXR5VHlwZSI6ICJPUkRFUiIsCiAgICAiZW50aXR5SWQiOiAiOTQyZGQ1YWUtYzE2MC00ZTY2LTg2YzAtMmFiMTMxMDMwNDJkIiwKICAgICJ1c2VySWQiOiAiMzhlZjI1NTItMjg2NC00MmZmLWIxNGQtMDkzZDczNzIzNWNjIiwKICAgICJyaXNrU2NvcmUiOiAxMDAsCiAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICJyZWFzb25zIjogWwogICAgICAibWFueV9mYWlsZWRfcGF5bWVudHMiLAogICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgInN1c3BpY2lvdXNfcmFwaWRfY2hlY2tvdXQiLAogICAgICAicmVwZWF0ZWRfY2FuY2VsbGVkX29yZGVycyIKICAgIF0sCiAgICAic3RhdHVzIjogIk9QRU4iLAogICAgInJldmlld2VkQnkiOiBudWxsLAogICAgInJldmlld2VkQXQiOiBudWxsLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjQ1OjMyLjk5MloiCiAgfSwKICAiZGIiOiB7CiAgICAiaWQiOiAiZmRmYjY2YzktMTUyYi00NzM0LWFmNjYtYTZlYTI0MDg3ODBlIiwKICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICJlbnRpdHlJZCI6ICI5NDJkZDVhZS1jMTYwLTRlNjYtODZjMC0yYWIxMzEwMzA0MmQiLAogICAgInVzZXJJZCI6ICIzOGVmMjU1Mi0yODY0LTQyZmYtYjE0ZC0wOTNkNzM3MjM1Y2MiLAogICAgInJpc2tTY29yZSI6IDEwMCwKICAgICJyaXNrTGV2ZWwiOiAiY3JpdGljYWwiLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICJhYm5vcm1hbF9vcmRlcl9hbW91bnQiLAogICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgXSwKICAgICJzdGF0dXMiOiAiT1BFTiIsCiAgICAibWV0YWRhdGEiOiB7CiAgICAgICJzaWduYWxzIjogewogICAgICAgICJvcmRlcmFtb3VudCI6ICIxMDAwMDAiLAogICAgICAgICJmYWlsZWRQYXltZW50cyI6IDMsCiAgICAgICAgImNhbmNlbGxlZE9yZGVycyI6IDMsCiAgICAgICAgImNoZWNrb3V0RHVyYXRpb25TZWNvbmRzIjogNjAKICAgICAgfQogICAgfSwKICAgICJyZXZpZXdlZEJ5SWQiOiBudWxsLAogICAgInJldmlld2VkQXQiOiBudWxsLAogICAgInJlc29sdmVkQnlJZCI6IG51bGwsCiAgICAicmVzb2x2ZWRBdCI6IG51bGwsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NDU6MzIuOTkyWiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NDU6MzMuMDA4WiIKICB9Cn0="
+                    },
+                    {
+                      "name": "fraud-score100-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--42bfa-valuation-persists-one-case-chromium\\attachments\\fraud-score100-parity-ui-fb6fad375fa6d6ec28a2f959bd16bfac9d64acaa.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-666141175b42df19c649",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 6848,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 3\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"buyerMerchandiseNet\": 9999n,\u001b[39m\n\u001b[32m-   \"buyerMerchandiseTax\": 0n,\u001b[39m\n\u001b[32m-   \"originalCashbackEligibleNet\": 9999n,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseNet\": null,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseTax\": null,\u001b[39m\n\u001b[31m+   \"originalCashbackEligibleNet\": null,\u001b[39m\n\u001b[2m  }\u001b[22m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 3\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"buyerMerchandiseNet\": 9999n,\u001b[39m\n\u001b[32m-   \"buyerMerchandiseTax\": 0n,\u001b[39m\n\u001b[32m-   \"originalCashbackEligibleNet\": 9999n,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseNet\": null,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseTax\": null,\u001b[39m\n\u001b[31m+   \"originalCashbackEligibleNet\": null,\u001b[39m\n\u001b[2m  }\u001b[22m\n    at D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts:167:24",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts",
+                      "column": 24,
+                      "line": 167
+                    },
+                    "snippet": "  165 |       expect(result.totalCents).toBe(scenario.paid.toString());\n  166 |       const snapshot = await db.itemSaleSnapshot.findFirstOrThrow({ where: { orderItem: { orderId: result.orderId } } });\n> 167 |       expect(snapshot).toMatchObject({ buyerMerchandiseNet: scenario.net, buyerMerchandiseTax: 0n, originalCashbackEligibleNet: scenario.net });\n      |                        ^\n  168 |       const shopSnapshot = await db.shopSaleSnapshot.findFirstOrThrow({ where: { shopOrder: { orderId: result.orderId } } });\n  169 |       expect(shopSnapshot).toMatchObject({ policyVersion: 2, buyerShipping: 5000n, reportedTaxTotal: 0n });\n  170 |       expect(await db.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ provider: \"mock\", amount: scenario.paid, status: \"PENDING\" });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts",
+                        "column": 24,
+                        "line": 167
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 3\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"buyerMerchandiseNet\": 9999n,\u001b[39m\n\u001b[32m-   \"buyerMerchandiseTax\": 0n,\u001b[39m\n\u001b[32m-   \"originalCashbackEligibleNet\": 9999n,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseNet\": null,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseTax\": null,\u001b[39m\n\u001b[31m+   \"originalCashbackEligibleNet\": null,\u001b[39m\n\u001b[2m  }\u001b[22m\n\n  165 |       expect(result.totalCents).toBe(scenario.paid.toString());\n  166 |       const snapshot = await db.itemSaleSnapshot.findFirstOrThrow({ where: { orderItem: { orderId: result.orderId } } });\n> 167 |       expect(snapshot).toMatchObject({ buyerMerchandiseNet: scenario.net, buyerMerchandiseTax: 0n, originalCashbackEligibleNet: scenario.net });\n      |                        ^\n  168 |       const shopSnapshot = await db.shopSaleSnapshot.findFirstOrThrow({ where: { shopOrder: { orderId: result.orderId } } });\n  169 |       expect(shopSnapshot).toMatchObject({ policyVersion: 2, buyerShipping: 5000n, reportedTaxTotal: 0n });\n  170 |       expect(await db.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ provider: \"mock\", amount: scenario.paid, status: \"PENDING\" });\n    at D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts:167:24"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:45:34.814Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\\video.webm"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\\test-failed-2.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts",
+                    "column": 24,
+                    "line": 167
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-d0af0b64ca1db8e8a193",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3952,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 3\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"buyerMerchandiseNet\": 10000n,\u001b[39m\n\u001b[32m-   \"buyerMerchandiseTax\": 0n,\u001b[39m\n\u001b[32m-   \"originalCashbackEligibleNet\": 10000n,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseNet\": null,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseTax\": null,\u001b[39m\n\u001b[31m+   \"originalCashbackEligibleNet\": null,\u001b[39m\n\u001b[2m  }\u001b[22m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 3\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"buyerMerchandiseNet\": 10000n,\u001b[39m\n\u001b[32m-   \"buyerMerchandiseTax\": 0n,\u001b[39m\n\u001b[32m-   \"originalCashbackEligibleNet\": 10000n,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseNet\": null,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseTax\": null,\u001b[39m\n\u001b[31m+   \"originalCashbackEligibleNet\": null,\u001b[39m\n\u001b[2m  }\u001b[22m\n    at D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts:167:24",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts",
+                      "column": 24,
+                      "line": 167
+                    },
+                    "snippet": "  165 |       expect(result.totalCents).toBe(scenario.paid.toString());\n  166 |       const snapshot = await db.itemSaleSnapshot.findFirstOrThrow({ where: { orderItem: { orderId: result.orderId } } });\n> 167 |       expect(snapshot).toMatchObject({ buyerMerchandiseNet: scenario.net, buyerMerchandiseTax: 0n, originalCashbackEligibleNet: scenario.net });\n      |                        ^\n  168 |       const shopSnapshot = await db.shopSaleSnapshot.findFirstOrThrow({ where: { shopOrder: { orderId: result.orderId } } });\n  169 |       expect(shopSnapshot).toMatchObject({ policyVersion: 2, buyerShipping: 5000n, reportedTaxTotal: 0n });\n  170 |       expect(await db.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ provider: \"mock\", amount: scenario.paid, status: \"PENDING\" });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts",
+                        "column": 24,
+                        "line": 167
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 3\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"buyerMerchandiseNet\": 10000n,\u001b[39m\n\u001b[32m-   \"buyerMerchandiseTax\": 0n,\u001b[39m\n\u001b[32m-   \"originalCashbackEligibleNet\": 10000n,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseNet\": null,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseTax\": null,\u001b[39m\n\u001b[31m+   \"originalCashbackEligibleNet\": null,\u001b[39m\n\u001b[2m  }\u001b[22m\n\n  165 |       expect(result.totalCents).toBe(scenario.paid.toString());\n  166 |       const snapshot = await db.itemSaleSnapshot.findFirstOrThrow({ where: { orderItem: { orderId: result.orderId } } });\n> 167 |       expect(snapshot).toMatchObject({ buyerMerchandiseNet: scenario.net, buyerMerchandiseTax: 0n, originalCashbackEligibleNet: scenario.net });\n      |                        ^\n  168 |       const shopSnapshot = await db.shopSaleSnapshot.findFirstOrThrow({ where: { shopOrder: { orderId: result.orderId } } });\n  169 |       expect(shopSnapshot).toMatchObject({ policyVersion: 2, buyerShipping: 5000n, reportedTaxTotal: 0n });\n  170 |       expect(await db.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ provider: \"mock\", amount: scenario.paid, status: \"PENDING\" });\n    at D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts:167:24"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:45:43.240Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\\video.webm"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\\test-failed-2.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts",
+                    "column": 24,
+                    "line": 167
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-6a528228b206c161e76c",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3901,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 3\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"buyerMerchandiseNet\": 10001n,\u001b[39m\n\u001b[32m-   \"buyerMerchandiseTax\": 0n,\u001b[39m\n\u001b[32m-   \"originalCashbackEligibleNet\": 10001n,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseNet\": null,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseTax\": null,\u001b[39m\n\u001b[31m+   \"originalCashbackEligibleNet\": null,\u001b[39m\n\u001b[2m  }\u001b[22m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 3\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"buyerMerchandiseNet\": 10001n,\u001b[39m\n\u001b[32m-   \"buyerMerchandiseTax\": 0n,\u001b[39m\n\u001b[32m-   \"originalCashbackEligibleNet\": 10001n,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseNet\": null,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseTax\": null,\u001b[39m\n\u001b[31m+   \"originalCashbackEligibleNet\": null,\u001b[39m\n\u001b[2m  }\u001b[22m\n    at D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts:167:24",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts",
+                      "column": 24,
+                      "line": 167
+                    },
+                    "snippet": "  165 |       expect(result.totalCents).toBe(scenario.paid.toString());\n  166 |       const snapshot = await db.itemSaleSnapshot.findFirstOrThrow({ where: { orderItem: { orderId: result.orderId } } });\n> 167 |       expect(snapshot).toMatchObject({ buyerMerchandiseNet: scenario.net, buyerMerchandiseTax: 0n, originalCashbackEligibleNet: scenario.net });\n      |                        ^\n  168 |       const shopSnapshot = await db.shopSaleSnapshot.findFirstOrThrow({ where: { shopOrder: { orderId: result.orderId } } });\n  169 |       expect(shopSnapshot).toMatchObject({ policyVersion: 2, buyerShipping: 5000n, reportedTaxTotal: 0n });\n  170 |       expect(await db.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ provider: \"mock\", amount: scenario.paid, status: \"PENDING\" });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts",
+                        "column": 24,
+                        "line": 167
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 3\u001b[39m\n\u001b[31m+ Received  + 3\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"buyerMerchandiseNet\": 10001n,\u001b[39m\n\u001b[32m-   \"buyerMerchandiseTax\": 0n,\u001b[39m\n\u001b[32m-   \"originalCashbackEligibleNet\": 10001n,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseNet\": null,\u001b[39m\n\u001b[31m+   \"buyerMerchandiseTax\": null,\u001b[39m\n\u001b[31m+   \"originalCashbackEligibleNet\": null,\u001b[39m\n\u001b[2m  }\u001b[22m\n\n  165 |       expect(result.totalCents).toBe(scenario.paid.toString());\n  166 |       const snapshot = await db.itemSaleSnapshot.findFirstOrThrow({ where: { orderItem: { orderId: result.orderId } } });\n> 167 |       expect(snapshot).toMatchObject({ buyerMerchandiseNet: scenario.net, buyerMerchandiseTax: 0n, originalCashbackEligibleNet: scenario.net });\n      |                        ^\n  168 |       const shopSnapshot = await db.shopSaleSnapshot.findFirstOrThrow({ where: { shopOrder: { orderId: result.orderId } } });\n  169 |       expect(shopSnapshot).toMatchObject({ policyVersion: 2, buyerShipping: 5000n, reportedTaxTotal: 0n });\n  170 |       expect(await db.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ provider: \"mock\", amount: scenario.paid, status: \"PENDING\" });\n    at D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts:167:24"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:45:48.612Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\\video.webm"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\\test-failed-2.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-admin-projections.spec.ts",
+                    "column": 24,
+                    "line": 167
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8dd6e483bb27b0108f0e",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "numeric-analytics.spec.ts",
+      "file": "numeric-analytics.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4813,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:45:53.882Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "numeric-analytics",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-analytics-paid-ana-40682-evenue-ranking-across-pages-chromium\\attachments\\numeric-analytics-d922104c95b90457169a41def8af5bfa2896c170.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "95c37ffc69b5969c2188-d99f42e90c4834c2b24f",
+          "file": "numeric-analytics.spec.ts",
+          "line": 13,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-boundaries.spec.ts",
+      "file": "numeric-boundaries.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4928,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:45:58.867Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-f9ef4915940651e087a0",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "production route composition prevents seller stock below active holds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4261,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:46:03.804Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-562c8ed60413d7c27269",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4142,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:46:08.075Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-6b0cf4e1c8d9d949e369",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 70,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-commerce.spec.ts",
+      "file": "numeric-commerce.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "UI, API and database preserve exact satang for repriced basket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9918,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:46:12.273Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-a5bb7c007f569e4742d4",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for coupon and coins",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2879,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"discountTotal\": 813n,\u001b[39m\n\u001b[32m-   \"grandTotal\": 2135n,\u001b[39m\n\u001b[31m+   \"discountTotal\": 815n,\u001b[39m\n\u001b[31m+   \"grandTotal\": 2133n,\u001b[39m\n\u001b[2m    \"shippingTotal\": 350n,\u001b[22m\n\u001b[2m    \"subtotal\": 2598n,\u001b[22m\n\u001b[2m  }\u001b[22m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"discountTotal\": 813n,\u001b[39m\n\u001b[32m-   \"grandTotal\": 2135n,\u001b[39m\n\u001b[31m+   \"discountTotal\": 815n,\u001b[39m\n\u001b[31m+   \"grandTotal\": 2133n,\u001b[39m\n\u001b[2m    \"shippingTotal\": 350n,\u001b[22m\n\u001b[2m    \"subtotal\": 2598n,\u001b[22m\n\u001b[2m  }\u001b[22m\n    at D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts:79:74",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts",
+                      "column": 74,
+                      "line": 79
+                    },
+                    "snippet": "  77 |     expect(order.items.find(item => item.shopId === first.shop.id)).toMatchObject({ unitPrice: BigInt(scenario.unitPrice), quantity: 2, lineTotal: BigInt(scenario.firstLine) });\n  78 |     expect(order.items.find(item => item.shopId === second.shop.id)).toMatchObject({ unitPrice: 999n, quantity: 2, lineTotal: 1998n });\n> 79 |     expect(order.shopOrders.find(shop => shop.shopId === first.shop.id)).toMatchObject({ subtotal: BigInt(scenario.firstLine), discountTotal: BigInt(scenario.firstShopDiscount), shippingTotal: 350n, grandTotal: BigInt(scenario.firstShopTotal) });\n     |                                                                          ^\n  80 |     expect(order.shopOrders.find(shop => shop.shopId === second.shop.id)).toMatchObject({ subtotal: 1998n, discountTotal: BigInt(scenario.secondShopDiscount), shippingTotal: 450n, grandTotal: BigInt(scenario.secondShopTotal) });\n  81 |     for (const { variant } of fixture.shops) {\n  82 |       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts",
+                        "column": 74,
+                        "line": 79
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"discountTotal\": 813n,\u001b[39m\n\u001b[32m-   \"grandTotal\": 2135n,\u001b[39m\n\u001b[31m+   \"discountTotal\": 815n,\u001b[39m\n\u001b[31m+   \"grandTotal\": 2133n,\u001b[39m\n\u001b[2m    \"shippingTotal\": 350n,\u001b[22m\n\u001b[2m    \"subtotal\": 2598n,\u001b[22m\n\u001b[2m  }\u001b[22m\n\n  77 |     expect(order.items.find(item => item.shopId === first.shop.id)).toMatchObject({ unitPrice: BigInt(scenario.unitPrice), quantity: 2, lineTotal: BigInt(scenario.firstLine) });\n  78 |     expect(order.items.find(item => item.shopId === second.shop.id)).toMatchObject({ unitPrice: 999n, quantity: 2, lineTotal: 1998n });\n> 79 |     expect(order.shopOrders.find(shop => shop.shopId === first.shop.id)).toMatchObject({ subtotal: BigInt(scenario.firstLine), discountTotal: BigInt(scenario.firstShopDiscount), shippingTotal: 350n, grandTotal: BigInt(scenario.firstShopTotal) });\n     |                                                                          ^\n  80 |     expect(order.shopOrders.find(shop => shop.shopId === second.shop.id)).toMatchObject({ subtotal: 1998n, discountTotal: BigInt(scenario.secondShopDiscount), shippingTotal: 450n, grandTotal: BigInt(scenario.secondShopTotal) });\n  81 |     for (const { variant } of fixture.shops) {\n  82 |       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });\n    at D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts:79:74"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:46:22.200Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts",
+                    "column": 74,
+                    "line": 79
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-e1284c5bbf24db1d975f",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2982,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"discountTotal\": 635n,\u001b[39m\n\u001b[32m-   \"grandTotal\": 1515n,\u001b[39m\n\u001b[31m+   \"discountTotal\": 636n,\u001b[39m\n\u001b[31m+   \"grandTotal\": 1514n,\u001b[39m\n\u001b[2m    \"shippingTotal\": 350n,\u001b[22m\n\u001b[2m    \"subtotal\": 1800n,\u001b[22m\n\u001b[2m  }\u001b[22m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"discountTotal\": 635n,\u001b[39m\n\u001b[32m-   \"grandTotal\": 1515n,\u001b[39m\n\u001b[31m+   \"discountTotal\": 636n,\u001b[39m\n\u001b[31m+   \"grandTotal\": 1514n,\u001b[39m\n\u001b[2m    \"shippingTotal\": 350n,\u001b[22m\n\u001b[2m    \"subtotal\": 1800n,\u001b[22m\n\u001b[2m  }\u001b[22m\n    at D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts:79:74",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts",
+                      "column": 74,
+                      "line": 79
+                    },
+                    "snippet": "  77 |     expect(order.items.find(item => item.shopId === first.shop.id)).toMatchObject({ unitPrice: BigInt(scenario.unitPrice), quantity: 2, lineTotal: BigInt(scenario.firstLine) });\n  78 |     expect(order.items.find(item => item.shopId === second.shop.id)).toMatchObject({ unitPrice: 999n, quantity: 2, lineTotal: 1998n });\n> 79 |     expect(order.shopOrders.find(shop => shop.shopId === first.shop.id)).toMatchObject({ subtotal: BigInt(scenario.firstLine), discountTotal: BigInt(scenario.firstShopDiscount), shippingTotal: 350n, grandTotal: BigInt(scenario.firstShopTotal) });\n     |                                                                          ^\n  80 |     expect(order.shopOrders.find(shop => shop.shopId === second.shop.id)).toMatchObject({ subtotal: 1998n, discountTotal: BigInt(scenario.secondShopDiscount), shippingTotal: 450n, grandTotal: BigInt(scenario.secondShopTotal) });\n  81 |     for (const { variant } of fixture.shops) {\n  82 |       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts",
+                        "column": 74,
+                        "line": 79
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatchObject\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\n\u001b[32m- Expected  - 2\u001b[39m\n\u001b[31m+ Received  + 2\u001b[39m\n\n\u001b[2m  Object {\u001b[22m\n\u001b[32m-   \"discountTotal\": 635n,\u001b[39m\n\u001b[32m-   \"grandTotal\": 1515n,\u001b[39m\n\u001b[31m+   \"discountTotal\": 636n,\u001b[39m\n\u001b[31m+   \"grandTotal\": 1514n,\u001b[39m\n\u001b[2m    \"shippingTotal\": 350n,\u001b[22m\n\u001b[2m    \"subtotal\": 1800n,\u001b[22m\n\u001b[2m  }\u001b[22m\n\n  77 |     expect(order.items.find(item => item.shopId === first.shop.id)).toMatchObject({ unitPrice: BigInt(scenario.unitPrice), quantity: 2, lineTotal: BigInt(scenario.firstLine) });\n  78 |     expect(order.items.find(item => item.shopId === second.shop.id)).toMatchObject({ unitPrice: 999n, quantity: 2, lineTotal: 1998n });\n> 79 |     expect(order.shopOrders.find(shop => shop.shopId === first.shop.id)).toMatchObject({ subtotal: BigInt(scenario.firstLine), discountTotal: BigInt(scenario.firstShopDiscount), shippingTotal: 350n, grandTotal: BigInt(scenario.firstShopTotal) });\n     |                                                                          ^\n  80 |     expect(order.shopOrders.find(shop => shop.shopId === second.shop.id)).toMatchObject({ subtotal: 1998n, discountTotal: BigInt(scenario.secondShopDiscount), shippingTotal: 450n, grandTotal: BigInt(scenario.secondShopTotal) });\n  81 |     for (const { variant } of fixture.shops) {\n  82 |       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });\n    at D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts:79:74"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:46:26.473Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-commerce.spec.ts",
+                    "column": 74,
+                    "line": 79
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-9843ad93eff828c1f800",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "numeric-projections.spec.ts",
+      "file": "numeric-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 14040,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).locator('div.grid').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).getByText('5 star', { exact: true }) }).last().getByText('2', { exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).locator('div.grid').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).getByText('5 star', { exact: true }) }).last().getByText('2', { exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).locator('div.grid').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).getByText('5 star', { exact: true }) }).last().getByText('2', { exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).locator('div.grid').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).getByText('5 star', { exact: true }) }).last().getByText('2', { exact: true })\u001b[22m\n\n    at D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts:130:58",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                      "column": 58,
+                      "line": 130
+                    },
+                    "snippet": "  128 |   const fiveStar = reviews.locator('div.grid').filter({ has: reviews.getByText('5 star', { exact: true }) }).last()\n  129 |   const threeStar = reviews.locator('div.grid').filter({ has: reviews.getByText('3 star', { exact: true }) }).last()\n> 130 |   await expect(fiveStar.getByText('2', { exact: true })).toBeVisible()\n      |                                                          ^\n  131 |   await expect(fiveStar.locator('[style]')).toHaveAttribute('style', /width:\\s*67%/)\n  132 |   await expect(threeStar.getByText('1', { exact: true })).toBeVisible()\n  133 |   await expect(threeStar.locator('[style]')).toHaveAttribute('style', /width:\\s*33%/)"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                        "column": 58,
+                        "line": 130
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).locator('div.grid').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).getByText('5 star', { exact: true }) }).last().getByText('2', { exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).locator('div.grid').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).getByText('5 star', { exact: true }) }).last().getByText('2', { exact: true })\u001b[22m\n\n\n  128 |   const fiveStar = reviews.locator('div.grid').filter({ has: reviews.getByText('5 star', { exact: true }) }).last()\n  129 |   const threeStar = reviews.locator('div.grid').filter({ has: reviews.getByText('3 star', { exact: true }) }).last()\n> 130 |   await expect(fiveStar.getByText('2', { exact: true })).toBeVisible()\n      |                                                          ^\n  131 |   await expect(fiveStar.locator('[style]')).toHaveAttribute('style', /width:\\s*67%/)\n  132 |   await expect(threeStar.getByText('1', { exact: true })).toBeVisible()\n  133 |   await expect(threeStar.locator('[style]')).toHaveAttribute('style', /width:\\s*33%/)\n    at D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts:130:58"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:46:30.846Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                    "column": 58,
+                    "line": 130
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-dfe277cab74bcc76e063",
+          "file": "numeric-projections.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-6b1b9bc411bde5c7bf1d",
+          "file": "numeric-projections.spec.ts",
+          "line": 152,
+          "column": 1
+        },
+        {
+          "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-ebb95a7abf358eb31335",
+          "file": "numeric-projections.spec.ts",
+          "line": 212,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-tax.spec.ts",
+      "file": "numeric-tax.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-37970fd0ed25950cb34a",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-af1868fc42b70355e01e",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "message": "\u001b[31mTesting stopped early after 6 maximum allowed failures.\u001b[39m"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-10-03T23:45:20.331Z",
+    "duration": 85373.142,
+    "expected": 7,
+    "skipped": 4,
+    "unexpected": 6,
+    "flaky": 0
+  }
+}

@@ -19,7 +19,7 @@ for (const outcome of ['failed', 'expired', 'buyer-cancel'] as const) {
     await page.getByRole('button', { name: en.checkout.coinsApply, exact: true }).click();
     await expect(page.getByText(en.checkout.coinsApplied.replace('{count}', '10'), { exact: true })).toBeVisible();
     const result = await placeOrderUi(page);
-    expect(await prisma.buyerCoinWallet.findUnique({ where: { id: fixture.wallet.id } })).toMatchObject({ balance: 90, pendingBalance: 10 });
+    expect(await prisma.buyerCoinWallet.findUnique({ where: { id: fixture.wallet.id } })).toMatchObject({ balance: 90n, pendingBalance: 10n });
     if (outcome === 'buyer-cancel') {
       await page.goto(`/en/orders/${result.orderId}`);
       page.once('dialog', dialog => dialog.accept());
@@ -31,7 +31,7 @@ for (const outcome of ['failed', 'expired', 'buyer-cancel'] as const) {
     await expect(page.getByText(en.order.statuses.canceled, { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: en.order.cancel, exact: true })).toHaveCount(0);
     expect(await prisma.inventory.findUnique({ where: { variantId: fixture.shops[0]!.variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 0 });
-    expect(await prisma.buyerCoinWallet.findUnique({ where: { id: fixture.wallet.id } })).toMatchObject({ balance: 100, pendingBalance: 0 });
+    expect(await prisma.buyerCoinWallet.findUnique({ where: { id: fixture.wallet.id } })).toMatchObject({ balance: 100n, pendingBalance: 0n });
     expect(await prisma.couponRedemption.findFirst({ where: { orderId: result.orderId } })).toMatchObject({ status: 'RELEASED' });
     expect(await prisma.shopOrder.findFirst({ where: { orderId: result.orderId } })).toMatchObject({ status: 'CANCELED' });
     const sellerContext = await newActorContext(browser, { baseURL, storageState: { cookies: [], origins: [] } });
@@ -97,10 +97,10 @@ test('price changes are requoted and the buyer sees the current server total', a
   const quotePromise = page.waitForResponse(response => response.url().includes('/api/checkout/quote') && response.ok());
   await page.reload();
   const quote = await (await quotePromise).json();
-  expect(quote).toMatchObject({ grandTotal: 24000 });
+  expect(quote).toMatchObject({ grandTotal: '24000' });
   await expect(page.getByText('฿240.00', { exact: true }).first()).toBeVisible();
   const result = await placeOrderUi(page);
-  expect(result.totalCents).toBe(24000);
+  expect(result.totalCents).toBe('24000');
   await page.goto(`/en/orders/${result.orderId}`);
   await expect(page.getByText('฿240.00', { exact: true }).first()).toBeVisible();
 });

@@ -1,0 +1,71 @@
+[
+  {
+    "variantId": "554d524a-281e-46cc-9efc-4599ae4d101f",
+    "quantity": 1,
+    "order": {
+      "id": "05d0059a-5267-4297-8f58-a6a75574a781",
+      "user": {
+        "id": "c8993270-0dae-40b2-b8cb-c9593979b02b",
+        "name": "Checkout race"
+      },
+      "payments": [
+        {
+          "id": "00e6c438-5058-4988-b26f-6a0147432ef3",
+          "status": "PENDING",
+          "amount": "10000"
+        }
+      ]
+    }
+  },
+  {
+    "variantId": "a8054980-8388-4254-bb1f-b3fed60d4d31",
+    "quantity": 1,
+    "order": {
+      "id": "71bfa345-dafb-4182-bbfb-a4ba86f817ec",
+      "user": {
+        "id": "fdc62fed-4f1f-416e-b151-4326cad1a5bf",
+        "name": "Second last-unit buyer"
+      },
+      "payments": [
+        {
+          "id": "a8513efa-bca7-4169-97a8-6d57917ae691",
+          "status": "PENDING",
+          "amount": "10000"
+        }
+      ]
+    }
+  }
+]
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ ❯ server/modules/checkout/checkout-concurrency.integration.test.ts (5 tests | 1 failed | 4 skipped) 415ms
+     × allows only one of two distinct buyers to reserve the last unit 383ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/checkout/checkout-concurrency.integration.test.ts > checkout creation concurrency on PostgreSQL > allows only one of two distinct buyers to reserve the last unit
+AssertionError: expected [ { status: 'fulfilled', …(1) }, …(1) ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ server/modules/checkout/checkout-concurrency.integration.test.ts:113:69
+    111|       checkout.createCheckout(secondBuyer, { cartId: secondCart.id, ca…
+    112|     ])
+    113|     expect(results.filter(result => result.status === 'fulfilled')).to…
+       |                                                                     ^
+    114|     expect(results.find(result => result.status === 'rejected')).toMat…
+    115|     const buyers = [first.user.id, secondBuyer.id]
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 skipped (5)
+   Start at  07:14:06
+   Duration  1.12s (transform 292ms, setup 0ms, import 555ms, tests 415ms, environment 0ms)
+
+

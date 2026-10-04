@@ -1,0 +1,279 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/numeric-shipping.spec.ts",
+      "--project=chromium",
+      "--no-deps",
+      "--reporter=list,json",
+      "--output=docs/test-evidence/2026-10-04-audit-completion/browser-shipping-final-chromium"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-shipping-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-shipping-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-shipping-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-shipping-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-shipping-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-shipping-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-shipping-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "numeric-shipping.spec.ts",
+      "file": "numeric-shipping.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 21397,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-51e8-4e3f-a8fa-9ba652349bb1', exact: true }) }).locator('article').filter({ hasText: 'Extended product 8221dc35' }).getByText('฿90.00', { exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-51e8-4e3f-a8fa-9ba652349bb1', exact: true }) }).locator('article').filter({ hasText: 'Extended product 8221dc35' }).getByText('฿90.00', { exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-51e8-4e3f-a8fa-9ba652349bb1', exact: true }) }).locator('article').filter({ hasText: 'Extended product 8221dc35' }).getByText('฿90.00', { exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-51e8-4e3f-a8fa-9ba652349bb1', exact: true }) }).locator('article').filter({ hasText: 'Extended product 8221dc35' }).getByText('฿90.00', { exact: true })\u001b[22m\n\n    at D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts:95:61",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts",
+                      "column": 61,
+                      "line": 95
+                    },
+                    "snippet": "  93 |     const card = section.locator('article').filter({ hasText: product.title });\n  94 |     await expect(card).toHaveCount(1);\n> 95 |     await expect(card.getByText('฿90.00', { exact: true })).toBeVisible();\n     |                                                             ^\n  96 |     await expect(card.getByRole('button', { name: en.product.add, exact: true })).toBeDisabled();\n  97 |     const heldScreenshot = testInfo.outputPath('flash-physical-stock-held.png');\n  98 |     await section.screenshot({ path: heldScreenshot });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts",
+                        "column": 61,
+                        "line": 95
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-51e8-4e3f-a8fa-9ba652349bb1', exact: true }) }).locator('article').filter({ hasText: 'Extended product 8221dc35' }).getByText('฿90.00', { exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-51e8-4e3f-a8fa-9ba652349bb1', exact: true }) }).locator('article').filter({ hasText: 'Extended product 8221dc35' }).getByText('฿90.00', { exact: true })\u001b[22m\n\n\n  93 |     const card = section.locator('article').filter({ hasText: product.title });\n  94 |     await expect(card).toHaveCount(1);\n> 95 |     await expect(card.getByText('฿90.00', { exact: true })).toBeVisible();\n     |                                                             ^\n  96 |     await expect(card.getByRole('button', { name: en.product.add, exact: true })).toBeDisabled();\n  97 |     const heldScreenshot = testInfo.outputPath('flash-physical-stock-held.png');\n  98 |     await section.screenshot({ path: heldScreenshot });\n    at D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts:95:61"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:12:11.162Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "exact-shipping-checkout",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-shipping-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\attachments\\exact-shipping-checkout-bba2a8ac727ba14927748f039a6b06df49e7773a.png"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-shipping-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-shipping-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\video.webm"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-shipping-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\test-failed-2.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-shipping-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-shipping-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-shipping-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts",
+                    "column": 61,
+                    "line": 95
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "96ad7778b2646b078299-2a7aeefdecc5ac6c2f94",
+          "file": "numeric-shipping.spec.ts",
+          "line": 12,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-04T00:12:05.539Z",
+    "duration": 27882.037,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

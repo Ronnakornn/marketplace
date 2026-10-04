@@ -1,0 +1,4 @@
+.next-audit-development/dev/types/routes.d.ts(72,1): error TS1434: Unexpected keyword or identifier.
+.next-audit-development/dev/types/routes.d.ts(72,10): error TS1002: Unterminated string literal.
+.next-audit-development/dev/types/validator.ts(188,30): error TS1109: Expression expected.
+.next-audit-development/dev/types/validator.ts(193,1): error TS1128: Declaration or statement expected.

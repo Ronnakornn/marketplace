@@ -1,0 +1,21 @@
+◇ injected env (0) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": PostgreSQL database "marketplace_e2e_completion", schema "public" at "127.0.0.1:55439"
+
+22 migrations found in prisma/migrations
+
+Applying migration `20261004082000_affiliate_original_refund_rights`
+Applying migration `20261004090000_sale_tax_snapshots`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20261004082000_affiliate_original_refund_rights/
+    └─ migration.sql
+  └─ 20261004090000_sale_tax_snapshots/
+    └─ migration.sql
+
+All migrations have been successfully applied.

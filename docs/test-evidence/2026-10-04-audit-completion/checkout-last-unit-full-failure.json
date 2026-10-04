@@ -1,0 +1,81 @@
+{
+  "numTotalTests": 1737,
+  "sourceFile": "full-tests-verified.json",
+  "numPendingTests": 0,
+  "artifactKind": "excerpt_from_actual_vitest_report",
+  "numFailedTests": 1,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "checkout creation concurrency on PostgreSQL"
+          ],
+          "fullName": "checkout creation concurrency on PostgreSQL creates one order and payment for simultaneous checkout of the same selected cart items",
+          "status": "passed",
+          "title": "creates one order and payment for simultaneous checkout of the same selected cart items",
+          "duration": 750.0308,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "checkout creation concurrency on PostgreSQL"
+          ],
+          "fullName": "checkout creation concurrency on PostgreSQL allows separate selected items in one cart to be purchased concurrently",
+          "status": "passed",
+          "title": "allows separate selected items in one cart to be purchased concurrently",
+          "duration": 137.24009999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "checkout creation concurrency on PostgreSQL"
+          ],
+          "fullName": "checkout creation concurrency on PostgreSQL allows only one of two distinct buyers to reserve the last unit",
+          "status": "failed",
+          "title": "allows only one of two distinct buyers to reserve the last unit",
+          "duration": 78.39249999999993,
+          "failureMessages": [
+            "AssertionError: expected [ { status: 'fulfilled', …(1) }, …(1) ] to have a length of 1 but got 2\n    at Proxy.<anonymous> (file:///D:/GitHub/marketplace/node_modules/@vitest/expect/dist/index.js:1389:20)\n    at Proxy.<anonymous> (file:///D:/GitHub/marketplace/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///D:/GitHub/marketplace/node_modules/chai/index.js:1700:25)\n    at D:/GitHub/marketplace/server/modules/checkout/checkout-concurrency.integration.test.ts:113:69\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///D:/GitHub/marketplace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "checkout creation concurrency on PostgreSQL"
+          ],
+          "fullName": "checkout creation concurrency on PostgreSQL rolls back order, reservations, coupon and coins when payment creation fails after their writes",
+          "status": "passed",
+          "title": "rolls back order, reservations, coupon and coins when payment creation fails after their writes",
+          "duration": 112.83999999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "checkout creation concurrency on PostgreSQL"
+          ],
+          "fullName": "checkout creation concurrency on PostgreSQL serializes cart inserts and quantity edits while preserving unselected items",
+          "status": "passed",
+          "title": "serializes cart inserts and quantity edits while preserving unselected items",
+          "duration": 151.85839999999985,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791072690350,
+      "endTime": 1791072691580.8584,
+      "status": "failed",
+      "message": "",
+      "name": "D:/GitHub/marketplace/server/modules/checkout/checkout-concurrency.integration.test.ts"
+    }
+  ],
+  "numPassedTests": 1736
+}

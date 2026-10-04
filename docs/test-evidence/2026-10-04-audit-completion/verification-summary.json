@@ -1,0 +1,1194 @@
+{
+  "generatedAt": "2026-10-04T00:40:16.894Z",
+  "scope": "Disposable local PostgreSQL17, Redis7.2.14 and five browser profiles. No production migration or real money movement.",
+  "unitAndIntegration": {
+    "total": 1745,
+    "passed": 1745,
+    "failed": 0,
+    "skipped": 0,
+    "report": "full-tests-delivery.json"
+  },
+  "numeric": {
+    "aggregation": "Latest actual result per file/title/project; original failed runs remain preserved.",
+    "uniqueConfigurations": 95,
+    "passed": 95,
+    "unresolved": [],
+    "runs": [
+      {
+        "file": "browser-numeric-cross-profiles.json",
+        "stats": {
+          "startTime": "2026-10-04T00:14:00.295Z",
+          "duration": 663704.766,
+          "expected": 90,
+          "skipped": 0,
+          "unexpected": 5,
+          "flaky": 0
+        },
+        "errors": []
+      },
+      {
+        "file": "browser-shipping-verified.json",
+        "stats": {
+          "startTime": "2026-10-04T00:27:51.159Z",
+          "duration": 85300.55799999999,
+          "expected": 5,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "errors": []
+      }
+    ],
+    "cases": [
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-admin-projections.spec.ts",
+        "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-analytics.spec.ts",
+        "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-analytics.spec.ts",
+        "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-analytics.spec.ts",
+        "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-analytics.spec.ts",
+        "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-analytics.spec.ts",
+        "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "production route composition prevents seller stock below active holds",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "production route composition prevents seller stock below active holds",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "production route composition prevents seller stock below active holds",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "production route composition prevents seller stock below active holds",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "production route composition prevents seller stock below active holds",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-boundaries.spec.ts",
+        "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for repriced basket",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for coupon and coins",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for repriced basket",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for coupon and coins",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for repriced basket",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for coupon and coins",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for repriced basket",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for coupon and coins",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for repriced basket",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for coupon and coins",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-commerce.spec.ts",
+        "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-projections.spec.ts",
+        "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-reporting.spec.ts",
+        "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-reporting.spec.ts",
+        "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-reporting.spec.ts",
+        "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-reporting.spec.ts",
+        "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-reporting.spec.ts",
+        "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-shipping.spec.ts",
+        "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-shipping-verified.json"
+      },
+      {
+        "file": "numeric-shipping.spec.ts",
+        "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-shipping-verified.json"
+      },
+      {
+        "file": "numeric-shipping.spec.ts",
+        "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-shipping-verified.json"
+      },
+      {
+        "file": "numeric-shipping.spec.ts",
+        "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-shipping-verified.json"
+      },
+      {
+        "file": "numeric-shipping.spec.ts",
+        "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-shipping-verified.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      },
+      {
+        "file": "numeric-tax.spec.ts",
+        "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-numeric-cross-profiles.json"
+      }
+    ]
+  },
+  "production": {
+    "aggregation": "Latest actual result per file/title/project; original failed runs remain preserved.",
+    "uniqueConfigurations": 35,
+    "passed": 35,
+    "unresolved": [],
+    "runs": [
+      {
+        "file": "browser-production.json",
+        "stats": {
+          "startTime": "2026-10-03T23:26:27.520Z",
+          "duration": 413202.90400000004,
+          "expected": 30,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "errors": []
+      },
+      {
+        "file": "browser-production-final.json",
+        "stats": {
+          "startTime": "2026-10-04T00:33:16.238Z",
+          "duration": 83120.14000000001,
+          "expected": 10,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "errors": []
+      }
+    ],
+    "cases": [
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "partial discounted return is approved and refunded once with the correct seller debit",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "partial discounted return is approved and refunded once with the correct seller debit",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "partial discounted return is approved and refunded once with the correct seller debit",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "partial discounted return is approved and refunded once with the correct seller debit",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "partial discounted return is approved and refunded once with the correct seller debit",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "finance-lifecycle.spec.ts",
+        "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production.json"
+      },
+      {
+        "file": "numeric-home-freshness.spec.ts",
+        "title": "new homepage server renders use current flash identity, price and physical availability",
+        "project": "chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      },
+      {
+        "file": "numeric-home-freshness.spec.ts",
+        "title": "new homepage server renders use current flash identity, price and physical availability",
+        "project": "firefox",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      },
+      {
+        "file": "numeric-home-freshness.spec.ts",
+        "title": "new homepage server renders use current flash identity, price and physical availability",
+        "project": "webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      },
+      {
+        "file": "numeric-home-freshness.spec.ts",
+        "title": "new homepage server renders use current flash identity, price and physical availability",
+        "project": "mobile-chromium",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      },
+      {
+        "file": "numeric-home-freshness.spec.ts",
+        "title": "new homepage server renders use current flash identity, price and physical availability",
+        "project": "mobile-webkit",
+        "expectedStatus": "passed",
+        "status": "passed",
+        "report": "browser-production-final.json"
+      }
+    ]
+  },
+  "uniqueBrowserConfigurations": 130,
+  "invariants": {
+    "database": "marketplace_e2e_completion",
+    "checkedAt": "2026-10-04T00:37:10.895Z",
+    "counts": [
+      {
+        "orders": "369",
+        "payments": "369",
+        "items": "471",
+        "shop_orders": "396"
+      }
+    ],
+    "violations": [
+      {
+        "check": "order_equation",
+        "violations": "0"
+      },
+      {
+        "check": "item_equation",
+        "violations": "0"
+      },
+      {
+        "check": "item_subtotal",
+        "violations": "0"
+      },
+      {
+        "check": "shop_snapshot_completeness",
+        "violations": "0"
+      },
+      {
+        "check": "shop_snapshot_totals",
+        "violations": "0"
+      },
+      {
+        "check": "payment_snapshot_amount",
+        "violations": "0"
+      },
+      {
+        "check": "inventory_bounds",
+        "violations": "0"
+      },
+      {
+        "check": "duplicate_seller_earnings",
+        "violations": "0"
+      },
+      {
+        "check": "tax_disclosure_equation",
+        "violations": "0"
+      },
+      {
+        "check": "original_v2_atomic_tax",
+        "violations": "0"
+      },
+      {
+        "check": "planned_refund_cash",
+        "violations": "0"
+      },
+      {
+        "check": "original_quantity_capacity",
+        "violations": "0"
+      }
+    ]
+  },
+  "verifiedExitCodes": {
+    "typecheck": 0,
+    "productionBuild": 0,
+    "i18n": 0
+  },
+  "externalVerification": "NOT_VERIFIED",
+  "remaining": [
+    "Provider/bank identity, sandbox and authentic external evidence absent.",
+    "Production historical facts and environment not examined.",
+    "No agreed production analytics latency budget; ranking still loads all candidates.",
+    "Mounted homepage has existing client cache without realtime polling."
+  ]
+}

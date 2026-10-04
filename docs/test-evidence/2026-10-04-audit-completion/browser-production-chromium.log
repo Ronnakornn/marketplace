@@ -1,0 +1,541 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:29592) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer] 
+  ok 1 [chromium] › e2e\finance-lifecycle.spec.ts:29:1 › partial discounted return is approved and refunded once with the correct seller debit (7.4s)
+  ok 2 [chromium] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB (5.5s)
+  ok 3 [chromium] › e2e\finance-lifecycle.spec.ts:126:1 › admin prepares paid cancellation cash before two-admin completion restores stock once (3.8s)
+  ok 4 [chromium] › e2e\finance-lifecycle.spec.ts:173:1 › seller payout reserves funds and two admins complete it without duplicate debits (2.8s)
+  x  5 [chromium] › e2e\finance-lifecycle.spec.ts:221:1 › three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB (7.1s)
+  ok 6 [chromium] › e2e\finance-lifecycle.spec.ts:283:1 › seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB (2.1s)
+
+
+  1) [chromium] › e2e\finance-lifecycle.spec.ts:221:1 › three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB 
+
+    Error: locator.click: Error: strict mode violation: getByRole('row').filter({ hasText: 'Finance item 4000' }).filter({ has: getByRole('button', { name: 'Approve', exact: true }) }).getByRole('button', { name: 'Approve', exact: true }) resolved to 2 elements:
+        1) <button data-size="sm" data-slot="button" data-variant="outline" class="inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border …>Approve</button> aka getByRole('button', { name: 'Approve' }).first()
+        2) <button disabled data-size="sm" data-slot="button" data-variant="outline" class="inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-…>Approve</button> aka getByRole('button', { name: 'Approve' }).nth(1)
+
+    Call log:
+      - waiting for getByRole('row').filter({ hasText: 'Finance item 4000' }).filter({ has: getByRole('button', { name: 'Approve', exact: true }) }).getByRole('button', { name: 'Approve', exact: true })
+
+
+      251 |       await seller.reload();
+      252 |       const returnRow = seller.getByRole("row").filter({ hasText: f.item.productTitle }).filter({ has: seller.getByRole("button", { name: en.seller.manage.pages.returns.approve, exact: true }) });
+    > 253 |       await returnRow.getByRole("button", { name: en.seller.manage.pages.returns.approve, exact: true }).click();
+          |                                                                                                          ^
+      254 |       await expect.poll(() => db.refund.count({ where: { returnRequestId: returned.id } })).toBe(1);
+      255 |       const refund = await db.refund.findUniqueOrThrow({ where: { returnRequestId: returned.id } });
+      256 |       expect(refund.amount).toBe(cash);
+        at D:\GitHub\marketplace\e2e\finance-lifecycle.spec.ts:253:106
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-production-chromium\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-production-chromium\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\test-failed-3.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-production-chromium\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-production-chromium\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\test-failed-4.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-production-chromium\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\error-context.md
+
+    attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-production-chromium\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-production-chromium\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › e2e\finance-lifecycle.spec.ts:221:1 › three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB 
+  5 passed (35.7s)
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/finance-lifecycle.spec.ts",
+      "--project=chromium",
+      "--no-deps",
+      "--reporter=list,json",
+      "--output=docs/test-evidence/2026-10-04-audit-completion/browser-production-chromium"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "finance-lifecycle.spec.ts",
+      "file": "finance-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7434,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:25:07.321Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-d323281c634bdbdf6941",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5454,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:25:15.462Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-8e6bdbaadd95f5f6f1d2",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3780,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:25:20.925Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-7a22cf36debae5a9958a",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 126,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2784,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:25:24.713Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-a387c74abc11571e900c",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 173,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 7144,
+                  "error": {
+                    "message": "Error: locator.click: Error: strict mode violation: getByRole('row').filter({ hasText: 'Finance item 4000' }).filter({ has: getByRole('button', { name: 'Approve', exact: true }) }).getByRole('button', { name: 'Approve', exact: true }) resolved to 2 elements:\n    1) <button data-size=\"sm\" data-slot=\"button\" data-variant=\"outline\" class=\"inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border …>Approve</button> aka getByRole('button', { name: 'Approve' }).first()\n    2) <button disabled data-size=\"sm\" data-slot=\"button\" data-variant=\"outline\" class=\"inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-…>Approve</button> aka getByRole('button', { name: 'Approve' }).nth(1)\n\nCall log:\n\u001b[2m  - waiting for getByRole('row').filter({ hasText: 'Finance item 4000' }).filter({ has: getByRole('button', { name: 'Approve', exact: true }) }).getByRole('button', { name: 'Approve', exact: true })\u001b[22m\n",
+                    "stack": "Error: locator.click: Error: strict mode violation: getByRole('row').filter({ hasText: 'Finance item 4000' }).filter({ has: getByRole('button', { name: 'Approve', exact: true }) }).getByRole('button', { name: 'Approve', exact: true }) resolved to 2 elements:\n    1) <button data-size=\"sm\" data-slot=\"button\" data-variant=\"outline\" class=\"inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border …>Approve</button> aka getByRole('button', { name: 'Approve' }).first()\n    2) <button disabled data-size=\"sm\" data-slot=\"button\" data-variant=\"outline\" class=\"inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-…>Approve</button> aka getByRole('button', { name: 'Approve' }).nth(1)\n\nCall log:\n\u001b[2m  - waiting for getByRole('row').filter({ hasText: 'Finance item 4000' }).filter({ has: getByRole('button', { name: 'Approve', exact: true }) }).getByRole('button', { name: 'Approve', exact: true })\u001b[22m\n\n    at D:\\GitHub\\marketplace\\e2e\\finance-lifecycle.spec.ts:253:106",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\finance-lifecycle.spec.ts",
+                      "column": 106,
+                      "line": 253
+                    },
+                    "snippet": "  251 |       await seller.reload();\n  252 |       const returnRow = seller.getByRole(\"row\").filter({ hasText: f.item.productTitle }).filter({ has: seller.getByRole(\"button\", { name: en.seller.manage.pages.returns.approve, exact: true }) });\n> 253 |       await returnRow.getByRole(\"button\", { name: en.seller.manage.pages.returns.approve, exact: true }).click();\n      |                                                                                                          ^\n  254 |       await expect.poll(() => db.refund.count({ where: { returnRequestId: returned.id } })).toBe(1);\n  255 |       const refund = await db.refund.findUniqueOrThrow({ where: { returnRequestId: returned.id } });\n  256 |       expect(refund.amount).toBe(cash);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\finance-lifecycle.spec.ts",
+                        "column": 106,
+                        "line": 253
+                      },
+                      "message": "Error: locator.click: Error: strict mode violation: getByRole('row').filter({ hasText: 'Finance item 4000' }).filter({ has: getByRole('button', { name: 'Approve', exact: true }) }).getByRole('button', { name: 'Approve', exact: true }) resolved to 2 elements:\n    1) <button data-size=\"sm\" data-slot=\"button\" data-variant=\"outline\" class=\"inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border …>Approve</button> aka getByRole('button', { name: 'Approve' }).first()\n    2) <button disabled data-size=\"sm\" data-slot=\"button\" data-variant=\"outline\" class=\"inline-flex shrink-0 items-center justify-center text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-…>Approve</button> aka getByRole('button', { name: 'Approve' }).nth(1)\n\nCall log:\n\u001b[2m  - waiting for getByRole('row').filter({ hasText: 'Finance item 4000' }).filter({ has: getByRole('button', { name: 'Approve', exact: true }) }).getByRole('button', { name: 'Approve', exact: true })\u001b[22m\n\n\n  251 |       await seller.reload();\n  252 |       const returnRow = seller.getByRole(\"row\").filter({ hasText: f.item.productTitle }).filter({ has: seller.getByRole(\"button\", { name: en.seller.manage.pages.returns.approve, exact: true }) });\n> 253 |       await returnRow.getByRole(\"button\", { name: en.seller.manage.pages.returns.approve, exact: true }).click();\n      |                                                                                                          ^\n  254 |       await expect.poll(() => db.refund.count({ where: { returnRequestId: returned.id } })).toBe(1);\n  255 |       const refund = await db.refund.findUniqueOrThrow({ where: { returnRequestId: returned.id } });\n  256 |       expect(refund.amount).toBe(cash);\n    at D:\\GitHub\\marketplace\\e2e\\finance-lifecycle.spec.ts:253:106"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:25:27.504Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-chromium\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-chromium\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\\test-failed-3.png"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-chromium\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\\test-failed-2.png"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-chromium\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\\test-failed-4.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-chromium\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-chromium\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\finance-lifecycle.spec.ts",
+                    "column": 106,
+                    "line": 253
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-a0f97af3a893cc93e270",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 221,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2055,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:25:36.311Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "exact-money-finance-positive",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-chromium\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-chromium\\attachments\\exact-money-finance-positive-6b19e94369e243db0a6bb32e2148ff663cada09d.png"
+                    },
+                    {
+                      "name": "exact-money-finance-debt",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-chromium\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-chromium\\attachments\\exact-money-finance-debt-cfc2edd71a2b129488c662df32b0d506d2493ca8.png"
+                    },
+                    {
+                      "name": "exact-money-finance-negative-cent",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production-chromium\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-chromium\\attachments\\exact-money-finance-negative-cent-d62e946ff5c7522ce0c8ad1ab9e8eeabef21669a.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-71503bdd4f8cbe3aa28f",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 283,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-03T23:25:03.354Z",
+    "duration": 35742.645,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-04T00:48:26.830Z",
+  "mainDocsChecked": 2,
+  "missingLinks": [],
+  "selectedBrowserReports": [
+    "browser-numeric-cross-profiles.json",
+    "browser-shipping-verified.json",
+    "browser-production.json",
+    "browser-production-final.json"
+  ],
+  "retainedPngAttachmentReferences": 150,
+  "missingPngs": [],
+  "sourceWhitespaceCheck": "recorded separately with raw evidence logs excluded",
+  "evidenceLogs": "preserved with formatter whitespace; no source whitespace defects"
+}

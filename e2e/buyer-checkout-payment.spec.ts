@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { prisma } from "#server/lib/prisma.ts";
 import { signPaymentWebhookBody } from "#server/modules/payment/payment.webhook-signature.ts";
+import { moneyNumber } from "#server/lib/money.ts";
+import type { CheckoutResult } from "#/features/buyer/api";
 import type { PaymentWebhookBody } from "#server/modules/payment/payment.types.ts";
 import { signIn, storefrontFixture } from "./helpers/storefront";
 import { isolateRateLimit } from "./helpers/seller";
@@ -93,7 +95,7 @@ test("buyer multi-shop checkout commits reserved stock only after a signed paid 
   });
   const checkoutText = await checkoutResponse.text();
   expect(checkoutResponse.ok(), `Checkout failed: ${checkoutResponse.status()} ${checkoutText}`).toBeTruthy();
-  const checkout = JSON.parse(checkoutText) as { orderId: string; paymentId: string; totalCents: number };
+  const checkout = JSON.parse(checkoutText) as CheckoutResult;
 
   const activeReservations = await prisma.inventoryReservation.findMany({ where: { orderId: checkout.orderId } });
   expect(activeReservations).toHaveLength(2);
@@ -107,6 +109,7 @@ test("buyer multi-shop checkout commits reserved stock only after a signed paid 
   const webhookSecret = process.env.PAYMENT_WEBHOOK_SECRET;
   expect(webhookSecret, "PAYMENT_WEBHOOK_SECRET is required for payment E2E").toBeTruthy();
   const payment = await prisma.payment.findUniqueOrThrow({ where: { id: checkout.paymentId } });
+  expect(payment.amount.toString()).toBe(checkout.totalCents);
   const timestamp = new Date();
   const webhookBody: PaymentWebhookBody = {
     provider: payment.provider,
@@ -114,7 +117,7 @@ test("buyer multi-shop checkout commits reserved stock only after a signed paid 
     eventType: "payment.paid",
     paymentId: checkout.paymentId,
     orderId: checkout.orderId,
-    amount: checkout.totalCents,
+    amount: moneyNumber(checkout.totalCents),
   };
   const webhookHeaders = {
     "x-payment-timestamp": String(Math.floor(timestamp.getTime() / 1000)),

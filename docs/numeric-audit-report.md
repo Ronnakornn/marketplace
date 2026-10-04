@@ -1,10 +1,12 @@
 # รายงานตรวจ flow ตัวเลข marketplace
 
+รายงานนี้เก็บผลรอบแรกไว้ สถานะปัจจุบันหลังดำเนินรายการค้างอยู่ใน [รายงาน completion](numeric-audit-completion-report.md) ซึ่งรวม exact-money API, ภาษีตั้งค่าได้, คืนบางจำนวน, Redis 7 และ browser เพิ่มเติม
+
 ฐานก่อนตรวจคือ commit `ed2093b` บน `develop` ซึ่งบันทึกตามคำสั่ง `commit แล้วทำต่อ` วันที่ทดสอบ 4 ตุลาคม 2026 ตามเวลาไทย ผลด้านล่างครอบคลุมโค้ดและกรณีที่ระบุ ไม่ใช่คำรับรองว่าทุกค่าที่เป็นไปได้หรือทุก environment ผ่านแล้ว
 
 ## ขอบเขตหลักฐาน
 
-สูตรและกฎจากโค้ดถูกแยกจากค่าคาดหวังใน [commerce](numeric-audit-commerce-notes.md), [finance](numeric-audit-finance-notes.md) และ [analytics/search](numeric-audit-other-notes.md) ตารางแรกในเอกสารเหล่านั้นเป็นสภาพ baseline ส่วน addendum ระบุการแก้ภายหลัง รายงานฉบับนี้เป็นสถานะล่าสุด
+สูตรและกฎจากโค้ดถูกแยกจากค่าคาดหวังใน [commerce](numeric-audit-commerce-notes.md), [finance](numeric-audit-finance-notes.md) และ [analytics/search](numeric-audit-other-notes.md) ตารางแรกในเอกสารเหล่านั้นเป็นสภาพ baseline ส่วน addendum ระบุการแก้ภายหลัง รายงานฉบับนี้เป็นหลักฐานรอบแรก
 
 เงินใช้หน่วยสตางค์ ราคา baht คูณ 100 ในความหมายเลขฐานสิบ เปอร์เซ็นต์ใช้ basis points 10,000 เท่ากับ 100% ส่วน conversion API เป็น fraction 0.1 เท่ากับ UI 10% Prisma เก็บเงินเป็น BigInt แต่ API จำนวนมากยังใช้ JavaScript number
 

@@ -1,0 +1,34 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:4020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:8168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+  ok 1 [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (15.1s)
+  ok 2 [firefox] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (12.5s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 3 [webkit] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (18.9s)
+  ok 4 [mobile-chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (7.7s)
+  ok 5 [mobile-webkit] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (14.5s)
+
+  5 passed (1.4m)

@@ -34,7 +34,7 @@ test('seller percentage input persists 1250 bps and discounts 1999 satang by 249
   await loginUi(page, fixture.buyer, '/en/checkout');
   const quote = await page.request.post('/api/checkout/quote', { data: { cartId: cart.id, cartItemIds: cart.items.map(item => item.id), couponCode: code } });
   expect(quote.ok(), await quote.text()).toBeTruthy();
-  expect(await quote.json()).toMatchObject({ subtotal: 1999, discountTotal: 249, grandTotal: 1750 });
+  expect(await quote.json()).toMatchObject({ subtotal: '1999', discountTotal: '249', grandTotal: '1750' });
 });
 
 test('production route composition prevents seller stock below active holds', async ({ page }) => {
@@ -43,8 +43,12 @@ test('production route composition prevents seller stock below active holds', as
   const cart = await prisma.cart.create({ data: { userId: fixture.buyer.id,
     items: { create: { variantId: variant.id, quantity: 3, unitPrice: 10000 } } }, include: { items: true } });
   await loginUi(page, fixture.buyer, '/en/checkout');
+  const quoteResponse = await page.request.post('/api/checkout/quote', { data: { cartId: cart.id, cartItemIds: cart.items.map(item => item.id) } });
+  expect(quoteResponse.ok(), await quoteResponse.text()).toBeTruthy();
+  const quote = await quoteResponse.json();
   const checkout = await page.request.post('/api/checkout', { data: {
     cartId: cart.id, cartItemIds: cart.items.map(item => item.id), addressId: fixture.address.id, paymentMethod: 'card',
+    acceptedQuoteFingerprint: quote.quoteFingerprint, acceptedTaxPolicyRevision: quote.taxPolicyRevision,
   } });
   expect(checkout.ok(), await checkout.text()).toBeTruthy();
   expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 3 });
@@ -79,11 +83,11 @@ test('real flash HTTP create and update preserve decimal satang and reject sub-s
   } });
   expect(created.ok(), await created.text()).toBeTruthy();
   const item = await created.json();
-  expect(Number((await prisma.flashSaleItem.findUniqueOrThrow({ where: { id: item.id } })).salePrice)).toBe(29);
+  expect((await prisma.flashSaleItem.findUniqueOrThrow({ where: { id: item.id } })).salePrice).toBe(29n);
   const updated = await page.request.patch(`/api/admin/flash-sale-items/${item.id}`, { data: { salePriceBaht: 1.15 } });
   expect(updated.ok(), await updated.text()).toBeTruthy();
-  expect(Number((await prisma.flashSaleItem.findUniqueOrThrow({ where: { id: item.id } })).salePrice)).toBe(115);
+  expect((await prisma.flashSaleItem.findUniqueOrThrow({ where: { id: item.id } })).salePrice).toBe(115n);
   const invalid = await page.request.patch(`/api/admin/flash-sale-items/${item.id}`, { data: { salePriceBaht: 1.001 } });
   expect(invalid.status()).toBe(400);
-  expect(Number((await prisma.flashSaleItem.findUniqueOrThrow({ where: { id: item.id } })).salePrice)).toBe(115);
+  expect((await prisma.flashSaleItem.findUniqueOrThrow({ where: { id: item.id } })).salePrice).toBe(115n);
 });

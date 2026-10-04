@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { hashPassword } from 'better-auth/crypto';
 import { prisma } from '#server/lib/prisma.ts';
 import { signPaymentWebhookBody } from '#server/modules/payment/payment.webhook-signature.ts';
+import { moneyNumber } from '#server/lib/money.ts';
+import type { CheckoutResult } from '#/features/buyer/api';
 import type { PaymentWebhookBody } from '#server/modules/payment/payment.types.ts';
 import en from '../../messages/en.json' with { type: 'json' };
 
@@ -25,7 +27,7 @@ export async function commerceFixture(shopCount = 1) {
   for (let i = 0; i < shopCount; i++) {
     const seller = await identity(`Extended Seller ${i + 1}`);
     const profile = await prisma.sellerProfile.create({ data: { userId: seller.id, legalName: seller.name, displayName: seller.name } });
-    const shop = await prisma.shop.create({ data: { ownerId: seller.id, sellerProfileId: profile.id, name: `Extended Shop ${randomUUID().slice(0, 8)}`, slug: randomUUID(), status: 'ACTIVE', contactEmail: seller.email, contactPhone: '+66800000002' } });
+    const shop = await prisma.shop.create({ data: { id: i.toString(16).padStart(8, '0') + randomUUID().slice(8), ownerId: seller.id, sellerProfileId: profile.id, name: `Extended Shop ${randomUUID().slice(0, 8)}`, slug: randomUUID(), status: 'ACTIVE', contactEmail: seller.email, contactPhone: '+66800000002' } });
     const product = await prisma.product.create({ data: { shopId: shop.id, sellerProfileId: profile.id, categoryId: category.id, title: `Extended product ${randomUUID().slice(0, 8)}`, slug: randomUUID(), status: 'ACTIVE' } });
     const variant = await prisma.productVariant.create({ data: { productId: product.id, title: 'Default', sku: randomUUID(), price: 10000, currency: 'THB', status: 'ACTIVE' } });
     await prisma.inventory.create({ data: { variantId: variant.id, quantityOnHand: 10 } });
@@ -56,7 +58,7 @@ export async function placeOrderUi(page: Page) {
   await page.getByRole('button', { name: en.checkout.placeOrder }).click();
   const response = await responsePromise;
   expect(response.ok(), await response.text()).toBeTruthy();
-  const result = await response.json() as { orderId: string; paymentId: string; totalCents: number };
+  const result = await response.json() as CheckoutResult;
   await expect(page.getByRole('link', { name: en.checkout.viewPaymentStatus })).toBeVisible();
   return result;
 }
@@ -66,7 +68,7 @@ export async function paymentEvent(page: Page, result: { orderId: string; paymen
   if (!secret) throw new Error('PAYMENT_WEBHOOK_SECRET required');
   const payment = await prisma.payment.findUniqueOrThrow({ where: { id: result.paymentId } });
   const timestamp = new Date();
-  const body: PaymentWebhookBody = { provider: payment.provider, providerRef: randomUUID(), paymentId: payment.id, orderId: result.orderId, amount: Number(payment.amount), eventType };
+  const body: PaymentWebhookBody = { provider: payment.provider, providerRef: randomUUID(), paymentId: payment.id, orderId: result.orderId, amount: moneyNumber(payment.amount), eventType };
   const response = await page.request.post('/api/payment/webhook', { data: body, headers: { 'x-payment-timestamp': String(Math.floor(timestamp.getTime() / 1000)), 'x-payment-signature': signPaymentWebhookBody(body, secret, timestamp) } });
   expect(response.ok(), await response.text()).toBeTruthy();
 }

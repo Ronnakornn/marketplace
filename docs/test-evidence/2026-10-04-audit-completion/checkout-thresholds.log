@@ -1,0 +1,122 @@
+$ vitest run --exclude "**/e2e/**" server/modules/checkout/checkout-thresholds.integration.test.ts "--maxWorkers=1" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/checkout-thresholds.json"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:28180) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ server/modules/checkout/checkout-thresholds.integration.test.ts (4 tests | 4 failed) 628ms
+     × settles merchandise 9999 with shipping without shifting cashback threshold 409ms
+     × settles merchandise 10000 with shipping without shifting cashback threshold 120ms
+     × settles merchandise 10001 with shipping without shifting cashback threshold 50ms
+     × permits only one checkout to reserve the last flash quota and rolls back the loser 20ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/checkout/checkout-thresholds.integration.test.ts > checkout numeric thresholds on PostgreSQL > settles merchandise 9999 with shipping without shifting cashback threshold
+AssertionError: expected { balance: +0, …(6) } to match object { balance: '0', debtBalance: '0' }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "balance": "0",
+-   "debtBalance": "0",
++   "balance": 0,
++   "debtBalance": 0,
+  }
+
+ ❯ server/modules/checkout/checkout-thresholds.integration.test.ts:74:37
+     72|       const response = await f.coinsApi.handle(new Request('http://loc…
+     73|       expect(response.status).toBe(200)
+     74|       expect(await response.json()).toMatchObject({ balance: cashback.…
+       |                                     ^
+     75|       expect(await db.buyerCoinLedger.count({ where: { orderId: result…
+     76|     })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  server/modules/checkout/checkout-thresholds.integration.test.ts > checkout numeric thresholds on PostgreSQL > settles merchandise 10000 with shipping without shifting cashback threshold
+ FAIL  server/modules/checkout/checkout-thresholds.integration.test.ts > checkout numeric thresholds on PostgreSQL > settles merchandise 10001 with shipping without shifting cashback threshold
+AssertionError: expected { Object (balance, pendingBalance, ...) } to match object { balance: '1', debtBalance: '0' }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "balance": "1",
+-   "debtBalance": "0",
++   "balance": 1,
++   "debtBalance": 0,
+  }
+
+ ❯ server/modules/checkout/checkout-thresholds.integration.test.ts:74:37
+     72|       const response = await f.coinsApi.handle(new Request('http://loc…
+     73|       expect(response.status).toBe(200)
+     74|       expect(await response.json()).toMatchObject({ balance: cashback.…
+       |                                     ^
+     75|       expect(await db.buyerCoinLedger.count({ where: { orderId: result…
+     76|     })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  server/modules/checkout/checkout-thresholds.integration.test.ts > checkout numeric thresholds on PostgreSQL > permits only one checkout to reserve the last flash quota and rolls back the loser
+PrismaClientValidationError: 
+Invalid `db.flashSale.create()` invocation in
+D:/GitHub/marketplace/server/modules/checkout/checkout-thresholds.integration.test.ts:83:37
+
+  80 const other = await db.user.create({ data: { name: 'Other buyer', email: `${randomUUID()}@example.test` } })
+  81 const address = await db.address.create({ data: { userId: other.id, recipientName: other.name, line1: '2 Test Road', city: 'Bangkok', postalCode: '10110', country: 'TH' } })
+  82 const cart = await db.cart.create({ data: { userId: other.id, items: { create: { variantId: f.variant.id, unitPrice: 10000, quantity: 1 } } } })
+→ 83 const sale = await db.flashSale.create({
+       data: {
+         title: "Last quota",
+         status: "ACTIVE",
+         startsAt: new Date("2026-10-03T22:24:47.810Z"),
+         endsAt: new Date("2026-10-03T22:35:47.810Z"),
+         items: {
+           create: {
+             productId: "48992780-b77c-4d9b-aa51-239a35bf54d6",
+             variantId: "345845eb-2a9e-4b81-8110-4d06f5e0fc4e",
+             originalPrice: 10000,
+             salePrice: 8000,
+             stockLimit: 1,
+             perUserLimit: 1,
+     +       shop: {
+     +         create: ShopCreateWithoutFlashSaleItemsInput | ShopUncheckedCreateWithoutFlashSaleItemsInput,
+     +         connectOrCreate: ShopCreateOrConnectWithoutFlashSaleItemsInput,
+     +         connect: ShopWhereUniqueInput
+     +       }
+           }
+         }
+       },
+       include: {
+         items: true
+       }
+     })
+
+Argument `shop` is missing.
+ ❯ ar node_modules/@prisma/client/src/runtime/core/errorRendering/throwValidationException.ts:46:8
+ ❯ throwValidationException node_modules/@prisma/client/src/runtime/RequestHandler.ts:211:6
+ ❯ Jr.handleAndLogRequestError node_modules/@prisma/client/src/runtime/RequestHandler.ts:183:11
+ ❯ Jr.request node_modules/@prisma/client/src/runtime/RequestHandler.ts:152:11
+ ❯ a node_modules/@prisma/client/src/runtime/getPrismaClient.ts:1014:23
+ ❯ server/modules/checkout/checkout-thresholds.integration.test.ts:83:18
+     81|     const address = await db.address.create({ data: { userId: other.id…
+     82|     const cart = await db.cart.create({ data: { userId: other.id, item…
+     83|     const sale = await db.flashSale.create({ data: { title: 'Last quot…
+       |                  ^
+     84|       items: { create: { productId: f.product.id, variantId: f.variant…
+     85|     const outcomes = await Promise.allSettled([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  05:25:46
+   Duration  1.66s (transform 361ms, setup 0ms, import 823ms, tests 628ms, environment 0ms)
+
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/checkout-thresholds.json
+error: script "test" exited with code 1

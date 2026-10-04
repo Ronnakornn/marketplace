@@ -1,0 +1,28 @@
+Listing tests:
+  [setup] › auth.setup.ts:6:1 › authenticate seller
+  [chromium] › numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves
+  [chromium] › numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case
+  [chromium] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping
+  [chromium] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping
+  [chromium] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping
+  [firefox] › numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves
+  [firefox] › numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case
+  [firefox] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping
+  [firefox] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping
+  [firefox] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping
+  [webkit] › numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves
+  [webkit] › numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case
+  [webkit] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping
+  [webkit] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping
+  [webkit] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping
+  [mobile-chromium] › numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves
+  [mobile-chromium] › numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case
+  [mobile-chromium] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping
+  [mobile-chromium] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping
+  [mobile-chromium] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping
+  [mobile-webkit] › numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves
+  [mobile-webkit] › numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case
+  [mobile-webkit] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping
+  [mobile-webkit] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping
+  [mobile-webkit] › numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping
+Total: 26 tests in 2 files

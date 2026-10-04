@@ -1,0 +1,1319 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/finance-lifecycle.spec.ts",
+      "--project=chromium",
+      "--project=firefox",
+      "--project=webkit",
+      "--project=mobile-chromium",
+      "--project=mobile-webkit",
+      "--no-deps",
+      "--reporter=list,json",
+      "--output=docs/test-evidence/2026-10-04-audit-completion/browser-production"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-production",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "finance-lifecycle.spec.ts",
+      "file": "finance-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8215,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:26:31.689Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-d323281c634bdbdf6941",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6028,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:26:40.034Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-8e6bdbaadd95f5f6f1d2",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3798,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:26:46.071Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-7a22cf36debae5a9958a",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 126,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2960,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:26:49.877Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-a387c74abc11571e900c",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 173,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13618,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:26:52.844Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "tax-partial-final-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-chromium\\attachments\\tax-partial-final-balance-94715e64107ece286dbd5123beb2b530152ea1f4.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-a0f97af3a893cc93e270",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 221,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2220,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:27:06.473Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "exact-money-finance-positive",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-chromium\\attachments\\exact-money-finance-positive-e7bd3532bfe8b9203dff4938dff32ef708d63567.png"
+                    },
+                    {
+                      "name": "exact-money-finance-debt",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-chromium\\attachments\\exact-money-finance-debt-13eb346520ec3c52c60c64b64365e7872370b633.png"
+                    },
+                    {
+                      "name": "exact-money-finance-negative-cent",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-chromium\\attachments\\exact-money-finance-negative-cent-67ee4ca93dd2149c4f00e7f667354dafadea61a0.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-71503bdd4f8cbe3aa28f",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 283,
+          "column": 1
+        },
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12182,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:27:09.849Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-a797b512ae8b67967b08",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12093,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:27:23.039Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-4adfdbe9da317625ec59",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7878,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:27:35.146Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-250c6f9ead04a3c33d00",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 126,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6736,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:27:43.036Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-7b92654437193729a807",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 173,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 28541,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:27:49.786Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "tax-partial-final-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-firefox\\attachments\\tax-partial-final-balance-9022ef0808aa48fdc0677431317d7c11ae4df7c4.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-943c55201f1b052e4657",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 221,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3709,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:28:18.345Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "exact-money-finance-positive",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-firefox\\attachments\\exact-money-finance-positive-e75ebb85d290704c6ddddf580dfb5667ae4c5961.png"
+                    },
+                    {
+                      "name": "exact-money-finance-debt",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-firefox\\attachments\\exact-money-finance-debt-df784af7a6837c6198ab6bb6aa1c96ac96c5c10f.png"
+                    },
+                    {
+                      "name": "exact-money-finance-negative-cent",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-firefox\\attachments\\exact-money-finance-negative-cent-38bc069abfafde103840cbfc6de07a6676eb7b20.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-e7b4435462129166fbe3",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 283,
+          "column": 1
+        },
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 28542,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:28:23.865Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-19ea0029121fb2482345",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 36167,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:28:53.153Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-2ff5cd59db4505b5f54a",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11947,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:29:29.333Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-cfe2ed61d65fcc629716",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 126,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9770,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:29:41.290Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-46a93117ff60d6b7bca6",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 173,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 70128,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:29:51.068Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "tax-partial-final-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-webkit\\attachments\\tax-partial-final-balance-bdd9a397dc91b6696081550ee65cec2b45254813.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-4177ed12ceefb8648630",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 221,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5727,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:31:01.208Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "exact-money-finance-positive",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-webkit\\attachments\\exact-money-finance-positive-dd9808bdbcee7f8c90b99bb30f494d4a0643a290.png"
+                    },
+                    {
+                      "name": "exact-money-finance-debt",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-webkit\\attachments\\exact-money-finance-debt-d3c45a6fe78a70367b2b7ef252b12e4009079ad3.png"
+                    },
+                    {
+                      "name": "exact-money-finance-negative-cent",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-webkit\\attachments\\exact-money-finance-negative-cent-d811738a4b7f2174cb27cea156ef723c8edfe7e6.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-09263872f79570b68e3f",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 283,
+          "column": 1
+        },
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6593,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:31:07.933Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-7d001ea6af7208f450b3",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5848,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:31:14.680Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-ab11a3299d559121bb28",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3882,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:31:20.537Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-1fcc3992b027a546b014",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 126,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3097,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:31:24.427Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-1cf38fb1afdfff8b9620",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 173,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14376,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:31:27.532Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "tax-partial-final-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-mobile-chromium\\attachments\\tax-partial-final-balance-d059ab6c1fa6909e44e8cae3d726b59cfbdd00ea.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-ae5084aca2308855234e",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 221,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2538,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:31:41.919Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "exact-money-finance-positive",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-mobile-chromium\\attachments\\exact-money-finance-positive-eb945a8d1dc3a74d675a2b6083c1905987d3b649.png"
+                    },
+                    {
+                      "name": "exact-money-finance-debt",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-mobile-chromium\\attachments\\exact-money-finance-debt-883dc8533735b174e9efbdd8bdb9dfe50e7abf4a.png"
+                    },
+                    {
+                      "name": "exact-money-finance-negative-cent",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-mobile-chromium\\attachments\\exact-money-finance-negative-cent-3849de44dfdb8d975d5cb81ee4dfbddf6662ce8d.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-fc65e53f7fcd5b489b73",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 283,
+          "column": 1
+        },
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15371,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:31:45.746Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-223600872e3dfb103ff5",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 16037,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:32:01.224Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-238cd7a20e225306473d",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8864,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:32:17.271Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-bf10c47ae572f9dcf142",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 126,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7357,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:32:26.143Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-64ce225cad18a4489f80",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 173,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 41139,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:32:33.507Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "tax-partial-final-balance",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-three-pa-d06b5-e-rounding-in-UI-API-and-DB-mobile-webkit\\attachments\\tax-partial-final-balance-d1fb0054eff3757eb821fe59d12d11883af00b3a.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-85c9a2008bb12de05f70",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 221,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4997,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:33:14.656Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "exact-money-finance-positive",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-mobile-webkit\\attachments\\exact-money-finance-positive-6bf64912c961d42760640a11fa448d9642867541.png"
+                    },
+                    {
+                      "name": "exact-money-finance-debt",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-mobile-webkit\\attachments\\exact-money-finance-debt-b0f3a99434634a3ad0f75d6beea1c11d08e1c5a6.png"
+                    },
+                    {
+                      "name": "exact-money-finance-negative-cent",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-production\\finance-lifecycle-seller-f-75216-ive-satang-in-UI-API-and-DB-mobile-webkit\\attachments\\exact-money-finance-negative-cent-f99f4f909e9b80d87859308d410cc90d3b2ef8f8.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-b4534d0a97ae2c82bf73",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 283,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-03T23:26:27.520Z",
+    "duration": 413202.90400000004,
+    "expected": 30,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

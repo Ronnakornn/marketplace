@@ -1,6 +1,6 @@
 # Public numeric projection browser proof
 
-Status on 2026-10-04 is **NOT EXECUTED**. The owner prepares tests; root owns the integrated Playwright configuration, disposable database and cross-browser execution. This artifact contains no browser pass claim.
+Preparation status at commit `7444269` was **NOT EXECUTED**. Root subsequently ran the integrated browser suites. All three projection cases passed in the Chromium rerun after a real UUID storefront fix and selector corrections. The current cross-browser outcome is recorded in the [completion report](../../../numeric-audit-completion-report.md).
 
 The deliverable is `e2e/numeric-projections.spec.ts`. It adds three independent tests with real same-origin API reads, PostgreSQL fixture rows and public UI assertions. No API route interception supplies expected results. `commerceFixture` rejects databases outside local `marketplace_e2e_*`. Historical paid orders and published ratings are fixture preconditions, not proof of checkout, webhook verification or moderation workflows. Shop rating cache is initialized explicitly as a historical precondition.
 
@@ -24,7 +24,7 @@ Source review checked `ReviewService`, `ShopReviewService`, `SearchService`, `Re
 
 ## Remaining browser scope
 
-External AI vector acquisition and score UI are excluded. The recommendation API tests use local stored prices; they do not contact an external AI provider. Fraud has an admin interface in `AdminBackofficeTables`. Fraud browser parity is therefore pending separate admin evidence, not classified as unavailable. Backend threshold execution evidence remains in the existing threshold artifacts.
+External AI vector acquisition and score UI are excluded. The recommendation API tests use local stored prices; they do not contact an external AI provider. Fraud has an admin interface in `AdminBackofficeTables`. Admin score75/100 and review/resolution browser evidence is now included in the completion report. Backend threshold execution evidence remains in the existing threshold artifacts.
 
 ## Execution choices
 

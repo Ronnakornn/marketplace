@@ -1,0 +1,399 @@
+$ vitest run --exclude "**/e2e/**" "--reporter=default" "--reporter=json" "--outputFile=docs/test-evidence/2026-10-04-audit-completion/full-tests-verified.json"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:30936) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/refund/partial-quantity.integration.test.ts (8 tests) 4810ms
+     ✓ returns cash33/33/35 and fee2/3/4, closes each Return and leaves zero seller rights  1765ms
+     ✓ restores gross coin funding99/100/101 as coin deltas0/1/2 rather than net280 cents  659ms
+     ✓ records merchandise-only affiliate credits2/3/4 from the original nine-cent award  549ms
+     ✓ confirmed failure cancels its Return and permits a fresh first interval  427ms
+     ✓ reserves exactly one simultaneous same-item direct plan and protects an earlier Return request  462ms
+     ✓ rolls back all posted effects when affiliate persistence fails, then retries once  359ms
+     ✓ rolls back all posted effects when return persistence fails, then retries once  301ms
+ ✓ scripts/reconcile-external-finance.integration.test.ts (7 tests) 5566ms
+     ✓ matches Payment/Refund/Payout above MAX_SAFE with unchanged financial rows and exact totals  992ms
+     ✓ exits nonzero and reports a literal one-minor-unit payout discrepancy  881ms
+     ✓ rejects unsupported currency without converting or writing any balance  781ms
+     ✓ rejects an unknown bank reference and a wrong refund payment relation  704ms
+     ✓ ignores exact duplicates and out-of-order history, counting each operation once  678ms
+     ✓ rejects conflicting duplicate input and an unmatched scoped row  631ms
+     ✓ exits with input error before connecting when original file hash differs  314ms
+(node:14272) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/refund/commerce-concurrency.integration.test.ts (20 tests) 2979ms
+     ✓ rejects stale stock after another transaction changes on-hand and reservations  414ms
+     ✓ preserves each shop allocation when an order-wide refund is split into separate cents  361ms
+     ✓ never credits a shop when cumulative rounding lowers its ideal refund share  430ms
+ ✓ app/features/checkout/components/CheckoutPage.test.tsx (19 tests) 2816ms
+     ✓ submits once for rapid clicks in one batch and allows retry after a network failure  447ms
+(node:33764) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:16508) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/wallet/settlement-policy.integration.test.ts (8 tests) 2527ms
+     ✓ credits shipping and seller-funded net merchandise using the purchase fee after the live rate changes  783ms
+     ✓ shows debt after a paid payout and uses future earnings to offset it  323ms
+ ✓ server/modules/refund/settlement-races.integration.test.ts (11 tests) 2891ms
+     ✓ commits a concurrent completion replay exactly once  817ms
+     ✓ credits the delivered shop after the real admin flow cancels its pending sibling  423ms
+(node:11864) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:15036) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/refund/w7-independent-review.integration.test.ts (9 tests) 2627ms
+     ✓ rejects a v2 affiliate award with missing buyer NET instead of using inclusive gross as legacy basis  622ms
+     ✓ labels v2 wallet debit and fee reversal with the original settlement policy version  301ms
+     ✓ completes different-item plans concurrently and conserves the original one-cent seller and affiliate fees  340ms
+ ✓ server/modules/refund/settlement-cache.integration.test.ts (1 test) 2531ms
+     ✓ refreshes warmed detail, discovery, search and affected seller caches on completion and replay  2502ms
+(node:35064) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ app/features/product/components/ProductBuyerStates.test.tsx (40 tests) 17301ms
+     ✓ shows an error state with retry when product loading fails  351ms
+     ✓ renders metadata-driven category, brand, and price filters with unavailable facets disabled  750ms
+     ✓ keeps active chips removable and clear filters preserving the search query  701ms
+     ✓ requires option selection before adding to cart and sends selected quantity  1284ms
+     ✓ uses stable pending labels on product detail purchase actions  873ms
+     ✓ shows add-to-cart confirmation and refreshes the buyer cart query after success  925ms
+     ✓ shows a readable add-to-cart error when the mutation fails  678ms
+     ✓ shows sticky purchase context and keeps buy-now on the current cart flow  923ms
+     ✓ does not navigate buy-now when add-to-cart fails  675ms
+     ✓ keeps sticky purchase actions described by visible purchase status  471ms
+     ✓ does not allow quantity above selected variant stock  934ms
+     ✓ clamps quantity when the selected variant changes to lower stock  1302ms
+     ✓ shows buyer purchase CTAs to anonymous visitors  413ms
+     ✓ disables product detail purchase actions for non-buyer accounts with a reason  665ms
+     ✓ adds an anonymous buyer selection to the guest cart  621ms
+     ✓ allows selecting standalone variants when no option groups are available  485ms
+     ✓ renders review discovery controls and loads additional review pages  981ms
+     ✓ renders review and rating summary error states with retry actions  397ms
+     ✓ renders Q&A discovery controls and loads additional question pages  1037ms
+     ✓ submits buyer questions with pending and success states  485ms
+ ✓ server/modules/checkout/tax-sale.integration.test.ts (17 tests) 2804ms
+     ✓ freezes INCLUSIVE tax, charges once, and recognizes gross receipts with the original NET commission  726ms
+ ✓ app/features/seller/components/SellerProductPages.test.tsx (33 tests) 18017ms
+     ✓ renders product list controls and links to create and edit pages  527ms
+     ✓ renders edit form data and page-level retry state  413ms
+     ✓ shows required and optional category specs with inline readiness validation  1002ms
+     ✓ renders number, boolean, and multi-select category specs with helper text  574ms
+     ✓ keeps category spec attributes in the save payload while additional specs stay free-form  985ms
+     ✓ prevents adding more than ten images before upload  537ms
+     ✓ validates one product video with visible MIME and size feedback  565ms
+     ✓ shows media upload errors and allows retry without clearing image form state  896ms
+     ✓ keeps exactly one primary image while reordering and removing media  744ms
+     ✓ edits variant stock with fields limited to allowed values  547ms
+     ✓ creates variants  1401ms
+     ✓ saves catalog price decimal text 0.29 as exact minor units  451ms
+     ✓ saves catalog price decimal text 1.15 as exact minor units  447ms
+     ✓ saves catalog price decimal text 1.000 as exact minor units  428ms
+     ✓ saves catalog price decimal text 1e3 as exact minor units  484ms
+     ✓ saves catalog price decimal text 90071992547409.90 as exact minor units  452ms
+     ✓ saves catalog price decimal text 90071992547409.91 as exact minor units  487ms
+     ✓ preserves the maximum safe catalog price when saving without editing its amount  397ms
+     ✓ deletes variants after confirmation  678ms
+     ✓ generates variant rows, applies bulk values, and shows duplicate SKU errors inline  2869ms
+     ✓ limits options to two axes and confirms removal when variants are affected  761ms
+     ✓ publishes a ready draft directly and shows legacy moderation reasons  412ms
+     ✓ blocks publish when variant option combinations are duplicated  484ms
+ ✓ server/modules/order/historical-reconciliation.integration.test.ts (18 tests) 2482ms
+     ✓ previews exactly the missing shops without writing  394ms
+     ✓ runs the guarded CLI in dry-run mode and requires explicit apply  1559ms
+(node:4816) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/product-analytics/product-analytics-numeric.integration.test.ts (3 tests) 2223ms
+     ✓ ranks paid revenue across pages independently of product creation order  502ms
+     ✓ keeps recommendations and search sold counts equal when unpaid order items exist  681ms
+     ✓ excludes a canceled shop line while its paid parent and the other shop remain active  988ms
+ ✓ server/modules/refund/shared-buyer-coins.integration.test.ts (3 tests) 1936ms
+     ✓ serializes separate orders with initial available coins 0n  1080ms
+     ✓ serializes separate orders with initial available coins 16n  394ms
+     ✓ rolls back the buyer and seller balances when coin ledger persistence fails, then retries once  420ms
+ ✓ server/modules/cart/cart-concurrency.integration.test.ts (8 tests) 1757ms
+     ✓ concurrent first visits share one cart and later reads retain items added to it  622ms
+     ✓ preserves both concurrent additions with initial variant quantity 0  302ms
+ ✓ app/features/seller/components/SellerProductAnalyticsPage.test.tsx (7 tests) 1265ms
+     ✓ exposes Product Analytics route  344ms
+(node:34036) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/return/return.partial.integration.test.ts (12 tests) 1241ms
+     ✓ accepts exactly one concurrent same-item request  474ms
+ ✓ app/features/catalog/components/AdminCategorySpecsManager.test.tsx (4 tests) 1652ms
+     ✓ renders admin categories, inactive states, and editable mutation controls  478ms
+     ✓ submits category updates and active state changes  557ms
+     ✓ edits specs and deactivates inactive-aware spec rows  537ms
+ ✓ server/modules/inventory/inventory-boundary.integration.test.ts (24 tests) 1451ms
+     ✓ rejects reductions below held stock through the composed route  537ms
+ ✓ app/features/product/components/ProductCard.test.tsx (17 tests) 1092ms
+(node:29720) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ server/modules/checkout/checkout-concurrency.integration.test.ts (5 tests | 1 failed) 1276ms
+     ✓ creates one order and payment for simultaneous checkout of the same selected cart items  750ms
+     ✓ allows separate selected items in one cart to be purchased concurrently 137ms
+     × allows only one of two distinct buyers to reserve the last unit 78ms
+     ✓ rolls back order, reservations, coupon and coins when payment creation fails after their writes 113ms
+     ✓ serializes cart inserts and quantity edits while preserving unselected items 152ms
+ ✓ server/modules/recommendation/recommendation-numeric.integration.test.ts (5 tests) 1289ms
+     ✓ applies inclusive edges for 'minimum500 padding' and stable pages with literal minor units  688ms
+ ✓ server/modules/review/review-numeric.integration.test.ts (3 tests) 1174ms
+     ✓ returns zero averages, counts and all five buckets before publication  396ms
+     ✓ aggregates only published 5,5,3 product ratings independently of paginated rows  353ms
+     ✓ keeps moderated 5,5,4 shop summary and stored cache at4.67 while feed page contains two  379ms
+(node:26704) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/checkout/checkout-thresholds.integration.test.ts (4 tests) 1112ms
+     ✓ settles merchandise 9999 with shipping without shifting cashback threshold  642ms
+ ✓ server/modules/search/search-numeric.integration.test.ts (3 tests) 1225ms
+     ✓ excludes fully reserved stock from both results and category/brand/price facets  618ms
+     ✓ uses inclusive price/rating bounds and paginates after derived rating filters  305ms
+(node:29504) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/catalog/catalog-cache.integration.test.ts (1 test) 1254ms
+     ✓ refreshes warmed slug and UUID details after seller edits and rejects stale visibility  1221ms
+ ✓ app/features/auth/components/SocialSignInButtons.test.tsx (6 tests) 753ms
+     ✓ shows Google and Facebook actions on the login form when providers are available  363ms
+ ✓ server/modules/fraud/fraud-numeric.integration.test.ts (4 tests) 967ms
+     ✓ rounds actual checkout duration 60499ms to score15  422ms
+stderr | app/features/marketplace/components/MarketplaceHome.test.tsx > MarketplaceHome > renders marketplace sections from the discovery homepage API
+Received `true` for a non-boolean attribute `priority`.
+
+If you want to write it to the DOM, pass a string instead: priority="true" or priority={value.toString()}.
+
+ ✓ server/modules/inventory/inventory-concurrency.integration.test.ts (3 tests) 973ms
+     ✓ applies concurrent commit exactly once  534ms
+ ✓ app/features/marketplace/components/MarketplaceHome.test.tsx (4 tests) 892ms
+     ✓ renders marketplace sections from the discovery homepage API  588ms
+ ✓ app/features/admin/components/AdminSellerApplicationsTable.test.tsx (5 tests) 769ms
+     ✓ renders review details and approves an application  332ms
+ ✓ app/features/seller/components/SellerShell.test.tsx (2 tests) 723ms
+     ✓ preserves selected shopId in seller navigation links  612ms
+ ✓ server/modules/product-analytics/product-analytics-thresholds.integration.test.ts (2 tests) 891ms
+     ✓ uses minimum10 views and strictly below1% conversion; zero views remain finite  711ms
+ ✓ app/features/seller/components/SellerOnboardingPages.test.tsx (5 tests) 927ms
+     ✓ renders account step and saves draft  408ms
+ ✓ app/features/buyer/components/ProfilePage.test.tsx (3 tests) 614ms
+ ✓ app/features/admin/components/AdminSettlementRefundActions.test.tsx (18 tests) 831ms
+ ✓ app/features/payment/components/MockPaymentPage.test.tsx (6 tests) 839ms
+     ✓ sends Confirm payment through the mock event API and redirects to payment return  400ms
+ ✓ server/modules/jobs/queue-expiry.integration.test.ts (1 test) 982ms
+     ✓ scheduled worker expires checkout and every shop order, then repeats without releasing stock twice  915ms
+ ✓ server/lib/money.integration.test.ts (5 tests) 846ms
+ ✓ app/features/auth/components/PhoneAuthPanel.test.tsx (4 tests) 549ms
+ ✓ server/modules/shipment/shipment-concurrency.integration.test.ts (2 tests) 685ms
+     ✓ concurrent sibling dispatches finish with a shipped parent and both shipped items  515ms
+ ✓ app/features/buyer/components/WishlistPage.test.tsx (6 tests) 741ms
+ ✓ app/features/admin/components/AdminProductsModerationTable.test.tsx (1 test) 376ms
+     ✓ requires a suspend reason before submitting moderation action  375ms
+ ✓ app/features/admin/components/AdminTaxPolicyEditor.test.tsx (6 tests) 660ms
+     ✓ starts at zero and sends the exact explicitly selected percentage and taxable basis  346ms
+ ✓ app/features/admin/components/AdminContentModerationQueues.test.tsx (2 tests) 668ms
+     ✓ requires a note before hiding a review and submits mutation with the note  427ms
+ ✓ app/features/buyer/components/ReturnRequestPage.test.tsx (7 tests) 707ms
+     ✓ uses the server remaining quantity and submits one explicit unit  309ms
+ ✓ app/components/ui/data-table.test.tsx (3 tests) 316ms
+ ✓ server/modules/wallet/wallet-concurrency.integration.test.ts (1 test) 726ms
+     ✓ credits each shop once when completed-order callbacks overlap and replay  689ms
+ ✓ app/features/auth/components/AuthV1Forms.test.tsx (10 tests) 875ms
+ ✓ server/modules/product-analytics/product-analytics-timezone.integration.test.ts (16 tests) 562ms
+ ✓ app/features/marketplace/components/MarketplaceGuestHome.test.tsx (2 tests) 410ms
+     ✓ eagerly fetches only the first above-the-fold recommendation  320ms
+stderr | app/features/cart/components/CartPage.money.test.tsx > cart exact selection total > displays the selected subtotal returned by the server quote
+In HTML, <div> cannot be a descendant of <p>.
+This will cause a hydration error.
+
+  <QueryClientProvider client={{}}>
+    <CartPage>
+      <BuyerTopBar>
+      <div>
+      <div className="fixed inse...">
+        <div className="mx-auto fl...">
+          <div>
+            <p>
+>           <p className="text-lg font-bold text-slate-950">
+              <Skeleton className="h-6 w-24">
+>               <div data-slot="skeleton" className="animate-pulse rounded-md bg-accent h-6 w-24">
+            ...
+          ...
+
+<p> cannot contain a nested <div>.
+See this log for the ancestor stack trace.
+
+ ✓ app/features/seller/components/SellerPromotionsPage.numeric.test.tsx (16 tests) 476ms
+ ✓ app/features/cart/components/CartPage.money.test.tsx (2 tests) 414ms
+ ✓ app/features/storefront/StorefrontCatalog.test.tsx (3 tests) 358ms
+ ✓ server/modules/user/password-reset.integration.test.ts (3 tests) 575ms
+     ✓ accepts an OTP only once concurrently and revokes every session with the password change  472ms
+ ✓ app/features/storefront/StorefrontDetails.test.tsx (5 tests) 390ms
+ ✓ app/components/BuyerShell.test.tsx (11 tests) 441ms
+ ✓ app/features/buyer/components/PaymentReturnPage.test.tsx (6 tests) 641ms
+ ✓ app/features/chat/components/ChatPages.test.tsx (1 test) 342ms
+     ✓ filters rooms to the selected shop and keeps seller URLs scoped to that shop  341ms
+ ✓ app/features/auth/components/SignupForm.test.tsx (1 test) 268ms
+ ✓ app/features/seller/components/SellerManagePages.test.tsx (4 tests) 314ms
+ ✓ app/features/storefront/StorefrontIdentity.test.tsx (5 tests) 294ms
+ ✓ server/modules/observability/observability.plugin.test.ts (5 tests) 382ms
+     ✓ samples slow warnings while counting every slow request  314ms
+ ✓ app/features/auth/components/LoginForm.test.tsx (1 test) 266ms
+ ✓ server/modules/catalog/catalog.routes.test.ts (20 tests) 213ms
+ ✓ app/features/cart/components/GuestAddToCartButton.test.tsx (1 test) 203ms
+ ✓ app/features/cart/components/GuestCartLink.test.tsx (1 test) 193ms
+ ✓ server/modules/promotion/promotion.numeric-routes.test.ts (17 tests) 131ms
+ ✓ server/modules/catalog/catalog.service.test.ts (63 tests) 118ms
+ ✓ server/modules/checkout/checkout.service.test.ts (53 tests) 79ms
+ ✓ server/modules/checkout/checkout.routes.test.ts (10 tests) 105ms
+ ✓ server/modules/seller-shop/seller-shop.routes.test.ts (24 tests) 118ms
+ ✓ server/modules/review/review.routes.test.ts (5 tests) 58ms
+ ✓ server/lib/money.test.ts (20 tests) 59ms
+ ✓ server/modules/payment/payment.routes.test.ts (8 tests) 71ms
+ ✓ server/modules/auth/auth-plugin.test.ts (17 tests) 65ms
+ ✓ server/modules/product-question/product-question.routes.test.ts (7 tests) 58ms
+ ✓ server/modules/audit-log/audit-log.routes.test.ts (4 tests) 48ms
+ ✓ server/modules/payout/payout.numeric-routes.test.ts (6 tests) 64ms
+ ✓ server/modules/refund/refund.repository.test.ts (29 tests) 51ms
+ ✓ app/lib/frontend-role-contract.test.ts (1 test) 34ms
+ ✓ server/modules/checkout/checkout.repository.test.ts (7 tests) 29ms
+ ✓ server/modules/product-analytics/product-analytics.routes.test.ts (3 tests) 64ms
+ ✓ app/features/promotion/components/BuyerCoinsPage.test.tsx (1 test) 64ms
+ ✓ server/modules/cart/cart.routes.test.ts (4 tests) 56ms
+ ✓ server/modules/inventory/inventory.routes.test.ts (4 tests) 57ms
+ ✓ server/modules/admin/admin.routes.test.ts (5 tests) 55ms
+ ✓ server/modules/security/security.test.ts (19 tests) 76ms
+ ✓ server/modules/admin/admin.service.test.ts (31 tests) 50ms
+ ✓ server/modules/promotion/promotion.service.test.ts (47 tests) 55ms
+ ✓ server/modules/order/order.routes.test.ts (3 tests) 54ms
+ ✓ server/modules/payment/payment.test.ts (31 tests) 41ms
+ ✓ server/modules/ai-search/ai-search.service.test.ts (7 tests) 47ms
+ ✓ server/modules/payment/payment.webhook-signature.test.ts (3 tests) 33ms
+ ✓ server/modules/upload/upload.storage.test.ts (9 tests) 50ms
+ ✓ server/modules/return/return.service.test.ts (15 tests) 21ms
+ ✓ server/modules/shipment/shipment.service.test.ts (19 tests) 28ms
+ ✓ server/modules/seller-onboarding/seller-onboarding.service.test.ts (16 tests) 40ms
+ ✓ server/modules/observability/observability.routes.test.ts (4 tests) 52ms
+ ✓ server/modules/refund/refund.routes.test.ts (3 tests) 54ms
+ ✓ server/modules/auth/auth.providers.test.ts (6 tests) 42ms
+ ✓ server/modules/refund/settlement-refund.service.test.ts (20 tests) 21ms
+ ✓ server/modules/fraud/fraud.routes.test.ts (3 tests) 52ms
+ ✓ server/modules/content-moderation/content-moderation.service.test.ts (18 tests) 35ms
+ ✓ server/modules/ai-search/shopping-assistant.service.test.ts (5 tests) 26ms
+ ✓ server/modules/wallet/wallet.service.test.ts (15 tests) 18ms
+ ✓ server/modules/email/email.service.test.ts (4 tests) 29ms
+ ✓ server/modules/cache/cache.service.test.ts (15 tests) 27ms
+ ✓ server/modules/upload/upload.service.test.ts (18 tests) 30ms
+ ✓ scripts/reconcile-external-finance.test.ts (26 tests) 28ms
+ ✓ server/modules/catalog/catalog.repository.test.ts (5 tests) 25ms
+ ✓ app/components/AppChrome.test.tsx (2 tests) 35ms
+ ✓ server/modules/notification/notification.service.test.ts (16 tests) 27ms
+ ✓ server/modules/search/search.service.test.ts (13 tests) 25ms
+ ✓ app/lib/money.test.ts (27 tests) 34ms
+ ✓ app/features/product/queries.test.ts (28 tests) 18ms
+ ✓ server/modules/chat/chat.service.test.ts (18 tests) 22ms
+ ✓ server/modules/cart/cart.service.test.ts (12 tests) 19ms
+ ✓ server/modules/user/user.service.test.ts (18 tests) 24ms
+ ✓ server/modules/payout/payout.service.test.ts (24 tests) 22ms
+ ✓ server/modules/product-analytics/product-analytics.service.test.ts (11 tests) 20ms
+ ✓ server/modules/event-bus/event-bus.test.ts (11 tests) 22ms
+ ✓ server/modules/checkout/sale-economics.test.ts (11 tests) 22ms
+ ✓ server/modules/affiliate/affiliate.service.test.ts (15 tests) 21ms
+ ✓ server/modules/auth/phone-otp.service.test.ts (16 tests) 19ms
+ ✓ server/modules/seller/seller-dashboard.service.test.ts (12 tests) 20ms
+ ✓ server/modules/promotion/buyer-coin.transitions.test.ts (14 tests) 21ms
+ ✓ server/modules/jobs/job.service.test.ts (6 tests) 15ms
+ ✓ server/modules/inventory/inventory.service.test.ts (8 tests) 18ms
+ ✓ server/modules/refund/refund-amount.service.test.ts (9 tests) 19ms
+ ✓ server/modules/fraud/fraud.service.test.ts (10 tests) 18ms
+ ✓ app/lib/seo.test.ts (13 tests) 18ms
+ ✓ server/modules/tracking/tracking.service.test.ts (9 tests) 15ms
+ ✓ server/modules/recommendation/recommendation.service.test.ts (10 tests) 16ms
+ ✓ server/modules/shop-review/shop-review.service.test.ts (7 tests) 22ms
+ ✓ server/modules/payment/payment.repository.test.ts (10 tests) 22ms
+ ✓ server/modules/refund/refund.service.test.ts (2 tests) 11ms
+ ✓ server/modules/order/order.service.test.ts (7 tests) 14ms
+ ✓ server/modules/review/review.service.test.ts (7 tests) 17ms
+ ✓ server/modules/audit-log/audit-log.service.test.ts (8 tests) 17ms
+ ✓ server/modules/product-question/product-question.service.test.ts (8 tests) 18ms
+ ✓ server/modules/seller-shop/seller-shop.service.test.ts (14 tests) 19ms
+ ✓ server/modules/auth/phone-otp.provider.test.ts (12 tests) 12ms
+ ✓ app/features/tracking/tracking.test.ts (5 tests) 17ms
+ ✓ server/modules/observability/observability.service.test.ts (7 tests) 10ms
+ ✓ server/modules/fraud/fraud.rules.test.ts (37 tests) 12ms
+ ✓ app/lib/push-notifications.test.ts (3 tests) 12ms
+ ✓ server/modules/return/return.repository.test.ts (2 tests) 13ms
+ ✓ app/lib/query-client.test.ts (3 tests) 9ms
+ ✓ server/config/production-env.test.ts (11 tests) 10ms
+ ✓ app/features/seller/upload-helper.test.ts (2 tests) 17ms
+ ✓ app/features/buyer/api.test.ts (6 tests) 11ms
+ ✓ server/modules/seller-shop/seller-shop.repository.test.ts (6 tests) 16ms
+ ✓ app/lib/api-client.test.ts (2 tests) 17ms
+ ✓ server/modules/product-question/product-question.repository.test.ts (2 tests) 11ms
+ ✓ server/modules/notification/push.service.test.ts (5 tests) 14ms
+ ✓ server/modules/discovery/discovery.service.test.ts (2 tests) 17ms
+ ✓ next.config.test.ts (8 tests) 8ms
+ ✓ server/modules/realtime/realtime.service.test.ts (7 tests) 10ms
+ ✓ server/modules/review/review.repository.test.ts (2 tests) 10ms
+ ✓ app/features/buyer/upload-helper.test.ts (2 tests) 8ms
+ ✓ server/modules/product-analytics/product-analytics.repository.test.ts (3 tests) 12ms
+ ✓ app/lib/input-decimal.test.ts (31 tests) 8ms
+ ✓ server/modules/security/seller-readiness.test.ts (3 tests) 11ms
+ ✓ server/modules/payment/payment.config.test.ts (5 tests) 13ms
+ ✓ app/features/marketplace/queries.test.ts (2 tests) 11ms
+ ✓ server/lib/kyc-encryption.test.ts (3 tests) 10ms
+ ✓ server/modules/auth/seller-authorization-contract.test.ts (3 tests) 9ms
+ ✓ server/modules/ai-search/vector-search.adapter.test.ts (1 test) 11ms
+ ✓ server/modules/cache/cache.client.test.ts (3 tests) 12ms
+ ✓ app/features/payment/api.test.ts (3 tests) 9ms
+ ✓ server/modules/shop-review/shop-review.repository.test.ts (1 test) 11ms
+ ✓ server/modules/seller-onboarding/seller-onboarding.repository.test.ts (2 tests) 8ms
+ ✓ server/modules/payment/payment.settlement.test.ts (1 test) 8ms
+ ✓ app/features/buyer/checkout-api.test.ts (2 tests) 6ms
+ ✓ server/modules/queue/queue.connection.test.ts (1 test) 6ms
+ ✓ app/features/product/cart-handoff.test.ts (4 tests) 8ms
+ ✓ server/modules/seller-shop/shop-staff.service.test.ts (3 tests) 12ms
+ ✓ app/lib/seller-access.test.ts (6 tests) 7ms
+ ✓ scripts/seed-data.test.ts (3 tests) 6ms
+ ✓ server/modules/shipment/buyer-shipment-projection.test.ts (1 test) 8ms
+ ✓ server/modules/wallet/wallet.repository.test.ts (1 test) 8ms
+ ✓ server/modules/commission/commission.service.test.ts (4 tests) 6ms
+ ✓ server/modules/notification/push-subscription.crypto.test.ts (1 test) 8ms
+ ✓ app/manifest.test.ts (1 test) 7ms
+ ✓ app/lib/assets.test.ts (4 tests) 8ms
+ ✓ server/modules/observability/observability.repository.test.ts (1 test) 5ms
+ ✓ server/modules/queue/queue.producer.test.ts (3 tests) 6ms
+ ✓ server/modules/review/shop-rating-schema-contract.test.ts (2 tests) 4ms
+ ✓ server/lib/public-assets.test.ts (1 test) 4ms
+ ✓ server/modules/inventory/inventory.repository.test.ts (1 test) 11ms
+ ✓ app/layout.test.tsx (1 test) 4ms
+ ✓ app/[locale]/layout.test.tsx (1 test) 6ms
+ ✓ app/robots.test.ts (1 test) 5ms
+ ✓ app/features/order/order-status.test.ts (2 tests) 4ms
+ ✓ app/features/auth/redirect.test.ts (3 tests) 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/checkout/checkout-concurrency.integration.test.ts > checkout creation concurrency on PostgreSQL > allows only one of two distinct buyers to reserve the last unit
+AssertionError: expected [ { status: 'fulfilled', …(1) }, …(1) ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ server/modules/checkout/checkout-concurrency.integration.test.ts:113:69
+    111|       checkout.createCheckout(secondBuyer, { cartId: secondCart.id, ca…
+    112|     ])
+    113|     expect(results.filter(result => result.status === 'fulfilled')).to…
+       |                                                                     ^
+    114|     expect(results.find(result => result.status === 'rejected')).toMat…
+    115|     const buyers = [first.user.id, secondBuyer.id]
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 195 passed (196)
+      Tests  1 failed | 1736 passed (1737)
+   Start at  07:11:03
+   Duration  64.33s (transform 6.25s, setup 0ms, import 63.14s, tests 114.81s, environment 40.81s)
+
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/full-tests-verified.json
+error: script "test" exited with code 1

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { moneyNumber } from '#server/lib/money.ts';
 import { prisma } from '#server/lib/prisma.ts';
 import { signPaymentWebhookBody } from '#server/modules/payment/payment.webhook-signature.ts';
 import type { PaymentWebhookBody } from '#server/modules/payment/payment.types.ts';
@@ -12,11 +13,11 @@ test.beforeEach(async ({ page }) => { await isolateActorPage(page); });
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 for (const scenario of [
-  { name: 'repriced basket', flash: false, discount: false, coins: 0, unitPrice: 1299, firstLine: 2598, subtotal: 4596, discountTotal: 0, grandTotal: 5396, firstShopDiscount: 0, firstShopTotal: 2948, secondShopDiscount: 0, secondShopTotal: 2448, firstLabel: '฿25.98', totalLabel: '฿53.96' },
-  { name: 'coupon and coins', flash: false, discount: true, coins: 8, unitPrice: 1299, firstLine: 2598, subtotal: 4596, discountTotal: 1440, grandTotal: 3956, firstShopDiscount: 813, firstShopTotal: 2135, secondShopDiscount: 627, secondShopTotal: 1821, firstLabel: '฿25.98', totalLabel: '฿39.56' },
-  { name: 'flash price with coupon and coins', flash: true, discount: true, coins: 7, unitPrice: 900, firstLine: 1800, subtotal: 3798, discountTotal: 1340, grandTotal: 3258, firstShopDiscount: 635, firstShopTotal: 1515, secondShopDiscount: 705, secondShopTotal: 1743, firstLabel: '฿18.00', totalLabel: '฿32.58' },
+  { name: 'repriced basket', flash: false, discount: false, coins: 0, unitPrice: '1299', firstLine: '2598', subtotal: '4596', discountTotal: '0', grandTotal: '5396', firstShopDiscount: '0', firstShopTotal: '2948', secondShopDiscount: '0', secondShopTotal: '2448', firstLabel: '฿25.98', totalLabel: '฿53.96' },
+  { name: 'coupon and coins', flash: false, discount: true, coins: 8, unitPrice: '1299', firstLine: '2598', subtotal: '4596', discountTotal: '1440', grandTotal: '3956', firstShopDiscount: '813', firstShopTotal: '2135', secondShopDiscount: '627', secondShopTotal: '1821', firstLabel: '฿25.98', totalLabel: '฿39.56' },
+  { name: 'flash price with coupon and coins', flash: true, discount: true, coins: 7, unitPrice: '900', firstLine: '1800', subtotal: '3798', discountTotal: '1340', grandTotal: '3258', firstShopDiscount: '634', firstShopTotal: '1516', secondShopDiscount: '706', secondShopTotal: '1742', firstLabel: '฿18.00', totalLabel: '฿32.58' },
 ]) {
-  test(`UI, API and database preserve exact satang for ${scenario.name}`, async ({ page, browser, baseURL }) => {
+  test(`UI, API and database preserve exact satang for ${scenario.name}`, async ({ page, browser, baseURL }, testInfo) => {
     const fixture = await commerceFixture(2);
     const [first, second] = fixture.shops;
     if (!first || !second) throw new Error('Two-shop fixture required');
@@ -54,34 +55,36 @@ for (const scenario of [
     await expect(page.getByText('฿8.00', { exact: true })).toBeVisible();
     await expect(page.getByText('฿200.00', { exact: true })).toHaveCount(0);
     const screenshotName = scenario.flash ? 'flash' : scenario.discount ? 'coupon-coins' : 'repriced';
-    await page.screenshot({ path: `docs/test-evidence/2026-10-04-numeric/checkout-${screenshotName}.png`, fullPage: true });
+    const screenshot = testInfo.outputPath(`checkout-${screenshotName}.png`);
+    await page.screenshot({ path: screenshot, fullPage: true });
+    await testInfo.attach(`checkout-${screenshotName}`, { path: screenshot, contentType: 'image/png' });
     const quoteResponse = await page.request.post('/api/checkout/quote', { data: {
       cartId: cart.id, cartItemIds: cart.items.map(item => item.id),
       ...(scenario.discount ? { couponCode: fixture.coupon.code, coinsToUse: scenario.coins } : {}),
     } });
     expect(quoteResponse.ok(), await quoteResponse.text()).toBeTruthy();
     const quote = await quoteResponse.json();
-    expect(quote).toMatchObject({ subtotal: scenario.subtotal, discountTotal: scenario.discountTotal, shippingTotal: 800, taxTotal: 0, grandTotal: scenario.grandTotal, coinsApplied: scenario.coins });
+    expect(quote).toMatchObject({ subtotal: scenario.subtotal, discountTotal: scenario.discountTotal, shippingTotal: '800', taxTotal: '0', grandTotal: scenario.grandTotal, coinsApplied: scenario.coins });
     expect(quote.items).toEqual(expect.arrayContaining([
       expect.objectContaining({ shopId: first.shop.id, unitPrice: scenario.unitPrice, lineTotal: scenario.firstLine }),
-      expect.objectContaining({ shopId: second.shop.id, unitPrice: 999, lineTotal: 1998 }),
+      expect.objectContaining({ shopId: second.shop.id, unitPrice: '999', lineTotal: '1998' }),
     ]));
     const result = await placeOrderUi(page);
     expect(result.totalCents).toBe(scenario.grandTotal);
     const order = await prisma.order.findUniqueOrThrow({ where: { id: result.orderId }, include: { items: true, payments: true, shopOrders: true } });
-    expect(order).toMatchObject({ subtotal: scenario.subtotal, discountTotal: scenario.discountTotal, shippingTotal: 800, taxTotal: 0, grandTotal: scenario.grandTotal });
+    expect(order).toMatchObject({ subtotal: BigInt(scenario.subtotal), discountTotal: BigInt(scenario.discountTotal), shippingTotal: 800n, taxTotal: 0n, grandTotal: BigInt(scenario.grandTotal) });
     expect(order.payments).toHaveLength(1);
-    expect(order.payments[0]).toMatchObject({ amount: scenario.grandTotal, status: 'PENDING' });
+    expect(order.payments[0]).toMatchObject({ amount: BigInt(scenario.grandTotal), status: 'PENDING' });
     expect(order.items).toHaveLength(2);
-    expect(order.items.find(item => item.shopId === first.shop.id)).toMatchObject({ unitPrice: scenario.unitPrice, quantity: 2, lineTotal: scenario.firstLine });
-    expect(order.items.find(item => item.shopId === second.shop.id)).toMatchObject({ unitPrice: 999, quantity: 2, lineTotal: 1998 });
-    expect(order.shopOrders.find(shop => shop.shopId === first.shop.id)).toMatchObject({ subtotal: scenario.firstLine, discountTotal: scenario.firstShopDiscount, shippingTotal: 350, grandTotal: scenario.firstShopTotal });
-    expect(order.shopOrders.find(shop => shop.shopId === second.shop.id)).toMatchObject({ subtotal: 1998, discountTotal: scenario.secondShopDiscount, shippingTotal: 450, grandTotal: scenario.secondShopTotal });
+    expect(order.items.find(item => item.shopId === first.shop.id)).toMatchObject({ unitPrice: BigInt(scenario.unitPrice), quantity: 2, lineTotal: BigInt(scenario.firstLine) });
+    expect(order.items.find(item => item.shopId === second.shop.id)).toMatchObject({ unitPrice: 999n, quantity: 2, lineTotal: 1998n });
+    expect(order.shopOrders.find(shop => shop.shopId === first.shop.id)).toMatchObject({ subtotal: BigInt(scenario.firstLine), discountTotal: BigInt(scenario.firstShopDiscount), shippingTotal: 350n, grandTotal: BigInt(scenario.firstShopTotal) });
+    expect(order.shopOrders.find(shop => shop.shopId === second.shop.id)).toMatchObject({ subtotal: 1998n, discountTotal: BigInt(scenario.secondShopDiscount), shippingTotal: 450n, grandTotal: BigInt(scenario.secondShopTotal) });
     for (const { variant } of fixture.shops) {
       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });
     }
     if (scenario.discount) {
-      expect(await prisma.buyerCoinWallet.findUniqueOrThrow({ where: { id: fixture.wallet.id } })).toMatchObject({ balance: scenario.coins === 8 ? 92 : 93, pendingBalance: scenario.coins });
+      expect(await prisma.buyerCoinWallet.findUniqueOrThrow({ where: { id: fixture.wallet.id } })).toMatchObject({ balance: scenario.coins === 8 ? 92n : 93n, pendingBalance: BigInt(scenario.coins) });
     }
     const secret = process.env.PAYMENT_WEBHOOK_SECRET;
     if (!secret) throw new Error('PAYMENT_WEBHOOK_SECRET required');
@@ -89,7 +92,7 @@ for (const scenario of [
     const webhook: PaymentWebhookBody = {
       provider: 'mock', providerRef: `numeric-${screenshotName}-${result.paymentId}`,
       paymentId: result.paymentId, orderId: result.orderId,
-      amount: scenario.grandTotal, eventType: 'payment.paid',
+      amount: moneyNumber(scenario.grandTotal), eventType: 'payment.paid',
     };
     const postWebhook = (body: PaymentWebhookBody) => page.request.post('/api/payment/webhook', {
       data: body, headers: {
@@ -97,12 +100,12 @@ for (const scenario of [
         'x-payment-signature': signPaymentWebhookBody(body, secret, timestamp),
       },
     });
-    const rejected = await postWebhook({ ...webhook, amount: scenario.grandTotal - 1 });
+    const rejected = await postWebhook({ ...webhook, amount: moneyNumber(scenario.grandTotal) - 1 });
     expect(rejected.status()).toBe(400);
     expect(await rejected.json()).toMatchObject({ error: {
       code: 'INVALID_REQUEST', message: 'Webhook amount does not match payment amount',
     } });
-    expect(await prisma.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ amount: scenario.grandTotal, status: 'PENDING' });
+    expect(await prisma.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ amount: BigInt(scenario.grandTotal), status: 'PENDING' });
     for (const { variant } of fixture.shops) {
       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });
     }
@@ -111,19 +114,19 @@ for (const scenario of [
     const replay = await postWebhook(webhook);
     expect(replay.ok(), await replay.text()).toBeTruthy();
     expect(await replay.json()).toEqual({ ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' });
-    expect(await prisma.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ amount: scenario.grandTotal, status: 'SUCCEEDED' });
+    expect(await prisma.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ amount: BigInt(scenario.grandTotal), status: 'SUCCEEDED' });
     for (const { variant } of fixture.shops) {
       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 8, quantityReserved: 0 });
     }
     expect(await prisma.shipment.count({ where: { orderId: result.orderId } })).toBe(2);
     if (scenario.discount) {
       expect(await prisma.couponRedemption.findFirstOrThrow({ where: { orderId: result.orderId } })).toMatchObject({ status: 'REDEEMED' });
-      expect(await prisma.buyerCoinLedger.findFirstOrThrow({ where: { orderId: result.orderId, type: 'SPENT' } })).toMatchObject({ status: 'USED', amount: scenario.coins });
-      expect(await prisma.buyerCoinWallet.findUniqueOrThrow({ where: { id: fixture.wallet.id } })).toMatchObject({ pendingBalance: 0 });
+      expect(await prisma.buyerCoinLedger.findFirstOrThrow({ where: { orderId: result.orderId, type: 'SPENT' } })).toMatchObject({ status: 'USED', amount: BigInt(scenario.coins) });
+      expect(await prisma.buyerCoinWallet.findUniqueOrThrow({ where: { id: fixture.wallet.id } })).toMatchObject({ pendingBalance: 0n });
     }
     for (const seller of [
-      { identity: first.seller, shopId: first.shop.id, subtotal: scenario.firstLine, discountTotal: scenario.firstShopDiscount, shippingTotal: 350, grandTotal: scenario.firstShopTotal },
-      { identity: second.seller, shopId: second.shop.id, subtotal: 1998, discountTotal: scenario.secondShopDiscount, shippingTotal: 450, grandTotal: scenario.secondShopTotal },
+      { identity: first.seller, shopId: first.shop.id, subtotal: scenario.firstLine, discountTotal: scenario.firstShopDiscount, shippingTotal: '350', grandTotal: scenario.firstShopTotal },
+      { identity: second.seller, shopId: second.shop.id, subtotal: '1998', discountTotal: scenario.secondShopDiscount, shippingTotal: '450', grandTotal: scenario.secondShopTotal },
     ]) {
       const context = await newActorContext(browser, { baseURL, storageState: { cookies: [], origins: [] } });
       try {
@@ -134,7 +137,7 @@ for (const scenario of [
         const sellerOrder = await sellerResponse.json();
         expect(sellerOrder.totals).toEqual({
           subtotal: seller.subtotal, discountTotal: seller.discountTotal, shippingTotal: seller.shippingTotal,
-          taxTotal: 0, grandTotal: seller.grandTotal, currency: 'THB',
+          taxTotal: '0', includedTaxTotal: '0', reportedTaxTotal: '0', grandTotal: seller.grandTotal, currency: 'THB',
         });
         expect(sellerOrder.items).toEqual([expect.objectContaining({ shopId: seller.shopId, quantity: 2, lineTotal: seller.subtotal })]);
         expect(sellerOrder.shops).toHaveLength(1);

@@ -1,0 +1,4 @@
+Listing tests:
+  [setup] › auth.setup.ts:6:1 › authenticate seller
+  [chromium] › numeric-reporting.spec.ts:19:1 › seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents
+Total: 2 tests in 2 files

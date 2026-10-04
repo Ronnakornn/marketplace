@@ -1,0 +1,34 @@
+{
+  "completedAt": "2026-10-04T00:44:31.5334287Z",
+  "postgres": {
+    "dataPreserved": "C:/Users/ASUS/AppData/Local/Temp/marketplace-numeric-pg-8eaba08c00d24e849724037394816a1b/data",
+    "port": 55439,
+    "verifiedPid": 7208,
+    "exitCode": 0
+  },
+  "redis": {
+    "mode": "shutdown nosave",
+    "port": 56379,
+    "verifiedPid": 24304,
+    "runtimePreserved": "C:/Users/ASUS/AppData/Local/Temp/marketplace-audit-redis7-f9ca34b9dcfe47b7993edbef98f91b00/runtime/Redis-7.2.14-Windows-x64-msys2",
+    "exitCode": 0
+  },
+  "taskPortsStillListening": [],
+  "generatedTaskCachesRemoved": [
+    "D:\\GitHub\\marketplace\\.next-audit-dev-fresh",
+    "D:\\GitHub\\marketplace\\.next-audit-development",
+    "D:\\GitHub\\marketplace\\.next-audit-production"
+  ],
+  "archivedRecoverableWorktrees": [
+    "audit-inventory",
+    "audit-money-backend",
+    "audit-money-ui"
+  ],
+  "preserved": [
+    "user ports 3000/3001",
+    "other Next caches",
+    "PostgreSQL data",
+    "local browser traces/videos",
+    "browser binaries"
+  ]
+}

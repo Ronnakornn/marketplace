@@ -1,0 +1,1139 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/numeric-commerce.spec.ts",
+      "e2e/numeric-boundaries.spec.ts",
+      "e2e/numeric-analytics.spec.ts",
+      "e2e/numeric-tax.spec.ts",
+      "e2e/numeric-projections.spec.ts",
+      "e2e/numeric-admin-projections.spec.ts",
+      "e2e/numeric-shipping.spec.ts",
+      "e2e/numeric-reporting.spec.ts",
+      "--project=chromium",
+      "--no-deps",
+      "--max-failures=5",
+      "--reporter=list,json",
+      "--output=docs/test-evidence/2026-10-04-audit-completion/browser-numeric-final-chromium"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 5,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-final-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "numeric-admin-projections.spec.ts",
+      "file": "numeric-admin-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9440,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:02:21.844Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "fraud-refund-threshold-and-workflow",
+                      "contentType": "application/json",
+                      "body": "ewogICJvcmFjbGUiOiB7CiAgICAicmVmdW5kUm93cyI6IDMsCiAgICAib3JkZXJzQXRUaHJlc2hvbGQiOiA2LAogICAgIm9yZGVyc0JlbG93VGhyZXNob2xkIjogNywKICAgICJzY29yZUF0VGhyZXNob2xkIjogNzUsCiAgICAic2NvcmVCZWxvd1RocmVzaG9sZCI6IDAKICB9LAogICJyYXRpb0Rpc3BsYXllZEluVWkiOiBmYWxzZSwKICAiYXRUaHJlc2hvbGQiOiB7CiAgICAicmlza1Njb3JlIjogNzUsCiAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJoaWdoX3JlZnVuZF9yYXRlIgogICAgXSwKICAgICJjYXNlIjogewogICAgICAiaWQiOiAiMjE3MmI2MzItMDA1Zi00ZGU4LWE5MzAtOGUwZGNjZDc3NjM2IiwKICAgICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICAgImVudGl0eUlkIjogIjhkNDNlMjU5LTc4YWItNDU4YS05Yzc1LWY0OGYzZTRhMWE5OSIsCiAgICAgICJ1c2VySWQiOiAiNDI5ZDU1MDEtNDY4YS00MDQ5LTljNzktNTUyNWZlMDBhYzkyIiwKICAgICAgInJpc2tTY29yZSI6IDc1LAogICAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgICAicmVhc29ucyI6IFsKICAgICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgICAgXSwKICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgInJldmlld2VkQnkiOiBudWxsLAogICAgICAicmV2aWV3ZWRBdCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMjoyMy4wMjdaIgogICAgfSwKICAgICJibG9ja2VkIjogZmFsc2UKICB9LAogICJiZWxvd1RocmVzaG9sZCI6IHsKICAgICJyaXNrU2NvcmUiOiAwLAogICAgInJpc2tMZXZlbCI6ICJsb3ciLAogICAgInJlYXNvbnMiOiBbXSwKICAgICJjYXNlIjogbnVsbCwKICAgICJibG9ja2VkIjogZmFsc2UKICB9LAogICJvcGVuQXBpIjogewogICAgImlkIjogIjIxNzJiNjMyLTAwNWYtNGRlOC1hOTMwLThlMGRjY2Q3NzYzNiIsCiAgICAiZW50aXR5VHlwZSI6ICJSRUZVTkQiLAogICAgImVudGl0eUlkIjogIjhkNDNlMjU5LTc4YWItNDU4YS05Yzc1LWY0OGYzZTRhMWE5OSIsCiAgICAidXNlcklkIjogIjQyOWQ1NTAxLTQ2OGEtNDA0OS05Yzc5LTU1MjVmZTAwYWM5MiIsCiAgICAicmlza1Njb3JlIjogNzUsCiAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJoaWdoX3JlZnVuZF9yYXRlIgogICAgXSwKICAgICJzdGF0dXMiOiAiT1BFTiIsCiAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAicmV2aWV3ZWRBdCI6IG51bGwsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6MjMuMDI3WiIKICB9LAogICJyZXNvbHZlZEFwaSI6IHsKICAgICJpZCI6ICIyMTcyYjYzMi0wMDVmLTRkZTgtYTkzMC04ZTBkY2NkNzc2MzYiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICI4ZDQzZTI1OS03OGFiLTQ1OGEtOWM3NS1mNDhmM2U0YTFhOTkiLAogICAgInVzZXJJZCI6ICI0MjlkNTUwMS00NjhhLTQwNDktOWM3OS01NTI1ZmUwMGFjOTIiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFU09MVkVEIiwKICAgICJyZXZpZXdlZEJ5IjogImVjY2FmYzM4LWU3YzYtNGMwZi04NzY3LTAyNjY4MjY2M2YyNyIsCiAgICAicmV2aWV3ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAyOjMwLjc1OVoiLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAyOjIzLjAyN1oiCiAgfSwKICAicmV2aWV3ZWREYiI6IHsKICAgICJpZCI6ICIyMTcyYjYzMi0wMDVmLTRkZTgtYTkzMC04ZTBkY2NkNzc2MzYiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICI4ZDQzZTI1OS03OGFiLTQ1OGEtOWM3NS1mNDhmM2U0YTFhOTkiLAogICAgInVzZXJJZCI6ICI0MjlkNTUwMS00NjhhLTQwNDktOWM3OS01NTI1ZmUwMGFjOTIiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFVklFV0VEIiwKICAgICJtZXRhZGF0YSI6IHsKICAgICAgInNpZ25hbHMiOiB7CiAgICAgICAgInJlZnVuZFJhdGUiOiAwLjUsCiAgICAgICAgInJlZnVuZENvdW50IjogMwogICAgICB9CiAgICB9LAogICAgInJldmlld2VkQnlJZCI6ICJlY2NhZmMzOC1lN2M2LTRjMGYtODc2Ny0wMjY2ODI2NjNmMjciLAogICAgInJldmlld2VkQXQiOiAiMjAyNi0xMC0wNFQwMDowMjozMC43NTlaIiwKICAgICJyZXNvbHZlZEJ5SWQiOiBudWxsLAogICAgInJlc29sdmVkQXQiOiBudWxsLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAyOjIzLjAyN1oiLAogICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAyOjMwLjc3NFoiCiAgfSwKICAicmVzb2x2ZWREYiI6IHsKICAgICJpZCI6ICIyMTcyYjYzMi0wMDVmLTRkZTgtYTkzMC04ZTBkY2NkNzc2MzYiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICI4ZDQzZTI1OS03OGFiLTQ1OGEtOWM3NS1mNDhmM2U0YTFhOTkiLAogICAgInVzZXJJZCI6ICI0MjlkNTUwMS00NjhhLTQwNDktOWM3OS01NTI1ZmUwMGFjOTIiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFU09MVkVEIiwKICAgICJtZXRhZGF0YSI6IHsKICAgICAgInNpZ25hbHMiOiB7CiAgICAgICAgInJlZnVuZFJhdGUiOiAwLjUsCiAgICAgICAgInJlZnVuZENvdW50IjogMwogICAgICB9CiAgICB9LAogICAgInJldmlld2VkQnlJZCI6ICJlY2NhZmMzOC1lN2M2LTRjMGYtODc2Ny0wMjY2ODI2NjNmMjciLAogICAgInJldmlld2VkQXQiOiAiMjAyNi0xMC0wNFQwMDowMjozMC43NTlaIiwKICAgICJyZXNvbHZlZEJ5SWQiOiAiZWNjYWZjMzgtZTdjNi00YzBmLTg3NjctMDI2NjgyNjYzZjI3IiwKICAgICJyZXNvbHZlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6MzEuMDA4WiIsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6MjMuMDI3WiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6MzEuMDIzWiIKICB9Cn0="
+                    },
+                    {
+                      "name": "fraud-refund-threshold-and-workflow-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-admin-projections--036d8-admin-reviews-then-resolves-chromium\\attachments\\fraud-refund-threshold-and-workflow-ui-6f3c90f14330fdf9f3fe4b30f90d9c08e857b65d.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8f0ecf80b2bf0228ab34",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2922,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:02:31.467Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "fraud-score100-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJvcmFjbGUiOiB7CiAgICAiZmFpbGVkUGF5bWVudHMiOiAzLAogICAgImNhbmNlbGxlZE9yZGVycyI6IDMsCiAgICAiYW1vdW50Q2VudHMiOiAiMTAwMDAwIiwKICAgICJjaGVja291dFNlY29uZHMiOiA2MCwKICAgICJzY29yZSI6IDEwMAogIH0sCiAgImV2YWx1YXRpb25zIjogWwogICAgewogICAgICAicmlza1Njb3JlIjogMTAwLAogICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgInJlYXNvbnMiOiBbCiAgICAgICAgIm1hbnlfZmFpbGVkX3BheW1lbnRzIiwKICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICAgInJlcGVhdGVkX2NhbmNlbGxlZF9vcmRlcnMiCiAgICAgIF0sCiAgICAgICJjYXNlIjogewogICAgICAgICJpZCI6ICJjZDI0YzI2Ny1lY2U3LTQ5MTktYTRkZC1iMDkzZTAxM2VhNWUiLAogICAgICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICAgICAiZW50aXR5SWQiOiAiZjQxYzgwZjctMTljYy00NTU3LWE1NGMtYzY4YTdjNzk0ODU2IiwKICAgICAgICAidXNlcklkIjogImQ5YjNmODFkLTEyZTgtNDNiYi05MTgyLWQ4OGExOTNmNzhjZiIsCiAgICAgICAgInJpc2tTY29yZSI6IDEwMCwKICAgICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgICAicmVhc29ucyI6IFsKICAgICAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAgICJzdXNwaWNpb3VzX3JhcGlkX2NoZWNrb3V0IiwKICAgICAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgICAgIF0sCiAgICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAgICAgInJldmlld2VkQXQiOiBudWxsLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMjozMi4xMDdaIgogICAgICB9LAogICAgICAiYmxvY2tlZCI6IGZhbHNlCiAgICB9LAogICAgewogICAgICAicmlza1Njb3JlIjogMTAwLAogICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgInJlYXNvbnMiOiBbCiAgICAgICAgIm1hbnlfZmFpbGVkX3BheW1lbnRzIiwKICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICAgInJlcGVhdGVkX2NhbmNlbGxlZF9vcmRlcnMiCiAgICAgIF0sCiAgICAgICJjYXNlIjogewogICAgICAgICJpZCI6ICJjZDI0YzI2Ny1lY2U3LTQ5MTktYTRkZC1iMDkzZTAxM2VhNWUiLAogICAgICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICAgICAiZW50aXR5SWQiOiAiZjQxYzgwZjctMTljYy00NTU3LWE1NGMtYzY4YTdjNzk0ODU2IiwKICAgICAgICAidXNlcklkIjogImQ5YjNmODFkLTEyZTgtNDNiYi05MTgyLWQ4OGExOTNmNzhjZiIsCiAgICAgICAgInJpc2tTY29yZSI6IDEwMCwKICAgICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgICAicmVhc29ucyI6IFsKICAgICAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAgICJzdXNwaWNpb3VzX3JhcGlkX2NoZWNrb3V0IiwKICAgICAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgICAgIF0sCiAgICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAgICAgInJldmlld2VkQXQiOiBudWxsLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMjozMi4xMDdaIgogICAgICB9LAogICAgICAiYmxvY2tlZCI6IGZhbHNlCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImlkIjogImNkMjRjMjY3LWVjZTctNDkxOS1hNGRkLWIwOTNlMDEzZWE1ZSIsCiAgICAiZW50aXR5VHlwZSI6ICJPUkRFUiIsCiAgICAiZW50aXR5SWQiOiAiZjQxYzgwZjctMTljYy00NTU3LWE1NGMtYzY4YTdjNzk0ODU2IiwKICAgICJ1c2VySWQiOiAiZDliM2Y4MWQtMTJlOC00M2JiLTkxODItZDg4YTE5M2Y3OGNmIiwKICAgICJyaXNrU2NvcmUiOiAxMDAsCiAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICJyZWFzb25zIjogWwogICAgICAibWFueV9mYWlsZWRfcGF5bWVudHMiLAogICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgInN1c3BpY2lvdXNfcmFwaWRfY2hlY2tvdXQiLAogICAgICAicmVwZWF0ZWRfY2FuY2VsbGVkX29yZGVycyIKICAgIF0sCiAgICAic3RhdHVzIjogIk9QRU4iLAogICAgInJldmlld2VkQnkiOiBudWxsLAogICAgInJldmlld2VkQXQiOiBudWxsLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAyOjMyLjEwN1oiCiAgfSwKICAiZGIiOiB7CiAgICAiaWQiOiAiY2QyNGMyNjctZWNlNy00OTE5LWE0ZGQtYjA5M2UwMTNlYTVlIiwKICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICJlbnRpdHlJZCI6ICJmNDFjODBmNy0xOWNjLTQ1NTctYTU0Yy1jNjhhN2M3OTQ4NTYiLAogICAgInVzZXJJZCI6ICJkOWIzZjgxZC0xMmU4LTQzYmItOTE4Mi1kODhhMTkzZjc4Y2YiLAogICAgInJpc2tTY29yZSI6IDEwMCwKICAgICJyaXNrTGV2ZWwiOiAiY3JpdGljYWwiLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICJhYm5vcm1hbF9vcmRlcl9hbW91bnQiLAogICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgXSwKICAgICJzdGF0dXMiOiAiT1BFTiIsCiAgICAibWV0YWRhdGEiOiB7CiAgICAgICJzaWduYWxzIjogewogICAgICAgICJvcmRlcmFtb3VudCI6ICIxMDAwMDAiLAogICAgICAgICJmYWlsZWRQYXltZW50cyI6IDMsCiAgICAgICAgImNhbmNlbGxlZE9yZGVycyI6IDMsCiAgICAgICAgImNoZWNrb3V0RHVyYXRpb25TZWNvbmRzIjogNjAKICAgICAgfQogICAgfSwKICAgICJyZXZpZXdlZEJ5SWQiOiBudWxsLAogICAgInJldmlld2VkQXQiOiBudWxsLAogICAgInJlc29sdmVkQnlJZCI6IG51bGwsCiAgICAicmVzb2x2ZWRBdCI6IG51bGwsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6MzIuMTA3WiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6MzIuMTM2WiIKICB9Cn0="
+                    },
+                    {
+                      "name": "fraud-score100-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-admin-projections--42bfa-valuation-persists-one-case-chromium\\attachments\\fraud-score100-parity-ui-c32b09c462b02cc061003f5c88839c5c89dc4265.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-666141175b42df19c649",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12093,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:02:34.404Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cashback-threshold-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJpbnRlcm5hbE1vY2tTaW11bGF0aW9uIjogdHJ1ZSwKICAiZXh0ZXJuYWxQcm92aWRlclZlcmlmaWVkIjogZmFsc2UsCiAgIm9yYWNsZSI6IHsKICAgICJncm9zc0NlbnRzIjogIjEwMDAwIiwKICAgICJzZWxsZXJDb3Vwb25DZW50cyI6ICIxIiwKICAgICJvcmlnaW5hbE5ldENlbnRzIjogIjk5OTkiLAogICAgInNoaXBwaW5nQ2VudHMiOiAiNTAwMCIsCiAgICAicGFpZENlbnRzIjogIjE0OTk5IiwKICAgICJjYXNoYmFja0NvaW5zIjogIjAiCiAgfSwKICAic25hcHNob3QiOiB7CiAgICAiYnV5ZXJNZXJjaGFuZGlzZU5ldCI6ICI5OTk5IiwKICAgICJidXllck1lcmNoYW5kaXNlVGF4IjogIjAiLAogICAgInBsYXRmb3JtQ291cG9uTmV0IjogIjAiLAogICAgInBsYXRmb3JtQ291cG9uVGF4IjogIjAiLAogICAgImNvaW5GdW5kaW5nTmV0IjogIjAiLAogICAgImNvaW5GdW5kaW5nVGF4IjogIjAiLAogICAgIm9yaWdpbmFsQ2FzaGJhY2tFbGlnaWJsZU5ldCI6ICI5OTk5IiwKICAgICJvcmlnaW5hbEFmZmlsaWF0ZUVsaWdpYmxlTmV0IjogIjk5OTkiLAogICAgInNob3BDb3Vwb25JZCI6ICI5YjEwMTYwNy1hYzkzLTQ2MjctYjExYi01YWI1YzI0OWNhODEiLAogICAgInNob3BDb3Vwb25Db2RlIjogIjNBRTRFNTU0LUQ5NTYtNDVENi05RUJGLUJBMzRCRDYyOTI0QyIsCiAgICAicGxhdGZvcm1Db3Vwb25JZCI6IG51bGwsCiAgICAicGxhdGZvcm1Db3Vwb25Db2RlIjogbnVsbCwKICAgICJvcmRlckl0ZW1JZCI6ICJlOTY0OWY0MS04Nzk0LTQ1YmYtODVlMy0xYzEyZGM2NGZmNzgiLAogICAgInNob3BPcmRlcklkIjogIjY2MWQwOTFiLWJhY2ItNGVkMC05MTI4LTU3M2E2ZTBjYWE1MiIsCiAgICAib3JpZ2luYWxRdWFudGl0eSI6IDEsCiAgICAiZ3Jvc3NNZXJjaGFuZGlzZSI6ICIxMDAwMCIsCiAgICAic2VsbGVyQ291cG9uRGlzY291bnQiOiAiMSIsCiAgICAicGxhdGZvcm1Db3Vwb25EaXNjb3VudCI6ICIwIiwKICAgICJjb2luRGlzY291bnQiOiAiMCIsCiAgICAiYnV5ZXJNZXJjaGFuZGlzZSI6ICI5OTk5IiwKICAgICJjb3Vwb25JZCI6ICI5YjEwMTYwNy1hYzkzLTQ2MjctYjExYi01YWI1YzI0OWNhODEiLAogICAgImNvdXBvbkNvZGUiOiAiM0FFNEU1NTQtRDk1Ni00NUQ2LTlFQkYtQkEzNEJENjI5MjRDIgogIH0sCiAgInNob3BTbmFwc2hvdCI6IHsKICAgICJ0YXhSYXRlUHBtIjogMCwKICAgICJ0YXhNb2RlIjogIklOQ0xVU0lWRSIsCiAgICAidGF4RnVuZGluZ0Jhc2lzIjogIlNFTExFUl9BRlRFUl9TSE9QX0NPVVBPTiIsCiAgICAidGF4YWJsZVNoaXBwaW5nIjogZmFsc2UsCiAgICAidGF4U2hpcHBpbmdCYXNpcyI6ICJTRUxMRVJfU0hJUFBJTkdfQUZURVJfV0FJVkVSIiwKICAgICJ0YXhSb3VuZGluZyI6ICJMSU5FX0hBTEZfVVAiLAogICAgInRheEN1c3RvZGlhbiI6ICJTRUxMRVIiLAogICAgInRheEV4Y2x1c2l2ZUZ1bmRpbmciOiAiQlVZRVIiLAogICAgInRheFBvbGljeVJldmlzaW9uIjogIjg1OTU4Mjk4LTFkMzEtNDkzYy1iZGUzLWFiMjViZWIyOWYxYyIsCiAgICAic2VsbGVyR3Jvc3NNZXJjaGFuZGlzZSI6ICI5OTk5IiwKICAgICJzZWxsZXJHcm9zc1NoaXBwaW5nIjogIjUwMDAiLAogICAgImJ1eWVyU2hpcHBpbmdOZXQiOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZ1RheCI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nTmV0IjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdUYXgiOiAiMCIsCiAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICJhZGRlZFRheFRvdGFsIjogIjAiLAogICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAic2hvcE9yZGVySWQiOiAiNjYxZDA5MWItYmFjYi00ZWQwLTkxMjgtNTczYTZlMGNhYTUyIiwKICAgICJwb2xpY3lWZXJzaW9uIjogMiwKICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgImNvbW1pc3Npb25CYXNlIjogIjk5OTkiLAogICAgImNvbW1pc3Npb25CcHMiOiAxMDAwLAogICAgIm9yaWdpbmFsQ29tbWlzc2lvbiI6ICI5OTkiLAogICAgIm9yaWdpbmFsU2hpcHBpbmciOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZyI6ICI1MDAwIiwKICAgICJzZWxsZXJTaGlwcGluZ1dhaXZlciI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nU3Vic2lkeSI6ICIwIiwKICAgICJyZWNvZ25pemVkQXQiOiBudWxsCiAgfSwKICAid2FsbGV0IjogewogICAgImlkIjogImRjYTNhN2VkLTRlYjQtNDM4OC1iOTQ4LTgwOTUwMmIzNjZiZSIsCiAgICAidXNlcklkIjogIjQzODVhODkwLTgxYjQtNDM5Ni1iZTA2LTI5MTBkNDc4ZWVhNiIsCiAgICAiYmFsYW5jZSI6ICIwIiwKICAgICJwZW5kaW5nQmFsYW5jZSI6ICIwIiwKICAgICJkZWJ0QmFsYW5jZSI6ICIwIiwKICAgICJsaWZldGltZUVhcm5lZCI6ICIwIiwKICAgICJsaWZldGltZVNwZW50IjogIjAiLAogICAgInZlcnNpb24iOiAxLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAyOjM4Ljg1M1oiLAogICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAyOjM4Ljg2MloiCiAgfSwKICAibGVkZ2VyIjogW10sCiAgImFwaSI6IHsKICAgICJiYWxhbmNlIjogIjAiLAogICAgInBlbmRpbmdCYWxhbmNlIjogIjAiLAogICAgImRlYnRCYWxhbmNlIjogIjAiLAogICAgImxpZmV0aW1lRWFybmVkIjogIjAiLAogICAgImxpZmV0aW1lU3BlbnQiOiAiMCIsCiAgICAiZW50cmllcyI6IFtdLAogICAgIm5leHRDdXJzb3IiOiBudWxsCiAgfQp9"
+                    },
+                    {
+                      "name": "cashback-threshold-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\\attachments\\cashback-threshold-parity-ui-37d02e742ae15a3aef9f8392aee382035d69c384.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-d0af0b64ca1db8e8a193",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6169,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:02:46.511Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cashback-threshold-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJpbnRlcm5hbE1vY2tTaW11bGF0aW9uIjogdHJ1ZSwKICAiZXh0ZXJuYWxQcm92aWRlclZlcmlmaWVkIjogZmFsc2UsCiAgIm9yYWNsZSI6IHsKICAgICJncm9zc0NlbnRzIjogIjEwMDAxIiwKICAgICJzZWxsZXJDb3Vwb25DZW50cyI6ICIxIiwKICAgICJvcmlnaW5hbE5ldENlbnRzIjogIjEwMDAwIiwKICAgICJzaGlwcGluZ0NlbnRzIjogIjUwMDAiLAogICAgInBhaWRDZW50cyI6ICIxNTAwMCIsCiAgICAiY2FzaGJhY2tDb2lucyI6ICIxIgogIH0sCiAgInNuYXBzaG90IjogewogICAgImJ1eWVyTWVyY2hhbmRpc2VOZXQiOiAiMTAwMDAiLAogICAgImJ1eWVyTWVyY2hhbmRpc2VUYXgiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25OZXQiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25UYXgiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdOZXQiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdUYXgiOiAiMCIsCiAgICAib3JpZ2luYWxDYXNoYmFja0VsaWdpYmxlTmV0IjogIjEwMDAwIiwKICAgICJvcmlnaW5hbEFmZmlsaWF0ZUVsaWdpYmxlTmV0IjogIjEwMDAwIiwKICAgICJzaG9wQ291cG9uSWQiOiAiZmY5ODk2ZTUtMjVmZS00ZGM2LTk2NTItZDFkYmNlYThjM2RlIiwKICAgICJzaG9wQ291cG9uQ29kZSI6ICI2NEVGOUZENS1DNzlBLTRBRUItQjc3OC00MUYyOEFFNTkyODUiLAogICAgInBsYXRmb3JtQ291cG9uSWQiOiBudWxsLAogICAgInBsYXRmb3JtQ291cG9uQ29kZSI6IG51bGwsCiAgICAib3JkZXJJdGVtSWQiOiAiYTk1Mzg5MTgtMTViYi00MzZhLTk2MzQtYzA3MzhkMDM0NTIxIiwKICAgICJzaG9wT3JkZXJJZCI6ICIwMWY5NjU5Yy1iOWViLTRiYmMtODIzYy0wZTIxN2MxMzAyZGYiLAogICAgIm9yaWdpbmFsUXVhbnRpdHkiOiAxLAogICAgImdyb3NzTWVyY2hhbmRpc2UiOiAiMTAwMDEiLAogICAgInNlbGxlckNvdXBvbkRpc2NvdW50IjogIjEiLAogICAgInBsYXRmb3JtQ291cG9uRGlzY291bnQiOiAiMCIsCiAgICAiY29pbkRpc2NvdW50IjogIjAiLAogICAgImJ1eWVyTWVyY2hhbmRpc2UiOiAiMTAwMDAiLAogICAgImNvdXBvbklkIjogImZmOTg5NmU1LTI1ZmUtNGRjNi05NjUyLWQxZGJjZWE4YzNkZSIsCiAgICAiY291cG9uQ29kZSI6ICI2NEVGOUZENS1DNzlBLTRBRUItQjc3OC00MUYyOEFFNTkyODUiCiAgfSwKICAic2hvcFNuYXBzaG90IjogewogICAgInRheFJhdGVQcG0iOiAwLAogICAgInRheE1vZGUiOiAiSU5DTFVTSVZFIiwKICAgICJ0YXhGdW5kaW5nQmFzaXMiOiAiU0VMTEVSX0FGVEVSX1NIT1BfQ09VUE9OIiwKICAgICJ0YXhhYmxlU2hpcHBpbmciOiBmYWxzZSwKICAgICJ0YXhTaGlwcGluZ0Jhc2lzIjogIlNFTExFUl9TSElQUElOR19BRlRFUl9XQUlWRVIiLAogICAgInRheFJvdW5kaW5nIjogIkxJTkVfSEFMRl9VUCIsCiAgICAidGF4Q3VzdG9kaWFuIjogIlNFTExFUiIsCiAgICAidGF4RXhjbHVzaXZlRnVuZGluZyI6ICJCVVlFUiIsCiAgICAidGF4UG9saWN5UmV2aXNpb24iOiAiMmFhZjM5OTQtYmE1ZC00MTU0LTkzNjItMjM2OGUzZTkzNDhiIiwKICAgICJzZWxsZXJHcm9zc01lcmNoYW5kaXNlIjogIjEwMDAwIiwKICAgICJzZWxsZXJHcm9zc1NoaXBwaW5nIjogIjUwMDAiLAogICAgImJ1eWVyU2hpcHBpbmdOZXQiOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZ1RheCI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nTmV0IjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdUYXgiOiAiMCIsCiAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICJhZGRlZFRheFRvdGFsIjogIjAiLAogICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAic2hvcE9yZGVySWQiOiAiMDFmOTY1OWMtYjllYi00YmJjLTgyM2MtMGUyMTdjMTMwMmRmIiwKICAgICJwb2xpY3lWZXJzaW9uIjogMiwKICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgImNvbW1pc3Npb25CYXNlIjogIjEwMDAwIiwKICAgICJjb21taXNzaW9uQnBzIjogMTAwMCwKICAgICJvcmlnaW5hbENvbW1pc3Npb24iOiAiMTAwMCIsCiAgICAib3JpZ2luYWxTaGlwcGluZyI6ICI1MDAwIiwKICAgICJidXllclNoaXBwaW5nIjogIjUwMDAiLAogICAgInNlbGxlclNoaXBwaW5nV2FpdmVyIjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdTdWJzaWR5IjogIjAiLAogICAgInJlY29nbml6ZWRBdCI6IG51bGwKICB9LAogICJ3YWxsZXQiOiB7CiAgICAiaWQiOiAiZDBmNGJiZmEtMDZhZi00Y2IwLWE4ZGUtNGZhZDgxZDRmZmYwIiwKICAgICJ1c2VySWQiOiAiMTMzNTFlZmQtYTE0NC00MWRkLTg3YmItMTRkMTY2NjEwYTA4IiwKICAgICJiYWxhbmNlIjogIjEiLAogICAgInBlbmRpbmdCYWxhbmNlIjogIjAiLAogICAgImRlYnRCYWxhbmNlIjogIjAiLAogICAgImxpZmV0aW1lRWFybmVkIjogIjEiLAogICAgImxpZmV0aW1lU3BlbnQiOiAiMCIsCiAgICAidmVyc2lvbiI6IDEsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6NDguODUyWiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6NTEuMTkyWiIKICB9LAogICJsZWRnZXIiOiBbCiAgICB7CiAgICAgICJpZCI6ICJkY2U2MmI2NC0yY2NjLTRkZTktYmMwYy1lZmQ5NDdhM2I0MjEiLAogICAgICAid2FsbGV0SWQiOiAiZDBmNGJiZmEtMDZhZi00Y2IwLWE4ZGUtNGZhZDgxZDRmZmYwIiwKICAgICAgInVzZXJJZCI6ICIxMzM1MWVmZC1hMTQ0LTQxZGQtODdiYi0xNGQxNjY2MTBhMDgiLAogICAgICAib3JkZXJJZCI6ICIxMDIwMTYwNC02MWNjLTQzZDUtYTg2Yy01NmZlZDA2ZWJiNjEiLAogICAgICAidHlwZSI6ICJFQVJORUQiLAogICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICJhbW91bnQiOiAiMSIsCiAgICAgICJiYWxhbmNlQWZ0ZXIiOiAiMSIsCiAgICAgICJyZWFzb24iOiAiMSUgb3JkZXIgY2FzaGJhY2siLAogICAgICAicmVmZXJlbmNlVHlwZSI6ICJPUkRFUl9DQVNIQkFDSyIsCiAgICAgICJyZWZlcmVuY2VJZCI6ICIxMDIwMTYwNC02MWNjLTQzZDUtYTg2Yy01NmZlZDA2ZWJiNjEiLAogICAgICAiZXhwaXJlc0F0IjogbnVsbCwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAyOjUxLjE0OFoiCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImJhbGFuY2UiOiAiMSIsCiAgICAicGVuZGluZ0JhbGFuY2UiOiAiMCIsCiAgICAiZGVidEJhbGFuY2UiOiAiMCIsCiAgICAibGlmZXRpbWVFYXJuZWQiOiAiMSIsCiAgICAibGlmZXRpbWVTcGVudCI6ICIwIiwKICAgICJlbnRyaWVzIjogWwogICAgICB7CiAgICAgICAgImlkIjogImRjZTYyYjY0LTJjY2MtNGRlOS1iYzBjLWVmZDk0N2EzYjQyMSIsCiAgICAgICAgInR5cGUiOiAiRUFSTkVEIiwKICAgICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICAgImFtb3VudCI6ICIxIiwKICAgICAgICAicmVhc29uIjogIjElIG9yZGVyIGNhc2hiYWNrIiwKICAgICAgICAib3JkZXJJZCI6ICIxMDIwMTYwNC02MWNjLTQzZDUtYTg2Yy01NmZlZDA2ZWJiNjEiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMjo1MS4xNDhaIgogICAgICB9CiAgICBdLAogICAgIm5leHRDdXJzb3IiOiBudWxsCiAgfQp9"
+                    },
+                    {
+                      "name": "cashback-threshold-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\\attachments\\cashback-threshold-parity-ui-ca4f8d2231e3ebeeda7fb0c58e694cd3d97e3e51.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-6a528228b206c161e76c",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6228,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:02:52.693Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cashback-threshold-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJpbnRlcm5hbE1vY2tTaW11bGF0aW9uIjogdHJ1ZSwKICAiZXh0ZXJuYWxQcm92aWRlclZlcmlmaWVkIjogZmFsc2UsCiAgIm9yYWNsZSI6IHsKICAgICJncm9zc0NlbnRzIjogIjEwMDAyIiwKICAgICJzZWxsZXJDb3Vwb25DZW50cyI6ICIxIiwKICAgICJvcmlnaW5hbE5ldENlbnRzIjogIjEwMDAxIiwKICAgICJzaGlwcGluZ0NlbnRzIjogIjUwMDAiLAogICAgInBhaWRDZW50cyI6ICIxNTAwMSIsCiAgICAiY2FzaGJhY2tDb2lucyI6ICIxIgogIH0sCiAgInNuYXBzaG90IjogewogICAgImJ1eWVyTWVyY2hhbmRpc2VOZXQiOiAiMTAwMDEiLAogICAgImJ1eWVyTWVyY2hhbmRpc2VUYXgiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25OZXQiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25UYXgiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdOZXQiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdUYXgiOiAiMCIsCiAgICAib3JpZ2luYWxDYXNoYmFja0VsaWdpYmxlTmV0IjogIjEwMDAxIiwKICAgICJvcmlnaW5hbEFmZmlsaWF0ZUVsaWdpYmxlTmV0IjogIjEwMDAxIiwKICAgICJzaG9wQ291cG9uSWQiOiAiZTIyZmY1MjAtYTc3My00ZDlhLWE3ZGUtYjg2OTAwM2NkNjU3IiwKICAgICJzaG9wQ291cG9uQ29kZSI6ICI0NjIxRDZBMC00NjU3LTREQ0MtQTQ4Ni1FQ0EyMzEzRjJDQzciLAogICAgInBsYXRmb3JtQ291cG9uSWQiOiBudWxsLAogICAgInBsYXRmb3JtQ291cG9uQ29kZSI6IG51bGwsCiAgICAib3JkZXJJdGVtSWQiOiAiYmY2MDAwYjYtZjhmYy00Zjc1LWI1YjctODRhYTMyODVmOGJjIiwKICAgICJzaG9wT3JkZXJJZCI6ICI2Y2ViNGZjNS1iZTZlLTRlYTQtYjQzYS0wMjUzYjY2OTc0NGYiLAogICAgIm9yaWdpbmFsUXVhbnRpdHkiOiAxLAogICAgImdyb3NzTWVyY2hhbmRpc2UiOiAiMTAwMDIiLAogICAgInNlbGxlckNvdXBvbkRpc2NvdW50IjogIjEiLAogICAgInBsYXRmb3JtQ291cG9uRGlzY291bnQiOiAiMCIsCiAgICAiY29pbkRpc2NvdW50IjogIjAiLAogICAgImJ1eWVyTWVyY2hhbmRpc2UiOiAiMTAwMDEiLAogICAgImNvdXBvbklkIjogImUyMmZmNTIwLWE3NzMtNGQ5YS1hN2RlLWI4NjkwMDNjZDY1NyIsCiAgICAiY291cG9uQ29kZSI6ICI0NjIxRDZBMC00NjU3LTREQ0MtQTQ4Ni1FQ0EyMzEzRjJDQzciCiAgfSwKICAic2hvcFNuYXBzaG90IjogewogICAgInRheFJhdGVQcG0iOiAwLAogICAgInRheE1vZGUiOiAiSU5DTFVTSVZFIiwKICAgICJ0YXhGdW5kaW5nQmFzaXMiOiAiU0VMTEVSX0FGVEVSX1NIT1BfQ09VUE9OIiwKICAgICJ0YXhhYmxlU2hpcHBpbmciOiBmYWxzZSwKICAgICJ0YXhTaGlwcGluZ0Jhc2lzIjogIlNFTExFUl9TSElQUElOR19BRlRFUl9XQUlWRVIiLAogICAgInRheFJvdW5kaW5nIjogIkxJTkVfSEFMRl9VUCIsCiAgICAidGF4Q3VzdG9kaWFuIjogIlNFTExFUiIsCiAgICAidGF4RXhjbHVzaXZlRnVuZGluZyI6ICJCVVlFUiIsCiAgICAidGF4UG9saWN5UmV2aXNpb24iOiAiMDkyNjgxMWEtYTg2OC00YzM2LWJhZjMtZjNlYTNkNTJlYjBhIiwKICAgICJzZWxsZXJHcm9zc01lcmNoYW5kaXNlIjogIjEwMDAxIiwKICAgICJzZWxsZXJHcm9zc1NoaXBwaW5nIjogIjUwMDAiLAogICAgImJ1eWVyU2hpcHBpbmdOZXQiOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZ1RheCI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nTmV0IjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdUYXgiOiAiMCIsCiAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICJhZGRlZFRheFRvdGFsIjogIjAiLAogICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAic2hvcE9yZGVySWQiOiAiNmNlYjRmYzUtYmU2ZS00ZWE0LWI0M2EtMDI1M2I2Njk3NDRmIiwKICAgICJwb2xpY3lWZXJzaW9uIjogMiwKICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgImNvbW1pc3Npb25CYXNlIjogIjEwMDAxIiwKICAgICJjb21taXNzaW9uQnBzIjogMTAwMCwKICAgICJvcmlnaW5hbENvbW1pc3Npb24iOiAiMTAwMCIsCiAgICAib3JpZ2luYWxTaGlwcGluZyI6ICI1MDAwIiwKICAgICJidXllclNoaXBwaW5nIjogIjUwMDAiLAogICAgInNlbGxlclNoaXBwaW5nV2FpdmVyIjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdTdWJzaWR5IjogIjAiLAogICAgInJlY29nbml6ZWRBdCI6IG51bGwKICB9LAogICJ3YWxsZXQiOiB7CiAgICAiaWQiOiAiMDNkMTQ4OWQtY2RhMy00OTBlLWJlZWYtMWMwYWMzODc4YmFmIiwKICAgICJ1c2VySWQiOiAiZmQ5MWJkZjktMDMzYS00MTM4LTg5YmEtNGEzYTg0MDA4ODY0IiwKICAgICJiYWxhbmNlIjogIjEiLAogICAgInBlbmRpbmdCYWxhbmNlIjogIjAiLAogICAgImRlYnRCYWxhbmNlIjogIjAiLAogICAgImxpZmV0aW1lRWFybmVkIjogIjEiLAogICAgImxpZmV0aW1lU3BlbnQiOiAiMCIsCiAgICAidmVyc2lvbiI6IDEsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6NTUuMzcwWiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDI6NTcuNDY3WiIKICB9LAogICJsZWRnZXIiOiBbCiAgICB7CiAgICAgICJpZCI6ICJkZTE2ZjM1OS0wYTRmLTQ4MDktYTBhMy0yMzM4N2M0ZDQ1MzMiLAogICAgICAid2FsbGV0SWQiOiAiMDNkMTQ4OWQtY2RhMy00OTBlLWJlZWYtMWMwYWMzODc4YmFmIiwKICAgICAgInVzZXJJZCI6ICJmZDkxYmRmOS0wMzNhLTQxMzgtODliYS00YTNhODQwMDg4NjQiLAogICAgICAib3JkZXJJZCI6ICI5ZDI0NTQ3Ny0zZjE1LTQ2YWQtYjUyYS04ZTY5ZDhmZjVhMWMiLAogICAgICAidHlwZSI6ICJFQVJORUQiLAogICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICJhbW91bnQiOiAiMSIsCiAgICAgICJiYWxhbmNlQWZ0ZXIiOiAiMSIsCiAgICAgICJyZWFzb24iOiAiMSUgb3JkZXIgY2FzaGJhY2siLAogICAgICAicmVmZXJlbmNlVHlwZSI6ICJPUkRFUl9DQVNIQkFDSyIsCiAgICAgICJyZWZlcmVuY2VJZCI6ICI5ZDI0NTQ3Ny0zZjE1LTQ2YWQtYjUyYS04ZTY5ZDhmZjVhMWMiLAogICAgICAiZXhwaXJlc0F0IjogbnVsbCwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAyOjU3LjQwMVoiCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImJhbGFuY2UiOiAiMSIsCiAgICAicGVuZGluZ0JhbGFuY2UiOiAiMCIsCiAgICAiZGVidEJhbGFuY2UiOiAiMCIsCiAgICAibGlmZXRpbWVFYXJuZWQiOiAiMSIsCiAgICAibGlmZXRpbWVTcGVudCI6ICIwIiwKICAgICJlbnRyaWVzIjogWwogICAgICB7CiAgICAgICAgImlkIjogImRlMTZmMzU5LTBhNGYtNDgwOS1hMGEzLTIzMzg3YzRkNDUzMyIsCiAgICAgICAgInR5cGUiOiAiRUFSTkVEIiwKICAgICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICAgImFtb3VudCI6ICIxIiwKICAgICAgICAicmVhc29uIjogIjElIG9yZGVyIGNhc2hiYWNrIiwKICAgICAgICAib3JkZXJJZCI6ICI5ZDI0NTQ3Ny0zZjE1LTQ2YWQtYjUyYS04ZTY5ZDhmZjVhMWMiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMjo1Ny40MDFaIgogICAgICB9CiAgICBdLAogICAgIm5leHRDdXJzb3IiOiBudWxsCiAgfQp9"
+                    },
+                    {
+                      "name": "cashback-threshold-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\\attachments\\cashback-threshold-parity-ui-f208ba3c84a8e0896c06a0ae544cb08a314159a4.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8dd6e483bb27b0108f0e",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "numeric-analytics.spec.ts",
+      "file": "numeric-analytics.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4975,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:02:58.982Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "numeric-analytics",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-analytics-paid-ana-40682-evenue-ranking-across-pages-chromium\\attachments\\numeric-analytics-96321ef3c7ca83e40ee48f853fdf75dba1086c2b.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "95c37ffc69b5969c2188-d99f42e90c4834c2b24f",
+          "file": "numeric-analytics.spec.ts",
+          "line": 13,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-boundaries.spec.ts",
+      "file": "numeric-boundaries.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4432,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:04.015Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-f9ef4915940651e087a0",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "production route composition prevents seller stock below active holds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3604,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:08.459Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-562c8ed60413d7c27269",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2767,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:12.073Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-6b0cf4e1c8d9d949e369",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 70,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-commerce.spec.ts",
+      "file": "numeric-commerce.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "UI, API and database preserve exact satang for repriced basket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7941,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:14.882Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "checkout-repriced",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-commerce-UI-API-an-ab517--satang-for-repriced-basket-chromium\\attachments\\checkout-repriced-892ac9842313f5e148ab95252ae4c78f31f18479.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-a5bb7c007f569e4742d4",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6710,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:22.832Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "checkout-coupon-coins",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\\attachments\\checkout-coupon-coins-56bf1af77f61cbbdc543ee6e8eca138ce7b5d7ae.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-e1284c5bbf24db1d975f",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5289,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:29.551Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "checkout-flash",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\\attachments\\checkout-flash-f01fd91fd539df8417fe8dd54d1b49e9a7140e70.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-9843ad93eff828c1f800",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "numeric-projections.spec.ts",
+      "file": "numeric-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4387,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:34.897Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "published-product-ratings-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJwcm9kdWN0RGIiOiB7CiAgICAiX2NvdW50IjogMywKICAgICJfc3VtIjogewogICAgICAicmF0aW5nIjogMTMKICAgIH0KICB9LAogICJwcm9kdWN0U3VtbWFyeSI6IHsKICAgICJhdmVyYWdlUmF0aW5nIjogNC4zMywKICAgICJ0b3RhbFJldmlld0NvdW50IjogMywKICAgICJkaXN0cmlidXRpb24iOiB7CiAgICAgICIxIjogMCwKICAgICAgIjIiOiAwLAogICAgICAiMyI6IDEsCiAgICAgICI0IjogMCwKICAgICAgIjUiOiAyCiAgICB9CiAgfSwKICAiZmlyc3RQYWdlIjogewogICAgIml0ZW1zIjogWwogICAgICB7CiAgICAgICAgImlkIjogIjg0ZTMxZDY3LWFmN2QtNGE1NS1hMmQ0LTQyZDNiZmE4ZTc3YiIsCiAgICAgICAgInByb2R1Y3RJZCI6ICI0MjhmY2QwOS0wZWQ1LTRjZjMtYWIxNC02MjNhZDVjMTczYmYiLAogICAgICAgICJvcmRlckl0ZW1JZCI6ICJkOTM4ODhlZS0wMjY3LTRjZTEtYmJjYi00ODFlY2U1ODU5NmYiLAogICAgICAgICJ1c2VySWQiOiAiNTYwZWZiYzgtNzEwNi00YmM2LWI0OTQtYmRlMTIxNDNhNjExIiwKICAgICAgICAidXNlck5hbWUiOiAiRXh0ZW5kZWQgRTJFIEJ1eWVyIiwKICAgICAgICAicmF0aW5nIjogMywKICAgICAgICAiY29tbWVudCI6ICJQcm9kdWN0IGZlZWRiYWNrIDIgUFVCTElTSEVEIiwKICAgICAgICAiaW1hZ2VzIjogW10sCiAgICAgICAgIm1lZGlhIjogW10sCiAgICAgICAgInN0YXR1cyI6ICJQVUJMSVNIRUQiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMzozNS4xOThaIiwKICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6MzUuMTk4WiIsCiAgICAgICAgInNuYXBzaG90IjogewogICAgICAgICAgInByb2R1Y3RUaXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDkwYjYzYWQ1IiwKICAgICAgICAgICJwcm9kdWN0U2x1ZyI6ICJjZDAzYTllNS0zMTE4LTQ5NGQtYWFkYy1lNTFmNWJlYTA4YTUiLAogICAgICAgICAgInZhcmlhbnRUaXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICJ2YXJpYW50U2t1IjogImIzYzJkNjY0LWE4NDMtNGNmOC1iN2ZlLTViZmJhMDIyZTlmMyIsCiAgICAgICAgICAic2hvcE5hbWUiOiAiRXh0ZW5kZWQgU2hvcCAyMmM2MzE4MCIsCiAgICAgICAgICAic2hvcFNsdWciOiAiOTVlMGJkYWYtZGI1YS00NGU2LTgzYmYtNmU0ZjBhN2E2NWVmIgogICAgICAgIH0KICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6ICI5OWZjY2UzNC0zYTllLTQ5MjItYTVhMS0yNzNhZDYxYjc2NzQiLAogICAgICAgICJwcm9kdWN0SWQiOiAiNDI4ZmNkMDktMGVkNS00Y2YzLWFiMTQtNjIzYWQ1YzE3M2JmIiwKICAgICAgICAib3JkZXJJdGVtSWQiOiAiNzNiMDBlZWMtNGIzNy00OGQ0LWEwZjgtOGMzZDM3ZTA0NWNmIiwKICAgICAgICAidXNlcklkIjogIjU2MGVmYmM4LTcxMDYtNGJjNi1iNDk0LWJkZTEyMTQzYTYxMSIsCiAgICAgICAgInVzZXJOYW1lIjogIkV4dGVuZGVkIEUyRSBCdXllciIsCiAgICAgICAgInJhdGluZyI6IDUsCiAgICAgICAgImNvbW1lbnQiOiAiUHJvZHVjdCBmZWVkYmFjayAxIFBVQkxJU0hFRCIsCiAgICAgICAgImltYWdlcyI6IFtdLAogICAgICAgICJtZWRpYSI6IFtdLAogICAgICAgICJzdGF0dXMiOiAiUFVCTElTSEVEIiwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6MzUuMTg4WiIsCiAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjM1LjE4OFoiLAogICAgICAgICJzbmFwc2hvdCI6IHsKICAgICAgICAgICJwcm9kdWN0VGl0bGUiOiAiRXh0ZW5kZWQgcHJvZHVjdCA5MGI2M2FkNSIsCiAgICAgICAgICAicHJvZHVjdFNsdWciOiAiY2QwM2E5ZTUtMzExOC00OTRkLWFhZGMtZTUxZjViZWEwOGE1IiwKICAgICAgICAgICJ2YXJpYW50VGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAidmFyaWFudFNrdSI6ICJiM2MyZDY2NC1hODQzLTRjZjgtYjdmZS01YmZiYTAyMmU5ZjMiLAogICAgICAgICAgInNob3BOYW1lIjogIkV4dGVuZGVkIFNob3AgMjJjNjMxODAiLAogICAgICAgICAgInNob3BTbHVnIjogIjk1ZTBiZGFmLWRiNWEtNDRlNi04M2JmLTZlNGYwYTdhNjVlZiIKICAgICAgICB9CiAgICAgIH0KICAgIF0sCiAgICAibWV0YSI6IHsKICAgICAgInBhZ2UiOiAxLAogICAgICAibGltaXQiOiAyLAogICAgICAidG90YWxDb3VudCI6IDMsCiAgICAgICJoYXNOZXh0UGFnZSI6IHRydWUKICAgIH0KICB9LAogICJzZWNvbmRQYWdlIjogewogICAgIml0ZW1zIjogWwogICAgICB7CiAgICAgICAgImlkIjogImQwMmIxM2ZmLWVlZDMtNDRjNy04Yzg1LTczYWRlOWIxMGVhMiIsCiAgICAgICAgInByb2R1Y3RJZCI6ICI0MjhmY2QwOS0wZWQ1LTRjZjMtYWIxNC02MjNhZDVjMTczYmYiLAogICAgICAgICJvcmRlckl0ZW1JZCI6ICJhY2MwYzI2Yi1kZTlhLTQzN2YtOWQ2Ni1lNTE2YTEzNDEwZTAiLAogICAgICAgICJ1c2VySWQiOiAiNTYwZWZiYzgtNzEwNi00YmM2LWI0OTQtYmRlMTIxNDNhNjExIiwKICAgICAgICAidXNlck5hbWUiOiAiRXh0ZW5kZWQgRTJFIEJ1eWVyIiwKICAgICAgICAicmF0aW5nIjogNSwKICAgICAgICAiY29tbWVudCI6ICJQcm9kdWN0IGZlZWRiYWNrIDAgUFVCTElTSEVEIiwKICAgICAgICAiaW1hZ2VzIjogW10sCiAgICAgICAgIm1lZGlhIjogW10sCiAgICAgICAgInN0YXR1cyI6ICJQVUJMSVNIRUQiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMzozNS4xNzJaIiwKICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6MzUuMTcyWiIsCiAgICAgICAgInNuYXBzaG90IjogewogICAgICAgICAgInByb2R1Y3RUaXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDkwYjYzYWQ1IiwKICAgICAgICAgICJwcm9kdWN0U2x1ZyI6ICJjZDAzYTllNS0zMTE4LTQ5NGQtYWFkYy1lNTFmNWJlYTA4YTUiLAogICAgICAgICAgInZhcmlhbnRUaXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICJ2YXJpYW50U2t1IjogImIzYzJkNjY0LWE4NDMtNGNmOC1iN2ZlLTViZmJhMDIyZTlmMyIsCiAgICAgICAgICAic2hvcE5hbWUiOiAiRXh0ZW5kZWQgU2hvcCAyMmM2MzE4MCIsCiAgICAgICAgICAic2hvcFNsdWciOiAiOTVlMGJkYWYtZGI1YS00NGU2LTgzYmYtNmU0ZjBhN2E2NWVmIgogICAgICAgIH0KICAgICAgfQogICAgXSwKICAgICJtZXRhIjogewogICAgICAicGFnZSI6IDIsCiAgICAgICJsaW1pdCI6IDIsCiAgICAgICJ0b3RhbENvdW50IjogMywKICAgICAgImhhc05leHRQYWdlIjogZmFsc2UKICAgIH0KICB9Cn0="
+                    },
+                    {
+                      "name": "published-product-ratings",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\attachments\\published-product-ratings-d1651d8bf014f0753814d60ffac84971cee14e54.png"
+                    },
+                    {
+                      "name": "published-shop-ratings-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJzaG9wRGIiOiB7CiAgICAiX2NvdW50IjogMywKICAgICJfc3VtIjogewogICAgICAicmF0aW5nIjogMTQKICAgIH0KICB9LAogICJzaG9wU3VtbWFyeSI6IHsKICAgICJhdmVyYWdlUmF0aW5nIjogNC42NywKICAgICJ0b3RhbFJldmlld0NvdW50IjogMywKICAgICJkaXN0cmlidXRpb24iOiB7CiAgICAgICIxIjogMCwKICAgICAgIjIiOiAwLAogICAgICAiMyI6IDAsCiAgICAgICI0IjogMSwKICAgICAgIjUiOiAyCiAgICB9CiAgfSwKICAic2hvcEZlZWQiOiB7CiAgICAiaXRlbXMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiAiNWM0NTc3MjYtMTU4ZS00NTc0LThiZDMtOGE1MjU2NDlmMTcyIiwKICAgICAgICAidXNlck5hbWUiOiAiRXh0ZW5kZWQgRTJFIEJ1eWVyIiwKICAgICAgICAicmF0aW5nIjogNCwKICAgICAgICAiY29tbWVudCI6ICJTaG9wIGZlZWRiYWNrIDIgUFVCTElTSEVEIiwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6MzUuMTk5WiIKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6ICJmOGIzZWNiMC1iNTk3LTQ3Y2QtYTFiMC1hM2JjNTRkNjc0NWUiLAogICAgICAgICJ1c2VyTmFtZSI6ICJFeHRlbmRlZCBFMkUgQnV5ZXIiLAogICAgICAgICJyYXRpbmciOiA1LAogICAgICAgICJjb21tZW50IjogIlNob3AgZmVlZGJhY2sgMSBQVUJMSVNIRUQiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMzozNS4xODlaIgogICAgICB9CiAgICBdLAogICAgIm1ldGEiOiB7CiAgICAgICJwYWdlIjogMSwKICAgICAgInBhZ2VTaXplIjogMiwKICAgICAgInRvdGFsQ291bnQiOiAzLAogICAgICAiaGFzTmV4dFBhZ2UiOiB0cnVlCiAgICB9CiAgfSwKICAic3RvcmVkQXZlcmFnZSI6ICI0LjY3IiwKICAic3RvcmVkQ291bnQiOiAzCn0="
+                    },
+                    {
+                      "name": "published-shop-ratings",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\attachments\\published-shop-ratings-2e1e80b9b943ce43ef459307a79f8d76c5e2bd88.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-dfe277cab74bcc76e063",
+          "file": "numeric-projections.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3256,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:39.294Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "search-stock-badges-facets-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJyZXN1bHQiOiB7CiAgICAiaXRlbXMiOiBbCiAgICAgIHsKICAgICAgICAicHJvZHVjdElkIjogImNhZGRlZDA3LWRkMGQtNGVjOC1iMjFjLWNlYWFiOTZlYjg1YiIsCiAgICAgICAgInRpdGxlIjogIlByb2plY3Rpb24tMTBjZGFiYTMtNDA1My00OTAxLTg3NGItZjAwYTExYjdiODBiIG5ldzEwMCIsCiAgICAgICAgImNvdmVySW1hZ2UiOiBudWxsLAogICAgICAgICJtaW5QcmljZSI6ICIyMDAwIiwKICAgICAgICAibWF4UHJpY2UiOiBudWxsLAogICAgICAgICJyYXRpbmdTdW1tYXJ5IjogewogICAgICAgICAgImF2ZXJhZ2VSYXRpbmciOiA0LAogICAgICAgICAgInRvdGFsUmV2aWV3Q291bnQiOiAxCiAgICAgICAgfSwKICAgICAgICAic29sZENvdW50IjogMTAwLAogICAgICAgICJzaG9wIjogewogICAgICAgICAgImlkIjogIjAwMDAwMDAwLWUzNmQtNDY4OS1hMjZjLWMwM2M4Mjg3Nzc4YiIsCiAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIDFhNWI1OTgwIiwKICAgICAgICAgICJzbHVnIjogIjRhZGYzN2RmLThiNjMtNDA4ZS1hNjdmLTE1MzYxNjU1MmYwMiIsCiAgICAgICAgICAibG9jYXRpb24iOiBudWxsCiAgICAgICAgfSwKICAgICAgICAidmFyaWFudHMiOiBbCiAgICAgICAgICB7CiAgICAgICAgICAgICJpZCI6ICJjOWYyNTBjMi1jZjA0LTQ4NjctYjA5YS1iNGU1NDkyODExYWMiLAogICAgICAgICAgICAic2t1IjogIjdmZmVlOGIxLTE4YzgtNGQyOS04MmI5LWZkNmVlYjk2N2RlYiIsCiAgICAgICAgICAgICJ0aXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgICAidGl0bGVFbiI6IG51bGwsCiAgICAgICAgICAgICJwcmljZSI6ICIyMDAwIiwKICAgICAgICAgICAgImN1cnJlbmN5IjogIlRIQiIsCiAgICAgICAgICAgICJzdG9jayI6IDEsCiAgICAgICAgICAgICJvcHRpb25WYWx1ZXMiOiBbXQogICAgICAgICAgfQogICAgICAgIF0sCiAgICAgICAgIm9wdGlvbnMiOiBbXSwKICAgICAgICAiYmFkZ2VzIjogWwogICAgICAgICAgIm5ldyIsCiAgICAgICAgICAiYmVzdF9zZWxsZXIiLAogICAgICAgICAgImluX3N0b2NrIgogICAgICAgIF0KICAgICAgfSwKICAgICAgewogICAgICAgICJwcm9kdWN0SWQiOiAiODU0OTIwNzgtNjk3Zi00MzhkLTliNWQtOWNiMWM5YjRiYzVmIiwKICAgICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi0xMGNkYWJhMy00MDUzLTQ5MDEtODc0Yi1mMDBhMTFiN2I4MGIgb2xkOTkiLAogICAgICAgICJjb3ZlckltYWdlIjogbnVsbCwKICAgICAgICAibWluUHJpY2UiOiAiMTAwMCIsCiAgICAgICAgIm1heFByaWNlIjogbnVsbCwKICAgICAgICAicmF0aW5nU3VtbWFyeSI6IHsKICAgICAgICAgICJhdmVyYWdlUmF0aW5nIjogMywKICAgICAgICAgICJ0b3RhbFJldmlld0NvdW50IjogMQogICAgICAgIH0sCiAgICAgICAgInNvbGRDb3VudCI6IDk5LAogICAgICAgICJzaG9wIjogewogICAgICAgICAgImlkIjogIjAwMDAwMDAwLWUzNmQtNDY4OS1hMjZjLWMwM2M4Mjg3Nzc4YiIsCiAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIDFhNWI1OTgwIiwKICAgICAgICAgICJzbHVnIjogIjRhZGYzN2RmLThiNjMtNDA4ZS1hNjdmLTE1MzYxNjU1MmYwMiIsCiAgICAgICAgICAibG9jYXRpb24iOiBudWxsCiAgICAgICAgfSwKICAgICAgICAidmFyaWFudHMiOiBbCiAgICAgICAgICB7CiAgICAgICAgICAgICJpZCI6ICJjMjZjN2ZjYS0yNGMxLTRkY2MtODEyZS04OGQ5OTg5MjM1ZDQiLAogICAgICAgICAgICAic2t1IjogIjZjYWI2MzM2LTE0NGItNDIxZC1hNzkzLTM4Y2M0NjAwMDM3YSIsCiAgICAgICAgICAgICJ0aXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgICAidGl0bGVFbiI6IG51bGwsCiAgICAgICAgICAgICJwcmljZSI6ICIxMDAwIiwKICAgICAgICAgICAgImN1cnJlbmN5IjogIlRIQiIsCiAgICAgICAgICAgICJzdG9jayI6IDEsCiAgICAgICAgICAgICJvcHRpb25WYWx1ZXMiOiBbXQogICAgICAgICAgfQogICAgICAgIF0sCiAgICAgICAgIm9wdGlvbnMiOiBbXSwKICAgICAgICAiYmFkZ2VzIjogWwogICAgICAgICAgImluX3N0b2NrIgogICAgICAgIF0KICAgICAgfQogICAgXSwKICAgICJtZXRhIjogewogICAgICAidG90YWxDb3VudCI6IDIsCiAgICAgICJwYWdlIjogMSwKICAgICAgInBhZ2VTaXplIjogMjAsCiAgICAgICJoYXNOZXh0UGFnZSI6IGZhbHNlLAogICAgICAicXVlcnkiOiB7CiAgICAgICAgInEiOiAiUHJvamVjdGlvbi0xMGNkYWJhMy00MDUzLTQ5MDEtODc0Yi1mMDBhMTFiN2I4MGIiLAogICAgICAgICJzb3J0IjogInRvcF9zYWxlcyIKICAgICAgfQogICAgfSwKICAgICJmYWNldHMiOiB7CiAgICAgICJjYXRlZ29yaWVzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICI4OWViMGY4MS0xNjlkLTRmY2MtYjc1Ni0yNDQyYmFmMjk4MTQiLAogICAgICAgICAgInNsdWciOiAiZTNlN2I0ODItNTZkOC00MGU2LWJiNjEtYTZkMzgzN2I2M2I0IiwKICAgICAgICAgICJuYW1lIjogIlByb2plY3Rpb24tMTBjZGFiYTMtNDA1My00OTAxLTg3NGItZjAwYTExYjdiODBiIiwKICAgICAgICAgICJjb3VudCI6IDIsCiAgICAgICAgICAiYWN0aXZlIjogZmFsc2UKICAgICAgICB9CiAgICAgIF0sCiAgICAgICJicmFuZHMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogIjZiZDZhNjE2LTc0NGQtNGIzNi1iNjcyLTljNDE3OTQwY2FiOCIsCiAgICAgICAgICAibmFtZSI6ICJCcmFuZC1Qcm9qZWN0aW9uLTEwY2RhYmEzLTQwNTMtNDkwMS04NzRiLWYwMGExMWI3YjgwYiIsCiAgICAgICAgICAic2x1ZyI6ICJlYThiM2Q1My0yOGM3LTRkYzYtOTI5MS1hZDJjYjEyOTlkNjMiLAogICAgICAgICAgImNvdW50IjogMiwKICAgICAgICAgICJhY3RpdmUiOiBmYWxzZQogICAgICAgIH0KICAgICAgXSwKICAgICAgInByaWNlIjogewogICAgICAgICJtaW4iOiAiMTAwMCIsCiAgICAgICAgIm1heCI6ICIyMDAwIiwKICAgICAgICAiY3VycmVuY3kiOiAiVEhCIgogICAgICB9CiAgICB9LAogICAgInBhZ2luYXRpb24iOiB7CiAgICAgICJwYWdlIjogMSwKICAgICAgImxpbWl0IjogMjAsCiAgICAgICJ0b3RhbCI6IDIsCiAgICAgICJ0b3RhbFBhZ2VzIjogMSwKICAgICAgIm5leHRDdXJzb3IiOiBudWxsLAogICAgICAiaGFzTmV4dFBhZ2UiOiBmYWxzZQogICAgfSwKICAgICJmaWx0ZXJzIjogewogICAgICAicSI6ICJQcm9qZWN0aW9uLTEwY2RhYmEzLTQwNTMtNDkwMS04NzRiLWYwMGExMWI3YjgwYiIsCiAgICAgICJpblN0b2NrIjogdHJ1ZQogICAgfSwKICAgICJzb3J0IjogInRvcF9zYWxlcyIKICB9LAogICJibG9ja2VkU3RvY2siOiB7CiAgICAib25IYW5kIjogMywKICAgICJyZXNlcnZlZCI6IDMKICB9LAogICJzb2xkIjogewogICAgIl9zdW0iOiB7CiAgICAgICJxdWFudGl0eSI6IDEwMAogICAgfQogIH0KfQ=="
+                    },
+                    {
+                      "name": "search-stock-badges-facets",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-projections-search-9e118-tory-and-reserved-inventory-chromium\\attachments\\search-stock-badges-facets-fe6c4eb42f4f048dbd8abddc3b76b3fe5376b3a3.png"
+                    },
+                    {
+                      "name": "search-rating-price-filter-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJmaWx0ZXJlZCI6IHsKICAgICJpdGVtcyI6IFsKICAgICAgewogICAgICAgICJwcm9kdWN0SWQiOiAiY2FkZGVkMDctZGQwZC00ZWM4LWIyMWMtY2VhYWI5NmViODViIiwKICAgICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi0xMGNkYWJhMy00MDUzLTQ5MDEtODc0Yi1mMDBhMTFiN2I4MGIgbmV3MTAwIiwKICAgICAgICAiY292ZXJJbWFnZSI6IG51bGwsCiAgICAgICAgIm1pblByaWNlIjogIjIwMDAiLAogICAgICAgICJtYXhQcmljZSI6IG51bGwsCiAgICAgICAgInJhdGluZ1N1bW1hcnkiOiB7CiAgICAgICAgICAiYXZlcmFnZVJhdGluZyI6IDQsCiAgICAgICAgICAidG90YWxSZXZpZXdDb3VudCI6IDEKICAgICAgICB9LAogICAgICAgICJzb2xkQ291bnQiOiAxMDAsCiAgICAgICAgInNob3AiOiB7CiAgICAgICAgICAiaWQiOiAiMDAwMDAwMDAtZTM2ZC00Njg5LWEyNmMtYzAzYzgyODc3NzhiIiwKICAgICAgICAgICJuYW1lIjogIkV4dGVuZGVkIFNob3AgMWE1YjU5ODAiLAogICAgICAgICAgInNsdWciOiAiNGFkZjM3ZGYtOGI2My00MDhlLWE2N2YtMTUzNjE2NTUyZjAyIiwKICAgICAgICAgICJsb2NhdGlvbiI6IG51bGwKICAgICAgICB9LAogICAgICAgICJ2YXJpYW50cyI6IFsKICAgICAgICAgIHsKICAgICAgICAgICAgImlkIjogImM5ZjI1MGMyLWNmMDQtNDg2Ny1iMDlhLWI0ZTU0OTI4MTFhYyIsCiAgICAgICAgICAgICJza3UiOiAiN2ZmZWU4YjEtMThjOC00ZDI5LTgyYjktZmQ2ZWViOTY3ZGViIiwKICAgICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICAgICAgICJ0aXRsZUVuIjogbnVsbCwKICAgICAgICAgICAgInByaWNlIjogIjIwMDAiLAogICAgICAgICAgICAiY3VycmVuY3kiOiAiVEhCIiwKICAgICAgICAgICAgInN0b2NrIjogMSwKICAgICAgICAgICAgIm9wdGlvblZhbHVlcyI6IFtdCiAgICAgICAgICB9CiAgICAgICAgXSwKICAgICAgICAib3B0aW9ucyI6IFtdLAogICAgICAgICJiYWRnZXMiOiBbCiAgICAgICAgICAibmV3IiwKICAgICAgICAgICJiZXN0X3NlbGxlciIsCiAgICAgICAgICAiaW5fc3RvY2siCiAgICAgICAgXQogICAgICB9CiAgICBdLAogICAgIm1ldGEiOiB7CiAgICAgICJ0b3RhbENvdW50IjogMSwKICAgICAgInBhZ2UiOiAxLAogICAgICAicGFnZVNpemUiOiAyMCwKICAgICAgImhhc05leHRQYWdlIjogZmFsc2UsCiAgICAgICJxdWVyeSI6IHsKICAgICAgICAicSI6ICJQcm9qZWN0aW9uLTEwY2RhYmEzLTQwNTMtNDkwMS04NzRiLWYwMGExMWI3YjgwYiIsCiAgICAgICAgIm1pblByaWNlIjogIjEwMDAiLAogICAgICAgICJtYXhQcmljZSI6ICIyMDAwIiwKICAgICAgICAic29ydCI6ICJ0b3Bfc2FsZXMiCiAgICAgIH0KICAgIH0sCiAgICAiZmFjZXRzIjogewogICAgICAiY2F0ZWdvcmllcyI6IFsKICAgICAgICB7CiAgICAgICAgICAiaWQiOiAiODllYjBmODEtMTY5ZC00ZmNjLWI3NTYtMjQ0MmJhZjI5ODE0IiwKICAgICAgICAgICJzbHVnIjogImUzZTdiNDgyLTU2ZDgtNDBlNi1iYjYxLWE2ZDM4MzdiNjNiNCIsCiAgICAgICAgICAibmFtZSI6ICJQcm9qZWN0aW9uLTEwY2RhYmEzLTQwNTMtNDkwMS04NzRiLWYwMGExMWI3YjgwYiIsCiAgICAgICAgICAiY291bnQiOiAyLAogICAgICAgICAgImFjdGl2ZSI6IGZhbHNlCiAgICAgICAgfQogICAgICBdLAogICAgICAiYnJhbmRzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICI2YmQ2YTYxNi03NDRkLTRiMzYtYjY3Mi05YzQxNzk0MGNhYjgiLAogICAgICAgICAgIm5hbWUiOiAiQnJhbmQtUHJvamVjdGlvbi0xMGNkYWJhMy00MDUzLTQ5MDEtODc0Yi1mMDBhMTFiN2I4MGIiLAogICAgICAgICAgInNsdWciOiAiZWE4YjNkNTMtMjhjNy00ZGM2LTkyOTEtYWQyY2IxMjk5ZDYzIiwKICAgICAgICAgICJjb3VudCI6IDIsCiAgICAgICAgICAiYWN0aXZlIjogZmFsc2UKICAgICAgICB9CiAgICAgIF0sCiAgICAgICJwcmljZSI6IHsKICAgICAgICAibWluIjogIjEwMDAiLAogICAgICAgICJtYXgiOiAiMjAwMCIsCiAgICAgICAgImN1cnJlbmN5IjogIlRIQiIKICAgICAgfQogICAgfSwKICAgICJwYWdpbmF0aW9uIjogewogICAgICAicGFnZSI6IDEsCiAgICAgICJsaW1pdCI6IDIwLAogICAgICAidG90YWwiOiAxLAogICAgICAidG90YWxQYWdlcyI6IDEsCiAgICAgICJuZXh0Q3Vyc29yIjogbnVsbCwKICAgICAgImhhc05leHRQYWdlIjogZmFsc2UKICAgIH0sCiAgICAiZmlsdGVycyI6IHsKICAgICAgInEiOiAiUHJvamVjdGlvbi0xMGNkYWJhMy00MDUzLTQ5MDEtODc0Yi1mMDBhMTFiN2I4MGIiLAogICAgICAibWluUHJpY2UiOiAiMTAwMCIsCiAgICAgICJtYXhQcmljZSI6ICIyMDAwIiwKICAgICAgInJhdGluZyI6IDQsCiAgICAgICJpblN0b2NrIjogdHJ1ZQogICAgfSwKICAgICJzb3J0IjogInRvcF9zYWxlcyIKICB9Cn0="
+                    },
+                    {
+                      "name": "search-rating-price-filter",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-projections-search-9e118-tory-and-reserved-inventory-chromium\\attachments\\search-rating-price-filter-972769ba9c2400be608fb91539482b62289e5e96.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-6b1b9bc411bde5c7bf1d",
+          "file": "numeric-projections.spec.ts",
+          "line": 155,
+          "column": 1
+        },
+        {
+          "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1578,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:42.560Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "related-and-similar-price-contracts-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJyZWxhdGVkIjogWwogICAgewogICAgICAiaWQiOiAiMGJkNTQ3ZmQtNTVjZi00YjQxLWJlY2EtZTYwZjkyNjc4YmU3IiwKICAgICAgInNob3BJZCI6ICIwMDAwMDAwMC02MGMwLTQ2NmMtOTQzYi1iOWJmZjE3NTM5OTAiLAogICAgICAic2VsbGVyUHJvZmlsZUlkIjogImVhNGMyNjkwLWQ3YWQtNGE3YS05YjdlLWIzOGI3YjM2MTA1ZCIsCiAgICAgICJzZWxsZXJJZGVudGl0eUhhc2giOiBudWxsLAogICAgICAiY2F0ZWdvcnlJZCI6ICIwMDJmYzIzNi05ZGE0LTQyYjUtOGY1OS05ZWYzZjk1NjY5YzgiLAogICAgICAiYnJhbmRJZCI6ICJmYTMwNzA5NS1kNTliLTQ1YTEtOTI5Zi1iYzIyM2FjMTBjODkiLAogICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi1mN2EzZmRhNC1hMWI5LTQyNTItODg1OC0yOGZmMjdmMjRmYWYgb3V0c2lkZTE1MDEiLAogICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICJ0aXRsZUVuIjogbnVsbCwKICAgICAgInNsdWciOiAiYjUxNWRhNzYtYTE2Ni00YWEyLWE3MjctY2FkZjUzYzBkODZiIiwKICAgICAgImRlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgImRlc2NyaXB0aW9uVGgiOiBudWxsLAogICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICJtZXRhVGl0bGUiOiBudWxsLAogICAgICAibWV0YURlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgIndhcnJhbnR5SW5mbyI6IG51bGwsCiAgICAgICJjb25kaXRpb24iOiBudWxsLAogICAgICAiY291bnRyeU9mT3JpZ2luIjogbnVsbCwKICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAicHJvZHVjdEZpbmdlcnByaW50SGFzaCI6IG51bGwsCiAgICAgICJkdXBsaWNhdGVTdGF0dXMiOiAiVU5LTk9XTiIsCiAgICAgICJkdXBsaWNhdGVPZlByb2R1Y3RJZCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wMVQwMDowMDowNC4wMDBaIiwKICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc2NVoiLAogICAgICAiZGVsZXRlZEF0IjogbnVsbCwKICAgICAgImNhdGVnb3J5IjogewogICAgICAgICJpZCI6ICIwMDJmYzIzNi05ZGE0LTQyYjUtOGY1OS05ZWYzZjk1NjY5YzgiLAogICAgICAgICJuYW1lIjogIlByb2plY3Rpb24tZjdhM2ZkYTQtYTFiOS00MjUyLTg4NTgtMjhmZjI3ZjI0ZmFmIiwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAic2x1ZyI6ICI0YjY1MTFjNy1iNmI5LTQwMjQtYTg3Yy00MzZlMWNmNjA4YzYiLAogICAgICAgICJpc0FjdGl2ZSI6IHRydWUKICAgICAgfSwKICAgICAgImJyYW5kIjogewogICAgICAgICJpZCI6ICJmYTMwNzA5NS1kNTliLTQ1YTEtOTI5Zi1iYzIyM2FjMTBjODkiLAogICAgICAgICJuYW1lIjogIkJyYW5kLVByb2plY3Rpb24tZjdhM2ZkYTQtYTFiOS00MjUyLTg4NTgtMjhmZjI3ZjI0ZmFmIiwKICAgICAgICAic2x1ZyI6ICI4Zjc5NGQxMy0yNjc5LTRiYmMtOWU4MC0zYjNiOWM4OGI1MjMiLAogICAgICAgICJjb2RlIjogbnVsbCwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvblRoIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICAgImxvZ29VcmwiOiBudWxsLAogICAgICAgICJ3ZWJzaXRlVXJsIjogbnVsbCwKICAgICAgICAiY291bnRyeUNvZGUiOiBudWxsLAogICAgICAgICJzb3J0T3JkZXIiOiAwLAogICAgICAgICJpc0ZlYXR1cmVkIjogZmFsc2UsCiAgICAgICAgImlzQWN0aXZlIjogdHJ1ZSwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6NDIuNzQ4WiIsCiAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc0OFoiCiAgICAgIH0sCiAgICAgICJoaWdobGlnaHRzIjogW10sCiAgICAgICJhdHRyaWJ1dGVzIjogW10sCiAgICAgICJvcHRpb25zIjogW10sCiAgICAgICJpbWFnZXMiOiBbXSwKICAgICAgInZpZGVvIjogbnVsbCwKICAgICAgInNob3AiOiB7CiAgICAgICAgImlkIjogIjAwMDAwMDAwLTYwYzAtNDY2Yy05NDNiLWI5YmZmMTc1Mzk5MCIsCiAgICAgICAgIm5hbWUiOiAiRXh0ZW5kZWQgU2hvcCAxZGYwOWE5YSIsCiAgICAgICAgInNsdWciOiAiNzc4NGU3OTItZmU4MS00YTBiLWIwOTItOWY2ZjBkNTUyMzRiIiwKICAgICAgICAib3duZXJJZCI6ICI4NzRmZjQ3NC04NmMxLTQ2ZTItYjBlNC1mYzNmNzllZjczOTQiLAogICAgICAgICJzdGF0dXMiOiAiQUNUSVZFIiwKICAgICAgICAibG9nb1VybCI6IG51bGwsCiAgICAgICAgImNvdmVyVXJsIjogbnVsbCwKICAgICAgICAicmF0aW5nQXZlcmFnZSI6ICIwIiwKICAgICAgICAicmF0aW5nQ291bnQiOiAwLAogICAgICAgICJmb2xsb3dlckNvdW50IjogMCwKICAgICAgICAicHJvZHVjdENvdW50IjogMCwKICAgICAgICAiYWRkcmVzc2VzIjogW10KICAgICAgfSwKICAgICAgInZhcmlhbnRzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICIzNmFjMDg1ZC00ZWExLTQ4M2MtOWIzNi1iMmViZjYyMGMwZTkiLAogICAgICAgICAgInByb2R1Y3RJZCI6ICIwYmQ1NDdmZC01NWNmLTRiNDEtYmVjYS1lNjBmOTI2NzhiZTciLAogICAgICAgICAgInNrdSI6ICJjOTMwODY2Yi1lMDgyLTQ5YjgtOGJiNS0yNWU0NzE3ZjlmZjciLAogICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgInRpdGxlRW4iOiBudWxsLAogICAgICAgICAgInByaWNlIjogIjE1MDEiLAogICAgICAgICAgImN1cnJlbmN5IjogIlRIQiIsCiAgICAgICAgICAic3RhdHVzIjogIkFDVElWRSIsCiAgICAgICAgICAib3B0aW9uQ29tYmluYXRpb25LZXkiOiBudWxsLAogICAgICAgICAgIndlaWdodEdyYW1zIjogbnVsbCwKICAgICAgICAgICJsZW5ndGhNbSI6IG51bGwsCiAgICAgICAgICAid2lkdGhNbSI6IG51bGwsCiAgICAgICAgICAiaGVpZ2h0TW0iOiBudWxsLAogICAgICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc2N1oiLAogICAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc2N1oiLAogICAgICAgICAgImludmVudG9yeSI6IHsKICAgICAgICAgICAgImlkIjogImVjYWUxMTYwLTAxMTEtNGY3ZC04MjE2LWM5ZjUxYjBkNzFiMCIsCiAgICAgICAgICAgICJ2YXJpYW50SWQiOiAiMzZhYzA4NWQtNGVhMS00ODNjLTliMzYtYjJlYmY2MjBjMGU5IiwKICAgICAgICAgICAgInF1YW50aXR5T25IYW5kIjogMywKICAgICAgICAgICAgInF1YW50aXR5UmVzZXJ2ZWQiOiAyLAogICAgICAgICAgICAicmVvcmRlckxldmVsIjogMCwKICAgICAgICAgICAgInZlcnNpb24iOiAxLAogICAgICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6NDIuNzY3WiIKICAgICAgICAgIH0sCiAgICAgICAgICAib3B0aW9uVmFsdWVzIjogW10KICAgICAgICB9CiAgICAgIF0sCiAgICAgICJyYXRpbmciOiAwLAogICAgICAicmF0aW5nU3VtbWFyeSI6IHsKICAgICAgICAiYXZlcmFnZVJhdGluZyI6IDAsCiAgICAgICAgInRvdGFsUmV2aWV3Q291bnQiOiAwCiAgICAgIH0sCiAgICAgICJzb2xkQ291bnQiOiAwCiAgICB9LAogICAgewogICAgICAiaWQiOiAiZjA4ODkyODktN2EzZC00NWM0LWE0ZmItZTMyYTMxZmJiZjRhIiwKICAgICAgInNob3BJZCI6ICIwMDAwMDAwMC02MGMwLTQ2NmMtOTQzYi1iOWJmZjE3NTM5OTAiLAogICAgICAic2VsbGVyUHJvZmlsZUlkIjogImVhNGMyNjkwLWQ3YWQtNGE3YS05YjdlLWIzOGI3YjM2MTA1ZCIsCiAgICAgICJzZWxsZXJJZGVudGl0eUhhc2giOiBudWxsLAogICAgICAiY2F0ZWdvcnlJZCI6ICIwMDJmYzIzNi05ZGE0LTQyYjUtOGY1OS05ZWYzZjk1NjY5YzgiLAogICAgICAiYnJhbmRJZCI6ICJmYTMwNzA5NS1kNTliLTQ1YTEtOTI5Zi1iYzIyM2FjMTBjODkiLAogICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi1mN2EzZmRhNC1hMWI5LTQyNTItODg1OC0yOGZmMjdmMjRmYWYgZWRnZTE1MDAiLAogICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICJ0aXRsZUVuIjogbnVsbCwKICAgICAgInNsdWciOiAiYzU3OTlkN2YtYzg5Yy00M2Q3LThlZGEtYWRkYThiMzA1NmU0IiwKICAgICAgImRlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgImRlc2NyaXB0aW9uVGgiOiBudWxsLAogICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICJtZXRhVGl0bGUiOiBudWxsLAogICAgICAibWV0YURlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgIndhcnJhbnR5SW5mbyI6IG51bGwsCiAgICAgICJjb25kaXRpb24iOiBudWxsLAogICAgICAiY291bnRyeU9mT3JpZ2luIjogbnVsbCwKICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAicHJvZHVjdEZpbmdlcnByaW50SGFzaCI6IG51bGwsCiAgICAgICJkdXBsaWNhdGVTdGF0dXMiOiAiVU5LTk9XTiIsCiAgICAgICJkdXBsaWNhdGVPZlByb2R1Y3RJZCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wMVQwMDowMDowMy4wMDBaIiwKICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc2MloiLAogICAgICAiZGVsZXRlZEF0IjogbnVsbCwKICAgICAgImNhdGVnb3J5IjogewogICAgICAgICJpZCI6ICIwMDJmYzIzNi05ZGE0LTQyYjUtOGY1OS05ZWYzZjk1NjY5YzgiLAogICAgICAgICJuYW1lIjogIlByb2plY3Rpb24tZjdhM2ZkYTQtYTFiOS00MjUyLTg4NTgtMjhmZjI3ZjI0ZmFmIiwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAic2x1ZyI6ICI0YjY1MTFjNy1iNmI5LTQwMjQtYTg3Yy00MzZlMWNmNjA4YzYiLAogICAgICAgICJpc0FjdGl2ZSI6IHRydWUKICAgICAgfSwKICAgICAgImJyYW5kIjogewogICAgICAgICJpZCI6ICJmYTMwNzA5NS1kNTliLTQ1YTEtOTI5Zi1iYzIyM2FjMTBjODkiLAogICAgICAgICJuYW1lIjogIkJyYW5kLVByb2plY3Rpb24tZjdhM2ZkYTQtYTFiOS00MjUyLTg4NTgtMjhmZjI3ZjI0ZmFmIiwKICAgICAgICAic2x1ZyI6ICI4Zjc5NGQxMy0yNjc5LTRiYmMtOWU4MC0zYjNiOWM4OGI1MjMiLAogICAgICAgICJjb2RlIjogbnVsbCwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvblRoIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICAgImxvZ29VcmwiOiBudWxsLAogICAgICAgICJ3ZWJzaXRlVXJsIjogbnVsbCwKICAgICAgICAiY291bnRyeUNvZGUiOiBudWxsLAogICAgICAgICJzb3J0T3JkZXIiOiAwLAogICAgICAgICJpc0ZlYXR1cmVkIjogZmFsc2UsCiAgICAgICAgImlzQWN0aXZlIjogdHJ1ZSwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6NDIuNzQ4WiIsCiAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc0OFoiCiAgICAgIH0sCiAgICAgICJoaWdobGlnaHRzIjogW10sCiAgICAgICJhdHRyaWJ1dGVzIjogW10sCiAgICAgICJvcHRpb25zIjogW10sCiAgICAgICJpbWFnZXMiOiBbXSwKICAgICAgInZpZGVvIjogbnVsbCwKICAgICAgInNob3AiOiB7CiAgICAgICAgImlkIjogIjAwMDAwMDAwLTYwYzAtNDY2Yy05NDNiLWI5YmZmMTc1Mzk5MCIsCiAgICAgICAgIm5hbWUiOiAiRXh0ZW5kZWQgU2hvcCAxZGYwOWE5YSIsCiAgICAgICAgInNsdWciOiAiNzc4NGU3OTItZmU4MS00YTBiLWIwOTItOWY2ZjBkNTUyMzRiIiwKICAgICAgICAib3duZXJJZCI6ICI4NzRmZjQ3NC04NmMxLTQ2ZTItYjBlNC1mYzNmNzllZjczOTQiLAogICAgICAgICJzdGF0dXMiOiAiQUNUSVZFIiwKICAgICAgICAibG9nb1VybCI6IG51bGwsCiAgICAgICAgImNvdmVyVXJsIjogbnVsbCwKICAgICAgICAicmF0aW5nQXZlcmFnZSI6ICIwIiwKICAgICAgICAicmF0aW5nQ291bnQiOiAwLAogICAgICAgICJmb2xsb3dlckNvdW50IjogMCwKICAgICAgICAicHJvZHVjdENvdW50IjogMCwKICAgICAgICAiYWRkcmVzc2VzIjogW10KICAgICAgfSwKICAgICAgInZhcmlhbnRzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICJhZmFiOTE4YS0xNzAzLTRhYmItOGIxNy1iYTJkZTY4Yjg3YTEiLAogICAgICAgICAgInByb2R1Y3RJZCI6ICJmMDg4OTI4OS03YTNkLTQ1YzQtYTRmYi1lMzJhMzFmYmJmNGEiLAogICAgICAgICAgInNrdSI6ICI1NTE1YTk1NS1lOTQ1LTQxYTktOTg2OS03N2VkNWNjMjQzMmIiLAogICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgInRpdGxlRW4iOiBudWxsLAogICAgICAgICAgInByaWNlIjogIjE1MDAiLAogICAgICAgICAgImN1cnJlbmN5IjogIlRIQiIsCiAgICAgICAgICAic3RhdHVzIjogIkFDVElWRSIsCiAgICAgICAgICAib3B0aW9uQ29tYmluYXRpb25LZXkiOiBudWxsLAogICAgICAgICAgIndlaWdodEdyYW1zIjogbnVsbCwKICAgICAgICAgICJsZW5ndGhNbSI6IG51bGwsCiAgICAgICAgICAid2lkdGhNbSI6IG51bGwsCiAgICAgICAgICAiaGVpZ2h0TW0iOiBudWxsLAogICAgICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc2M1oiLAogICAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc2M1oiLAogICAgICAgICAgImludmVudG9yeSI6IHsKICAgICAgICAgICAgImlkIjogIjUxMDc4ODAzLTU3NTctNDE3Yi1hOGRjLTgyZTI2OWZhMzFkZSIsCiAgICAgICAgICAgICJ2YXJpYW50SWQiOiAiYWZhYjkxOGEtMTcwMy00YWJiLThiMTctYmEyZGU2OGI4N2ExIiwKICAgICAgICAgICAgInF1YW50aXR5T25IYW5kIjogMywKICAgICAgICAgICAgInF1YW50aXR5UmVzZXJ2ZWQiOiAyLAogICAgICAgICAgICAicmVvcmRlckxldmVsIjogMCwKICAgICAgICAgICAgInZlcnNpb24iOiAxLAogICAgICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6NDIuNzYzWiIKICAgICAgICAgIH0sCiAgICAgICAgICAib3B0aW9uVmFsdWVzIjogW10KICAgICAgICB9CiAgICAgIF0sCiAgICAgICJyYXRpbmciOiAwLAogICAgICAicmF0aW5nU3VtbWFyeSI6IHsKICAgICAgICAiYXZlcmFnZVJhdGluZyI6IDAsCiAgICAgICAgInRvdGFsUmV2aWV3Q291bnQiOiAwCiAgICAgIH0sCiAgICAgICJzb2xkQ291bnQiOiAwCiAgICB9LAogICAgewogICAgICAiaWQiOiAiM2JmYWQ1MDMtYTlkZi00OTI4LWI1YzAtODhjMjM0MDdkNmNmIiwKICAgICAgInNob3BJZCI6ICIwMDAwMDAwMC02MGMwLTQ2NmMtOTQzYi1iOWJmZjE3NTM5OTAiLAogICAgICAic2VsbGVyUHJvZmlsZUlkIjogImVhNGMyNjkwLWQ3YWQtNGE3YS05YjdlLWIzOGI3YjM2MTA1ZCIsCiAgICAgICJzZWxsZXJJZGVudGl0eUhhc2giOiBudWxsLAogICAgICAiY2F0ZWdvcnlJZCI6ICIwMDJmYzIzNi05ZGE0LTQyYjUtOGY1OS05ZWYzZjk1NjY5YzgiLAogICAgICAiYnJhbmRJZCI6ICJmYTMwNzA5NS1kNTliLTQ1YTEtOTI5Zi1iYzIyM2FjMTBjODkiLAogICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi1mN2EzZmRhNC1hMWI5LTQyNTItODg1OC0yOGZmMjdmMjRmYWYgZWRnZTUwMCIsCiAgICAgICJ0aXRsZVRoIjogbnVsbCwKICAgICAgInRpdGxlRW4iOiBudWxsLAogICAgICAic2x1ZyI6ICJkZDQ0OWEwMC00NWM0LTQyNjItOGViNy0wZWEwZjJlYTAxOTAiLAogICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAiZGVzY3JpcHRpb25UaCI6IG51bGwsCiAgICAgICJkZXNjcmlwdGlvbkVuIjogbnVsbCwKICAgICAgIm1ldGFUaXRsZSI6IG51bGwsCiAgICAgICJtZXRhRGVzY3JpcHRpb24iOiBudWxsLAogICAgICAid2FycmFudHlJbmZvIjogbnVsbCwKICAgICAgImNvbmRpdGlvbiI6IG51bGwsCiAgICAgICJjb3VudHJ5T2ZPcmlnaW4iOiBudWxsLAogICAgICAic3RhdHVzIjogIkFDVElWRSIsCiAgICAgICJwcm9kdWN0RmluZ2VycHJpbnRIYXNoIjogbnVsbCwKICAgICAgImR1cGxpY2F0ZVN0YXR1cyI6ICJVTktOT1dOIiwKICAgICAgImR1cGxpY2F0ZU9mUHJvZHVjdElkIjogbnVsbCwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAxVDAwOjAwOjAyLjAwMFoiLAogICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6NDIuNzU4WiIsCiAgICAgICJkZWxldGVkQXQiOiBudWxsLAogICAgICAiY2F0ZWdvcnkiOiB7CiAgICAgICAgImlkIjogIjAwMmZjMjM2LTlkYTQtNDJiNS04ZjU5LTllZjNmOTU2NjljOCIsCiAgICAgICAgIm5hbWUiOiAiUHJvamVjdGlvbi1mN2EzZmRhNC1hMWI5LTQyNTItODg1OC0yOGZmMjdmMjRmYWYiLAogICAgICAgICJuYW1lVGgiOiBudWxsLAogICAgICAgICJuYW1lRW4iOiBudWxsLAogICAgICAgICJzbHVnIjogIjRiNjUxMWM3LWI2YjktNDAyNC1hODdjLTQzNmUxY2Y2MDhjNiIsCiAgICAgICAgImlzQWN0aXZlIjogdHJ1ZQogICAgICB9LAogICAgICAiYnJhbmQiOiB7CiAgICAgICAgImlkIjogImZhMzA3MDk1LWQ1OWItNDVhMS05MjlmLWJjMjIzYWMxMGM4OSIsCiAgICAgICAgIm5hbWUiOiAiQnJhbmQtUHJvamVjdGlvbi1mN2EzZmRhNC1hMWI5LTQyNTItODg1OC0yOGZmMjdmMjRmYWYiLAogICAgICAgICJzbHVnIjogIjhmNzk0ZDEzLTI2NzktNGJiYy05ZTgwLTNiM2I5Yzg4YjUyMyIsCiAgICAgICAgImNvZGUiOiBudWxsLAogICAgICAgICJuYW1lVGgiOiBudWxsLAogICAgICAgICJuYW1lRW4iOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvbiI6IG51bGwsCiAgICAgICAgImRlc2NyaXB0aW9uVGgiOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvbkVuIjogbnVsbCwKICAgICAgICAibG9nb1VybCI6IG51bGwsCiAgICAgICAgIndlYnNpdGVVcmwiOiBudWxsLAogICAgICAgICJjb3VudHJ5Q29kZSI6IG51bGwsCiAgICAgICAgInNvcnRPcmRlciI6IDAsCiAgICAgICAgImlzRmVhdHVyZWQiOiBmYWxzZSwKICAgICAgICAiaXNBY3RpdmUiOiB0cnVlLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMzo0Mi43NDhaIiwKICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6NDIuNzQ4WiIKICAgICAgfSwKICAgICAgImhpZ2hsaWdodHMiOiBbXSwKICAgICAgImF0dHJpYnV0ZXMiOiBbXSwKICAgICAgIm9wdGlvbnMiOiBbXSwKICAgICAgImltYWdlcyI6IFtdLAogICAgICAidmlkZW8iOiBudWxsLAogICAgICAic2hvcCI6IHsKICAgICAgICAiaWQiOiAiMDAwMDAwMDAtNjBjMC00NjZjLTk0M2ItYjliZmYxNzUzOTkwIiwKICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIDFkZjA5YTlhIiwKICAgICAgICAic2x1ZyI6ICI3Nzg0ZTc5Mi1mZTgxLTRhMGItYjA5Mi05ZjZmMGQ1NTIzNGIiLAogICAgICAgICJvd25lcklkIjogIjg3NGZmNDc0LTg2YzEtNDZlMi1iMGU0LWZjM2Y3OWVmNzM5NCIsCiAgICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAgICJsb2dvVXJsIjogbnVsbCwKICAgICAgICAiY292ZXJVcmwiOiBudWxsLAogICAgICAgICJyYXRpbmdBdmVyYWdlIjogIjAiLAogICAgICAgICJyYXRpbmdDb3VudCI6IDAsCiAgICAgICAgImZvbGxvd2VyQ291bnQiOiAwLAogICAgICAgICJwcm9kdWN0Q291bnQiOiAwLAogICAgICAgICJhZGRyZXNzZXMiOiBbXQogICAgICB9LAogICAgICAidmFyaWFudHMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogImM3NWE2ZWE5LTk0MTEtNDM4NS05ZDYwLWExNWMzOWNhNzRlZiIsCiAgICAgICAgICAicHJvZHVjdElkIjogIjNiZmFkNTAzLWE5ZGYtNDkyOC1iNWMwLTg4YzIzNDA3ZDZjZiIsCiAgICAgICAgICAic2t1IjogImM0NGM4ZmY0LTNhYWQtNGMzOS1iNDAxLTQ5Y2ZlY2Q4MTY2NyIsCiAgICAgICAgICAidGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICAgICAidGl0bGVFbiI6IG51bGwsCiAgICAgICAgICAicHJpY2UiOiAiNTAwIiwKICAgICAgICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAgICAgIm9wdGlvbkNvbWJpbmF0aW9uS2V5IjogbnVsbCwKICAgICAgICAgICJ3ZWlnaHRHcmFtcyI6IG51bGwsCiAgICAgICAgICAibGVuZ3RoTW0iOiBudWxsLAogICAgICAgICAgIndpZHRoTW0iOiBudWxsLAogICAgICAgICAgImhlaWdodE1tIjogbnVsbCwKICAgICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMzo0Mi43NjBaIiwKICAgICAgICAgICJ1cGRhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMzo0Mi43NjBaIiwKICAgICAgICAgICJpbnZlbnRvcnkiOiB7CiAgICAgICAgICAgICJpZCI6ICJjY2E0YjNkZS00MTYyLTRhNTctOTJjMy00YzE5NzEzMmEzOWYiLAogICAgICAgICAgICAidmFyaWFudElkIjogImM3NWE2ZWE5LTk0MTEtNDM4NS05ZDYwLWExNWMzOWNhNzRlZiIsCiAgICAgICAgICAgICJxdWFudGl0eU9uSGFuZCI6IDMsCiAgICAgICAgICAgICJxdWFudGl0eVJlc2VydmVkIjogMiwKICAgICAgICAgICAgInJlb3JkZXJMZXZlbCI6IDAsCiAgICAgICAgICAgICJ2ZXJzaW9uIjogMSwKICAgICAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc2MFoiCiAgICAgICAgICB9LAogICAgICAgICAgIm9wdGlvblZhbHVlcyI6IFtdCiAgICAgICAgfQogICAgICBdLAogICAgICAicmF0aW5nIjogMCwKICAgICAgInJhdGluZ1N1bW1hcnkiOiB7CiAgICAgICAgImF2ZXJhZ2VSYXRpbmciOiAwLAogICAgICAgICJ0b3RhbFJldmlld0NvdW50IjogMAogICAgICB9LAogICAgICAic29sZENvdW50IjogMAogICAgfSwKICAgIHsKICAgICAgImlkIjogIjIwYjU1ZTBhLWQwYmItNGQxNC05MTc0LWY0ZTYxY2U2MGQzOCIsCiAgICAgICJzaG9wSWQiOiAiMDAwMDAwMDAtNjBjMC00NjZjLTk0M2ItYjliZmYxNzUzOTkwIiwKICAgICAgInNlbGxlclByb2ZpbGVJZCI6ICJlYTRjMjY5MC1kN2FkLTRhN2EtOWI3ZS1iMzhiN2IzNjEwNWQiLAogICAgICAic2VsbGVySWRlbnRpdHlIYXNoIjogbnVsbCwKICAgICAgImNhdGVnb3J5SWQiOiAiMDAyZmMyMzYtOWRhNC00MmI1LThmNTktOWVmM2Y5NTY2OWM4IiwKICAgICAgImJyYW5kSWQiOiAiZmEzMDcwOTUtZDU5Yi00NWExLTkyOWYtYmMyMjNhYzEwYzg5IiwKICAgICAgInRpdGxlIjogIlByb2plY3Rpb24tZjdhM2ZkYTQtYTFiOS00MjUyLTg4NTgtMjhmZjI3ZjI0ZmFmIG91dHNpZGU0OTkiLAogICAgICAidGl0bGVUaCI6IG51bGwsCiAgICAgICJ0aXRsZUVuIjogbnVsbCwKICAgICAgInNsdWciOiAiMTE3YjNiNWUtZWU1NS00YjY4LTk5NzAtMTFjN2JhOTBiZmE5IiwKICAgICAgImRlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgImRlc2NyaXB0aW9uVGgiOiBudWxsLAogICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICJtZXRhVGl0bGUiOiBudWxsLAogICAgICAibWV0YURlc2NyaXB0aW9uIjogbnVsbCwKICAgICAgIndhcnJhbnR5SW5mbyI6IG51bGwsCiAgICAgICJjb25kaXRpb24iOiBudWxsLAogICAgICAiY291bnRyeU9mT3JpZ2luIjogbnVsbCwKICAgICAgInN0YXR1cyI6ICJBQ1RJVkUiLAogICAgICAicHJvZHVjdEZpbmdlcnByaW50SGFzaCI6IG51bGwsCiAgICAgICJkdXBsaWNhdGVTdGF0dXMiOiAiVU5LTk9XTiIsCiAgICAgICJkdXBsaWNhdGVPZlByb2R1Y3RJZCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wMVQwMDowMDowMS4wMDBaIiwKICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc1NVoiLAogICAgICAiZGVsZXRlZEF0IjogbnVsbCwKICAgICAgImNhdGVnb3J5IjogewogICAgICAgICJpZCI6ICIwMDJmYzIzNi05ZGE0LTQyYjUtOGY1OS05ZWYzZjk1NjY5YzgiLAogICAgICAgICJuYW1lIjogIlByb2plY3Rpb24tZjdhM2ZkYTQtYTFiOS00MjUyLTg4NTgtMjhmZjI3ZjI0ZmFmIiwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAic2x1ZyI6ICI0YjY1MTFjNy1iNmI5LTQwMjQtYTg3Yy00MzZlMWNmNjA4YzYiLAogICAgICAgICJpc0FjdGl2ZSI6IHRydWUKICAgICAgfSwKICAgICAgImJyYW5kIjogewogICAgICAgICJpZCI6ICJmYTMwNzA5NS1kNTliLTQ1YTEtOTI5Zi1iYzIyM2FjMTBjODkiLAogICAgICAgICJuYW1lIjogIkJyYW5kLVByb2plY3Rpb24tZjdhM2ZkYTQtYTFiOS00MjUyLTg4NTgtMjhmZjI3ZjI0ZmFmIiwKICAgICAgICAic2x1ZyI6ICI4Zjc5NGQxMy0yNjc5LTRiYmMtOWU4MC0zYjNiOWM4OGI1MjMiLAogICAgICAgICJjb2RlIjogbnVsbCwKICAgICAgICAibmFtZVRoIjogbnVsbCwKICAgICAgICAibmFtZUVuIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb24iOiBudWxsLAogICAgICAgICJkZXNjcmlwdGlvblRoIjogbnVsbCwKICAgICAgICAiZGVzY3JpcHRpb25FbiI6IG51bGwsCiAgICAgICAgImxvZ29VcmwiOiBudWxsLAogICAgICAgICJ3ZWJzaXRlVXJsIjogbnVsbCwKICAgICAgICAiY291bnRyeUNvZGUiOiBudWxsLAogICAgICAgICJzb3J0T3JkZXIiOiAwLAogICAgICAgICJpc0ZlYXR1cmVkIjogZmFsc2UsCiAgICAgICAgImlzQWN0aXZlIjogdHJ1ZSwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6NDIuNzQ4WiIsCiAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTA0VDAwOjAzOjQyLjc0OFoiCiAgICAgIH0sCiAgICAgICJoaWdobGlnaHRzIjogW10sCiAgICAgICJhdHRyaWJ1dGVzIjogW10sCiAgICAgICJvcHRpb25zIjogW10sCiAgICAgICJpbWFnZXMiOiBbXSwKICAgICAgInZpZGVvIjogbnVsbCwKICAgICAgInNob3AiOiB7CiAgICAgICAgImlkIjogIjAwMDAwMDAwLTYwYzAtNDY2Yy05NDNiLWI5YmZmMTc1Mzk5MCIsCiAgICAgICAgIm5hbWUiOiAiRXh0ZW5kZWQgU2hvcCAxZGYwOWE5YSIsCiAgICAgICAgInNsdWciOiAiNzc4NGU3OTItZmU4MS00YTBiLWIwOTItOWY2ZjBkNTUyMzRiIiwKICAgICAgICAib3duZXJJZCI6ICI4NzRmZjQ3NC04NmMxLTQ2ZTItYjBlNC1mYzNmNzllZjczOTQiLAogICAgICAgICJzdGF0dXMiOiAiQUNUSVZFIiwKICAgICAgICAibG9nb1VybCI6IG51bGwsCiAgICAgICAgImNvdmVyVXJsIjogbnVsbCwKICAgICAgICAicmF0aW5nQXZlcmFnZSI6ICIwIiwKICAgICAgICAicmF0aW5nQ291bnQiOiAwLAogICAgICAgICJmb2xsb3dlckNvdW50IjogMCwKICAgICAgICAicHJvZHVjdENvdW50IjogMCwKICAgICAgICAiYWRkcmVzc2VzIjogW10KICAgICAgfSwKICAgICAgInZhcmlhbnRzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICI1Mzc4MzM1ZS1kOWViLTRkMDEtYmE3YS1lZjNiZGVjZmNmZmMiLAogICAgICAgICAgInByb2R1Y3RJZCI6ICIyMGI1NWUwYS1kMGJiLTRkMTQtOTE3NC1mNGU2MWNlNjBkMzgiLAogICAgICAgICAgInNrdSI6ICI1MDBmZmU5Mi05ZjJjLTQ2YTktOTNkOC1jYmJkYWIyOGVmN2IiLAogICAgICAgICAgInRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICAgInRpdGxlVGgiOiBudWxsLAogICAgICAgICAgInRpdGxlRW4iOiBudWxsLAogICAgICAgICAgInByaWNlIjogIjQ5OSIsCiAgICAgICAgICAiY3VycmVuY3kiOiAiVEhCIiwKICAgICAgICAgICJzdGF0dXMiOiAiQUNUSVZFIiwKICAgICAgICAgICJvcHRpb25Db21iaW5hdGlvbktleSI6IG51bGwsCiAgICAgICAgICAid2VpZ2h0R3JhbXMiOiBudWxsLAogICAgICAgICAgImxlbmd0aE1tIjogbnVsbCwKICAgICAgICAgICJ3aWR0aE1tIjogbnVsbCwKICAgICAgICAgICJoZWlnaHRNbSI6IG51bGwsCiAgICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6NDIuNzU2WiIsCiAgICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDRUMDA6MDM6NDIuNzU2WiIsCiAgICAgICAgICAiaW52ZW50b3J5IjogewogICAgICAgICAgICAiaWQiOiAiMjM5NWExNGYtMTdmMC00MDVhLWFiNWQtZWFhMTVkOTJmZmM3IiwKICAgICAgICAgICAgInZhcmlhbnRJZCI6ICI1Mzc4MzM1ZS1kOWViLTRkMDEtYmE3YS1lZjNiZGVjZmNmZmMiLAogICAgICAgICAgICAicXVhbnRpdHlPbkhhbmQiOiAzLAogICAgICAgICAgICAicXVhbnRpdHlSZXNlcnZlZCI6IDIsCiAgICAgICAgICAgICJyZW9yZGVyTGV2ZWwiOiAwLAogICAgICAgICAgICAidmVyc2lvbiI6IDEsCiAgICAgICAgICAgICJ1cGRhdGVkQXQiOiAiMjAyNi0xMC0wNFQwMDowMzo0Mi43NTZaIgogICAgICAgICAgfSwKICAgICAgICAgICJvcHRpb25WYWx1ZXMiOiBbXQogICAgICAgIH0KICAgICAgXSwKICAgICAgInJhdGluZyI6IDAsCiAgICAgICJyYXRpbmdTdW1tYXJ5IjogewogICAgICAgICJhdmVyYWdlUmF0aW5nIjogMCwKICAgICAgICAidG90YWxSZXZpZXdDb3VudCI6IDAKICAgICAgfSwKICAgICAgInNvbGRDb3VudCI6IDAKICAgIH0KICBdLAogICJzaW1pbGFyIjogewogICAgIml0ZW1zIjogWwogICAgICB7CiAgICAgICAgInByb2R1Y3RJZCI6ICJmMDg4OTI4OS03YTNkLTQ1YzQtYTRmYi1lMzJhMzFmYmJmNGEiLAogICAgICAgICJ0aXRsZSI6ICJQcm9qZWN0aW9uLWY3YTNmZGE0LWExYjktNDI1Mi04ODU4LTI4ZmYyN2YyNGZhZiBlZGdlMTUwMCIsCiAgICAgICAgIm1pblByaWNlIjogIjE1MDAiLAogICAgICAgICJ2YXJpYW50SWQiOiAiYWZhYjkxOGEtMTcwMy00YWJiLThiMTctYmEyZGU2OGI4N2ExIiwKICAgICAgICAidmFyaWFudFRpdGxlIjogIkRlZmF1bHQiLAogICAgICAgICJza3UiOiAiNTUxNWE5NTUtZTk0NS00MWE5LTk4NjktNzdlZDVjYzI0MzJiIiwKICAgICAgICAiY3VycmVuY3kiOiAiVEhCIiwKICAgICAgICAic3RvY2siOiAxLAogICAgICAgICJzb2xkQ291bnQiOiAwLAogICAgICAgICJzaG9wIjogewogICAgICAgICAgImlkIjogIjAwMDAwMDAwLTYwYzAtNDY2Yy05NDNiLWI5YmZmMTc1Mzk5MCIsCiAgICAgICAgICAibmFtZSI6ICJFeHRlbmRlZCBTaG9wIDFkZjA5YTlhIgogICAgICAgIH0KICAgICAgfSwKICAgICAgewogICAgICAgICJwcm9kdWN0SWQiOiAiM2JmYWQ1MDMtYTlkZi00OTI4LWI1YzAtODhjMjM0MDdkNmNmIiwKICAgICAgICAidGl0bGUiOiAiUHJvamVjdGlvbi1mN2EzZmRhNC1hMWI5LTQyNTItODg1OC0yOGZmMjdmMjRmYWYgZWRnZTUwMCIsCiAgICAgICAgIm1pblByaWNlIjogIjUwMCIsCiAgICAgICAgInZhcmlhbnRJZCI6ICJjNzVhNmVhOS05NDExLTQzODUtOWQ2MC1hMTVjMzljYTc0ZWYiLAogICAgICAgICJ2YXJpYW50VGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgInNrdSI6ICJjNDRjOGZmNC0zYWFkLTRjMzktYjQwMS00OWNmZWNkODE2NjciLAogICAgICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgICAgICJzdG9jayI6IDEsCiAgICAgICAgInNvbGRDb3VudCI6IDAsCiAgICAgICAgInNob3AiOiB7CiAgICAgICAgICAiaWQiOiAiMDAwMDAwMDAtNjBjMC00NjZjLTk0M2ItYjliZmYxNzUzOTkwIiwKICAgICAgICAgICJuYW1lIjogIkV4dGVuZGVkIFNob3AgMWRmMDlhOWEiCiAgICAgICAgfQogICAgICB9CiAgICBdLAogICAgInBhZ2luYXRpb24iOiB7CiAgICAgICJwYWdlIjogMSwKICAgICAgImxpbWl0IjogMjAsCiAgICAgICJoYXNOZXh0UGFnZSI6IGZhbHNlCiAgICB9CiAgfSwKICAic3RvcmVkUHJpY2VzIjogWwogICAgIjQ5OSIsCiAgICAiNTAwIiwKICAgICIxNTAwIiwKICAgICIxNTAxIgogIF0KfQ=="
+                    },
+                    {
+                      "name": "related-and-similar-price-contracts",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-projections-relate-3daae-includes500-1500-edges-only-chromium\\attachments\\related-and-similar-price-contracts-4ca3a65a388689135b9a6b1be6f4a04a4572a060.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-ebb95a7abf358eb31335",
+          "file": "numeric-projections.spec.ts",
+          "line": 215,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-reporting.spec.ts",
+      "file": "numeric-reporting.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 12312,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('img', { name: '2026-09-30 views: 1', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('img', { name: '2026-09-30 views: 1', exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('img', { name: '2026-09-30 views: 1', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('img', { name: '2026-09-30 views: 1', exact: true })\u001b[22m\n\n    at D:\\GitHub\\marketplace\\e2e\\numeric-reporting.spec.ts:80:120",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-reporting.spec.ts",
+                      "column": 120,
+                      "line": 80
+                    },
+                    "snippet": "  78 |   for (const day of windows) {\n  79 |     for (const label of [en.seller.analytics.trendViews, en.seller.analytics.trendAddToCart, en.seller.analytics.trendOrders]) {\n> 80 |       await expect(page.getByRole(\"img\", { name: `${label.replace(\"{date}\", day.date)}: ${day.count}`, exact: true })).toBeVisible();\n     |                                                                                                                        ^\n  81 |     }\n  82 |   }\n  83 |   const productRow = page.getByRole(\"row\").filter({ hasText: shop.product.title });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-reporting.spec.ts",
+                        "column": 120,
+                        "line": 80
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('img', { name: '2026-09-30 views: 1', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('img', { name: '2026-09-30 views: 1', exact: true })\u001b[22m\n\n\n  78 |   for (const day of windows) {\n  79 |     for (const label of [en.seller.analytics.trendViews, en.seller.analytics.trendAddToCart, en.seller.analytics.trendOrders]) {\n> 80 |       await expect(page.getByRole(\"img\", { name: `${label.replace(\"{date}\", day.date)}: ${day.count}`, exact: true })).toBeVisible();\n     |                                                                                                                        ^\n  81 |     }\n  82 |   }\n  83 |   const productRow = page.getByRole(\"row\").filter({ hasText: shop.product.title });\n    at D:\\GitHub\\marketplace\\e2e\\numeric-reporting.spec.ts:80:120"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:44.183Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-reporting-seller-h-11c2c-elected-day-UI-API-DB-cents-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-reporting.spec.ts",
+                    "column": 120,
+                    "line": 80
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c71c32851697e135a070-5c931499643f1bb9fd62",
+          "file": "numeric-reporting.spec.ts",
+          "line": 19,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-shipping.spec.ts",
+      "file": "numeric-shipping.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3387,
+                  "error": {
+                    "message": "Error: {\"error\":{\"code\":\"INVALID_REQUEST\",\"message\":\"{\\n  \\\"type\\\": \\\"validation\\\",\\n  \\\"on\\\": \\\"body\\\",\\n  \\\"property\\\": \\\"/shippingFeeBaht\\\",\\n  \\\"message\\\": \\\"Unexpected property\\\",\\n  \\\"summary\\\": \\\"Property 'shippingFeeBaht' should not be provided\\\",\\n  \\\"expected\\\": {},\\n  \\\"found\\\": {\\n    \\\"shippingFeeBaht\\\": \\\"49.95\\\"\\n  },\\n  \\\"errors\\\": [\\n    {\\n      \\\"type\\\": 42,\\n      \\\"schema\\\": {\\n        \\\"additionalProperties\\\": false,\\n        \\\"type\\\": \\\"object\\\",\\n        \\\"properties\\\": {\\n          \\\"autoAcceptOrder\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"allowCod\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"chatEnabled\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"vacationMode\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"defaultShippingProvider\\\": {\\n            \\\"anyOf\\\": [\\n              {\\n                \\\"type\\\": \\\"null\\\"\\n              },\\n              {\\n                \\\"type\\\": \\\"string\\\"\\n              }\\n            ]\\n          },\\n          \\\"returnPolicy\\\": {\\n            \\\"anyOf\\\": [\\n              {\\n                \\\"type\\\": \\\"null\\\"\\n              },\\n              {\\n                \\\"type\\\": \\\"string\\\"\\n              }\\n            ]\\n          },\\n          \\\"shippingPolicy\\\": {\\n            \\\"anyOf\\\": [\\n              {\\n                \\\"type\\\": \\\"null\\\"\\n              },\\n              {\\n                \\\"type\\\": \\\"string\\\"\\n              }\\n            ]\\n          }\\n        }\\n      },\\n      \\\"path\\\": \\\"/shippingFeeBaht\\\",\\n      \\\"value\\\": \\\"49.95\\\",\\n      \\\"message\\\": \\\"Unexpected property\\\",\\n      \\\"errors\\\": [],\\n      \\\"summary\\\": \\\"Property 'shippingFeeBaht' should not be provided\\\"\\n    },\\n    {\\n      \\\"summary\\\": \\\"Expected all values to match\\\",\\n      \\\"type\\\": 29,\\n      \\\"schema\\\": {\\n        \\\"type\\\": \\\"object\\\",\\n        \\\"allOf\\\": [\\n          {\\n            \\\"additionalProperties\\\": false,\\n            \\\"type\\\": \\\"object\\\",\\n            \\\"properties\\\": {\\n              \\\"autoAcceptOrder\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"allowCod\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"chatEnabled\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"vacationMode\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"defaultShippingProvider\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              },\\n              \\\"returnPolicy\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingPolicy\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              }\\n            }\\n          },\\n          {\\n            \\\"type\\\": \\\"object\\\",\\n            \\\"properties\\\": {\\n              \\\"returnPolicyTh\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"returnPolicyEn\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingPolicyTh\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingPolicyEn\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingFeeBaht\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"minimum\\\": 0,\\n                    \\\"maximum\\\": 100000,\\n                    \\\"type\\\": \\\"number\\\"\\n                  },\\n                  {\\n                    \\\"pattern\\\": \\\"^\\\\\\\\d+(?:\\\\\\\\.\\\\\\\\d{1,2})?$\\\",\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              }\\n            }\\n          }\\n        ],\\n        \\\"additionalProperties\\\": false\\n      },\\n      \\\"path\\\": \\\"\\\",\\n      \\\"value\\\": {\\n        \\\"shippingFeeBaht\\\": \\\"49.95\\\"\\n      },\\n      \\\"message\\\": \\\"Expected all values to match\\\",\\n      \\\"errors\\\": []\\n    }\\n  ]\\n}\",\"requestId\":\"166d72e7-9c2a-4a5d-89af-d64ab7c51639\"}}\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m",
+                    "stack": "Error: {\"error\":{\"code\":\"INVALID_REQUEST\",\"message\":\"{\\n  \\\"type\\\": \\\"validation\\\",\\n  \\\"on\\\": \\\"body\\\",\\n  \\\"property\\\": \\\"/shippingFeeBaht\\\",\\n  \\\"message\\\": \\\"Unexpected property\\\",\\n  \\\"summary\\\": \\\"Property 'shippingFeeBaht' should not be provided\\\",\\n  \\\"expected\\\": {},\\n  \\\"found\\\": {\\n    \\\"shippingFeeBaht\\\": \\\"49.95\\\"\\n  },\\n  \\\"errors\\\": [\\n    {\\n      \\\"type\\\": 42,\\n      \\\"schema\\\": {\\n        \\\"additionalProperties\\\": false,\\n        \\\"type\\\": \\\"object\\\",\\n        \\\"properties\\\": {\\n          \\\"autoAcceptOrder\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"allowCod\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"chatEnabled\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"vacationMode\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"defaultShippingProvider\\\": {\\n            \\\"anyOf\\\": [\\n              {\\n                \\\"type\\\": \\\"null\\\"\\n              },\\n              {\\n                \\\"type\\\": \\\"string\\\"\\n              }\\n            ]\\n          },\\n          \\\"returnPolicy\\\": {\\n            \\\"anyOf\\\": [\\n              {\\n                \\\"type\\\": \\\"null\\\"\\n              },\\n              {\\n                \\\"type\\\": \\\"string\\\"\\n              }\\n            ]\\n          },\\n          \\\"shippingPolicy\\\": {\\n            \\\"anyOf\\\": [\\n              {\\n                \\\"type\\\": \\\"null\\\"\\n              },\\n              {\\n                \\\"type\\\": \\\"string\\\"\\n              }\\n            ]\\n          }\\n        }\\n      },\\n      \\\"path\\\": \\\"/shippingFeeBaht\\\",\\n      \\\"value\\\": \\\"49.95\\\",\\n      \\\"message\\\": \\\"Unexpected property\\\",\\n      \\\"errors\\\": [],\\n      \\\"summary\\\": \\\"Property 'shippingFeeBaht' should not be provided\\\"\\n    },\\n    {\\n      \\\"summary\\\": \\\"Expected all values to match\\\",\\n      \\\"type\\\": 29,\\n      \\\"schema\\\": {\\n        \\\"type\\\": \\\"object\\\",\\n        \\\"allOf\\\": [\\n          {\\n            \\\"additionalProperties\\\": false,\\n            \\\"type\\\": \\\"object\\\",\\n            \\\"properties\\\": {\\n              \\\"autoAcceptOrder\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"allowCod\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"chatEnabled\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"vacationMode\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"defaultShippingProvider\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              },\\n              \\\"returnPolicy\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingPolicy\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              }\\n            }\\n          },\\n          {\\n            \\\"type\\\": \\\"object\\\",\\n            \\\"properties\\\": {\\n              \\\"returnPolicyTh\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"returnPolicyEn\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingPolicyTh\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingPolicyEn\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingFeeBaht\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"minimum\\\": 0,\\n                    \\\"maximum\\\": 100000,\\n                    \\\"type\\\": \\\"number\\\"\\n                  },\\n                  {\\n                    \\\"pattern\\\": \\\"^\\\\\\\\d+(?:\\\\\\\\.\\\\\\\\d{1,2})?$\\\",\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              }\\n            }\\n          }\\n        ],\\n        \\\"additionalProperties\\\": false\\n      },\\n      \\\"path\\\": \\\"\\\",\\n      \\\"value\\\": {\\n        \\\"shippingFeeBaht\\\": \\\"49.95\\\"\\n      },\\n      \\\"message\\\": \\\"Expected all values to match\\\",\\n      \\\"errors\\\": []\\n    }\\n  ]\\n}\",\"requestId\":\"166d72e7-9c2a-4a5d-89af-d64ab7c51639\"}}\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n    at D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts:25:42",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts",
+                      "column": 42,
+                      "line": 25
+                    },
+                    "snippet": "  23 |   const saved = await savedResponse;\n  24 |   expect(saved.request().postDataJSON()).toMatchObject({ shippingFeeBaht: '49.95' });\n> 25 |   expect(saved.ok(), await saved.text()).toBeTruthy();\n     |                                          ^\n  26 |   expect(await saved.json()).toMatchObject({ shopId: shop.id, shippingFeeBaht: 49.95 });\n  27 |   expect(await prisma.shopSetting.findUniqueOrThrow({ where: { shopId: shop.id } })).toMatchObject({ shippingFee: 4995n });\n  28 |   await expect(page.getByText(en.seller.manage.shippingFeeSaved, { exact: true })).toBeVisible();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts",
+                        "column": 42,
+                        "line": 25
+                      },
+                      "message": "Error: {\"error\":{\"code\":\"INVALID_REQUEST\",\"message\":\"{\\n  \\\"type\\\": \\\"validation\\\",\\n  \\\"on\\\": \\\"body\\\",\\n  \\\"property\\\": \\\"/shippingFeeBaht\\\",\\n  \\\"message\\\": \\\"Unexpected property\\\",\\n  \\\"summary\\\": \\\"Property 'shippingFeeBaht' should not be provided\\\",\\n  \\\"expected\\\": {},\\n  \\\"found\\\": {\\n    \\\"shippingFeeBaht\\\": \\\"49.95\\\"\\n  },\\n  \\\"errors\\\": [\\n    {\\n      \\\"type\\\": 42,\\n      \\\"schema\\\": {\\n        \\\"additionalProperties\\\": false,\\n        \\\"type\\\": \\\"object\\\",\\n        \\\"properties\\\": {\\n          \\\"autoAcceptOrder\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"allowCod\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"chatEnabled\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"vacationMode\\\": {\\n            \\\"type\\\": \\\"boolean\\\"\\n          },\\n          \\\"defaultShippingProvider\\\": {\\n            \\\"anyOf\\\": [\\n              {\\n                \\\"type\\\": \\\"null\\\"\\n              },\\n              {\\n                \\\"type\\\": \\\"string\\\"\\n              }\\n            ]\\n          },\\n          \\\"returnPolicy\\\": {\\n            \\\"anyOf\\\": [\\n              {\\n                \\\"type\\\": \\\"null\\\"\\n              },\\n              {\\n                \\\"type\\\": \\\"string\\\"\\n              }\\n            ]\\n          },\\n          \\\"shippingPolicy\\\": {\\n            \\\"anyOf\\\": [\\n              {\\n                \\\"type\\\": \\\"null\\\"\\n              },\\n              {\\n                \\\"type\\\": \\\"string\\\"\\n              }\\n            ]\\n          }\\n        }\\n      },\\n      \\\"path\\\": \\\"/shippingFeeBaht\\\",\\n      \\\"value\\\": \\\"49.95\\\",\\n      \\\"message\\\": \\\"Unexpected property\\\",\\n      \\\"errors\\\": [],\\n      \\\"summary\\\": \\\"Property 'shippingFeeBaht' should not be provided\\\"\\n    },\\n    {\\n      \\\"summary\\\": \\\"Expected all values to match\\\",\\n      \\\"type\\\": 29,\\n      \\\"schema\\\": {\\n        \\\"type\\\": \\\"object\\\",\\n        \\\"allOf\\\": [\\n          {\\n            \\\"additionalProperties\\\": false,\\n            \\\"type\\\": \\\"object\\\",\\n            \\\"properties\\\": {\\n              \\\"autoAcceptOrder\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"allowCod\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"chatEnabled\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"vacationMode\\\": {\\n                \\\"type\\\": \\\"boolean\\\"\\n              },\\n              \\\"defaultShippingProvider\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              },\\n              \\\"returnPolicy\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingPolicy\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              }\\n            }\\n          },\\n          {\\n            \\\"type\\\": \\\"object\\\",\\n            \\\"properties\\\": {\\n              \\\"returnPolicyTh\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"returnPolicyEn\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingPolicyTh\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingPolicyEn\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"maxLength\\\": 5000,\\n                    \\\"type\\\": \\\"string\\\"\\n                  },\\n                  {\\n                    \\\"type\\\": \\\"null\\\"\\n                  }\\n                ]\\n              },\\n              \\\"shippingFeeBaht\\\": {\\n                \\\"anyOf\\\": [\\n                  {\\n                    \\\"minimum\\\": 0,\\n                    \\\"maximum\\\": 100000,\\n                    \\\"type\\\": \\\"number\\\"\\n                  },\\n                  {\\n                    \\\"pattern\\\": \\\"^\\\\\\\\d+(?:\\\\\\\\.\\\\\\\\d{1,2})?$\\\",\\n                    \\\"type\\\": \\\"string\\\"\\n                  }\\n                ]\\n              }\\n            }\\n          }\\n        ],\\n        \\\"additionalProperties\\\": false\\n      },\\n      \\\"path\\\": \\\"\\\",\\n      \\\"value\\\": {\\n        \\\"shippingFeeBaht\\\": \\\"49.95\\\"\\n      },\\n      \\\"message\\\": \\\"Expected all values to match\\\",\\n      \\\"errors\\\": []\\n    }\\n  ]\\n}\",\"requestId\":\"166d72e7-9c2a-4a5d-89af-d64ab7c51639\"}}\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mfalse\u001b[39m\n\n  23 |   const saved = await savedResponse;\n  24 |   expect(saved.request().postDataJSON()).toMatchObject({ shippingFeeBaht: '49.95' });\n> 25 |   expect(saved.ok(), await saved.text()).toBeTruthy();\n     |                                          ^\n  26 |   expect(await saved.json()).toMatchObject({ shopId: shop.id, shippingFeeBaht: 49.95 });\n  27 |   expect(await prisma.shopSetting.findUniqueOrThrow({ where: { shopId: shop.id } })).toMatchObject({ shippingFee: 4995n });\n  28 |   await expect(page.getByText(en.seller.manage.shippingFeeSaved, { exact: true })).toBeVisible();\n    at D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts:25:42"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:03:57.715Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-shipping.spec.ts",
+                    "column": 42,
+                    "line": 25
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "96ad7778b2646b078299-2a7aeefdecc5ac6c2f94",
+          "file": "numeric-shipping.spec.ts",
+          "line": 12,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-tax.spec.ts",
+      "file": "numeric-tax.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5169,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:04:02.616Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "original-tax-checkout",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\\attachments\\original-tax-checkout-fc630c5d1158c9ba83b7df83333804582c7db2a2.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-37970fd0ed25950cb34a",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4900,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T00:04:07.905Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "original-tax-checkout",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-final-chromium\\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\\attachments\\original-tax-checkout-c1f5e16a8d3f27825ecd1957c55d6a6f114117d5.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-af1868fc42b70355e01e",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-04T00:02:13.596Z",
+    "duration": 119926.227,
+    "expected": 17,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,136 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:27120) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+[WebServer] [browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+[WebServer] 
+[WebServer] - A server/client branch `if (typeof window !== 'undefined')`.
+[WebServer] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[WebServer] - Date formatting in a user's locale which doesn't match the server.
+[WebServer] - External changing data without sending a snapshot of it along with the HTML.
+[WebServer] - Invalid HTML tag nesting.
+[WebServer] 
+[WebServer] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[WebServer] 
+[WebServer] https://react.dev/link/hydration-mismatch
+[WebServer] 
+[WebServer]   ...
+[WebServer]     <RedirectErrorBoundary router={{...}}>
+[WebServer]       <InnerLayoutRouter url="/en" tree={[...]} params={{locale:"en"}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+[WebServer]         <SegmentViewNode type="page" pagePath="[locale]/(...">
+[WebServer]           <SegmentTrieNode>
+[WebServer]           <HomePage>
+[WebServer]             <script>
+[WebServer]             <HomeAuthenticatedSection>
+[WebServer]               <HomeMarketplaceClient initialHome={{sections:{...}, ...}} user={{name:"Exte...", ...}}>
+[WebServer]                 <MarketplaceHome initialHome={{sections:{...}, ...}} user={{name:"Exte...", ...}}>
+[WebServer]                   <div className="min-h-scre...">
+[WebServer]                     <BuyerTopBar>
+[WebServer]                     <main className="mx-auto w-...">
+[WebServer]                       <HeroPromo>
+[WebServer]                       <VoucherStrip>
+[WebServer]                       <FlashSaleSection flashSale={{id:"5a53e6...", ...}} isLoading={false} ...>
+[WebServer]                         <section className="mt-5 min-h...">
+[WebServer]                           <div className="mb-3 flex ...">
+[WebServer]                             <div className="flex items...">
+[WebServer]                               <div>
+[WebServer]                               <div>
+[WebServer]                                 <h2>
+[WebServer]                                 <p className="text-xs text-slate-900">
+[WebServer] +                                 Ends 10/4/2026
+[WebServer] -                                 Ends 4/10/2026
+[WebServer]                           ...
+[WebServer]                       ...
+[WebServer]                     ...
+[WebServer]         ...
+[WebServer]       ...
+[WebServer] 
+[WebServer]     at <unknown> (https://react.dev/link/hydration-mismatch)
+[WebServer]     at p (<anonymous>)
+[WebServer]     at FlashSaleSection (app/features/marketplace/components/MarketplaceHome.tsx:309:13)
+[WebServer]     at MarketplaceHome (app/features/marketplace/components/MarketplaceHome.tsx:173:9)
+[WebServer]     at HomeMarketplaceClient (app/features/home/components/HomeMarketplaceClient.tsx:16:10)
+[WebServer]     at HomeAuthenticatedSection (app\features\home\components\HomeAuthenticatedSection.tsx:17:10)
+[WebServer]     at HomePage (app\[locale]\(public)\page.tsx:34:9)
+[WebServer]   307 |           <div>
+[WebServer]   308 |             <h2 className="text-lg font-extrabold text-slate-950">{flashSale?.title ?? t("home.flashSale")}</h2>
+[WebServer] > 309 |             <p className="text-xs text-slate-900">{flashSale?.description ?? (flashSale?.endsAt ? t("home.endsAt").replace("{time}", new Date(flashSale.endsAt).toLocaleDateString()) : t("home.limitedTimeDeals"))}</p>
+[WebServer]       |             ^
+[WebServer]   310 |           </div>
+[WebServer]   311 |         </div>
+[WebServer]   312 |       </div>
+  x  1 [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (21.4s)
+
+
+  1) [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-51e8-4e3f-a8fa-9ba652349bb1', exact: true }) }).locator('article').filter({ hasText: 'Extended product 8221dc35' }).getByText('฿90.00', { exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-51e8-4e3f-a8fa-9ba652349bb1', exact: true }) }).locator('article').filter({ hasText: 'Extended product 8221dc35' }).getByText('฿90.00', { exact: true })
+
+
+      93 |     const card = section.locator('article').filter({ hasText: product.title });
+      94 |     await expect(card).toHaveCount(1);
+    > 95 |     await expect(card.getByText('฿90.00', { exact: true })).toBeVisible();
+         |                                                             ^
+      96 |     await expect(card.getByRole('button', { name: en.product.add, exact: true })).toBeDisabled();
+      97 |     const heldScreenshot = testInfo.outputPath('flash-physical-stock-held.png');
+      98 |     await section.screenshot({ path: heldScreenshot });
+        at D:\GitHub\marketplace\e2e\numeric-shipping.spec.ts:95:61
+
+    attachment #1: exact-shipping-checkout (image/png) ─────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-shipping-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\attachments\exact-shipping-checkout-bba2a8ac727ba14927748f039a6b06df49e7773a.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-shipping-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-shipping-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-shipping-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-shipping-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-shipping-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\error-context.md
+
+    attachment #7: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-shipping-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-shipping-final-chromium\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 

@@ -1,0 +1,340 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:35640) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 17 tests using 1 worker
+
+  ok  1 [chromium] › e2e\numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves (6.7s)
+  ok  2 [chromium] › e2e\numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case (2.2s)
+  x   3 [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping (6.8s)
+  x   4 [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping (4.0s)
+  x   5 [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping (3.9s)
+  ok  6 [chromium] › e2e\numeric-analytics.spec.ts:13:1 › paid analytics reconciles ten views to ten percent and revenue ranking across pages (4.8s)
+  ok  7 [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (4.9s)
+  ok  8 [chromium] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (4.3s)
+  ok  9 [chromium] › e2e\numeric-boundaries.spec.ts:70:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (4.1s)
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer] 
+  ok 10 [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for repriced basket (9.9s)
+  x  11 [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for coupon and coins (2.9s)
+  x  12 [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for flash price with coupon and coins (3.0s)
+  x  13 [chromium] › e2e\numeric-projections.spec.ts:88:1 › published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI (14.0s)
+Testing stopped early after 6 maximum allowed failures.
+
+
+  1) [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 3
+    + Received  + 3
+
+      Object {
+    -   "buyerMerchandiseNet": 9999n,
+    -   "buyerMerchandiseTax": 0n,
+    -   "originalCashbackEligibleNet": 9999n,
+    +   "buyerMerchandiseNet": null,
+    +   "buyerMerchandiseTax": null,
+    +   "originalCashbackEligibleNet": null,
+      }
+
+      165 |       expect(result.totalCents).toBe(scenario.paid.toString());
+      166 |       const snapshot = await db.itemSaleSnapshot.findFirstOrThrow({ where: { orderItem: { orderId: result.orderId } } });
+    > 167 |       expect(snapshot).toMatchObject({ buyerMerchandiseNet: scenario.net, buyerMerchandiseTax: 0n, originalCashbackEligibleNet: scenario.net });
+          |                        ^
+      168 |       const shopSnapshot = await db.shopSaleSnapshot.findFirstOrThrow({ where: { shopOrder: { orderId: result.orderId } } });
+      169 |       expect(shopSnapshot).toMatchObject({ policyVersion: 2, buyerShipping: 5000n, reportedTaxTotal: 0n });
+      170 |       expect(await db.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ provider: "mock", amount: scenario.paid, status: "PENDING" });
+        at D:\GitHub\marketplace\e2e\numeric-admin-projections.spec.ts:167:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\error-context.md
+
+    attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 3
+    + Received  + 3
+
+      Object {
+    -   "buyerMerchandiseNet": 10000n,
+    -   "buyerMerchandiseTax": 0n,
+    -   "originalCashbackEligibleNet": 10000n,
+    +   "buyerMerchandiseNet": null,
+    +   "buyerMerchandiseTax": null,
+    +   "originalCashbackEligibleNet": null,
+      }
+
+      165 |       expect(result.totalCents).toBe(scenario.paid.toString());
+      166 |       const snapshot = await db.itemSaleSnapshot.findFirstOrThrow({ where: { orderItem: { orderId: result.orderId } } });
+    > 167 |       expect(snapshot).toMatchObject({ buyerMerchandiseNet: scenario.net, buyerMerchandiseTax: 0n, originalCashbackEligibleNet: scenario.net });
+          |                        ^
+      168 |       const shopSnapshot = await db.shopSaleSnapshot.findFirstOrThrow({ where: { shopOrder: { orderId: result.orderId } } });
+      169 |       expect(shopSnapshot).toMatchObject({ policyVersion: 2, buyerShipping: 5000n, reportedTaxTotal: 0n });
+      170 |       expect(await db.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ provider: "mock", amount: scenario.paid, status: "PENDING" });
+        at D:\GitHub\marketplace\e2e\numeric-admin-projections.spec.ts:167:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\error-context.md
+
+    attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 3
+    + Received  + 3
+
+      Object {
+    -   "buyerMerchandiseNet": 10001n,
+    -   "buyerMerchandiseTax": 0n,
+    -   "originalCashbackEligibleNet": 10001n,
+    +   "buyerMerchandiseNet": null,
+    +   "buyerMerchandiseTax": null,
+    +   "originalCashbackEligibleNet": null,
+      }
+
+      165 |       expect(result.totalCents).toBe(scenario.paid.toString());
+      166 |       const snapshot = await db.itemSaleSnapshot.findFirstOrThrow({ where: { orderItem: { orderId: result.orderId } } });
+    > 167 |       expect(snapshot).toMatchObject({ buyerMerchandiseNet: scenario.net, buyerMerchandiseTax: 0n, originalCashbackEligibleNet: scenario.net });
+          |                        ^
+      168 |       const shopSnapshot = await db.shopSaleSnapshot.findFirstOrThrow({ where: { shopOrder: { orderId: result.orderId } } });
+      169 |       expect(shopSnapshot).toMatchObject({ policyVersion: 2, buyerShipping: 5000n, reportedTaxTotal: 0n });
+      170 |       expect(await db.payment.findUniqueOrThrow({ where: { id: result.paymentId } })).toMatchObject({ provider: "mock", amount: scenario.paid, status: "PENDING" });
+        at D:\GitHub\marketplace\e2e\numeric-admin-projections.spec.ts:167:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\error-context.md
+
+    attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for coupon and coins 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "discountTotal": 813n,
+    -   "grandTotal": 2135n,
+    +   "discountTotal": 815n,
+    +   "grandTotal": 2133n,
+        "shippingTotal": 350n,
+        "subtotal": 2598n,
+      }
+
+      77 |     expect(order.items.find(item => item.shopId === first.shop.id)).toMatchObject({ unitPrice: BigInt(scenario.unitPrice), quantity: 2, lineTotal: BigInt(scenario.firstLine) });
+      78 |     expect(order.items.find(item => item.shopId === second.shop.id)).toMatchObject({ unitPrice: 999n, quantity: 2, lineTotal: 1998n });
+    > 79 |     expect(order.shopOrders.find(shop => shop.shopId === first.shop.id)).toMatchObject({ subtotal: BigInt(scenario.firstLine), discountTotal: BigInt(scenario.firstShopDiscount), shippingTotal: 350n, grandTotal: BigInt(scenario.firstShopTotal) });
+         |                                                                          ^
+      80 |     expect(order.shopOrders.find(shop => shop.shopId === second.shop.id)).toMatchObject({ subtotal: 1998n, discountTotal: BigInt(scenario.secondShopDiscount), shippingTotal: 450n, grandTotal: BigInt(scenario.secondShopTotal) });
+      81 |     for (const { variant } of fixture.shops) {
+      82 |       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });
+        at D:\GitHub\marketplace\e2e\numeric-commerce.spec.ts:79:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-d877b-satang-for-coupon-and-coins-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for flash price with coupon and coins 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "discountTotal": 635n,
+    -   "grandTotal": 1515n,
+    +   "discountTotal": 636n,
+    +   "grandTotal": 1514n,
+        "shippingTotal": 350n,
+        "subtotal": 1800n,
+      }
+
+      77 |     expect(order.items.find(item => item.shopId === first.shop.id)).toMatchObject({ unitPrice: BigInt(scenario.unitPrice), quantity: 2, lineTotal: BigInt(scenario.firstLine) });
+      78 |     expect(order.items.find(item => item.shopId === second.shop.id)).toMatchObject({ unitPrice: 999n, quantity: 2, lineTotal: 1998n });
+    > 79 |     expect(order.shopOrders.find(shop => shop.shopId === first.shop.id)).toMatchObject({ subtotal: BigInt(scenario.firstLine), discountTotal: BigInt(scenario.firstShopDiscount), shippingTotal: 350n, grandTotal: BigInt(scenario.firstShopTotal) });
+         |                                                                          ^
+      80 |     expect(order.shopOrders.find(shop => shop.shopId === second.shop.id)).toMatchObject({ subtotal: 1998n, discountTotal: BigInt(scenario.secondShopDiscount), shippingTotal: 450n, grandTotal: BigInt(scenario.secondShopTotal) });
+      81 |     for (const { variant } of fixture.shops) {
+      82 |       expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 10, quantityReserved: 2 });
+        at D:\GitHub\marketplace\e2e\numeric-commerce.spec.ts:79:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-commerce-UI-API-an-83cb9-price-with-coupon-and-coins-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › e2e\numeric-projections.spec.ts:88:1 › published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).locator('div.grid').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).getByText('5 star', { exact: true }) }).last().getByText('2', { exact: true })
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).locator('div.grid').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Reviews', exact: true }) }).getByText('5 star', { exact: true }) }).last().getByText('2', { exact: true })
+
+
+      128 |   const fiveStar = reviews.locator('div.grid').filter({ has: reviews.getByText('5 star', { exact: true }) }).last()
+      129 |   const threeStar = reviews.locator('div.grid').filter({ has: reviews.getByText('3 star', { exact: true }) }).last()
+    > 130 |   await expect(fiveStar.getByText('2', { exact: true })).toBeVisible()
+          |                                                          ^
+      131 |   await expect(fiveStar.locator('[style]')).toHaveAttribute('style', /width:\s*67%/)
+      132 |   await expect(threeStar.getByText('1', { exact: true })).toBeVisible()
+      133 |   await expect(threeStar.locator('[style]')).toHaveAttribute('style', /width:\s*33%/)
+        at D:\GitHub\marketplace\e2e\numeric-projections.spec.ts:130:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-chromium\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping 
+    [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping 
+    [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping 
+    [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for coupon and coins 
+    [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for flash price with coupon and coins 
+    [chromium] › e2e\numeric-projections.spec.ts:88:1 › published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI 
+  4 did not run
+  7 passed (1.4m)
+  1 error was not a part of any test, see above for details

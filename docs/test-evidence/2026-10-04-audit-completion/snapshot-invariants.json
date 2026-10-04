@@ -1,0 +1,62 @@
+{
+  "database": "marketplace_e2e_completion",
+  "checkedAt": "2026-10-03T23:57:01.225Z",
+  "counts": [
+    {
+      "orders": "101",
+      "payments": "101",
+      "items": "149",
+      "shop_orders": "107"
+    }
+  ],
+  "violations": [
+    {
+      "check": "order_equation",
+      "violations": "0"
+    },
+    {
+      "check": "item_equation",
+      "violations": "0"
+    },
+    {
+      "check": "item_subtotal",
+      "violations": "0"
+    },
+    {
+      "check": "shop_snapshot_completeness",
+      "violations": "0"
+    },
+    {
+      "check": "shop_snapshot_totals",
+      "violations": "0"
+    },
+    {
+      "check": "payment_snapshot_amount",
+      "violations": "0"
+    },
+    {
+      "check": "inventory_bounds",
+      "violations": "0"
+    },
+    {
+      "check": "duplicate_seller_earnings",
+      "violations": "0"
+    },
+    {
+      "check": "tax_disclosure_equation",
+      "violations": "0"
+    },
+    {
+      "check": "original_v2_atomic_tax",
+      "violations": "0"
+    },
+    {
+      "check": "planned_refund_cash",
+      "violations": "0"
+    },
+    {
+      "check": "original_quantity_capacity",
+      "violations": "0"
+    }
+  ]
+}

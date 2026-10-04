@@ -1,0 +1,10 @@
+$ vitest run --exclude "**/e2e/**" server/modules/checkout/checkout-thresholds.integration.test.ts -t "last flash" "--maxWorkers=1"
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 3 skipped (4)
+   Start at  05:26:16
+   Duration  1.36s (transform 376ms, setup 0ms, import 832ms, tests 387ms, environment 0ms)
+

@@ -1,0 +1,534 @@
+{
+  "entries": [
+    {
+      "file": "server/index.ts",
+      "line": 45,
+      "expression": "process.env.API_PORT ?? 3001",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/lib/money.ts",
+      "line": 17,
+      "expression": "integer",
+      "classification": "moneyNumber implementation: bounds checked before Number"
+    },
+    {
+      "file": "server/lib/money.ts",
+      "line": 41,
+      "expression": "BigInt(decimal[1]!) * 100n + BigInt((decimal[2] ?? '').padEnd(2, '0'))",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/admin/admin.service.ts",
+      "line": 827,
+      "expression": "input.page ?? 1",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/admin/admin.service.ts",
+      "line": 828,
+      "expression": "input.limit ?? 20",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/affiliate/affiliate.service.ts",
+      "line": 221,
+      "expression": "eligible > 0n ? eligible : 0n",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/affiliate/affiliate.service.ts",
+      "line": 267,
+      "expression": "env['AFFILIATE_ATTRIBUTION_WINDOW_DAYS'] ?? DEFAULT_ATTRIBUTION_WINDOW_DAYS",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/affiliate/affiliate.service.ts",
+      "line": 268,
+      "expression": "env['AFFILIATE_COMMISSION_BPS'] ?? DEFAULT_COMMISSION_BPS",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/ai-search/ai-search.service.ts",
+      "line": 174,
+      "expression": "(totalRating / totalReviewCount).toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/ai-search/ai-search.service.ts",
+      "line": 216,
+      "expression": "match.score.toFixed(4)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/ai-search/vector-search.adapter.ts",
+      "line": 134,
+      "expression": "row.score",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/audit-log/audit-log.service.ts",
+      "line": 104,
+      "expression": "input.page ?? 1",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/audit-log/audit-log.service.ts",
+      "line": 105,
+      "expression": "input.limit ?? 20",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/cache/cache.client.ts",
+      "line": 82,
+      "expression": "value",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/cache/cache.codec.ts",
+      "line": 51,
+      "expression": "key",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/cache/cache.codec.ts",
+      "line": 56,
+      "expression": "key",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/cache/cache.codec.ts",
+      "line": 58,
+      "expression": "key",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/catalog/catalog.repository.ts",
+      "line": 845,
+      "expression": "Number(rating._avg.rating).toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/catalog/catalog.repository.ts",
+      "line": 845,
+      "expression": "rating._avg.rating",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/catalog/catalog.service.ts",
+      "line": 1915,
+      "expression": "trimmed",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/chat/chat.service.ts",
+      "line": 166,
+      "expression": "input.page ?? 1",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/chat/chat.service.ts",
+      "line": 167,
+      "expression": "input.limit ?? 20",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/checkout/checkout-quote.evaluator.ts",
+      "line": 237,
+      "expression": "BigInt(subtotal) / 500n",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/checkout/checkout-quote.evaluator.ts",
+      "line": 238,
+      "expression": "BigInt(Math.max(0, subtotal - existingDiscount)) / 100n",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/checkout/checkout-quote.evaluator.ts",
+      "line": 251,
+      "expression": "value",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/checkout/checkout.repository.ts",
+      "line": 278,
+      "expression": "group.subtotal",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/checkout/checkout.repository.ts",
+      "line": 278,
+      "expression": "group.discountTotal",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/checkout/checkout.repository.ts",
+      "line": 278,
+      "expression": "group.buyerShipping",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/checkout/checkout.repository.ts",
+      "line": 279,
+      "expression": "group.subtotal - group.discountTotal + group.buyerShipping",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/checkout/checkout.repository.ts",
+      "line": 368,
+      "expression": "reserved._sum.quantity ?? 0",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/checkout/checkout.repository.ts",
+      "line": 369,
+      "expression": "buyerReserved._sum.quantity ?? 0",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/commission/commission.service.ts",
+      "line": 19,
+      "expression": "process.env['PLATFORM_COMMISSION_BPS'] ?? DEFAULT_COMMISSION_BPS",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/commission/commission.service.ts",
+      "line": 32,
+      "expression": "BigInt(grossamount) * BigInt(this.commissionBps) / 10000n",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/content-moderation/content-moderation.service.ts",
+      "line": 379,
+      "expression": "input.page ?? 1",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/content-moderation/content-moderation.service.ts",
+      "line": 380,
+      "expression": "input.limit ?? 20",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/discovery/discovery.service.ts",
+      "line": 182,
+      "expression": "shop.ratingAverage",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/fraud/fraud.rules.ts",
+      "line": 109,
+      "expression": "value",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/fraud/fraud.rules.ts",
+      "line": 114,
+      "expression": "value",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/fraud/fraud.service.ts",
+      "line": 288,
+      "expression": "input.page ?? DEFAULT_PAGE",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/fraud/fraud.service.ts",
+      "line": 289,
+      "expression": "input.limit ?? DEFAULT_LIMIT",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/observability/metrics.collector.ts",
+      "line": 72,
+      "expression": "(this.totalDurationMs / this.totalRequests).toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/observability/observability.config.ts",
+      "line": 24,
+      "expression": "value",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/observability/observability.config.ts",
+      "line": 29,
+      "expression": "value",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/payment/payment.repository.ts",
+      "line": 317,
+      "expression": "(eligibleCashback > 0n ? eligibleCashback : 0n) / 10_000n",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/payment/payment.repository.ts",
+      "line": 320,
+      "expression": "wallet.debtBalance",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/payment/payment.service.ts",
+      "line": 49,
+      "expression": "payment.amount",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/payment/payment.service.ts",
+      "line": 97,
+      "expression": "payment.amount",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/payment/payment.service.ts",
+      "line": 99,
+      "expression": "payment.amount",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/payment/payment.webhook-signature.ts",
+      "line": 53,
+      "expression": "value",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/product-analytics/product-analytics.service.ts",
+      "line": 518,
+      "expression": "av ?? 0",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/product-analytics/product-analytics.service.ts",
+      "line": 518,
+      "expression": "bv ?? 0",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/promotion/promotion.repository.ts",
+      "line": 405,
+      "expression": "reservations._sum.quantity ?? 0",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 128,
+      "expression": "Boolean(right.claims[0])",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 128,
+      "expression": "Boolean(left.claims[0])",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 289,
+      "expression": "variant.price",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 291,
+      "expression": "variant.price",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 307,
+      "expression": "variant.price",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 312,
+      "expression": "variant.price",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 458,
+      "expression": "item.variant.price",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 519,
+      "expression": "BigInt(subtotal) * BigInt(coupon.discountPercentBps ?? 0) / 10_000n",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 532,
+      "expression": "BigInt(subtotals.get(shopId) ?? 0) + BigInt(this.toMoneyNumber(item.variant.price)) * BigInt(item.quantity)",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 584,
+      "expression": "value",
+      "classification": "safe-number operational validation: Number.isSafeInteger checked first"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 584,
+      "expression": "value",
+      "classification": "safe-number operational validation: Number.isSafeInteger checked first"
+    },
+    {
+      "file": "server/modules/promotion/promotion.service.ts",
+      "line": 651,
+      "expression": "value",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/queue/queue.config.ts",
+      "line": 24,
+      "expression": "value",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/recommendation/recommendation.service.ts",
+      "line": 185,
+      "expression": "(product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length).toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/review/review.service.ts",
+      "line": 332,
+      "expression": "rating",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/review/review.service.ts",
+      "line": 337,
+      "expression": "(totalRating / totalReviewCount).toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/search/search.service.ts",
+      "line": 328,
+      "expression": "(totalRating / totalReviewCount).toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/security/security.config.ts",
+      "line": 41,
+      "expression": "value",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/seller/seller-dashboard.service.ts",
+      "line": 160,
+      "expression": "publishedReviewAggregate._avg.rating.toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/seller-shop/seller-shop.service.ts",
+      "line": 150,
+      "expression": "shop.ratingAverage",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/seller-shop/seller-shop.service.ts",
+      "line": 368,
+      "expression": "settings.shippingFee",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/shop-review/shop-review.repository.ts",
+      "line": 268,
+      "expression": "aggregate._avg.rating.toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/shop-review/shop-review.service.ts",
+      "line": 268,
+      "expression": "rating",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/shop-review/shop-review.service.ts",
+      "line": 273,
+      "expression": "(totalRating / totalReviewCount).toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/upload/upload.routes.ts",
+      "line": 65,
+      "expression": "query.fileSize",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/upload/upload.routes.ts",
+      "line": 66,
+      "expression": "query.expires",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/upload/upload.routes.ts",
+      "line": 77,
+      "expression": "query.expires",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/modules/wallet/wallet.service.ts",
+      "line": 91,
+      "expression": "items.reduce((sum, item) => sum + moneyInteger(item.lineTotal), 0n)",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/wallet/wallet.service.ts",
+      "line": 187,
+      "expression": "merchandise + shipping - reversed - reversedBuyerShipping - reversedPlatformShipping",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/modules/wallet/wallet.service.ts",
+      "line": 188,
+      "expression": "originalFee - reversedFee",
+      "classification": "checked bounded operational conversion"
+    },
+    {
+      "file": "server/plugins/observability.plugin.ts",
+      "line": 27,
+      "expression": "set.status ?? 200",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/plugins/observability.plugin.ts",
+      "line": 79,
+      "expression": "(performance.now() - start).toFixed(2)",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/plugins/security.plugin.ts",
+      "line": 60,
+      "expression": "contentLength",
+      "classification": "non-money runtime/count/rating/config"
+    },
+    {
+      "file": "server/plugins/security.plugin.ts",
+      "line": 192,
+      "expression": "await this.redis.eval(\n        \"local current = redis.call('INCR', KEYS[1]); if current == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return current\",\n        1,\n        `rate-limit:${key}`,\n        windowMs,\n      )",
+      "classification": "non-money runtime/count/rating/config"
+    }
+  ],
+  "summary": {
+    "non-money runtime/count/rating/config": 56,
+    "moneyNumber implementation: bounds checked before Number": 1,
+    "checked bounded operational conversion": 27,
+    "safe-number operational validation: Number.isSafeInteger checked first": 2
+  },
+  "notes": [
+    "moneyNumber is the only permitted bounded bigint-to-number money boundary. Every conversion rejects beyond signed MAX_SAFE.",
+    "Checkout evaluator guards prices before createCheckout commitments; wallet per-order posting plans validate before ledger writes.",
+    "Payment finalizeBuyerCoins is called by applyPaymentStateTransition inside PaymentService.handleWebhook repository callback transaction. A debt check after upsert is covered by that transaction, not by an autocommit rollback claim.",
+    "Analytics sort Number(av/bv) is used only when neither operand is bigint; revenue values take exact bigint comparator.",
+    "Catalog spec NUMBER is arbitrary product attribute data, not price. Non-money counts/rating/config conversions remain.",
+    "Search/query min/max remain bounded numeric operational contracts; public prices, ledger totals, report totals and all Prisma bigint values use exact string DTOs."
+  ]
+}

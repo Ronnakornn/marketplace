@@ -1,0 +1,37 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:31740) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 10 tests using 1 worker
+
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer] 
+  ok  1 [chromium] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB (6.8s)
+  ok  2 [chromium] › e2e\numeric-home-freshness.spec.ts:11:1 › new homepage server renders use current flash identity, price and physical availability (1.5s)
+  ok  3 [firefox] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB (8.3s)
+  ok  4 [firefox] › e2e\numeric-home-freshness.spec.ts:11:1 › new homepage server renders use current flash identity, price and physical availability (2.2s)
+  ok  5 [webkit] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB (23.0s)
+  ok  6 [webkit] › e2e\numeric-home-freshness.spec.ts:11:1 › new homepage server renders use current flash identity, price and physical availability (4.7s)
+  ok  7 [mobile-chromium] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB (5.9s)
+  ok  8 [mobile-chromium] › e2e\numeric-home-freshness.spec.ts:11:1 › new homepage server renders use current flash identity, price and physical availability (1.6s)
+  ok  9 [mobile-webkit] › e2e\finance-lifecycle.spec.ts:78:1 › snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB (15.0s)
+  ok 10 [mobile-webkit] › e2e\numeric-home-freshness.spec.ts:11:1 › new homepage server renders use current flash identity, price and physical availability (4.0s)
+
+  10 passed (1.4m)

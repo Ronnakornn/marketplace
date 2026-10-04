@@ -30,3 +30,352 @@
 2026-10-04 04:54:29.541 +07 [33244] LOG:  checkpoint complete: wrote 233 buffers (1.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=25.203 s, sync=0.052 s, total=25.260 s; sync files=155, longest=0.006 s, average=0.001 s; distance=1047 kB, estimate=11457 kB; lsn=0/6B04C68, redo lsn=0/6B04BD8
 2026-10-04 05:04:04.551 +07 [33244] LOG:  checkpoint starting: time
 2026-10-04 05:04:21.876 +07 [33244] LOG:  checkpoint complete: wrote 159 buffers (1.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=17.290 s, sync=0.031 s, total=17.325 s; sync files=102, longest=0.002 s, average=0.001 s; distance=529 kB, estimate=10365 kB; lsn=0/6B9D388, redo lsn=0/6B891B0
+2026-10-04 05:09:04.883 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 05:09:31.500 +07 [33244] LOG:  checkpoint complete: wrote 244 buffers (1.5%); 0 WAL file(s) added, 0 removed, 0 recycled; write=26.552 s, sync=0.059 s, total=26.617 s; sync files=101, longest=0.005 s, average=0.001 s; distance=1256 kB, estimate=9454 kB; lsn=0/6CC3448, redo lsn=0/6CC33B8
+2026-10-04 05:14:04.507 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 05:15:44.860 +07 [33244] LOG:  checkpoint complete: wrote 919 buffers (5.6%); 0 WAL file(s) added, 0 removed, 1 recycled; write=100.003 s, sync=0.339 s, total=100.354 s; sync files=1132, longest=0.003 s, average=0.001 s; distance=6374 kB, estimate=9146 kB; lsn=0/7386F68, redo lsn=0/72FCBD8
+2026-10-04 05:19:04.874 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 05:19:20.503 +07 [33244] LOG:  checkpoint complete: wrote 144 buffers (0.9%); 0 WAL file(s) added, 0 removed, 0 recycled; write=15.594 s, sync=0.029 s, total=15.629 s; sync files=96, longest=0.002 s, average=0.001 s; distance=801 kB, estimate=8311 kB; lsn=0/73C51D8, redo lsn=0/73C5148
+2026-10-04 05:24:04.510 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 05:28:34.187 +07 [33244] LOG:  checkpoint complete: wrote 6996 buffers (42.7%); 0 WAL file(s) added, 0 removed, 7 recycled; write=269.562 s, sync=0.093 s, total=269.678 s; sync files=313, longest=0.006 s, average=0.001 s; distance=121859 kB, estimate=121859 kB; lsn=0/F4D1570, redo lsn=0/EAC5DF0
+2026-10-04 05:34:04.208 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 05:37:09.001 +07 [33244] LOG:  checkpoint complete: wrote 1697 buffers (10.4%); 0 WAL file(s) added, 0 removed, 1 recycled; write=184.706 s, sync=0.076 s, total=184.793 s; sync files=286, longest=0.002 s, average=0.001 s; distance=13751 kB, estimate=111048 kB; lsn=0/F833A90, redo lsn=0/F833A00
+2026-10-04 05:39:04.007 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 05:39:08.600 +07 [33244] LOG:  checkpoint complete: wrote 43 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.579 s, sync=0.010 s, total=4.594 s; sync files=21, longest=0.001 s, average=0.001 s; distance=244 kB, estimate=99967 kB; lsn=0/F874960, redo lsn=0/F870CE0
+2026-10-04 05:44:04.618 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 05:44:33.709 +07 [33244] LOG:  checkpoint complete: wrote 267 buffers (1.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=29.052 s, sync=0.035 s, total=29.092 s; sync files=125, longest=0.002 s, average=0.001 s; distance=1191 kB, estimate=90090 kB; lsn=0/FAAD100, redo lsn=0/F99A910
+2026-10-04 05:54:04.728 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 05:56:44.205 +07 [33244] LOG:  checkpoint complete: wrote 1461 buffers (8.9%); 0 WAL file(s) added, 0 removed, 1 recycled; write=158.887 s, sync=0.578 s, total=159.477 s; sync files=1500, longest=0.004 s, average=0.001 s; distance=7447 kB, estimate=81825 kB; lsn=0/10BDB570, redo lsn=0/100E0570
+2026-10-04 05:59:04.227 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 06:03:29.899 +07 [33244] LOG:  checkpoint complete: wrote 2437 buffers (14.9%); 0 WAL file(s) added, 0 removed, 1 recycled; write=265.453 s, sync=0.201 s, total=265.673 s; sync files=659, longest=0.002 s, average=0.001 s; distance=16088 kB, estimate=75252 kB; lsn=0/11C8B580, redo lsn=0/11096680
+2026-10-04 06:09:04.919 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 06:13:34.175 +07 [33244] LOG:  checkpoint complete: wrote 2619 buffers (16.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=269.106 s, sync=0.134 s, total=269.256 s; sync files=515, longest=0.002 s, average=0.001 s; distance=18960 kB, estimate=69623 kB; lsn=0/130C42D0, redo lsn=0/1231AA70
+2026-10-04 06:14:04.197 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 06:17:13.925 +07 [33244] LOG:  checkpoint complete: wrote 1740 buffers (10.6%); 0 WAL file(s) added, 0 removed, 1 recycled; write=189.587 s, sync=0.132 s, total=189.729 s; sync files=472, longest=0.004 s, average=0.001 s; distance=14405 kB, estimate=64101 kB; lsn=0/132AB358, redo lsn=0/1312C0E8
+2026-10-04 06:19:04.944 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 06:19:22.901 +07 [33244] LOG:  checkpoint complete: wrote 166 buffers (1.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=17.936 s, sync=0.018 s, total=17.958 s; sync files=55, longest=0.002 s, average=0.001 s; distance=1613 kB, estimate=57852 kB; lsn=0/132BF740, redo lsn=0/132BF6B0
+2026-10-04 06:24:04.913 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 06:24:51.050 +07 [33092] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:24:51.050 +07 [23600] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:24:51.050 +07 [20716] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:38.867 +07 [13760] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:38.867 +07 [27224] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:38.867 +07 [20868] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:39.086 +07 [34776] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:39.086 +07 [34196] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:39.086 +07 [34080] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:39.087 +07 [11256] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:39.087 +07 [9192] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:39.087 +07 [4404] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:25:39.087 +07 [35072] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:26:03.139 +07 [33244] LOG:  checkpoint complete: wrote 1081 buffers (6.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=117.996 s, sync=0.224 s, total=118.226 s; sync files=469, longest=0.002 s, average=0.001 s; distance=5974 kB, estimate=52664 kB; lsn=0/13E25858, redo lsn=0/13895190
+2026-10-04 06:29:04.152 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 06:33:20.415 +07 [34736] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.415 +07 [33976] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.688 +07 [31948] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.689 +07 [28448] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.689 +07 [28016] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.689 +07 [28508] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.691 +07 [29748] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.691 +07 [17396] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.692 +07 [27356] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.694 +07 [30076] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:20.694 +07 [30504] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:33:34.316 +07 [33244] LOG:  checkpoint complete: wrote 3572 buffers (21.8%); 0 WAL file(s) added, 0 removed, 1 recycled; write=269.888 s, sync=0.264 s, total=270.165 s; sync files=813, longest=0.008 s, average=0.001 s; distance=20339 kB, estimate=49432 kB; lsn=0/1914D208, redo lsn=0/14C71F90
+2026-10-04 06:34:04.360 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 06:36:56.317 +07 [16428] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:36:56.538 +07 [35608] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:36:56.538 +07 [27312] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:36:56.539 +07 [31288] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:36:56.539 +07 [16236] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:36:56.539 +07 [3080] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:36:56.539 +07 [26984] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:36:56.539 +07 [30264] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:36:56.540 +07 [20180] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:36:56.540 +07 [33588] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:38:34.201 +07 [33244] LOG:  checkpoint complete: wrote 8795 buffers (53.7%); 0 WAL file(s) added, 0 removed, 9 recycled; write=269.659 s, sync=0.147 s, total=269.841 s; sync files=357, longest=0.011 s, average=0.001 s; distance=135210 kB, estimate=135210 kB; lsn=0/1E56DF78, redo lsn=0/1D07CAC8
+2026-10-04 06:44:04.206 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 06:44:25.946 +07 [34148] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.165 +07 [11124] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.165 +07 [23204] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.165 +07 [20408] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.165 +07 [28840] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.165 +07 [31520] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.165 +07 [35340] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.165 +07 [32596] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.166 +07 [5528] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.166 +07 [9992] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:44:26.166 +07 [29840] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:48:34.311 +07 [33244] LOG:  checkpoint complete: wrote 2705 buffers (16.5%); 0 WAL file(s) added, 0 removed, 1 recycled; write=269.816 s, sync=0.277 s, total=270.105 s; sync files=828, longest=0.003 s, average=0.001 s; distance=21524 kB, estimate=123842 kB; lsn=0/1E6B36E0, redo lsn=0/1E581C78
+2026-10-04 06:51:39.924 +07 [31244] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:51:40.152 +07 [10028] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:51:40.153 +07 [27804] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:51:40.153 +07 [33276] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:51:40.153 +07 [14840] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:51:40.154 +07 [22700] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:51:40.154 +07 [28600] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:51:40.154 +07 [12228] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 06:54:04.358 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 06:54:56.994 +07 [33244] LOG:  checkpoint complete: wrote 483 buffers (2.9%); 0 WAL file(s) added, 0 removed, 0 recycled; write=52.545 s, sync=0.085 s, total=52.636 s; sync files=293, longest=0.002 s, average=0.001 s; distance=2120 kB, estimate=111670 kB; lsn=0/1E794090, redo lsn=0/1E793FE8
+2026-10-04 06:56:39.959 +07 [8404] ERROR:  column a.itemSaleId does not exist at character 4675
+2026-10-04 06:56:39.959 +07 [8404] STATEMENT:
+	    SELECT 'order_equation' AS "check", COUNT(*) AS violations FROM "Order"
+	      WHERE "grandTotal" <> "subtotal" - "discountTotal" + "shippingTotal" + "taxTotal"
+	    UNION ALL
+	    SELECT 'item_equation', COUNT(*) FROM "OrderItem" WHERE "lineTotal" <> "unitPrice" * quantity
+	    UNION ALL
+	    SELECT 'item_subtotal', COUNT(*) FROM "Order" o
+	      WHERE o.subtotal <> (SELECT COALESCE(SUM(i."lineTotal"),0) FROM "OrderItem" i WHERE i."orderId"=o.id)
+	    UNION ALL
+	    SELECT 'shop_snapshot_completeness', COUNT(*) FROM "Order" o
+	      WHERE NOT EXISTS (SELECT 1 FROM "ShopOrder" s WHERE s."orderId"=o.id)
+	        OR EXISTS (SELECT 1 FROM "OrderItem" i WHERE i."orderId"=o.id
+	          AND NOT EXISTS (SELECT 1 FROM "ShopOrder" s WHERE s."orderId"=o.id AND s."shopId"=i."shopId"))
+	        OR EXISTS (SELECT 1 FROM "ShopOrder" s WHERE s."orderId"=o.id
+	          AND (s.currency <> o.currency OR NOT EXISTS (SELECT 1 FROM "OrderItem" i WHERE i."orderId"=o.id AND i."shopId"=s."shopId")))
+	    UNION ALL
+	    SELECT 'shop_snapshot_totals', COUNT(*) FROM "Order" o
+	      WHERE EXISTS (SELECT 1 FROM "ShopOrder" s WHERE s."orderId"=o.id)
+	        AND (o."grandTotal" <> (SELECT SUM(s."grandTotal") FROM "ShopOrder" s WHERE s."orderId"=o.id)
+	          OR o.subtotal <> (SELECT SUM(s.subtotal) FROM "ShopOrder" s WHERE s."orderId"=o.id)
+	          OR o."discountTotal" <> (SELECT SUM(s."discountTotal") FROM "ShopOrder" s WHERE s."orderId"=o.id)
+	          OR o."shippingTotal" <> (SELECT SUM(s."shippingTotal") FROM "ShopOrder" s WHERE s."orderId"=o.id)
+	          OR o."taxTotal" <> (SELECT SUM(s."taxTotal") FROM "ShopOrder" s WHERE s."orderId"=o.id)
+	          OR o."includedTaxTotal" <> (SELECT SUM(s."includedTaxTotal") FROM "ShopOrder" s WHERE s."orderId"=o.id)
+	          OR o."reportedTaxTotal" <> (SELECT SUM(s."reportedTaxTotal") FROM "ShopOrder" s WHERE s."orderId"=o.id)
+	          OR EXISTS (SELECT 1 FROM "ShopOrder" s WHERE s."orderId"=o.id
+	            AND (s."grandTotal" <> s.subtotal - s."discountTotal" + s."shippingTotal" + s."taxTotal"
+	              OR s.subtotal <> (SELECT COALESCE(SUM(i."lineTotal"),0) FROM "OrderItem" i WHERE i."orderId"=o.id AND i."shopId"=s."shopId"))))
+	    UNION ALL
+	    SELECT 'payment_snapshot_amount', COUNT(*) FROM "Payment" p JOIN "Order" o ON o.id=p."orderId"
+	      WHERE p.amount <> o."grandTotal" OR p.currency <> o.currency
+	    UNION ALL
+	    SELECT 'inventory_bounds', COUNT(*) FROM "Inventory"
+	      WHERE "quantityOnHand" < 0 OR "quantityReserved" < 0 OR "quantityReserved" > "quantityOnHand"
+	    UNION ALL
+	    SELECT 'duplicate_seller_earnings', COUNT(*) FROM
+	      (SELECT "orderId","shopId" FROM "WalletLedgerEntry" WHERE type='order_earning' AND "orderId" IS NOT NULL
+	        GROUP BY "orderId","shopId" HAVING COUNT(*)>1) duplicates
+	    UNION ALL
+	    SELECT 'tax_disclosure_equation', COUNT(*) FROM "Order"
+	      WHERE "taxTotal" < 0 OR "includedTaxTotal" < 0
+	        OR "reportedTaxTotal" <> "includedTaxTotal" + "taxTotal"
+	    UNION ALL
+	    SELECT 'original_v2_atomic_tax', COUNT(*) FROM "ItemSaleSnapshot" i
+	      JOIN "ShopSaleSnapshot" s ON s."shopOrderId"=i."shopOrderId"
+	      WHERE s."policyVersion"=2 AND (
+	        i."buyerMerchandiseNet" IS NULL OR i."buyerMerchandiseTax" IS NULL
+	        OR i."platformCouponNet" IS NULL OR i."platformCouponTax" IS NULL
+	        OR i."coinFundingNet" IS NULL OR i."coinFundingTax" IS NULL
+	        OR i."buyerMerchandiseNet" < 0 OR i."buyerMerchandiseTax" < 0
+	        OR i."platformCouponNet" < 0 OR i."platformCouponTax" < 0
+	        OR i."coinFundingNet" < 0 OR i."coinFundingTax" < 0
+	        OR i."buyerMerchandise" <> i."buyerMerchandiseNet" + i."buyerMerchandiseTax"
+	        OR i."platformCouponDiscount" <> i."platformCouponNet" + i."platformCouponTax"
+	        OR i."coinDiscount" <> i."coinFundingNet" + i."coinFundingTax"
+	        OR i."originalCashbackEligibleNet" IS DISTINCT FROM i."buyerMerchandiseNet"
+	        OR i."originalAffiliateEligibleNet" IS DISTINCT FROM i."buyerMerchandiseNet")
+	    UNION ALL
+	    SELECT 'planned_refund_cash', COUNT(*) FROM "Refund" r
+	      WHERE EXISTS (SELECT 1 FROM "RefundItemAllocation" a WHERE a."refundId"=r.id)
+	        AND r.amount <> COALESCE((SELECT SUM(a."cashMerchandise" + a."buyerTaxRefund")
+	          FROM "RefundItemAllocation" a WHERE a."refundId"=r.id),0)
+	          + COALESCE((SELECT SUM(a."buyerShippingRefund" + a."buyerShippingTaxRefund")
+	            FROM "RefundShopAllocation" a WHERE a."refundId"=r.id),0)
+	    UNION ALL
+	    SELECT 'original_quantity_capacity', COUNT(*) FROM "ItemSaleSnapshot" i
+	      WHERE COALESCE((SELECT SUM(a.quantity) FROM "RefundItemAllocation" a JOIN "Refund" r ON r.id=a."refundId"
+	        WHERE a."itemSaleId"=i.id AND r.status IN ('SUCCESS','PENDING','PROCESSING')),0) > i."originalQuantity"
+	        OR (SELECT COUNT(*) FROM "RefundItemAllocation" a JOIN "Refund" r ON r.id=a."refundId"
+	          WHERE a."itemSaleId"=i.id AND r.status IN ('PENDING','PROCESSING')) > 1
+
+2026-10-04 07:04:05.014 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 07:04:13.268 +07 [35760] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:04:13.507 +07 [29064] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:04:13.507 +07 [17404] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:04:13.507 +07 [32596] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:04:13.507 +07 [20224] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:04:13.508 +07 [8036] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:04:13.508 +07 [30168] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:04:13.508 +07 [34304] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:04:13.509 +07 [15220] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:08:35.463 +07 [33244] LOG:  checkpoint complete: wrote 5243 buffers (32.0%); 0 WAL file(s) added, 0 removed, 2 recycled; write=270.077 s, sync=0.351 s, total=270.450 s; sync files=910, longest=0.009 s, average=0.001 s; distance=34275 kB, estimate=103930 kB; lsn=0/20A280D8, redo lsn=0/2090CF40
+2026-10-04 07:09:05.488 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 07:09:39.740 +07 [33244] LOG:  checkpoint complete: wrote 311 buffers (1.9%); 0 WAL file(s) added, 0 removed, 0 recycled; write=34.185 s, sync=0.060 s, total=34.252 s; sync files=219, longest=0.001 s, average=0.001 s; distance=1412 kB, estimate=93678 kB; lsn=0/20BB0DE0, redo lsn=0/20A6E190
+2026-10-04 07:10:04.442 +07 [14724] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:10:04.669 +07 [32632] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:10:04.670 +07 [6784] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:10:04.670 +07 [35696] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:10:04.670 +07 [17780] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:10:04.671 +07 [31236] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:10:04.671 +07 [35412] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:11:09.079 +07 [28820] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:11:09.079 +07 [27572] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:11:09.371 +07 [19724] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:11:09.372 +07 [30844] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:11:09.372 +07 [27264] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:11:09.372 +07 [31864] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:11:09.372 +07 [18468] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:11:09.372 +07 [34332] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:12:33.412 +07 [21116] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:12:33.412 +07 [7892] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:12:33.413 +07 [29148] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:12:33.413 +07 [11492] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:12:33.413 +07 [30400] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:14:05.748 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 07:18:35.383 +07 [33244] LOG:  checkpoint complete: wrote 4435 buffers (27.1%); 0 WAL file(s) added, 0 removed, 2 recycled; write=269.288 s, sync=0.324 s, total=269.635 s; sync files=876, longest=0.002 s, average=0.001 s; distance=26155 kB, estimate=86926 kB; lsn=0/23310470, redo lsn=0/223F8DF0
+2026-10-04 07:19:05.417 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 07:23:35.316 +07 [33244] LOG:  checkpoint complete: wrote 4398 buffers (26.8%); 0 WAL file(s) added, 0 removed, 1 recycled; write=269.605 s, sync=0.272 s, total=269.900 s; sync files=801, longest=0.003 s, average=0.001 s; distance=27333 kB, estimate=80967 kB; lsn=0/24822018, redo lsn=0/23EAA2B0
+2026-10-04 07:24:05.346 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 07:25:03.806 +07 [28124] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:25:03.991 +07 [16704] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:25:03.991 +07 [12300] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:25:03.991 +07 [34904] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:25:03.991 +07 [2600] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:25:03.992 +07 [18324] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:25:58.991 +07 [33244] LOG:  checkpoint complete: wrote 1045 buffers (6.4%); 0 WAL file(s) added, 0 removed, 1 recycled; write=113.521 s, sync=0.107 s, total=113.645 s; sync files=364, longest=0.003 s, average=0.001 s; distance=10079 kB, estimate=73878 kB; lsn=0/24ABAC50, redo lsn=0/24882168
+2026-10-04 07:29:05.014 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 07:29:16.277 +07 [18840] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:29:16.277 +07 [26424] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:29:16.446 +07 [28852] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:29:16.446 +07 [19040] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:29:16.446 +07 [7704] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:29:16.447 +07 [852] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:29:16.447 +07 [31384] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:29:16.447 +07 [456] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:29:16.448 +07 [25708] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:29:16.448 +07 [25088] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:31:54.963 +07 [17852] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:31:54.963 +07 [11416] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:31:54.963 +07 [32192] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:33:35.300 +07 [33244] LOG:  checkpoint complete: wrote 4403 buffers (26.9%); 0 WAL file(s) added, 0 removed, 2 recycled; write=270.046 s, sync=0.218 s, total=270.287 s; sync files=741, longest=0.001 s, average=0.001 s; distance=27222 kB, estimate=69212 kB; lsn=0/265630B0, redo lsn=0/26317B38
+2026-10-04 07:34:05.329 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 07:34:39.177 +07 [34164] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:34:39.177 +07 [14480] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:34:39.348 +07 [32972] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:34:39.348 +07 [29356] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:34:39.348 +07 [24940] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:34:39.348 +07 [34772] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:34:39.348 +07 [30492] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:34:39.349 +07 [2644] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:34:39.349 +07 [23424] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+
+2026-10-04 07:35:05.979 +07 [33244] LOG:  checkpoint complete: wrote 556 buffers (3.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=60.575 s, sync=0.070 s, total=60.650 s; sync files=222, longest=0.004 s, average=0.001 s; distance=2675 kB, estimate=62559 kB; lsn=0/2674B6B0, redo lsn=0/265B4898
+2026-10-04 07:39:05.983 +07 [33244] LOG:  checkpoint starting: time
+2026-10-04 07:39:17.684 +07 [33244] LOG:  checkpoint complete: wrote 108 buffers (0.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=11.680 s, sync=0.016 s, total=11.702 s; sync files=56, longest=0.002 s, average=0.001 s; distance=1628 kB, estimate=56465 kB; lsn=0/2674BA40, redo lsn=0/2674B9B0
+2026-10-04 07:44:28.622 +07 [7208] LOG:  received fast shutdown request
+2026-10-04 07:44:28.623 +07 [7208] LOG:  aborting any active transactions
+2026-10-04 07:44:28.627 +07 [7208] LOG:  background worker "logical replication launcher" (PID 21612) exited with exit code 1
+2026-10-04 07:44:28.628 +07 [33244] LOG:  shutting down
+2026-10-04 07:44:28.629 +07 [33244] LOG:  checkpoint starting: shutdown immediate
+2026-10-04 07:44:28.636 +07 [33244] LOG:  checkpoint complete: wrote 0 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.008 s; sync files=0, longest=0.000 s, average=0.000 s; distance=0 kB, estimate=50819 kB; lsn=0/2674BAF0, redo lsn=0/2674BAF0
+2026-10-04 07:44:28.662 +07 [7208] LOG:  database system is shut down

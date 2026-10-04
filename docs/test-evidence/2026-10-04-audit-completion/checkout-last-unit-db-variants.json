@@ -1,0 +1,24 @@
+{
+  "observedAt": "2026-10-04T00:18:21.192Z",
+  "database": "marketplace_test_completion",
+  "variants": [
+    {
+      "id": "a8054980-8388-4254-bb1f-b3fed60d4d31",
+      "productId": "309f5206-a666-4655-870c-1f807a025e05",
+      "title": "Variant 1",
+      "inventory": {
+        "quantityOnHand": 1,
+        "quantityReserved": 1
+      }
+    },
+    {
+      "id": "554d524a-281e-46cc-9efc-4599ae4d101f",
+      "productId": "309f5206-a666-4655-870c-1f807a025e05",
+      "title": "Variant 2",
+      "inventory": {
+        "quantityOnHand": 10,
+        "quantityReserved": 1
+      }
+    }
+  ]
+}

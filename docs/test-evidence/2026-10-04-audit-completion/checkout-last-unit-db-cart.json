@@ -1,0 +1,46 @@
+{
+  "cart": {
+    "id": "a68d19fc-e2a0-47c2-bd07-db05f24d67d9",
+    "userId": "c8993270-0dae-40b2-b8cb-c9593979b02b",
+    "status": "ACTIVE",
+    "createdAt": "2026-10-04T00:11:31.254Z",
+    "updatedAt": "2026-10-04T00:11:31.254Z",
+    "items": [
+      {
+        "id": "bc24d60f-376b-4587-b671-b968e48decb7",
+        "variantId": "a8054980-8388-4254-bb1f-b3fed60d4d31",
+        "quantity": 2,
+        "createdAt": "2026-10-04T00:11:31.254Z"
+      }
+    ]
+  },
+  "orders": [
+    {
+      "id": "05d0059a-5267-4297-8f58-a6a75574a781",
+      "items": [
+        {
+          "variantId": "554d524a-281e-46cc-9efc-4599ae4d101f",
+          "quantity": 1
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "id": "a8054980-8388-4254-bb1f-b3fed60d4d31",
+      "title": "Variant 1",
+      "inventory": {
+        "quantityOnHand": 1,
+        "quantityReserved": 1
+      }
+    },
+    {
+      "id": "554d524a-281e-46cc-9efc-4599ae4d101f",
+      "title": "Variant 2",
+      "inventory": {
+        "quantityOnHand": 10,
+        "quantityReserved": 1
+      }
+    }
+  ]
+}

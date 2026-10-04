@@ -1,0 +1,19 @@
+$ bunx prisma migrate deploy
+◇ injected env (20) from .env.local // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": PostgreSQL database "marketplace_test_completion", schema "public" at "127.0.0.1:55439"
+
+22 migrations found in prisma/migrations
+
+Applying migration `20261004082000_affiliate_original_refund_rights`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20261004082000_affiliate_original_refund_rights/
+    └─ migration.sql
+
+All migrations have been successfully applied.

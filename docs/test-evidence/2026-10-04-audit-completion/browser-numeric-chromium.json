@@ -1,0 +1,1042 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/numeric-commerce.spec.ts",
+      "e2e/numeric-boundaries.spec.ts",
+      "e2e/numeric-analytics.spec.ts",
+      "e2e/numeric-tax.spec.ts",
+      "e2e/numeric-projections.spec.ts",
+      "e2e/numeric-admin-projections.spec.ts",
+      "--project=chromium",
+      "--no-deps",
+      "--max-failures=6",
+      "--reporter=list,json",
+      "--output=docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 6,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-numeric-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "numeric-admin-projections.spec.ts",
+      "file": "numeric-admin-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5700,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:04.314Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "fraud-refund-threshold-and-workflow",
+                      "contentType": "application/json",
+                      "body": "ewogICJvcmFjbGUiOiB7CiAgICAicmVmdW5kUm93cyI6IDMsCiAgICAib3JkZXJzQXRUaHJlc2hvbGQiOiA2LAogICAgIm9yZGVyc0JlbG93VGhyZXNob2xkIjogNywKICAgICJzY29yZUF0VGhyZXNob2xkIjogNzUsCiAgICAic2NvcmVCZWxvd1RocmVzaG9sZCI6IDAKICB9LAogICJyYXRpb0Rpc3BsYXllZEluVWkiOiBmYWxzZSwKICAiYXRUaHJlc2hvbGQiOiB7CiAgICAicmlza1Njb3JlIjogNzUsCiAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJoaWdoX3JlZnVuZF9yYXRlIgogICAgXSwKICAgICJjYXNlIjogewogICAgICAiaWQiOiAiMzg3ODQ0M2EtNTRhYy00YTgwLWI0N2MtZTQwZmQ4YjE1NzFkIiwKICAgICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICAgImVudGl0eUlkIjogImU1NDQwMjQ3LWYwYmQtNGY5Mi1hMGJhLWJlZGRjNTcyYWFmOCIsCiAgICAgICJ1c2VySWQiOiAiY2ViNjMwZTEtMzMyNC00YTBkLWE0N2QtOGM3ZTMwZDU2ZTJkIiwKICAgICAgInJpc2tTY29yZSI6IDc1LAogICAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgICAicmVhc29ucyI6IFsKICAgICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgICAgXSwKICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgInJldmlld2VkQnkiOiBudWxsLAogICAgICAicmV2aWV3ZWRBdCI6IG51bGwsCiAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo1MDowNC45NzVaIgogICAgfSwKICAgICJibG9ja2VkIjogZmFsc2UKICB9LAogICJiZWxvd1RocmVzaG9sZCI6IHsKICAgICJyaXNrU2NvcmUiOiAwLAogICAgInJpc2tMZXZlbCI6ICJsb3ciLAogICAgInJlYXNvbnMiOiBbXSwKICAgICJjYXNlIjogbnVsbCwKICAgICJibG9ja2VkIjogZmFsc2UKICB9LAogICJvcGVuQXBpIjogewogICAgImlkIjogIjM4Nzg0NDNhLTU0YWMtNGE4MC1iNDdjLWU0MGZkOGIxNTcxZCIsCiAgICAiZW50aXR5VHlwZSI6ICJSRUZVTkQiLAogICAgImVudGl0eUlkIjogImU1NDQwMjQ3LWYwYmQtNGY5Mi1hMGJhLWJlZGRjNTcyYWFmOCIsCiAgICAidXNlcklkIjogImNlYjYzMGUxLTMzMjQtNGEwZC1hNDdkLThjN2UzMGQ1NmUyZCIsCiAgICAicmlza1Njb3JlIjogNzUsCiAgICAicmlza0xldmVsIjogImhpZ2giLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJoaWdoX3JlZnVuZF9yYXRlIgogICAgXSwKICAgICJzdGF0dXMiOiAiT1BFTiIsCiAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAicmV2aWV3ZWRBdCI6IG51bGwsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MDQuOTc1WiIKICB9LAogICJyZXNvbHZlZEFwaSI6IHsKICAgICJpZCI6ICIzODc4NDQzYS01NGFjLTRhODAtYjQ3Yy1lNDBmZDhiMTU3MWQiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICJlNTQ0MDI0Ny1mMGJkLTRmOTItYTBiYS1iZWRkYzU3MmFhZjgiLAogICAgInVzZXJJZCI6ICJjZWI2MzBlMS0zMzI0LTRhMGQtYTQ3ZC04YzdlMzBkNTZlMmQiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFU09MVkVEIiwKICAgICJyZXZpZXdlZEJ5IjogIjIyMDQ0MGMzLTY1NGUtNGZiOS05ZDk4LWJhOTQwODhlMGM1MiIsCiAgICAicmV2aWV3ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjA5LjY5MloiLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjA0Ljk3NVoiCiAgfSwKICAicmV2aWV3ZWREYiI6IHsKICAgICJpZCI6ICIzODc4NDQzYS01NGFjLTRhODAtYjQ3Yy1lNDBmZDhiMTU3MWQiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICJlNTQ0MDI0Ny1mMGJkLTRmOTItYTBiYS1iZWRkYzU3MmFhZjgiLAogICAgInVzZXJJZCI6ICJjZWI2MzBlMS0zMzI0LTRhMGQtYTQ3ZC04YzdlMzBkNTZlMmQiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFVklFV0VEIiwKICAgICJtZXRhZGF0YSI6IHsKICAgICAgInNpZ25hbHMiOiB7CiAgICAgICAgInJlZnVuZFJhdGUiOiAwLjUsCiAgICAgICAgInJlZnVuZENvdW50IjogMwogICAgICB9CiAgICB9LAogICAgInJldmlld2VkQnlJZCI6ICIyMjA0NDBjMy02NTRlLTRmYjktOWQ5OC1iYTk0MDg4ZTBjNTIiLAogICAgInJldmlld2VkQXQiOiAiMjAyNi0xMC0wM1QyMzo1MDowOS42OTJaIiwKICAgICJyZXNvbHZlZEJ5SWQiOiBudWxsLAogICAgInJlc29sdmVkQXQiOiBudWxsLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjA0Ljk3NVoiLAogICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjA5LjcwNFoiCiAgfSwKICAicmVzb2x2ZWREYiI6IHsKICAgICJpZCI6ICIzODc4NDQzYS01NGFjLTRhODAtYjQ3Yy1lNDBmZDhiMTU3MWQiLAogICAgImVudGl0eVR5cGUiOiAiUkVGVU5EIiwKICAgICJlbnRpdHlJZCI6ICJlNTQ0MDI0Ny1mMGJkLTRmOTItYTBiYS1iZWRkYzU3MmFhZjgiLAogICAgInVzZXJJZCI6ICJjZWI2MzBlMS0zMzI0LTRhMGQtYTQ3ZC04YzdlMzBkNTZlMmQiLAogICAgInJpc2tTY29yZSI6IDc1LAogICAgInJpc2tMZXZlbCI6ICJoaWdoIiwKICAgICJyZWFzb25zIjogWwogICAgICAiaGlnaF9yZWZ1bmRfcmF0ZSIKICAgIF0sCiAgICAic3RhdHVzIjogIlJFU09MVkVEIiwKICAgICJtZXRhZGF0YSI6IHsKICAgICAgInNpZ25hbHMiOiB7CiAgICAgICAgInJlZnVuZFJhdGUiOiAwLjUsCiAgICAgICAgInJlZnVuZENvdW50IjogMwogICAgICB9CiAgICB9LAogICAgInJldmlld2VkQnlJZCI6ICIyMjA0NDBjMy02NTRlLTRmYjktOWQ5OC1iYTk0MDg4ZTBjNTIiLAogICAgInJldmlld2VkQXQiOiAiMjAyNi0xMC0wM1QyMzo1MDowOS42OTJaIiwKICAgICJyZXNvbHZlZEJ5SWQiOiAiMjIwNDQwYzMtNjU0ZS00ZmI5LTlkOTgtYmE5NDA4OGUwYzUyIiwKICAgICJyZXNvbHZlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MDkuODI2WiIsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MDQuOTc1WiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MDkuODMyWiIKICB9Cn0="
+                    },
+                    {
+                      "name": "fraud-refund-threshold-and-workflow-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--036d8-admin-reviews-then-resolves-chromium\\attachments\\fraud-refund-threshold-and-workflow-ui-a14d9c195b703e8c007b114a14af72d4caac7c99.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8f0ecf80b2bf0228ab34",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2004,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:10.125Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "fraud-score100-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJvcmFjbGUiOiB7CiAgICAiZmFpbGVkUGF5bWVudHMiOiAzLAogICAgImNhbmNlbGxlZE9yZGVycyI6IDMsCiAgICAiYW1vdW50Q2VudHMiOiAiMTAwMDAwIiwKICAgICJjaGVja291dFNlY29uZHMiOiA2MCwKICAgICJzY29yZSI6IDEwMAogIH0sCiAgImV2YWx1YXRpb25zIjogWwogICAgewogICAgICAicmlza1Njb3JlIjogMTAwLAogICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgInJlYXNvbnMiOiBbCiAgICAgICAgIm1hbnlfZmFpbGVkX3BheW1lbnRzIiwKICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICAgInJlcGVhdGVkX2NhbmNlbGxlZF9vcmRlcnMiCiAgICAgIF0sCiAgICAgICJjYXNlIjogewogICAgICAgICJpZCI6ICI0MTFiMjg3ZS0xYjliLTQzNTItODExYS1lMWI5MDIzODcyYjAiLAogICAgICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICAgICAiZW50aXR5SWQiOiAiZjZlNDBmZjAtZjQxYS00MWFlLWEyMDEtNjg3MWQ2MjdiMTA3IiwKICAgICAgICAidXNlcklkIjogIjMyYzZjMDhmLTcyZDQtNGJiYy04OGU0LTI1NGQ1N2IxMTM3ZCIsCiAgICAgICAgInJpc2tTY29yZSI6IDEwMCwKICAgICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgICAicmVhc29ucyI6IFsKICAgICAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAgICJzdXNwaWNpb3VzX3JhcGlkX2NoZWNrb3V0IiwKICAgICAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgICAgIF0sCiAgICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAgICAgInJldmlld2VkQXQiOiBudWxsLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo1MDoxMC40ODRaIgogICAgICB9LAogICAgICAiYmxvY2tlZCI6IGZhbHNlCiAgICB9LAogICAgewogICAgICAicmlza1Njb3JlIjogMTAwLAogICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgInJlYXNvbnMiOiBbCiAgICAgICAgIm1hbnlfZmFpbGVkX3BheW1lbnRzIiwKICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICAgInJlcGVhdGVkX2NhbmNlbGxlZF9vcmRlcnMiCiAgICAgIF0sCiAgICAgICJjYXNlIjogewogICAgICAgICJpZCI6ICI0MTFiMjg3ZS0xYjliLTQzNTItODExYS1lMWI5MDIzODcyYjAiLAogICAgICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICAgICAiZW50aXR5SWQiOiAiZjZlNDBmZjAtZjQxYS00MWFlLWEyMDEtNjg3MWQ2MjdiMTA3IiwKICAgICAgICAidXNlcklkIjogIjMyYzZjMDhmLTcyZDQtNGJiYy04OGU0LTI1NGQ1N2IxMTM3ZCIsCiAgICAgICAgInJpc2tTY29yZSI6IDEwMCwKICAgICAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICAgICAicmVhc29ucyI6IFsKICAgICAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgICAgICJzdXNwaWNpb3VzX3JhcGlkX2NoZWNrb3V0IiwKICAgICAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgICAgIF0sCiAgICAgICAgInN0YXR1cyI6ICJPUEVOIiwKICAgICAgICAicmV2aWV3ZWRCeSI6IG51bGwsCiAgICAgICAgInJldmlld2VkQXQiOiBudWxsLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo1MDoxMC40ODRaIgogICAgICB9LAogICAgICAiYmxvY2tlZCI6IGZhbHNlCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImlkIjogIjQxMWIyODdlLTFiOWItNDM1Mi04MTFhLWUxYjkwMjM4NzJiMCIsCiAgICAiZW50aXR5VHlwZSI6ICJPUkRFUiIsCiAgICAiZW50aXR5SWQiOiAiZjZlNDBmZjAtZjQxYS00MWFlLWEyMDEtNjg3MWQ2MjdiMTA3IiwKICAgICJ1c2VySWQiOiAiMzJjNmMwOGYtNzJkNC00YmJjLTg4ZTQtMjU0ZDU3YjExMzdkIiwKICAgICJyaXNrU2NvcmUiOiAxMDAsCiAgICAicmlza0xldmVsIjogImNyaXRpY2FsIiwKICAgICJyZWFzb25zIjogWwogICAgICAibWFueV9mYWlsZWRfcGF5bWVudHMiLAogICAgICAiYWJub3JtYWxfb3JkZXJfYW1vdW50IiwKICAgICAgInN1c3BpY2lvdXNfcmFwaWRfY2hlY2tvdXQiLAogICAgICAicmVwZWF0ZWRfY2FuY2VsbGVkX29yZGVycyIKICAgIF0sCiAgICAic3RhdHVzIjogIk9QRU4iLAogICAgInJldmlld2VkQnkiOiBudWxsLAogICAgInJldmlld2VkQXQiOiBudWxsLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjEwLjQ4NFoiCiAgfSwKICAiZGIiOiB7CiAgICAiaWQiOiAiNDExYjI4N2UtMWI5Yi00MzUyLTgxMWEtZTFiOTAyMzg3MmIwIiwKICAgICJlbnRpdHlUeXBlIjogIk9SREVSIiwKICAgICJlbnRpdHlJZCI6ICJmNmU0MGZmMC1mNDFhLTQxYWUtYTIwMS02ODcxZDYyN2IxMDciLAogICAgInVzZXJJZCI6ICIzMmM2YzA4Zi03MmQ0LTRiYmMtODhlNC0yNTRkNTdiMTEzN2QiLAogICAgInJpc2tTY29yZSI6IDEwMCwKICAgICJyaXNrTGV2ZWwiOiAiY3JpdGljYWwiLAogICAgInJlYXNvbnMiOiBbCiAgICAgICJtYW55X2ZhaWxlZF9wYXltZW50cyIsCiAgICAgICJhYm5vcm1hbF9vcmRlcl9hbW91bnQiLAogICAgICAic3VzcGljaW91c19yYXBpZF9jaGVja291dCIsCiAgICAgICJyZXBlYXRlZF9jYW5jZWxsZWRfb3JkZXJzIgogICAgXSwKICAgICJzdGF0dXMiOiAiT1BFTiIsCiAgICAibWV0YWRhdGEiOiB7CiAgICAgICJzaWduYWxzIjogewogICAgICAgICJvcmRlcmFtb3VudCI6ICIxMDAwMDAiLAogICAgICAgICJmYWlsZWRQYXltZW50cyI6IDMsCiAgICAgICAgImNhbmNlbGxlZE9yZGVycyI6IDMsCiAgICAgICAgImNoZWNrb3V0RHVyYXRpb25TZWNvbmRzIjogNjAKICAgICAgfQogICAgfSwKICAgICJyZXZpZXdlZEJ5SWQiOiBudWxsLAogICAgInJldmlld2VkQXQiOiBudWxsLAogICAgInJlc29sdmVkQnlJZCI6IG51bGwsCiAgICAicmVzb2x2ZWRBdCI6IG51bGwsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MTAuNDg0WiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MTAuNDk5WiIKICB9Cn0="
+                    },
+                    {
+                      "name": "fraud-score100-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--42bfa-valuation-persists-one-case-chromium\\attachments\\fraud-score100-parity-ui-fb6fad375fa6d6ec28a2f959bd16bfac9d64acaa.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-666141175b42df19c649",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7128,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:12.139Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cashback-threshold-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJpbnRlcm5hbE1vY2tTaW11bGF0aW9uIjogdHJ1ZSwKICAiZXh0ZXJuYWxQcm92aWRlclZlcmlmaWVkIjogZmFsc2UsCiAgIm9yYWNsZSI6IHsKICAgICJncm9zc0NlbnRzIjogIjEwMDAwIiwKICAgICJzZWxsZXJDb3Vwb25DZW50cyI6ICIxIiwKICAgICJvcmlnaW5hbE5ldENlbnRzIjogIjk5OTkiLAogICAgInNoaXBwaW5nQ2VudHMiOiAiNTAwMCIsCiAgICAicGFpZENlbnRzIjogIjE0OTk5IiwKICAgICJjYXNoYmFja0NvaW5zIjogIjAiCiAgfSwKICAic25hcHNob3QiOiB7CiAgICAiYnV5ZXJNZXJjaGFuZGlzZU5ldCI6ICI5OTk5IiwKICAgICJidXllck1lcmNoYW5kaXNlVGF4IjogIjAiLAogICAgInBsYXRmb3JtQ291cG9uTmV0IjogIjAiLAogICAgInBsYXRmb3JtQ291cG9uVGF4IjogIjAiLAogICAgImNvaW5GdW5kaW5nTmV0IjogIjAiLAogICAgImNvaW5GdW5kaW5nVGF4IjogIjAiLAogICAgIm9yaWdpbmFsQ2FzaGJhY2tFbGlnaWJsZU5ldCI6ICI5OTk5IiwKICAgICJvcmlnaW5hbEFmZmlsaWF0ZUVsaWdpYmxlTmV0IjogIjk5OTkiLAogICAgInNob3BDb3Vwb25JZCI6ICIwZjkyZTNmZC1hNmFhLTQ4NDctYjBlYy1kNjIwMmYxMmFmZDgiLAogICAgInNob3BDb3Vwb25Db2RlIjogIjdGODFBNjgwLUY2MUUtNDVCOC05NUIxLTRCRUU2QTk2NzFGRiIsCiAgICAicGxhdGZvcm1Db3Vwb25JZCI6IG51bGwsCiAgICAicGxhdGZvcm1Db3Vwb25Db2RlIjogbnVsbCwKICAgICJvcmRlckl0ZW1JZCI6ICI3OWU0OTNhOS05NGU2LTRjMDItOWY4OC03NjQ4NGUzMTQxMDgiLAogICAgInNob3BPcmRlcklkIjogIjE1ZmMyNDc2LWE0YzgtNGE0MS05ZDg5LWM0YjM0MzUwMjZjOSIsCiAgICAib3JpZ2luYWxRdWFudGl0eSI6IDEsCiAgICAiZ3Jvc3NNZXJjaGFuZGlzZSI6ICIxMDAwMCIsCiAgICAic2VsbGVyQ291cG9uRGlzY291bnQiOiAiMSIsCiAgICAicGxhdGZvcm1Db3Vwb25EaXNjb3VudCI6ICIwIiwKICAgICJjb2luRGlzY291bnQiOiAiMCIsCiAgICAiYnV5ZXJNZXJjaGFuZGlzZSI6ICI5OTk5IiwKICAgICJjb3Vwb25JZCI6ICIwZjkyZTNmZC1hNmFhLTQ4NDctYjBlYy1kNjIwMmYxMmFmZDgiLAogICAgImNvdXBvbkNvZGUiOiAiN0Y4MUE2ODAtRjYxRS00NUI4LTk1QjEtNEJFRTZBOTY3MUZGIgogIH0sCiAgInNob3BTbmFwc2hvdCI6IHsKICAgICJ0YXhSYXRlUHBtIjogMCwKICAgICJ0YXhNb2RlIjogIklOQ0xVU0lWRSIsCiAgICAidGF4RnVuZGluZ0Jhc2lzIjogIlNFTExFUl9BRlRFUl9TSE9QX0NPVVBPTiIsCiAgICAidGF4YWJsZVNoaXBwaW5nIjogZmFsc2UsCiAgICAidGF4U2hpcHBpbmdCYXNpcyI6ICJTRUxMRVJfU0hJUFBJTkdfQUZURVJfV0FJVkVSIiwKICAgICJ0YXhSb3VuZGluZyI6ICJMSU5FX0hBTEZfVVAiLAogICAgInRheEN1c3RvZGlhbiI6ICJTRUxMRVIiLAogICAgInRheEV4Y2x1c2l2ZUZ1bmRpbmciOiAiQlVZRVIiLAogICAgInRheFBvbGljeVJldmlzaW9uIjogIjI1YWVmM2M3LTRmYjMtNGM0ZS1iOTk0LTMzMGY2NTkwODBlYyIsCiAgICAic2VsbGVyR3Jvc3NNZXJjaGFuZGlzZSI6ICI5OTk5IiwKICAgICJzZWxsZXJHcm9zc1NoaXBwaW5nIjogIjUwMDAiLAogICAgImJ1eWVyU2hpcHBpbmdOZXQiOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZ1RheCI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nTmV0IjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdUYXgiOiAiMCIsCiAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICJhZGRlZFRheFRvdGFsIjogIjAiLAogICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAic2hvcE9yZGVySWQiOiAiMTVmYzI0NzYtYTRjOC00YTQxLTlkODktYzRiMzQzNTAyNmM5IiwKICAgICJwb2xpY3lWZXJzaW9uIjogMiwKICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgImNvbW1pc3Npb25CYXNlIjogIjk5OTkiLAogICAgImNvbW1pc3Npb25CcHMiOiAxMDAwLAogICAgIm9yaWdpbmFsQ29tbWlzc2lvbiI6ICI5OTkiLAogICAgIm9yaWdpbmFsU2hpcHBpbmciOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZyI6ICI1MDAwIiwKICAgICJzZWxsZXJTaGlwcGluZ1dhaXZlciI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nU3Vic2lkeSI6ICIwIiwKICAgICJyZWNvZ25pemVkQXQiOiBudWxsCiAgfSwKICAid2FsbGV0IjogewogICAgImlkIjogImNkZmM2MzQ4LTRhZmUtNDFlNC05YTFjLWQyM2NlYWE1MzNkMyIsCiAgICAidXNlcklkIjogImY3OWYzOGUyLTNkNmEtNDRmYS04YWYwLTFmNjA0OGZmMzViMSIsCiAgICAiYmFsYW5jZSI6ICIwIiwKICAgICJwZW5kaW5nQmFsYW5jZSI6ICIwIiwKICAgICJkZWJ0QmFsYW5jZSI6ICIwIiwKICAgICJsaWZldGltZUVhcm5lZCI6ICIwIiwKICAgICJsaWZldGltZVNwZW50IjogIjAiLAogICAgInZlcnNpb24iOiAxLAogICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjE0LjQ3N1oiLAogICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjE0LjQ4MloiCiAgfSwKICAibGVkZ2VyIjogW10sCiAgImFwaSI6IHsKICAgICJiYWxhbmNlIjogIjAiLAogICAgInBlbmRpbmdCYWxhbmNlIjogIjAiLAogICAgImRlYnRCYWxhbmNlIjogIjAiLAogICAgImxpZmV0aW1lRWFybmVkIjogIjAiLAogICAgImxpZmV0aW1lU3BlbnQiOiAiMCIsCiAgICAiZW50cmllcyI6IFtdLAogICAgIm5leHRDdXJzb3IiOiBudWxsCiAgfQp9"
+                    },
+                    {
+                      "name": "cashback-threshold-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--eac63-NET-9999-excluding-shipping-chromium\\attachments\\cashback-threshold-parity-ui-d19ff7168c22313d05342bb11e8bd22e7972ebee.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-d0af0b64ca1db8e8a193",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3963,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:19.275Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cashback-threshold-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJpbnRlcm5hbE1vY2tTaW11bGF0aW9uIjogdHJ1ZSwKICAiZXh0ZXJuYWxQcm92aWRlclZlcmlmaWVkIjogZmFsc2UsCiAgIm9yYWNsZSI6IHsKICAgICJncm9zc0NlbnRzIjogIjEwMDAxIiwKICAgICJzZWxsZXJDb3Vwb25DZW50cyI6ICIxIiwKICAgICJvcmlnaW5hbE5ldENlbnRzIjogIjEwMDAwIiwKICAgICJzaGlwcGluZ0NlbnRzIjogIjUwMDAiLAogICAgInBhaWRDZW50cyI6ICIxNTAwMCIsCiAgICAiY2FzaGJhY2tDb2lucyI6ICIxIgogIH0sCiAgInNuYXBzaG90IjogewogICAgImJ1eWVyTWVyY2hhbmRpc2VOZXQiOiAiMTAwMDAiLAogICAgImJ1eWVyTWVyY2hhbmRpc2VUYXgiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25OZXQiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25UYXgiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdOZXQiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdUYXgiOiAiMCIsCiAgICAib3JpZ2luYWxDYXNoYmFja0VsaWdpYmxlTmV0IjogIjEwMDAwIiwKICAgICJvcmlnaW5hbEFmZmlsaWF0ZUVsaWdpYmxlTmV0IjogIjEwMDAwIiwKICAgICJzaG9wQ291cG9uSWQiOiAiYjQzYWM0MDItOTU2Yi00M2RhLWEzNjQtNjQ3NTdmZjk3MzIxIiwKICAgICJzaG9wQ291cG9uQ29kZSI6ICJERTNBNjk3QS0yQzhELTQzREMtQUYzMi1FOUE4NzhBMDU1QTkiLAogICAgInBsYXRmb3JtQ291cG9uSWQiOiBudWxsLAogICAgInBsYXRmb3JtQ291cG9uQ29kZSI6IG51bGwsCiAgICAib3JkZXJJdGVtSWQiOiAiNzViMWFiNTAtMGJiNC00NjA1LTk2NzgtMDRhZGJhMjc1NTUzIiwKICAgICJzaG9wT3JkZXJJZCI6ICI3MGJiYzY5Ny01MjM5LTRiZjItYjhiMC1lOTA4OTdmZDhkYjciLAogICAgIm9yaWdpbmFsUXVhbnRpdHkiOiAxLAogICAgImdyb3NzTWVyY2hhbmRpc2UiOiAiMTAwMDEiLAogICAgInNlbGxlckNvdXBvbkRpc2NvdW50IjogIjEiLAogICAgInBsYXRmb3JtQ291cG9uRGlzY291bnQiOiAiMCIsCiAgICAiY29pbkRpc2NvdW50IjogIjAiLAogICAgImJ1eWVyTWVyY2hhbmRpc2UiOiAiMTAwMDAiLAogICAgImNvdXBvbklkIjogImI0M2FjNDAyLTk1NmItNDNkYS1hMzY0LTY0NzU3ZmY5NzMyMSIsCiAgICAiY291cG9uQ29kZSI6ICJERTNBNjk3QS0yQzhELTQzREMtQUYzMi1FOUE4NzhBMDU1QTkiCiAgfSwKICAic2hvcFNuYXBzaG90IjogewogICAgInRheFJhdGVQcG0iOiAwLAogICAgInRheE1vZGUiOiAiSU5DTFVTSVZFIiwKICAgICJ0YXhGdW5kaW5nQmFzaXMiOiAiU0VMTEVSX0FGVEVSX1NIT1BfQ09VUE9OIiwKICAgICJ0YXhhYmxlU2hpcHBpbmciOiBmYWxzZSwKICAgICJ0YXhTaGlwcGluZ0Jhc2lzIjogIlNFTExFUl9TSElQUElOR19BRlRFUl9XQUlWRVIiLAogICAgInRheFJvdW5kaW5nIjogIkxJTkVfSEFMRl9VUCIsCiAgICAidGF4Q3VzdG9kaWFuIjogIlNFTExFUiIsCiAgICAidGF4RXhjbHVzaXZlRnVuZGluZyI6ICJCVVlFUiIsCiAgICAidGF4UG9saWN5UmV2aXNpb24iOiAiZWU3MDg5YWEtMTUyMC00OTY1LTkzYjItNDkxODI2YmMxZjY5IiwKICAgICJzZWxsZXJHcm9zc01lcmNoYW5kaXNlIjogIjEwMDAwIiwKICAgICJzZWxsZXJHcm9zc1NoaXBwaW5nIjogIjUwMDAiLAogICAgImJ1eWVyU2hpcHBpbmdOZXQiOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZ1RheCI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nTmV0IjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdUYXgiOiAiMCIsCiAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICJhZGRlZFRheFRvdGFsIjogIjAiLAogICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAic2hvcE9yZGVySWQiOiAiNzBiYmM2OTctNTIzOS00YmYyLWI4YjAtZTkwODk3ZmQ4ZGI3IiwKICAgICJwb2xpY3lWZXJzaW9uIjogMiwKICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgImNvbW1pc3Npb25CYXNlIjogIjEwMDAwIiwKICAgICJjb21taXNzaW9uQnBzIjogMTAwMCwKICAgICJvcmlnaW5hbENvbW1pc3Npb24iOiAiMTAwMCIsCiAgICAib3JpZ2luYWxTaGlwcGluZyI6ICI1MDAwIiwKICAgICJidXllclNoaXBwaW5nIjogIjUwMDAiLAogICAgInNlbGxlclNoaXBwaW5nV2FpdmVyIjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdTdWJzaWR5IjogIjAiLAogICAgInJlY29nbml6ZWRBdCI6IG51bGwKICB9LAogICJ3YWxsZXQiOiB7CiAgICAiaWQiOiAiZDU5NTNiN2YtNjdjYS00ZDJhLWI0MmMtZGY0MThhMDRhZWFjIiwKICAgICJ1c2VySWQiOiAiOTlhN2Q2MzYtYTAzMy00ZjMzLTg5NGMtMDkwMzQzYjg4Y2U1IiwKICAgICJiYWxhbmNlIjogIjEiLAogICAgInBlbmRpbmdCYWxhbmNlIjogIjAiLAogICAgImRlYnRCYWxhbmNlIjogIjAiLAogICAgImxpZmV0aW1lRWFybmVkIjogIjEiLAogICAgImxpZmV0aW1lU3BlbnQiOiAiMCIsCiAgICAidmVyc2lvbiI6IDEsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MjAuOTk5WiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MjIuMzgwWiIKICB9LAogICJsZWRnZXIiOiBbCiAgICB7CiAgICAgICJpZCI6ICI5YjJjOWZkNi1hNzFlLTQ2YmMtOTdmMC04NjFjNmI2NTRjYTMiLAogICAgICAid2FsbGV0SWQiOiAiZDU5NTNiN2YtNjdjYS00ZDJhLWI0MmMtZGY0MThhMDRhZWFjIiwKICAgICAgInVzZXJJZCI6ICI5OWE3ZDYzNi1hMDMzLTRmMzMtODk0Yy0wOTAzNDNiODhjZTUiLAogICAgICAib3JkZXJJZCI6ICJhZWU5NTMzMS0wNDA2LTRjZWMtYjFhZS01OWNmYjcwZWViYTMiLAogICAgICAidHlwZSI6ICJFQVJORUQiLAogICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICJhbW91bnQiOiAiMSIsCiAgICAgICJiYWxhbmNlQWZ0ZXIiOiAiMSIsCiAgICAgICJyZWFzb24iOiAiMSUgb3JkZXIgY2FzaGJhY2siLAogICAgICAicmVmZXJlbmNlVHlwZSI6ICJPUkRFUl9DQVNIQkFDSyIsCiAgICAgICJyZWZlcmVuY2VJZCI6ICJhZWU5NTMzMS0wNDA2LTRjZWMtYjFhZS01OWNmYjcwZWViYTMiLAogICAgICAiZXhwaXJlc0F0IjogbnVsbCwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjIyLjM3MVoiCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImJhbGFuY2UiOiAiMSIsCiAgICAicGVuZGluZ0JhbGFuY2UiOiAiMCIsCiAgICAiZGVidEJhbGFuY2UiOiAiMCIsCiAgICAibGlmZXRpbWVFYXJuZWQiOiAiMSIsCiAgICAibGlmZXRpbWVTcGVudCI6ICIwIiwKICAgICJlbnRyaWVzIjogWwogICAgICB7CiAgICAgICAgImlkIjogIjliMmM5ZmQ2LWE3MWUtNDZiYy05N2YwLTg2MWM2YjY1NGNhMyIsCiAgICAgICAgInR5cGUiOiAiRUFSTkVEIiwKICAgICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICAgImFtb3VudCI6ICIxIiwKICAgICAgICAicmVhc29uIjogIjElIG9yZGVyIGNhc2hiYWNrIiwKICAgICAgICAib3JkZXJJZCI6ICJhZWU5NTMzMS0wNDA2LTRjZWMtYjFhZS01OWNmYjcwZWViYTMiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo1MDoyMi4zNzFaIgogICAgICB9CiAgICBdLAogICAgIm5leHRDdXJzb3IiOiBudWxsCiAgfQp9"
+                    },
+                    {
+                      "name": "cashback-threshold-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--fb722-ET-10000-excluding-shipping-chromium\\attachments\\cashback-threshold-parity-ui-e0b427cdf6496e7df4863e736950fc204ee4d4d8.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-6a528228b206c161e76c",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3971,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:23.247Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "cashback-threshold-parity",
+                      "contentType": "application/json",
+                      "body": "ewogICJpbnRlcm5hbE1vY2tTaW11bGF0aW9uIjogdHJ1ZSwKICAiZXh0ZXJuYWxQcm92aWRlclZlcmlmaWVkIjogZmFsc2UsCiAgIm9yYWNsZSI6IHsKICAgICJncm9zc0NlbnRzIjogIjEwMDAyIiwKICAgICJzZWxsZXJDb3Vwb25DZW50cyI6ICIxIiwKICAgICJvcmlnaW5hbE5ldENlbnRzIjogIjEwMDAxIiwKICAgICJzaGlwcGluZ0NlbnRzIjogIjUwMDAiLAogICAgInBhaWRDZW50cyI6ICIxNTAwMSIsCiAgICAiY2FzaGJhY2tDb2lucyI6ICIxIgogIH0sCiAgInNuYXBzaG90IjogewogICAgImJ1eWVyTWVyY2hhbmRpc2VOZXQiOiAiMTAwMDEiLAogICAgImJ1eWVyTWVyY2hhbmRpc2VUYXgiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25OZXQiOiAiMCIsCiAgICAicGxhdGZvcm1Db3Vwb25UYXgiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdOZXQiOiAiMCIsCiAgICAiY29pbkZ1bmRpbmdUYXgiOiAiMCIsCiAgICAib3JpZ2luYWxDYXNoYmFja0VsaWdpYmxlTmV0IjogIjEwMDAxIiwKICAgICJvcmlnaW5hbEFmZmlsaWF0ZUVsaWdpYmxlTmV0IjogIjEwMDAxIiwKICAgICJzaG9wQ291cG9uSWQiOiAiYmU4NDk0NmQtODhjMS00MTAyLThmNGYtNjVjOGEwOGI1NzY0IiwKICAgICJzaG9wQ291cG9uQ29kZSI6ICI5N0RGNEJCOS02RTY1LTQ3RUItQUIwNS0wRkNBMkY4NTA3MDgiLAogICAgInBsYXRmb3JtQ291cG9uSWQiOiBudWxsLAogICAgInBsYXRmb3JtQ291cG9uQ29kZSI6IG51bGwsCiAgICAib3JkZXJJdGVtSWQiOiAiMjc0YzVlMzUtYTBmYi00ZGNkLTk4M2EtZmNkNTQzMjQ5NDg3IiwKICAgICJzaG9wT3JkZXJJZCI6ICIxZTBkZmM2MC1lOTBiLTQ5Y2MtYWQ4Zi04ODY1ZDU3NTI5YmYiLAogICAgIm9yaWdpbmFsUXVhbnRpdHkiOiAxLAogICAgImdyb3NzTWVyY2hhbmRpc2UiOiAiMTAwMDIiLAogICAgInNlbGxlckNvdXBvbkRpc2NvdW50IjogIjEiLAogICAgInBsYXRmb3JtQ291cG9uRGlzY291bnQiOiAiMCIsCiAgICAiY29pbkRpc2NvdW50IjogIjAiLAogICAgImJ1eWVyTWVyY2hhbmRpc2UiOiAiMTAwMDEiLAogICAgImNvdXBvbklkIjogImJlODQ5NDZkLTg4YzEtNDEwMi04ZjRmLTY1YzhhMDhiNTc2NCIsCiAgICAiY291cG9uQ29kZSI6ICI5N0RGNEJCOS02RTY1LTQ3RUItQUIwNS0wRkNBMkY4NTA3MDgiCiAgfSwKICAic2hvcFNuYXBzaG90IjogewogICAgInRheFJhdGVQcG0iOiAwLAogICAgInRheE1vZGUiOiAiSU5DTFVTSVZFIiwKICAgICJ0YXhGdW5kaW5nQmFzaXMiOiAiU0VMTEVSX0FGVEVSX1NIT1BfQ09VUE9OIiwKICAgICJ0YXhhYmxlU2hpcHBpbmciOiBmYWxzZSwKICAgICJ0YXhTaGlwcGluZ0Jhc2lzIjogIlNFTExFUl9TSElQUElOR19BRlRFUl9XQUlWRVIiLAogICAgInRheFJvdW5kaW5nIjogIkxJTkVfSEFMRl9VUCIsCiAgICAidGF4Q3VzdG9kaWFuIjogIlNFTExFUiIsCiAgICAidGF4RXhjbHVzaXZlRnVuZGluZyI6ICJCVVlFUiIsCiAgICAidGF4UG9saWN5UmV2aXNpb24iOiAiZWZjNjIwNTItNzZkNy00MzU4LTg2NWYtMmI5ZTc5NjRjMzFlIiwKICAgICJzZWxsZXJHcm9zc01lcmNoYW5kaXNlIjogIjEwMDAxIiwKICAgICJzZWxsZXJHcm9zc1NoaXBwaW5nIjogIjUwMDAiLAogICAgImJ1eWVyU2hpcHBpbmdOZXQiOiAiNTAwMCIsCiAgICAiYnV5ZXJTaGlwcGluZ1RheCI6ICIwIiwKICAgICJwbGF0Zm9ybVNoaXBwaW5nTmV0IjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdUYXgiOiAiMCIsCiAgICAiaW5jbHVkZWRUYXhUb3RhbCI6ICIwIiwKICAgICJhZGRlZFRheFRvdGFsIjogIjAiLAogICAgInJlcG9ydGVkVGF4VG90YWwiOiAiMCIsCiAgICAic2hvcE9yZGVySWQiOiAiMWUwZGZjNjAtZTkwYi00OWNjLWFkOGYtODg2NWQ1NzUyOWJmIiwKICAgICJwb2xpY3lWZXJzaW9uIjogMiwKICAgICJjdXJyZW5jeSI6ICJUSEIiLAogICAgImNvbW1pc3Npb25CYXNlIjogIjEwMDAxIiwKICAgICJjb21taXNzaW9uQnBzIjogMTAwMCwKICAgICJvcmlnaW5hbENvbW1pc3Npb24iOiAiMTAwMCIsCiAgICAib3JpZ2luYWxTaGlwcGluZyI6ICI1MDAwIiwKICAgICJidXllclNoaXBwaW5nIjogIjUwMDAiLAogICAgInNlbGxlclNoaXBwaW5nV2FpdmVyIjogIjAiLAogICAgInBsYXRmb3JtU2hpcHBpbmdTdWJzaWR5IjogIjAiLAogICAgInJlY29nbml6ZWRBdCI6IG51bGwKICB9LAogICJ3YWxsZXQiOiB7CiAgICAiaWQiOiAiMzhmNzY1MDAtMDg0MC00ZGFkLThkYjAtM2FlM2MzYzc4OTZmIiwKICAgICJ1c2VySWQiOiAiYmY5Y2NlZjEtNjE0Mi00MDAwLWE4ZmMtYzNmMzVlMDRjMDNhIiwKICAgICJiYWxhbmNlIjogIjEiLAogICAgInBlbmRpbmdCYWxhbmNlIjogIjAiLAogICAgImRlYnRCYWxhbmNlIjogIjAiLAogICAgImxpZmV0aW1lRWFybmVkIjogIjEiLAogICAgImxpZmV0aW1lU3BlbnQiOiAiMCIsCiAgICAidmVyc2lvbiI6IDEsCiAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MjUuMDIwWiIsCiAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6MjYuMzc0WiIKICB9LAogICJsZWRnZXIiOiBbCiAgICB7CiAgICAgICJpZCI6ICJjOTQ3NDQ5Mi1mNGRmLTRiZjAtOWRlNC1kOTVhMTQ4NTBjOGIiLAogICAgICAid2FsbGV0SWQiOiAiMzhmNzY1MDAtMDg0MC00ZGFkLThkYjAtM2FlM2MzYzc4OTZmIiwKICAgICAgInVzZXJJZCI6ICJiZjljY2VmMS02MTQyLTQwMDAtYThmYy1jM2YzNWUwNGMwM2EiLAogICAgICAib3JkZXJJZCI6ICI4NWM4NzJkOC0wNzBmLTQ0MDYtOGNlMi1kZTU2OTNjNDA4OGQiLAogICAgICAidHlwZSI6ICJFQVJORUQiLAogICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICJhbW91bnQiOiAiMSIsCiAgICAgICJiYWxhbmNlQWZ0ZXIiOiAiMSIsCiAgICAgICJyZWFzb24iOiAiMSUgb3JkZXIgY2FzaGJhY2siLAogICAgICAicmVmZXJlbmNlVHlwZSI6ICJPUkRFUl9DQVNIQkFDSyIsCiAgICAgICJyZWZlcmVuY2VJZCI6ICI4NWM4NzJkOC0wNzBmLTQ0MDYtOGNlMi1kZTU2OTNjNDA4OGQiLAogICAgICAiZXhwaXJlc0F0IjogbnVsbCwKICAgICAgImNyZWF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjI2LjM1OVoiCiAgICB9CiAgXSwKICAiYXBpIjogewogICAgImJhbGFuY2UiOiAiMSIsCiAgICAicGVuZGluZ0JhbGFuY2UiOiAiMCIsCiAgICAiZGVidEJhbGFuY2UiOiAiMCIsCiAgICAibGlmZXRpbWVFYXJuZWQiOiAiMSIsCiAgICAibGlmZXRpbWVTcGVudCI6ICIwIiwKICAgICJlbnRyaWVzIjogWwogICAgICB7CiAgICAgICAgImlkIjogImM5NDc0NDkyLWY0ZGYtNGJmMC05ZGU0LWQ5NWExNDg1MGM4YiIsCiAgICAgICAgInR5cGUiOiAiRUFSTkVEIiwKICAgICAgICAic3RhdHVzIjogIkFWQUlMQUJMRSIsCiAgICAgICAgImFtb3VudCI6ICIxIiwKICAgICAgICAicmVhc29uIjogIjElIG9yZGVyIGNhc2hiYWNrIiwKICAgICAgICAib3JkZXJJZCI6ICI4NWM4NzJkOC0wNzBmLTQ0MDYtOGNlMi1kZTU2OTNjNDA4OGQiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo1MDoyNi4zNTlaIgogICAgICB9CiAgICBdLAogICAgIm5leHRDdXJzb3IiOiBudWxsCiAgfQp9"
+                    },
+                    {
+                      "name": "cashback-threshold-parity-ui",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-admin-projections--ce9a5-ET-10001-excluding-shipping-chromium\\attachments\\cashback-threshold-parity-ui-7dc69e7f149a348b493db8c0df1b833a2641e862.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8dd6e483bb27b0108f0e",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "numeric-analytics.spec.ts",
+      "file": "numeric-analytics.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2755,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:27.275Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "numeric-analytics",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-analytics-paid-ana-40682-evenue-ranking-across-pages-chromium\\attachments\\numeric-analytics-d922104c95b90457169a41def8af5bfa2896c170.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "95c37ffc69b5969c2188-d99f42e90c4834c2b24f",
+          "file": "numeric-analytics.spec.ts",
+          "line": 13,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-boundaries.spec.ts",
+      "file": "numeric-boundaries.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3703,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:30.073Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-f9ef4915940651e087a0",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "production route composition prevents seller stock below active holds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2863,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:33.785Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-562c8ed60413d7c27269",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2266,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:36.656Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-6b0cf4e1c8d9d949e369",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 70,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-commerce.spec.ts",
+      "file": "numeric-commerce.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "UI, API and database preserve exact satang for repriced basket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6837,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:38.965Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-a5bb7c007f569e4742d4",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5035,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:45.811Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-e1284c5bbf24db1d975f",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5086,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:50.857Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-9843ad93eff828c1f800",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "numeric-projections.spec.ts",
+      "file": "numeric-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 15450,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('a[href=\"#reviews\"]')\nExpected pattern: \u001b[32m/^4\\.7 · 3 /\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('a[href=\"#reviews\"]')\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('a[href=\"#reviews\"]')\nExpected pattern: \u001b[32m/^4\\.7 · 3 /\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('a[href=\"#reviews\"]')\u001b[22m\n\n    at D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts:147:52",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                      "column": 52,
+                      "line": 147
+                    },
+                    "snippet": "  145 |   expect(shopFeed.meta).toEqual({ page: 1, pageSize: 2, totalCount: 3, hasNextPage: true })\n  146 |   await page.goto(`/en/shops/${first.shop.slug}`)\n> 147 |   await expect(page.locator('a[href=\"#reviews\"]')).toHaveText(/^4\\.7 · 3 /)\n      |                                                    ^\n  148 |   await expect(page.locator('#reviews article')).toHaveCount(3)\n  149 |   await expect(page.locator('#reviews').getByText('Shop feedback 0 PUBLISHED', { exact: true })).toBeVisible()\n  150 |   await expect(page.locator('#reviews').getByText('Shop feedback 3 PENDING', { exact: true })).toHaveCount(0)"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                        "column": 52,
+                        "line": 147
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('a[href=\"#reviews\"]')\nExpected pattern: \u001b[32m/^4\\.7 · 3 /\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('a[href=\"#reviews\"]')\u001b[22m\n\n\n  145 |   expect(shopFeed.meta).toEqual({ page: 1, pageSize: 2, totalCount: 3, hasNextPage: true })\n  146 |   await page.goto(`/en/shops/${first.shop.slug}`)\n> 147 |   await expect(page.locator('a[href=\"#reviews\"]')).toHaveText(/^4\\.7 · 3 /)\n      |                                                    ^\n  148 |   await expect(page.locator('#reviews article')).toHaveCount(3)\n  149 |   await expect(page.locator('#reviews').getByText('Shop feedback 0 PUBLISHED', { exact: true })).toBeVisible()\n  150 |   await expect(page.locator('#reviews').getByText('Shop feedback 3 PENDING', { exact: true })).toHaveCount(0)\n    at D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts:147:52"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:50:55.998Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "published-product-ratings-values",
+                      "contentType": "application/json",
+                      "body": "ewogICJwcm9kdWN0RGIiOiB7CiAgICAiX2NvdW50IjogMywKICAgICJfc3VtIjogewogICAgICAicmF0aW5nIjogMTMKICAgIH0KICB9LAogICJwcm9kdWN0U3VtbWFyeSI6IHsKICAgICJhdmVyYWdlUmF0aW5nIjogNC4zMywKICAgICJ0b3RhbFJldmlld0NvdW50IjogMywKICAgICJkaXN0cmlidXRpb24iOiB7CiAgICAgICIxIjogMCwKICAgICAgIjIiOiAwLAogICAgICAiMyI6IDEsCiAgICAgICI0IjogMCwKICAgICAgIjUiOiAyCiAgICB9CiAgfSwKICAiZmlyc3RQYWdlIjogewogICAgIml0ZW1zIjogWwogICAgICB7CiAgICAgICAgImlkIjogImJkMmEzZDc4LTE3ZDQtNGEzNi1iODI5LTlmOGY2ZmJlOTBkYiIsCiAgICAgICAgInByb2R1Y3RJZCI6ICIzNWM2NDAxZS05MmU1LTRlZWMtODkxYS1hN2NiYTQ1NTFmYjEiLAogICAgICAgICJvcmRlckl0ZW1JZCI6ICI3N2U3Mjk0OC04NmExLTQ3OWEtYjY0Mi1lNDE0ZjM3ZjU4MWUiLAogICAgICAgICJ1c2VySWQiOiAiMjJkODg5ODktNjdiMC00YzNlLTkyODAtMGZkYjY3ZDdiZmYxIiwKICAgICAgICAidXNlck5hbWUiOiAiRXh0ZW5kZWQgRTJFIEJ1eWVyIiwKICAgICAgICAicmF0aW5nIjogMywKICAgICAgICAiY29tbWVudCI6ICJQcm9kdWN0IGZlZWRiYWNrIDIgUFVCTElTSEVEIiwKICAgICAgICAiaW1hZ2VzIjogW10sCiAgICAgICAgIm1lZGlhIjogW10sCiAgICAgICAgInN0YXR1cyI6ICJQVUJMSVNIRUQiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo1MDo1Ni4yNjlaIiwKICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6NTYuMjY5WiIsCiAgICAgICAgInNuYXBzaG90IjogewogICAgICAgICAgInByb2R1Y3RUaXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDUyYjA4ZTQ1IiwKICAgICAgICAgICJwcm9kdWN0U2x1ZyI6ICJiMmIzNzM0Mi02MWM1LTQ1MzctYTRkZS01MmNlYjViMmRhYzEiLAogICAgICAgICAgInZhcmlhbnRUaXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICJ2YXJpYW50U2t1IjogImFlOTE3Mzc5LTk4NGMtNDM1My05Y2MwLTBlOWNjOGE4MDRjMiIsCiAgICAgICAgICAic2hvcE5hbWUiOiAiRXh0ZW5kZWQgU2hvcCBkMjIwOWY2OCIsCiAgICAgICAgICAic2hvcFNsdWciOiAiODM1YTFkZTktMmJlZi00YTEwLTg4ZDEtM2Y4NmY1N2VlMTY5IgogICAgICAgIH0KICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6ICJjNGM5MmU3Ny04MTA4LTQ0ZDktODU5NC0xODY1N2Q3NzExNGQiLAogICAgICAgICJwcm9kdWN0SWQiOiAiMzVjNjQwMWUtOTJlNS00ZWVjLTg5MWEtYTdjYmE0NTUxZmIxIiwKICAgICAgICAib3JkZXJJdGVtSWQiOiAiZjRmNjUxNTAtOGE1NC00MDYyLWI5MmItYWY4ZGFkM2EzZTJkIiwKICAgICAgICAidXNlcklkIjogIjIyZDg4OTg5LTY3YjAtNGMzZS05MjgwLTBmZGI2N2Q3YmZmMSIsCiAgICAgICAgInVzZXJOYW1lIjogIkV4dGVuZGVkIEUyRSBCdXllciIsCiAgICAgICAgInJhdGluZyI6IDUsCiAgICAgICAgImNvbW1lbnQiOiAiUHJvZHVjdCBmZWVkYmFjayAxIFBVQkxJU0hFRCIsCiAgICAgICAgImltYWdlcyI6IFtdLAogICAgICAgICJtZWRpYSI6IFtdLAogICAgICAgICJzdGF0dXMiOiAiUFVCTElTSEVEIiwKICAgICAgICAiY3JlYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6NTYuMjYwWiIsCiAgICAgICAgInVwZGF0ZWRBdCI6ICIyMDI2LTEwLTAzVDIzOjUwOjU2LjI2MFoiLAogICAgICAgICJzbmFwc2hvdCI6IHsKICAgICAgICAgICJwcm9kdWN0VGl0bGUiOiAiRXh0ZW5kZWQgcHJvZHVjdCA1MmIwOGU0NSIsCiAgICAgICAgICAicHJvZHVjdFNsdWciOiAiYjJiMzczNDItNjFjNS00NTM3LWE0ZGUtNTJjZWI1YjJkYWMxIiwKICAgICAgICAgICJ2YXJpYW50VGl0bGUiOiAiRGVmYXVsdCIsCiAgICAgICAgICAidmFyaWFudFNrdSI6ICJhZTkxNzM3OS05ODRjLTQzNTMtOWNjMC0wZTljYzhhODA0YzIiLAogICAgICAgICAgInNob3BOYW1lIjogIkV4dGVuZGVkIFNob3AgZDIyMDlmNjgiLAogICAgICAgICAgInNob3BTbHVnIjogIjgzNWExZGU5LTJiZWYtNGExMC04OGQxLTNmODZmNTdlZTE2OSIKICAgICAgICB9CiAgICAgIH0KICAgIF0sCiAgICAibWV0YSI6IHsKICAgICAgInBhZ2UiOiAxLAogICAgICAibGltaXQiOiAyLAogICAgICAidG90YWxDb3VudCI6IDMsCiAgICAgICJoYXNOZXh0UGFnZSI6IHRydWUKICAgIH0KICB9LAogICJzZWNvbmRQYWdlIjogewogICAgIml0ZW1zIjogWwogICAgICB7CiAgICAgICAgImlkIjogIjJlYmU1NzkyLWNlYjktNDRkZC1iOWU2LTIwN2IyM2NiOTdlMiIsCiAgICAgICAgInByb2R1Y3RJZCI6ICIzNWM2NDAxZS05MmU1LTRlZWMtODkxYS1hN2NiYTQ1NTFmYjEiLAogICAgICAgICJvcmRlckl0ZW1JZCI6ICI3NTg0MjU4Mi03NmYzLTRmODYtYmZjZS0wZjc0ZTMzMmRhNTAiLAogICAgICAgICJ1c2VySWQiOiAiMjJkODg5ODktNjdiMC00YzNlLTkyODAtMGZkYjY3ZDdiZmYxIiwKICAgICAgICAidXNlck5hbWUiOiAiRXh0ZW5kZWQgRTJFIEJ1eWVyIiwKICAgICAgICAicmF0aW5nIjogNSwKICAgICAgICAiY29tbWVudCI6ICJQcm9kdWN0IGZlZWRiYWNrIDAgUFVCTElTSEVEIiwKICAgICAgICAiaW1hZ2VzIjogW10sCiAgICAgICAgIm1lZGlhIjogW10sCiAgICAgICAgInN0YXR1cyI6ICJQVUJMSVNIRUQiLAogICAgICAgICJjcmVhdGVkQXQiOiAiMjAyNi0xMC0wM1QyMzo1MDo1Ni4yNDJaIiwKICAgICAgICAidXBkYXRlZEF0IjogIjIwMjYtMTAtMDNUMjM6NTA6NTYuMjQyWiIsCiAgICAgICAgInNuYXBzaG90IjogewogICAgICAgICAgInByb2R1Y3RUaXRsZSI6ICJFeHRlbmRlZCBwcm9kdWN0IDUyYjA4ZTQ1IiwKICAgICAgICAgICJwcm9kdWN0U2x1ZyI6ICJiMmIzNzM0Mi02MWM1LTQ1MzctYTRkZS01MmNlYjViMmRhYzEiLAogICAgICAgICAgInZhcmlhbnRUaXRsZSI6ICJEZWZhdWx0IiwKICAgICAgICAgICJ2YXJpYW50U2t1IjogImFlOTE3Mzc5LTk4NGMtNDM1My05Y2MwLTBlOWNjOGE4MDRjMiIsCiAgICAgICAgICAic2hvcE5hbWUiOiAiRXh0ZW5kZWQgU2hvcCBkMjIwOWY2OCIsCiAgICAgICAgICAic2hvcFNsdWciOiAiODM1YTFkZTktMmJlZi00YTEwLTg4ZDEtM2Y4NmY1N2VlMTY5IgogICAgICAgIH0KICAgICAgfQogICAgXSwKICAgICJtZXRhIjogewogICAgICAicGFnZSI6IDIsCiAgICAgICJsaW1pdCI6IDIsCiAgICAgICJ0b3RhbENvdW50IjogMywKICAgICAgImhhc05leHRQYWdlIjogZmFsc2UKICAgIH0KICB9Cn0="
+                    },
+                    {
+                      "name": "published-product-ratings",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\attachments\\published-product-ratings-3328bd8c8ef162befdcb57944554f7ab43a7c612.png"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-publis-516df-ounts-buckets-and-public-UI-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                    "column": 52,
+                    "line": 147
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-dfe277cab74bcc76e063",
+          "file": "numeric-projections.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2946,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('aside:visible').getByRole('link').filter({ hasText: 'Projection-d3734d40-a557-42be-9b18-fd143014e564' })\nExpected: \u001b[32m\"Projection-d3734d40-a557-42be-9b18-fd143014e5642\"\u001b[39m\nError: strict mode violation: locator('aside:visible').getByRole('link').filter({ hasText: 'Projection-d3734d40-a557-42be-9b18-fd143014e564' }) resolved to 2 elements:\n    1) <a class=\"flex min-w-0 rounded-xl px-2 py-1.5 text-sm leading-5 transition text-slate-600 hover:bg-slate-50 hover:text-slate-950\" href=\"/search?q=Projection-d3734d40-a557-42be-9b18-fd143014e564&inStock=true&sort=top_sales&categoryId=6171c9bb-e06b-4e98-b5b5-4f4bfce57191\">…</a> aka getByRole('link', { name: 'Projection-d3734d40-a557-42be-9b18-fd143014e564 2', exact: true })\n    2) <a class=\"flex min-w-0 rounded-xl px-2 py-1.5 text-sm leading-5 transition text-slate-600 hover:bg-slate-50 hover:text-slate-950\" href=\"/search?q=Projection-d3734d40-a557-42be-9b18-fd143014e564&inStock=true&sort=top_sales&brandId=0b9feb1d-98a7-41cd-98a2-811df8747e03\">…</a> aka getByRole('link', { name: 'Brand-Projection-d3734d40-' })\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('aside:visible').getByRole('link').filter({ hasText: 'Projection-d3734d40-a557-42be-9b18-fd143014e564' })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('aside:visible').getByRole('link').filter({ hasText: 'Projection-d3734d40-a557-42be-9b18-fd143014e564' })\nExpected: \u001b[32m\"Projection-d3734d40-a557-42be-9b18-fd143014e5642\"\u001b[39m\nError: strict mode violation: locator('aside:visible').getByRole('link').filter({ hasText: 'Projection-d3734d40-a557-42be-9b18-fd143014e564' }) resolved to 2 elements:\n    1) <a class=\"flex min-w-0 rounded-xl px-2 py-1.5 text-sm leading-5 transition text-slate-600 hover:bg-slate-50 hover:text-slate-950\" href=\"/search?q=Projection-d3734d40-a557-42be-9b18-fd143014e564&inStock=true&sort=top_sales&categoryId=6171c9bb-e06b-4e98-b5b5-4f4bfce57191\">…</a> aka getByRole('link', { name: 'Projection-d3734d40-a557-42be-9b18-fd143014e564 2', exact: true })\n    2) <a class=\"flex min-w-0 rounded-xl px-2 py-1.5 text-sm leading-5 transition text-slate-600 hover:bg-slate-50 hover:text-slate-950\" href=\"/search?q=Projection-d3734d40-a557-42be-9b18-fd143014e564&inStock=true&sort=top_sales&brandId=0b9feb1d-98a7-41cd-98a2-811df8747e03\">…</a> aka getByRole('link', { name: 'Brand-Projection-d3734d40-' })\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('aside:visible').getByRole('link').filter({ hasText: 'Projection-d3734d40-a557-42be-9b18-fd143014e564' })\u001b[22m\n\n    at D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts:197:86",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                      "column": 86,
+                      "line": 197
+                    },
+                    "snippet": "  195 |   if (await filterButton.isVisible()) await filterButton.click()\n  196 |   const filters = page.locator('aside:visible')\n> 197 |   await expect(filters.getByRole('link').filter({ hasText: catalog.category.name })).toHaveText(`${catalog.category.name}2`)\n      |                                                                                      ^\n  198 |   await expect(filters.getByRole('link').filter({ hasText: catalog.brand.name })).toHaveText(`${catalog.brand.name}2`)\n  199 |   await expect(filters.locator('input[name=\"minPrice\"]')).toHaveAttribute('placeholder', '1000')\n  200 |   await expect(filters.locator('input[name=\"maxPrice\"]')).toHaveAttribute('placeholder', '2000')"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                        "column": 86,
+                        "line": 197
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('aside:visible').getByRole('link').filter({ hasText: 'Projection-d3734d40-a557-42be-9b18-fd143014e564' })\nExpected: \u001b[32m\"Projection-d3734d40-a557-42be-9b18-fd143014e5642\"\u001b[39m\nError: strict mode violation: locator('aside:visible').getByRole('link').filter({ hasText: 'Projection-d3734d40-a557-42be-9b18-fd143014e564' }) resolved to 2 elements:\n    1) <a class=\"flex min-w-0 rounded-xl px-2 py-1.5 text-sm leading-5 transition text-slate-600 hover:bg-slate-50 hover:text-slate-950\" href=\"/search?q=Projection-d3734d40-a557-42be-9b18-fd143014e564&inStock=true&sort=top_sales&categoryId=6171c9bb-e06b-4e98-b5b5-4f4bfce57191\">…</a> aka getByRole('link', { name: 'Projection-d3734d40-a557-42be-9b18-fd143014e564 2', exact: true })\n    2) <a class=\"flex min-w-0 rounded-xl px-2 py-1.5 text-sm leading-5 transition text-slate-600 hover:bg-slate-50 hover:text-slate-950\" href=\"/search?q=Projection-d3734d40-a557-42be-9b18-fd143014e564&inStock=true&sort=top_sales&brandId=0b9feb1d-98a7-41cd-98a2-811df8747e03\">…</a> aka getByRole('link', { name: 'Brand-Projection-d3734d40-' })\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('aside:visible').getByRole('link').filter({ hasText: 'Projection-d3734d40-a557-42be-9b18-fd143014e564' })\u001b[22m\n\n\n  195 |   if (await filterButton.isVisible()) await filterButton.click()\n  196 |   const filters = page.locator('aside:visible')\n> 197 |   await expect(filters.getByRole('link').filter({ hasText: catalog.category.name })).toHaveText(`${catalog.category.name}2`)\n      |                                                                                      ^\n  198 |   await expect(filters.getByRole('link').filter({ hasText: catalog.brand.name })).toHaveText(`${catalog.brand.name}2`)\n  199 |   await expect(filters.locator('input[name=\"minPrice\"]')).toHaveAttribute('placeholder', '1000')\n  200 |   await expect(filters.locator('input[name=\"maxPrice\"]')).toHaveAttribute('placeholder', '2000')\n    at D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts:197:86"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:51:12.665Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-search-9e118-tory-and-reserved-inventory-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-search-9e118-tory-and-reserved-inventory-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-search-9e118-tory-and-reserved-inventory-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-search-9e118-tory-and-reserved-inventory-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-search-9e118-tory-and-reserved-inventory-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                    "column": 86,
+                    "line": 197
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-6b1b9bc411bde5c7bf1d",
+          "file": "numeric-projections.spec.ts",
+          "line": 154,
+          "column": 1
+        },
+        {
+          "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 12098,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).locator('article').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).getByRole('heading', { name: 'Projection-5fa23eee-7fb5-437c-893d-cb66c291a635 outside499', exact: true }) }).locator('p[title]').filter({ hasText: '฿4.99' })\nExpected: \u001b[32m\"฿4.99\"\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).locator('article').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).getByRole('heading', { name: 'Projection-5fa23eee-7fb5-437c-893d-cb66c291a635 outside499', exact: true }) }).locator('p[title]').filter({ hasText: '฿4.99' })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).locator('article').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).getByRole('heading', { name: 'Projection-5fa23eee-7fb5-437c-893d-cb66c291a635 outside499', exact: true }) }).locator('p[title]').filter({ hasText: '฿4.99' })\nExpected: \u001b[32m\"฿4.99\"\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).locator('article').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).getByRole('heading', { name: 'Projection-5fa23eee-7fb5-437c-893d-cb66c291a635 outside499', exact: true }) }).locator('p[title]').filter({ hasText: '฿4.99' })\u001b[22m\n\n    at D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts:237:76",
+                    "location": {
+                      "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                      "column": 76,
+                      "line": 237
+                    },
+                    "snippet": "  235 |   for (const [row, priceLabel] of [[lowerOutside, '฿4.99'], [lower, '฿5.00'], [upper, '฿15.00'], [upperOutside, '฿15.01']] as const) {\n  236 |     const card = rail.locator('article').filter({ has: rail.getByRole('heading', { name: row.product.title, exact: true }) })\n> 237 |     await expect(card.locator('p[title]').filter({ hasText: priceLabel })).toHaveAttribute('title', priceLabel)\n      |                                                                            ^\n  238 |   }\n  239 |   await evidence(page, testInfo, 'related-and-similar-price-contracts', { related, similar, storedPrices: stored.map((variant) => variant.price.toString()) })\n  240 | })"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                        "column": 76,
+                        "line": 237
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).locator('article').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).getByRole('heading', { name: 'Projection-5fa23eee-7fb5-437c-893d-cb66c291a635 outside499', exact: true }) }).locator('p[title]').filter({ hasText: '฿4.99' })\nExpected: \u001b[32m\"฿4.99\"\u001b[39m\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).locator('article').filter({ has: locator('section').filter({ has: getByRole('heading', { name: 'Related products', exact: true }) }).getByRole('heading', { name: 'Projection-5fa23eee-7fb5-437c-893d-cb66c291a635 outside499', exact: true }) }).locator('p[title]').filter({ hasText: '฿4.99' })\u001b[22m\n\n\n  235 |   for (const [row, priceLabel] of [[lowerOutside, '฿4.99'], [lower, '฿5.00'], [upper, '฿15.00'], [upperOutside, '฿15.01']] as const) {\n  236 |     const card = rail.locator('article').filter({ has: rail.getByRole('heading', { name: row.product.title, exact: true }) })\n> 237 |     await expect(card.locator('p[title]').filter({ hasText: priceLabel })).toHaveAttribute('title', priceLabel)\n      |                                                                            ^\n  238 |   }\n  239 |   await evidence(page, testInfo, 'related-and-similar-price-contracts', { related, similar, storedPrices: stored.map((variant) => variant.price.toString()) })\n  240 | })\n    at D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts:237:76"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:51:16.722Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-relate-3daae-includes500-1500-edges-only-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-relate-3daae-includes500-1500-edges-only-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-relate-3daae-includes500-1500-edges-only-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-relate-3daae-includes500-1500-edges-only-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-projections-relate-3daae-includes500-1500-edges-only-chromium\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\GitHub\\marketplace\\e2e\\numeric-projections.spec.ts",
+                    "column": 76,
+                    "line": 237
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-ebb95a7abf358eb31335",
+          "file": "numeric-projections.spec.ts",
+          "line": 214,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-tax.spec.ts",
+      "file": "numeric-tax.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4855,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:51:29.937Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "original-tax-checkout",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\\attachments\\original-tax-checkout-7b76bbcf060a4769a957cb76a2fcaa56039a2325.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-37970fd0ed25950cb34a",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4620,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:51:34.923Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "original-tax-checkout",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-numeric-chromium\\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\\attachments\\original-tax-checkout-1eb51137566c39dbdb5be0394f28c23091e5e563.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-af1868fc42b70355e01e",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-03T23:49:58.576Z",
+    "duration": 101587.364,
+    "expected": 14,
+    "skipped": 0,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

@@ -5,9 +5,9 @@
 - [x] Read the Principles section of the poteto-mode skill.
 - [x] Phase A: Frame.
 - [x] Phase B: Design the workflow.
-- [ ] Phase C: Run the loop.
-- [ ] Phase D: Keep the audit trail.
-- [ ] Phase E: Verify and hand back.
+- [x] Phase C: Run the loop.
+- [x] Phase D: Keep the audit trail.
+- [x] Phase E: Verify and hand back with the external-verification gap explicit.
 
 ## Scope and done predicate
 
@@ -36,8 +36,9 @@ database data is not reconstructed from mutable current settings.
 - [x] Sketch. Compare exact-money transport with compatible safe-number boundaries.
 - [x] Agree. Synthesize against exactness, transaction safety, Eden compatibility,
   migration cost and full-path testability. Review independent candidate artifacts.
-- [ ] Implement. Keep one verified unit per local commit.
-- [ ] Scrap. Revisit the design only if measured defects invalidate its contract.
+- [x] Implement. Keep one verified unit per local commit.
+- [x] Scrap checkpoint. Measured defects were corrected within the accepted contract;
+  no replacement of the domain design was needed.
 
 Arena phases are Frame, Fan out, Cross-judge, Pick, Graft and Verify. Coverage
 swarm phases are Frame, Fan out, Aggregate and Report. Read-only grounding and
@@ -53,18 +54,18 @@ at a time; long runtime checks are scheduled to avoid build/browser contention.
 
 - [x] W1. Remove or secure legacy direct inventory writes. Prove reservation
   protection, stock/version/movement accounting, ownership and concurrent writes.
-- [ ] W2. Preserve exact minor units throughout database read, aggregate, API and
+- [x] W2. Preserve exact minor units throughout database read, aggregate, API and
   displays. Test MAX_SAFE boundaries and signed/lifetime aggregates explicitly.
 - [x] W3. Verify multiple refunds sharing one buyer coin wallet under actual
   PostgreSQL concurrency, rollback and retry, repairing discovered defects.
-- [ ] W4. Add literal threshold cases and UI/API/DB parity for cashback, reviews,
+- [x] W4. Add literal threshold cases and UI/API/DB parity for cashback, reviews,
   search badges/prices/ratings, flash availability, recommendations, AI score,
   fraud signals and analytics. Align daily reporting to the accepted timezone.
-- [ ] W5. Measure analytics candidate/ranking memory and pagination under bounded
+- [x] W5. Measure analytics candidate/ranking memory and pagination under bounded
   load and concurrent traffic; record the actual scale and latency limits.
-- [ ] W6. Run Redis 7, Firefox/WebKit/mobile and a production-mode local browser
+- [x] W6. Run Redis 7, Firefox/WebKit/mobile and a production-mode local browser
   workflow without disabling production payment safeguards.
-- [ ] W7. Implement accepted partial-quantity returns, affiliate late-refund
+- [x] W7. Implement accepted partial-quantity returns, affiliate late-refund
   reversal, coupon stacking and explicit coupon/goodwill policies. Tax uses
   configurable rates and inclusive/exclusive pricing, defaulting to zero.
 - [x] W8. Build guarded historical reconciliation with dry-run, provenance and
@@ -72,8 +73,20 @@ at a time; long runtime checks are scheduled to avoid build/browser contention.
 - [ ] W9. Execute external provider/bank/currency reconciliation and real sandbox
   retry/out-of-order cases when sandbox identity/access is supplied. Prepare the
   runnable checks and document exact missing inputs while independent work runs.
-- [ ] W10. Independent source/comment/trail review, full tests, typecheck, build,
+- [x] W10. Independent source/comment/trail review, full tests, typecheck, build,
   translations, final matrix, scoped cleanup and local commits.
+
+Final executed evidence: 1,745 tests passed without skips; 130 unique latest
+browser case/profile configurations passed; all 12 database invariants passed
+across 369 orders. Typecheck, production build and translations exited zero.
+Scoped task server/cache cleanup and recoverable worktree archives are recorded
+in the evidence directory. See numeric-audit-completion-report.md for scope limits.
+
+W9 preparation is complete: read-only reconciliation CLI, 33 passing tests
+including seven actual CLI/PostgreSQL cases, and documented required inputs.
+Real external execution remains NOT_VERIFIED; no authentic provider/bank sandbox
+or external statement was supplied. Production migration/history repair and
+real money movement were not performed.
 
 ## Open owner inputs
 

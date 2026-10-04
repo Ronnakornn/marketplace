@@ -45,3 +45,21 @@ bun run scripts/analytics-load-test.ts
 Heap/RSS comes from process.memoryUsage in the process executing production analytics, sampled every 20ms and at request boundaries. It includes fixture bookkeeping, allocator history and garbage collection; no forced GC and no subtraction disguises resident process costs. Short allocation peaks can be missed. First requests and repeated requests are reported; analytics has no application cache, so this is not a Redis cold/warm claim. Sample p95 for three requests is the maximum and is not a stable production percentile estimate.
 
 Not tested here: HTTP serialization/network/auth/rate limits, browser rendering, summary/daily endpoint load, multiple concurrent analytics processes, sustained production duration or remote/cloud database latency. Date correctness has separate PostgreSQL timezone evidence. Unique local fixtures are retained for root-owned environment cleanup. No production data or schemas changed and no full-suite claim.
+
+## Integrated exact-money rerun
+
+The root reran the complete harness after integrating exact money and the Bangkok calendar. `integrated-report.json` and `integrated-run.log` record 234 measured requests, zero errors, successful ranking/pagination checks and no fatal guard violation. This is a local process/service measurement. Browser work overlapped part of this run, so its latency is not a production SLO or a controlled before/after comparison.
+
+| Products | Concurrency | Sample p95 ms | Peak heap MiB | Peak RSS MiB |
+| ---: | ---: | ---: | ---: | ---: |
+| 501 | 1 | 24.20 | 100.9 | 298.3 |
+| 501 | 5 | 118.62 | 132.0 | 320.0 |
+| 501 | 20 | 186.48 | 185.0 | 393.7 |
+| 5000 | 1 | 118.82 | 342.8 | 623.0 |
+| 5000 | 5 | 324.16 | 420.1 | 740.8 |
+| 5000 | 20 | 1131.67 | 457.8 | 780.8 |
+| 20000 | 1 | 1334.70 | 243.9 | 634.5 |
+| 20000 | 5 | 2156.95 | 478.6 | 792.0 |
+| 20000 | 20 | 7406.71 | 1461.6 | 1862.1 |
+
+The complete run took 50.13 seconds. Global ranking still loads all candidates and uses O(N) memory. The 20,000-candidate, concurrency-20 measurement defines only an exercised local scale, not an approved production capacity.

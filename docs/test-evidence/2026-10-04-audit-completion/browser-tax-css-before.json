@@ -1,0 +1,306 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/numeric-tax.spec.ts",
+      "--project=chromium",
+      "--no-deps",
+      "--reporter=list,json",
+      "--output=docs/test-evidence/2026-10-04-audit-completion/browser-tax-chromium"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-tax-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-tax-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-tax-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-tax-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-tax-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-tax-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/docs/test-evidence/2026-10-04-audit-completion/browser-tax-chromium",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "numeric-tax.spec.ts",
+      "file": "numeric-tax.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 159593,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 150000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 150000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 150000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "[pid=33300][err] ./app/styles.css",
+                        "column": 41,
+                        "line": 3679
+                      },
+                      "message": "Error: browserContext.close: Test ended.\nBrowser logs:\n\n[pid=33300][err] \n[pid=33300][err] Unexpected token Delim('\\u{2}')\n[pid=33300][err] \n[pid=33300][err] Generated code of PostCSS transform of file content of app/styles.css:\n[pid=33300][err] ./app/styles.css:3679:41\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Import trace:\n[pid=33300][err]   Client Component Browser:\n[pid=33300][err]     ./app/styles.css [Client Component Browser]\n[pid=33300][err]     ./app/layout.tsx [Server Component]\", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_20ud_8w._.js (1818)\n[pid=33300][err] [1004/063603.868:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n[pid=33300][err] Error: Parsing CSS source code failed\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Unexpected token Delim('\\u{2}')\n[pid=33300][err] \n[pid=33300][err] Generated code of PostCSS transform of file content of app/styles.css:\n[pid=33300][err] ./app/styles.css:3679:41\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Import trace:\n[pid=33300][err]   Client Component Browser:\n[pid=33300][err]     ./app/styles.css [Client Component Browser]\n[pid=33300][err]     ./app/layout.tsx [Server Component]\", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_20ud_8w._.js (1818)\n[pid=33300][err] [1004/063604.460:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n[pid=33300][err] Error: Parsing CSS source code failed\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Unexpected token Delim('\\u{2}')\n[pid=33300][err] \n[pid=33300][err] Generated code of PostCSS transform of file content of app/styles.css:\n[pid=33300][err] ./app/styles.css:3679:41\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Import trace:\n[pid=33300][err]   Client Component Browser:\n[pid=33300][err]     ./app/styles.css [Client Component Browser]\n[pid=33300][err]     ./app/layout.tsx [Server Component]\", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_20ud_8w._.js (1818)\n[pid=33300][err] [1004/063605.041:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n[pid=33300][err] Error: Parsing CSS source code failed\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Unexpected token Delim('\\u{2}')\n[pid=33300][err] \n[pid=33300][err] Generated code of PostCSS transform of file content of app/styles.css:\n[pid=33300][err] ./app/styles.css:3679:41\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Import trace:\n[pid=33300][err]   Client Component Browser:\n[pid=33300][err]     ./app/styles.css [Client Component Browser]\n[pid=33300][err]     ./app/layout.tsx [Server Component]\", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_20ud_8w._.js (1818)\n[pid=33300][err] [1004/063605.623:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n[pid=33300][err] Error: Parsing CSS source code failed\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Unexpected token Delim('\\u{2}')\n[pid=33300][err] \n[pid=33300][err] Generated code of PostCSS transform of file content of app/styles.css:\n[pid=33300][err] ./app/styles.css:3679:41\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Import trace:\n[pid=33300][err]   Client Component Browser:\n[pid=33300][err]     ./app/styles.css [Client Component Browser]\n[pid=33300][err]     ./app/layout.tsx [Server Component]\", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_20ud_8w._.js (1818)\n[pid=33300][err] [1004/063606.188:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n[pid=33300][err] Error: Parsing CSS source code failed\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Unexpected token Delim('\\u{2}')\n[pid=33300][err] \n[pid=33300][err] Generated code of PostCSS transform of file content of app/styles.css:\n[pid=33300][err] ./app/styles.css:3679:41\n[pid=33300][err]   3677 |   }\n[pid=33300][err]   3678 |   .pb-\\[max\\(env\\(safe-area-Y�\\2 U��Q\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err] > 3679 |     padding-bottom: max(env(safe-area-Y\u0000\u0002U\u0000�Q), 0.4rem);\n[pid=33300][err]        |                                        ^\n[pid=33300][err]   3680 |   }\n[pid=33300][err]   3681 |   .pb-\\[max\\(env\\(safe-area-inset-bottom\\)\\,0\\.4rem\\)\\] {\n[pid=33300][err]   3682 |     padding-bottom: max(env(safe-area-inset-bottom), 0.4rem);\n[pid=33300][err] \n[pid=33300][err] Import trace:\n[pid=33300][err]   Client Component Browser:\n[pid=33300][err]     ./app/styles.css [Client Component Browser]\n[pid=33300][err]     ./app/layout.tsx [Server Component]\", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_20ud_8w._.js (1818)\n[pid=33300][err] [1004/063606.921:INFO:CONSOLE:757] \"[Fast Refresh] rebuilding\", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_20ud_8w._.js (757)\n[pid=33300][err] [1004/063607.139:INFO:CONSOLE:757] \"[Fast Refresh] done in 322ms\", source: http://127.0.0.1:3100/_next/static/chunks/node_modules_next_dist_20ud_8w._.js (757)\n[pid=33300] <gracefully close start>\n    at [pid=33300][err] ./app/styles.css:3679:41\n    at [pid=33300][err] [1004/063603.868:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n    at [pid=33300][err] ./app/styles.css:3679:41\n    at [pid=33300][err] [1004/063604.460:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n    at [pid=33300][err] ./app/styles.css:3679:41\n    at [pid=33300][err] [1004/063605.041:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n    at [pid=33300][err] ./app/styles.css:3679:41\n    at [pid=33300][err] [1004/063605.623:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n    at [pid=33300][err] ./app/styles.css:3679:41\n    at [pid=33300][err] [1004/063606.188:INFO:CONSOLE:1818] \"./app/styles.css:3679:41\n    at [pid=33300][err] ./app/styles.css:3679:41\n    at D:\\GitHub\\marketplace\\e2e\\numeric-tax.spec.ts:83:7"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:34:00.675Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-tax-chromium\\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\\test-failed-1.png"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-tax-chromium\\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\\test-failed-2.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-tax-chromium\\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\\video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-tax-chromium\\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-tax-chromium\\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-tax-chromium\\numeric-tax-admin-configur-27398-l-shop-and-platform-funding-chromium\\trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-37970fd0ed25950cb34a",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14093,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-03T23:36:41.717Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "original-tax-checkout",
+                      "contentType": "image/png",
+                      "path": "D:\\GitHub\\marketplace\\docs\\test-evidence\\2026-10-04-audit-completion\\browser-tax-chromium\\numeric-tax-admin-configur-6b696-l-shop-and-platform-funding-chromium\\attachments\\original-tax-checkout-9546f6dd8e2c1ca8bb2e07440daa210198bbacec.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-af1868fc42b70355e01e",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-03T23:33:52.832Z",
+    "duration": 183717.18899999998,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

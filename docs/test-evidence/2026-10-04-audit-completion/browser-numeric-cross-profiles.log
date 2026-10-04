@@ -1,0 +1,496 @@
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer]       at warnOnDeactivatedColors (internal:tty:33:24)
+[WebServer]       at getColorDepth (internal:tty:42:39)
+[WebServer]       at shouldColorize (internal:util/colors:14:109)
+[WebServer]       at refresh (internal:util/colors:18:31)
+[WebServer]       at internal:util/colors (internal:util/colors:24:16)
+[WebServer]       at internal:assert/assertion_error (internal:assert/assertion_error:2:187)
+[WebServer]       at loadAssertionError (node:assert:28:96)
+[WebServer] 
+[WebServer] (node:29452) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 95 tests using 1 worker
+
+  ok  1 [chromium] › e2e\numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves (6.2s)
+  ok  2 [chromium] › e2e\numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case (2.0s)
+[WebServer] DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+[WebServer]       at <anonymous> (internal:util/deprecate:11:28)
+[WebServer]       at deprecated (internal:util/deprecate:20:29)
+[WebServer]       at query (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\node_modules\pg\lib\client.js:691:7)
+[WebServer]       at performIO (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:618:40)
+[WebServer]       at queryRaw (D:\GitHub\marketplace\node_modules\@prisma\adapter-pg\dist\index.mjs:568:41)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44939)
+[WebServer]       at interpretNode (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:44906)
+[WebServer]       at <anonymous> (D:\GitHub\marketplace\node_modules\@prisma\client\runtime\client.js:11:46061)
+[WebServer]       at map (1:11)
+[WebServer] 
+  ok  3 [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping (6.7s)
+  ok  4 [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping (4.3s)
+  ok  5 [chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping (4.3s)
+  ok  6 [chromium] › e2e\numeric-analytics.spec.ts:13:1 › paid analytics reconciles ten views to ten percent and revenue ranking across pages (3.0s)
+  ok  7 [chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (4.1s)
+  ok  8 [chromium] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (3.4s)
+  ok  9 [chromium] › e2e\numeric-boundaries.spec.ts:70:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (2.7s)
+  ok 10 [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for repriced basket (6.9s)
+  ok 11 [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for coupon and coins (5.9s)
+  ok 12 [chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for flash price with coupon and coins (5.6s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 13 [chromium] › e2e\numeric-projections.spec.ts:88:1 › published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI (4.2s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 14 [chromium] › e2e\numeric-projections.spec.ts:155:1 › search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory (2.6s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 15 [chromium] › e2e\numeric-projections.spec.ts:215:1 › related rail prices match Catalog API and DB while similar API includes500/1500 edges only (1.5s)
+  ok 16 [chromium] › e2e\numeric-reporting.spec.ts:19:1 › seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents (2.5s)
+[WebServer] [browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+[WebServer] 
+[WebServer] - A server/client branch `if (typeof window !== 'undefined')`.
+[WebServer] - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+[WebServer] - Date formatting in a user's locale which doesn't match the server.
+[WebServer] - External changing data without sending a snapshot of it along with the HTML.
+[WebServer] - Invalid HTML tag nesting.
+[WebServer] 
+[WebServer] It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+[WebServer] 
+[WebServer] https://react.dev/link/hydration-mismatch
+[WebServer] 
+[WebServer]   ...
+[WebServer]     <RedirectErrorBoundary router={{...}}>
+[WebServer]       <InnerLayoutRouter url="/en" tree={[...]} params={{locale:"en"}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+[WebServer]         <SegmentViewNode type="page" pagePath="[locale]/(...">
+[WebServer]           <SegmentTrieNode>
+[WebServer]           <HomePage>
+[WebServer]             <script>
+[WebServer]             <HomeAuthenticatedSection>
+[WebServer]               <HomeMarketplaceClient initialHome={{sections:{...}, ...}} user={{name:"Exte...", ...}}>
+[WebServer]                 <MarketplaceHome initialHome={{sections:{...}, ...}} user={{name:"Exte...", ...}}>
+[WebServer]                   <div className="min-h-scre...">
+[WebServer]                     <BuyerTopBar>
+[WebServer]                     <main className="mx-auto w-...">
+[WebServer]                       <HeroPromo>
+[WebServer]                       <VoucherStrip>
+[WebServer]                       <FlashSaleSection flashSale={{id:"5a53e6...", ...}} isLoading={false} ...>
+[WebServer]                         <section className="mt-5 min-h...">
+[WebServer]                           <div className="mb-3 flex ...">
+[WebServer]                             <div className="flex items...">
+[WebServer]                               <div>
+[WebServer]                               <div>
+[WebServer]                                 <h2>
+[WebServer]                                 <p className="text-xs text-slate-900">
+[WebServer] +                                 Ends 10/4/2026
+[WebServer] -                                 Ends 4/10/2026
+[WebServer]                           ...
+[WebServer]                       ...
+[WebServer]                     ...
+[WebServer]         ...
+[WebServer]       ...
+[WebServer] 
+[WebServer]     at <unknown> (https://react.dev/link/hydration-mismatch)
+[WebServer]     at p (<anonymous>)
+[WebServer]     at FlashSaleSection (app/features/marketplace/components/MarketplaceHome.tsx:309:13)
+[WebServer]     at MarketplaceHome (app/features/marketplace/components/MarketplaceHome.tsx:173:9)
+[WebServer]     at HomeMarketplaceClient (app/features/home/components/HomeMarketplaceClient.tsx:16:10)
+[WebServer]     at HomeAuthenticatedSection (app\features\home\components\HomeAuthenticatedSection.tsx:17:10)
+[WebServer]     at HomePage (app\[locale]\(public)\page.tsx:34:9)
+[WebServer]   307 |           <div>
+[WebServer]   308 |             <h2 className="text-lg font-extrabold text-slate-950">{flashSale?.title ?? t("home.flashSale")}</h2>
+[WebServer] > 309 |             <p className="text-xs text-slate-900">{flashSale?.description ?? (flashSale?.endsAt ? t("home.endsAt").replace("{time}", new Date(flashSale.endsAt).toLocaleDateString()) : t("home.limitedTimeDeals"))}</p>
+[WebServer]       |             ^
+[WebServer]   310 |           </div>
+[WebServer]   311 |         </div>
+[WebServer]   312 |       </div>
+  x  17 [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (18.5s)
+  ok 18 [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures INCLUSIVE tax and checkout stacks original shop and platform funding (5.2s)
+  ok 19 [chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding (4.6s)
+  ok 20 [firefox] › e2e\numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves (5.1s)
+  ok 21 [firefox] › e2e\numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case (3.1s)
+  ok 22 [firefox] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping (6.2s)
+[WebServer] (node:1988) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+  ok 23 [firefox] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping (7.4s)
+  ok 24 [firefox] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping (5.7s)
+  ok 25 [firefox] › e2e\numeric-analytics.spec.ts:13:1 › paid analytics reconciles ten views to ten percent and revenue ranking across pages (2.8s)
+  ok 26 [firefox] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (4.4s)
+  ok 27 [firefox] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (3.1s)
+  ok 28 [firefox] › e2e\numeric-boundaries.spec.ts:70:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (2.3s)
+  ok 29 [firefox] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for repriced basket (7.6s)
+  ok 30 [firefox] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for coupon and coins (8.0s)
+  ok 31 [firefox] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for flash price with coupon and coins (9.2s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 32 [firefox] › e2e\numeric-projections.spec.ts:88:1 › published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI (3.7s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 33 [firefox] › e2e\numeric-projections.spec.ts:155:1 › search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory (3.3s)
+  ok 34 [firefox] › e2e\numeric-projections.spec.ts:215:1 › related rail prices match Catalog API and DB while similar API includes500/1500 edges only (2.2s)
+  ok 35 [firefox] › e2e\numeric-reporting.spec.ts:19:1 › seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents (3.5s)
+  x  36 [firefox] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (16.7s)
+  ok 37 [firefox] › e2e\numeric-tax.spec.ts:16:3 › admin configures INCLUSIVE tax and checkout stacks original shop and platform funding (8.4s)
+  ok 38 [firefox] › e2e\numeric-tax.spec.ts:16:3 › admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding (7.6s)
+  ok 39 [webkit] › e2e\numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves (9.3s)
+  ok 40 [webkit] › e2e\numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case (4.6s)
+  ok 41 [webkit] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping (10.3s)
+  ok 42 [webkit] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping (10.2s)
+  ok 43 [webkit] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping (13.6s)
+  ok 44 [webkit] › e2e\numeric-analytics.spec.ts:13:1 › paid analytics reconciles ten views to ten percent and revenue ranking across pages (7.2s)
+  ok 45 [webkit] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (11.4s)
+  ok 46 [webkit] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (8.0s)
+  ok 47 [webkit] › e2e\numeric-boundaries.spec.ts:70:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (6.0s)
+  ok 48 [webkit] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for repriced basket (20.1s)
+  ok 49 [webkit] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for coupon and coins (21.7s)
+  ok 50 [webkit] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for flash price with coupon and coins (16.5s)
+  ok 51 [webkit] › e2e\numeric-projections.spec.ts:88:1 › published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI (5.9s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 52 [webkit] › e2e\numeric-projections.spec.ts:155:1 › search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory (4.7s)
+  ok 53 [webkit] › e2e\numeric-projections.spec.ts:215:1 › related rail prices match Catalog API and DB while similar API includes500/1500 edges only (4.5s)
+  ok 54 [webkit] › e2e\numeric-reporting.spec.ts:19:1 › seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents (5.6s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  x  55 [webkit] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (20.2s)
+  ok 56 [webkit] › e2e\numeric-tax.spec.ts:16:3 › admin configures INCLUSIVE tax and checkout stacks original shop and platform funding (12.3s)
+  ok 57 [webkit] › e2e\numeric-tax.spec.ts:16:3 › admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding (11.5s)
+  ok 58 [mobile-chromium] › e2e\numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves (3.3s)
+  ok 59 [mobile-chromium] › e2e\numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case (2.2s)
+  ok 60 [mobile-chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping (4.6s)
+  ok 61 [mobile-chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping (4.4s)
+  ok 62 [mobile-chromium] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping (4.6s)
+  ok 63 [mobile-chromium] › e2e\numeric-analytics.spec.ts:13:1 › paid analytics reconciles ten views to ten percent and revenue ranking across pages (6.6s)
+  ok 64 [mobile-chromium] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (3.6s)
+  ok 65 [mobile-chromium] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (3.0s)
+  ok 66 [mobile-chromium] › e2e\numeric-boundaries.spec.ts:70:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (1.9s)
+  ok 67 [mobile-chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for repriced basket (5.9s)
+  ok 68 [mobile-chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for coupon and coins (5.8s)
+  ok 69 [mobile-chromium] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for flash price with coupon and coins (5.7s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 70 [mobile-chromium] › e2e\numeric-projections.spec.ts:88:1 › published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI (3.0s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 71 [mobile-chromium] › e2e\numeric-projections.spec.ts:155:1 › search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory (2.7s)
+  ok 72 [mobile-chromium] › e2e\numeric-projections.spec.ts:215:1 › related rail prices match Catalog API and DB while similar API includes500/1500 edges only (1.8s)
+  ok 73 [mobile-chromium] › e2e\numeric-reporting.spec.ts:19:1 › seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents (4.2s)
+  x  74 [mobile-chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (14.7s)
+  ok 75 [mobile-chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures INCLUSIVE tax and checkout stacks original shop and platform funding (5.1s)
+  ok 76 [mobile-chromium] › e2e\numeric-tax.spec.ts:16:3 › admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding (4.8s)
+  ok 77 [mobile-webkit] › e2e\numeric-admin-projections.spec.ts:41:1 › refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves (5.4s)
+  ok 78 [mobile-webkit] › e2e\numeric-admin-projections.spec.ts:107:1 › combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case (3.5s)
+  ok 79 [mobile-webkit] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping (7.9s)
+  ok 80 [mobile-webkit] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping (9.5s)
+  ok 81 [mobile-webkit] › e2e\numeric-admin-projections.spec.ts:142:3 › internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping (9.1s)
+  ok 82 [mobile-webkit] › e2e\numeric-analytics.spec.ts:13:1 › paid analytics reconciles ten views to ten percent and revenue ranking across pages (6.1s)
+  ok 83 [mobile-webkit] › e2e\numeric-boundaries.spec.ts:13:1 › seller percentage input persists 1250 bps and discounts 1999 satang by 249 (6.3s)
+  ok 84 [mobile-webkit] › e2e\numeric-boundaries.spec.ts:40:1 › production route composition prevents seller stock below active holds (4.3s)
+  ok 85 [mobile-webkit] › e2e\numeric-boundaries.spec.ts:70:1 › real flash HTTP create and update preserve decimal satang and reject sub-satang prices (2.8s)
+  ok 86 [mobile-webkit] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for repriced basket (10.1s)
+  ok 87 [mobile-webkit] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for coupon and coins (11.8s)
+  ok 88 [mobile-webkit] › e2e\numeric-commerce.spec.ts:20:3 › UI, API and database preserve exact satang for flash price with coupon and coins (11.2s)
+  ok 89 [mobile-webkit] › e2e\numeric-projections.spec.ts:88:1 › published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI (5.3s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ok 90 [mobile-webkit] › e2e\numeric-projections.spec.ts:155:1 › search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory (4.8s)
+  ok 91 [mobile-webkit] › e2e\numeric-projections.spec.ts:215:1 › related rail prices match Catalog API and DB while similar API includes500/1500 edges only (3.6s)
+  ok 92 [mobile-webkit] › e2e\numeric-reporting.spec.ts:19:1 › seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents (5.6s)
+[WebServer] [browser] Image with src "/images/fallback-product.svg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[WebServer] Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  x  93 [mobile-webkit] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases (18.7s)
+  ok 94 [mobile-webkit] › e2e\numeric-tax.spec.ts:16:3 › admin configures INCLUSIVE tax and checkout stacks original shop and platform funding (10.0s)
+  ok 95 [mobile-webkit] › e2e\numeric-tax.spec.ts:16:3 › admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding (9.3s)
+
+
+  1) [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-a9e8-48e2-b7e2-91b0b76e8fb5', exact: true }) }).locator('article').filter({ hasText: 'Extended product 6d368798' })
+    Expected: 1
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-a9e8-48e2-b7e2-91b0b76e8fb5', exact: true }) }).locator('article').filter({ hasText: 'Extended product 6d368798' })
+        23 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      92 |     } } });
+      93 |     expect(await prisma.flashSaleReservation.count({ where: { flashSaleItemId: campaign.items[0]!.id } })).toBe(0);
+    > 94 |     await buyerPage.goto('/en');
+         |                        ^
+      95 |     const section = buyerPage.locator('section').filter({ has: buyerPage.getByRole('heading', { name: campaign.title, exact: true }) });
+      96 |     const card = section.locator('article').filter({ hasText: product.title });
+      97 |     await expect(card).toHaveCount(1);
+        at D:\GitHub\marketplace\e2e\numeric-shipping.spec.ts:94:24
+
+    attachment #1: exact-shipping-checkout (image/png) ─────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\attachments\exact-shipping-checkout-722dc04fc09fc1bbeaa62a44c05d7ab8d45c8224.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\error-context.md
+
+    attachment #7: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [firefox] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-ff0c-4373-bad3-04c3fb90d19b', exact: true }) }).locator('article').filter({ hasText: 'Extended product 24eaf844' })
+    Expected: 1
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-ff0c-4373-bad3-04c3fb90d19b', exact: true }) }).locator('article').filter({ hasText: 'Extended product 24eaf844' })
+        23 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      92 |     } } });
+      93 |     expect(await prisma.flashSaleReservation.count({ where: { flashSaleItemId: campaign.items[0]!.id } })).toBe(0);
+    > 94 |     await buyerPage.goto('/en');
+         |                        ^
+      95 |     const section = buyerPage.locator('section').filter({ has: buyerPage.getByRole('heading', { name: campaign.title, exact: true }) });
+      96 |     const card = section.locator('article').filter({ hasText: product.title });
+      97 |     await expect(card).toHaveCount(1);
+        at D:\GitHub\marketplace\e2e\numeric-shipping.spec.ts:94:24
+
+    attachment #1: exact-shipping-checkout (image/png) ─────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-firefox\attachments\exact-shipping-checkout-71a83985029b41cb318c570e8102b85c01b8b31b.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-firefox\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-firefox\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-firefox\error-context.md
+
+    attachment #7: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-firefox\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-firefox\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [webkit] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-740e-4425-9a8f-dbd2fc3621e7', exact: true }) }).locator('article').filter({ hasText: 'Extended product 891caa63' })
+    Expected: 1
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-740e-4425-9a8f-dbd2fc3621e7', exact: true }) }).locator('article').filter({ hasText: 'Extended product 891caa63' })
+        23 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      92 |     } } });
+      93 |     expect(await prisma.flashSaleReservation.count({ where: { flashSaleItemId: campaign.items[0]!.id } })).toBe(0);
+    > 94 |     await buyerPage.goto('/en');
+         |                        ^
+      95 |     const section = buyerPage.locator('section').filter({ has: buyerPage.getByRole('heading', { name: campaign.title, exact: true }) });
+      96 |     const card = section.locator('article').filter({ hasText: product.title });
+      97 |     await expect(card).toHaveCount(1);
+        at D:\GitHub\marketplace\e2e\numeric-shipping.spec.ts:94:24
+
+    attachment #1: exact-shipping-checkout (image/png) ─────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-webkit\attachments\exact-shipping-checkout-f2103c6db63443965d1df8cdb6cda5f88aa474d2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-webkit\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-webkit\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-webkit\error-context.md
+
+    attachment #7: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-webkit\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-webkit\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [mobile-chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-9c61-4c8d-a640-2d61aab0a462', exact: true }) }).locator('article').filter({ hasText: 'Extended product 0eaa09dc' })
+    Expected: 1
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-9c61-4c8d-a640-2d61aab0a462', exact: true }) }).locator('article').filter({ hasText: 'Extended product 0eaa09dc' })
+        23 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      92 |     } } });
+      93 |     expect(await prisma.flashSaleReservation.count({ where: { flashSaleItemId: campaign.items[0]!.id } })).toBe(0);
+    > 94 |     await buyerPage.goto('/en');
+         |                        ^
+      95 |     const section = buyerPage.locator('section').filter({ has: buyerPage.getByRole('heading', { name: campaign.title, exact: true }) });
+      96 |     const card = section.locator('article').filter({ hasText: product.title });
+      97 |     await expect(card).toHaveCount(1);
+        at D:\GitHub\marketplace\e2e\numeric-shipping.spec.ts:94:24
+
+    attachment #1: exact-shipping-checkout (image/png) ─────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-chromium\attachments\exact-shipping-checkout-55ad9b383515d4d8c805c73b419a334ade3d72fa.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-chromium\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-chromium\error-context.md
+
+    attachment #7: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [mobile-webkit] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-68eb-48a7-8988-d8e26e727020', exact: true }) }).locator('article').filter({ hasText: 'Extended product bb4a8a38' })
+    Expected: 1
+    Received: 0
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 10000ms
+      - waiting for locator('section').filter({ has: getByRole('heading', { name: 'Held-stock flash 00000000-68eb-48a7-8988-d8e26e727020', exact: true }) }).locator('article').filter({ hasText: 'Extended product bb4a8a38' })
+        23 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      92 |     } } });
+      93 |     expect(await prisma.flashSaleReservation.count({ where: { flashSaleItemId: campaign.items[0]!.id } })).toBe(0);
+    > 94 |     await buyerPage.goto('/en');
+         |                        ^
+      95 |     const section = buyerPage.locator('section').filter({ has: buyerPage.getByRole('heading', { name: campaign.title, exact: true }) });
+      96 |     const card = section.locator('article').filter({ hasText: product.title });
+      97 |     await expect(card).toHaveCount(1);
+        at D:\GitHub\marketplace\e2e\numeric-shipping.spec.ts:94:24
+
+    attachment #1: exact-shipping-checkout (image/png) ─────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-webkit\attachments\exact-shipping-checkout-0d5dc4fc16d1ed444671f6d07cfa5c66df74a3e9.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-webkit\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-webkit\error-context.md
+
+    Error Context: docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-webkit\error-context.md
+
+    attachment #7: trace (application/zip) ─────────────────────────────────────────────────────────
+    docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-webkit\trace.zip
+    Usage:
+
+        npx playwright show-trace docs\test-evidence\2026-10-04-audit-completion\browser-numeric-cross-profiles\numeric-shipping-seller-de-54b90-lds-disable-flash-purchases-mobile-webkit\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+    [firefox] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+    [webkit] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+    [mobile-chromium] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+    [mobile-webkit] › e2e\numeric-shipping.spec.ts:12:1 › seller decimal shipping survives UI, quote and order; physical holds disable flash purchases 
+  90 passed (11.1m)

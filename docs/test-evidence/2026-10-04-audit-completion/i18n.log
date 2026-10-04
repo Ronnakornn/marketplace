@@ -1,0 +1,10 @@
+$ bun run scripts/i18n-audit.ts
+i18n audit failed.
+
+New unbaselined scoped i18n findings:
+By file: app/features/admin/components/AdminSettlementRefundActions.tsx (1), app/i18n/client.tsx (1)
+- hardcoded-english app/features/admin/components/AdminSettlementRefundActions.tsx:79 " : index + 1}"
+  Move visible buyer-facing English text to a translation key or document a narrower exception.
+- hardcoded-english app/i18n/client.tsx:81 "Display number must be finite"
+  Move visible buyer-facing English text to a translation key or document a narrower exception.
+error: script "audit:i18n" exited with code 1
