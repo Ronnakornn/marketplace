@@ -1,0 +1,1105 @@
+{
+  "environment": "Disposable local PostgreSQL fixtures. No production/provider/bank connection.",
+  "observations": [
+    {
+      "case": "administrator",
+      "rejected": "ADMINISTRATOR_ROLE_REJECTED",
+      "numericScanEntered": false,
+      "rowsUnchanged": true
+    },
+    {
+      "case": "direct writer",
+      "rejected": "TABLE_WRITER_ROLE_REJECTED",
+      "numericScanEntered": false,
+      "rowsUnchanged": true
+    },
+    {
+      "case": "NOINHERIT writer membership",
+      "rejected": "TABLE_WRITER_ROLE_REJECTED",
+      "numericScanEntered": false,
+      "rowsUnchanged": true
+    },
+    {
+      "case": "schema creator",
+      "rejected": "OWNER_OR_CREATOR_ROLE_REJECTED",
+      "numericScanEntered": false,
+      "rowsUnchanged": true
+    },
+    {
+      "case": "relation owner without schema CREATE",
+      "rejected": "OWNER_OR_CREATOR_ROLE_REJECTED",
+      "numericScanEntered": false,
+      "rowsUnchanged": true
+    },
+    {
+      "case": "column writer",
+      "rejected": "TABLE_WRITER_ROLE_REJECTED",
+      "numericScanEntered": false,
+      "rowsUnchanged": true
+    },
+    {
+      "case": "exact groups and twelve invariants",
+      "report": {
+        "audit": "PASS",
+        "databaseReadOnly": true,
+        "isolation": "repeatable read",
+        "externalVerification": "NOT_VERIFIED",
+        "scope": "Twelve stored snapshot invariants and grouped monetary totals; bank transfers and complete wallet/cache history are not verified.",
+        "checkedAt": "2026-10-04T17:56:29.136Z",
+        "counts": [
+          {
+            "source": "Inventory",
+            "rows": "1"
+          },
+          {
+            "source": "Order",
+            "rows": "3"
+          },
+          {
+            "source": "OrderItem",
+            "rows": "3"
+          },
+          {
+            "source": "Payment",
+            "rows": "3"
+          },
+          {
+            "source": "Refund",
+            "rows": "1"
+          },
+          {
+            "source": "SellerPayout",
+            "rows": "1"
+          },
+          {
+            "source": "ShopOrder",
+            "rows": "3"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "rows": "1"
+          }
+        ],
+        "violations": [
+          {
+            "check": "order_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_subtotal",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_completeness",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_totals",
+            "violations": "0"
+          },
+          {
+            "check": "payment_snapshot_amount",
+            "violations": "0"
+          },
+          {
+            "check": "inventory_bounds",
+            "violations": "0"
+          },
+          {
+            "check": "duplicate_seller_earnings",
+            "violations": "0"
+          },
+          {
+            "check": "tax_disclosure_equation",
+            "violations": "0"
+          },
+          {
+            "check": "original_v2_atomic_tax",
+            "violations": "0"
+          },
+          {
+            "check": "planned_refund_cash",
+            "violations": "0"
+          },
+          {
+            "check": "original_quantity_capacity",
+            "violations": "0"
+          }
+        ],
+        "aggregates": [
+          {
+            "source": "Order",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741000"
+          },
+          {
+            "source": "Order",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Payment",
+            "currency": "THB",
+            "status": "SUCCEEDED",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741000"
+          },
+          {
+            "source": "Payment",
+            "currency": "USD",
+            "status": "PENDING",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Refund",
+            "currency": "THB",
+            "status": "SUCCESS",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740991"
+          },
+          {
+            "source": "SellerPayout",
+            "currency": "THB",
+            "status": "paid",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740990"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741000"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "currency": "THB",
+            "status": "order_earning",
+            "grouped_by": "type",
+            "rows": "1",
+            "amount": "9007199254740989"
+          }
+        ]
+      },
+      "rowsUnchanged": true,
+      "literalFixturePaymentTotals": [
+        {
+          "currency": "THB",
+          "status": "SUCCEEDED",
+          "amount": "9007199254741000",
+          "rows": "2"
+        },
+        {
+          "currency": "USD",
+          "status": "PENDING",
+          "amount": "13",
+          "rows": "1"
+        }
+      ]
+    },
+    {
+      "case": "one cent stored payment mismatch",
+      "exit": 1,
+      "report": {
+        "audit": "DISCREPANCIES",
+        "databaseReadOnly": true,
+        "isolation": "repeatable read",
+        "externalVerification": "NOT_VERIFIED",
+        "scope": "Twelve stored snapshot invariants and grouped monetary totals; bank transfers and complete wallet/cache history are not verified.",
+        "checkedAt": "2026-10-04T17:56:29.281Z",
+        "counts": [
+          {
+            "source": "Inventory",
+            "rows": "1"
+          },
+          {
+            "source": "Order",
+            "rows": "3"
+          },
+          {
+            "source": "OrderItem",
+            "rows": "3"
+          },
+          {
+            "source": "Payment",
+            "rows": "3"
+          },
+          {
+            "source": "Refund",
+            "rows": "1"
+          },
+          {
+            "source": "SellerPayout",
+            "rows": "1"
+          },
+          {
+            "source": "ShopOrder",
+            "rows": "3"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "rows": "1"
+          }
+        ],
+        "violations": [
+          {
+            "check": "order_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_subtotal",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_completeness",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_totals",
+            "violations": "0"
+          },
+          {
+            "check": "payment_snapshot_amount",
+            "violations": "1"
+          },
+          {
+            "check": "inventory_bounds",
+            "violations": "0"
+          },
+          {
+            "check": "duplicate_seller_earnings",
+            "violations": "0"
+          },
+          {
+            "check": "tax_disclosure_equation",
+            "violations": "0"
+          },
+          {
+            "check": "original_v2_atomic_tax",
+            "violations": "0"
+          },
+          {
+            "check": "planned_refund_cash",
+            "violations": "0"
+          },
+          {
+            "check": "original_quantity_capacity",
+            "violations": "0"
+          }
+        ],
+        "aggregates": [
+          {
+            "source": "Order",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741000"
+          },
+          {
+            "source": "Order",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Payment",
+            "currency": "THB",
+            "status": "SUCCEEDED",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741001"
+          },
+          {
+            "source": "Payment",
+            "currency": "USD",
+            "status": "PENDING",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Refund",
+            "currency": "THB",
+            "status": "SUCCESS",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740991"
+          },
+          {
+            "source": "SellerPayout",
+            "currency": "THB",
+            "status": "paid",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740990"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741000"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "currency": "THB",
+            "status": "order_earning",
+            "grouped_by": "type",
+            "rows": "1",
+            "amount": "9007199254740989"
+          }
+        ]
+      },
+      "rowsUnchanged": true
+    },
+    {
+      "case": "actual prohibited updates",
+      "ordinaryTransactionSqlState": "42501",
+      "readOnlyTransactionSqlState": "25006",
+      "rowsUnchanged": true
+    },
+    {
+      "case": "concurrent fixture writer snapshot",
+      "amounts": [
+        "9007199254740993",
+        "9007199254740993"
+      ],
+      "isolation": "repeatable read"
+    },
+    {
+      "case": "CLI reader",
+      "exit": 0,
+      "report": {
+        "audit": "PASS",
+        "databaseReadOnly": true,
+        "isolation": "repeatable read",
+        "externalVerification": "NOT_VERIFIED",
+        "scope": "Twelve stored snapshot invariants and grouped monetary totals; bank transfers and complete wallet/cache history are not verified.",
+        "checkedAt": "2026-10-04T17:56:29.523Z",
+        "counts": [
+          {
+            "source": "Inventory",
+            "rows": "1"
+          },
+          {
+            "source": "Order",
+            "rows": "3"
+          },
+          {
+            "source": "OrderItem",
+            "rows": "3"
+          },
+          {
+            "source": "Payment",
+            "rows": "3"
+          },
+          {
+            "source": "Refund",
+            "rows": "1"
+          },
+          {
+            "source": "SellerPayout",
+            "rows": "1"
+          },
+          {
+            "source": "ShopOrder",
+            "rows": "3"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "rows": "1"
+          }
+        ],
+        "violations": [
+          {
+            "check": "order_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_subtotal",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_completeness",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_totals",
+            "violations": "0"
+          },
+          {
+            "check": "payment_snapshot_amount",
+            "violations": "0"
+          },
+          {
+            "check": "inventory_bounds",
+            "violations": "0"
+          },
+          {
+            "check": "duplicate_seller_earnings",
+            "violations": "0"
+          },
+          {
+            "check": "tax_disclosure_equation",
+            "violations": "0"
+          },
+          {
+            "check": "original_v2_atomic_tax",
+            "violations": "0"
+          },
+          {
+            "check": "planned_refund_cash",
+            "violations": "0"
+          },
+          {
+            "check": "original_quantity_capacity",
+            "violations": "0"
+          }
+        ],
+        "aggregates": [
+          {
+            "source": "Order",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741000"
+          },
+          {
+            "source": "Order",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Payment",
+            "currency": "THB",
+            "status": "SUCCEEDED",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741000"
+          },
+          {
+            "source": "Payment",
+            "currency": "USD",
+            "status": "PENDING",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Refund",
+            "currency": "THB",
+            "status": "SUCCESS",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740991"
+          },
+          {
+            "source": "SellerPayout",
+            "currency": "THB",
+            "status": "paid",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740990"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741000"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "currency": "THB",
+            "status": "order_earning",
+            "grouped_by": "type",
+            "rows": "1",
+            "amount": "9007199254740989"
+          }
+        ]
+      },
+      "rowsUnchanged": true
+    },
+    {
+      "case": "CLI writer",
+      "exit": 2,
+      "report": {
+        "audit": "REJECTED",
+        "code": "TABLE_WRITER_ROLE_REJECTED",
+        "externalVerification": "NOT_VERIFIED"
+      },
+      "rowsUnchanged": true
+    },
+    {
+      "case": "no apply or writer fallback",
+      "applyExit": 2,
+      "missingExplicitUrlExit": 2,
+      "rowsUnchanged": true
+    },
+    {
+      "case": "version2 missing ItemSaleSnapshot",
+      "report": {
+        "audit": "PASS",
+        "databaseReadOnly": true,
+        "isolation": "repeatable read",
+        "externalVerification": "NOT_VERIFIED",
+        "scope": "Twelve stored snapshot invariants and grouped monetary totals; bank transfers and complete wallet/cache history are not verified.",
+        "checkedAt": "2026-10-04T17:56:29.889Z",
+        "counts": [
+          {
+            "source": "Inventory",
+            "rows": "1"
+          },
+          {
+            "source": "Order",
+            "rows": "4"
+          },
+          {
+            "source": "OrderItem",
+            "rows": "4"
+          },
+          {
+            "source": "Payment",
+            "rows": "4"
+          },
+          {
+            "source": "Refund",
+            "rows": "1"
+          },
+          {
+            "source": "SellerPayout",
+            "rows": "1"
+          },
+          {
+            "source": "ShopOrder",
+            "rows": "4"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "rows": "1"
+          }
+        ],
+        "violations": [
+          {
+            "check": "order_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_subtotal",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_completeness",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_totals",
+            "violations": "0"
+          },
+          {
+            "check": "payment_snapshot_amount",
+            "violations": "0"
+          },
+          {
+            "check": "inventory_bounds",
+            "violations": "0"
+          },
+          {
+            "check": "duplicate_seller_earnings",
+            "violations": "0"
+          },
+          {
+            "check": "tax_disclosure_equation",
+            "violations": "0"
+          },
+          {
+            "check": "original_v2_atomic_tax",
+            "violations": "0"
+          },
+          {
+            "check": "planned_refund_cash",
+            "violations": "0"
+          },
+          {
+            "check": "original_quantity_capacity",
+            "violations": "0"
+          }
+        ],
+        "aggregates": [
+          {
+            "source": "Order",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "3",
+            "amount": "9007199254741100"
+          },
+          {
+            "source": "Order",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Payment",
+            "currency": "THB",
+            "status": "SUCCEEDED",
+            "grouped_by": "status",
+            "rows": "3",
+            "amount": "9007199254741100"
+          },
+          {
+            "source": "Payment",
+            "currency": "USD",
+            "status": "PENDING",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Refund",
+            "currency": "THB",
+            "status": "SUCCESS",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740991"
+          },
+          {
+            "source": "SellerPayout",
+            "currency": "THB",
+            "status": "paid",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740990"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "3",
+            "amount": "9007199254741100"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "currency": "THB",
+            "status": "order_earning",
+            "grouped_by": "type",
+            "rows": "1",
+            "amount": "9007199254740989"
+          }
+        ]
+      },
+      "missingItemSnapshotRows": 1
+    },
+    {
+      "case": "shipping-only refund cash21 versus allocation20",
+      "validReport": {
+        "audit": "PASS",
+        "databaseReadOnly": true,
+        "isolation": "repeatable read",
+        "externalVerification": "NOT_VERIFIED",
+        "scope": "Twelve stored snapshot invariants and grouped monetary totals; bank transfers and complete wallet/cache history are not verified.",
+        "checkedAt": "2026-10-04T17:56:29.975Z",
+        "counts": [
+          {
+            "source": "Inventory",
+            "rows": "1"
+          },
+          {
+            "source": "Order",
+            "rows": "5"
+          },
+          {
+            "source": "OrderItem",
+            "rows": "5"
+          },
+          {
+            "source": "Payment",
+            "rows": "5"
+          },
+          {
+            "source": "Refund",
+            "rows": "2"
+          },
+          {
+            "source": "SellerPayout",
+            "rows": "1"
+          },
+          {
+            "source": "ShopOrder",
+            "rows": "5"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "rows": "1"
+          }
+        ],
+        "violations": [
+          {
+            "check": "order_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_subtotal",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_completeness",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_totals",
+            "violations": "0"
+          },
+          {
+            "check": "payment_snapshot_amount",
+            "violations": "0"
+          },
+          {
+            "check": "inventory_bounds",
+            "violations": "0"
+          },
+          {
+            "check": "duplicate_seller_earnings",
+            "violations": "0"
+          },
+          {
+            "check": "tax_disclosure_equation",
+            "violations": "0"
+          },
+          {
+            "check": "original_v2_atomic_tax",
+            "violations": "0"
+          },
+          {
+            "check": "planned_refund_cash",
+            "violations": "0"
+          },
+          {
+            "check": "original_quantity_capacity",
+            "violations": "0"
+          }
+        ],
+        "aggregates": [
+          {
+            "source": "Order",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "4",
+            "amount": "9007199254741220"
+          },
+          {
+            "source": "Order",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Payment",
+            "currency": "THB",
+            "status": "SUCCEEDED",
+            "grouped_by": "status",
+            "rows": "4",
+            "amount": "9007199254741220"
+          },
+          {
+            "source": "Payment",
+            "currency": "USD",
+            "status": "PENDING",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Refund",
+            "currency": "THB",
+            "status": "SUCCESS",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741011"
+          },
+          {
+            "source": "SellerPayout",
+            "currency": "THB",
+            "status": "paid",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740990"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "4",
+            "amount": "9007199254741220"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "currency": "THB",
+            "status": "order_earning",
+            "grouped_by": "type",
+            "rows": "1",
+            "amount": "9007199254740989"
+          }
+        ]
+      },
+      "report": {
+        "audit": "PASS",
+        "databaseReadOnly": true,
+        "isolation": "repeatable read",
+        "externalVerification": "NOT_VERIFIED",
+        "scope": "Twelve stored snapshot invariants and grouped monetary totals; bank transfers and complete wallet/cache history are not verified.",
+        "checkedAt": "2026-10-04T17:56:30.038Z",
+        "counts": [
+          {
+            "source": "Inventory",
+            "rows": "1"
+          },
+          {
+            "source": "Order",
+            "rows": "5"
+          },
+          {
+            "source": "OrderItem",
+            "rows": "5"
+          },
+          {
+            "source": "Payment",
+            "rows": "5"
+          },
+          {
+            "source": "Refund",
+            "rows": "2"
+          },
+          {
+            "source": "SellerPayout",
+            "rows": "1"
+          },
+          {
+            "source": "ShopOrder",
+            "rows": "5"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "rows": "1"
+          }
+        ],
+        "violations": [
+          {
+            "check": "order_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_equation",
+            "violations": "0"
+          },
+          {
+            "check": "item_subtotal",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_completeness",
+            "violations": "0"
+          },
+          {
+            "check": "shop_snapshot_totals",
+            "violations": "0"
+          },
+          {
+            "check": "payment_snapshot_amount",
+            "violations": "0"
+          },
+          {
+            "check": "inventory_bounds",
+            "violations": "0"
+          },
+          {
+            "check": "duplicate_seller_earnings",
+            "violations": "0"
+          },
+          {
+            "check": "tax_disclosure_equation",
+            "violations": "0"
+          },
+          {
+            "check": "original_v2_atomic_tax",
+            "violations": "0"
+          },
+          {
+            "check": "planned_refund_cash",
+            "violations": "0"
+          },
+          {
+            "check": "original_quantity_capacity",
+            "violations": "0"
+          }
+        ],
+        "aggregates": [
+          {
+            "source": "Order",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "4",
+            "amount": "9007199254741220"
+          },
+          {
+            "source": "Order",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Payment",
+            "currency": "THB",
+            "status": "SUCCEEDED",
+            "grouped_by": "status",
+            "rows": "4",
+            "amount": "9007199254741220"
+          },
+          {
+            "source": "Payment",
+            "currency": "USD",
+            "status": "PENDING",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "Refund",
+            "currency": "THB",
+            "status": "SUCCESS",
+            "grouped_by": "status",
+            "rows": "2",
+            "amount": "9007199254741012"
+          },
+          {
+            "source": "SellerPayout",
+            "currency": "THB",
+            "status": "paid",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "9007199254740990"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "THB",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "4",
+            "amount": "9007199254741220"
+          },
+          {
+            "source": "ShopOrder",
+            "currency": "USD",
+            "status": "PAID",
+            "grouped_by": "status",
+            "rows": "1",
+            "amount": "13"
+          },
+          {
+            "source": "WalletLedgerEntry",
+            "currency": "THB",
+            "status": "order_earning",
+            "grouped_by": "type",
+            "rows": "1",
+            "amount": "9007199254740989"
+          }
+        ]
+      },
+      "itemAllocationRows": 0,
+      "buyerShippingRefund": "20",
+      "storedRefund": "21"
+    }
+  ]
+}

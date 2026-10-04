@@ -1,0 +1,36 @@
+{
+  "format": "Agent record of observed exec tool results; not a compiler-generated JSON report",
+  "observations": [
+    {
+      "command": "bunx tsc --noEmit --incremental false",
+      "revisionScope": "Initial R3 after ProcessEnv and optional-delete typing fixes, before relation-owner addition",
+      "observedCompletionChunk": "332924",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "bunx tsc --noEmit --incremental false",
+      "revisionScope": "R3 completeness checks, runtime error narrowing, CLI discrepancy assertions and thirteen-table fingerprint",
+      "observedCompletionChunk": "1dd8dd",
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": "bunx vitest run scripts/audit-numeric-database.test.ts scripts/audit-numeric-database.integration.test.ts --reporter=verbose --reporter=json --outputFile=docs/test-evidence/2026-10-05-production-readiness/r3-completeness-green.json",
+      "observedCompletionChunk": "41a5d1",
+      "exitCode": 0,
+      "compilerOrRunnerNativeReport": "r3-completeness-green.json",
+      "testsPassed": 26,
+      "testsFailed": 0,
+      "testsSkipped": 0
+    },
+    {
+      "command": "bun run scripts/verify-numeric-snapshots.ts",
+      "environment": "Explicit local disposable marketplace_test_readiness_audit DATABASE_URL",
+      "observedCompletionChunk": "ee0a2e",
+      "exitCode": 0,
+      "runnerOutput": "r3-legacy-scanner.json"
+    }
+  ],
+  "limit": "Final source changes after completeness typecheck/test result moved observation recording after unchanged-row assertions. The coordinator runs the consolidated final gate. No production connection was made."
+}

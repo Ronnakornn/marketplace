@@ -1,4 +1,12 @@
-# Marketplace ERD
+# Marketplace ERD — core and legacy view
+
+This diagram is an orientation view, not the complete current schema or a
+migration source. Financial boxes retain their core/legacy columns; policy 2
+NET/TAX, included/reported totals, named coupon identities, cumulative quantity
+intervals and affiliate item/reversal models are not fully drawn. Use
+[authoritative Prisma schema](../prisma/schema.prisma) for all current fields,
+relations and defaults, and [tax/partial-return design](numeric-tax-design.md) for
+v1/v2 semantics. `docs/schema.dbml` has the same limited coverage.
 
 ```mermaid
 erDiagram
@@ -560,7 +568,7 @@ Notes:
 - `INVENTORY_RESERVATION` holds stock during checkout and expires if checkout is abandoned.
 - `PAYMENT.status = SUCCEEDED` must be set from verified `PAYMENT_EVENT` webhook data, not from browser redirect state.
 - Seller finance is tracked through `SHOP_WALLET`, `WALLET_LEDGER_ENTRY`, `SELLER_TRANSACTION`, and `SELLER_PAYOUT`.
-- New checkout snapshots use policy version 1 under [ADR-0005](adr/0005-discount-funding-and-refundable-commission.md). Legacy Orders may have no snapshots; partially missing snapshots are rejected by settlement services.
-- `ITEM_SALE_SNAPSHOT.couponId` and `couponCode` are retained identity values, not a foreign key to a mutable Coupon. Allocation foreign keys point to the original sale snapshots.
-- Refund item pairs `(refundId, orderItemId)` and shop pairs `(refundId, shopOrderId)` are unique. Active refund plans consume original rights; monetary caps and full-item quantity validation belong to services.
+- Zero-tax legacy checkout inputs use policy 1; opted-in nonzero tax or named coupons use policy 2 with frozen NET/TAX. Both remain supported. Pre-snapshot Orders retain a validated legacy path; partially missing snapshots are rejected. See [checkout flow](checkout-flow.md).
+- Item snapshot legacy and named coupon IDs/codes retain original identity values without mutable Coupon relations. Allocation foreign keys point to original sale snapshots.
+- Refund item pairs `(refundId, orderItemId)` and shop pairs `(refundId, shopOrderId)` are unique. Services validate cumulative original quantity intervals and separate NET/TAX capacities; one pending/processing plan holds an item, success consumes rights, and confirmed failure releases the hold.
 - `recognizedAt` and `walletPostedAt` track economic posting. Shipping causes are NONE, PRE_SHIPMENT_CANCEL, SELLER_FAULT, and CHANGE_OF_MIND. Seller debt derives from the ledger excluding reversible reservations; no debt entity is added.

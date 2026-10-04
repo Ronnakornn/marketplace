@@ -381,10 +381,27 @@ from Prisma schema to frontend components.
 | Validation | TypeBox (via Elysia + prismabox) |
 | Logging | Pino |
 
-Money is stored as integer minor units in `BigInt` columns, but a global Prisma
-extension in `server/lib/prisma.ts` coerces `bigint` to `number` at runtime — so
-declared Prisma types and runtime values disagree for money fields. Amounts are
-computed server-side only; see `docs/adr/0001-amounts-are-computed-server-side-only.md`.
+Money is stored as integer minor units in Prisma `BigInt` columns. Prisma returns
+`bigint` without a global coercion extension. Repositories and services preserve
+exact values; typed `moneyResponse` / `toMoneyDto` projections expose canonical
+signed integer strings over HTTP, and Eden infers those strings. The shared UI
+money formatter displays exact minor units, including large totals and debt.
+Operational amount inputs and numeric provider protocols retain checked safe
+integer limits through `moneyNumber`; quantities, counts and basis-point rates
+remain numbers. Do not convert arbitrary money or lifetime totals with `Number()`.
+See [exact money design](docs/numeric-money-design.md) and
+[server-side calculation ADR](docs/adr/0001-amounts-are-computed-server-side-only.md).
+
+Checkout supports zero-tax policy 1 and opted-in policy 2 with frozen NET/TAX,
+shop-then-platform coupons, and cumulative partial returns. Commission excludes
+tax and shipping. Tax defaults to zero; a nonzero rate requires an explicit
+complete policy and `CHECKOUT_V2_SETTLEMENT_ENABLED=true`. The flag is captured
+when services are constructed: replace every instance after changing it. Turning
+it off blocks new v2 admission while retaining existing v2 payment, earning and
+refund processing. Do not roll code back before v2 support once v2 sales exist.
+No configured test rate determines legal tax liability. See
+[checkout](docs/checkout-flow.md), [fulfillment](docs/fulfillment-flow.md) and
+[tax/partial-return contract](docs/numeric-tax-design.md).
 
 ### Key Architectural Patterns
 

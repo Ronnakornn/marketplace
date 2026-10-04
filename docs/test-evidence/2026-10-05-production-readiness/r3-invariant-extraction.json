@@ -1,0 +1,5 @@
+{
+  "source": "HEAD:scripts/verify-numeric-snapshots.ts",
+  "literalSqlUnchanged": true,
+  "sha256": "852474ce7da912f01429f84bd277e9d75871c084d992ee10034e9c71a073cc31"
+}

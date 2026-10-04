@@ -1,0 +1,13 @@
+# Spec review
+
+Baseline `aabb535`; reviewed staged `.github`, `scripts`, and checkout changes plus unstaged documentation against `docs/numeric-production-readiness-plan.md`. Source-only review; no implementation, test execution or process changes.
+
+1. **[P1] Missing v2 item facts can pass the production audit.** Plan line 96 requires stopping promotion for "incomplete original facts"; R3 line 58 requires checking persisted numeric integrity. `scripts/numeric-snapshot-invariants.ts:44` starts `original_v2_atomic_tax` from existing `ItemSaleSnapshot` rows and inner-joins shop facts. A v2 shop whose order item lacks its item snapshot contributes no row, so the audit can return `PASS` despite settlement rejecting that incomplete sale. Existing order/shop completeness checks cover `ShopOrder`, not settlement snapshots. Add an explicit missing-item-snapshot check for snapshotted/v2 shops and a real PostgreSQL negative fixture; preserve the supported wholly legacy path. This predicate is inherited, but its new production audit exposure needs the specified fail-closed behavior.
+
+2. **[P2] Shipping-only refund cash is excluded.** R3 line 58 asks to check refund bounds and amounts; plan lines 95–96 require stopping on even one monetary unit of discrepancy. `scripts/numeric-snapshot-invariants.ts:58` checks refund cash only when an item allocation exists. Shipping-only plans are supported by `server/modules/refund/settlement-refund.service.ts:186`, which rejects only when both item and shipping lists are empty. A stored shipping-only refund amount differing from its shop cash/tax allocations is invisible. Include either allocation family in the predicate and add a shipping-only one-unit mismatch fixture.
+
+No material R1/R2 mismatch found: CI provisions dedicated TAX/rollout/audit databases, omits global unit Redis, rejects skipped/omitted integrations, and separates development mock numeric browser cases from production safeguards. Rollout tests assert original v1/v2 amounts, replacement-instance behavior, stale acceptance without partial writes, and exact replay invariance. Updated docs state restart and safe binary rollback constraints.
+
+R3 role rejection, explicit identity, verified remote TLS configuration, repeatable READ ONLY transaction, no-apply CLI and actual PostgreSQL write-denial evidence match the boundary requirement. Real remote TLS, production scan, provider/bank settlement and Linux workflow execution remain unverified; local fixtures do not satisfy R4 or production acceptance.
+
+Summary: two Spec findings, both production audit completeness gaps. Standards review is separate.

@@ -1,0 +1,1916 @@
+{
+  "database": "marketplace_test_readiness_upgrade_20261005",
+  "tables": [
+    {
+      "name": "Account",
+      "columns": [
+        "id",
+        "accountId",
+        "providerId",
+        "userId",
+        "accessToken",
+        "refreshToken",
+        "idToken",
+        "accessTokenExpiresAt",
+        "refreshTokenExpiresAt",
+        "scope",
+        "password",
+        "createdAt",
+        "updatedAt",
+        "issuer"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Address",
+      "columns": [
+        "id",
+        "userId",
+        "recipientName",
+        "phone",
+        "line1",
+        "line2",
+        "city",
+        "region",
+        "postalCode",
+        "country",
+        "isDefault",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Affiliate",
+      "columns": [
+        "id",
+        "userId",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "AffiliateClick",
+      "columns": [
+        "id",
+        "affiliateId",
+        "linkId",
+        "buyerUserId",
+        "sessionId",
+        "refParam",
+        "ipHash",
+        "userAgentHash",
+        "clickedAt",
+        "expiresAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "AffiliateCommission",
+      "columns": [
+        "id",
+        "affiliateId",
+        "linkId",
+        "clickId",
+        "orderId",
+        "eligiblesubtotal",
+        "commissionBps",
+        "currency",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "commission"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "AffiliateLink",
+      "columns": [
+        "id",
+        "affiliateId",
+        "code",
+        "targetType",
+        "targetId",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "AuditLog",
+      "columns": [
+        "id",
+        "actorUserId",
+        "actorRole",
+        "action",
+        "entityType",
+        "entityId",
+        "before",
+        "after",
+        "metadata",
+        "ipAddress",
+        "userAgent",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Brand",
+      "columns": [
+        "id",
+        "name",
+        "nameTh",
+        "nameEn",
+        "slug",
+        "code",
+        "description",
+        "descriptionTh",
+        "descriptionEn",
+        "logoUrl",
+        "websiteUrl",
+        "countryCode",
+        "sortOrder",
+        "isFeatured",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "BuyerCoinLedger",
+      "columns": [
+        "id",
+        "walletId",
+        "userId",
+        "orderId",
+        "type",
+        "status",
+        "amount",
+        "balanceAfter",
+        "reason",
+        "referenceType",
+        "referenceId",
+        "expiresAt",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "BuyerCoinWallet",
+      "columns": [
+        "id",
+        "userId",
+        "balance",
+        "pendingBalance",
+        "debtBalance",
+        "lifetimeEarned",
+        "lifetimeSpent",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Cart",
+      "columns": [
+        "id",
+        "userId",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 1,
+      "sha256": "7cfcaed811050885cbda4350690cf197226d1b6706f2311b30bc95d97c6c11c7"
+    },
+    {
+      "name": "CartItem",
+      "columns": [
+        "id",
+        "cartId",
+        "variantId",
+        "quantity",
+        "unitPrice",
+        "currency",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Category",
+      "columns": [
+        "id",
+        "name",
+        "nameTh",
+        "nameEn",
+        "slug",
+        "sortOrder",
+        "isActive",
+        "createdAt",
+        "updatedAt",
+        "parentId"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "CategoryAttributeDefinition",
+      "columns": [
+        "id",
+        "categoryId",
+        "attributeKey",
+        "displayName",
+        "displayNameTh",
+        "displayNameEn",
+        "valueType",
+        "isRequired",
+        "isFilterable",
+        "unit",
+        "allowedValues",
+        "sortOrder",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ChatMessage",
+      "columns": [
+        "id",
+        "threadId",
+        "senderId",
+        "messageType",
+        "body",
+        "attachments",
+        "createdAt",
+        "deletedAt",
+        "orderId",
+        "productId"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ChatThread",
+      "columns": [
+        "id",
+        "buyerId",
+        "shopId",
+        "buyerReadAt",
+        "sellerReadAt",
+        "createdAt",
+        "updatedAt",
+        "lastMessageAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ChatThreadReadState",
+      "columns": [
+        "id",
+        "threadId",
+        "userId",
+        "readAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Checkout",
+      "columns": [
+        "id",
+        "cartId",
+        "userId",
+        "status",
+        "subtotal",
+        "discountTotal",
+        "shippingTotal",
+        "taxTotal",
+        "grandTotal",
+        "currency",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 1,
+      "sha256": "9573e48b9dcfbf342dde3dec634f849eb53f4541af0956d46a51ce46a69383f6"
+    },
+    {
+      "name": "Coupon",
+      "columns": [
+        "id",
+        "shopId",
+        "code",
+        "titleTh",
+        "titleEn",
+        "descriptionTh",
+        "descriptionEn",
+        "discountType",
+        "discountPercentBps",
+        "startsAt",
+        "endsAt",
+        "usageLimit",
+        "perUserLimit",
+        "isActive",
+        "createdAt",
+        "updatedAt",
+        "discountValue",
+        "maxDiscount",
+        "minOrder"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "CouponClaim",
+      "columns": [
+        "id",
+        "couponId",
+        "userId",
+        "claimedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "CouponRedemption",
+      "columns": [
+        "id",
+        "couponId",
+        "userId",
+        "orderId",
+        "redeemedAt",
+        "status"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "DeviceAccount",
+      "columns": [
+        "id",
+        "deviceId",
+        "userId",
+        "firstSeenAt",
+        "lastSeenAt",
+        "revokedAt",
+        "metadata"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "DisputeCase",
+      "columns": [
+        "id",
+        "ticketId",
+        "orderId",
+        "openedById",
+        "status",
+        "reason",
+        "decision",
+        "compensation",
+        "resolvedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "FavoriteProduct",
+      "columns": [
+        "id",
+        "userId",
+        "productId",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "FeatureToggle",
+      "columns": [
+        "id",
+        "key",
+        "scope",
+        "scopeId",
+        "isEnabled",
+        "config",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "FlashSale",
+      "columns": [
+        "id",
+        "shopId",
+        "title",
+        "description",
+        "status",
+        "startsAt",
+        "endsAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "FlashSaleItem",
+      "columns": [
+        "id",
+        "flashSaleId",
+        "shopId",
+        "productId",
+        "variantId",
+        "salePrice",
+        "originalPrice",
+        "stockLimit",
+        "soldCount",
+        "perUserLimit",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "FlashSaleReservation",
+      "columns": [
+        "id",
+        "checkoutId",
+        "flashSaleItemId",
+        "userId",
+        "quantity",
+        "status",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "FraudCase",
+      "columns": [
+        "id",
+        "entityType",
+        "entityId",
+        "userId",
+        "riskScore",
+        "riskLevel",
+        "reasons",
+        "status",
+        "metadata",
+        "reviewedAt",
+        "resolvedAt",
+        "createdAt",
+        "updatedAt",
+        "resolvedById",
+        "reviewedById"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "IdempotencyKey",
+      "columns": [
+        "id",
+        "key",
+        "userId",
+        "scope",
+        "requestHash",
+        "responseJson",
+        "lockedAt",
+        "completedAt",
+        "createdAt",
+        "expiredAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "IntegrationLog",
+      "columns": [
+        "id",
+        "provider",
+        "direction",
+        "operation",
+        "status",
+        "requestId",
+        "relatedType",
+        "relatedId",
+        "requestBody",
+        "responseBody",
+        "statusCode",
+        "errorCode",
+        "errorMessage",
+        "durationMs",
+        "retryCount",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "InternalNote",
+      "columns": [
+        "id",
+        "entityType",
+        "entityId",
+        "note",
+        "isPinned",
+        "metadata",
+        "createdById",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Inventory",
+      "columns": [
+        "id",
+        "variantId",
+        "quantityOnHand",
+        "quantityReserved",
+        "reorderLevel",
+        "updatedAt",
+        "version"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "InventoryMovement",
+      "columns": [
+        "id",
+        "inventoryId",
+        "variantId",
+        "type",
+        "quantityDelta",
+        "quantityOnHandBefore",
+        "quantityOnHandAfter",
+        "quantityReservedBefore",
+        "quantityReservedAfter",
+        "actorUserId",
+        "reason",
+        "referenceType",
+        "referenceId",
+        "metadata",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "InventoryReservation",
+      "columns": [
+        "id",
+        "checkoutId",
+        "quantity",
+        "status",
+        "expiresAt",
+        "createdAt",
+        "inventoryId",
+        "orderId",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ItemSaleSnapshot",
+      "columns": [
+        "orderItemId",
+        "shopOrderId",
+        "originalQuantity",
+        "grossMerchandise",
+        "sellerCouponDiscount",
+        "platformCouponDiscount",
+        "coinDiscount",
+        "buyerMerchandise",
+        "couponId",
+        "couponCode"
+      ],
+      "rows": 1,
+      "sha256": "d6610486a0bfffa1a0cf9f54472c6e29d2582e6919490553a8a35668eac700f9"
+    },
+    {
+      "name": "MarketingBanner",
+      "columns": [
+        "id",
+        "placement",
+        "title",
+        "subtitle",
+        "imageUrl",
+        "mobileImageUrl",
+        "targetUrl",
+        "status",
+        "sortOrder",
+        "startsAt",
+        "endsAt",
+        "metadata",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ModerationAction",
+      "columns": [
+        "id",
+        "caseId",
+        "actorId",
+        "action",
+        "note",
+        "metadata",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ModerationCase",
+      "columns": [
+        "id",
+        "entityType",
+        "entityId",
+        "reason",
+        "status",
+        "severity",
+        "title",
+        "description",
+        "evidence",
+        "sourceReportId",
+        "createdById",
+        "assignedToId",
+        "resolvedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Notification",
+      "columns": [
+        "id",
+        "userId",
+        "type",
+        "title",
+        "body",
+        "data",
+        "readAt",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "NotificationTemplate",
+      "columns": [
+        "id",
+        "key",
+        "channel",
+        "locale",
+        "subject",
+        "body",
+        "variables",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Order",
+      "columns": [
+        "id",
+        "checkoutId",
+        "userId",
+        "orderNumber",
+        "status",
+        "paymentStatus",
+        "subtotal",
+        "discountTotal",
+        "shippingTotal",
+        "taxTotal",
+        "grandTotal",
+        "currency",
+        "shippingName",
+        "shippingPhone",
+        "shippingLine1",
+        "shippingLine2",
+        "shippingCity",
+        "shippingRegion",
+        "shippingPostalCode",
+        "shippingCountry",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 1,
+      "sha256": "22576ba83a96082eb86bf1fc124547bca0c49e502113a706710a09c898d47937"
+    },
+    {
+      "name": "OrderItem",
+      "columns": [
+        "id",
+        "orderId",
+        "shopId",
+        "variantId",
+        "productTitle",
+        "productSlug",
+        "variantTitle",
+        "variantSku",
+        "shopName",
+        "shopSlug",
+        "quantity",
+        "unitPrice",
+        "lineTotal",
+        "currency",
+        "fulfillmentStatus"
+      ],
+      "rows": 1,
+      "sha256": "9e0df701ceb7d15ba3432dd24e4dcf20a748ea101ddce8f4b9549ad3afc46515"
+    },
+    {
+      "name": "OutboxEvent",
+      "columns": [
+        "id",
+        "aggregateType",
+        "aggregateId",
+        "eventType",
+        "payload",
+        "status",
+        "retryCount",
+        "nextRetryAt",
+        "errorMessage",
+        "createdAt",
+        "processedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Payment",
+      "columns": [
+        "id",
+        "orderId",
+        "provider",
+        "providerIntentId",
+        "status",
+        "amount",
+        "currency",
+        "paidAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 1,
+      "sha256": "e5e0a10f93dd863651999f7c55f555951aa4d780e6b37b29ccf1f38ee5f33c95"
+    },
+    {
+      "name": "PaymentEvent",
+      "columns": [
+        "id",
+        "paymentId",
+        "providerEventId",
+        "eventType",
+        "payload",
+        "receivedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "PhoneOtpChallenge",
+      "columns": [
+        "id",
+        "phone",
+        "purpose",
+        "otpHash",
+        "attempts",
+        "maxAttempts",
+        "resendAvailableAt",
+        "expiresAt",
+        "consumedAt",
+        "revokedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Product",
+      "columns": [
+        "id",
+        "shopId",
+        "categoryId",
+        "title",
+        "titleTh",
+        "titleEn",
+        "slug",
+        "description",
+        "descriptionTh",
+        "descriptionEn",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "sellerProfileId",
+        "sellerIdentityHash",
+        "deletedAt",
+        "brandId",
+        "condition",
+        "countryOfOrigin",
+        "duplicateOfProductId",
+        "duplicateStatus",
+        "metaDescription",
+        "metaTitle",
+        "productFingerprintHash",
+        "warrantyInfo"
+      ],
+      "rows": 1,
+      "sha256": "c01faa8bb57610526b7714c47c0da230f5f87837d430d6fd7a50e1833778ed5e"
+    },
+    {
+      "name": "ProductAddToCartLog",
+      "columns": [
+        "id",
+        "productId",
+        "variantId",
+        "shopId",
+        "userId",
+        "sessionId",
+        "quantity",
+        "source",
+        "metadata",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductAnswer",
+      "columns": [
+        "id",
+        "questionId",
+        "userId",
+        "answer",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductAttribute",
+      "columns": [
+        "id",
+        "productId",
+        "attributeKey",
+        "displayName",
+        "displayNameTh",
+        "displayNameEn",
+        "value",
+        "valueTh",
+        "valueEn",
+        "sortOrder",
+        "isFilterable",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductDuplicateReview",
+      "columns": [
+        "id",
+        "sourceProductId",
+        "candidateProductId",
+        "reportedByShopId",
+        "reportedByUserId",
+        "reviewedById",
+        "status",
+        "reason",
+        "metadata",
+        "reviewedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductHighlight",
+      "columns": [
+        "id",
+        "productId",
+        "text",
+        "sortOrder",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductImage",
+      "columns": [
+        "id",
+        "productId",
+        "uploadId",
+        "url",
+        "altText",
+        "sortOrder",
+        "isPrimary",
+        "width",
+        "height",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductOption",
+      "columns": [
+        "id",
+        "productId",
+        "name",
+        "nameTh",
+        "nameEn",
+        "sortOrder",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductOptionValue",
+      "columns": [
+        "id",
+        "optionId",
+        "value",
+        "valueTh",
+        "valueEn",
+        "displayType",
+        "colorHex",
+        "sortOrder",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductQuestion",
+      "columns": [
+        "id",
+        "productId",
+        "shopId",
+        "userId",
+        "question",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductVariant",
+      "columns": [
+        "id",
+        "productId",
+        "sku",
+        "title",
+        "titleTh",
+        "titleEn",
+        "currency",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "heightMm",
+        "lengthMm",
+        "optionCombinationKey",
+        "price",
+        "weightGrams",
+        "widthMm"
+      ],
+      "rows": 1,
+      "sha256": "659507a570277e063b54eae240e064609ba191f1aee873325c3b0289f9867ecb"
+    },
+    {
+      "name": "ProductVariantOptionValue",
+      "columns": [
+        "id",
+        "variantId",
+        "optionValueId",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductVideo",
+      "columns": [
+        "id",
+        "productId",
+        "uploadId",
+        "url",
+        "contentType",
+        "fileName",
+        "fileSize",
+        "sortOrder",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ProductViewLog",
+      "columns": [
+        "id",
+        "productId",
+        "shopId",
+        "userId",
+        "sessionId",
+        "source",
+        "referrer",
+        "ipHash",
+        "userAgentHash",
+        "metadata",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "PushSubscription",
+      "columns": [
+        "id",
+        "userId",
+        "endpointHash",
+        "endpointEncrypted",
+        "p256dhEncrypted",
+        "authEncrypted",
+        "locale",
+        "expirationTime",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Refund",
+      "columns": [
+        "id",
+        "orderId",
+        "paymentId",
+        "returnRequestId",
+        "status",
+        "amount",
+        "reason",
+        "createdAt",
+        "updatedAt",
+        "processingById",
+        "completedById",
+        "externalReference",
+        "processingAt",
+        "completedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "RefundItemAllocation",
+      "columns": [
+        "id",
+        "refundId",
+        "orderItemId",
+        "quantity",
+        "cashMerchandise",
+        "platformCouponReversal",
+        "coinFundingReversal"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "RefundShopAllocation",
+      "columns": [
+        "id",
+        "refundId",
+        "shopOrderId",
+        "buyerShippingRefund",
+        "platformShippingReversal",
+        "commissionReversal",
+        "shippingCause",
+        "walletPostedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ReportExportJob",
+      "columns": [
+        "id",
+        "requestedById",
+        "type",
+        "format",
+        "status",
+        "filters",
+        "fileUrl",
+        "error",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ReturnItem",
+      "columns": [
+        "id",
+        "returnRequestId",
+        "orderItemId",
+        "quantity",
+        "condition"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ReturnRequest",
+      "columns": [
+        "id",
+        "orderId",
+        "userId",
+        "status",
+        "reason",
+        "description",
+        "images",
+        "createdAt",
+        "updatedAt",
+        "shopId"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Review",
+      "columns": [
+        "id",
+        "userId",
+        "productId",
+        "orderItemId",
+        "rating",
+        "body",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "moderatedAt",
+        "moderationReason"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ReviewMedia",
+      "columns": [
+        "id",
+        "reviewId",
+        "shopRatingId",
+        "uploadedById",
+        "type",
+        "url",
+        "thumbnailUrl",
+        "altText",
+        "sortOrder",
+        "width",
+        "height",
+        "durationSec",
+        "sizeBytes",
+        "mimeType",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ReviewReport",
+      "columns": [
+        "id",
+        "reviewId",
+        "shopRatingId",
+        "reportedById",
+        "moderatedById",
+        "reason",
+        "detail",
+        "status",
+        "moderationNote",
+        "moderatedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "SearchQueryLog",
+      "columns": [
+        "id",
+        "userId",
+        "sessionId",
+        "query",
+        "normalizedQuery",
+        "resultCount",
+        "clickedEntityType",
+        "clickedEntityId",
+        "ipHash",
+        "userAgentHash",
+        "metadata",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "SellerApplication",
+      "columns": [
+        "id",
+        "userId",
+        "shopId",
+        "sellerProfileId",
+        "status",
+        "businessType",
+        "shopName",
+        "shopSlug",
+        "shopContactEmail",
+        "shopContactPhone",
+        "legalName",
+        "contactEmail",
+        "contactPhone",
+        "nationalIdHash",
+        "nationalIdEncrypted",
+        "nationalIdLast4",
+        "companyRegistrationEncrypted",
+        "companyRegistrationLast4",
+        "taxIdEncrypted",
+        "taxIdLast4",
+        "bankName",
+        "bankAccountName",
+        "bankAccountNumberEncrypted",
+        "bankAccountNumberLast4",
+        "pickupName",
+        "pickupPhone",
+        "pickupLine1",
+        "pickupLine2",
+        "pickupCity",
+        "pickupRegion",
+        "pickupPostalCode",
+        "pickupCountry",
+        "submittedAt",
+        "reviewedAt",
+        "reviewedById",
+        "rejectionReason",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "SellerKycDocument",
+      "columns": [
+        "id",
+        "applicationId",
+        "uploadId",
+        "documentType",
+        "side",
+        "sortOrder",
+        "createdAt",
+        "rejectionReason",
+        "reviewStatus",
+        "reviewedAt",
+        "reviewedById"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "SellerPayout",
+      "columns": [
+        "id",
+        "walletId",
+        "shopId",
+        "amount",
+        "currency",
+        "status",
+        "requestedById",
+        "approvedById",
+        "rejectedById",
+        "paidById",
+        "rejectionReason",
+        "requestedAt",
+        "approvedAt",
+        "rejectedAt",
+        "paidAt",
+        "createdAt",
+        "updatedAt",
+        "externalReference"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "SellerProfile",
+      "columns": [
+        "id",
+        "userId",
+        "businessType",
+        "verificationStatus",
+        "legalName",
+        "displayName",
+        "contactEmail",
+        "contactPhone",
+        "nationalIdHash",
+        "nationalIdEncrypted",
+        "nationalIdLast4",
+        "maxShopCount",
+        "companyName",
+        "companyRegistrationEncrypted",
+        "companyRegistrationLast4",
+        "taxIdEncrypted",
+        "taxIdLast4",
+        "bankName",
+        "bankAccountName",
+        "bankAccountNumberEncrypted",
+        "bankAccountNumberLast4",
+        "verifiedAt",
+        "rejectedReason",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 1,
+      "sha256": "98a045f1d005d14b07d4109d558e51c48163ddf986a7afd6aae3fd2afc5cac73"
+    },
+    {
+      "name": "SellerTransaction",
+      "columns": [
+        "id",
+        "walletId",
+        "sellerProfileId",
+        "shopId",
+        "type",
+        "status",
+        "amount",
+        "currency",
+        "orderId",
+        "payoutId",
+        "refundId",
+        "reference",
+        "description",
+        "metadata",
+        "availableAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "SellerViolation",
+      "columns": [
+        "id",
+        "shopId",
+        "createdById",
+        "type",
+        "severity",
+        "status",
+        "reason",
+        "metadata",
+        "resolvedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Session",
+      "columns": [
+        "id",
+        "expiresAt",
+        "token",
+        "createdAt",
+        "updatedAt",
+        "ipAddress",
+        "userAgent",
+        "userId",
+        "deviceId",
+        "revokedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Shipment",
+      "columns": [
+        "id",
+        "orderId",
+        "shopId",
+        "status",
+        "carrier",
+        "trackingNumber",
+        "shippedAt",
+        "deliveredAt",
+        "createdAt",
+        "updatedAt",
+        "providerId"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShipmentItem",
+      "columns": [
+        "id",
+        "shipmentId",
+        "orderItemId",
+        "quantity"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShippingProvider",
+      "columns": [
+        "id",
+        "shopId",
+        "code",
+        "name",
+        "displayNameTh",
+        "displayNameEn",
+        "apiProvider",
+        "apiConfig",
+        "isActive",
+        "supportsCod",
+        "supportsPickup",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Shop",
+      "columns": [
+        "id",
+        "ownerId",
+        "name",
+        "slug",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "sellerProfileId",
+        "sellerIdentityHash",
+        "contactEmail",
+        "contactPhone",
+        "description",
+        "logoUrl",
+        "coverUrl",
+        "suspendedReason",
+        "rejectedReason",
+        "approvedById",
+        "approvedAt",
+        "ratingAverage",
+        "ratingCount",
+        "followerCount",
+        "productCount",
+        "metaTitle",
+        "metaDescription",
+        "deletedAt",
+        "descriptionTh",
+        "descriptionEn"
+      ],
+      "rows": 1,
+      "sha256": "b65d119c24e2b8b8a97ab4da945f9b10ec68d93d40d05b25d2af137f0f3602a5"
+    },
+    {
+      "name": "ShopActivityLog",
+      "columns": [
+        "id",
+        "shopId",
+        "actorUserId",
+        "action",
+        "entityType",
+        "entityId",
+        "before",
+        "after",
+        "metadata",
+        "ipAddress",
+        "userAgent",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopAddress",
+      "columns": [
+        "id",
+        "shopId",
+        "type",
+        "contactName",
+        "phone",
+        "line1",
+        "line2",
+        "city",
+        "region",
+        "postalCode",
+        "country",
+        "latitude",
+        "longitude",
+        "isDefault",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopDailyStats",
+      "columns": [
+        "id",
+        "shopId",
+        "date",
+        "totalOrders",
+        "totalSales",
+        "totalVisitors",
+        "totalProductsSold",
+        "conversionRateBps",
+        "ratingAverage",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopFollow",
+      "columns": [
+        "id",
+        "userId",
+        "shopId",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopOrder",
+      "columns": [
+        "id",
+        "orderId",
+        "shopId",
+        "status",
+        "fulfillmentStatus",
+        "subtotal",
+        "discountTotal",
+        "shippingTotal",
+        "taxTotal",
+        "grandTotal",
+        "currency",
+        "createdAt",
+        "updatedAt",
+        "version"
+      ],
+      "rows": 1,
+      "sha256": "c6b5feec4ef69ca39918f5ee0e15247c0e0ad96c0ddbb977f710b12a8167dd24"
+    },
+    {
+      "name": "ShopRating",
+      "columns": [
+        "id",
+        "shopId",
+        "userId",
+        "shopOrderId",
+        "rating",
+        "body",
+        "status",
+        "moderatedAt",
+        "moderatedById",
+        "moderationReason",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopRestriction",
+      "columns": [
+        "id",
+        "shopId",
+        "createdById",
+        "type",
+        "reason",
+        "startsAt",
+        "endsAt",
+        "revokedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopSaleSnapshot",
+      "columns": [
+        "shopOrderId",
+        "policyVersion",
+        "currency",
+        "commissionBase",
+        "commissionBps",
+        "originalCommission",
+        "originalShipping",
+        "buyerShipping",
+        "sellerShippingWaiver",
+        "platformShippingSubsidy",
+        "recognizedAt"
+      ],
+      "rows": 1,
+      "sha256": "6c0b6c5d7f6d2dec6e9e67ad221d1d9337c66167e9e11ef292a0f5f86d179ba9"
+    },
+    {
+      "name": "ShopSetting",
+      "columns": [
+        "id",
+        "shopId",
+        "autoAcceptOrder",
+        "allowCod",
+        "chatEnabled",
+        "vacationMode",
+        "defaultShippingProvider",
+        "returnPolicy",
+        "shippingPolicy",
+        "createdAt",
+        "updatedAt",
+        "version",
+        "returnPolicyTh",
+        "returnPolicyEn",
+        "shippingPolicyTh",
+        "shippingPolicyEn",
+        "shippingFee"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopStaff",
+      "columns": [
+        "id",
+        "shopId",
+        "userId",
+        "role",
+        "status",
+        "invitedById",
+        "joinedAt",
+        "createdAt",
+        "updatedAt",
+        "deletedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopStaffPermission",
+      "columns": [
+        "id",
+        "staffId",
+        "permission",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopViewLog",
+      "columns": [
+        "id",
+        "shopId",
+        "userId",
+        "sessionId",
+        "source",
+        "referrer",
+        "ipHash",
+        "userAgentHash",
+        "metadata",
+        "eventType",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ShopWallet",
+      "columns": [
+        "id",
+        "shopId",
+        "currency",
+        "createdAt",
+        "updatedAt",
+        "balance",
+        "pendingBalance",
+        "withdrawableBalance",
+        "version"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "SupportTicket",
+      "columns": [
+        "id",
+        "userId",
+        "shopId",
+        "orderId",
+        "subject",
+        "status",
+        "priority",
+        "category",
+        "createdAt",
+        "updatedAt",
+        "closedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "SystemSetting",
+      "columns": [
+        "id",
+        "key",
+        "value",
+        "valueType",
+        "description",
+        "isPublic",
+        "updatedById",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "TicketMessage",
+      "columns": [
+        "id",
+        "ticketId",
+        "senderId",
+        "senderType",
+        "body",
+        "attachments",
+        "isInternal",
+        "createdAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "Upload",
+      "columns": [
+        "id",
+        "userId",
+        "usage",
+        "status",
+        "fileName",
+        "contentType",
+        "fileSize",
+        "key",
+        "publicUrl",
+        "completedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "User",
+      "columns": [
+        "id",
+        "name",
+        "email",
+        "role",
+        "status",
+        "emailVerified",
+        "image",
+        "createdAt",
+        "updatedAt",
+        "phone",
+        "phoneVerified"
+      ],
+      "rows": 2,
+      "sha256": "f04cbfe104c8001deebf77d8f3f5b79b6f2fa75c15684bfeffdc121b09fb21df"
+    },
+    {
+      "name": "Verification",
+      "columns": [
+        "id",
+        "identifier",
+        "value",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "WalletLedgerEntry",
+      "columns": [
+        "id",
+        "walletId",
+        "shopId",
+        "type",
+        "amount",
+        "currency",
+        "orderId",
+        "payoutId",
+        "refundId",
+        "description",
+        "metadata",
+        "createdAt",
+        "version"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "WebhookEvent",
+      "columns": [
+        "id",
+        "provider",
+        "eventType",
+        "externalId",
+        "idempotencyKey",
+        "status",
+        "payload",
+        "headers",
+        "signatureHash",
+        "attempts",
+        "lastError",
+        "processedById",
+        "processedAt",
+        "receivedAt",
+        "createdAt",
+        "updatedAt"
+      ],
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "migrationCount": 20,
+  "checkedAt": "2026-10-04T17:44:10.179Z",
+  "applicationRows": 14,
+  "comparison": null
+}

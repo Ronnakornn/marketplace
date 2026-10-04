@@ -1,0 +1,4933 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--list",
+      "--grep-invert",
+      "UI, API and database preserve exact satang for|internal mock payment awards",
+      "--reporter=json"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "auth.setup.ts",
+      "file": "auth.setup.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "authenticate seller",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "setup",
+              "projectName": "setup",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "17e3fe6f4d9d8bd79c6b-a83f973f81711ac7dd9f",
+          "file": "auth.setup.ts",
+          "line": 6,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "admin-workflows.spec.ts",
+      "file": "admin-workflows.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "admin pages reject unauthenticated and non-admin users",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "0a039903b3d08eb2556f-99b5c327965dab5e664a",
+          "file": "admin-workflows.spec.ts",
+          "line": 77,
+          "column": 1
+        },
+        {
+          "title": "admin navigation keeps the locale and core backoffice pages render",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "0a039903b3d08eb2556f-017902b7f4c0b4d40208",
+          "file": "admin-workflows.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "admin suspends and restores a published product through the moderation UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "0a039903b3d08eb2556f-cdff3cf9c381cfcb3b4d",
+          "file": "admin-workflows.spec.ts",
+          "line": 101,
+          "column": 1
+        },
+        {
+          "title": "finance operations require a second admin to mark an approved payout paid",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "0a039903b3d08eb2556f-52d35e42e0d573847b59",
+          "file": "admin-workflows.spec.ts",
+          "line": 124,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "auth-lifecycle.spec.ts",
+      "file": "auth-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "real signup, verification, two-device login and signout isolate sessions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-6da313022f711ee265e6",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 45,
+          "column": 1
+        },
+        {
+          "title": "password reset consumes its OTP, rejects replay and revokes every old session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-5333c6f053673dac7027",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 71,
+          "column": 1
+        },
+        {
+          "title": "real signup, verification, two-device login and signout isolate sessions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-2354e16b14aebba347a3",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 45,
+          "column": 1
+        },
+        {
+          "title": "password reset consumes its OTP, rejects replay and revokes every old session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-6d49747536080a236f33",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 71,
+          "column": 1
+        },
+        {
+          "title": "real signup, verification, two-device login and signout isolate sessions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-608a71a9680c1498c519",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 45,
+          "column": 1
+        },
+        {
+          "title": "password reset consumes its OTP, rejects replay and revokes every old session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-365efa57b8aae406729a",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 71,
+          "column": 1
+        },
+        {
+          "title": "real signup, verification, two-device login and signout isolate sessions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-17befddd246ff815ab55",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 45,
+          "column": 1
+        },
+        {
+          "title": "password reset consumes its OTP, rejects replay and revokes every old session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-09dc8cb222161c5c606c",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 71,
+          "column": 1
+        },
+        {
+          "title": "real signup, verification, two-device login and signout isolate sessions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-ef17f942c69a0bf1f283",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 45,
+          "column": 1
+        },
+        {
+          "title": "password reset consumes its OTP, rejects replay and revokes every old session",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d85b83be4556154f6f41-7e3279ffd513ab2b8bf2",
+          "file": "auth-lifecycle.spec.ts",
+          "line": 71,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "buyer-checkout-payment.spec.ts",
+      "file": "buyer-checkout-payment.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "buyer multi-shop checkout commits reserved stock only after a signed paid webhook",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3d9088d685961f6796ed-ea0ec2d120552f3592e5",
+          "file": "buyer-checkout-payment.spec.ts",
+          "line": 73,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "buyer-lifecycle.spec.ts",
+      "file": "buyer-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "buyer purchases through the UI, seller ships, and buyer sees matching tracking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-051ec2df7ee86a726581",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 127,
+          "column": 1
+        },
+        {
+          "title": "buyer submits a review and a return for an eligible delivered item",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-ce7a2df59096ff8df699",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 228,
+          "column": 1
+        },
+        {
+          "title": "buyer purchases through the UI, seller ships, and buyer sees matching tracking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-f908fe1be08f7a4a0d2e",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 127,
+          "column": 1
+        },
+        {
+          "title": "buyer submits a review and a return for an eligible delivered item",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-657cfbb7238aad9d84a3",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 228,
+          "column": 1
+        },
+        {
+          "title": "buyer purchases through the UI, seller ships, and buyer sees matching tracking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-a0a182e0c2bfbf058641",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 127,
+          "column": 1
+        },
+        {
+          "title": "buyer submits a review and a return for an eligible delivered item",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-afcb485fd1f5b5ddf600",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 228,
+          "column": 1
+        },
+        {
+          "title": "buyer purchases through the UI, seller ships, and buyer sees matching tracking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-42fa65181a3d1587bebe",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 127,
+          "column": 1
+        },
+        {
+          "title": "buyer submits a review and a return for an eligible delivered item",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-8c07c6148adc3c1f1384",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 228,
+          "column": 1
+        },
+        {
+          "title": "buyer purchases through the UI, seller ships, and buyer sees matching tracking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-cbed26bd181f7df5ef60",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 127,
+          "column": 1
+        },
+        {
+          "title": "buyer submits a review and a return for an eligible delivered item",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "2e5df06fd7c96c661574-08292f6d91d417ba5a02",
+          "file": "buyer-lifecycle.spec.ts",
+          "line": 228,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "catalog-checkout-guards.spec.ts",
+      "file": "catalog-checkout-guards.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller price edit invalidates warmed catalog cache and buyer sees current price",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-065907a05f50bf040bdf",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "shop suspension after quote rejects checkout without an order or stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-d8c4f61c50b4add7f4fa",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 42,
+          "column": 1
+        },
+        {
+          "title": "stored product markup renders as literal text without executing a script or event handler",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-8adb3c8cb904e163281a",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 66,
+          "column": 1
+        },
+        {
+          "title": "order snapshots survive later address, product and variant edits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-d62d5e00698089bef66d",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 85,
+          "column": 1
+        },
+        {
+          "title": "seller price edit invalidates warmed catalog cache and buyer sees current price",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-8ac24ccbf12796804bfc",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "shop suspension after quote rejects checkout without an order or stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-c3180cfc3716f15ada3a",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 42,
+          "column": 1
+        },
+        {
+          "title": "stored product markup renders as literal text without executing a script or event handler",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-bc83bd118894794837de",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 66,
+          "column": 1
+        },
+        {
+          "title": "order snapshots survive later address, product and variant edits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-3f865f609677608d7155",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 85,
+          "column": 1
+        },
+        {
+          "title": "seller price edit invalidates warmed catalog cache and buyer sees current price",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-0387769a67006511a760",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "shop suspension after quote rejects checkout without an order or stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-717f9d6539cc9c5e993b",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 42,
+          "column": 1
+        },
+        {
+          "title": "stored product markup renders as literal text without executing a script or event handler",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-a5811d6541aac79669d4",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 66,
+          "column": 1
+        },
+        {
+          "title": "order snapshots survive later address, product and variant edits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-97c94293dd882c4eb0f8",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 85,
+          "column": 1
+        },
+        {
+          "title": "seller price edit invalidates warmed catalog cache and buyer sees current price",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-b7d79cab31389754ce1e",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "shop suspension after quote rejects checkout without an order or stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-1c81debc32f6daf1605e",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 42,
+          "column": 1
+        },
+        {
+          "title": "stored product markup renders as literal text without executing a script or event handler",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-af8c1f3d372af2ebeb2c",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 66,
+          "column": 1
+        },
+        {
+          "title": "order snapshots survive later address, product and variant edits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-d611a5123f9db194ede9",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 85,
+          "column": 1
+        },
+        {
+          "title": "seller price edit invalidates warmed catalog cache and buyer sees current price",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-f3867dec7caf5ce5f0b0",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "shop suspension after quote rejects checkout without an order or stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-278ab326a6742dd81547",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 42,
+          "column": 1
+        },
+        {
+          "title": "stored product markup renders as literal text without executing a script or event handler",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-a2322b2fad731ea6d71e",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 66,
+          "column": 1
+        },
+        {
+          "title": "order snapshots survive later address, product and variant edits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "76d65f3547dfda2761e2-68cf25fd438a0f29f18e",
+          "file": "catalog-checkout-guards.spec.ts",
+          "line": 85,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "checkout-resilience.spec.ts",
+      "file": "checkout-resilience.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "double-clicking checkout creates one order, payment and stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-ca901d81b63c5ec4ae6a",
+          "file": "checkout-resilience.spec.ts",
+          "line": 30,
+          "column": 1
+        },
+        {
+          "title": "lost checkout response after commit can be retried and recovered in history without duplicates",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-f44e46c0c9e61f99a33a",
+          "file": "checkout-resilience.spec.ts",
+          "line": 64,
+          "column": 1
+        },
+        {
+          "title": "double-clicking checkout creates one order, payment and stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-96fc25b6dcce3f8990ca",
+          "file": "checkout-resilience.spec.ts",
+          "line": 30,
+          "column": 1
+        },
+        {
+          "title": "lost checkout response after commit can be retried and recovered in history without duplicates",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-89a47be040eba4a1bd5d",
+          "file": "checkout-resilience.spec.ts",
+          "line": 64,
+          "column": 1
+        },
+        {
+          "title": "double-clicking checkout creates one order, payment and stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-779b6416bc7feddd1a95",
+          "file": "checkout-resilience.spec.ts",
+          "line": 30,
+          "column": 1
+        },
+        {
+          "title": "lost checkout response after commit can be retried and recovered in history without duplicates",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-29ea48d665646da40d99",
+          "file": "checkout-resilience.spec.ts",
+          "line": 64,
+          "column": 1
+        },
+        {
+          "title": "double-clicking checkout creates one order, payment and stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-adaaefb356cdd8422bbb",
+          "file": "checkout-resilience.spec.ts",
+          "line": 30,
+          "column": 1
+        },
+        {
+          "title": "lost checkout response after commit can be retried and recovered in history without duplicates",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-271873d815a325fa882a",
+          "file": "checkout-resilience.spec.ts",
+          "line": 64,
+          "column": 1
+        },
+        {
+          "title": "double-clicking checkout creates one order, payment and stock reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-43072ab482f514f13392",
+          "file": "checkout-resilience.spec.ts",
+          "line": 30,
+          "column": 1
+        },
+        {
+          "title": "lost checkout response after commit can be retried and recovered in history without duplicates",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "3dc31255d00e2f3dba91-861bc3b23bdec8faffb3",
+          "file": "checkout-resilience.spec.ts",
+          "line": 64,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "commerce-edge-flows.spec.ts",
+      "file": "commerce-edge-flows.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "unpaid failed returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-d3c2a2a77973653a6326",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid expired returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-0f0f656f19764f363387",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid buyer-cancel returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-907f3a824cfbd7b49c0c",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "two sellers ship separately and buyer sees only the tracking each has submitted",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-754011d5a39ffddfa50c",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "stock disappearing after the quote rejects checkout without leaving an order or reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-7ed8d7695345880e0e47",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "price changes are requoted and the buyer sees the current server total",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-0f2ecebf15ceff7f5934",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 93,
+          "column": 1
+        },
+        {
+          "title": "expired session requires login again and cannot read another buyer order or seller resources",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-94219c1b1f848944fdac",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 108,
+          "column": 1
+        },
+        {
+          "title": "unpaid failed returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-bba46d5c6ac3a1ab4d10",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid expired returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-ff31444ef708d843e2c8",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid buyer-cancel returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-cd43dc1e50b01fe04572",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "two sellers ship separately and buyer sees only the tracking each has submitted",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-dfea3f3025de42d349e7",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "stock disappearing after the quote rejects checkout without leaving an order or reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-d9e617eeafa1ee283d9a",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "price changes are requoted and the buyer sees the current server total",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-878ca40c97ecfc815536",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 93,
+          "column": 1
+        },
+        {
+          "title": "expired session requires login again and cannot read another buyer order or seller resources",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-df04f973a89bcae4c30a",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 108,
+          "column": 1
+        },
+        {
+          "title": "unpaid failed returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-055cfb00bd1dea11ad01",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid expired returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-e870ea9893058b743304",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid buyer-cancel returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-d5e1a4342d3654d151a0",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "two sellers ship separately and buyer sees only the tracking each has submitted",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-b217c1b1601a18e25ead",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "stock disappearing after the quote rejects checkout without leaving an order or reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-a1b57208fdbc5e763ecc",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "price changes are requoted and the buyer sees the current server total",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-0f09694c83e0e016664e",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 93,
+          "column": 1
+        },
+        {
+          "title": "expired session requires login again and cannot read another buyer order or seller resources",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-a01724370e52a8efdb4a",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 108,
+          "column": 1
+        },
+        {
+          "title": "unpaid failed returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-eb195b66ca05079e8b30",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid expired returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-716b8a76a49adc2cfab6",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid buyer-cancel returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-d80ddcb06b7805d87f5b",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "two sellers ship separately and buyer sees only the tracking each has submitted",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-f4272cd9785328ab7b67",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "stock disappearing after the quote rejects checkout without leaving an order or reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-a52f6e6efc84326639f3",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "price changes are requoted and the buyer sees the current server total",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-4cd8799404341779093a",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 93,
+          "column": 1
+        },
+        {
+          "title": "expired session requires login again and cannot read another buyer order or seller resources",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-b1ff88db2594daef42c3",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 108,
+          "column": 1
+        },
+        {
+          "title": "unpaid failed returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-a67d574edf4f8795d722",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid expired returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-14e1dee7b754d1d8f0e9",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "unpaid buyer-cancel returns stock, coupon and coins and shows canceled buyer state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-21c20582028786db8713",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 12,
+          "column": 3
+        },
+        {
+          "title": "two sellers ship separately and buyer sees only the tracking each has submitted",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-4814d6880e1b10c9350b",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "stock disappearing after the quote rejects checkout without leaving an order or reservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-2c3fa520cf52d8178728",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "price changes are requoted and the buyer sees the current server total",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-8a16d32bfe5a9b0baf68",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 93,
+          "column": 1
+        },
+        {
+          "title": "expired session requires login again and cannot read another buyer order or seller resources",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "56e422fe4ce16ac66123-1170f1c35709dd955231",
+          "file": "commerce-edge-flows.spec.ts",
+          "line": 108,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "finance-lifecycle.spec.ts",
+      "file": "finance-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-d323281c634bdbdf6941",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-8e6bdbaadd95f5f6f1d2",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-7a22cf36debae5a9958a",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 130,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-a387c74abc11571e900c",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 177,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-a0f97af3a893cc93e270",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 225,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-71503bdd4f8cbe3aa28f",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 287,
+          "column": 1
+        },
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-a797b512ae8b67967b08",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-4adfdbe9da317625ec59",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-250c6f9ead04a3c33d00",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 130,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-7b92654437193729a807",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 177,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-943c55201f1b052e4657",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 225,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-e7b4435462129166fbe3",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 287,
+          "column": 1
+        },
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-19ea0029121fb2482345",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-2ff5cd59db4505b5f54a",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-cfe2ed61d65fcc629716",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 130,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-46a93117ff60d6b7bca6",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 177,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-4177ed12ceefb8648630",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 225,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-09263872f79570b68e3f",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 287,
+          "column": 1
+        },
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-7d001ea6af7208f450b3",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-ab11a3299d559121bb28",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-1fcc3992b027a546b014",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 130,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-1cf38fb1afdfff8b9620",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 177,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-ae5084aca2308855234e",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 225,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-fc65e53f7fcd5b489b73",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 287,
+          "column": 1
+        },
+        {
+          "title": "partial discounted return is approved and refunded once with the correct seller debit",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-223600872e3dfb103ff5",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 29,
+          "column": 1
+        },
+        {
+          "title": "snapshot refund plan shows seller-fault shipping before processing and reconciles UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-238cd7a20e225306473d",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 78,
+          "column": 1
+        },
+        {
+          "title": "admin prepares paid cancellation cash before two-admin completion restores stock once",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-bf10c47ae572f9dcf142",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 130,
+          "column": 1
+        },
+        {
+          "title": "seller payout reserves funds and two admins complete it without duplicate debits",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-64ce225cad18a4489f80",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 177,
+          "column": 1
+        },
+        {
+          "title": "three partial quantity returns preserve original included tax and cumulative rounding in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-85c9a2008bb12de05f70",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 225,
+          "column": 1
+        },
+        {
+          "title": "seller finance preserves above-safe lifetime balances, debt and negative satang in UI API and DB",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "6b899183a171f9bb6ec1-b4534d0a97ae2c82bf73",
+          "file": "finance-lifecycle.spec.ts",
+          "line": 287,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-admin-projections.spec.ts",
+      "file": "numeric-admin-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8f0ecf80b2bf0228ab34",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-666141175b42df19c649",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-db188645215fe1937647",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-2ebb9135bc6ec7da5351",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-d9f4fb777a7bb11169e6",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-915b6dfb7405bc593baf",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-3a1173bb444c538568a3",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-bbee5e68723b26da9817",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "refund count 3/6 produces displayed score75, 3/7 leaves its historical case, and admin reviews then resolves",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-42293c9170f37f1f27de",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 41,
+          "column": 1
+        },
+        {
+          "title": "combined order fraud signals cap at displayed score100 and duplicate evaluation persists one case",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-d3f2f4206f06f203f8b4",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 107,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-analytics.spec.ts",
+      "file": "numeric-analytics.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "95c37ffc69b5969c2188-d99f42e90c4834c2b24f",
+          "file": "numeric-analytics.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "95c37ffc69b5969c2188-cdbb21eb57a2e7899319",
+          "file": "numeric-analytics.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "95c37ffc69b5969c2188-f7b2e7e3a3ce3a0cfb42",
+          "file": "numeric-analytics.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "95c37ffc69b5969c2188-8738263a029dc28c88d0",
+          "file": "numeric-analytics.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "paid analytics reconciles ten views to ten percent and revenue ranking across pages",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "95c37ffc69b5969c2188-7d510921d75b7630f075",
+          "file": "numeric-analytics.spec.ts",
+          "line": 13,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-boundaries.spec.ts",
+      "file": "numeric-boundaries.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-f9ef4915940651e087a0",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "production route composition prevents seller stock below active holds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-562c8ed60413d7c27269",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-6b0cf4e1c8d9d949e369",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-c41a5f048933d9fea460",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "production route composition prevents seller stock below active holds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-17a161246c2a65383a4d",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-4cde6785e3fcaf7be9e2",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-c5f82ac4159a9b5a85fe",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "production route composition prevents seller stock below active holds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-ed791fe77f1ef65ac4d7",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-2d3edea411650a4f2726",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-a8e4d85eb677a01a4fea",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "production route composition prevents seller stock below active holds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-ee79f1d00f5a2f8da0ae",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-2369a97581a75b2da8af",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 70,
+          "column": 1
+        },
+        {
+          "title": "seller percentage input persists 1250 bps and discounts 1999 satang by 249",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-72cb60083b3d7eaff14c",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 13,
+          "column": 1
+        },
+        {
+          "title": "production route composition prevents seller stock below active holds",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-b9c533561dbd7f52db25",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "real flash HTTP create and update preserve decimal satang and reject sub-satang prices",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "f6ae797d60bfd79ce133-28f206f6b4936a052271",
+          "file": "numeric-boundaries.spec.ts",
+          "line": 70,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-home-freshness.spec.ts",
+      "file": "numeric-home-freshness.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "77e958d8767152168176-2306e9ab8b6bb3e14e3d",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "77e958d8767152168176-46112341f21edf19bc5e",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "77e958d8767152168176-cb8bf8cb94e5fdcca1d9",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "77e958d8767152168176-3b486db11c28d132bcc7",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        },
+        {
+          "title": "new homepage server renders use current flash identity, price and physical availability",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "77e958d8767152168176-b584484c7ee2ffce2686",
+          "file": "numeric-home-freshness.spec.ts",
+          "line": 11,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-projections.spec.ts",
+      "file": "numeric-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-dfe277cab74bcc76e063",
+          "file": "numeric-projections.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-6b1b9bc411bde5c7bf1d",
+          "file": "numeric-projections.spec.ts",
+          "line": 155,
+          "column": 1
+        },
+        {
+          "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-ebb95a7abf358eb31335",
+          "file": "numeric-projections.spec.ts",
+          "line": 215,
+          "column": 1
+        },
+        {
+          "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-198886f993a0afc25ab5",
+          "file": "numeric-projections.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-7fe3af9b214e002210ef",
+          "file": "numeric-projections.spec.ts",
+          "line": 155,
+          "column": 1
+        },
+        {
+          "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-3212067ace993026745d",
+          "file": "numeric-projections.spec.ts",
+          "line": 215,
+          "column": 1
+        },
+        {
+          "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-325c8db13086f5afd307",
+          "file": "numeric-projections.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-72e83ec2428ef46990e3",
+          "file": "numeric-projections.spec.ts",
+          "line": 155,
+          "column": 1
+        },
+        {
+          "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-cd5a302099519f89bd68",
+          "file": "numeric-projections.spec.ts",
+          "line": 215,
+          "column": 1
+        },
+        {
+          "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-2083c6dc71123b09d67c",
+          "file": "numeric-projections.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-41d389eda97a369de6ff",
+          "file": "numeric-projections.spec.ts",
+          "line": 155,
+          "column": 1
+        },
+        {
+          "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-41e5aa88bf14571debe4",
+          "file": "numeric-projections.spec.ts",
+          "line": 215,
+          "column": 1
+        },
+        {
+          "title": "published ratings reconcile product4.33 and shop4.67 with counts, buckets and public UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-6d935262466728fa1cf1",
+          "file": "numeric-projections.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "search badges99/100, ratings and stock facets reconcile with paid history and reserved inventory",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-c29b14b37a02439af10b",
+          "file": "numeric-projections.spec.ts",
+          "line": 155,
+          "column": 1
+        },
+        {
+          "title": "related rail prices match Catalog API and DB while similar API includes500/1500 edges only",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "d17b657666ec76a557a8-288a3f9e7e7664253a2c",
+          "file": "numeric-projections.spec.ts",
+          "line": 215,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-reporting.spec.ts",
+      "file": "numeric-reporting.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c71c32851697e135a070-5c931499643f1bb9fd62",
+          "file": "numeric-reporting.spec.ts",
+          "line": 19,
+          "column": 1
+        },
+        {
+          "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c71c32851697e135a070-a0878748f8ef9b800a9b",
+          "file": "numeric-reporting.spec.ts",
+          "line": 19,
+          "column": 1
+        },
+        {
+          "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c71c32851697e135a070-aa452c37e13c303edbde",
+          "file": "numeric-reporting.spec.ts",
+          "line": 19,
+          "column": 1
+        },
+        {
+          "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c71c32851697e135a070-a159d290006dd9bbac48",
+          "file": "numeric-reporting.spec.ts",
+          "line": 19,
+          "column": 1
+        },
+        {
+          "title": "seller historical daily reports assign midnight17UTC to Bangkok and reconcile selected-day UI API DB cents",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c71c32851697e135a070-a892a803a6f06362457a",
+          "file": "numeric-reporting.spec.ts",
+          "line": 19,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-shipping.spec.ts",
+      "file": "numeric-shipping.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "96ad7778b2646b078299-2a7aeefdecc5ac6c2f94",
+          "file": "numeric-shipping.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "96ad7778b2646b078299-dc399d2f8241b91dc61b",
+          "file": "numeric-shipping.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "96ad7778b2646b078299-441ab50d864c76fa7a99",
+          "file": "numeric-shipping.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "96ad7778b2646b078299-0946c0bafe7e33e347a5",
+          "file": "numeric-shipping.spec.ts",
+          "line": 12,
+          "column": 1
+        },
+        {
+          "title": "seller decimal shipping survives UI, quote and order; physical holds disable flash purchases",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "96ad7778b2646b078299-df49bf66e0e5b2def18b",
+          "file": "numeric-shipping.spec.ts",
+          "line": 12,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-tax.spec.ts",
+      "file": "numeric-tax.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-37970fd0ed25950cb34a",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-af1868fc42b70355e01e",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-51db052ed2ab89fb7f38",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-dea98bbb87ca08601163",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-ee7da9335f27dfe5304d",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-e216fe74605d9bb7b218",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-67b3a307ae4dc18a63e2",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-2181aaf790bd43e788d3",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures INCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-b1a5555b371705db36cd",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        },
+        {
+          "title": "admin configures EXCLUSIVE tax and checkout stacks original shop and platform funding",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "a071b0292f8434a38e3f-58d8076d55b8470df515",
+          "file": "numeric-tax.spec.ts",
+          "line": 16,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "pwa-http.spec.ts",
+      "file": "pwa-http.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "localhost HTTP is a secure Web Push development context",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "237510b46af7c0e24e64-41d3910fc4969dee7bbd",
+          "file": "pwa-http.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "seller-product-studio.spec.ts",
+      "file": "seller-product-studio.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "renders the Thai full-width Product Studio without the old accent text",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ae1420f9e62cdb79c6b2-0f921ba6ca54dadef2e1",
+          "file": "seller-product-studio.spec.ts",
+          "line": 10,
+          "column": 1
+        },
+        {
+          "title": "exposes stable form, live-region, numeric, and media semantics",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ae1420f9e62cdb79c6b2-c27fb455058854fa4993",
+          "file": "seller-product-studio.spec.ts",
+          "line": 58,
+          "column": 1
+        },
+        {
+          "title": "warns before discarding unsaved changes without leaving the page",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ae1420f9e62cdb79c6b2-9e73ab78ffe8042251cc",
+          "file": "seller-product-studio.spec.ts",
+          "line": 85,
+          "column": 1
+        },
+        {
+          "title": "uses an accessible confirmation dialog before deleting a variant",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "ae1420f9e62cdb79c6b2-8216e06f62f2d295f140",
+          "file": "seller-product-studio.spec.ts",
+          "line": 111,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "seller-routes.spec.ts",
+      "file": "seller-routes.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "th: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-932740c41571755635e7",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "th: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-e4c0fe14cef52864de9e",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        },
+        {
+          "title": "en: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-bc7a26c8fe7adb995ba7",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "en: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-b69af0df801bcd1a084e",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        },
+        {
+          "title": "th: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-0044322be90107998f66",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "th: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-538b8adf7e0f42b229cf",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        },
+        {
+          "title": "en: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-f063ab2167eaf9ed96ff",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "en: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-39668265bf34192db082",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        },
+        {
+          "title": "th: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-6712ad667bdd2eef84c4",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "th: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-e6c395c0288c97f9cf46",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        },
+        {
+          "title": "en: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-16c26a42e84eb633038e",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "en: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-76b4171f0f1af27161ec",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        },
+        {
+          "title": "th: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-0540fd1d53c97d19339c",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "th: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-574593e069c1165bded0",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        },
+        {
+          "title": "en: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-e21e81e08d15de53df22",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "en: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-fb6584814d70519290d6",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        },
+        {
+          "title": "th: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-aae9dfadfb384d1245c5",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "th: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-c70700a2819e1a04e3d1",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        },
+        {
+          "title": "en: notifications route exposes its page heading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-f054a4271191038bf66b",
+          "file": "seller-routes.spec.ts",
+          "line": 35,
+          "column": 3
+        },
+        {
+          "title": "en: every seller route renders without runtime errors",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "4e388ac69ab350893703-f43e0b1850760464dbff",
+          "file": "seller-routes.spec.ts",
+          "line": 43,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "seller-workflows.spec.ts",
+      "file": "seller-workflows.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "products: search, status filter, archive confirmation, and API retry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "73f0cca9add0a5581d59-e6952ee602ab040f0f39",
+          "file": "seller-workflows.spec.ts",
+          "line": 10,
+          "column": 1
+        },
+        {
+          "title": "analytics: presets, custom date validation, search, chart, and table",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "73f0cca9add0a5581d59-d80fccd83b41e78fd08b",
+          "file": "seller-workflows.spec.ts",
+          "line": 51,
+          "column": 1
+        },
+        {
+          "title": "inventory: low-stock filter and safe numeric update form",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "73f0cca9add0a5581d59-2ebaeacdff2e04762361",
+          "file": "seller-workflows.spec.ts",
+          "line": 71,
+          "column": 1
+        },
+        {
+          "title": "orders and returns expose state-safe actions",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "73f0cca9add0a5581d59-61b0afefcd5591b29936",
+          "file": "seller-workflows.spec.ts",
+          "line": 88,
+          "column": 1
+        },
+        {
+          "title": "promotions and finance validate forms before mutations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "73f0cca9add0a5581d59-41eac51ae52a07fe37c2",
+          "file": "seller-workflows.spec.ts",
+          "line": 111,
+          "column": 1
+        },
+        {
+          "title": "notifications filter tabs and chat composer work without sending data",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "73f0cca9add0a5581d59-3d4a6d7a9f17d89fe95d",
+          "file": "seller-workflows.spec.ts",
+          "line": 128,
+          "column": 1
+        },
+        {
+          "title": "product lifecycle creates, saves, configures options and stock, then cleans up",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "73f0cca9add0a5581d59-8ccb536c328870a51ee8",
+          "file": "seller-workflows.spec.ts",
+          "line": 147,
+          "column": 1
+        },
+        {
+          "title": "ownership guard blocks another seller and allows product owner",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "73f0cca9add0a5581d59-d6af10a7edd49af98ef9",
+          "file": "seller-workflows.spec.ts",
+          "line": 227,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "storefront.spec.ts",
+      "file": "storefront.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "public UUID and slug APIs resolve active shops without private fields",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "storefront-chromium",
+              "projectName": "storefront-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "972707a4d1c1162f8b74-9553d9fc5e2b3f7aa855",
+          "file": "storefront.spec.ts",
+          "line": 20,
+          "column": 1
+        },
+        {
+          "title": "English desktop and Thai mobile share storefront chrome, media, and localized policies",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "storefront-chromium",
+              "projectName": "storefront-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "972707a4d1c1162f8b74-a2e838c4f167b27171d7",
+          "file": "storefront.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "catalog preserves URL filters, loads beyond twelve, deduplicates, and retains out-of-stock products",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "storefront-chromium",
+              "projectName": "storefront-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "972707a4d1c1162f8b74-ee5e092d09f70f442b32",
+          "file": "storefront.spec.ts",
+          "line": 47,
+          "column": 1
+        },
+        {
+          "title": "review summary is bounded, history expands, policies are plain text, and tracking failure stays non-blocking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "storefront-chromium",
+              "projectName": "storefront-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "972707a4d1c1162f8b74-af4339ddfedde90e6938",
+          "file": "storefront.spec.ts",
+          "line": 60,
+          "column": 1
+        },
+        {
+          "title": "anonymous login return, buyer follow/chat, and owner management actions are correct",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "storefront-chromium",
+              "projectName": "storefront-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "972707a4d1c1162f8b74-e197965f32427bc5f608",
+          "file": "storefront.spec.ts",
+          "line": 75,
+          "column": 1
+        },
+        {
+          "title": "shared homepage and non-shop chrome remain available",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "storefront-chromium",
+              "projectName": "storefront-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "972707a4d1c1162f8b74-fdcbb1a43feb26765e80",
+          "file": "storefront.spec.ts",
+          "line": 116,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-04T17:43:58.706Z",
+    "duration": 1961.1400000000003,
+    "expected": 0,
+    "skipped": 230,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

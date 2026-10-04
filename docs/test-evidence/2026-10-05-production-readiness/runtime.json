@@ -1,0 +1,13 @@
+{
+  "startedAt": "2026-10-04T17:31:19.1978799Z",
+  "postgres": {
+    "data": "C:/Users/ASUS/AppData/Local/Temp/marketplace-numeric-pg-8eaba08c00d24e849724037394816a1b/data",
+    "pid": 21152,
+    "port": 55439
+  },
+  "redis": {
+    "runtime": "C:/Users/ASUS/AppData/Local/Temp/marketplace-audit-redis7-f9ca34b9dcfe47b7993edbef98f91b00/runtime/Redis-7.2.14-Windows-x64-msys2",
+    "pid": 26052,
+    "port": 56379
+  }
+}

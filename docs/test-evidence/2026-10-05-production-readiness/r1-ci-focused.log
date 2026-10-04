@@ -1,0 +1,2 @@
+$ vitest run --exclude "**/e2e/**" scripts/assert-ci-integration.test.ts server/modules/security/security.test.ts "--reporter=json" "--outputFile=docs/test-evidence/2026-10-05-production-readiness/r1-ci-focused.json"
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-05-production-readiness/r1-ci-focused.json

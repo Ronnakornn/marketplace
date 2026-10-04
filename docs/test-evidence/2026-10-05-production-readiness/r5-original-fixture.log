@@ -1,0 +1,9 @@
+BEGIN
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+psql:D:/GitHub/marketplace/docs/test-evidence/2026-10-05-production-readiness/r5-original-fixture.sql:18: ERROR:  null value in column "expiresAt" of relation "Checkout" violates not-null constraint
+DETAIL:  Failing row contains (d5100000-0000-4000-8000-000000000008, d5100000-0000-4000-8000-000000000007, d5100000-0000-4000-8000-000000000001, OPEN, 9007199254740993, 0, 0, 0, 9007199254740993, THB, null, 2026-10-05 00:41:21.377, 2026-10-05 00:41:21.377).

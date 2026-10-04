@@ -1,0 +1,808 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\GitHub\\marketplace\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "e2e/numeric-commerce.spec.ts",
+      "e2e/numeric-admin-projections.spec.ts",
+      "--list",
+      "--grep",
+      "UI, API and database preserve exact satang for|internal mock payment awards",
+      "--project=chromium",
+      "--project=firefox",
+      "--project=webkit",
+      "--project=mobile-chromium",
+      "--project=mobile-webkit",
+      "--reporter=json"
+    ],
+    "configFile": "D:\\GitHub\\marketplace\\playwright.config.ts",
+    "rootDir": "D:/GitHub/marketplace/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "setup",
+        "name": "setup",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/auth\\.setup\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [
+          "/auth\\.setup\\.ts/",
+          "/storefront\\.spec\\.ts/"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "storefront-chromium",
+        "name": "storefront-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/storefront\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "D:/GitHub/marketplace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "mobile-webkit",
+        "name": "mobile-webkit",
+        "testDir": "D:/GitHub/marketplace/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:seller-routes|buyer-lifecycle|commerce-edge-flows|finance-lifecycle|auth-lifecycle|checkout-resilience|catalog-checkout-guards|numeric-commerce|numeric-analytics|numeric-boundaries|numeric-tax|numeric-projections|numeric-admin-projections|numeric-shipping|numeric-reporting|numeric-home-freshness)\\.spec\\.ts/"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "auth.setup.ts",
+      "file": "auth.setup.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "authenticate seller",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "setup",
+              "projectName": "setup",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "17e3fe6f4d9d8bd79c6b-a83f973f81711ac7dd9f",
+          "file": "auth.setup.ts",
+          "line": 6,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "numeric-admin-projections.spec.ts",
+      "file": "numeric-admin-projections.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-d0af0b64ca1db8e8a193",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-6a528228b206c161e76c",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-8dd6e483bb27b0108f0e",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-d57d770cd8b451eb1f30",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-df8ac82798fd9ccf4a62",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-6019382c3627f1cc7850",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-70e7d096cdac15cc7e1f",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-79681386cdf3f2721eff",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-0048e60fad64bb35409c",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-29e4474e7198568f4791",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-991dc473aac60755bd84",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-7c36154464b4a8b3a30f",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 0 cashback coins for original NET 9999 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-f4433349dbb5c13bfd25",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10000 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-33ec7ec7b11a02c0c71a",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        },
+        {
+          "title": "internal mock payment awards 1 cashback coins for original NET 10001 excluding shipping",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "bedd3f3ccfe705defdd9-dca65924d90c6f37b0f4",
+          "file": "numeric-admin-projections.spec.ts",
+          "line": 142,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "title": "numeric-commerce.spec.ts",
+      "file": "numeric-commerce.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "UI, API and database preserve exact satang for repriced basket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-a5bb7c007f569e4742d4",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-e1284c5bbf24db1d975f",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-9843ad93eff828c1f800",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for repriced basket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-abae0df7bc65be9ae31d",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-2f390934b435baeb5f45",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-74ca02cfe5795f6f3cb8",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for repriced basket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-b37969fcfd3ad4cf4d82",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-0f1e2562d5aeab1467a8",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-d1289ac3cd3196e9ff90",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for repriced basket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-b3b8625a368190bd89dc",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-e61ef0fce1455f544309",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-8209b7e6565e01f7dd5c",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for repriced basket",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-9cefd5896fd9955847b7",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-78a1782f5d68677979bb",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        },
+        {
+          "title": "UI, API and database preserve exact satang for flash price with coupon and coins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-webkit",
+              "projectName": "mobile-webkit",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "c9f12c53449c3f2f5760-6e76a9492b40345f02e0",
+          "file": "numeric-commerce.spec.ts",
+          "line": 20,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-04T17:44:01.850Z",
+    "duration": 488.467,
+    "expected": 0,
+    "skipped": 31,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

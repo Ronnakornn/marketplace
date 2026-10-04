@@ -1,0 +1,3 @@
+$ vitest run --exclude "**/e2e/**" scripts/assert-ci-integration.test.ts "--reporter=json" "--outputFile=docs/test-evidence/2026-10-05-production-readiness/r1-ci-commerce-red.json"
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-05-production-readiness/r1-ci-commerce-red.json
+error: script "test" exited with code 1

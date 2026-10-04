@@ -1,0 +1,12 @@
+# Final Spec review
+
+Previous P1/P2 findings are fixed. No new material Spec finding in the inspected R1–R3 working source. This is a read-only follow-up against `aabb535` and `numeric-production-readiness-plan.md`; no source changes, test execution or process operations were performed by this reviewer.
+
+- **P1, missing v2 item facts:** `scripts/audit-numeric-database.ts:118` now joins v2 shop snapshots to their purchased items and uses `NOT EXISTS` for each correctly linked item snapshot. Missing rows no longer disappear through the original inner join. `additionalViolations` participates in the overall verdict at line 139, meeting the plan's line 96 stop condition for the reviewed missing-item case. The supported legacy path remains unaffected.
+- **P2, shipping-only refunds:** the separate query at line 126 checks refunds with shop allocations and no item allocations against their shipping cash plus tax. It detects the previously excluded valid plan shape and satisfies R3's refund-amount requirement at plan line 58.
+
+Actual PostgreSQL evidence: `r3-completeness-red.json` records two failures and 12 passes. `r3-completeness-green.json` records 26 passes, zero failures or skips. Green observations show missing v2 item facts produce one additional violation, `DISCREPANCIES`, CLI exit 1 and unchanged rows. A valid shipping-only refund passes; stored cash 21 versus allocation 20 produces one violation, exit 1 and unchanged rows. Complete v2 facts pass. The original twelve checks remain separate from the two added checks and all execute inside the same repeatable READ ONLY transaction.
+
+Latest working CI YAML and environment guard agree on dedicated `marketplace_test_completion` at port 55439, plus isolated TAX/rollout/audit databases and Redis databases. `r1-ci-focused.json` records 55 passing guards. `r1-ci-semantics.json` records successful preflight and discovery with zero omitted configurations; production gateway/mock-off/rate/v2 safeguards remain explicit. The index still contains the earlier database name and must be refreshed before committing the verified working source.
+
+Limits: browser discovery is not execution. Actual GitHub Actions/Linux, production browser, remote TLS handshake, production data and provider/bank settlement remain unverified. The audit's declared fourteen checks do not establish complete wallet/cache history or external settlement. This report closes the two specified source defects rather than granting production acceptance.

@@ -1,3 +1,9 @@
+// Core/legacy documentation view; not a complete schema or migration source.
+// Authoritative current fields/relations/defaults: ../prisma/schema.prisma
+// Current v1/v2 semantics: numeric-tax-design.md and checkout-flow.md
+// Financial tables omit policy-2 NET/TAX, included/reported totals, named coupons,
+// cumulative quantity intervals and affiliate item/reversal models; see erd.md.
+
 Project marketplace {
   database_type: "PostgreSQL"
 }

@@ -1,0 +1,12 @@
+{
+  "completedAt": "2026-10-04T17:45:06.3107636Z",
+  "scope": "Disposable local current-schema restore, not production RPO/RTO",
+  "sourceDatabase": "marketplace_e2e_completion",
+  "restoreDatabase": "marketplace_test_readiness_restore_20261005",
+  "backupPath": "C:\\Users\\ASUS\\AppData\\Local\\Temp\\marketplace-readiness-current-20261005.dump",
+  "backupBytes": 1098976,
+  "backupMs": 530,
+  "restoreMs": 1843,
+  "comparisonExitCode": 0,
+  "numericInvariantExitCode": 0
+}

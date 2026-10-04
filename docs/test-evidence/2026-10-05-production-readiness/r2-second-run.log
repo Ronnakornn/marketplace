@@ -1,0 +1,109 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:26060) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > reports the same captured capability as checkout until a new instance is constructed 419ms
+ × server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: BEFORE_DELIVERY 461ms
+   → expected { …(10) } to match object { balance: 1n, lifetimeEarned: 2n }
+(8 matching properties omitted from actual)
+ × server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: AFTER_DELIVERY 332ms
+   → expected [ 1000n, -2000n ] to deeply equal [ -2000n ]
+ ✓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > creates and settles a v1 sale after restart without accepting v2 and refunds its original commission 240ms
+ × server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > rejects an accepted v2 quote after flag-off restart, then rejects the policy downgrade before every commitment 54ms
+   → expected { …(19) } to match object { usedCount: +0 }
+(19 matching properties omitted from actual)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: BEFORE_DELIVERY
+AssertionError: expected { …(10) } to match object { balance: 1n, lifetimeEarned: 2n }
+(8 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "balance": 1n,
+-   "lifetimeEarned": 2n,
++   "lifetimeEarned": 1n,
+  }
+
+ ❯ server/modules/checkout/checkout-rollout.integration.test.ts:161:98
+    159|     expect(await prisma.buyerCoinLedger.count({ where: { orderId: sale…
+    160|     expect(await prisma.buyerCoinLedger.count({ where: { orderId: sale…
+    161|     expect(await prisma.buyerCoinWallet.findUniqueOrThrow({ where: { u…
+       |                                                                                                  ^
+    162|   })
+    163|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: AFTER_DELIVERY
+AssertionError: expected [ 1000n, -2000n ] to deeply equal [ -2000n ]
+
+- Expected
++ Received
+
+  [
++   1000n,
+    -2000n,
+  ]
+
+ ❯ server/modules/checkout/checkout-rollout.integration.test.ts:154:101
+    152|     const entries = await prisma.walletLedgerEntry.findMany({ where: {…
+    153|     expect(entries.filter((entry) => entry.type === 'order_earning').m…
+    154|     expect(entries.filter((entry) => entry.type === 'commission_fee').…
+       |                                                                                                     ^
+    155|     expect(await restarted.payments.handleWebhook(webhook)).toEqual({ …
+    156|     await restarted.admin.updateRefundStatus(data.completer, refund.id…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > rejects an accepted v2 quote after flag-off restart, then rejects the policy downgrade before every commitment
+AssertionError: expected { …(19) } to match object { usedCount: +0 }
+(19 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "usedCount": 0,
++   "code": "B7C658A1-3E84-4B45-99C4-076CAE8676F7",
++   "createdAt": 2026-10-04T17:39:01.336Z,
++   "descriptionEn": null,
++   "descriptionTh": null,
++   "discountPercentBps": null,
++   "discountType": "FIXED_AMOUNT",
++   "discountValue": 100n,
++   "endsAt": null,
++   "id": "018bd6be-0842-4b8c-bdb2-2f6b1f50f1c0",
++   "isActive": true,
++   "maxDiscount": null,
++   "minOrder": null,
++   "perUserLimit": null,
++   "shopId": null,
++   "startsAt": null,
++   "titleEn": null,
++   "titleTh": null,
++   "updatedAt": 2026-10-04T17:39:01.336Z,
++   "usageLimit": null,
+  }
+
+ ❯ assertUnwritten server/modules/checkout/checkout-rollout.integration.test.ts:95:80
+     93|     expect(await prisma.inventory.findUniqueOrThrow({ where: { variant…
+     94|     expect(await prisma.buyerCoinWallet.findUniqueOrThrow({ where: { u…
+     95|     expect(await prisma.coupon.findUniqueOrThrow({ where: { id: coupon…
+       |                                                                                ^
+     96|     expect(await prisma.couponRedemption.count({ where: { couponId } }…
+     97|     expect(await prisma.buyerCoinLedger.count({ where: { userId: data.…
+ ❯ server/modules/checkout/checkout-rollout.integration.test.ts:198:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 2 passed (5)
+   Start at  00:38:58
+   Duration  2.82s (transform 492ms, setup 0ms, import 1.15s, tests 1.53s, environment 0ms)
+

@@ -1,0 +1,79 @@
+2026-10-05 00:31:19.003 +07 [21152] LOG:  starting PostgreSQL 17.4 on x86_64-windows, compiled by msvc-19.42.34436, 64-bit
+2026-10-05 00:31:19.003 +07 [21152] LOG:  listening on IPv4 address "127.0.0.1", port 55439
+2026-10-05 00:31:19.087 +07 [7120] LOG:  database system was shut down at 2026-10-04 07:44:28 +07
+2026-10-05 00:31:19.121 +07 [21152] LOG:  database system is ready to accept connections
+2026-10-05 00:36:19.244 +07 [28240] LOG:  checkpoint starting: time
+2026-10-05 00:40:50.540 +07 [28240] LOG:  checkpoint complete: wrote 5242 buffers (32.0%); 0 WAL file(s) added, 2 removed, 0 recycled; write=269.801 s, sync=1.460 s, total=271.297 s; sync files=5056, longest=0.007 s, average=0.001 s; distance=37884 kB, estimate=37884 kB; lsn=0/29134BF8, redo lsn=0/28C4AD40
+2026-10-05 00:41:21.407 +07 [20400] ERROR:  null value in column "expiresAt" of relation "Checkout" violates not-null constraint
+2026-10-05 00:41:21.407 +07 [20400] DETAIL:  Failing row contains (d5100000-0000-4000-8000-000000000008, d5100000-0000-4000-8000-000000000007, d5100000-0000-4000-8000-000000000001, OPEN, 9007199254740993, 0, 0, 0, 9007199254740993, THB, null, 2026-10-05 00:41:21.377, 2026-10-05 00:41:21.377).
+2026-10-05 00:41:21.407 +07 [20400] STATEMENT:  INSERT INTO "Checkout" (id,"cartId","userId",subtotal,"grandTotal","updatedAt") VALUES
+	 ('d5100000-0000-4000-8000-000000000008','d5100000-0000-4000-8000-000000000007','d5100000-0000-4000-8000-000000000001',9007199254740993,9007199254740993,now());
+2026-10-05 00:42:23.157 +07 [7708] ERROR:  permission denied for table Payment
+2026-10-05 00:42:23.157 +07 [7708] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:42:23.302 +07 [27752] ERROR:  cannot execute UPDATE in a read-only transaction
+2026-10-05 00:42:23.302 +07 [27752] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:44:16.483 +07 [21144] ERROR:  permission denied for table Payment
+2026-10-05 00:44:16.483 +07 [21144] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:44:16.519 +07 [29640] ERROR:  cannot execute UPDATE in a read-only transaction
+2026-10-05 00:44:16.519 +07 [29640] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:46:19.593 +07 [28240] LOG:  checkpoint starting: time
+2026-10-05 00:46:54.215 +07 [21760] ERROR:  permission denied for table Payment
+2026-10-05 00:46:54.215 +07 [21760] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:46:54.249 +07 [29388] ERROR:  cannot execute UPDATE in a read-only transaction
+2026-10-05 00:46:54.249 +07 [29388] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:49:30.448 +07 [21272] ERROR:  permission denied for table Payment
+2026-10-05 00:49:30.448 +07 [21272] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:49:30.609 +07 [25592] ERROR:  cannot execute UPDATE in a read-only transaction
+2026-10-05 00:49:30.609 +07 [25592] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:50:50.976 +07 [28240] LOG:  checkpoint complete: wrote 3215 buffers (19.6%); 0 WAL file(s) added, 2 removed, 0 recycled; write=269.437 s, sync=1.929 s, total=271.384 s; sync files=4339, longest=0.045 s, average=0.001 s; distance=24863 kB, estimate=36582 kB; lsn=0/2B642610, redo lsn=0/2A492AD8
+2026-10-05 00:56:29.319 +07 [28120] ERROR:  permission denied for table Payment
+2026-10-05 00:56:29.319 +07 [28120] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:56:29.353 +07 [26408] ERROR:  cannot execute UPDATE in a read-only transaction
+2026-10-05 00:56:29.353 +07 [26408] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:57:24.244 +07 [13424] ERROR:  permission denied for table Payment
+2026-10-05 00:57:24.244 +07 [13424] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:57:24.277 +07 [21304] ERROR:  cannot execute UPDATE in a read-only transaction
+2026-10-05 00:57:24.277 +07 [21304] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:58:47.242 +07 [14916] ERROR:  permission denied for table Payment
+2026-10-05 00:58:47.242 +07 [14916] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 00:58:47.278 +07 [6852] ERROR:  cannot execute UPDATE in a read-only transaction
+2026-10-05 00:58:47.278 +07 [6852] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 01:01:19.022 +07 [28240] LOG:  checkpoint starting: time
+2026-10-05 01:02:03.884 +07 [792] ERROR:  permission denied for table Payment
+2026-10-05 01:02:03.884 +07 [792] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 01:02:04.033 +07 [24748] ERROR:  cannot execute UPDATE in a read-only transaction
+2026-10-05 01:02:04.033 +07 [24748] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 01:04:04.273 +07 [28444] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:04:04.273 +07 [10504] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:04:04.273 +07 [25652] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:04:07.577 +07 [12036] ERROR:  permission denied for table Payment
+2026-10-05 01:04:07.577 +07 [12036] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 01:04:07.738 +07 [20944] ERROR:  cannot execute UPDATE in a read-only transaction
+2026-10-05 01:04:07.738 +07 [20944] STATEMENT:  UPDATE "Payment" SET amount = amount + 1 WHERE id=$1
+2026-10-05 01:05:23.209 +07 [10968] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:05:24.561 +07 [29688] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:05:49.627 +07 [28240] LOG:  checkpoint complete: wrote 2194 buffers (13.4%); 0 WAL file(s) added, 1 removed, 0 recycled; write=270.033 s, sync=0.555 s, total=270.606 s; sync files=1415, longest=0.008 s, average=0.001 s; distance=19849 kB, estimate=34909 kB; lsn=0/2DDA3F18, redo lsn=0/2B7F5198
+2026-10-05 01:09:18.580 +07 [27788] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:09:19.922 +07 [28732] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:10:20.078 +07 [22020] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:10:20.078 +07 [27308] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:10:20.078 +07 [4104] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2026-10-05 01:11:19.675 +07 [28240] LOG:  checkpoint starting: time
+2026-10-05 01:12:18.893 +07 [21152] LOG:  received fast shutdown request
+2026-10-05 01:12:18.895 +07 [21152] LOG:  aborting any active transactions
+2026-10-05 01:12:18.898 +07 [21152] LOG:  background worker "logical replication launcher" (PID 27708) exited with exit code 1
+2026-10-05 01:12:19.452 +07 [28240] LOG:  checkpoint complete: wrote 4760 buffers (29.1%); 0 WAL file(s) added, 0 removed, 2 recycled; write=59.482 s, sync=0.282 s, total=59.778 s; sync files=912, longest=0.014 s, average=0.001 s; distance=38589 kB, estimate=38589 kB; lsn=0/2DDA49D8, redo lsn=0/2DDA4948
+2026-10-05 01:12:19.472 +07 [28240] LOG:  shutting down
+2026-10-05 01:12:19.474 +07 [28240] LOG:  checkpoint starting: shutdown immediate
+2026-10-05 01:12:19.490 +07 [28240] LOG:  checkpoint complete: wrote 0 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.018 s; sync files=0, longest=0.000 s, average=0.000 s; distance=0 kB, estimate=34730 kB; lsn=0/2DDA4A50, redo lsn=0/2DDA4A50
+2026-10-05 01:12:19.521 +07 [21152] LOG:  database system is shut down

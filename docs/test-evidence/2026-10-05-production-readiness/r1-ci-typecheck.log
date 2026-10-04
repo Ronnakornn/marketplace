@@ -1,0 +1,1 @@
+scripts/audit-numeric-database.integration.test.ts(218,12): error TS2790: The operand of a 'delete' operator must be optional.

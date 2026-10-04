@@ -1,0 +1,18 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+(node:26644) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > reports the same captured capability as checkout until a new instance is constructed 438ms
+ ✓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: BEFORE_DELIVERY 523ms
+ ✓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: AFTER_DELIVERY 253ms
+ ✓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > settles a v1 sale created BEFORE_RESTART without v2 acceptance and refunds its original commission 160ms
+ ✓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > settles a v1 sale created AFTER_RESTART without v2 acceptance and refunds its original commission 124ms
+ ✓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > rejects an accepted v2 quote after flag-off restart, then rejects the policy downgrade before every commitment 102ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  00:42:18
+   Duration  2.85s (transform 474ms, setup 0ms, import 1.09s, tests 1.62s, environment 0ms)
+
+JSON report written to D:/GitHub/marketplace/docs/test-evidence/2026-10-05-production-readiness/r2-tests.json

@@ -1,0 +1,21 @@
+{
+  "recordedAt": "2026-10-04T17:50:55.294649+00:00",
+  "focusedIntegration": {
+    "command": "bunx vitest run server/modules/checkout/checkout-rollout.integration.test.ts --reporter=verbose --reporter=json --outputFile.json=docs/test-evidence/2026-10-05-production-readiness/r2-tests.json",
+    "exitCode": 0,
+    "passed": 6,
+    "skipped": 0,
+    "database": "marketplace_test_readiness_tax",
+    "envKey": "ROLLOUT_TEST_DATABASE_URL",
+    "log": "r2-tests.log"
+  },
+  "typecheck": {
+    "command": "bunx tsc --noEmit",
+    "exitCode": 0,
+    "log": "r2-typecheck.log"
+  },
+  "externalProvider": "NOT_VERIFIED",
+  "actualProcessRestart": "NOT_EXECUTED",
+  "serviceInstanceReplacement": "PASS",
+  "baselineRerun": false
+}

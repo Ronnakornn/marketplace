@@ -1,0 +1,34 @@
+{
+  "productionScanAndDeployment": "NOT_EXECUTED",
+  "browserRerun": "NOT_EXECUTED",
+  "localTests": {
+    "passed": 1813,
+    "requiredIntegrationFiles": 31,
+    "success": true,
+    "skipped": 0,
+    "files": 201,
+    "failed": 0
+  },
+  "sourceCommits": [
+    "d96154d",
+    "832274a",
+    "256e244"
+  ],
+  "ciSelectionDiscovery": "PASS260=230+31-1; execution NOT_EXECUTED",
+  "verifiedAt": "2026-10-04T18:14:23.3631739Z",
+  "checks": {
+    "typecheckExit": 0,
+    "checkedAt": "2026-10-04T18:09:26.4216663Z",
+    "i18nExit": 0,
+    "buildExit": 0
+  },
+  "restoredAudit": {
+    "checks": 14,
+    "databaseReadOnly": true,
+    "status": "PASS",
+    "reader": "readiness_report_reader_20261005",
+    "orders": 369
+  },
+  "historicalBrowserConfigurations": 130,
+  "externalProviderAndBank": "NOT_VERIFIED"
+}

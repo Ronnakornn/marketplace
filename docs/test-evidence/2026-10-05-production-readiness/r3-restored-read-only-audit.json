@@ -1,0 +1,280 @@
+{
+  "audit": "PASS",
+  "databaseReadOnly": true,
+  "isolation": "repeatable read",
+  "externalVerification": "NOT_VERIFIED",
+  "scope": "Twelve stored snapshot invariants, two additional completeness checks and grouped monetary totals; bank transfers and complete wallet/cache history are not verified.",
+  "checkedAt": "2026-10-04T18:02:42.670Z",
+  "counts": [
+    {
+      "source": "Inventory",
+      "rows": "281"
+    },
+    {
+      "source": "Order",
+      "rows": "369"
+    },
+    {
+      "source": "OrderItem",
+      "rows": "471"
+    },
+    {
+      "source": "Payment",
+      "rows": "369"
+    },
+    {
+      "source": "Refund",
+      "rows": "66"
+    },
+    {
+      "source": "SellerPayout",
+      "rows": "6"
+    },
+    {
+      "source": "ShopOrder",
+      "rows": "396"
+    },
+    {
+      "source": "WalletLedgerEntry",
+      "rows": "146"
+    }
+  ],
+  "violations": [
+    {
+      "check": "order_equation",
+      "violations": "0"
+    },
+    {
+      "check": "item_equation",
+      "violations": "0"
+    },
+    {
+      "check": "item_subtotal",
+      "violations": "0"
+    },
+    {
+      "check": "shop_snapshot_completeness",
+      "violations": "0"
+    },
+    {
+      "check": "shop_snapshot_totals",
+      "violations": "0"
+    },
+    {
+      "check": "payment_snapshot_amount",
+      "violations": "0"
+    },
+    {
+      "check": "inventory_bounds",
+      "violations": "0"
+    },
+    {
+      "check": "duplicate_seller_earnings",
+      "violations": "0"
+    },
+    {
+      "check": "tax_disclosure_equation",
+      "violations": "0"
+    },
+    {
+      "check": "original_v2_atomic_tax",
+      "violations": "0"
+    },
+    {
+      "check": "planned_refund_cash",
+      "violations": "0"
+    },
+    {
+      "check": "original_quantity_capacity",
+      "violations": "0"
+    }
+  ],
+  "additionalViolations": [
+    {
+      "check": "original_v2_item_snapshot_completeness",
+      "violations": "0"
+    },
+    {
+      "check": "shipping_only_refund_cash",
+      "violations": "0"
+    }
+  ],
+  "aggregates": [
+    {
+      "source": "Order",
+      "currency": "THB",
+      "status": "CANCELED",
+      "grouped_by": "status",
+      "rows": "27",
+      "amount": "2700"
+    },
+    {
+      "source": "Order",
+      "currency": "THB",
+      "status": "DELIVERED",
+      "grouped_by": "status",
+      "rows": "127",
+      "amount": "3366106"
+    },
+    {
+      "source": "Order",
+      "currency": "THB",
+      "status": "PAID",
+      "grouped_by": "status",
+      "rows": "184",
+      "amount": "1546933"
+    },
+    {
+      "source": "Order",
+      "currency": "THB",
+      "status": "PENDING_PAYMENT",
+      "grouped_by": "status",
+      "rows": "25",
+      "amount": "1477159"
+    },
+    {
+      "source": "Order",
+      "currency": "THB",
+      "status": "REFUNDED",
+      "grouped_by": "status",
+      "rows": "6",
+      "amount": "51000"
+    },
+    {
+      "source": "Payment",
+      "currency": "THB",
+      "status": "FAILED",
+      "grouped_by": "status",
+      "rows": "27",
+      "amount": "2700"
+    },
+    {
+      "source": "Payment",
+      "currency": "THB",
+      "status": "PENDING",
+      "grouped_by": "status",
+      "rows": "25",
+      "amount": "1477159"
+    },
+    {
+      "source": "Payment",
+      "currency": "THB",
+      "status": "REFUNDED",
+      "grouped_by": "status",
+      "rows": "6",
+      "amount": "51000"
+    },
+    {
+      "source": "Payment",
+      "currency": "THB",
+      "status": "SUCCEEDED",
+      "grouped_by": "status",
+      "rows": "311",
+      "amount": "4913039"
+    },
+    {
+      "source": "Refund",
+      "currency": "THB",
+      "status": "FAILED",
+      "grouped_by": "status",
+      "rows": "9",
+      "amount": "9"
+    },
+    {
+      "source": "Refund",
+      "currency": "THB",
+      "status": "PENDING",
+      "grouped_by": "status",
+      "rows": "9",
+      "amount": "9"
+    },
+    {
+      "source": "Refund",
+      "currency": "THB",
+      "status": "SUCCESS",
+      "grouped_by": "status",
+      "rows": "48",
+      "amount": "111447"
+    },
+    {
+      "source": "SellerPayout",
+      "currency": "THB",
+      "status": "paid",
+      "grouped_by": "status",
+      "rows": "6",
+      "amount": "36000"
+    },
+    {
+      "source": "ShopOrder",
+      "currency": "THB",
+      "status": "CANCELED",
+      "grouped_by": "status",
+      "rows": "33",
+      "amount": "53700"
+    },
+    {
+      "source": "ShopOrder",
+      "currency": "THB",
+      "status": "DELIVERED",
+      "grouped_by": "status",
+      "rows": "127",
+      "amount": "3366106"
+    },
+    {
+      "source": "ShopOrder",
+      "currency": "THB",
+      "status": "PAID",
+      "grouped_by": "status",
+      "rows": "209",
+      "amount": "1546933"
+    },
+    {
+      "source": "ShopOrder",
+      "currency": "THB",
+      "status": "PENDING_PAYMENT",
+      "grouped_by": "status",
+      "rows": "27",
+      "amount": "1477159"
+    },
+    {
+      "source": "WalletLedgerEntry",
+      "currency": "THB",
+      "status": "commission_fee",
+      "grouped_by": "type",
+      "rows": "44",
+      "amount": "-5287"
+    },
+    {
+      "source": "WalletLedgerEntry",
+      "currency": "THB",
+      "status": "order_earning",
+      "grouped_by": "type",
+      "rows": "57",
+      "amount": "434100"
+    },
+    {
+      "source": "WalletLedgerEntry",
+      "currency": "THB",
+      "status": "payout_paid",
+      "grouped_by": "type",
+      "rows": "6",
+      "amount": "0"
+    },
+    {
+      "source": "WalletLedgerEntry",
+      "currency": "THB",
+      "status": "payout_reserved",
+      "grouped_by": "type",
+      "rows": "6",
+      "amount": "-36000"
+    },
+    {
+      "source": "WalletLedgerEntry",
+      "currency": "THB",
+      "status": "refund_adjustment",
+      "grouped_by": "type",
+      "rows": "33",
+      "amount": "-60438"
+    }
+  ]
+}

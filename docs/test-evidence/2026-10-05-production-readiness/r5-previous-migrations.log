@@ -1,0 +1,73 @@
+Loaded Prisma config from docs\test-evidence\2026-10-05-production-readiness\r5-previous-prisma.config.ts.
+
+Prisma schema loaded from C:\Users\ASUS\AppData\Local\Temp\marketplace-readiness-previous-20261005\prisma\schema.prisma.
+Datasource "db": PostgreSQL database "marketplace_test_readiness_upgrade_20261005", schema "public" at "127.0.0.1:55439"
+
+20 migrations found in prisma/migrations
+
+Applying migration `20260517053000_init`
+Applying migration `20260519090000_seller_identity_backfill`
+Applying migration `20260808090000_storefront_localized_content`
+Applying migration `20260808160000_shop_view_event_type`
+Applying migration `20260809010000_admin_moderation_fields`
+Applying migration `20260812093000_add_push_subscriptions`
+Applying migration `20260813013000_coupon_redemption_lifecycle`
+Applying migration `20260820010000_payout_external_reference`
+Applying migration `20260820011000_refund_two_person_control`
+Applying migration `20260820190000_buyer_coupon_claims`
+Applying migration `20260820210000_admin_system_settings`
+Applying migration `20260821193000_add_better_auth_account_issuer`
+Applying migration `20260823120000_restore_pending_review_status`
+Applying migration `20260823130000_publish_products_without_review`
+Applying migration `20260823160000_add_shop_shipping_fee`
+Applying migration `20260904150000_add_flash_sale_reservations`
+Applying migration `20260904160000_reconcile_schema`
+Applying migration `20260904161000_add_buyer_coin_debt_balance`
+Applying migration `20261004040000_add_settlement_snapshots`
+Applying migration `20261004060000_audit_historical_order_snapshots`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260517053000_init/
+    └─ migration.sql
+  └─ 20260519090000_seller_identity_backfill/
+    └─ migration.sql
+  └─ 20260808090000_storefront_localized_content/
+    └─ migration.sql
+  └─ 20260808160000_shop_view_event_type/
+    └─ migration.sql
+  └─ 20260809010000_admin_moderation_fields/
+    └─ migration.sql
+  └─ 20260812093000_add_push_subscriptions/
+    └─ migration.sql
+  └─ 20260813013000_coupon_redemption_lifecycle/
+    └─ migration.sql
+  └─ 20260820010000_payout_external_reference/
+    └─ migration.sql
+  └─ 20260820011000_refund_two_person_control/
+    └─ migration.sql
+  └─ 20260820190000_buyer_coupon_claims/
+    └─ migration.sql
+  └─ 20260820210000_admin_system_settings/
+    └─ migration.sql
+  └─ 20260821193000_add_better_auth_account_issuer/
+    └─ migration.sql
+  └─ 20260823120000_restore_pending_review_status/
+    └─ migration.sql
+  └─ 20260823130000_publish_products_without_review/
+    └─ migration.sql
+  └─ 20260823160000_add_shop_shipping_fee/
+    └─ migration.sql
+  └─ 20260904150000_add_flash_sale_reservations/
+    └─ migration.sql
+  └─ 20260904160000_reconcile_schema/
+    └─ migration.sql
+  └─ 20260904161000_add_buyer_coin_debt_balance/
+    └─ migration.sql
+  └─ 20261004040000_add_settlement_snapshots/
+    └─ migration.sql
+  └─ 20261004060000_audit_historical_order_snapshots/
+    └─ migration.sql
+
+All migrations have been successfully applied.

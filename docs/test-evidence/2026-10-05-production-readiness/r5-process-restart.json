@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "scope": "Two sequential task-owned local production API processes on one current binary; no mixed revisions, routing, external provider, or production data",
+  "observedAt": "2026-10-04T18:09:19.945Z",
+  "observations": [
+    {
+      "pid": 28620,
+      "configuredFlag": true,
+      "readinessStatus": 200,
+      "authenticatedAdminStatus": 200,
+      "settlementEnabled": true,
+      "defaultTaxRatePpm": 0
+    },
+    {
+      "pid": 27888,
+      "configuredFlag": false,
+      "readinessStatus": 200,
+      "authenticatedAdminStatus": 200,
+      "settlementEnabled": false,
+      "defaultTaxRatePpm": 0
+    }
+  ],
+  "bothProcessesStopped": true
+}

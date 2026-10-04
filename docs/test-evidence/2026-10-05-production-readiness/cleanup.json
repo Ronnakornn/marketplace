@@ -1,0 +1,9 @@
+{
+  "retainedIgnoredBuildCache": "D:/GitHub/marketplace/.next-audit-readiness",
+  "databaseDataPreserved": true,
+  "cacheRemovalStatus": "REJECTED_BY_AUTOMATIC_APPROVAL_REVIEW",
+  "taskPortsRemaining": [],
+  "backupOutsideRepository": true,
+  "stoppedAt": "2026-10-04T18:12:53.2948747Z",
+  "statedReason": "blocked by policy"
+}

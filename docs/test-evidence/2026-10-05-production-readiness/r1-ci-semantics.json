@@ -1,0 +1,27 @@
+{
+  "yamlSemantics": "PASS",
+  "runtimeEnvironmentPreflight": {
+    "exit": 0,
+    "stdout": "CI integration environment validated; unit Redis isolation retained"
+  },
+  "qualityDatabases": [
+    "/marketplace_test",
+    "/marketplace_test_completion",
+    "/marketplace_test_queue",
+    "/marketplace_test_tax",
+    "/marketplace_test_rollout",
+    "/marketplace_test_readiness_audit"
+  ],
+  "productionSafeguards": "gateway, mock=false, rates=true, v2=true",
+  "mockPaymentGate": "development only; six cases on five explicit profiles",
+  "githubActionsExecution": "NOT_EXECUTED",
+  "productionBrowserExecution": "NOT_EXECUTED",
+  "browserDiscovery": {
+    "allConfigurations": 260,
+    "productionConfigurations": 230,
+    "developmentMockConfigurations": 31,
+    "sharedSetupConfigurations": 1,
+    "omittedConfigurations": 0,
+    "execution": "NOT_EXECUTED (--list only)"
+  }
+}

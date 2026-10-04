@@ -1,0 +1,97 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ × server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > reports the same captured capability as checkout until a new instance is constructed 433ms
+   → expected CheckoutServiceError: Version-two tax set… { …(3) } to match object { …(2) }
+(3 matching properties omitted from actual)
+ × server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: BEFORE_DELIVERY 80ms
+   → expected { buyerMerchandiseNet: 20000n, …(21) } to match object { policyVersion: 2, …(2) }
+(20 matching properties omitted from actual)
+(node:12296) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ × server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: AFTER_DELIVERY 72ms
+   → expected { buyerMerchandiseNet: 20000n, …(21) } to match object { policyVersion: 2, …(2) }
+(20 matching properties omitted from actual)
+ ✓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > creates and settles a v1 sale after restart without accepting v2 and refunds its original commission 357ms
+ × server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > rejects an accepted v2 quote after flag-off restart, then rejects the policy downgrade before every commitment 62ms
+   → expected { …(5) } to match object { status: 'OPEN' }
+(4 matching properties omitted from actual)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > reports the same captured capability as checkout until a new instance is constructed
+AssertionError: expected CheckoutServiceError: Version-two tax set… { …(3) } to match object { …(2) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+- {
++ CheckoutServiceError {
+    "code": "TAX_SETTLEMENT_UNAVAILABLE",
+-   "statusCode": 503,
+  }
+
+ ❯ server/modules/checkout/checkout-rollout.integration.test.ts:117:75
+    115|     const restarted = services()
+    116|     expect(await restarted.policy.get(data.admin)).toMatchObject({ set…
+    117|     await expect(restarted.checkout.quoteCheckout(data.buyer, data.inp…
+       |                                                                           ^
+    118|   })
+    119|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: BEFORE_DELIVERY
+ FAIL  server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: AFTER_DELIVERY
+AssertionError: expected { buyerMerchandiseNet: 20000n, …(21) } to match object { policyVersion: 2, …(2) }
+(20 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "buyerMerchandiseNet": 20000n,
+    "buyerMerchandiseTax": 1400n,
+-   "policyVersion": 2,
+  }
+
+ ❯ server/modules/checkout/checkout-rollout.integration.test.ts:129:98
+    127|     expect(sale.totalCents).toBe(21400)
+    128|     const item = await prisma.orderItem.findFirstOrThrow({ where: { or…
+    129|     expect(await prisma.itemSaleSnapshot.findUniqueOrThrow({ where: { …
+       |                                                                                                  ^
+    130|     process.env['CHECKOUT_V2_SETTLEMENT_ENABLED'] = 'false'
+    131|     process.env['PLATFORM_COMMISSION_BPS'] = '2000'
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > rejects an accepted v2 quote after flag-off restart, then rejects the policy downgrade before every commitment
+AssertionError: expected { …(5) } to match object { status: 'OPEN' }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "status": "OPEN",
++   "status": "ACTIVE",
+  }
+
+ ❯ assertUnwritten server/modules/checkout/checkout-rollout.integration.test.ts:91:82
+     89|
+     90|   async function assertUnwritten(data: Awaited<ReturnType<typeof fixtu…
+     91|     expect(await prisma.cart.findUniqueOrThrow({ where: { id: data.car…
+       |                                                                                  ^
+     92|     expect(await prisma.cartItem.findFirstOrThrow({ where: { cartId: d…
+     93|     expect(await prisma.inventory.findUniqueOrThrow({ where: { variant…
+ ❯ server/modules/checkout/checkout-rollout.integration.test.ts:197:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+   Start at  00:38:35
+   Duration  2.28s (transform 480ms, setup 0ms, import 1.12s, tests 1.03s, environment 0ms)
+

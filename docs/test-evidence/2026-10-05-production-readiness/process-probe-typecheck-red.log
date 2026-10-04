@@ -1,0 +1,4 @@
+docs/test-evidence/2026-10-05-production-readiness/r5-process-restart.ts(23,17): error TS2867: Cannot find name 'Bun'. Do you need to install type definitions for Bun? Try `npm i --save-dev @types/bun`.
+docs/test-evidence/2026-10-05-production-readiness/r5-process-restart.ts(25,13): error TS2867: Cannot find name 'Bun'. Do you need to install type definitions for Bun? Try `npm i --save-dev @types/bun`.
+docs/test-evidence/2026-10-05-production-readiness/r5-process-restart.ts(26,13): error TS2867: Cannot find name 'Bun'. Do you need to install type definitions for Bun? Try `npm i --save-dev @types/bun`.
+docs/test-evidence/2026-10-05-production-readiness/r5-process-restart.ts(33,13): error TS2867: Cannot find name 'Bun'. Do you need to install type definitions for Bun? Try `npm i --save-dev @types/bun`.

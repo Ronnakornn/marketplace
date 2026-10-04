@@ -1,0 +1,41 @@
+
+ RUN  v4.1.11 D:/GitHub/marketplace
+
+ × server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > reports the same captured capability as checkout until a new instance is constructed 301ms
+   → expected { policy: { version: 2, …(9) }, …(1) } to match object { settlementEnabled: true }
+(11 matching properties omitted from actual)
+ ↓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: BEFORE_DELIVERY
+ ↓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > processes frozen v2 NET/TAX and replays safely after flag-off instance replacement: AFTER_DELIVERY
+ ↓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > creates and settles a v1 sale after restart without accepting v2 and refunds its original commission
+ ↓ server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > rejects an accepted v2 quote after flag-off restart, then rejects the policy downgrade before every commitment
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  server/modules/checkout/checkout-rollout.integration.test.ts > checkout rollback and mixed original versions on PostgreSQL > reports the same captured capability as checkout until a new instance is constructed
+AssertionError: expected { policy: { version: 2, …(9) }, …(1) } to match object { settlementEnabled: true }
+(11 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "settlementEnabled": true,
++   "settlementEnabled": false,
+  }
+
+ ❯ server/modules/checkout/checkout-rollout.integration.test.ts:113:50
+    111|     process.env['CHECKOUT_V2_SETTLEMENT_ENABLED'] = 'false'
+    112|     expect(await running.checkout.quoteCheckout(data.buyer, data.input…
+    113|     expect(await running.policy.get(data.admin)).toMatchObject({ settl…
+       |                                                  ^
+    114|     expect(await policy(running, data.admin)).toMatchObject({ settleme…
+    115|     const restarted = services()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 skipped (5)
+   Start at  00:38:04
+   Duration  4.40s (transform 739ms, setup 0ms, import 3.71s, tests 326ms, environment 0ms)
+
