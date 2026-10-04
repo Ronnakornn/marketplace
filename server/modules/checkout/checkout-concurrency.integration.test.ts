@@ -85,11 +85,13 @@ describe.skipIf(!url)('checkout creation concurrency on PostgreSQL', () => {
 
   it('allows only one of two distinct buyers to reserve the last unit', async () => {
     const first = await fixture()
-    const variant = first.variants[0]!
-    await prisma.inventory.update({ where: { variantId: variant.id }, data: { quantityOnHand: 1 } })
+    const selectedItem = await prisma.cartItem.findUniqueOrThrow({ where: { id: first.input.cartItemIds[0] } })
+    const variantId = selectedItem.variantId
+    await prisma.inventory.update({ where: { variantId }, data: { quantityOnHand: 1 } })
     await prisma.cartItem.update({ where: { id: first.input.cartItemIds[0] }, data: { quantity: 1 } })
     const secondBuyer = await prisma.user.create({ data: { name: 'Second last-unit buyer', email: `${randomUUID()}@example.test` } })
-    const secondCart = await prisma.cart.create({ data: { userId: secondBuyer.id, items: { create: { variantId: variant.id, quantity: 1, unitPrice: 10000 } } }, include: { items: true } })
+    const secondCart = await prisma.cart.create({ data: { userId: secondBuyer.id, items: { create: { variantId, quantity: 1, unitPrice: 10000 } } }, include: { items: true } })
+    expect(secondCart.items[0]!.variantId).toBe(selectedItem.variantId)
     const secondAddress = await prisma.address.create({ data: { userId: secondBuyer.id, recipientName: secondBuyer.name, line1: '2 Test Road', city: 'Bangkok', postalCode: '10110', country: 'TH' } })
     const cartIds = [first.cart.id, secondCart.id]
     let reads = 0
@@ -118,7 +120,7 @@ describe.skipIf(!url)('checkout creation concurrency on PostgreSQL', () => {
     expect(await prisma.checkout.count({ where: { userId: { in: buyers } } })).toBe(1)
     const reservation = await prisma.inventoryReservation.findMany({ where: { checkout: { userId: { in: buyers } } } })
     expect(reservation).toEqual([expect.objectContaining({ quantity: 1, status: 'ACTIVE' })])
-    expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } })).toMatchObject({ quantityOnHand: 1, quantityReserved: 1 })
+    expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId } })).toMatchObject({ quantityOnHand: 1, quantityReserved: 1 })
     expect(await prisma.payment.findFirstOrThrow({ where: { order: { userId: { in: buyers } } } })).toMatchObject({ amount: 10000n, status: 'PENDING' })
   })
 

@@ -254,17 +254,21 @@ describe("Seller product analytics page", () => {
     expect(screen.getByText("Slow Hat")).toBeTruthy();
   });
 
-  it("renders the daily trend when the API returns a Date value", () => {
+  it.each(["2026-10-01", new Date("2026-10-01T00:00:00.000Z")])("keeps the API calendar day in chart labels for %s", (date) => {
     analyticsState = makeState({
       data: {
         ...analyticsData,
-        daily: [{ ...analyticsData.daily[0]!, date: new Date("2026-06-01T00:00:00.000Z") }],
+        daily: [{ ...analyticsData.daily[0]!, date }],
       },
     });
 
     render(<SellerProductAnalyticsPage />);
 
-    expect(screen.getByText("06-01T00:00:00.000Z")).toBeTruthy();
+    expect(screen.getByText("10-01", { exact: true })).toBeTruthy();
+    expect(screen.queryByText(/T00:00:00/)).toBeNull();
+    expect(screen.getByRole("img", { name: "2026-10-01 views: 100" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "2026-10-01 add to cart: 12" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "2026-10-01 orders: 3" })).toBeTruthy();
   });
 
   it("changes date range input and passes filters to the hook", () => {

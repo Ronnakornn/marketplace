@@ -2,10 +2,14 @@
  * @vitest-environment jsdom
  */
 import { type ReactNode } from "react";
+import { renderToString } from "react-dom/server";
+import th from "../../../../messages/th.json" with { type: "json" };
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { MarketplaceHome } from "./MarketplaceHome";
+
+const i18nMocks = vi.hoisted(() => ({ locale: "en" as "en" | "th" }));
 
 const queryMocks = vi.hoisted(() => ({
   defaultHomeResponse: {
@@ -165,12 +169,15 @@ vi.mock("#/features/tracking", () => ({
   useTrackVisibleProducts: vi.fn(),
 }));
 
-vi.mock("#/i18n/client", () => ({
+vi.mock("#/i18n/client", async () => {
+  const actual = await vi.importActual<typeof import("#/i18n/client")>("#/i18n/client");
+  return {
   useFormatters: () => ({
     currency: (cents: number) => `$${(cents / 100).toFixed(2)}`,
+    date: (value: Date | string | number, options?: Intl.DateTimeFormatOptions) => actual.formatDate(value, i18nMocks.locale, options),
   }),
-  useLocale: () => "en",
-  useTranslations: () => (key: string) => ({
+  useLocale: () => i18nMocks.locale,
+  useTranslations: () => (key: string) => key === "home.endsAt" && i18nMocks.locale === "th" ? th.home.endsAt : ({
     "common.account": "Account",
     "common.cart": "Cart",
     "common.categories": "Categories",
@@ -237,7 +244,8 @@ vi.mock("#/i18n/client", () => ({
     "product.sold": "sold",
     "state.retry": "Retry",
   })[key] ?? key,
-}));
+  };
+});
 
 vi.mock("#/i18n/navigation", () => ({
   useLocalePath: () => (path: string) => `/en${path}`,
@@ -271,6 +279,7 @@ afterEach(() => cleanup());
 
 describe("MarketplaceHome", () => {
   beforeEach(() => {
+    i18nMocks.locale = "en";
     queryMocks.homeError = null;
     queryMocks.homeResponse = structuredClone(queryMocks.defaultHomeResponse);
     queryMocks.homeQueryFn.mockImplementation(async () => {
@@ -326,6 +335,36 @@ describe("MarketplaceHome", () => {
 
     await screen.findByText("Flash marketplace tote");
     expect(screen.getAllByRole("button", { name: "Add" })[0]?.hasAttribute("disabled")).toBe(true);
+  });
+
+  it.each([
+    { locale: "en", clientTimezone: "Asia/Bangkok", label: "Ends 10/1/26" },
+    { locale: "th", clientTimezone: "America/Los_Angeles", label: "สิ้นสุด 1/10/69" },
+  ] as const)("hydrates $locale flash expiry at Bangkok midnight across host timezones", async ({ locale, clientTimezone, label }) => {
+    const originalTimezone = process.env.TZ;
+    i18nMocks.locale = locale;
+    queryMocks.homeResponse = { sections: { flashSale: { id: "flash-midnight", title: "Midnight flash sale", description: null, endsAt: "2026-09-30T17:00:00.000Z", items: [] } } };
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+    client.setQueryData(["marketplace", "home", "test"], queryMocks.homeResponse);
+    const ui = <QueryClientProvider client={client}><MarketplaceHome /></QueryClientProvider>;
+    const container = document.createElement("div");
+    const recoverableError = vi.fn();
+    try {
+      process.env.TZ = "UTC";
+      container.innerHTML = renderToString(ui);
+      expect(container.textContent).toContain(label);
+      document.body.appendChild(container);
+      process.env.TZ = clientTimezone;
+      render(ui, { container, hydrate: true, onRecoverableError: recoverableError });
+      expect(await screen.findByText(label, { exact: true })).toBeTruthy();
+      expect(recoverableError).not.toHaveBeenCalled();
+    } finally {
+      cleanup();
+      client.clear();
+      container.remove();
+      if (originalTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTimezone;
+    }
   });
 
   it("shows an error state with a retry path when homepage loading fails", async () => {

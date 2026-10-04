@@ -207,25 +207,24 @@ export class PrismaSellerShopRepository implements ISellerShopRepository {
     })
   }
 
-  findPublicStorefront(identifier: string): Promise<PublicStorefrontRecord | null> {
+  async findPublicStorefront(identifier: string): Promise<PublicStorefrontRecord | null> {
     this.logger.debug('PrismaSellerShopRepository.findPublicStorefront', { identifier })
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier)
-    return this.prisma.shop.findFirst({
-      where: {
-        ...(isUuid ? { id: identifier } : { slug: identifier }),
-        status: 'ACTIVE',
-        deletedAt: null,
-      },
-      select: {
-        id: true, ownerId: true, name: true, slug: true,
-        description: true, descriptionTh: true, descriptionEn: true,
-        logoUrl: true, coverUrl: true, ratingAverage: true, ratingCount: true,
-        followerCount: true, productCount: true, metaTitle: true, metaDescription: true, updatedAt: true,
-        settings: { select: {
-          chatEnabled: true, shippingPolicy: true, shippingPolicyTh: true, shippingPolicyEn: true,
-          returnPolicy: true, returnPolicyTh: true, returnPolicyEn: true,
-        } },
-      },
-    })
+    const select = {
+      id: true, ownerId: true, name: true, slug: true,
+      description: true, descriptionTh: true, descriptionEn: true,
+      logoUrl: true, coverUrl: true, ratingAverage: true, ratingCount: true,
+      followerCount: true, productCount: true, metaTitle: true, metaDescription: true, updatedAt: true,
+      settings: { select: {
+        chatEnabled: true, shippingPolicy: true, shippingPolicyTh: true, shippingPolicyEn: true,
+        returnPolicy: true, returnPolicyTh: true, returnPolicyEn: true,
+      } },
+    } as const
+    const publicWhere = { status: 'ACTIVE', deletedAt: null } as const
+    if (isUuid) {
+      const shop = await this.prisma.shop.findFirst({ where: { ...publicWhere, id: identifier }, select })
+      if (shop) return shop
+    }
+    return this.prisma.shop.findFirst({ where: { ...publicWhere, slug: identifier }, select })
   }
 }

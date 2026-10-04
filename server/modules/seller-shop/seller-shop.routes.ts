@@ -29,7 +29,7 @@ const StaffInviteBodySchema = t.Object({ email: t.String({ format: 'email', maxL
 const StaffUpdateBodySchema = t.Object({ role: t.Optional(t.Union([t.Literal('MANAGER'), t.Literal('WAREHOUSE'), t.Literal('SUPPORT')])), status: t.Optional(t.Union([t.Literal('INVITED'), t.Literal('ACTIVE'), t.Literal('SUSPENDED')])) })
 const StaffInviteParamsSchema = t.Object({ staffId: t.String({ format: 'uuid' }) })
 
-const UpdateShopProfileBodySchema = t.Intersect([t.Partial(t.Pick(ShopPlainInputUpdate, [
+export const UpdateShopProfileBodySchema = t.Composite([t.Partial(t.Pick(ShopPlainInputUpdate, [
   'name',
   'slug',
   'contactEmail',
@@ -42,9 +42,9 @@ const UpdateShopProfileBodySchema = t.Intersect([t.Partial(t.Pick(ShopPlainInput
 ])), t.Object({
   descriptionTh: OptionalLocalizedTextSchema,
   descriptionEn: OptionalLocalizedTextSchema,
-})])
+})], { additionalProperties: false })
 
-const UpdateShopSettingsBodySchema = t.Intersect([t.Partial(t.Pick(ShopSettingPlainInputUpdate, [
+export const UpdateShopSettingsBodySchema = t.Composite([t.Partial(t.Pick(ShopSettingPlainInputUpdate, [
   'autoAcceptOrder',
   'allowCod',
   'chatEnabled',
@@ -58,7 +58,7 @@ const UpdateShopSettingsBodySchema = t.Intersect([t.Partial(t.Pick(ShopSettingPl
   shippingPolicyTh: OptionalLocalizedTextSchema,
   shippingPolicyEn: OptionalLocalizedTextSchema,
   shippingFeeBaht: ShippingFeeBahtSchema,
-})])
+})], { additionalProperties: false })
 
 function actor(authContext: any) {
   return { id: authContext!.user.id, role: authContext!.user.role }

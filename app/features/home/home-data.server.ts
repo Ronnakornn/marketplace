@@ -6,7 +6,7 @@ export async function getInitialMarketplaceHome(locale: "th" | "en"): Promise<Di
 
   try {
     const response = await fetch(`${apiBaseUrl}/api/discovery/home?locale=${locale}&limit=12`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!response.ok) return undefined;
     return await response.json() as DiscoveryHomeResponse;

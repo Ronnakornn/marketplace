@@ -24,7 +24,7 @@ function order(): Parameters<typeof PrepareCancellationRefund>[0]["order"] {
     shipments: [{ status: "PENDING" }], refunds: [], shopOrders: [{ id: "shop-order-1", shopId: "shop-1", saleSnapshot: { policyVersion: 1 } }] };
 }
 function refund(): Parameters<typeof RefundSettlementActions>[0]["refund"] {
-  return { payment: { currency: "THB" }, id: "refund-1", status: "PENDING", amount: "8300", order: { orderNumber: "ORD-1", shopOrders: order().shopOrders },
+  return { payment: { currency: "THB" }, id: "refund-1", returnRequestId: null, status: "PENDING", amount: "8300", order: { orderNumber: "ORD-1", shopOrders: order().shopOrders },
     itemAllocations: [{ orderItemId: "item-1", quantity: 2, remainingQuantity: 3, cashMerchandise: "8300", buyerTaxRefund: "0", platformCouponReversal: "0", platformCouponTaxReversal: "0", coinFundingReversal: "0", coinTaxReversal: "0" }],
     shopAllocations: [{ shopOrderId: "shop-order-1", shippingCause: "NONE", buyerShippingRefund: "0", buyerShippingTaxRefund: "0", platformShippingReversal: "0", platformShippingTaxReversal: "0" }] };
 }
@@ -113,6 +113,35 @@ describe("settlement refund review controls", () => {
     expect(screen.getByRole("button", { name: "admin.refunds.updatePlan" })).toHaveProperty("disabled", true);
     expect(screen.getByRole("button", { name: "Process" })).toHaveProperty("disabled", true);
     expect(updatePlan).not.toHaveBeenCalled();
+  });
+
+  it("keeps approved return quantities read-only while allowing seller-fault shipping review", () => {
+    render(<RefundSettlementActions refund={{ ...refund(), returnRequestId: "return-1" }} />);
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+    expect(screen.getByText("admin.refunds.quantity: 2")).toBeTruthy();
+    expect(screen.getByText("admin.refunds.approvedReturnQuantity")).toBeTruthy();
+    const shipping = screen.getByRole("checkbox", { name: "admin.refunds.confirmedSellerFaultShipping" });
+    expect(shipping).toHaveProperty("disabled", false);
+    fireEvent.click(shipping);
+    expect(screen.getByRole("button", { name: "Process" })).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "admin.refunds.updatePlan" }));
+    expect(updatePlan).toHaveBeenCalledWith({ refundId: "refund-1", plan: {
+      items: [{ orderItemId: "item-1", quantity: 2 }], shipping: [{ shopOrderId: "shop-order-1", cause: "SELLER_FAULT" }],
+    } }, expect.objectContaining({ onSuccess: expect.any(Function) }));
+    expect(updateStatus).not.toHaveBeenCalled();
+  });
+
+  it("lets direct admin plans use the full remaining quantity without an approved-return restriction", () => {
+    render(<RefundSettlementActions refund={refund()} />);
+    const quantity = screen.getByRole("spinbutton", { name: "admin.refunds.quantity 1" });
+    expect(quantity.getAttribute("max")).toBe("3");
+    expect(screen.queryByText("admin.refunds.approvedReturnQuantity")).toBeNull();
+    fireEvent.change(quantity, { target: { value: "3" } });
+    expect(screen.getByRole("button", { name: "admin.refunds.updatePlan" })).toHaveProperty("disabled", false);
+    fireEvent.click(screen.getByRole("button", { name: "admin.refunds.updatePlan" }));
+    expect(updatePlan).toHaveBeenCalledWith({ refundId: "refund-1", plan: {
+      items: [{ orderItemId: "item-1", quantity: 3 }], shipping: [{ shopOrderId: "shop-order-1", cause: "NONE" }],
+    } }, expect.objectContaining({ onSuccess: expect.any(Function) }));
   });
 
   it.each([

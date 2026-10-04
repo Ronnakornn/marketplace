@@ -49,7 +49,7 @@ export function PrepareCancellationRefund({ order }: { order: CancellationOrder 
   </div>;
 }
 
-type SettlementRefund = Pick<AdminRefund, "id" | "status" | "amount"> & {
+type SettlementRefund = Pick<AdminRefund, "id" | "status" | "amount" | "returnRequestId"> & {
   payment: Pick<AdminRefund["payment"], "currency">;
   itemAllocations?: Array<Pick<NonNullable<AdminRefund["itemAllocations"]>[number], "orderItemId" | "quantity" | "remainingQuantity" | "cashMerchandise" | "buyerTaxRefund" | "platformCouponReversal" | "platformCouponTaxReversal" | "coinFundingReversal" | "coinTaxReversal" | "itemSale">>;
   shopAllocations?: Array<Pick<NonNullable<AdminRefund["shopAllocations"]>[number], "shopOrderId" | "shippingCause" | "buyerShippingRefund" | "buyerShippingTaxRefund" | "platformShippingReversal" | "platformShippingTaxReversal">>;
@@ -70,18 +70,20 @@ export function RefundSettlementActions({ refund }: { refund: SettlementRefund }
   const canEditShipping = refund.status === "PENDING" && Boolean(refund.itemAllocations?.length) && allocations.length > 0
     && snapshotShops.length > 0 && snapshotShops.every((shop) => shop.saleSnapshot?.policyVersion === 1 || shop.saleSnapshot?.policyVersion === 2)
     && allocations.every((shop) => shop.shippingCause !== "PRE_SHIPMENT_CANCEL");
-  const requestedItems = items.map((item) => ({ orderItemId: item.orderItemId, quantity: Number(quantityEdits[item.orderItemId] ?? item.quantity) }));
+  const canEditQuantity = canEditShipping && refund.returnRequestId === null;
+  const requestedItems = items.map((item) => ({ orderItemId: item.orderItemId, quantity: canEditQuantity ? Number(quantityEdits[item.orderItemId] ?? item.quantity) : item.quantity }));
   const validQuantities = requestedItems.every((item, index) => Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= (items[index]?.remainingQuantity ?? 0));
   const dirty = canEditShipping && (includeShipping !== savedShipping || requestedItems.some((item, index) => item.quantity !== items[index]?.quantity));
   return <div className="ml-auto flex w-64 max-w-full flex-col items-end gap-2 whitespace-normal">
     {items.map((item, index) => <div key={item.orderItemId} className="w-full space-y-1 rounded-lg border border-white/10 p-2 text-left text-xs text-slate-200">
       <p className="font-semibold">{item.itemSale?.orderItem.productTitle ?? t("order.items")} {item.itemSale?.orderItem.variantTitle ?? ""}</p>
-      {canEditShipping ? <label className="space-y-1"><span>{t("admin.refunds.quantity")}</span><Input aria-label={[t("admin.refunds.quantity"), item.itemSale?.orderItem.productTitle ?? String(index + 1), item.itemSale?.orderItem.variantTitle ?? ""].filter(Boolean).join(" ")} type="number" min="1" max={item.remainingQuantity} step="1" disabled={updatePlan.isPending} value={quantityEdits[item.orderItemId] ?? String(item.quantity)} onChange={(event) => setQuantityEdits({ ...quantityEdits, [item.orderItemId]: event.target.value })} /></label> : <p>{t("admin.refunds.quantity")}: {item.quantity}</p>}
+      {canEditQuantity ? <label className="space-y-1"><span>{t("admin.refunds.quantity")}</span><Input aria-label={[t("admin.refunds.quantity"), item.itemSale?.orderItem.productTitle ?? String(index + 1), item.itemSale?.orderItem.variantTitle ?? ""].filter(Boolean).join(" ")} type="number" min="1" max={item.remainingQuantity} step="1" disabled={updatePlan.isPending} value={quantityEdits[item.orderItemId] ?? String(item.quantity)} onChange={(event) => setQuantityEdits({ ...quantityEdits, [item.orderItemId]: event.target.value })} /></label> : <p>{t("admin.refunds.quantity")}: {item.quantity}</p>}
       <p>{t("admin.refunds.merchandiseNet")}: {refundMoney(item.cashMerchandise, refund.payment.currency)}</p>
       <p>{t("admin.refunds.buyerTax")}: {refundMoney(item.buyerTaxRefund, refund.payment.currency)}</p>
       <p>{t("admin.refunds.platformTax")}: {refundMoney(item.platformCouponTaxReversal, refund.payment.currency)}</p>
       <p>{t("admin.refunds.coinTax")}: {refundMoney(item.coinTaxReversal, refund.payment.currency)}</p>
     </div>)}
+    {refund.returnRequestId ? <p className="w-full text-left text-xs text-slate-300">{t("admin.refunds.approvedReturnQuantity")}</p> : null}
     {allocations.map((shop) => <div key={shop.shopOrderId} className="w-full text-left text-xs text-slate-300"><p>{t("admin.refunds.shippingTax")}: {refundMoney(shop.buyerShippingTaxRefund, refund.payment.currency)}</p><p>{t("admin.refunds.platformShippingTax")}: {refundMoney(shop.platformShippingTaxReversal, refund.payment.currency)}</p></div>)}
     {!validQuantities && canEditShipping ? <p role="alert" className="text-sm text-red-200">{t("buyer.invalidReturnQuantity")}</p> : null}
     {canEditShipping ? <>

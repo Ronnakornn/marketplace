@@ -117,16 +117,17 @@ export function SellerProductAnalyticsPage() {
             {data?.daily.length ? (
               <div className="h-72 overflow-x-auto">
                 <div className="flex h-full min-w-[620px] items-end gap-2 border-b border-l border-slate-200 px-3 pb-6">
-                  {data.daily.map((item) => (
-                    <div key={item.date} className="flex flex-1 flex-col items-center gap-2">
+                  {data.daily.map((item) => {
+                    const date = formatCalendarDay(item.date);
+                    return <div key={date} className="flex flex-1 flex-col items-center gap-2">
                       <div className="flex h-52 w-full items-end justify-center gap-1">
-                        <TrendBar label={t("seller.analytics.trendViews").replace("{date}", item.date)} value={item.views} max={maxTrendValue} className="bg-slate-700" />
-                        <TrendBar label={t("seller.analytics.trendAddToCart").replace("{date}", item.date)} value={item.addToCart} max={maxTrendValue} className="bg-emerald-600" />
-                        <TrendBar label={t("seller.analytics.trendOrders").replace("{date}", item.date)} value={item.orders} max={maxTrendValue} className="bg-amber-500" />
+                        <TrendBar label={t("seller.analytics.trendViews").replace("{date}", date)} value={item.views} max={maxTrendValue} className="bg-slate-700" />
+                        <TrendBar label={t("seller.analytics.trendAddToCart").replace("{date}", date)} value={item.addToCart} max={maxTrendValue} className="bg-emerald-600" />
+                        <TrendBar label={t("seller.analytics.trendOrders").replace("{date}", date)} value={item.orders} max={maxTrendValue} className="bg-amber-500" />
                       </div>
-                      <span className="w-16 truncate text-center text-[11px] text-slate-500">{formatTrendDate(item.date)}</span>
-                    </div>
-                  ))}
+                      <span className="w-16 truncate text-center text-[11px] text-slate-500">{date.slice(5)}</span>
+                    </div>;
+                  })}
                 </div>
               </div>
             ) : <EmptyState message={query.isLoading ? t("seller.analytics.loadingDailyTrend") : t("seller.analytics.emptyDailyTrend")} />}
@@ -231,8 +232,8 @@ function formatRate(value: number | null | undefined) {
   return new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 2 }).format(value ?? 0);
 }
 
-function formatTrendDate(value: unknown) {
-  if (typeof value === "string") return value.slice(5);
-  if (value instanceof Date) return value.toISOString().slice(5);
-  return String(value ?? "").slice(5);
+function formatCalendarDay(value: unknown) {
+  if (typeof value === "string") return value.slice(0, 10);
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value ?? "").slice(0, 10);
 }

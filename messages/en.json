@@ -1352,6 +1352,7 @@
       "planUpdatedReview": "Refund plan saved. Review the new total of {amount} before processing.",
       "operationFailed": "Could not update the refund. Please retry.",
       "quantity": "Return quantity",
+      "approvedReturnQuantity": "Quantities are fixed by the approved return request.",
       "merchandiseNet": "Cash refund excluding tax",
       "buyerTax": "Customer merchandise tax refund",
       "platformTax": "Platform coupon tax reversal",

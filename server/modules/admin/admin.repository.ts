@@ -116,7 +116,7 @@ export type AdminOrderRecord = Order & {
   refunds: Array<Pick<Refund, 'id' | 'status' | 'amount' | 'reason' | 'createdAt'>>
   shopOrders?: Array<Pick<ShopOrder, 'id' | 'shopId'> & { saleSnapshot: Pick<ShopSaleSnapshot, 'policyVersion'> | null }>
 }
-export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 'status' | 'amount' | 'reason' | 'processingById' | 'completedById' | 'externalReference' | 'processingAt' | 'completedAt' | 'createdAt'> & {
+export type AdminRefundRecord = Pick<Refund, 'id' | 'orderId' | 'paymentId' | 'returnRequestId' | 'status' | 'amount' | 'reason' | 'processingById' | 'completedById' | 'externalReference' | 'processingAt' | 'completedAt' | 'createdAt'> & {
   order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'userId' | 'grandTotal'> & {
     shopOrders?: Array<Pick<ShopOrder, 'id' | 'shopId'> & { saleSnapshot: Pick<ShopSaleSnapshot, 'policyVersion'> | null }>
   }
@@ -324,6 +324,7 @@ const refundInclude = {
   amount: true,
   reason: true,
   processingById: true,
+  returnRequestId: true,
   completedById: true,
   externalReference: true,
   processingAt: true,

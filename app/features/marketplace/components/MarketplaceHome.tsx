@@ -295,6 +295,7 @@ function FlashSaleSection({
 }) {
   const t = useTranslations();
   const localePath = useLocalePath();
+  const formatters = useFormatters();
   const products = flashSale?.items ?? [];
   if (!isLoading && !flashSale) return null;
   return (
@@ -306,7 +307,7 @@ function FlashSaleSection({
           </div>
           <div>
             <h2 className="text-lg font-extrabold text-slate-950">{flashSale?.title ?? t("home.flashSale")}</h2>
-            <p className="text-xs text-slate-900">{flashSale?.description ?? (flashSale?.endsAt ? t("home.endsAt").replace("{time}", new Date(flashSale.endsAt).toLocaleDateString()) : t("home.limitedTimeDeals"))}</p>
+            <p className="text-xs text-slate-900">{flashSale?.description ?? (flashSale?.endsAt ? t("home.endsAt").replace("{time}", formatters.date(flashSale.endsAt, { dateStyle: "short" })) : t("home.limitedTimeDeals"))}</p>
           </div>
         </div>
       </div>
