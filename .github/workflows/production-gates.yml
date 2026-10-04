@@ -18,7 +18,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: marketplace_test
-        ports: ['5432:5432']
+        ports: ['55439:5432']
         options: >-
           --health-cmd "pg_isready -U postgres -d marketplace_test"
           --health-interval 5s
@@ -34,10 +34,13 @@ jobs:
           --health-retries 10
     env:
       NODE_ENV: test
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/marketplace_test?schema=public
-      REDIS_URL: redis://127.0.0.1:56379/0
-      COMMERCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/marketplace_test_commerce?schema=public
-      QUEUE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/marketplace_test_queue?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@localhost:55439/marketplace_test?schema=public
+      COMMERCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_completion?schema=public
+      QUEUE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_queue?schema=public
+      TAX_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_tax?schema=public
+      ROLLOUT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_rollout?schema=public
+      AUDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_readiness_audit?schema=public
+      CHECKOUT_V2_SETTLEMENT_ENABLED: 'true'
       QUEUE_TEST_REDIS_URL: redis://127.0.0.1:56379/15
       CACHE_TEST_REDIS_URL: redis://127.0.0.1:56379/14
       QUEUE_TEST_ALLOW_OLD_REDIS: 'false'
@@ -50,18 +53,34 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
+      - name: Require isolated integration opt-ins
+        run: bun run scripts/assert-ci-integration.ts environment
       - run: bunx --bun prisma migrate deploy
       - name: Prepare isolated integration databases
         run: |
-          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_commerce
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_completion
           docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_queue
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_tax
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_rollout
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_readiness_audit
           DATABASE_URL="$COMMERCE_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
           DATABASE_URL="$QUEUE_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
+          DATABASE_URL="$TAX_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
+          DATABASE_URL="$ROLLOUT_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
+          DATABASE_URL="$AUDIT_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
       - run: bunx --bun prisma generate
       - run: bunx --bun prisma validate
       - run: bunx --bun prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - run: bunx tsc --noEmit
-      - run: bun run test
+      - name: Run unit and actual integration tests
+        run: bun run test --reporter=json --outputFile=artifacts/quality-tests.json
+      - name: Reject skipped or omitted integration suites
+        run: bun run scripts/assert-ci-integration.ts report artifacts/quality-tests.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-test-evidence
+          path: artifacts/quality-tests.json
       - run: bun run audit:i18n
       - run: bun audit --prod --audit-level=high
       - run: bun run build
@@ -88,6 +107,8 @@ jobs:
     env:
       NODE_ENV: production
       PLAYWRIGHT_PRODUCTION: 'true'
+      CHECKOUT_V2_SETTLEMENT_ENABLED: 'true'
+      RATE_LIMIT_ENABLED: 'true'
       CACHE_ENABLED: 'true'
       ALLOW_INSECURE_HTTP: 'true'
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/marketplace_e2e_ci?schema=public
@@ -122,8 +143,81 @@ jobs:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
       - run: bunx --bun playwright install --with-deps chromium firefox webkit
+      - run: bunx --bun prisma generate
       - run: bun run build
-      - run: bun run test:e2e
+      - name: Production acceptance with compatible numeric and snapshot finance cases
+        run: bun run test:e2e --grep-invert 'UI, API and database preserve exact satang for|internal mock payment awards'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-browser-evidence
+          path: |
+            playwright-report/
+            test-results/
+
+  e2e-numeric-mock:
+    needs: quality
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: marketplace_e2e_numeric_mock
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d marketplace_e2e_numeric_mock"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      NODE_ENV: development
+      PLAYWRIGHT_PRODUCTION: 'false'
+      CHECKOUT_V2_SETTLEMENT_ENABLED: 'true'
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/marketplace_e2e_numeric_mock?schema=public
+      REDIS_URL: redis://127.0.0.1:6379/0
+      TRUST_PROXY: 'true'
+      BETTER_AUTH_SECRET: ci-auth-secret-at-least-32-characters
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      API_BASE_URL: http://127.0.0.1:3001
+      PAYMENT_PROVIDER: mock
+      PAYMENT_MOCK_ENABLED: 'true'
+      PAYMENT_WEBHOOK_SECRET: ci-payment-secret-at-least-32-characters
+      OTP_HASH_SECRET: ci-otp-secret-at-least-32-characters
+      KYC_ENCRYPTION_KEY: ci-kyc-secret-at-least-32-characters
+      UPLOAD_STORAGE: local
+      LOCAL_UPLOAD_SECRET: ci-local-upload-secret-at-least-32-characters
+      AFFILIATE_ENABLED: 'false'
+      AI_SEARCH_ENABLED: 'false'
+      PHONE_OTP_ENABLED: 'false'
+      OPENAPI_ENABLED: 'false'
+      QUEUE_SKIP_REDIS_VERSION_CHECK: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - run: bunx --bun playwright install --with-deps chromium firefox webkit
+      - run: bunx --bun prisma generate
+      - name: Development mock payment numeric acceptance on five profiles
+        run: >-
+          bun run test:e2e
+          e2e/numeric-commerce.spec.ts e2e/numeric-admin-projections.spec.ts
+          --grep 'UI, API and database preserve exact satang for|internal mock payment awards'
+          --project=chromium --project=firefox --project=webkit --project=mobile-chromium --project=mobile-webkit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: development-mock-browser-evidence
+          path: |
+            playwright-report/
+            test-results/
 
   container:
     needs: quality
