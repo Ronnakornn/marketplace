@@ -79,7 +79,9 @@ test('buyer and shop seller converse while private notes and unrelated accounts 
     const seller = await actor(browser, baseURL, contexts);
     await loginUi(seller, ownShop.seller, '/en/seller/support');
     await expect(seller.getByRole('link', { name: 'Support and appeals', exact: true })).toBeVisible();
-    await seller.getByRole('link').filter({ hasText: ticket.subject }).click();
+    const sellerTicket = seller.locator(`a[href^="/en/seller/support/${ticket.id}"]`);
+    await expect(sellerTicket).toContainText(ticket.subject);
+    await sellerTicket.click();
     await seller.getByLabel('Message', { exact: true }).fill('Please share which part of the package was damaged.');
     const replyPromise = seller.waitForResponse(response => response.url().endsWith(`/api/seller/support/tickets/${ticket.id}/messages`) && response.request().method() === 'POST');
     await seller.getByRole('button', { name: 'Send message', exact: true }).click();
@@ -88,7 +90,9 @@ test('buyer and shop seller converse while private notes and unrelated accounts 
     const admin = await actor(browser, baseURL, contexts);
     await loginUi(admin, { email: 'admin@example.com', password: 'DemoPass123!' }, '/en/admin/support');
     await expect(admin.getByRole('link', { name: 'Support and appeals', exact: true })).toBeVisible();
-    await admin.getByRole('link').filter({ hasText: ticket.subject }).click();
+    const adminTicket = admin.locator(`a[href="/en/admin/support/${ticket.id}"]`);
+    await expect(adminTicket).toContainText(ticket.subject);
+    await adminTicket.click();
     await admin.getByLabel('Private note', { exact: true }).fill('INTERNAL ONLY: review seller incident history.');
     const notePromise = admin.waitForResponse(response => response.url().endsWith(`/api/admin/support/tickets/${ticket.id}/notes`) && response.request().method() === 'POST');
     await admin.getByRole('button', { name: 'Add private note', exact: true }).click();
