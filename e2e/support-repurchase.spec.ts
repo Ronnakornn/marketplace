@@ -48,7 +48,12 @@ async function createTicketUi(page: Page, input: { subject: string; body: string
   const query = new URLSearchParams();
   if (input.orderId) query.set('orderId', input.orderId);
   if (input.shopId) query.set('shopId', input.shopId);
-  await page.goto(`/${locale}/support/new?${query}`);
+  if (input.orderId || input.shopId) {
+    await page.goto(`/${locale}/support/new?${query}`);
+  } else {
+    await page.goto(`/${locale}/support`);
+    await page.getByRole('link', { name: locale === 'en' ? 'Create ticket' : 'แจ้งปัญหา', exact: true }).click();
+  }
   await page.getByLabel(locale === 'en' ? 'Subject' : 'หัวข้อ', { exact: true }).fill(input.subject);
   await page.getByLabel(locale === 'en' ? 'Text evidence' : 'รายละเอียดและหลักฐานข้อความ', { exact: true }).fill(input.body);
   const responsePromise = page.waitForResponse(response => response.url().endsWith('/api/support/tickets') && response.request().method() === 'POST');
@@ -74,6 +79,7 @@ test('buyer and shop seller converse while private notes and unrelated accounts 
   try {
     const seller = await actor(browser, baseURL, contexts);
     await loginUi(seller, ownShop.seller, '/en/seller/support');
+    await expect(seller.getByRole('link', { name: 'Support and appeals', exact: true })).toBeVisible();
     await seller.getByRole('link').filter({ hasText: ticket.subject }).click();
     await seller.getByLabel('Message', { exact: true }).fill('Please share which part of the package was damaged.');
     const replyPromise = seller.waitForResponse(response => response.url().endsWith(`/api/seller/support/tickets/${ticket.id}/messages`) && response.request().method() === 'POST');
@@ -82,6 +88,7 @@ test('buyer and shop seller converse while private notes and unrelated accounts 
     await expect(seller.getByText('Please share which part of the package was damaged.', { exact: true })).toBeVisible();
     const admin = await actor(browser, baseURL, contexts);
     await loginUi(admin, { email: 'admin@example.com', password: 'DemoPass123!' }, '/en/admin/support');
+    await expect(admin.getByRole('link', { name: 'Support and appeals', exact: true })).toBeVisible();
     await admin.getByRole('link').filter({ hasText: ticket.subject }).click();
     await admin.getByLabel('Private note', { exact: true }).fill('INTERNAL ONLY: review seller incident history.');
     const notePromise = admin.waitForResponse(response => response.url().endsWith(`/api/admin/support/tickets/${ticket.id}/notes`) && response.request().method() === 'POST');
@@ -166,7 +173,9 @@ test('rejected return appeal is durable under concurrent requests and admin deci
     if (!concurrentTicketId) throw new Error('Concurrent appeal did not return a ticket');
     expect(await prisma.disputeCase.count({ where: { returnRequestId: concurrentReturn.id } })).toBe(1);
     expect(await prisma.ticketMessage.count({ where: { ticketId: concurrentTicketId } })).toBe(1);
-    await page.goto(`/en/orders/${order.id}/support`);
+    await page.goto(`/en/orders/${order.id}`);
+    await page.getByRole('link', { name: 'Get help with this order', exact: true }).click();
+    await expect(page).toHaveURL(`/en/orders/${order.id}/support`);
     await page.getByRole('button', { name: 'Appeal rejected return', exact: true }).click();
     await page.getByLabel('Subject', { exact: true }).fill('Please review the rejected damaged return');
     await page.getByLabel('Text evidence', { exact: true }).fill('The damage was present when the package arrived.');
@@ -323,7 +332,9 @@ test('Thai buyer creates general support with no shop context @mobile', async ({
   const fixture = await commerceFixture();
   const [shop] = fixture.shops;
   if (!shop) throw new Error('Shop required');
-  await loginUi(page, fixture.buyer, '/en/support');
+  await loginUi(page, fixture.buyer, '/en/profile');
+  await page.getByRole('link', { name: 'Support and appeals', exact: true }).click();
+  await expect(page).toHaveURL('/en/support');
   const ticket = await createTicketUi(page, { subject: 'สอบถามการใช้งานบัญชี', body: 'ต้องการความช่วยเหลือเกี่ยวกับบัญชีผู้ซื้อ' }, 'th');
   expect(ticket).toMatchObject({ userId: fixture.buyer.id, orderId: null, shopId: null, status: 'OPEN' });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
