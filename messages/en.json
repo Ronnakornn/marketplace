@@ -225,6 +225,7 @@
     "priceHigh": "Price High",
     "priceLow": "Price Low",
     "priceRange": "Price Range",
+    "invalidPriceRange": "Enter a valid price range with non-negative prices, up to two decimal places, and amounts within the supported range.",
     "products": "Products",
     "rating": "Rating",
     "recommendedProducts": "Recommended products",

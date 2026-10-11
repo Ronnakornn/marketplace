@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { SlidersHorizontalIcon, StarIcon, XIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingGrid } from "#/components/BuyerState";
@@ -28,6 +29,8 @@ import {
 import { trackDiscoveryEvent, useTrackVisibleProducts } from "#/features/tracking";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { decimalInputToMinorUnits, minorUnitsToDecimalInput } from "#/lib/input-decimal";
+import { minorToDecimalText } from "#/lib/money";
 
 interface ProductListingPageProps {
   mode: "home" | "search" | "category";
@@ -198,7 +201,7 @@ export function ProductListingPage({
     rating,
     inStock,
     sort,
-  }, filterProps.categories, filterProps.brands, basePath, t);
+  }, filterProps.categories, filterProps.brands, basePath, t, filterProps.price.currency);
   const activeFilterCount = activeFilters.length;
   const resultTitle = query
     ? t("product.searchResultsFor").replace("{query}", query)
@@ -264,11 +267,11 @@ export function ProductListingPage({
                         {activeFilterCount > 0 ? t("product.activeFiltersCount").replace("{count}", String(activeFilterCount)) : t("product.filterDescription")}
                       </SheetDescription>
                     </SheetHeader>
-                    <SearchFilterSidebar {...filterProps} compact activeFilterCount={activeFilterCount} />
+                    <SearchFilterSidebar key={`${minPrice ?? ""}:${maxPrice ?? ""}`} {...filterProps} compact activeFilterCount={activeFilterCount} />
                   </SheetContent>
                 </Sheet>
               </div>
-              <SearchFilterSidebar {...filterProps} />
+              <SearchFilterSidebar key={`${minPrice ?? ""}:${maxPrice ?? ""}`} {...filterProps} />
             </>
           ) : null}
 
@@ -437,6 +440,9 @@ function SearchFilterSidebar(props: {
   activeFilterCount?: number;
 }) {
   const t = useTranslations();
+  const router = useRouter();
+  const localePath = useLocalePath();
+  const [invalidPriceRange, setInvalidPriceRange] = useState(false);
   const base = {
     q: props.query,
     minPrice: props.minPrice,
@@ -447,9 +453,31 @@ function SearchFilterSidebar(props: {
     brandId: props.brandId,
     attributeFilters: props.attributeFilters,
   };
-  const minPricePlaceholder = props.minPrice ? t("product.min") : props.price.min !== null ? String(props.price.min) : t("product.min");
-  const maxPricePlaceholder = props.maxPrice ? t("product.max") : props.price.max !== null ? String(props.price.max) : t("product.max");
+  const minPricePlaceholder = props.minPrice ? t("product.min") : props.price.min !== null ? minorUnitsToDecimalInput(props.price.min) : t("product.min");
+  const maxPricePlaceholder = props.maxPrice ? t("product.max") : props.price.max !== null ? minorUnitsToDecimalInput(props.price.max) : t("product.max");
   const hasPriceMetadata = props.price.min !== null || props.price.max !== null;
+
+  function applyPriceRange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const minText = String(data.get("minPrice") ?? "").trim();
+    const maxText = String(data.get("maxPrice") ?? "").trim();
+    const min = minText ? decimalInputToMinorUnits(minText) : undefined;
+    const max = maxText ? decimalInputToMinorUnits(maxText) : undefined;
+    if ((min !== undefined && (!Number.isSafeInteger(min) || min < 0))
+      || (max !== undefined && (!Number.isSafeInteger(max) || max < 0))
+      || (min !== undefined && max !== undefined && min > max)) {
+      setInvalidPriceRange(true);
+      return;
+    }
+    setInvalidPriceRange(false);
+    router.push(localePath(buildSearchHref({
+      ...base,
+      categoryId: props.categoryId,
+      minPrice: min === undefined ? undefined : String(min),
+      maxPrice: max === undefined ? undefined : String(max),
+    }, props.basePath)));
+  }
 
   return (
     <aside className={`space-y-4 bg-white p-4 lg:sticky lg:top-20 lg:self-start lg:rounded-3xl lg:border lg:border-slate-200 lg:shadow-sm ${props.compact ? "" : "hidden lg:block"}`}>
@@ -489,7 +517,7 @@ function SearchFilterSidebar(props: {
       </FilterBlock> : null}
 
       <FilterBlock title={t("product.priceRange")}>
-        <form action={props.basePath} className="space-y-2">
+        <form onSubmit={applyPriceRange} className="space-y-2">
           <input type="hidden" name="q" value={props.query} />
           {props.categoryId ? <input type="hidden" name="categoryId" value={props.categoryId} /> : null}
           {props.brandId ? <input type="hidden" name="brandId" value={props.brandId} /> : null}
@@ -498,14 +526,15 @@ function SearchFilterSidebar(props: {
           {props.inStock ? <input type="hidden" name="inStock" value={props.inStock} /> : null}
           <input type="hidden" name="sort" value={props.sort} />
           <div className="grid grid-cols-2 gap-2">
-            <Input name="minPrice" defaultValue={props.minPrice} inputMode="numeric" placeholder={minPricePlaceholder} className="h-9 rounded-xl" />
-            <Input name="maxPrice" defaultValue={props.maxPrice} inputMode="numeric" placeholder={maxPricePlaceholder} className="h-9 rounded-xl" />
+            <Input name="minPrice" defaultValue={priceFilterDecimal(props.minPrice)} inputMode="decimal" aria-label={`${t("product.min")} (${props.price.currency})`} placeholder={minPricePlaceholder} className="h-9 rounded-xl" />
+            <Input name="maxPrice" defaultValue={priceFilterDecimal(props.maxPrice)} inputMode="decimal" aria-label={`${t("product.max")} (${props.price.currency})`} placeholder={maxPricePlaceholder} className="h-9 rounded-xl" />
           </div>
           {hasPriceMetadata ? (
             <p className="text-xs leading-5 text-slate-500">
               {formatPriceRangeHelper(props.price)}
             </p>
           ) : null}
+          {invalidPriceRange ? <p role="alert" className="text-xs text-red-600">{t("product.invalidPriceRange")}</p> : null}
           <Button type="submit" size="sm" className="w-full rounded-full bg-orange-600 hover:bg-orange-700">{t("product.applyFilters")}</Button>
         </form>
       </FilterBlock>
@@ -746,9 +775,13 @@ function buildBrandFilterOptions(
 }
 
 function formatPriceRangeHelper(price: BuyerListingFacets["price"]): string {
-  const min = price.min === null ? "*" : String(price.min);
-  const max = price.max === null ? "*" : String(price.max);
+  const min = price.min === null ? "*" : minorToDecimalText(price.min);
+  const max = price.max === null ? "*" : minorToDecimalText(price.max);
   return `${price.currency} ${min} - ${max}`;
+}
+
+function priceFilterDecimal(value: string | undefined): string | undefined {
+  return value && /^(?:0|[1-9]\d*)$/.test(value) ? minorUnitsToDecimalInput(value) : value;
 }
 
 function getReadableListingErrorMessage(error: unknown, fallback: string) {
@@ -773,6 +806,7 @@ function buildActiveFilters(
   brands: Array<{ id: string; name: string }>,
   basePath: string,
   t: ReturnType<typeof useTranslations>,
+  currency: string,
 ) {
   const labels: Array<{ key: string; label: string; href: string }> = [];
   const sortLabels: Record<string, string> = Object.fromEntries(getSortOptions(t));
@@ -786,7 +820,7 @@ function buildActiveFilters(
   if (params.attributeFilters) add("attributeFilters", params.attributeFilters);
   if (params.minPrice || params.maxPrice) labels.push({
     key: "price",
-    label: `${t("product.priceRange")}: ${params.minPrice ?? "0"} - ${params.maxPrice ?? "*"}`,
+    label: `${t("product.priceRange")}: ${currency} ${params.minPrice ? priceFilterDecimal(params.minPrice) : "0"} - ${params.maxPrice ? priceFilterDecimal(params.maxPrice) : "*"}`,
     href: buildSearchHref({ ...params, minPrice: undefined, maxPrice: undefined }, basePath),
   });
   if (params.rating) add("rating", `${t("product.rating")}: ${params.rating}+`);

@@ -319,6 +319,31 @@ describe('SearchService', () => {
     })
   })
 
+  it.each(['minPrice', 'maxPrice'] as const)('rejects unsafe or fractional %s before querying', async (field) => {
+    for (const value of [-1, 0.5, 9007199254740993, Number('9223372036854775807'), 1e100]) {
+      await expect(service.searchProducts({ [field]: value })).rejects.toMatchObject({ status: 400, code: 'INVALID_FILTER' })
+    }
+    expect(repo.findSearchableProducts).not.toHaveBeenCalled()
+    expect(repo.findProductFacets).not.toHaveBeenCalled()
+  })
+
+  it('preserves zero and maximum-safe minor-unit filters exactly', async () => {
+    const result = await service.searchProducts({ minPrice: 0, maxPrice: Number.MAX_SAFE_INTEGER })
+    expect(result.filters).toMatchObject({ minPrice: 0, maxPrice: Number.MAX_SAFE_INTEGER })
+    expect(repo.findSearchableProducts).toHaveBeenCalledWith(expect.objectContaining({ minPrice: 0, maxPrice: Number.MAX_SAFE_INTEGER }))
+  })
+
+  it.each([0, -1, 1.5, 9007199254740993, 1e100, 2_147_483_647])('rejects invalid or overflowing search page %s', async (page) => {
+    await expect(service.searchProducts({ page, limit: 50 })).rejects.toMatchObject({ status: 400, code: 'INVALID_FILTER' })
+    expect(repo.findSearchableProducts).not.toHaveBeenCalled()
+  })
+
+  it('accepts the largest supported search offset without rounding', async () => {
+    const result = await service.searchProducts({ page: 2_147_483_647, limit: 1 })
+    expect(result.pagination).toMatchObject({ page: 2_147_483_647, limit: 1 })
+    expect(result.items).toEqual([])
+  })
+
   it('returns search suggestions', async () => {
     const result = await service.getSuggestions({ q: 'cot', limit: 5 })
 

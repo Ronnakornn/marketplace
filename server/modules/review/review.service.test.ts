@@ -368,4 +368,16 @@ describe('ReviewService', () => {
       },
     })
   })
+
+  it.each([0, -1, 1.5, 9007199254740993, 1e100, 2_147_483_647])('rejects invalid or overflowing review page %s before listing', async (page) => {
+    await expect(service.listProductReviews('product-1', { page, limit: 20 })).rejects.toMatchObject({ status: 400, code: 'INVALID_PAGINATION' })
+    expect(repo.listProductReviews).not.toHaveBeenCalled()
+  })
+
+  it('accepts the largest supported review offset exactly', async () => {
+    vi.mocked(repo.listProductReviews).mockResolvedValue({ items: [], totalCount: 0 })
+    const result = await service.listProductReviews('product-1', { page: 2_147_483_647, limit: 1 })
+    expect(repo.listProductReviews).toHaveBeenCalledWith('product-1', { page: 2_147_483_647, limit: 1, sort: 'latest' })
+    expect(result.meta).toEqual({ page: 2_147_483_647, limit: 1, totalCount: 0, hasNextPage: false })
+  })
 })

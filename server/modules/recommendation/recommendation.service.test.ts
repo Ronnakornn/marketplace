@@ -137,6 +137,18 @@ describe('RecommendationService', () => {
     service = new RecommendationService(createAppContext(), repo)
   })
 
+  it.each([0, -1, 1.5, 9007199254740993, 1e100, 2_147_483_647])('rejects invalid or overflowing recommendation page %s before querying', async (page) => {
+    expect(() => service.getTrending({ page, limit: 50 })).toThrowError(expect.objectContaining({ status: 400, code: 'INVALID_RECOMMENDATION_QUERY' }))
+    expect(repo.findTrendingProducts).not.toHaveBeenCalled()
+  })
+
+  it('accepts the largest supported recommendation offset exactly', async () => {
+    vi.mocked(repo.findTrendingProducts).mockResolvedValue([])
+    const result = await service.getTrending({ page: 2_147_483_647, limit: 1 })
+    expect(repo.findTrendingProducts).toHaveBeenCalledWith({ limit: 2, offset: 2_147_483_646 })
+    expect(result.pagination).toEqual({ page: 2_147_483_647, limit: 1, hasNextPage: false })
+  })
+
   it('returns trending product cards from active public repository results only', async () => {
     vi.mocked(repo.findTrendingProducts).mockResolvedValue([product({ id: 'p1', rating: 4, soldCount: 12 })])
 

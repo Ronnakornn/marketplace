@@ -4,7 +4,7 @@ const apiMocks = vi.hoisted(() => ({ requestApi: vi.fn() }));
 
 vi.mock("#/lib/api-client", () => ({ requestApi: apiMocks.requestApi }));
 
-import { fetchCart, fetchOrder } from "./api";
+import { fetchCart, fetchOrder, fetchOrderTracking } from "./api";
 
 describe("fetchCart", () => {
   beforeEach(() => {
@@ -85,5 +85,23 @@ describe("order return and tax projections", () => {
     apiMocks.requestApi.mockResolvedValue({ id: "order-1", totalCents: "9007199254740993", items: [],
       totals: { taxTotal: "0", includedTaxTotal: 9007199254740992, reportedTaxTotal: "9007199254740993" } });
     await expect(fetchOrder("order-1")).rejects.toThrow(RangeError);
+  });
+});
+
+describe("order tracking projection", () => {
+  it("preserves the tracking-only DTO without requiring financial order totals", async () => {
+    const tracking = {
+      orderId: "order-1", orderNo: "ORDER-001", orderStatus: "SHIPPED",
+      shipments: [{
+        shipmentId: "shipment-1", shopId: "shop-1", shopName: "Parcel Shop", status: "shipped",
+        carrier: "Parcel Express", trackingNo: "TRACK-001", shippedAt: "2026-10-10T12:00:00.000Z",
+        deliveredAt: null, items: [],
+        timeline: [{ label: "Your parcel has been shipped", status: "shipped", timestamp: "2026-10-10T12:00:00.000Z" }],
+      }],
+    };
+    apiMocks.requestApi.mockResolvedValue(tracking);
+
+    expect(await fetchOrderTracking("order-1")).toEqual(tracking);
+    expect(apiMocks.requestApi).toHaveBeenLastCalledWith("/api/orders/order-1/tracking");
   });
 });

@@ -5,6 +5,7 @@ import { ReviewServiceError } from './review.errors.ts'
 import type { IReviewRepository, ProductReview, RatingSummaryRecord, ReviewMediaInput, ReviewSort, ReviewUpload } from './review.repository.ts'
 
 const MAX_REVIEW_IMAGE_COUNT = 5
+const MAX_PAGINATION_OFFSET = 2_147_483_647
 
 export interface ReviewActor {
   id: string
@@ -98,6 +99,9 @@ export class ReviewService {
     await this.assertActiveProduct(productId)
     const page = this.normalizePage(input.page)
     const limit = this.normalizeLimit(input.limit)
+    if ((page - 1) * limit > MAX_PAGINATION_OFFSET) {
+      throw new ReviewServiceError('Pagination offset exceeds the supported range', 400, 'INVALID_PAGINATION')
+    }
     const sort = input.sort ?? 'latest'
     const result = await this.repo.listProductReviews(productId, {
       ...(input.rating ? { rating: input.rating } : {}),
@@ -199,7 +203,7 @@ export class ReviewService {
 
   private normalizePage(page: number | undefined): number {
     if (page === undefined) return 1
-    if (!Number.isInteger(page) || page < 1) {
+    if (!Number.isSafeInteger(page) || page < 1 || page > MAX_PAGINATION_OFFSET) {
       throw new ReviewServiceError('Page must be a positive integer', 400, 'INVALID_PAGINATION')
     }
     return page

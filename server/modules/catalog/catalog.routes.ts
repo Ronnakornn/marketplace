@@ -115,8 +115,8 @@ const PublicListQuerySchema = t.Object({
   maxPrice: t.Optional(t.Number({ minimum: 0 })),
   sort: t.Optional(t.String()),
   cursor: t.Optional(t.String({ format: 'uuid' })),
-  page: t.Optional(t.Number({ minimum: 1 })),
-  limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
+  page: t.Optional(t.Integer({ minimum: 1, maximum: 2_147_483_647 })),
+  limit: t.Optional(t.Integer({ minimum: 1, maximum: 50 })),
   categoryId: t.Optional(t.String()),
   locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
@@ -286,10 +286,10 @@ const ModerationReasonBodySchema = t.Object({
 })
 
 const VariantShippingFieldsSchema = t.Object({
-  weightGrams: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
-  lengthMm: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
-  widthMm: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
-  heightMm: t.Optional(t.Nullable(t.Number({ minimum: 0 }))),
+  weightGrams: t.Optional(t.Nullable(t.Integer({ minimum: 0, maximum: 2_147_483_647 }))),
+  lengthMm: t.Optional(t.Nullable(t.Integer({ minimum: 0, maximum: 2_147_483_647 }))),
+  widthMm: t.Optional(t.Nullable(t.Integer({ minimum: 0, maximum: 2_147_483_647 }))),
+  heightMm: t.Optional(t.Nullable(t.Integer({ minimum: 0, maximum: 2_147_483_647 }))),
 })
 
 const CreateVariantBodySchema = t.Composite([

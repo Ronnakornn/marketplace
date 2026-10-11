@@ -11,7 +11,8 @@ vi.mock('#server/lib/prisma.ts', () => ({ prisma: {} }))
 
 const createCoupon = vi.fn(async (_actor: unknown, body: unknown) => body)
 const addFlashSaleItem = vi.fn(async (_actor: unknown, _id: string, body: unknown) => body)
-const app = () => new Elysia().use(createPromotionRoutes({ promotionService: { createCoupon, addFlashSaleItem } } as never))
+const updateFlashSaleItem = vi.fn(async (_actor: unknown, _id: string, body: unknown) => body)
+const app = () => new Elysia().use(createPromotionRoutes({ promotionService: { createCoupon, addFlashSaleItem, updateFlashSaleItem } } as never))
 const post = (body: object) => app().handle(new Request('http://localhost/api/admin/coupons', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
 }))
@@ -60,5 +61,35 @@ describe('coupon numeric HTTP boundary', () => {
     }))
     expect(response.status, await response.clone().text()).toBe(200)
     expect(await response.json()).toEqual({ id, salePrice: '9007199254740990' })
+  })
+
+  it.each(['stockLimit', 'perUserLimit'] as const)('rejects invalid Int32 %s before flash item create or update', async field => {
+    const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    for (const value of [-1, 0.5, 2_147_483_648, 9007199254740993, 1e100]) {
+      for (const method of ['POST', 'PATCH']) {
+        const path = method === 'POST' ? `/api/admin/flash-sales/${id}/items` : `/api/admin/flash-sale-items/${id}`
+        const response = await app().handle(new Request(`http://localhost${path}`, {
+          method, headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ...(method === 'POST' ? { productId: id, variantId: id, salePriceBaht: 5, stockLimit: 1 } : {}), [field]: value }),
+        }))
+        expect(response.status, await response.clone().text()).toBe(422)
+      }
+    }
+    expect(addFlashSaleItem).not.toHaveBeenCalled()
+    expect(updateFlashSaleItem).not.toHaveBeenCalled()
+  })
+
+  it('accepts maximum Int32 flash quotas and an unsold zero-quota update', async () => {
+    const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const response = await app().handle(new Request(`http://localhost/api/admin/flash-sales/${id}/items`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ productId: id, variantId: id, salePriceBaht: 5, stockLimit: 2_147_483_647, perUserLimit: 2_147_483_647 }),
+    }))
+    expect(response.status, await response.clone().text()).toBe(200)
+    const updated = await app().handle(new Request(`http://localhost/api/admin/flash-sale-items/${id}`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stockLimit: 0, perUserLimit: null }),
+    }))
+    expect(updated.status, await updated.clone().text()).toBe(200)
+    expect(await updated.json()).toEqual({ stockLimit: 0, perUserLimit: null })
   })
 })

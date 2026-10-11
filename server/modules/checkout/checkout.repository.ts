@@ -344,7 +344,6 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
 
       if (item.flashSaleItemId) {
         await this.prisma.$queryRaw`SELECT "id" FROM "FlashSaleItem" WHERE "id" = ${item.flashSaleItemId}::uuid FOR UPDATE`
-        const reservationCutoff = new Date()
         const flashSaleItem = await this.prisma.flashSaleItem.findUnique({
           where: { id: item.flashSaleItemId },
           select: { stockLimit: true, soldCount: true, perUserLimit: true },
@@ -352,7 +351,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         if (!flashSaleItem) throw new CheckoutServiceError('Flash sale item not found', 409, 'CHECKOUT_FAILED')
         const [reserved, buyerReserved] = await Promise.all([
           this.prisma.flashSaleReservation.aggregate({
-            where: { flashSaleItemId: item.flashSaleItemId, status: 'ACTIVE', expiresAt: { gt: reservationCutoff } },
+            where: { flashSaleItemId: item.flashSaleItemId, status: 'ACTIVE' },
             _sum: { quantity: true },
           }),
           flashSaleItem.perUserLimit === null
@@ -361,10 +360,7 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
               where: {
                 flashSaleItemId: item.flashSaleItemId,
                 userId: input.userId,
-                OR: [
-                  { status: 'COMMITTED' },
-                  { status: 'ACTIVE', expiresAt: { gt: reservationCutoff } },
-                ],
+                status: { in: ['COMMITTED', 'ACTIVE'] },
               },
               _sum: { quantity: true },
             }),

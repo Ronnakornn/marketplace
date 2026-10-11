@@ -18,7 +18,7 @@ test('seller price edit invalidates warmed catalog cache and buyer sees current 
   for (let i = 0; i < 2; i += 1) {
     const cached = await page.request.get(detailUrl);
     expect(cached.ok()).toBeTruthy();
-    expect((await cached.json()).variants.find((item: { id: string }) => item.id === variant.id).price).toBe(10000);
+    expect((await cached.json()).variants.find((item: { id: string }) => item.id === variant.id).price).toBe('10000');
   }
   await page.goto(`/en/products/${product.slug}`);
   await expect(page.getByRole('heading', { name: product.title, exact: true })).toBeVisible();
@@ -33,7 +33,7 @@ test('seller price edit invalidates warmed catalog cache and buyer sees current 
     const freshDetail = page.waitForResponse(response => new URL(response.url()).pathname === `/api/products/${product.slug}` && response.ok());
     await page.reload();
     const detail = await (await freshDetail).json();
-    expect(detail.variants.find((item: { id: string }) => item.id === variant.id).price).toBe(12500);
+    expect(detail.variants.find((item: { id: string }) => item.id === variant.id).price).toBe('12500');
     await expect(page.getByText('฿125.00', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('฿100.00', { exact: true })).toHaveCount(0);
   } finally { await sellerContext.close(); }
@@ -104,7 +104,7 @@ test('order snapshots survive later address, product and variant edits', async (
   expect(order.items).toHaveLength(1);
   expect(order.items[0]).toMatchObject({
     productTitle: product.title, variantTitle: variant.title, variantSku: variant.sku,
-    quantity: 2, unitPrice: 10000, lineTotal: 20000,
+    quantity: 2, unitPrice: '10000', lineTotal: '20000',
   });
   await page.goto(`/en/orders/${result.orderId}`);
   await expect(page.getByText(product.title, { exact: true })).toBeVisible();

@@ -30,12 +30,14 @@ import type {
 
 const DEFAULT_PAGE_LIMIT = 20
 const MAX_PAGE_LIMIT = 50
+const MAX_PAGINATION_OFFSET = 2_147_483_647
 const DEFAULT_RELATED_LIMIT = 8
 const MAX_RELATED_LIMIT = 12
 const MAX_PRODUCT_IMAGES = 10
 const PRODUCT_VIDEO_CONTENT_TYPES = new Set(['video/mp4', 'video/webm'])
 const PRODUCT_VIDEO_MAX_FILE_SIZE = 25 * 1024 * 1024
 const MARKETPLACE_CURRENCY = 'THB'
+const MAX_VARIANT_SHIPPING_VALUE = 2_147_483_647
 
 export interface CatalogActor {
   id: string
@@ -1161,8 +1163,12 @@ export class CatalogService {
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_LIMIT) {
       throw new CatalogServiceError(`Limit must be between 1 and ${MAX_PAGE_LIMIT}`, 400, 'CATALOG_QUERY_INVALID')
     }
-    if (filters.page !== undefined && (!Number.isInteger(filters.page) || filters.page < 1)) {
+    if (filters.page !== undefined && (!Number.isSafeInteger(filters.page) || filters.page < 1 || filters.page > MAX_PAGINATION_OFFSET)) {
       throw new CatalogServiceError('Page must be a positive integer', 400, 'CATALOG_QUERY_INVALID')
+    }
+    const offset = filters.cursor ? 1 : ((filters.page ?? 1) - 1) * limit
+    if (offset > MAX_PAGINATION_OFFSET) {
+      throw new CatalogServiceError('Pagination offset exceeds the supported range', 400, 'CATALOG_QUERY_INVALID')
     }
     this.validatePriceRange(filters.minPrice, filters.maxPrice)
 
@@ -1632,8 +1638,8 @@ export class CatalogService {
       widthMm: data.widthMm,
       heightMm: data.heightMm,
     })) {
-      if (value !== undefined && value !== null && (!Number.isInteger(value) || value < 0)) {
-        throw new CatalogServiceError(`${field} must be a non-negative integer`, 400, 'VARIANT_VALIDATION_FAILED')
+      if (value !== undefined && value !== null && (!Number.isInteger(value) || value < 0 || value > MAX_VARIANT_SHIPPING_VALUE)) {
+        throw new CatalogServiceError(`${field} must be a non-negative Int32`, 400, 'VARIANT_VALIDATION_FAILED')
       }
     }
   }

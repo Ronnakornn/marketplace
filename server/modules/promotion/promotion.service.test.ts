@@ -387,6 +387,55 @@ describe('PromotionService', () => {
     expect(repo.updateFlashSaleItem).not.toHaveBeenCalled()
   })
 
+  it.each(['stockLimit', 'perUserLimit'] as const)('rejects invalid Int32 %s on flash item create and update', async (field) => {
+    const campaign = { id: 'flash-1', shopId: null, title: 'Sale', description: null, status: 'DRAFT' as const,
+      startsAt: new Date('2999-01-01'), endsAt: new Date('2999-01-02'), createdAt: new Date(), updatedAt: new Date(), items: [] }
+    const item = { id: 'item-1', flashSaleId: campaign.id, shopId: 'shop-1', productId: 'product-1', variantId: 'variant-1',
+      salePrice: 500n, originalPrice: 1000n, stockLimit: 10, soldCount: 0, perUserLimit: null,
+      isActive: true, createdAt: new Date(), updatedAt: new Date() }
+    vi.mocked(repo.findFlashSaleById).mockResolvedValue(campaign)
+    vi.mocked(repo.findActiveProductVariant).mockResolvedValue({ id: 'variant-1', price: 1000n, product: { id: 'product-1', shopId: 'shop-1' } })
+    vi.mocked(repo.findFlashSaleItemById).mockResolvedValue({ ...item, variant: { price: 1000n }, flashSale: campaign })
+    vi.mocked(repo.sumActiveFlashSaleReservations).mockResolvedValue(0)
+    for (const value of [-1, 0.5, 2_147_483_648, 9007199254740993, 1e100]) {
+      await expect(service.addFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, campaign.id, {
+        productId: 'product-1', variantId: 'variant-1', salePriceBaht: 5, stockLimit: 10, [field]: value,
+      })).rejects.toMatchObject({ status: 400, code: 'FLASH_SALE_QUOTA_INVALID' })
+      await expect(service.updateFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, item.id, { [field]: value }))
+        .rejects.toMatchObject({ status: 400, code: 'FLASH_SALE_QUOTA_INVALID' })
+    }
+    expect(repo.createFlashSaleItem).not.toHaveBeenCalled()
+    expect(repo.updateFlashSaleItem).not.toHaveBeenCalled()
+  })
+
+  it('accepts maximum Int32 flash quotas and preserves zero only for an unsold update', async () => {
+    const campaign = { id: 'flash-1', shopId: null, title: 'Sale', description: null, status: 'DRAFT' as const,
+      startsAt: new Date('2999-01-01'), endsAt: new Date('2999-01-02'), createdAt: new Date(), updatedAt: new Date(), items: [] }
+    const item = { id: 'item-1', flashSaleId: campaign.id, shopId: 'shop-1', productId: 'product-1', variantId: 'variant-1',
+      salePrice: 500n, originalPrice: 1000n, stockLimit: 10, soldCount: 0, perUserLimit: null,
+      isActive: true, createdAt: new Date(), updatedAt: new Date() }
+    vi.mocked(repo.findFlashSaleById).mockResolvedValue(campaign)
+    vi.mocked(repo.findActiveProductVariant).mockResolvedValue({ id: 'variant-1', price: 1000n, product: { id: 'product-1', shopId: 'shop-1' } })
+    vi.mocked(repo.findFlashSaleItemById).mockResolvedValue({ ...item, variant: { price: 1000n }, flashSale: campaign })
+    vi.mocked(repo.sumActiveFlashSaleReservations).mockResolvedValue(0)
+    vi.mocked(repo.createFlashSaleItem).mockResolvedValue(item)
+    vi.mocked(repo.updateFlashSaleItem).mockResolvedValue(item)
+    const quotas = { stockLimit: 2_147_483_647, perUserLimit: 2_147_483_647 }
+    await service.addFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, campaign.id, {
+      productId: 'product-1', variantId: 'variant-1', salePriceBaht: 5, ...quotas,
+    })
+    await service.updateFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, item.id, quotas)
+    expect(repo.createFlashSaleItem).toHaveBeenCalledWith(campaign.id, expect.objectContaining(quotas))
+    expect(repo.updateFlashSaleItem).toHaveBeenCalledWith(item.id, quotas)
+    await service.updateFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, item.id, { stockLimit: 0, perUserLimit: null })
+    expect(repo.updateFlashSaleItem).toHaveBeenLastCalledWith(item.id, { stockLimit: 0, perUserLimit: null })
+    await expect(service.addFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, campaign.id, {
+      productId: 'product-1', variantId: 'variant-1', salePriceBaht: 5, stockLimit: 0,
+    })).rejects.toMatchObject({ status: 400, code: 'FLASH_SALE_QUOTA_INVALID' })
+    await expect(service.updateFlashSaleItem({ id: 'admin-1', role: 'ADMIN' }, item.id, { perUserLimit: 0 }))
+      .rejects.toMatchObject({ status: 400, code: 'FLASH_SALE_QUOTA_INVALID' })
+  })
+
   it('lets a seller enroll an owned active variant in a scheduled platform flash sale', async () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', ownerId: 'seller-1' }])
     vi.mocked(repo.findFlashSaleById).mockResolvedValue({

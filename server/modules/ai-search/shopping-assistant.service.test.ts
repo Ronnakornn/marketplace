@@ -79,10 +79,21 @@ describe('ShoppingAssistantService', () => {
       limit: 5,
       locale: undefined,
     })
-    expect(result.answer).toContain('1234 USD')
+    expect(result.answer).toContain('12.34 USD')
     expect(result.answer).toContain('stock in_stock')
     expect(result.recommendedProducts).toEqual([recommendedProduct])
     expect(result.citations).toEqual([{ productId: 'p1', title: 'Live Cotton Shirt' }])
+  })
+
+  it.each([
+    [10000n, null, '100.00 THB'],
+    [10000n, 12345n, '100.00-123.45 THB'],
+    [9007199254740993n, null, '90071992547409.93 THB'],
+  ] as const)('formats fallback minor units %s and %s as %s', async (minPrice, maxPrice, expected) => {
+    vi.mocked(aiSearchService.search).mockResolvedValue({ items: [{ ...recommendedProduct, price: { minPrice, maxPrice, currency: 'THB' } }], semanticMatches: [] })
+    const result = await service.answer({ messages: [{ role: 'user', content: 'Find a shirt' }] })
+    expect(result.answer).toContain(expected)
+    expect(result.recommendedProducts[0]?.price).toEqual({ minPrice, maxPrice, currency: 'THB' })
   })
 
   it('does not expose private or admin data in fallback response', async () => {

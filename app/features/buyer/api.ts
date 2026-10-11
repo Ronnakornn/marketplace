@@ -33,6 +33,7 @@ export interface BuyerCart {
 
 type BuyerOrderResponse = NonNullable<Treaty.Data<ReturnType<ReturnType<typeof api.api.orders>["get"]>>>;
 type BuyerOrderReturnRights = Pick<BuyerOrderResponse["items"][number], "remainingReturnQuantity" | "hasActiveReturn">;
+export type BuyerOrderTracking = NonNullable<Treaty.Data<ReturnType<ReturnType<typeof api.api.orders>["tracking"]["get"]>>>;
 
 export interface BuyerOrder {
   taxTotals?: Pick<BuyerOrderResponse["totals"], "taxTotal" | "includedTaxTotal" | "reportedTaxTotal">;
@@ -420,8 +421,8 @@ export async function cancelOrder(orderId: string): Promise<void> {
   await apiFetch(`/api/orders/${orderId}/cancel`, { method: "POST" });
 }
 
-export async function fetchOrderTracking(orderId: string): Promise<BuyerOrder> {
-  return normalizeOrder(await apiFetch(`/api/orders/${orderId}/tracking`));
+export async function fetchOrderTracking(orderId: string): Promise<BuyerOrderTracking> {
+  return requestApi<BuyerOrderTracking>(`/api/orders/${orderId}/tracking`);
 }
 
 export async function fetchNotifications(scope: "all" | "seller" = "all"): Promise<BuyerNotification[]> {

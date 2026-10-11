@@ -15,7 +15,7 @@ flowchart TD
   I --> J[Commit transaction and consume selected cart items]
   J --> K[Buyer enters payment UI]
   K --> L[Provider webhook]
-  L --> M[Verify signature, amount, currency and idempotency]
+  L --> M[Verify signature, amount and idempotency]
   M --> N{Trusted payment outcome}
   N -- Terminal failure --> O[Record event, release holds, mark failure]
   N -- Success --> P[Record event and mark Payment SUCCEEDED / Order PAID]
@@ -32,7 +32,9 @@ Rules:
 - Checkout locks the cart and its current item rows before reading the purchase snapshot. Concurrent submissions reread after the prior commit, so consumed items cannot create another Order. Unselected items and later additions remain usable.
 - The UI blocks immediate repeated submission and allows retry after failure. After a lost committed response, order history recovers the Order; retry does not promise replaying the original response.
 - Stock reservations compare on-hand and reserved quantities in the same SQL update. Seller changes lock inventory and cannot reduce on-hand below active reservations. Expiry releases abandoned holds.
+- Flash quota includes committed sales and every ACTIVE hold, including holds past their expiry timestamp. Quota is returned only by an explicit RELEASED or EXPIRED transition. A trusted late payment can commit a still-ACTIVE hold; worker delay must not make the same quota available to another checkout.
 - The browser never marks payment successful. Zero-cash Orders retain the trusted payment lifecycle.
+- The current webhook body contains amount but no currency. Settlement uses stored purchase currency; this does not verify a provider callback's currency. A real provider integration must verify signed currency as well as amount before settlement.
 - `Payment.amount = Order.grandTotal = subtotal - discountTotal + shippingTotal + taxTotal`. `taxTotal` is added tax; included tax is disclosed without adding it again. `includedTaxTotal` and `reportedTaxTotal` are retained on Checkout, Order and ShopOrder.
 - Prices, address, original quantities, funding components, tax policy/revision and original commission are retained at purchase. Later settings do not rewrite them.
 - Seller shipping fees are decimal baht inputs, parsed exactly to bounded minor units, and applied once per selected Shop.

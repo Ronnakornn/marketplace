@@ -98,7 +98,7 @@ function createSearchServiceMock(): SearchService {
         productId: 'fallback-1',
         title: 'Fallback Product',
         coverImage: null,
-        minPrice: 999,
+        minPrice: 999n,
         maxPrice: null,
         ratingSummary: {
           averageRating: 0,
@@ -111,6 +111,7 @@ function createSearchServiceMock(): SearchService {
           slug: 'shop-one',
         },
         badges: [],
+        variants: [{ id: 'fallback-variant', sku: 'FALLBACK', title: 'Default', price: 999n, currency: 'THB', optionValues: [] }],
       }],
       pagination: {
         page: 1,
@@ -202,7 +203,7 @@ describe('AiSearchService', () => {
       limit: 10,
       locale: 'th',
     })
-    expect(result.items).toMatchObject([{ productId: 'fallback-1' }])
+    expect(result.items).toMatchObject([{ productId: 'fallback-1', price: { minPrice: 999n, maxPrice: null, currency: 'THB' } }])
     expect(result.semanticMatches).toEqual([])
   })
 

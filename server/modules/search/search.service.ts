@@ -9,6 +9,7 @@ import type { ISearchRepository, SearchProductFacets, SearchProductRecord } from
 const DEFAULT_PAGE = 1
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
+const MAX_PAGINATION_OFFSET = 2_147_483_647
 const SUPPORTED_SORTS = ['relevance', 'newest', 'price_asc', 'price_desc', 'top_sales', 'rating'] as const
 
 export type SearchSort = typeof SUPPORTED_SORTS[number]
@@ -235,6 +236,9 @@ export class SearchService {
     const sort = this.normalizeSort(input.sort)
     const page = this.normalizePage(input.page)
     const limit = this.normalizeLimit(input.limit)
+    if ((page - 1) * limit > MAX_PAGINATION_OFFSET) {
+      throw new SearchServiceError('Pagination offset exceeds the supported range', 400, 'INVALID_FILTER')
+    }
     const minPrice = this.normalizeOptionalNonNegativeInteger(input.minPrice, 'minPrice')
     const maxPrice = this.normalizeOptionalNonNegativeInteger(input.maxPrice, 'maxPrice')
     const rating = this.normalizeRating(input.rating)
@@ -284,7 +288,7 @@ export class SearchService {
 
   private normalizePage(page: number | undefined): number {
     const value = page ?? DEFAULT_PAGE
-    if (!Number.isInteger(value) || value < 1) {
+    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PAGINATION_OFFSET) {
       throw new SearchServiceError('Page must be a positive integer', 400, 'INVALID_FILTER')
     }
     return value
@@ -300,8 +304,8 @@ export class SearchService {
 
   private normalizeOptionalNonNegativeInteger(value: number | undefined, field: string): number | undefined {
     if (value === undefined) return undefined
-    if (!Number.isInteger(value) || value < 0) {
-      throw new SearchServiceError(`${field} must be a non-negative integer`, 400, 'INVALID_FILTER')
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new SearchServiceError(`${field} must be a non-negative safe integer in minor units`, 400, 'INVALID_FILTER')
     }
     return value
   }

@@ -182,11 +182,10 @@ describe('PrismaCheckoutRepository', () => {
       platformCouponDiscount: 0n, coinDiscount: 0n, buyerMerchandise: 2400n,
     })] })
     expect(prisma.flashSaleReservation.aggregate).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      where: expect.objectContaining({
+      where: {
         flashSaleItemId: 'flash-item-1',
         status: 'ACTIVE',
-        expiresAt: { gt: expect.any(Date) },
-      }),
+      },
     }))
     expect(prisma.$queryRaw).toHaveBeenCalled()
     // A concurrent sale may invalidate the cart snapshot before reservation.
@@ -198,14 +197,11 @@ describe('PrismaCheckoutRepository', () => {
     expect(sql).toContain('"quantityOnHand" - "quantityReserved" >=')
 
     expect(prisma.flashSaleReservation.aggregate).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      where: expect.objectContaining({
+      where: {
         flashSaleItemId: 'flash-item-1',
         userId: 'buyer-1',
-        OR: [
-          { status: 'COMMITTED' },
-          { status: 'ACTIVE', expiresAt: { gt: expect.any(Date) } },
-        ],
-      }),
+        status: { in: ['COMMITTED', 'ACTIVE'] },
+      },
     }))
   })
 

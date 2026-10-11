@@ -197,9 +197,22 @@ test('search badges99/100, ratings and stock facets reconcile with paid history 
   const filters = page.locator('aside:visible')
   await expect(filters.getByRole('link').filter({ has: page.getByText(catalog.category.name, { exact: true }) })).toHaveText(`${catalog.category.name}2`)
   await expect(filters.getByRole('link').filter({ has: page.getByText(catalog.brand.name, { exact: true }) })).toHaveText(`${catalog.brand.name}2`)
-  await expect(filters.locator('input[name="minPrice"]')).toHaveAttribute('placeholder', '1000')
-  await expect(filters.locator('input[name="maxPrice"]')).toHaveAttribute('placeholder', '2000')
+  await expect(filters.locator('input[name="minPrice"]')).toHaveAttribute('placeholder', '10')
+  await expect(filters.locator('input[name="maxPrice"]')).toHaveAttribute('placeholder', '20')
+  await expect(filters.getByText('THB 10.00 - 20.00', { exact: true })).toBeVisible()
   await evidence(page, testInfo, 'search-stock-badges-facets', { result, blockedStock: { onHand: stock.quantityOnHand, reserved: stock.quantityReserved }, sold })
+
+  await filters.locator('input[name="minPrice"]').fill('10.01')
+  await filters.locator('input[name="maxPrice"]').fill('20.00')
+  const priceResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/search/products'
+    && new URL(response.url()).searchParams.get('minPrice') === '1001' && response.ok())
+  await filters.getByRole('button', { name: en.product.applyFilters, exact: true }).click()
+  await expect(page).toHaveURL(new RegExp('minPrice=1001.*maxPrice=2000'))
+  const priceFiltered = await (await priceResponse).json()
+  expect(priceFiltered.items.map((item: MoneyDto<ProductSearchItem>) => item.productId)).toEqual([fresh.product.id])
+  await expect(page.getByRole('heading', { name: fresh.product.title, exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: old.product.title, exact: true })).toHaveCount(0)
+  await evidence(page, testInfo, 'search-major-unit-price-input', { priceFiltered })
 
   const filteredQuery = `${query}&rating=4&minPrice=1000&maxPrice=2000`
   const filtered = await apiJson(page, `/api/search/products?${filteredQuery}&locale=en`)

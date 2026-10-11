@@ -41,11 +41,20 @@ const FlashSaleBodySchema = t.Composite([t.Pick(FlashSalePlainInputCreate, ['tit
   startsAt: t.String({ format: 'date-time' }),
   endsAt: t.String({ format: 'date-time' }),
 })])
-const FlashSaleItemBodySchema = t.Composite([t.Pick(FlashSaleItemPlainInputCreate, ['stockLimit', 'perUserLimit']), t.Object({
+const FlashSaleItemQuotaSchema = t.Object({
+  ...t.Pick(FlashSaleItemPlainInputCreate, ['stockLimit', 'perUserLimit']).properties,
+  stockLimit: t.Integer({ minimum: 1, maximum: 2_147_483_647 }),
+  perUserLimit: t.Optional(t.Nullable(t.Integer({ minimum: 1, maximum: 2_147_483_647 }))),
+})
+const FlashSaleItemBodySchema = t.Composite([FlashSaleItemQuotaSchema, t.Object({
   productId: t.String({ format: 'uuid' }),
   variantId: t.String({ format: 'uuid' }),
   salePriceBaht: t.Union([t.Number({ exclusiveMinimum: 0, maximum: Number.MAX_SAFE_INTEGER / 100 }), t.String({ pattern: '^\\d+(?:\\.\\d{1,2})?$' })]),
 })])
+const FlashSaleItemUpdateBodySchema = t.Partial(t.Composite([
+  t.Pick(FlashSaleItemBodySchema, ['salePriceBaht', 'perUserLimit']),
+  t.Object({ stockLimit: t.Integer({ minimum: 0, maximum: 2_147_483_647 }) }),
+]))
 
 export function createPromotionRoutes(container: ServiceContainer) {
   return new Elysia()
@@ -97,11 +106,11 @@ export function createPromotionRoutes(container: ServiceContainer) {
     .post('/api/admin/flash-sales', ({ authContext, body }: any) => moneyResponse(container.promotionService.createFlashSale(authContext!.user, body)), { withRole: 'ADMIN', body: FlashSaleBodySchema })
     .patch('/api/admin/flash-sales/:flashSaleId', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.updateFlashSale(authContext!.user, params.flashSaleId, body)), { withRole: 'ADMIN', params: FlashSaleParamsSchema, body: t.Partial(FlashSaleBodySchema) })
     .post('/api/admin/flash-sales/:flashSaleId/items', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.addFlashSaleItem(authContext!.user, params.flashSaleId, body)), { withRole: 'ADMIN', params: FlashSaleParamsSchema, body: FlashSaleItemBodySchema })
-    .patch('/api/admin/flash-sale-items/:itemId', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.updateFlashSaleItem(authContext!.user, params.itemId, body)), { withRole: 'ADMIN', params: FlashSaleItemParamsSchema, body: t.Partial(t.Pick(FlashSaleItemBodySchema, ['salePriceBaht', 'stockLimit', 'perUserLimit'])) })
+    .patch('/api/admin/flash-sale-items/:itemId', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.updateFlashSaleItem(authContext!.user, params.itemId, body)), { withRole: 'ADMIN', params: FlashSaleItemParamsSchema, body: FlashSaleItemUpdateBodySchema })
     .delete('/api/admin/flash-sale-items/:itemId', ({ authContext, params }: any) => moneyResponse(container.promotionService.deleteFlashSaleItem(authContext!.user, params.itemId)), { withRole: 'ADMIN', params: FlashSaleItemParamsSchema })
     .get('/api/seller/flash-sales', ({ authContext }: any) => moneyResponse(container.promotionService.listSellerFlashSales(authContext!.user)), { withAuth: true, withSellerOperational: true })
     .post('/api/seller/flash-sales/:flashSaleId/items', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.addSellerFlashSaleItem(authContext!.user, params.flashSaleId, body)), { withAuth: true, withSellerOperational: true, params: FlashSaleParamsSchema, body: FlashSaleItemBodySchema })
-    .patch('/api/seller/flash-sale-items/:itemId', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.updateSellerFlashSaleItem(authContext!.user, params.itemId, body)), { withAuth: true, withSellerOperational: true, params: FlashSaleItemParamsSchema, body: t.Partial(t.Pick(FlashSaleItemBodySchema, ['salePriceBaht', 'stockLimit', 'perUserLimit'])) })
+    .patch('/api/seller/flash-sale-items/:itemId', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.updateSellerFlashSaleItem(authContext!.user, params.itemId, body)), { withAuth: true, withSellerOperational: true, params: FlashSaleItemParamsSchema, body: FlashSaleItemUpdateBodySchema })
     .delete('/api/seller/flash-sale-items/:itemId', ({ authContext, params }: any) => moneyResponse(container.promotionService.deleteSellerFlashSaleItem(authContext!.user, params.itemId)), { withAuth: true, withSellerOperational: true, params: FlashSaleItemParamsSchema })
     .get('/api/seller/coupons', ({ authContext }: any) =>
       moneyResponse(container.promotionService.listSellerCoupons(authContext!.user)), {

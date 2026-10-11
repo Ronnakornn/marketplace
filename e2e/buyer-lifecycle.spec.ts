@@ -190,7 +190,7 @@ test("buyer purchases through the UI, seller ships, and buyer sees matching trac
     await expect(page.getByText(en.buyer.paymentConfirmed).first()).toBeVisible();
     await page.getByRole("link", { name: en.buyer.viewOrder }).click();
     await expect(page).toHaveURL(`/en/orders/${order.id}`);
-    await expect(page.getByText(order.orderNumber)).toBeVisible();
+    await expect(page.getByRole("heading", { name: order.orderNumber, exact: true })).toBeVisible();
     await page.getByRole("link", { name: en.order.trackOrder }).click();
     await expect(page).toHaveURL(`/en/orders/${order.id}/tracking`);
     const trackingNumber = `E2E-${order.id}`;

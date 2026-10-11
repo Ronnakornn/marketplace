@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAuthContext } from '#server/modules/auth/auth.context.ts'
 import { prisma } from '#server/lib/prisma.ts'
 import { CatalogServiceError } from './catalog.errors.ts'
+import { CatalogService } from './catalog.service.ts'
 import { createCatalogRoutes } from './catalog.routes.ts'
 
 vi.mock('#server/modules/auth/auth.ts', () => ({
@@ -133,6 +134,22 @@ describe('catalog monetary HTTP boundaries', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ items: [{ price: '9007199254740993', quantity: 2 }] })
   })
+
+  it.each(['/api/products', '/api/catalog/products'])('rejects invalid catalog pagination before querying through %s', async path => {
+    const findProducts = vi.fn(async () => ({ data: [], meta: { nextCursor: null, totalCount: 0, hasNextPage: false } }))
+    const catalogService = new CatalogService({ logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }, config: { environment: 'test' } }, { findProducts } as never)
+    const app = createApp({ catalogService })
+    for (const query of ['page=0', 'page=-1', 'page=1.5', 'page=9007199254740993', 'page=1e100', 'limit=0', 'limit=1.5', 'limit=1e100']) {
+      const response = await app.handle(new Request(`http://localhost${path}?${query}`))
+      expect(response.status, await response.clone().text()).toBe(422)
+    }
+    const overflow = await app.handle(new Request(`http://localhost${path}?page=2147483647&limit=50`))
+    expect(overflow.status, await overflow.clone().text()).toBe(400)
+    expect(findProducts).not.toHaveBeenCalled()
+    const supported = await app.handle(new Request(`http://localhost${path}?page=2147483647&limit=1`))
+    expect(supported.status, await supported.clone().text()).toBe(200)
+    expect(findProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 2_147_483_647, limit: 1 }))
+  })
 })
 
 function mockAuthContext(overrides: Record<string, unknown> = {}) {
@@ -148,6 +165,48 @@ function mockAuthContext(overrides: Record<string, unknown> = {}) {
     },
   }
 }
+
+describe('catalog Int32 variant shipping HTTP boundaries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext() as never)
+  })
+
+  it.each(['weightGrams', 'lengthMm', 'widthMm', 'heightMm'])('rejects invalid %s before variant create and update', async field => {
+    const container = createContainer()
+    const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    for (const value of [-1, 0.5, 2_147_483_648, 9007199254740993, 1e100]) {
+      for (const method of ['POST', 'PATCH']) {
+        const path = `/api/admin/catalog/products/${id}/variants${method === 'PATCH' ? `/${id}` : ''}`
+        const response = await createApp(container).handle(new Request(`http://localhost${path}`, {
+          method, headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ...(method === 'POST' ? { sku: 'BOUNDARY', title: 'Boundary', price: 1000 } : {}), [field]: value }),
+        }))
+        expect(response.status, await response.clone().text()).toBe(422)
+      }
+    }
+    expect(container.catalogService.createAdminVariant).not.toHaveBeenCalled()
+    expect(container.catalogService.updateAdminVariant).not.toHaveBeenCalled()
+  })
+
+  it.each([0, 2_147_483_647, null])('accepts valid shipping boundary %s on variant create and update', async value => {
+    const container = createContainer()
+    container.catalogService.createAdminVariant.mockResolvedValue({ id: 'variant-1' })
+    container.catalogService.updateAdminVariant.mockResolvedValue({ id: 'variant-1' })
+    const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const dimensions = { weightGrams: value, lengthMm: value, widthMm: value, heightMm: value }
+    for (const method of ['POST', 'PATCH']) {
+      const path = `/api/admin/catalog/products/${id}/variants${method === 'PATCH' ? `/${id}` : ''}`
+      const response = await createApp(container).handle(new Request(`http://localhost${path}`, {
+        method, headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...(method === 'POST' ? { sku: 'BOUNDARY', title: 'Boundary', price: 1000 } : {}), ...dimensions }),
+      }))
+      expect(response.status, await response.clone().text()).toBe(200)
+    }
+    expect(container.catalogService.createAdminVariant).toHaveBeenCalledWith(id, expect.objectContaining(dimensions))
+    expect(container.catalogService.updateAdminVariant).toHaveBeenCalledWith(id, id, dimensions)
+  })
+})
 
 describe('catalog admin category routes', () => {
   beforeEach(() => {

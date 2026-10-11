@@ -20,8 +20,8 @@ const ListProductReviewsQuerySchema = t.Object({
     t.Literal('rating_desc'),
     t.Literal('rating_asc'),
   ])),
-  page: t.Optional(t.Number({ minimum: 1 })),
-  limit: t.Optional(t.Number({ minimum: 1, maximum: 20 })),
+  page: t.Optional(t.Integer({ minimum: 1, maximum: 2_147_483_647 })),
+  limit: t.Optional(t.Integer({ minimum: 1, maximum: 20 })),
 })
 
 const CreateReviewBodySchema = t.Object({

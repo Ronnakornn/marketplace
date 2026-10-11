@@ -34,12 +34,12 @@ jobs:
           --health-retries 10
     env:
       NODE_ENV: test
-      DATABASE_URL: postgresql://postgres:postgres@localhost:55439/marketplace_test?schema=public
-      COMMERCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_completion?schema=public
-      QUEUE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_queue?schema=public
-      TAX_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_tax?schema=public
-      ROLLOUT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_rollout?schema=public
-      AUDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_readiness_audit?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@localhost:55439/marketplace_test
+      COMMERCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_completion
+      QUEUE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_queue
+      TAX_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_tax
+      ROLLOUT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_rollout
+      AUDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_readiness_audit
       CHECKOUT_V2_SETTLEMENT_ENABLED: 'true'
       QUEUE_TEST_REDIS_URL: redis://127.0.0.1:56379/15
       CACHE_TEST_REDIS_URL: redis://127.0.0.1:56379/14

@@ -11,19 +11,19 @@ const SearchQuerySchema = t.Object({
   attributeFilters: t.Optional(t.String()),
   inStock: t.Optional(t.Boolean()),
   badges: t.Optional(t.String()),
-  minPrice: t.Optional(t.Number({ minimum: 0 })),
-  maxPrice: t.Optional(t.Number({ minimum: 0 })),
+  minPrice: t.Optional(t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER })),
+  maxPrice: t.Optional(t.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER })),
   rating: t.Optional(t.Number({ minimum: 1, maximum: 5 })),
   sort: t.Optional(t.String()),
   cursor: t.Optional(t.String()),
-  page: t.Optional(t.Number({ minimum: 1 })),
-  limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
+  page: t.Optional(t.Integer({ minimum: 1, maximum: 2_147_483_647 })),
+  limit: t.Optional(t.Integer({ minimum: 1, maximum: 50 })),
   locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
 
 const SuggestionsQuerySchema = t.Object({
   q: t.Optional(t.String()),
-  limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
+  limit: t.Optional(t.Integer({ minimum: 1, maximum: 50 })),
   locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
 

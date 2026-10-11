@@ -14,7 +14,11 @@ async function assertSingleReservation(buyerId: string, variantId: string) {
   expect(await prisma.checkout.count({ where: { userId: buyerId } })).toBe(1);
   const order = await prisma.order.findFirstOrThrow({ where: { userId: buyerId } });
   expect(await prisma.payment.count({ where: { orderId: order.id } })).toBe(1);
-  expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId } })).toMatchObject({
+  const inventory = await prisma.inventory.findUniqueOrThrow({ where: { variantId } });
+  const reservations = await prisma.inventoryReservation.findMany({ where: { checkoutId: order.checkoutId } });
+  expect(reservations).toHaveLength(1);
+  expect(reservations[0]).toMatchObject({ inventoryId: inventory.id, quantity: 2, status: 'ACTIVE' });
+  expect(inventory).toMatchObject({
     quantityOnHand: 10, quantityReserved: 2,
   });
   return order;
@@ -61,7 +65,7 @@ test('double-clicking checkout creates one order, payment and stock reservation'
   }
 });
 
-test('lost checkout response after commit can be retried and recovered in history without duplicates', async ({ browser, baseURL }) => {
+test('lost checkout response after commit recovers in history without duplicate orders, payments or reservations', async ({ browser, baseURL }) => {
   const context = await newActorContext(browser, { baseURL });
   const page = await context.newPage();
   try {
@@ -81,22 +85,10 @@ test('lost checkout response after commit can be retried and recovered in histor
     const button = page.getByRole('button', { name: en.checkout.placeOrder, exact: true });
     await button.click();
     await failure;
-    await expect(button).toBeEnabled();
+    await expect(button).toBeDisabled();
     expect(committed).toBeDefined();
     const order = await assertSingleReservation(fixture.buyer.id, fixture.shops[0]!.variant.id);
     expect(order.id).toBe(committed!.orderId);
-    const retry = page.waitForResponse(response => response.request().method() === 'POST'
-      && new URL(response.url()).pathname === '/api/checkout');
-    await button.click();
-    const retryResponse = await retry;
-    if (retryResponse.ok()) {
-      // Idempotent replay is allowed only when it returns the original order.
-      expect((await retryResponse.json()).orderId).toBe(order.id);
-    } else {
-      expect([400, 409]).toContain(retryResponse.status());
-      const error = await retryResponse.json();
-      await expect(page.getByText(error.error.message, { exact: true })).toBeVisible();
-    }
     await assertOrderHistory(page, order.id, order.orderNumber);
     await page.goBack();
     await page.reload();

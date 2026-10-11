@@ -1,6 +1,7 @@
 import type { BuyerCoinLedger, BuyerCoinWallet, Cart, CartItem, Coupon, CouponClaim, CouponRedemptionStatus, FlashSale, FlashSaleItem, PrismaClient, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { PromotionServiceError } from './promotion.errors.ts'
 
 export type PromotionCoupon = Omit<Coupon, 'titleTh' | 'titleEn' | 'descriptionTh' | 'descriptionEn'> & {
   titleTh?: string | null
@@ -99,7 +100,7 @@ export interface IPromotionRepository extends IPromotionValidationRepository {
   createFlashSaleItem(flashSaleId: string, input: FlashSaleItemPayload & { shopId: string; originalPrice: number }): Promise<FlashSaleItem | null>
   findFlashSaleItemById(itemId: string): Promise<FlashSaleItemForManagement | null>
   findOverlappingFlashSaleItem(variantId: string, startsAt: Date, endsAt: Date, excludeFlashSaleId: string): Promise<Pick<FlashSaleItem, 'id'> | null>
-  sumActiveFlashSaleReservations(itemId: string, now: Date): Promise<number>
+  sumActiveFlashSaleReservations(itemId: string): Promise<number>
   updateFlashSaleItem(itemId: string, input: Partial<FlashSaleItemPayload>): Promise<FlashSaleItem>
   deleteFlashSaleItem(itemId: string): Promise<FlashSaleItem>
 }
@@ -397,19 +398,37 @@ export class PrismaPromotionRepository implements IPromotionRepository {
     })
   }
 
-  async sumActiveFlashSaleReservations(itemId: string, now: Date): Promise<number> {
+  async sumActiveFlashSaleReservations(itemId: string): Promise<number> {
     const reservations = await this.prisma.flashSaleReservation.aggregate({
-      where: { flashSaleItemId: itemId, status: 'ACTIVE', expiresAt: { gt: now } },
+      where: { flashSaleItemId: itemId, status: 'ACTIVE' },
       _sum: { quantity: true },
     })
     return Number(reservations._sum.quantity ?? 0)
   }
 
   updateFlashSaleItem(itemId: string, input: Partial<FlashSaleItemPayload>): Promise<FlashSaleItem> {
-    return this.prisma.flashSaleItem.update({ where: { id: itemId }, data: { ...(input.salePrice !== undefined ? { salePrice: input.salePrice } : {}), ...(input.stockLimit !== undefined ? { stockLimit: input.stockLimit } : {}), ...(input.perUserLimit !== undefined ? { perUserLimit: input.perUserLimit } : {}) } })
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "FlashSaleItem" WHERE "id" = ${itemId}::uuid FOR UPDATE`
+      if (input.stockLimit !== undefined) {
+        const item = await tx.flashSaleItem.findUniqueOrThrow({ where: { id: itemId }, select: { soldCount: true } })
+        const reservations = await tx.flashSaleReservation.aggregate({ where: { flashSaleItemId: itemId, status: 'ACTIVE' }, _sum: { quantity: true } })
+        if (input.stockLimit < item.soldCount + (reservations._sum.quantity ?? 0)) {
+          throw new PromotionServiceError('Flash sale quota cannot be lower than sold and reserved quantity', 400, 'FLASH_SALE_QUOTA_INVALID')
+        }
+      }
+      return tx.flashSaleItem.update({ where: { id: itemId }, data: { ...(input.salePrice !== undefined ? { salePrice: input.salePrice } : {}), ...(input.stockLimit !== undefined ? { stockLimit: input.stockLimit } : {}), ...(input.perUserLimit !== undefined ? { perUserLimit: input.perUserLimit } : {}) } })
+    })
   }
 
   deleteFlashSaleItem(itemId: string): Promise<FlashSaleItem> {
-    return this.prisma.flashSaleItem.delete({ where: { id: itemId } })
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "FlashSaleItem" WHERE "id" = ${itemId}::uuid FOR UPDATE`
+      const item = await tx.flashSaleItem.findUniqueOrThrow({ where: { id: itemId }, select: { soldCount: true } })
+      const reservations = await tx.flashSaleReservation.aggregate({ where: { flashSaleItemId: itemId, status: 'ACTIVE' }, _sum: { quantity: true } })
+      if (item.soldCount > 0 || (reservations._sum.quantity ?? 0) > 0) {
+        throw new PromotionServiceError('Flash sale item has sold or reserved quantity', 409, 'FLASH_SALE_ITEM_LOCKED')
+      }
+      return tx.flashSaleItem.delete({ where: { id: itemId } })
+    })
   }
 }

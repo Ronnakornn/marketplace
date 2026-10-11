@@ -293,6 +293,24 @@ describe('CatalogService', () => {
     vi.clearAllMocks()
   })
 
+  it.each([0, -1, 1.5, 9007199254740993, 1e100, 2_147_483_647])('rejects invalid or overflowing catalog page %s before querying', async page => {
+    const repo = createRepoMock()
+    const service = new CatalogService(createAppContext(), repo)
+    await expect(service.listPublicProducts({ page, limit: 50 })).rejects.toMatchObject({ status: 400, code: 'CATALOG_QUERY_INVALID' })
+    expect(repo.findProducts).not.toHaveBeenCalled()
+  })
+
+  it('preserves a valid large catalog offset and cursor pagination', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, totalCount: 0, hasNextPage: false } })
+    const service = new CatalogService(createAppContext(), repo)
+    await service.listPublicProducts({ page: 2_147_483_647, limit: 1 })
+    expect(repo.findProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 2_147_483_647, limit: 1 }))
+    const cursor = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    await service.listPublicProducts({ page: 2_147_483_647, limit: 50, cursor })
+    expect(repo.findProducts).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2_147_483_647, limit: 50, cursor }))
+  })
+
   it('lists public products as ACTIVE only with pagination and filters', async () => {
     const repo = createRepoMock()
     vi.mocked(repo.findProducts).mockResolvedValue({
@@ -1759,6 +1777,41 @@ describe('CatalogService', () => {
       heightMm: 50,
     }))
     expect(repo.updateVariant).toHaveBeenCalledWith(variant.id, { weightGrams: null })
+  })
+
+  it.each(['weightGrams', 'lengthMm', 'widthMm', 'heightMm'] as const)('rejects invalid Int32 %s on seller and admin variant writes', async (field) => {
+    const repo = createRepoMock()
+    const service = new CatalogService(createAppContext(), repo)
+    for (const value of [-1, 0.5, 2_147_483_648, 9007199254740993, 1e100]) {
+      const create = { sku: 'BOUNDARY', title: 'Boundary', price: 1000, [field]: value }
+      const update = { [field]: value }
+      for (const operation of [
+        () => service.createVariant(createActor(), 'product-1', create),
+        () => service.createAdminVariant('product-1', create),
+        () => service.updateVariant(createActor(), 'product-1', 'variant-1', update),
+        () => service.updateAdminVariant('product-1', 'variant-1', update),
+      ]) {
+        await expect(operation()).rejects.toMatchObject({ status: 400, code: 'VARIANT_VALIDATION_FAILED' })
+      }
+    }
+    expect(repo.createVariant).not.toHaveBeenCalled()
+    expect(repo.updateVariant).not.toHaveBeenCalled()
+  })
+
+  it.each([0, 2_147_483_647, null])('preserves valid Int32 shipping boundary %s on create and update', async (value) => {
+    const repo = createRepoMock()
+    const product = createProduct({ ownerId: 'seller-1' })
+    const variant = createVariant({ productId: product.id })
+    vi.mocked(repo.findProductById).mockResolvedValue(product)
+    vi.mocked(repo.findVariantById).mockResolvedValue({ ...variant, product })
+    vi.mocked(repo.createVariant).mockResolvedValue(variant)
+    vi.mocked(repo.updateVariant).mockResolvedValue(variant)
+    const service = new CatalogService(createAppContext(), repo)
+    const dimensions = { weightGrams: value, lengthMm: value, widthMm: value, heightMm: value }
+    await service.createVariant(createActor(), product.id, { sku: 'BOUNDARY', title: 'Boundary', price: 1000, ...dimensions })
+    await service.updateVariant(createActor(), product.id, variant.id, dimensions)
+    expect(repo.createVariant).toHaveBeenCalledWith(expect.objectContaining(dimensions))
+    expect(repo.updateVariant).toHaveBeenCalledWith(variant.id, dimensions)
   })
 
   it('deletes variants only after ownership validation', async () => {

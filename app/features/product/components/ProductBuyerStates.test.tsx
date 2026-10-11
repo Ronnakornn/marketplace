@@ -201,8 +201,8 @@ vi.mock("#/features/product/queries", () => ({
         categories: Array.isArray(facets.categories) ? facets.categories : [],
         brands: Array.isArray(facets.brands) ? facets.brands : [],
         price: {
-          min: typeof price.min === "number" ? price.min : null,
-          max: typeof price.max === "number" ? price.max : null,
+          min: typeof price.min === "number" || typeof price.min === "string" ? price.min : null,
+          max: typeof price.max === "number" || typeof price.max === "string" ? price.max : null,
           currency: typeof price.currency === "string" ? price.currency : "THB",
         },
       },
@@ -662,9 +662,9 @@ describe("ProductListingPage buyer states", () => {
     expect(await screen.findByText("Faceted listing product")).toBeTruthy();
     expect(screen.getAllByRole("link", { name: /Fashion\s*3/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Acme\s*2/ }).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("THB 100 - 900").length).toBeGreaterThan(0);
-    expect(screen.getAllByPlaceholderText("100").length).toBeGreaterThan(0);
-    expect(screen.getAllByPlaceholderText("900").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("THB 1.00 - 9.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByPlaceholderText("1").length).toBeGreaterThan(0);
+    expect(screen.getAllByPlaceholderText("9").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Sort by").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Price low" }).length).toBeGreaterThan(0);
 
@@ -690,11 +690,88 @@ describe("ProductListingPage buyer states", () => {
     expect(await screen.findByText("Filtered product")).toBeTruthy();
     const categoryChip = screen.getAllByRole("link", { name: /Fashion/ }).find((link) => !link.getAttribute("href")?.includes("categoryId=fashion"));
     const brandChip = screen.getAllByRole("link", { name: /Acme/ }).find((link) => !link.getAttribute("href")?.includes("brandId=brand-1"));
-    const priceChip = screen.getAllByRole("link", { name: /100 - 900/ }).find((link) => !link.getAttribute("href")?.includes("minPrice=100"));
+    const priceChip = screen.getAllByRole("link", { name: /THB 1 - 9/ }).find((link) => !link.getAttribute("href")?.includes("minPrice=100"));
     expect(categoryChip?.getAttribute("href")).toContain("brandId=brand-1");
     expect(brandChip?.getAttribute("href")).toContain("categoryId=fashion");
     expect(priceChip?.getAttribute("href")).not.toContain("maxPrice=900");
     expect(screen.getAllByRole("link", { name: "Clear filters" })[0]?.getAttribute("href")).toBe("/search?q=bag");
+  });
+
+  it("edits major-unit prices while preserving minor-unit URL filters and other selected filters", async () => {
+    renderWithClient(<ProductListingPage mode="search" query="bag" categoryId="fashion" brandId="brand-1" minPrice="100" maxPrice="900" rating="4" inStock="true" />);
+    const form = screen.getAllByRole("button", { name: "Apply filters" })[0]!.closest("form")!;
+    const min = form.querySelector<HTMLInputElement>('input[name="minPrice"]')!;
+    const max = form.querySelector<HTMLInputElement>('input[name="maxPrice"]')!;
+    expect(min.value).toBe("1");
+    expect(max.value).toBe("9");
+    fireEvent.change(min, { target: { value: "100.01" } });
+    fireEvent.change(max, { target: { value: "125.50" } });
+    fireEvent.submit(form);
+    const destination = new URL(queryMocks.routerPush.mock.calls.at(-1)![0], "http://localhost");
+    expect(destination.pathname).toBe("/en/search");
+    expect(Object.fromEntries(destination.searchParams)).toMatchObject({
+      q: "bag", categoryId: "fashion", brandId: "brand-1", rating: "4", inStock: "true",
+      minPrice: "10001", maxPrice: "12550",
+    });
+  });
+
+  it("formats canonical money facets above the safe-number limit exactly", async () => {
+    queryMocks.productsResponse = {
+      items: [createProductCardFixture({ title: "Large price product" })],
+      facets: { price: { min: "9007199254740993", max: "9223372036854775807", currency: "THB" } },
+    };
+    renderWithClient(<ProductListingPage mode="search" query="large" />);
+    await screen.findByText("Large price product");
+    expect(screen.getAllByText("THB 90071992547409.93 - 92233720368547758.07").length).toBeGreaterThan(0);
+    expect(screen.getAllByPlaceholderText("90071992547409.93").length).toBeGreaterThan(0);
+  });
+
+  it.each(["0.001", "-1", "90071992547409.92", "garbage"])("rejects invalid price input %s before navigation", (value) => {
+    renderWithClient(<ProductListingPage mode="search" query="bag" />);
+    const form = screen.getAllByRole("button", { name: "Apply filters" })[0]!.closest("form")!;
+    fireEvent.change(form.querySelector('input[name="minPrice"]')!, { target: { value } });
+    fireEvent.submit(form);
+    expect(queryMocks.routerPush).not.toHaveBeenCalled();
+    expect(within(form).getByRole("alert")).toBeTruthy();
+  });
+
+  it("rejects a reversed price range and clears an empty bound", () => {
+    renderWithClient(<ProductListingPage mode="search" query="bag" minPrice="100" maxPrice="900" />);
+    const form = screen.getAllByRole("button", { name: "Apply filters" })[0]!.closest("form")!;
+    fireEvent.change(form.querySelector('input[name="minPrice"]')!, { target: { value: "10" } });
+    fireEvent.submit(form);
+    expect(queryMocks.routerPush).not.toHaveBeenCalled();
+    expect(within(form).getByRole("alert")).toBeTruthy();
+    fireEvent.change(form.querySelector('input[name="maxPrice"]')!, { target: { value: "" } });
+    fireEvent.submit(form);
+    const destination = new URL(queryMocks.routerPush.mock.calls.at(-1)![0], "http://localhost");
+    expect(destination.searchParams.get("minPrice")).toBe("1000");
+    expect(destination.searchParams.has("maxPrice")).toBe(false);
+  });
+
+  it("resets edited prices and validation when URL price filters change or are removed", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const listing = (minPrice?: string, maxPrice?: string) => <QueryClientProvider client={client}>
+      <ProductListingPage mode="search" query="bag" minPrice={minPrice} maxPrice={maxPrice} />
+    </QueryClientProvider>;
+    const view = render(listing("100", "900"));
+    const firstForm = screen.getAllByRole("button", { name: "Apply filters" })[0]!.closest("form")!;
+    fireEvent.change(firstForm.querySelector('input[name="minPrice"]')!, { target: { value: "0.001" } });
+    fireEvent.submit(firstForm);
+    expect(within(firstForm).getByRole("alert")).toBeTruthy();
+
+    view.rerender(listing("200", "1000"));
+    const changedForm = screen.getAllByRole("button", { name: "Apply filters" })[0]!.closest("form")!;
+    expect(changedForm.querySelector<HTMLInputElement>('input[name="minPrice"]')!.value).toBe("2");
+    expect(changedForm.querySelector<HTMLInputElement>('input[name="maxPrice"]')!.value).toBe("10");
+    expect(within(changedForm).queryByRole("alert")).toBeNull();
+    fireEvent.change(changedForm.querySelector('input[name="minPrice"]')!, { target: { value: "3.50" } });
+
+    view.rerender(listing());
+    const clearedForm = screen.getAllByRole("button", { name: "Apply filters" })[0]!.closest("form")!;
+    expect(clearedForm.querySelector<HTMLInputElement>('input[name="minPrice"]')!.value).toBe("");
+    expect(clearedForm.querySelector<HTMLInputElement>('input[name="maxPrice"]')!.value).toBe("");
+    expect(within(clearedForm).queryByRole("alert")).toBeNull();
   });
 
   it("keeps listing usable when products load without facet metadata", async () => {

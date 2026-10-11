@@ -231,7 +231,7 @@ export class AiSearchService {
       price: {
         minPrice: item.minPrice,
         maxPrice: item.maxPrice,
-        currency: 'USD',
+        currency: item.variants[0]?.currency ?? 'THB',
       },
       rating: item.ratingSummary,
       shop: item.shop,

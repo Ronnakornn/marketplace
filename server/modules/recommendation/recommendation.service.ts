@@ -10,6 +10,7 @@ import type { IRecommendationRepository, RecommendationProductRecord, Recommende
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
 const DEFAULT_PAGE = 1
+const MAX_PAGINATION_OFFSET = 2_147_483_647
 
 export interface RecommendationQueryInput {
   page?: number
@@ -157,17 +158,21 @@ export class RecommendationService {
     const page = input.page ?? DEFAULT_PAGE
     const limit = input.limit ?? DEFAULT_LIMIT
 
-    if (!Number.isInteger(page) || page < 1) {
+    if (!Number.isSafeInteger(page) || page < 1 || page > MAX_PAGINATION_OFFSET) {
       throw new RecommendationServiceError('Page must be a positive integer', 400, 'INVALID_RECOMMENDATION_QUERY')
     }
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
       throw new RecommendationServiceError(`Limit must be between 1 and ${MAX_LIMIT}`, 400, 'INVALID_RECOMMENDATION_QUERY')
     }
+    const offset = (page - 1) * limit
+    if (offset > MAX_PAGINATION_OFFSET) {
+      throw new RecommendationServiceError('Pagination offset exceeds the supported range', 400, 'INVALID_RECOMMENDATION_QUERY')
+    }
 
     return {
       page,
       limit,
-      offset: (page - 1) * limit,
+      offset,
       locale: resolveContentLocale(input.locale),
     }
   }

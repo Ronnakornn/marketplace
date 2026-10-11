@@ -26,17 +26,17 @@ export function OrderTrackingPage({ orderId }: { orderId: string }) {
         {trackingQuery.isError ? <BuyerErrorState message={trackingQuery.error.message} onRetry={() => void trackingQuery.refetch()} /> : null}
         {trackingQuery.data?.shipments.length === 0 ? <BuyerEmptyState title={t("order.noTrackingTitle")} description={t("order.noTrackingDescription")} /> : null}
         {trackingQuery.data?.shipments.map((shipment) => (
-          <section key={shipment.id} className="rounded-lg border border-slate-200 bg-white p-4">
+          <section key={shipment.shipmentId} className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h2 className="flex items-center gap-2 font-bold"><TruckIcon className="size-5 text-orange-600" />{shipment.shopName}</h2>
-                <p className="mt-1 text-sm text-slate-500">{shipment.carrier ?? t("order.carrierPending")} {shipment.trackingNumber ?? ""}</p>
+                <p className="mt-1 text-sm text-slate-500">{shipment.carrier ?? t("order.carrierPending")} {shipment.trackingNo ?? ""}</p>
               </div>
               <Badge variant="secondary" className="rounded-md">{shipment.status}</Badge>
             </div>
             <div className="space-y-4">
-              {(shipment.timeline.length ? shipment.timeline : [{ label: shipment.status, status: shipment.status, timestamp: trackingQuery.data.createdAt }]).map((step, index) => (
-                <div key={`${shipment.id}-${index}`} className="grid grid-cols-[20px_1fr] gap-3">
+              {shipment.timeline.map((step, index) => (
+                <div key={`${shipment.shipmentId}-${index}`} className="grid grid-cols-[20px_1fr] gap-3">
                   <div className="flex flex-col items-center">
                     <span className="size-3 rounded-full bg-orange-600" />
                     {index < shipment.timeline.length - 1 ? <span className="mt-1 h-full w-px bg-slate-200" /> : null}

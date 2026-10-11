@@ -1,4 +1,4 @@
-import { toMoneyDto } from '#server/lib/money.ts'
+import { moneyInteger, toMoneyDto } from '#server/lib/money.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { AiSearchConfig } from './ai-search.config.ts'
@@ -135,11 +135,17 @@ export class ShoppingAssistantService {
     }
     const topProducts = products.slice(0, 3).map((product) => {
       const price = product.price.maxPrice === null
-        ? `${product.price.minPrice} ${product.price.currency}`
-        : `${product.price.minPrice}-${product.price.maxPrice} ${product.price.currency}`
+        ? `${this.decimalPrice(product.price.minPrice)} ${product.price.currency}`
+        : `${this.decimalPrice(product.price.minPrice)}-${this.decimalPrice(product.price.maxPrice)} ${product.price.currency}`
       return `${product.title} from ${product.shop.name} at ${price}, stock ${product.stockAvailability}`
     })
     return `Based on active catalog matches, consider ${topProducts.join('; ')}. Pricing and stock are from the current product records. If you need a tighter recommendation, please clarify budget, size, or preferred category.`
+  }
+
+  private decimalPrice(value: bigint): string {
+    const minor = moneyInteger(value)
+    const absolute = minor < 0n ? -minor : minor
+    return `${minor < 0n ? '-' : ''}${absolute / 100n}.${(absolute % 100n).toString().padStart(2, '0')}`
   }
 
   private normalizeMessages(messages: ShoppingAssistantMessage[]): ShoppingAssistantMessage[] {

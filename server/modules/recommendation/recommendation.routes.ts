@@ -4,8 +4,8 @@ import type { ServiceContainer } from '#server/context/app-context.ts'
 import { RecommendationServiceError } from './recommendation.errors.ts'
 
 const RecommendationQuerySchema = t.Object({
-  page: t.Optional(t.Number({ minimum: 1 })),
-  limit: t.Optional(t.Number({ minimum: 1, maximum: 50 })),
+  page: t.Optional(t.Integer({ minimum: 1, maximum: 2_147_483_647 })),
+  limit: t.Optional(t.Integer({ minimum: 1, maximum: 50 })),
   locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])),
 })
 

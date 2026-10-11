@@ -393,10 +393,10 @@ export class PromotionService {
     if (!Number.isInteger(payload.salePrice) || payload.salePrice <= 0 || payload.salePrice >= regularPrice) {
       throw new PromotionServiceError('Flash sale price must be below the active product price', 400, 'FLASH_SALE_PRICE_INVALID')
     }
-    if (!Number.isInteger(payload.stockLimit) || payload.stockLimit < 1 || (
+    if (!Number.isInteger(payload.stockLimit) || payload.stockLimit < 1 || payload.stockLimit > 2_147_483_647 || (
       payload.perUserLimit !== undefined
       && payload.perUserLimit !== null
-      && (!Number.isInteger(payload.perUserLimit) || payload.perUserLimit < 1)
+      && (!Number.isInteger(payload.perUserLimit) || payload.perUserLimit < 1 || payload.perUserLimit > 2_147_483_647)
     )) {
       throw new PromotionServiceError('Flash sale quota is invalid', 400, 'FLASH_SALE_QUOTA_INVALID')
     }
@@ -409,7 +409,7 @@ export class PromotionService {
   }
 
   private async assertFlashSaleItemDeletable(item: Awaited<ReturnType<IPromotionRepository['findFlashSaleItemById']>> & {}): Promise<void> {
-    const activeReservations = await this.repo.sumActiveFlashSaleReservations(item.id, new Date())
+    const activeReservations = await this.repo.sumActiveFlashSaleReservations(item.id)
     if (item.soldCount > 0 || activeReservations > 0) {
       throw new PromotionServiceError('Flash sale item has sold or reserved quantity', 409, 'FLASH_SALE_ITEM_LOCKED')
     }
@@ -460,13 +460,13 @@ export class PromotionService {
       throw new PromotionServiceError('Flash sale price must be below the active product price', 400, 'FLASH_SALE_PRICE_INVALID')
     }
     if (payload.perUserLimit !== undefined && payload.perUserLimit !== null && (
-      !Number.isInteger(payload.perUserLimit) || payload.perUserLimit < 1
+      !Number.isInteger(payload.perUserLimit) || payload.perUserLimit < 1 || payload.perUserLimit > 2_147_483_647
     )) {
       throw new PromotionServiceError('Flash sale per-user quota is invalid', 400, 'FLASH_SALE_QUOTA_INVALID')
     }
     if (payload.stockLimit !== undefined) {
-      const activeReservations = await this.repo.sumActiveFlashSaleReservations(itemId, new Date())
-      if (!Number.isInteger(payload.stockLimit) || payload.stockLimit < item.soldCount + activeReservations) {
+      const activeReservations = await this.repo.sumActiveFlashSaleReservations(itemId)
+      if (!Number.isInteger(payload.stockLimit) || payload.stockLimit > 2_147_483_647 || payload.stockLimit < 0 || payload.stockLimit < item.soldCount + activeReservations) {
         throw new PromotionServiceError('Flash sale quota cannot be lower than sold and reserved quantity', 400, 'FLASH_SALE_QUOTA_INVALID')
       }
     }
