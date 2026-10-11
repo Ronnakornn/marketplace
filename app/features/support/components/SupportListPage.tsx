@@ -38,8 +38,8 @@ export function SupportListPage({ role }: { role: SupportRole }) {
     {query.data ? <>
       {query.data.items.length === 0 ? <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">{t('support.empty')}</p> : <div className="space-y-3">
         {query.data.items.map((ticket) => <Link key={ticket.id} href={localePath(`${supportBase(role)}/${ticket.id}${shopId ? `?shopId=${encodeURIComponent(shopId)}` : ''}`)} className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-orange-400 focus-visible:outline-orange-600">
-          <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-semibold">{ticket.subject}</h2><Badge variant="outline">{t(`support.status.${ticket.status}`)}</Badge></div>
-          <p className="mt-2 text-sm text-slate-600">{ticket.shop?.name ?? t('support.platformSupport')}</p>
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2"><h2 className="min-w-0 flex-1 break-words font-semibold">{ticket.subject}</h2><Badge variant="outline">{t(`support.status.${ticket.status}`)}</Badge></div>
+          <p className="mt-2 break-words text-sm text-slate-600">{ticket.shop?.name ?? t('support.platformSupport')}</p>
           {ticket.disputes.length ? <p className="mt-1 text-sm font-medium text-orange-700">{t('support.returnAppeal')}</p> : null}
           <p className="mt-2 text-xs text-slate-500">{formatters.date(ticket.updatedAt)}</p>
         </Link>)}

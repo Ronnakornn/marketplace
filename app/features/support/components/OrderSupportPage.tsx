@@ -26,7 +26,7 @@ export function OrderSupportPage({ orderId }: { orderId: string }) {
     {orderQuery.isLoading ? <SupportLoading /> : null}
     {orderQuery.isError ? <SupportError retry={() => void orderQuery.refetch()} /> : null}
     {orderQuery.data ? <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
-      <h2 className="font-semibold">{orderQuery.data.orderNo}</h2>
+      <h2 className="min-w-0 break-words font-semibold">{orderQuery.data.orderNo}</h2>
       <p className="text-sm text-slate-600">{t('support.chooseShop')}</p>
       <div className="flex flex-wrap gap-2">
         <Button asChild variant="outline"><Link href={localePath(`/support/new?orderId=${orderId}`)}>{t('support.platformSupport')}</Link></Button>
@@ -40,12 +40,12 @@ export function OrderSupportPage({ orderId }: { orderId: string }) {
       {returnsQuery.isError ? <SupportError retry={() => void returnsQuery.refetch()} /> : null}
       {returnsQuery.data ? <>
         {returnsQuery.data.items.length === 0 ? <p className="text-sm text-slate-600">{t('support.noRejectedReturns')}</p> : returnsQuery.data.items.map((request) => <div key={request.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3">
-          <div><p className="font-medium">{request.shopName}</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{request.reason}</p></div>
+          <div className="min-w-0 flex-1"><p className="break-words font-medium">{request.shopName}</p><p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-600">{request.reason}</p></div>
           {request.ticketId ? <Button asChild variant="outline"><Link href={localePath(`/support/${request.ticketId}`)}>{t('support.viewAppeal')}</Link></Button> : <Button variant="outline" onClick={() => setSelectedReturnId(request.id)}>{t('support.appealReturn')}</Button>}
         </div>)}
         <SupportPaging page={page} total={returnsQuery.data.total} onPage={(next) => { setSelectedReturnId(null); setPage(next) }} busy={returnsQuery.isFetching} />
       </> : null}
     </section>
-    {selected && !selected.ticketId ? <section className="space-y-3"><h2 className="text-lg font-semibold">{t('support.appealReturn')} · {selected.shopName}</h2><SupportCreateForm key={selected.id} context={{ kind: 'appeal', returnRequestId: selected.id, orderId }} /></section> : null}
+    {selected && !selected.ticketId ? <section className="space-y-3"><h2 className="min-w-0 break-words text-lg font-semibold">{t('support.appealReturn')} · {selected.shopName}</h2><SupportCreateForm key={selected.id} context={{ kind: 'appeal', returnRequestId: selected.id, orderId }} /></section> : null}
   </SupportFrame>
 }

@@ -30,13 +30,13 @@ export function SupportDetailPage({ role, ticketId }: { role: SupportRole; ticke
     {query.isError ? <SupportError retry={() => void query.refetch()} /> : null}
     {ticket && query.data ? <>
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-xl font-bold">{ticket.subject}</h1><Badge variant="outline">{t(`support.status.${ticket.status}`)}</Badge></div>
-        <p className="text-sm text-slate-600">{ticket.shop?.name ?? t('support.platformSupport')}</p>
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><h1 className="min-w-0 flex-1 break-words text-xl font-bold">{ticket.subject}</h1><Badge variant="outline">{t(`support.status.${ticket.status}`)}</Badge></div>
+        <p className="break-words text-sm text-slate-600">{ticket.shop?.name ?? t('support.platformSupport')}</p>
         {role === 'buyer' && ticket.orderId ? <Link href={localePath(`/orders/${ticket.orderId}`)} className="inline-block text-sm font-medium text-orange-700">{t('support.backToOrder')}</Link> : null}
         {ticket.disputes.map((dispute) => <div key={dispute.id} className="space-y-2 rounded-lg bg-orange-50 p-4">
-          <h2 className="font-semibold">{t('support.returnAppeal')} · {t(`support.disputeStatus.${dispute.status}`)}</h2>
-          <p className="whitespace-pre-wrap text-sm">{dispute.reason}</p>
-          {dispute.decision ? <p className="whitespace-pre-wrap text-sm"><span className="font-semibold">{t('support.decision')}</span> · {dispute.decision}</p> : null}
+          <h2 className="min-w-0 break-words font-semibold">{t('support.returnAppeal')} · {t(`support.disputeStatus.${dispute.status}`)}</h2>
+          <p className="whitespace-pre-wrap break-words text-sm">{dispute.reason}</p>
+          {dispute.decision ? <p className="whitespace-pre-wrap break-words text-sm"><span className="font-semibold">{t('support.decision')}</span> · {dispute.decision}</p> : null}
           {dispute.resolvedAt ? <p className="text-xs text-slate-600">{formatters.date(dispute.resolvedAt)}</p> : null}
           <p className="text-xs text-slate-600">{t('support.decisionScope')}</p>
         </div>)}
