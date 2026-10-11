@@ -99,6 +99,9 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button asChild variant="outline" className="rounded-full">
+                  <Link href={localePath(`/orders/${orderQuery.data.id}/support`)}>{t("support.orderHelp")}</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full">
                   <Link href={localePath(`/orders/${orderQuery.data.id}/review`)}>{t("order.reviewItems")}</Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-full">

@@ -57,6 +57,7 @@ export function ProfilePage() {
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="font-bold text-slate-950">{t("buyer.buyerShortcuts")}</h2>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/support")}><MessageCircleIcon className="size-4 text-orange-600" />{t("support.title")}</Link></Button>
                 <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/orders")}><PackageIcon className="size-4 text-orange-600" />{t("buyer.myOrders")}</Link></Button>
                 <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/chat")}><MessageCircleIcon className="size-4 text-orange-600" />{t("buyer.buyerChat")}</Link></Button>
                 <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/account/addresses")}><MapPinIcon className="size-4 text-orange-600" />{t("buyer.addresses")}</Link></Button>

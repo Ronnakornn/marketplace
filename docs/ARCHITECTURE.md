@@ -178,6 +178,19 @@ an internal settlement reference through the same field. Neither proves a real
 provider transfer. The browser displays server-calculated amounts and requires
 review of a refreshed PENDING plan before processing.
 
+## Support conversations and appeals
+
+The support module owns ticket, message, and dispute writes. Buyer and active-shop
+owner scopes filter access in the repository. Private administrator notes are
+excluded before public message pagination and counts. Seller projections do not
+load order, payment, shipping address, or user contact relations.
+
+Rejected-return appeals use nullable unique `DisputeCase.returnRequestId`.
+Creation locks Order and returns an existing appeal on retry. Ticket mutations
+lock Order before SupportTicket. Final decisions and administrator SYSTEM notes
+commit atomically and have no financial or inventory effects. See
+[support cases](support-cases.md) for API, access, and transition details.
+
 ## Database Workflow
 
 After editing `prisma/schema.prisma`:

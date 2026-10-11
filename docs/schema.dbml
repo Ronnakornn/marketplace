@@ -1030,3 +1030,62 @@ Table push_subscriptions {
 Ref: shop_wallets.(id, shop_id) < wallet_ledger_entries.(wallet_id, shop_id)
 Ref: shop_wallets.(id, shop_id) < seller_payouts.(wallet_id, shop_id)
 Ref: shop_wallets.(id, shop_id) < seller_transactions.(wallet_id, shop_id)
+
+Table support_tickets {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  shop_id uuid [ref: > shops.id]
+  order_id uuid [ref: > orders.id]
+  subject text [not null]
+  status varchar [not null, default: "OPEN"]
+  priority varchar [not null, default: "NORMAL"]
+  category varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  closed_at timestamp
+
+  indexes {
+    (user_id, created_at)
+    (shop_id, status, priority, updated_at)
+    (status, priority, updated_at)
+    order_id
+  }
+}
+
+Table ticket_messages {
+  id uuid [pk]
+  ticket_id uuid [not null, ref: > support_tickets.id]
+  sender_id uuid [ref: > users.id]
+  sender_type varchar [not null]
+  body text [not null]
+  attachments jsonb
+  is_internal boolean [not null, default: false]
+  created_at timestamp [not null]
+
+  indexes {
+    (ticket_id, created_at)
+    sender_id
+  }
+}
+
+Table dispute_cases {
+  id uuid [pk]
+  ticket_id uuid [ref: > support_tickets.id]
+  order_id uuid [ref: > orders.id]
+  return_request_id uuid [unique, ref: > return_requests.id]
+  opened_by_id uuid [not null, ref: > users.id]
+  status varchar [not null, default: "OPEN"]
+  reason text [not null]
+  decision text
+  compensation bigint
+  resolved_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    ticket_id
+    (order_id, status)
+    (opened_by_id, created_at)
+    (status, updated_at)
+  }
+}
