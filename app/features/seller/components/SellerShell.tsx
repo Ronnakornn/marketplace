@@ -60,6 +60,7 @@ const navItems = [
   { href: "/seller/inventory", labelKey: "seller.nav.inventory", icon: ClipboardListIcon },
   { href: "/seller/orders", labelKey: "seller.nav.orders", icon: PackageCheckIcon },
   { href: "/seller/returns", labelKey: "seller.nav.returns", icon: RotateCcwIcon },
+  { href: "/seller/support", labelKey: "support.title", icon: MessageCircleIcon },
   { href: "/seller/promotions", labelKey: "seller.nav.promotions", icon: MegaphoneIcon },
   { href: "/seller/finance", labelKey: "seller.nav.finance", icon: BanknoteIcon },
   { href: "/seller/chat", labelKey: "seller.nav.chat", icon: MessageCircleIcon },

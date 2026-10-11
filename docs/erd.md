@@ -555,9 +555,45 @@ erDiagram
   USER ||--o{ CHAT_MESSAGE : sends
   USER ||--o{ NOTIFICATION : receives
   USER ||--o{ PUSH_SUBSCRIPTION : registers
+  USER ||--o{ SUPPORT_TICKET : opens
+  SHOP ||--o{ SUPPORT_TICKET : participates
+  ORDER ||--o{ SUPPORT_TICKET : provides_context
+  SUPPORT_TICKET ||--o{ TICKET_MESSAGE : contains
+  SUPPORT_TICKET ||--o{ DISPUTE_CASE : tracks
+  RETURN_REQUEST ||--o| DISPUTE_CASE : appealed_once
+  SUPPORT_TICKET {
+    string id PK
+    string userId FK
+    string shopId FK
+    string orderId FK
+    string subject
+    string status
+    datetime closedAt
+  }
+  TICKET_MESSAGE {
+    string id PK
+    string ticketId FK
+    string senderId FK
+    string senderType
+    string body
+    boolean isInternal
+    datetime createdAt
+  }
+  DISPUTE_CASE {
+    string id PK
+    string ticketId FK
+    string orderId FK
+    string returnRequestId FK,UK
+    string openedById FK
+    string status
+    string reason
+    string decision
+    datetime resolvedAt
+  }
 ```
 
 Notes:
+- `DISPUTE_CASE.returnRequestId` is nullable and unique. The support module accepts an owned rejected Return, derives shop/order context, and records decisions without changing financial or Return state. See [support cases](support-cases.md).
 - `USER.role` contains only `USER` and `ADMIN`; seller capability is modeled through `SELLER_PROFILE`, `SELLER_APPLICATION`, shop ownership, and active `SHOP_STAFF` membership.
 - `USER.emailVerified` gates verified-only marketplace and admin flows. `USER.phone` is normalized profile identity data, unique when present; `USER.phoneVerified` defaults to false and does not enable phone login in Auth v1.
 - Seller onboarding starts with `SELLER_APPLICATION`, may create or link a `SELLER_PROFILE`, stores KYC evidence through `SELLER_KYC_DOCUMENT`, and creates a `SHOP` once approved.

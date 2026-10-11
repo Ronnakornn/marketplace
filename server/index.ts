@@ -29,6 +29,7 @@ import { createRefundRoutes } from "#server/modules/refund";
 import { createRecommendationRoutes } from "#server/modules/recommendation";
 import { createRealtimeRoutes } from "#server/modules/realtime";
 import { createReturnRoutes } from "#server/modules/return";
+import { createSupportRoutes } from "#server/modules/support";
 import { createReviewRoutes } from "#server/modules/review";
 import { createShopReviewRoutes } from "#server/modules/shop-review";
 import { createProductQuestionRoutes } from "#server/modules/product-question";
@@ -181,6 +182,7 @@ const baseApp = new Elysia()
 
   // --- Return routes ---
   .use(createReturnRoutes(container))
+  .use(createSupportRoutes(container))
 
   // --- Refund routes ---
   .use(createRefundRoutes(container))

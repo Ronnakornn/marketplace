@@ -74,6 +74,12 @@ interface AdminSidebarNavProps {
 
 const ADMIN_NAV_ITEMS = [
   {
+    title: "support.title",
+    href: "/admin/support",
+    icon: MessageSquareWarningIcon,
+    match: (pathname: string) => pathname.startsWith("/admin/support"),
+  },
+  {
     title: "admin.nav.dashboard",
     href: "/admin/dashboard",
     icon: LayoutDashboardIcon,

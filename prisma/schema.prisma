@@ -2164,6 +2164,7 @@ model ReturnRequest {
   user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   items   ReturnItem[]
   refunds Refund[]
+  dispute DisputeCase?
 
   @@index([orderId, status])
   @@index([shopId, status, createdAt])
@@ -2903,6 +2904,7 @@ model TicketMessage {
 
 model DisputeCase {
   id           String            @id @default(uuid()) @db.Uuid
+  returnRequestId String?         @unique @db.Uuid
   ticketId     String?           @db.Uuid
   orderId      String?           @db.Uuid
   openedById   String            @db.Uuid
@@ -2917,6 +2919,7 @@ model DisputeCase {
   ticket   SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
   order    Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
   openedBy User           @relation("DisputeOpenedBy", fields: [openedById], references: [id], onDelete: Cascade)
+  returnRequest ReturnRequest? @relation(fields: [returnRequestId], references: [id], onDelete: SetNull)
 
   @@index([ticketId])
   @@index([orderId, status])

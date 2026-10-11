@@ -41,6 +41,7 @@ import { PrismaOrderRepository } from '#server/modules/order/order.repository.ts
 import { OrderService } from '#server/modules/order/order.service.ts'
 import { PrismaReturnRepository } from '#server/modules/return/return.repository.ts'
 import { ReturnService } from '#server/modules/return/return.service.ts'
+import { SupportService, PrismaSupportRepository } from '#server/modules/support'
 import { PrismaRecommendationRepository, RecommendationService } from '#server/modules/recommendation'
 import { PrismaSearchRepository } from '#server/modules/search/search.repository.ts'
 import { SearchService } from '#server/modules/search/search.service.ts'
@@ -124,6 +125,7 @@ export interface ServiceContainer {
   refundService: RefundService
   recommendationService: RecommendationService
   returnService: ReturnService
+  supportService: SupportService
   reviewService: ReviewService
   shopReviewService: ShopReviewService
   searchService: SearchService
@@ -148,6 +150,7 @@ export function createContainer(): ServiceContainer {
   const logger = createLogger({ environment, level: process.env['LOG_LEVEL'] })
   const config: AppConfig = { environment }
   const appContext: AppContext = { logger, config }
+  const supportService = new SupportService(appContext, new PrismaSupportRepository(appContext, prisma))
   const emailService = createEmailService(appContext)
   const observabilityConfig = getObservabilityConfigFromEnv()
   const aiSearchConfig = getAiSearchConfigFromEnv()
@@ -330,6 +333,7 @@ export function createContainer(): ServiceContainer {
     refundService,
     recommendationService,
     returnService,
+    supportService,
     reviewService,
     shopReviewService,
     searchService,

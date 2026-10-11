@@ -15,6 +15,7 @@ import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
 import { shouldRetryQuery } from "#/lib/query-client";
 import { formatOrderStatus } from "../order-status";
+import { BuyAgainButton } from "./BuyAgainButton";
 
 export function OrderDetailPage({ orderId }: { orderId: string }) {
   const router = useRouter();
@@ -98,12 +99,16 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button asChild variant="outline" className="rounded-full">
+                  <Link href={localePath(`/orders/${orderQuery.data.id}/support`)}>{t("support.orderHelp")}</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full">
                   <Link href={localePath(`/orders/${orderQuery.data.id}/review`)}>{t("order.reviewItems")}</Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-full">
                   <Link href={localePath(`/orders/${orderQuery.data.id}/returns/new`)}>{t("order.returnRefund")}</Link>
                 </Button>
               </div>
+              <BuyAgainButton orderId={orderQuery.data.id} />
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-4">
