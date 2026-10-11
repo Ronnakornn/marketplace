@@ -499,6 +499,31 @@
     }
   },
   "order": {
+    "buyAgain": {
+      "button": "Buy again",
+      "checking": "Checking items...",
+      "notice": "Current prices and stock apply. Existing quantities are kept, and repeating this action does not add the order quantities twice.",
+      "error": "Unable to add these items. Try again.",
+      "summary": "Added {count} units to your cart.",
+      "cartReady": "These items are already in your cart at current prices.",
+      "none": "No items could be added. Your cart quantities are unchanged.",
+      "added": "Added {added}. Cart quantity: {final}.",
+      "partial": "Added {added}. Cart quantity: {final} of {target} requested. The remaining stock is unavailable.",
+      "alreadyInCart": "Already in cart: {quantity}. Current price applied.",
+      "skipped": "Skipped: {reason}",
+      "currentPrice": "Current unit price:",
+      "openCart": "Open cart",
+      "reasons": {
+        "VARIANT_NOT_FOUND": "This variant no longer exists.",
+        "VARIANT_UNAVAILABLE": "This variant is unavailable.",
+        "PRODUCT_UNAVAILABLE": "This product is unavailable.",
+        "SHOP_UNAVAILABLE": "This shop is unavailable.",
+        "PRICE_UNAVAILABLE": "This product has no valid current price.",
+        "CURRENCY_UNSUPPORTED": "This product does not use the supported THB currency.",
+        "OUT_OF_STOCK": "No stock remains after reservations.",
+        "EXISTING_QUANTITY_EXCEEDS_STOCK": "Your existing cart quantity exceeds available stock. Review it in your cart."
+      }
+    },
     "cancel": "Cancel order",
     "cancelConfirm": "Cancel this order? Its reserved stock will be released.",
     "cancelError": "This order can no longer be cancelled.",
