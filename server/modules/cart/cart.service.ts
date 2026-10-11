@@ -5,7 +5,11 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import type { TrackingService } from '#server/modules/tracking'
 import { CartServiceError } from './cart.errors.ts'
-import type { ActiveCartDetail, CartItemDetail, ICartRepository } from './cart.repository.ts'
+import type { ActiveCartDetail, CartItemDetail, HistoricalCartItem, ICartRepository } from './cart.repository.ts'
+import type { BuyAgainItemOutcome, BuyAgainResult, BuyAgainSkipReason } from './buy-again.ts'
+
+const MARKETPLACE_CURRENCY = 'THB'
+const MAX_CART_QUANTITY = 2_147_483_647
 
 export interface CartActor {
   id: string
@@ -95,10 +99,15 @@ export class CartService {
 
       const existing = cart.items.find((item) => item.variantId === data.variantId)
       const nextQuantity = (existing?.quantity ?? 0) + data.quantity
+      this.assertPositiveQuantity(nextQuantity)
       this.assertStockAvailable(variant, nextQuantity)
 
       const savedItem = existing
-        ? await repo.updateItemQuantity(existing.id, nextQuantity)
+        ? await repo.updateItem(existing.id, {
+          quantity: nextQuantity,
+          unitPrice: this.toMoneyInteger(this.getVariantPrice(variant)),
+          currency: variant.currency,
+        })
         : await repo.createItem({
           cartId: cart.id,
           variantId: variant.id,
@@ -127,7 +136,11 @@ export class CartService {
       if (!item) throw new CartServiceError('Cart item not found', 404, 'CART_ITEM_NOT_FOUND')
       this.assertVariantPurchasable(item.variant)
       this.assertStockAvailable(item.variant, data.quantity)
-      await repo.updateItemQuantity(item.id, data.quantity)
+      await repo.updateItem(item.id, {
+        quantity: data.quantity,
+        unitPrice: this.toMoneyInteger(this.getVariantPrice(item.variant)),
+        currency: item.variant.currency,
+      })
     })
     return this.getCart(actor)
   }
@@ -156,6 +169,79 @@ export class CartService {
     return this.getCart(actor)
   }
 
+  async buyAgain(actor: CartActor, orderId: string): Promise<BuyAgainResult> {
+    this.assertBuyer(actor)
+    const order = await this.repo.findOwnedOrderItems(orderId, actor.id)
+    if (!order) throw new CartServiceError('Order not found', 404, 'ORDER_NOT_FOUND')
+
+    const historical = new Map<string, HistoricalCartItem>()
+    for (const item of order.items) {
+      this.assertPositiveQuantity(item.quantity)
+      const quantity = (historical.get(item.variantId)?.quantity ?? 0) + item.quantity
+      this.assertPositiveQuantity(quantity)
+      historical.set(item.variantId, { ...item, quantity })
+    }
+
+    return this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
+      this.assertActiveCart(cart)
+      const variants = new Map((await repo.findVariantsForCart([...historical.keys()])).map(variant => [variant.id, variant]))
+      const existingItems = new Map(cart.items.map(item => [item.variantId, item]))
+      const items: BuyAgainItemOutcome[] = []
+
+      for (const item of historical.values()) {
+        const variant = variants.get(item.variantId) ?? null
+        const existing = existingItems.get(item.variantId)
+        const existingQuantity = existing?.quantity ?? 0
+        const targetQuantity = Math.max(existingQuantity, item.quantity)
+        const availableQuantity = variant ? this.getAvailableQuantity(variant) : 0
+        const unitPrice = variant ? this.toMoneyInteger(variant.price) : null
+        const quantities = {
+          variantId: item.variantId,
+          productTitle: item.productTitle,
+          variantTitle: item.variantTitle,
+          requestedQuantity: item.quantity,
+          existingQuantity,
+          targetQuantity,
+          availableQuantity,
+        }
+        const reason = this.buyAgainUnavailableReason(variant)
+        if (reason || !variant || unitPrice === null) {
+          items.push({ ...quantities, kind: 'skipped', reason: reason ?? 'VARIANT_NOT_FOUND', addedQuantity: 0,
+            finalQuantity: existingQuantity, unitPrice, currency: variant?.currency ?? null })
+          continue
+        }
+
+        if (existingQuantity > availableQuantity || availableQuantity === 0) {
+          if (existing) await repo.updateItem(existing.id, { quantity: existingQuantity, unitPrice, currency: variant.currency })
+          items.push({ ...quantities, kind: 'skipped',
+            reason: existingQuantity > availableQuantity ? 'EXISTING_QUANTITY_EXCEEDS_STOCK' : 'OUT_OF_STOCK',
+            addedQuantity: 0, finalQuantity: existingQuantity, unitPrice, currency: variant.currency })
+          continue
+        }
+
+        const finalQuantity = Math.min(targetQuantity, availableQuantity)
+        const addedQuantity = finalQuantity - existingQuantity
+        if (existing) await repo.updateItem(existing.id, { quantity: finalQuantity, unitPrice, currency: variant.currency })
+        else await repo.createItem({ cartId: cart.id, variantId: variant.id, quantity: finalQuantity, unitPrice, currency: variant.currency })
+        const result = { ...quantities, addedQuantity, finalQuantity, unitPrice, currency: variant.currency }
+        items.push(finalQuantity < targetQuantity
+          ? { ...result, kind: 'partial', reason: 'STOCK_LIMIT' }
+          : { ...result, kind: addedQuantity > 0 ? 'added' : 'already_in_cart', reason: null })
+      }
+      return { cartId: cart.id, items }
+    })
+  }
+
+  private buyAgainUnavailableReason(variant: CartItemDetail['variant'] | null): BuyAgainSkipReason | null {
+    if (!variant) return 'VARIANT_NOT_FOUND'
+    if (variant.status !== 'ACTIVE') return 'VARIANT_UNAVAILABLE'
+    if (variant.product.status !== 'ACTIVE' || variant.product.deletedAt) return 'PRODUCT_UNAVAILABLE'
+    if (variant.product.shop.status !== 'ACTIVE' || variant.product.shop.deletedAt) return 'SHOP_UNAVAILABLE'
+    if (this.toMoneyInteger(variant.price) <= 0n) return 'PRICE_UNAVAILABLE'
+    if (variant.currency !== MARKETPLACE_CURRENCY) return 'CURRENCY_UNSUPPORTED'
+    return null
+  }
+
   private assertBuyer(actor: CartActor): void {
     if (actor.role === 'ADMIN') {
       throw new CartServiceError('Buyer cart APIs are only available to buyer accounts', 403, 'CART_FORBIDDEN')
@@ -163,7 +249,7 @@ export class CartService {
   }
 
   private assertPositiveQuantity(quantity: number): void {
-    if (!Number.isInteger(quantity) || quantity <= 0) {
+    if (!Number.isInteger(quantity) || quantity <= 0 || quantity > MAX_CART_QUANTITY) {
       throw new CartServiceError('Quantity must be a positive integer', 400, 'CART_QUANTITY_INVALID')
     }
   }
@@ -176,10 +262,13 @@ export class CartService {
 
   private assertVariantPurchasable(variant: CartItemDetail['variant'] | null): asserts variant is CartItemDetail['variant'] {
     if (!variant) throw new CartServiceError('Variant not found', 404, 'VARIANT_NOT_FOUND')
-    if (variant.product.status !== 'ACTIVE') {
+    if (variant.status !== 'ACTIVE') {
+      throw new CartServiceError('Variant is unavailable', 400, 'VARIANT_UNAVAILABLE')
+    }
+    if (variant.product.status !== 'ACTIVE' || variant.product.deletedAt) {
       throw new CartServiceError('Product is unavailable', 400, 'PRODUCT_UNAVAILABLE')
     }
-    if (variant.product.shop.status !== 'ACTIVE') {
+    if (variant.product.shop.status !== 'ACTIVE' || variant.product.shop.deletedAt) {
       throw new CartServiceError('Shop is unavailable', 400, 'SHOP_UNAVAILABLE')
     }
   }
@@ -297,7 +386,7 @@ export class CartService {
     return moneyInteger(value)
   }
 
-  private getVariantPrice(variant: CartItemDetail['variant']): bigint | number {
-    return variant.price ?? (variant as unknown as { price: bigint | number }).price
+  private getVariantPrice(variant: CartItemDetail['variant']): bigint {
+    return variant.price
   }
 }

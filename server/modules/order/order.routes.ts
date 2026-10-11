@@ -2,8 +2,10 @@ import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#se
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
+import type { AuthContext } from '#server/modules/auth'
 import { OrderServiceError } from './order.errors.ts'
 import { PaymentServiceError } from '#server/modules/payment/payment.errors.ts'
+import { CartServiceError } from '#server/modules/cart/cart.errors.ts'
 
 const OrderParamsSchema = t.Object({
   orderId: t.String({ format: 'uuid' }),
@@ -16,7 +18,7 @@ export function createOrderRoutes(container: ServiceContainer) {
     .use(authPlugin)
     .onError(({ error }) => {
       if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
-      if (error instanceof OrderServiceError || error instanceof PaymentServiceError) {
+      if (error instanceof OrderServiceError || error instanceof PaymentServiceError || error instanceof CartServiceError) {
         return moneyHttpError(error.status, toMoneyDto({
           error: {
             code: error.code,
@@ -44,6 +46,11 @@ export function createOrderRoutes(container: ServiceContainer) {
       withAuth: true,
       params: OrderParamsSchema,
       response: CancelOrderResponseSchema,
+    })
+    .post('/api/orders/:orderId/buy-again', ({ authContext, params }: { authContext?: AuthContext; params: { orderId: string } }) =>
+      moneyResponse(container.cartService.buyAgain(authContext!.user, params.orderId)), {
+      withAuth: true,
+      params: OrderParamsSchema,
     })
     .get('/api/seller/orders', ({ authContext }: any) => moneyResponse(container.orderService.listSellerOrders(authContext!.user)), {
       withAuth: true,

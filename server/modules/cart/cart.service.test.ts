@@ -31,8 +31,10 @@ function createRepoMock(): ICartRepository {
     findOrCreateActiveCart: vi.fn(),
     findItemByIdForUser: vi.fn(),
     findVariantForCart: vi.fn(),
+    findVariantsForCart: vi.fn(),
+    findOwnedOrderItems: vi.fn(),
     createItem: vi.fn(),
-    updateItemQuantity: vi.fn(),
+    updateItem: vi.fn(),
     deleteItem: vi.fn(),
     clearActiveCart: vi.fn(),
   }
@@ -60,6 +62,8 @@ function createVariant(overrides: Partial<{
   quantityOnHand: number
   quantityReserved: number
   price: number | bigint
+  variantStatus: 'ACTIVE' | 'INACTIVE'
+  currency: string
 }> = {}): any {
   const now = new Date('2026-05-13T00:00:00.000Z')
   const shopId = overrides.shopId ?? '11111111-1111-4111-8111-111111111111'
@@ -70,8 +74,8 @@ function createVariant(overrides: Partial<{
     sku: 'TSHIRT-BLK-M',
     title: 'Black / M',
     price: BigInt(overrides.price ?? 1590),
-    currency: 'USD',
-    status: 'ACTIVE' as const,
+    currency: overrides.currency ?? 'USD',
+    status: overrides.variantStatus ?? 'ACTIVE',
     createdAt: now,
     updatedAt: now,
     inventory: {
@@ -276,12 +280,13 @@ describe('CartService', () => {
       .mockResolvedValueOnce(createCart({ items: [existingItem] }))
       .mockResolvedValueOnce(createCart({ items: [createItem({ quantity: 5 })] }))
     vi.mocked(repo.findVariantForCart).mockResolvedValue(existingItem.variant)
-    vi.mocked(repo.updateItemQuantity).mockResolvedValue(createItem({ quantity: 5 }))
+    vi.mocked(repo.updateItem).mockResolvedValue(createItem({ quantity: 5, unitPrice: 1590n }))
     const service = new CartService(createAppContext(), repo)
 
-    await service.addItem(createActor(), { variantId: existingItem.variantId, quantity: 3 })
+    const result = await service.addItem(createActor(), { variantId: existingItem.variantId, quantity: 3 })
 
-    expect(repo.updateItemQuantity).toHaveBeenCalledWith(existingItem.id, 5)
+    expect(result.shops[0].items[0]).toMatchObject({ quantity: 5, unitPrice: 1590n, lineTotal: 7950n })
+    expect(repo.updateItem).toHaveBeenCalledWith(existingItem.id, { quantity: 5, unitPrice: 1590n, currency: 'USD' })
     expect(repo.createItem).not.toHaveBeenCalled()
   })
 
@@ -355,7 +360,7 @@ describe('CartService', () => {
     const repo = createRepoMock()
     const item = createItem()
     vi.mocked(repo.findItemByIdForUser).mockResolvedValue(item)
-    vi.mocked(repo.updateItemQuantity).mockResolvedValue(createItem({ quantity: 3 }))
+    vi.mocked(repo.updateItem).mockResolvedValue(createItem({ quantity: 3 }))
     vi.mocked(repo.deleteItem).mockResolvedValue(item)
     vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart())
     const service = new CartService(createAppContext(), repo)
@@ -364,7 +369,135 @@ describe('CartService', () => {
     await service.deleteItem(createActor(), item.id)
 
     expect(repo.findItemByIdForUser).toHaveBeenCalledWith(item.id, 'user-1')
-    expect(repo.updateItemQuantity).toHaveBeenCalledWith(item.id, 3)
+    expect(repo.updateItem).toHaveBeenCalledWith(item.id, { quantity: 3, unitPrice: 1590n, currency: 'USD' })
     expect(repo.deleteItem).toHaveBeenCalledWith(item.id)
+  })
+
+  it('rejects inactive variants on add and quantity update', async () => {
+    const repo = createRepoMock()
+    const variant = createVariant({ variantStatus: 'INACTIVE' })
+    const item = createItem({ variant })
+    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart({ items: [item] }))
+    vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
+    vi.mocked(repo.findItemByIdForUser).mockResolvedValue(item)
+    const service = new CartService(createAppContext(), repo)
+    await expect(service.addItem(createActor(), { variantId: variant.id, quantity: 1 })).rejects.toMatchObject({ code: 'VARIANT_UNAVAILABLE' })
+    await expect(service.updateItem(createActor(), item.id, { quantity: 3 })).rejects.toMatchObject({ code: 'VARIANT_UNAVAILABLE' })
+  })
+})
+
+describe('CartService.buyAgain', () => {
+  function fixture(items: Array<{ variantId: string; quantity: number }> = [{ variantId: 'variant-1', quantity: 3 }], existingItems: ReturnType<typeof createItem>[] = []) {
+    const repo = createRepoMock()
+    let cart = createCart({ items: existingItems })
+    const variant = createVariant({ id: 'variant-1', currency: 'THB', price: 1990n })
+    vi.mocked(repo.findOwnedOrderItems).mockResolvedValue({ items: items.map(item => ({ ...item, productTitle: 'Historical title', variantTitle: 'Default' })) })
+    vi.mocked(repo.findVariantsForCart).mockResolvedValue([variant])
+    vi.mocked(repo.withLockedActiveCart).mockImplementation(async (_userId, callback) => {
+      const current = structuredClone(cart)
+      const transactionalRepo: ICartRepository = {
+        ...repo,
+        createItem: async data => {
+          const item = { ...createItem({ variant, quantity: data.quantity, unitPrice: data.unitPrice }), ...data }
+          current.items.push(item)
+          return item
+        },
+        updateItem: async (itemId, data) => {
+          const index = current.items.findIndex((item: { id: string }) => item.id === itemId)
+          const item = { ...current.items[index], ...data }
+          current.items[index] = item
+          return item
+        },
+      }
+      const result = await callback(current, transactionalRepo)
+      cart = current
+      return result
+    })
+    return { repo, service: new CartService(createAppContext(), repo), cart: () => cart, variant }
+  }
+
+  it('aggregates historical SKUs and retries without adding historical quantities twice', async () => {
+    const f = fixture([{ variantId: 'variant-1', quantity: 1 }, { variantId: 'variant-1', quantity: 2 }])
+    const result = await f.service.buyAgain(createActor(), 'owned-order')
+    expect(result.items).toEqual([{
+      variantId: 'variant-1', productTitle: 'Historical title', variantTitle: 'Default', requestedQuantity: 3,
+      existingQuantity: 0, targetQuantity: 3, addedQuantity: 3, finalQuantity: 3, availableQuantity: 8,
+      kind: 'added', reason: null, unitPrice: 1990n, currency: 'THB',
+    }])
+    expect((await f.service.buyAgain(createActor(), 'owned-order')).items[0]).toMatchObject({
+      kind: 'already_in_cart', existingQuantity: 3, addedQuantity: 0, finalQuantity: 3,
+    })
+    expect(f.cart().items.map((item: { quantity: number; unitPrice: bigint }) => [item.quantity, item.unitPrice])).toEqual([[3, 1990n]])
+  })
+
+  it.each([1, 5])('uses current exact price and currency while preserving existing quantity %i', async quantity => {
+    const old = createVariant({ id: 'variant-1', currency: 'USD', price: 1000n })
+    const f = fixture(undefined, [createItem({ quantity, unitPrice: 1000n, variant: old })])
+    vi.mocked(f.repo.findVariantsForCart).mockResolvedValue([createVariant({ id: 'variant-1', currency: 'THB', price: 9007199254740993123n })])
+    const result = await f.service.buyAgain(createActor(), 'owned-order')
+    expect(result.items[0]).toMatchObject({ finalQuantity: quantity === 1 ? 3 : 5, addedQuantity: quantity === 1 ? 2 : 0, unitPrice: 9007199254740993123n, currency: 'THB' })
+    expect(f.cart().items[0]).toMatchObject({ quantity: quantity === 1 ? 3 : 5, unitPrice: 9007199254740993123n, currency: 'THB' })
+    expect(toMoneyDto(result).items[0].unitPrice).toBe('9007199254740993123')
+  })
+
+  it('adds partial available stock after reservations without reducing existing lines', async () => {
+    const f = fixture()
+    vi.mocked(f.repo.findVariantsForCart).mockResolvedValue([createVariant({ id: 'variant-1', currency: 'THB', quantityOnHand: 7, quantityReserved: 5 })])
+    const result = await f.service.buyAgain(createActor(), 'owned-order')
+    expect(result.items[0]).toMatchObject({ kind: 'partial', reason: 'STOCK_LIMIT', availableQuantity: 2, addedQuantity: 2, finalQuantity: 2, targetQuantity: 3 })
+    expect(f.cart().items[0].quantity).toBe(2)
+    expect((await f.service.buyAgain(createActor(), 'owned-order')).items[0]).toMatchObject({ kind: 'partial', addedQuantity: 0, finalQuantity: 2 })
+  })
+
+  it('skips an existing over-stock line while refreshing its price and preserving quantity', async () => {
+    const f = fixture(undefined, [createItem({ quantity: 4, variant: createVariant({ id: 'variant-1' }) })])
+    vi.mocked(f.repo.findVariantsForCart).mockResolvedValue([createVariant({ id: 'variant-1', currency: 'THB', price: 2500n, quantityOnHand: 3, quantityReserved: 1 })])
+    const result = await f.service.buyAgain(createActor(), 'owned-order')
+    expect(result.items[0]).toMatchObject({ kind: 'skipped', reason: 'EXISTING_QUANTITY_EXCEEDS_STOCK', finalQuantity: 4, addedQuantity: 0, availableQuantity: 2 })
+    expect(f.cart().items[0]).toMatchObject({ quantity: 4, unitPrice: 2500n, currency: 'THB' })
+  })
+
+  it.each([
+    ['VARIANT_UNAVAILABLE', { variantStatus: 'INACTIVE' }],
+    ['PRODUCT_UNAVAILABLE', { productStatus: 'ARCHIVED' }],
+    ['SHOP_UNAVAILABLE', { shopStatus: 'SUSPENDED' }],
+    ['OUT_OF_STOCK', { quantityOnHand: 2, quantityReserved: 2 }],
+    ['PRICE_UNAVAILABLE', { price: 0n }],
+    ['CURRENCY_UNSUPPORTED', { currency: 'USD' }],
+  ] as const)('returns %s for unavailable items alongside successful additions', async (reason, overrides) => {
+    const f = fixture([{ variantId: 'variant-1', quantity: 1 }, { variantId: 'variant-2', quantity: 1 }])
+    vi.mocked(f.repo.findVariantsForCart).mockResolvedValue([f.variant, createVariant({ id: 'variant-2', currency: 'THB', ...overrides })])
+    const result = await f.service.buyAgain(createActor(), 'owned-order')
+    expect(result.items.map(item => [item.kind, item.reason, item.finalQuantity])).toEqual([['added', null, 1], ['skipped', reason, 0]])
+    expect(f.cart().items.map((item: { variantId: string }) => item.variantId)).toEqual(['variant-1'])
+  })
+
+  it('reports missing variants explicitly', async () => {
+    const f = fixture()
+    vi.mocked(f.repo.findVariantsForCart).mockResolvedValue([])
+    expect((await f.service.buyAgain(createActor(), 'owned-order')).items[0]).toMatchObject({ kind: 'skipped', reason: 'VARIANT_NOT_FOUND', finalQuantity: 0, unitPrice: null, currency: null })
+    expect(f.cart().items).toEqual([])
+  })
+
+  it('does not expose or write another buyer order, and rejects administrators', async () => {
+    const f = fixture()
+    vi.mocked(f.repo.findOwnedOrderItems).mockResolvedValue(null)
+    await expect(f.service.buyAgain(createActor(), 'foreign-order')).rejects.toMatchObject({ status: 404, code: 'ORDER_NOT_FOUND' })
+    await expect(f.service.buyAgain(createActor('ADMIN'), 'owned-order')).rejects.toMatchObject({ status: 403, code: 'CART_FORBIDDEN' })
+    expect(f.repo.withLockedActiveCart).not.toHaveBeenCalled()
+  })
+
+  it('does not continue a batch when a database write fails', async () => {
+    const f = fixture([{ variantId: 'variant-1', quantity: 1 }, { variantId: 'variant-2', quantity: 1 }])
+    vi.mocked(f.repo.findVariantsForCart).mockResolvedValue([f.variant, createVariant({ id: 'variant-2', currency: 'THB' })])
+    const originalTransaction = vi.mocked(f.repo.withLockedActiveCart).getMockImplementation()!
+    vi.mocked(f.repo.withLockedActiveCart).mockImplementation((userId, callback) => originalTransaction(userId, (cart, repo) => callback(cart, {
+      ...repo, createItem: async data => {
+        if (data.variantId === 'variant-2') throw new Error('Database unavailable')
+        return repo.createItem(data)
+      },
+    })))
+    await expect(f.service.buyAgain(createActor(), 'owned-order')).rejects.toThrow('Database unavailable')
+    expect(f.cart().items).toEqual([])
   })
 })

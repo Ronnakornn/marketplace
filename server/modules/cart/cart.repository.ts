@@ -2,6 +2,7 @@ import type {
   Cart,
   CartItem,
   Inventory,
+  OrderItem,
   Prisma,
   PrismaClient,
   Product,
@@ -27,7 +28,7 @@ export type CartItemDetail = CartItem & {
   variant: LocalizedProductVariant & {
     inventory: Inventory | null
     product: LocalizedProduct & {
-      shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
+      shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status' | 'deletedAt'>
       images: Array<{ url: string; isPrimary: boolean; sortOrder: number }>
     }
   }
@@ -45,14 +46,19 @@ export interface CreateCartItemData {
   currency: string
 }
 
+export type HistoricalCartItem = Pick<OrderItem, 'variantId' | 'quantity' | 'productTitle' | 'variantTitle'>
+export type UpdateCartItemSelection = Pick<CreateCartItemData, 'quantity' | 'unitPrice' | 'currency'>
+
 export interface ICartRepository {
   withLockedActiveCart<T>(userId: string, callback: (cart: ActiveCartDetail, repo: ICartRepository) => Promise<T>): Promise<T>
   findActiveCartByUserId(userId: string): Promise<ActiveCartDetail | null>
   findOrCreateActiveCart(userId: string): Promise<ActiveCartDetail>
   findItemByIdForUser(itemId: string, userId: string): Promise<CartItemDetail | null>
   findVariantForCart(variantId: string): Promise<CartItemDetail['variant'] | null>
+  findVariantsForCart(variantIds: string[]): Promise<CartItemDetail['variant'][]>
+  findOwnedOrderItems(orderId: string, userId: string): Promise<{ items: HistoricalCartItem[] } | null>
   createItem(data: CreateCartItemData): Promise<CartItemDetail>
-  updateItemQuantity(itemId: string, quantity: number): Promise<CartItemDetail>
+  updateItem(itemId: string, data: UpdateCartItemSelection): Promise<CartItemDetail>
   deleteItem(itemId: string): Promise<CartItem>
   clearActiveCart(userId: string): Promise<number>
 }
@@ -75,6 +81,7 @@ const cartInclude = {
                   name: true,
                   slug: true,
                   status: true,
+                  deletedAt: true,
                 },
               },
             },
@@ -104,6 +111,7 @@ const itemInclude = {
               name: true,
               slug: true,
               status: true,
+              deletedAt: true,
             },
           },
         },
@@ -207,9 +215,29 @@ export class PrismaCartRepository implements ICartRepository {
                 name: true,
                 slug: true,
                 status: true,
+                deletedAt: true,
               },
             },
           },
+        },
+      },
+    })
+  }
+
+  findVariantsForCart(variantIds: string[]): Promise<CartItemDetail['variant'][]> {
+    return this.prisma.productVariant.findMany({
+      where: { id: { in: variantIds } },
+      include: itemInclude.variant.include,
+    })
+  }
+
+  findOwnedOrderItems(orderId: string, userId: string): Promise<{ items: HistoricalCartItem[] } | null> {
+    return this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+      select: {
+        items: {
+          select: { variantId: true, quantity: true, productTitle: true, variantTitle: true },
+          orderBy: { id: 'asc' },
         },
       },
     })
@@ -223,11 +251,11 @@ export class PrismaCartRepository implements ICartRepository {
     })
   }
 
-  updateItemQuantity(itemId: string, quantity: number): Promise<CartItemDetail> {
-    this.logger.info('PrismaCartRepository.updateItemQuantity', { itemId, quantity })
+  updateItem(itemId: string, data: UpdateCartItemSelection): Promise<CartItemDetail> {
+    this.logger.info('PrismaCartRepository.updateItem', { itemId, quantity: data.quantity })
     return this.prisma.cartItem.update({
       where: { id: itemId },
-      data: { quantity },
+      data,
       include: itemInclude,
     })
   }
