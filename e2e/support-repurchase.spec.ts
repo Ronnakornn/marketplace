@@ -313,6 +313,13 @@ test('Thai all-unavailable repurchase stays on order and offers readable outcome
   if (!shop) throw new Error('Shop required');
   const order = await purchasedOrder(page, fixture);
   await prisma.productVariant.update({ where: { id: shop.variant.id }, data: { status: 'INACTIVE' } });
+  const returnEvidence = `https://example.test/rejected-return/${'x'.repeat(250)}`;
+  const item = order.items[0];
+  if (!item) throw new Error('Order item required');
+  await prisma.returnRequest.create({ data: {
+    orderId: order.id, shopId: shop.shop.id, userId: fixture.buyer.id, status: 'REJECTED', reason: returnEvidence,
+    items: { create: { orderItemId: item.id, quantity: 1 } },
+  } });
   const before = await economicFacts(fixture, order.id);
   await page.goto(`/th/orders/${order.id}`);
   const responsePromise = page.waitForResponse(response => response.url().endsWith(`/api/orders/${order.id}/buy-again`) && response.request().method() === 'POST');
@@ -328,6 +335,11 @@ test('Thai all-unavailable repurchase stays on order and offers readable outcome
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(await economicFacts(fixture, order.id)).toEqual(before);
   await page.screenshot({ path: testInfo.outputPath('thai-unavailable-repurchase.png'), fullPage: true });
+  await page.getByRole('link', { name: 'ขอความช่วยเหลือเกี่ยวกับออเดอร์นี้', exact: true }).click();
+  await expect(page).toHaveURL(`/th/orders/${order.id}/support`);
+  await expect(page.getByText(returnEvidence, { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('thai-rejected-return-long-url.png'), fullPage: true });
 });
 
 test('Thai buyer creates general support with no shop context @mobile', async ({ page, browser, baseURL }, testInfo) => {
@@ -355,4 +367,8 @@ test('Thai buyer creates general support with no shop context @mobile', async ({
   const response = await page.request.get(`/api/support/tickets/${ticket.id}`);
   expect(await response.json()).toMatchObject({ messages: { total: 1, items: [expect.objectContaining({ body: evidence, senderType: 'BUYER', isInternal: false })] } });
   await page.screenshot({ path: testInfo.outputPath('thai-general-support.png'), fullPage: true });
+  await page.goto('/th/support');
+  await expect(page.getByRole('link').filter({ hasText: 'S'.repeat(200) })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('thai-support-list-long-subject.png'), fullPage: true });
 });
