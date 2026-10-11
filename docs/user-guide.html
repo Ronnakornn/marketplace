@@ -754,7 +754,7 @@
           <p class="eyebrow">คู่มือผู้ใช้งาน · ฉบับภาษาไทย</p>
           <h1>ใช้งาน Marketplace ได้ครบทุกบทบาท แบบทีละขั้นตอน</h1>
           <p class="hero-copy">
-            คู่มือนี้ยึดหน้าจอและการทำงานที่มีอยู่จริงในระบบ ณ วันที่ 19 สิงหาคม
+            คู่มือนี้ยึดหน้าจอและการทำงานที่มีอยู่จริงในระบบ ณ วันที่ 11 ตุลาคม
             2026 ครอบคลุมผู้ซื้อ ผู้ขาย และผู้ดูแลระบบ
             พร้อมแยกส่วนทดสอบและงานที่ยังต้องดำเนินการด้วยคนอย่างชัดเจน
           </p>
@@ -768,6 +768,16 @@
             <span class="status-tag mock">Mock / โหมดทดสอบ</span>
             <span class="status-tag manual">ดำเนินการด้วยคน</span>
             <span class="status-tag limit">ข้อจำกัดปัจจุบัน</span>
+          </div>
+          <div class="notice info searchable">
+            <strong>ตรวจบริการที่เปิดใช้ก่อนเริ่มงาน</strong>
+            <p>
+              ป้ายใช้งานจริงหมายถึงระบบมีขั้นตอนนั้นแล้ว
+              การชำระเงิน อีเมล SMS และ Web Push ยังขึ้นกับการตั้งค่าของเว็บไซต์
+              ชุดติดตั้ง Production ปัจจุบันปิดการชำระเงินไว้
+              จึงสั่งซื้อไม่ได้จนกว่าผู้ดูแลจะเชื่อมต่อบริการชำระเงินจริง
+              หากเห็นข้อความว่าบริการไม่พร้อม ให้ติดต่อผู้ดูแลระบบ
+            </p>
           </div>
           <div class="role-grid">
             <a
@@ -2259,6 +2269,10 @@
                   <li>เลือกรายการในรถเข็นอย่างน้อยหนึ่งรายการ</li>
                   <li>เพิ่มที่อยู่และเลือกที่อยู่สำหรับจัดส่ง</li>
                   <li>ตรวจว่าสินค้า ร้าน และ variant ยัง Active และมีสต็อก</li>
+                  <li>
+                    หากระบบแจ้งว่าการชำระเงินไม่พร้อม ให้ติดต่อผู้ดูแล
+                    การปิดบริการชำระเงินทำให้ระบบไม่สร้างออเดอร์ใหม่
+                  </li>
                 </ul>
               </div>
             </details>
@@ -2296,7 +2310,7 @@
             </details>
             <details class="guide-card searchable">
               <summary>
-                <span class="step-number">04</span>ส่งสินค้าเข้าตรวจไม่ได้
+                <span class="step-number">04</span>เผยแพร่สินค้าไม่ได้
               </summary>
               <div class="card-body">
                 <ul class="compact-list">
@@ -2312,17 +2326,20 @@
             </details>
             <details class="guide-card searchable">
               <summary>
-                <span class="step-number">05</span>ปุ่ม Pack, Ship หรือ Deliver
+                <span class="step-number">05</span>ปุ่ม Pack หรือ Ship
                 ถูกปิด
               </summary>
               <div class="card-body">
                 <ul class="compact-list">
                   <li>
-                    ปุ่มทำงานตามลำดับสถานะเท่านั้น: Pending pack → Packed →
-                    Shipped → Delivered
+                    Pack ใช้กับ Pending pack และ Ship ใช้กับ Packed
                   </li>
                   <li>Ship ต้องกรอกบริษัทขนส่งและเลขพัสดุ</li>
                   <li>ตรวจว่าเลือกหน้าร้านถูกต้องเมื่อบัญชีมีหลายร้าน</li>
+                  <li>
+                    หน้าผู้ขายไม่มีปุ่ม Deliver
+                    หากพัสดุส่งถึงแล้วแต่สถานะยังไม่เปลี่ยน ให้ติดต่อผู้ดูแลพร้อมเลขพัสดุ
+                  </li>
                 </ul>
               </div>
             </details>
@@ -2332,7 +2349,7 @@
               </summary>
               <div class="card-body">
                 <ul class="compact-list">
-                  <li>เปิดเอกสารทุกชิ้นและตัดสิน Approve/Reject</li>
+                  <li>เอกสารบังคับทุกชิ้นต้องผ่าน Approve รวมถึงสมุดบัญชีธนาคาร</li>
                   <li>ตรวจรายการ unresolved required documents</li>
                   <li>
                     หากเอกสารถูก Reject
@@ -2359,6 +2376,39 @@
                     หาก Push ใช้ไม่ได้
                     การแจ้งเตือนในหน้าระบบยังเป็นแหล่งข้อมูลหลัก
                   </li>
+                </ul>
+              </div>
+            </details>
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">08</span>ส่งคำขอคืนสินค้าไม่ได้
+              </summary>
+              <div class="card-body">
+                <ul class="compact-list">
+                  <li>รอให้ทั้งออเดอร์ส่งถึงแล้ว แม้สินค้าจากร้านของคุณจะถึงก่อน</li>
+                  <li>
+                    ส่งคำขอภายในช่วงเวลาคืนสินค้า
+                    ค่าเริ่มต้นคือ 7 วันนับจากการส่งถึงครั้งสุดท้ายของออเดอร์
+                    ผู้ดูแลอาจกำหนดช่วงเวลาแตกต่างจากค่าเริ่มต้น
+                  </li>
+                  <li>เลือกจำนวนไม่เกินสิทธิ์คืนสินค้าที่เหลือ และตรวจว่าไม่มีคำขอที่กำลังดำเนินการสำหรับรายการนั้น</li>
+                  <li>
+                    หากหมดเวลาหรือไม่มีข้อมูลเวลาส่งถึง ให้ติดต่อผู้ดูแลพร้อมเลขออเดอร์
+                    การอนุมัติคำขอไม่ได้หมายความว่าเงินคืนสำเร็จแล้ว
+                  </li>
+                </ul>
+              </div>
+            </details>
+            <details class="guide-card searchable">
+              <summary>
+                <span class="step-number">09</span>ถอนเงินไม่ได้หลังมีการคืนเงิน
+              </summary>
+              <div class="card-body">
+                <ul class="compact-list">
+                  <li>เปิดหน้าการเงินของร้านที่เลือก แล้วตรวจยอดถอนได้และยอดหนี้</li>
+                  <li>ยอดรายได้จากออเดอร์ใหม่จะชดเชยหนี้จากการคืนเงินก่อนถอน</li>
+                  <li>คำขอถอนเงินที่อนุมัติแล้วอาจจ่ายไม่ได้ หากยอดที่ใช้ได้ติดลบหลังการคืนเงิน</li>
+                  <li>ติดต่อผู้ดูแลพร้อมรายการคืนเงินและเลขคำขอถอนเงินเมื่อยอดไม่ตรงกับหลักฐาน</li>
                 </ul>
               </div>
             </details>
@@ -2390,6 +2440,15 @@
               </thead>
               <tbody>
                 <tr>
+                  <td>Account</td>
+                  <td>
+                    <code>/th/signup</code>, <code>/th/login</code>,
+                    <code>/th/verify-email</code>, <code>/th/forgot-password</code>,
+                    <code>/th/reset-password</code>
+                  </td>
+                  <td>สมัคร เข้าสู่ระบบ ยืนยันอีเมล และตั้งรหัสผ่านใหม่</td>
+                </tr>
+                <tr>
                   <td>Public</td>
                   <td>
                     <code>/th</code>, <code>/th/search</code>,
@@ -2411,9 +2470,10 @@
                   <td>
                     <code>/th/wishlist</code>, <code>/th/vouchers</code>,
                     <code>/th/followed-shops</code>, <code>/th/chat</code>,
-                    <code>/th/affiliates</code>
+                    <code>/th/coins</code>, <code>/th/affiliates</code>,
+                    <code>/th/creator</code>
                   </td>
-                  <td>บันทึก ติดตาม สนทนา และสร้างลิงก์</td>
+                  <td>บันทึก ติดตาม สนทนา และดูเหรียญ ส่วน Affiliate ใช้ได้เมื่อเปิดบริการ</td>
                 </tr>
                 <tr>
                   <td>Seller onboarding</td>
@@ -2432,6 +2492,11 @@
                     <code>/th/seller/returns</code>
                   </td>
                   <td>สินค้า สต็อก การจัดส่ง และคืนสินค้า</td>
+                </tr>
+                <tr>
+                  <td>Seller settings</td>
+                  <td><code>/th/seller/shop</code>, <code>/th/seller/staff</code></td>
+                  <td>ข้อมูลร้าน ค่าจัดส่ง และสิทธิ์พนักงาน</td>
                 </tr>
                 <tr>
                   <td>Seller engagement</td>
@@ -2466,7 +2531,8 @@
                   <td>
                     <code>/th/admin/content-moderation</code>,
                     <code>/th/admin/audit-logs</code>,
-                    <code>/th/admin/reports</code>
+                    <code>/th/admin/reports</code>, <code>/th/admin/settings</code>,
+                    <code>/th/admin/commissions</code>
                   </td>
                   <td>ตรวจเนื้อหา ประวัติ และรายงาน</td>
                 </tr>
