@@ -40,7 +40,7 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('fraud numeric thres
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ riskScore: 100, riskLevel: 'critical', reasons })
     const admin = await db.user.update({ where: { id: f.owner.id }, data: { role: 'ADMIN', emailVerified: true } })
-    vi.mocked(getAuthContext).mockResolvedValue({ user: admin })
+    vi.mocked(getAuthContext).mockResolvedValue({ user: admin, session: { id: `test-session-${admin.id}` } })
     const app = new Elysia().use(createFraudRoutes({ fraudService: service } as unknown as ServiceContainer))
     const response = await app.handle(new Request(`http://localhost/api/admin/fraud/cases/${rows[0]!.id}`))
     expect(response.status).toBe(200)

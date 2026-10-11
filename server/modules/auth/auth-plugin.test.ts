@@ -57,6 +57,7 @@ function createApp() {
 
 function mockUser(role: "USER" | "ADMIN", status: "ACTIVE" | "SUSPENDED" = "ACTIVE", emailVerified = true) {
   return {
+    session: { id: `test-session-${role.toLowerCase()}-1` },
     user: {
       id: `${role.toLowerCase()}-1`,
       email: `${role.toLowerCase()}@example.com`,

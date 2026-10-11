@@ -1,5 +1,7 @@
 # Production Readiness Report
 
+Current source fixes and verification are tracked in [11 October production fixes](production-fixes-2026-10-11.md) and [deployment instructions](../deploy/README.md). The dated evidence below is historical.
+
 **Date:** 2026-09-04
 **Status:** Application and fresh-database release gates pass locally. Infrastructure credentials, CI, and the external provider checks below remain required before deployment.
 

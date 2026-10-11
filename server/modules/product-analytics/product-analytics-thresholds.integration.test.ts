@@ -53,7 +53,7 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('analytics conversio
     expect(await db.productViewLog.count({ where: { shopId: f.shop.id } })).toBe(220)
     expect(await db.orderItem.aggregate({ where: { shopId: f.shop.id }, _sum: { quantity: true, lineTotal: true } })).toEqual({ _sum: { quantity: 3, lineTotal: 300n } })
     const verifiedOwner = await db.user.update({ where: { id: f.owner.id }, data: { emailVerified: true } })
-    vi.mocked(getAuthContext).mockResolvedValue({ user: verifiedOwner })
+    vi.mocked(getAuthContext).mockResolvedValue({ user: verifiedOwner, session: { id: `test-session-${verifiedOwner.id}` } })
     const app = new Elysia().use(createProductAnalyticsRoutes({ productAnalyticsService: service } as unknown as ServiceContainer))
     const response = await app.handle(new Request('http://localhost/api/seller/analytics/products/summary?range=custom&from=2026-10-04&to=2026-10-04'))
     expect(response.status).toBe(200)

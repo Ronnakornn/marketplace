@@ -65,7 +65,7 @@ export class NotificationService {
     }
     if (notification.readAt) return this.toResponse(notification)
     const response = this.toResponse(await this.repo.markAsRead(notification.id, new Date()))
-    this.realtimeService?.publish('notification.read', `user:${userId}:notifications`, response)
+    await this.realtimeService?.publish('notification.read', `user:${userId}:notifications`, response)
     return response
   }
 
@@ -73,7 +73,7 @@ export class NotificationService {
     const result = {
       updatedCount: await this.repo.markAllAsRead(userId, new Date()),
     }
-    this.realtimeService?.publish('notification.read', `user:${userId}:notifications`, result)
+    await this.realtimeService?.publish('notification.read', `user:${userId}:notifications`, result)
     return result
   }
 
@@ -92,7 +92,7 @@ export class NotificationService {
       data: this.normalizeData(data),
     })
     const response = this.toResponse(notification)
-    this.realtimeService?.publish('notification.created', `user:${userId}:notifications`, response)
+    await this.realtimeService?.publish('notification.created', `user:${userId}:notifications`, response)
     await this.bestEffort('deliverPush', () => this.pushService?.deliver(userId, response) ?? Promise.resolve())
     return response
   }
@@ -249,7 +249,7 @@ export class NotificationService {
       const readAt = new Date()
       await Promise.all(unreadSellerNotifications.map((notification) => this.repo.markAsRead(notification.id, readAt)))
       const result = { updatedCount: unreadSellerNotifications.length }
-      this.realtimeService?.publish('notification.read', `user:${actor.id}:notifications`, result)
+      await this.realtimeService?.publish('notification.read', `user:${actor.id}:notifications`, result)
       return result
     }
     return this.markAllAsRead(actor.id)

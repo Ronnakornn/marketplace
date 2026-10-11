@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 import { locales, withLocale } from "#/i18n/config";
 import { absoluteUrl, getSitemapEntries } from "#/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  await connection();
   const { products, categories, shops } = await getSitemapEntries();
 
   return locales.flatMap((locale) => [

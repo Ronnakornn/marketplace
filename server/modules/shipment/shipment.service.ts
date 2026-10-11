@@ -236,18 +236,30 @@ export class ShipmentService {
     }
     this.logger.info('ShipmentService.deliverAdminShipment', { actorId: actor.id, shipmentId })
 
-    const response = await this.repo.transaction(async (txRepo) => {
+    const { response, transitioned } = await this.repo.transaction(async (txRepo) => {
       await txRepo.lockShipmentOrder(shipmentId)
       const shipment = await txRepo.findShipmentById(shipmentId)
       if (!shipment) throw new ShipmentServiceError('Shipment not found', 404, 'SHIPMENT_NOT_FOUND')
+      if (shipment.status === 'DELIVERED') {
+        return { response: this.toSellerShipmentResponse(shipment), transitioned: false }
+      }
       this.assertTransition(shipment.status, 'DELIVERED')
 
       const updated = await txRepo.updateShipmentDelivered(shipment.id, new Date())
       await txRepo.updateOrderItemsStatus(this.getOrderItemIds(updated), 'DELIVERED')
       await txRepo.updateOrderStatus(updated.orderId, this.orderFulfillmentStatus(updated))
-      return this.toSellerShipmentResponse(updated)
+      return { response: this.toSellerShipmentResponse(updated), transitioned: true }
     })
-    await this.walletService?.createEarningsForCompletedOrder(response.orderId)
+    try {
+      await this.walletService?.createEarningsForCompletedOrder(response.orderId)
+    } catch (error) {
+      this.logger.error('ShipmentService seller earnings recognition failed', {
+        orderId: response.orderId,
+        shipmentId: response.id,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+    if (!transitioned) return response
     await this.publishBestEffort('shipment.delivered', response.id, actor.id, {
       shipmentId: response.id,
       orderId: response.orderId,

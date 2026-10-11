@@ -9,8 +9,10 @@ import { RefundServiceError } from '#server/modules/refund/refund.errors.ts'
 import type { ReturnOrderItem } from './return.repository.ts'
 import { ReturnServiceError } from './return.errors.ts'
 import type { IReturnRepository, ReturnRecord, ReturnUpload } from './return.repository.ts'
+import { getReturnConfigFromEnv, type ReturnConfig } from './return.config.ts'
 
 const MAX_RETURN_IMAGE_COUNT = 5
+const DAY_MILLISECONDS = 24 * 60 * 60 * 1000
 
 export interface ReturnActor {
   id: string
@@ -64,6 +66,7 @@ export class ReturnService {
     private repo: IReturnRepository,
     private activeShopResolver?: ActiveShopResolver,
     private eventPublisher?: EventPublisherService,
+    private config: ReturnConfig = getReturnConfigFromEnv(),
   ) {
     this.logger = appContext.logger
   }
@@ -86,6 +89,7 @@ export class ReturnService {
       if (orderItem.fulfillmentStatus !== 'DELIVERED') {
         throw new ReturnServiceError('Order item must be delivered before return', 409, 'ORDER_ITEM_NOT_DELIVERED')
       }
+      this.assertReturnWindow(orderItem.order)
       if (orderItem.returnItems.some((item) => ACTIVE_RETURN_STATUSES.has(item.returnRequest.status))) {
         throw new ReturnServiceError('Order item already has an active return', 409, 'RETURN_ALREADY_EXISTS')
       }
@@ -186,6 +190,35 @@ export class ReturnService {
     const orderId = await repo.findReturnOrderId(returnId)
     if (!orderId) throw new ReturnServiceError('Return not found', 404, 'RETURN_NOT_FOUND')
     await repo.lockOrder(orderId)
+  }
+
+  private assertReturnWindow(order: ReturnOrderItem['order']): void {
+    const items = order.items.filter((item) => item.fulfillmentStatus !== 'CANCELED')
+    const shipments = order.shipments.filter((shipment) => shipment.status !== 'CANCELED')
+    if (!['DELIVERED', 'FULFILLED'].includes(order.status)
+      || items.some((item) => item.fulfillmentStatus !== 'DELIVERED')
+      || shipments.some((shipment) => shipment.status !== 'DELIVERED')) {
+      throw new ReturnServiceError('The complete order must be delivered before return', 409, 'ORDER_NOT_DELIVERED')
+    }
+
+    const deliveredShops = new Set(shipments.map((shipment) => shipment.shopId))
+    const activeShops = new Set(items.map((item) => item.shopId))
+    const now = Date.now()
+    if (!items.length || !shipments.length || items.some((item) => !deliveredShops.has(item.shopId))
+      || shipments.some((shipment) => !activeShops.has(shipment.shopId))
+      || shipments.some((shipment) => !shipment.deliveredAt
+        || !Number.isFinite(shipment.deliveredAt.getTime()) || shipment.deliveredAt.getTime() > now)) {
+      throw new ReturnServiceError('Complete delivery timestamps are unavailable', 409, 'RETURN_DELIVERY_EVIDENCE_MISSING')
+    }
+
+    const completedAt = shipments.reduce((latest, shipment) => Math.max(latest, shipment.deliveredAt?.getTime() ?? 0), 0)
+    const deadline = completedAt + this.config.windowDays * DAY_MILLISECONDS
+    if (now > deadline) {
+      throw new ReturnServiceError('The return request window has expired', 409, 'RETURN_WINDOW_EXPIRED', {
+        windowDays: this.config.windowDays,
+        deadline: new Date(deadline).toISOString(),
+      })
+    }
   }
 
   private async resolveReturnQuantity(repo: IReturnRepository, item: ReturnOrderItem, requested: number | undefined): Promise<number> {

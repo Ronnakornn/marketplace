@@ -275,6 +275,7 @@ export function createContainer(): ServiceContainer {
     cacheInvalidation,
     eventPublisherService,
     emailService,
+    walletService,
   )
   const healthCheckRepo = new PrismaHealthCheckRepository(appContext, prisma)
   const observabilityService = new ObservabilityService(appContext, healthCheckRepo, metricsCollector, {

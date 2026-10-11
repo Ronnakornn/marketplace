@@ -5,6 +5,7 @@ import type { CacheInvalidation } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { EmailService } from '#server/modules/email'
 import type { QueueProducer } from '#server/modules/queue'
+import type { WalletService } from '#server/modules/wallet'
 import { JobServiceError } from './job.errors.ts'
 import type { ExpiredPaymentRecord, IJobRepository, ReleaseReservationInput } from './job.repository.ts'
 import type {
@@ -13,6 +14,7 @@ import type {
   JobName,
   JobPayloadByName,
   ReleaseExpiredPaymentStockJobPayload,
+  ReconcileSellerEarningsJobPayload,
   SendEmailJobPayload,
   SendNotificationJobPayload,
   SyncOrderStatusJobPayload,
@@ -26,6 +28,9 @@ export interface JobProcessResult {
   ok: true
   code: string
   processedCount?: number
+  attemptedCount?: number
+  succeededCount?: number
+  failedCount?: number
 }
 
 export class JobService {
@@ -38,6 +43,7 @@ export class JobService {
     private cacheInvalidation?: CacheInvalidation,
     private eventPublisher?: EventPublisherService,
     private emailService?: EmailService,
+    private walletService?: WalletService,
   ) {
     this.logger = appContext.logger
   }
@@ -61,6 +67,7 @@ export class JobService {
       this.logger.error('JobService.process.failure', {
         jobName,
         error: error instanceof Error ? error.message : String(error),
+        details: error instanceof JobServiceError ? error.details : undefined,
       })
       throw error instanceof JobServiceError
         ? error
@@ -84,6 +91,8 @@ export class JobService {
         return this.cleanupAbandonedCarts(payload as CleanupAbandonedCartsJobPayload)
       case 'sync_order_status':
         return this.syncOrderStatus(payload as SyncOrderStatusJobPayload)
+      case 'reconcile_seller_earnings':
+        return this.reconcileSellerEarnings(payload as ReconcileSellerEarningsJobPayload)
     }
   }
 
@@ -177,6 +186,15 @@ export class JobService {
     return { ok: true, code: 'ORDER_STATUS_SYNC_SKIPPED', processedCount: 0 }
   }
 
+  private async reconcileSellerEarnings(payload: ReconcileSellerEarningsJobPayload): Promise<JobProcessResult> {
+    if (!this.walletService) throw new JobServiceError('Wallet service is not configured', 'JOB_FAILED')
+    const result = await this.walletService.reconcileSellerEarnings(payload.limit)
+    if (result.failedCount > 0) {
+      throw new JobServiceError('Seller earnings reconciliation left incomplete orders', 'JOB_FAILED', { ...result })
+    }
+    return { ok: true, code: 'SELLER_EARNINGS_RECONCILED', processedCount: result.succeededCount, ...result }
+  }
+
   private getActiveReservations(payment: ExpiredPaymentRecord): ReleaseReservationInput[] {
     return payment.order.checkout.inventoryReservations
       .filter((reservation) => reservation.status === 'ACTIVE')
@@ -212,6 +230,14 @@ export class JobService {
       const input = payload as SyncOrderStatusJobPayload
       if (!this.nonEmptyString(input.orderId)) {
         throw new JobServiceError('Invalid order sync job payload', 'INVALID_JOB_PAYLOAD', { jobName })
+      }
+      return
+    }
+
+    if (jobName === 'reconcile_seller_earnings') {
+      const input = payload as ReconcileSellerEarningsJobPayload
+      if (input.limit !== undefined && (!Number.isInteger(input.limit) || input.limit < 1 || input.limit > 1000)) {
+        throw new JobServiceError('Invalid earnings reconciliation payload', 'INVALID_JOB_PAYLOAD', { jobName })
       }
       return
     }

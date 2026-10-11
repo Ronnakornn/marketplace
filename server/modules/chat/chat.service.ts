@@ -91,7 +91,7 @@ export class ChatService {
     const updated = await this.repo.findRoomById(room.id)
     if (!updated) throw new ChatServiceError('Chat room not found', 404, 'CHAT_ROOM_NOT_FOUND')
     const response = await this.toRoomResponse(updated, actor)
-    this.publishChatMessage(updated, message)
+    await this.publishChatMessage(updated, message)
     await this.notifyRecipient(updated, message)
     return response
   }
@@ -104,7 +104,7 @@ export class ChatService {
       ? await this.repo.markSellerRead(room.id, readAt)
       : await this.repo.markBuyerRead(room.id, readAt)
     const response = await this.toRoomResponse(updated, actor)
-    this.realtimeService?.publish('chat.room.read', `chat:${updated.id}`, {
+    await this.realtimeService?.publish('chat.room.read', `chat:${updated.id}`, {
       roomId: updated.id,
       readerId: actor.id,
       readerRole: actor.role,
@@ -220,15 +220,15 @@ export class ChatService {
     return value instanceof Date ? value.getTime() : new Date(value).getTime()
   }
 
-  private publishChatMessage(room: ChatRoomRecord, message: ChatMessageRecord): void {
+  private async publishChatMessage(room: ChatRoomRecord, message: ChatMessageRecord): Promise<void> {
     const payload = {
       roomId: room.id,
       shopId: room.shopId,
       buyerId: room.buyerId,
       message: this.toMessageResponse(message),
     }
-    this.realtimeService?.publish('chat.message.created', `chat:${room.id}`, payload)
-    this.realtimeService?.publish('chat.message.created', `seller:${room.shopId}:chats`, payload)
+    await this.realtimeService?.publish('chat.message.created', `chat:${room.id}`, payload)
+    await this.realtimeService?.publish('chat.message.created', `seller:${room.shopId}:chats`, payload)
   }
 
   private async notifyRecipient(room: ChatRoomRecord, message: ChatMessageRecord): Promise<void> {

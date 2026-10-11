@@ -274,11 +274,11 @@ LAN IPs and public HTTP domains are not secure contexts and cannot use Web Push.
 ### Docker
 
 ```bash
-docker build -t marketplace .
-docker run -p 3000:3000 marketplace
+docker compose --env-file /etc/marketplace/production.env -f deploy/compose.yml build
+docker compose --env-file /etc/marketplace/production.env -f deploy/compose.yml up --detach --wait
 ```
 
-The Dockerfile builds the Next.js frontend, keeps the Elysia API server, and starts both processes in one container. The browser talks to Next.js on port 3000, and Next proxies `/api/*` requests to the internal API on port 3001.
+Prepare the environment and TLS files as described in [deployment instructions](deploy/README.md). Compose starts PostgreSQL, Redis, migrations, the frontend/API/worker process group, and Nginx. Only Nginx publishes ports. Public uploads are served from its persistent volume; private KYC files stay in the app's private volume. Payment is disabled in this deployment. See [current verification](docs/production-fixes-2026-10-11.md) for the checks and remaining external acceptance.
 
 ### Production Environment
 

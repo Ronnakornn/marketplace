@@ -14,6 +14,7 @@ import { createReturnRequest, fetchOrder } from "#/features/buyer/api";
 import { uploadBuyerImage } from "#/features/buyer/upload-helper";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { ApiClientError } from "#/lib/api-client";
 
 const reasonKeys = ["buyer.damagedItem", "buyer.wrongItem", "buyer.missingParts", "buyer.qualityIssue"] as const;
 type ReturnReasonKey = (typeof reasonKeys)[number];
@@ -29,8 +30,10 @@ export function ReturnRequestPage({ orderId }: { orderId: string }) {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const orderQuery = useQuery({ queryKey: ["buyer-order", orderId], queryFn: () => fetchOrder(orderId) });
   const eligibleItems = useMemo(
-    () => (orderQuery.data?.items ?? []).filter((item) => item.fulfillmentStatus.toLowerCase() === "delivered" && item.remainingReturnQuantity > 0 && !item.hasActiveReturn),
-    [orderQuery.data?.items],
+    () => ["delivered", "fulfilled"].includes(orderQuery.data?.status.toLowerCase() ?? "")
+      ? (orderQuery.data?.items ?? []).filter((item) => item.fulfillmentStatus.toLowerCase() === "delivered" && item.remainingReturnQuantity > 0 && !item.hasActiveReturn)
+      : [],
+    [orderQuery.data],
   );
   const selected = selectedItemId || eligibleItems[0]?.id || "";
   const selectedItem = eligibleItems.find((item) => item.id === selected);
@@ -51,6 +54,15 @@ export function ReturnRequestPage({ orderId }: { orderId: string }) {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-order", orderId] }),
   });
+  function returnErrorMessage() {
+    const error = returnMutation.error;
+    switch (error instanceof ApiClientError ? error.code : undefined) {
+      case "RETURN_WINDOW_EXPIRED": return t("buyer.returnWindowExpired");
+      case "ORDER_NOT_DELIVERED": return t("buyer.orderNotFullyDelivered");
+      case "RETURN_DELIVERY_EVIDENCE_MISSING": return t("buyer.returnDeliveryEvidenceMissing");
+      default: return error?.message;
+    }
+  }
 
   return (
     <>
@@ -103,7 +115,7 @@ export function ReturnRequestPage({ orderId }: { orderId: string }) {
               />
               <p className="text-xs text-slate-500">{t("buyer.selectedImageCount").replace("{count}", String(imageFiles.length))}</p>
             </div>
-            {returnMutation.isError ? <p className="mt-3 text-sm text-red-600">{returnMutation.error.message}</p> : null}
+            {returnMutation.isError ? <p role="alert" className="mt-3 text-sm text-red-600">{returnErrorMessage()}</p> : null}
           </section>
         ) : null}
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)]">

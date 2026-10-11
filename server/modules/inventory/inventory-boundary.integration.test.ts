@@ -77,7 +77,7 @@ describe.skipIf(!databaseUrl)('composed inventory boundary on PostgreSQL', () =>
       undefined, resolver)
     const container = { inventoryService, catalogService } as ServiceContainer
     const app = new Elysia().use(createCatalogRoutes(container)).use(createInventoryRoutes(container))
-    vi.mocked(getAuthContext).mockResolvedValue({ user } as Awaited<ReturnType<typeof getAuthContext>>)
+    vi.mocked(getAuthContext).mockResolvedValue({ user, session: { id: `test-session-${user.id}` } } as Awaited<ReturnType<typeof getAuthContext>>)
     const patch = (body: object) => app.handle(new Request(`http://localhost/api/seller/variants/${variant.id}/inventory`, {
       method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
     }))
@@ -157,7 +157,7 @@ describe.skipIf(!databaseUrl)('composed inventory boundary on PostgreSQL', () =>
   it('enforces readiness before reading the target variant', async () => {
     const target = await fixture()
     const outsider = await db.user.create({ data: { name: 'No onboarding', email: `${randomUUID()}@example.test`, emailVerified: true } })
-    vi.mocked(getAuthContext).mockResolvedValue({ user: outsider } as Awaited<ReturnType<typeof getAuthContext>>)
+    vi.mocked(getAuthContext).mockResolvedValue({ user: outsider, session: { id: `test-session-${outsider.id}` } } as Awaited<ReturnType<typeof getAuthContext>>)
     const response = await target.patch({ quantityOnHand: 12, reason: 'count' })
     expect(response.status).toBe(403)
     expect(await response.json()).toMatchObject({ error: { code: 'SELLER_ONBOARDING_REQUIRED' } })
@@ -177,7 +177,7 @@ describe.skipIf(!databaseUrl)('composed inventory boundary on PostgreSQL', () =>
     const user = await db.user.create({ data: { name: role, email: `${randomUUID()}@example.test`, emailVerified: true } })
     await db.shopStaff.create({ data: { shopId: target.shop.id, userId: user.id, role, status: 'ACTIVE',
       permissions: { create: permissionsForStaffRole(role).map(permission => ({ permission })) } } })
-    vi.mocked(getAuthContext).mockResolvedValue({ user } as Awaited<ReturnType<typeof getAuthContext>>)
+    vi.mocked(getAuthContext).mockResolvedValue({ user, session: { id: `test-session-${user.id}` } } as Awaited<ReturnType<typeof getAuthContext>>)
     const response = await target.patch({ quantityOnHand: 12, reason: 'count' })
     expect(response.status).toBe(role === 'SUPPORT' ? 403 : 200)
     if (role === 'SUPPORT') await unchanged(target.inventory.id)

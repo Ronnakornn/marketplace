@@ -46,8 +46,10 @@ describe.skipIf(!databaseUrl)('partial Return admission and mutation locks on Po
         platformCouponDiscount: 0n, coinDiscount: 0n, buyerMerchandise: 101n } })
       items.push(item)
     }
+    const shipment = await db.shipment.create({ data: { orderId: order.id, shopId: shop.id, status: 'DELIVERED', deliveredAt: new Date(),
+      items: { create: items.map((item) => ({ orderItemId: item.id, quantity: item.quantity })) } } })
     const input = { orderId: order.id, orderItemId: items[0]!.id, quantity: 1, reason: 'Damaged' }
-    return { buyer, seller, shop, shopOrder, order, payment, items, input }
+    return { buyer, seller, shop, shopOrder, order, payment, items, shipment, input }
   }
 
   it('accepts exactly one concurrent same-item request', async () => {
@@ -57,6 +59,97 @@ describe.skipIf(!databaseUrl)('partial Return admission and mutation locks on Po
     expect(outcomes.filter(row => row.status === 'rejected')).toEqual([expect.objectContaining({ reason: expect.objectContaining({ code: 'RETURN_ALREADY_EXISTS' }) })])
     expect(await db.returnRequest.count({ where: { orderId: f.order.id } })).toBe(1)
     expect(await db.returnItem.findMany({ where: { orderItemId: f.items[0]!.id }, select: { quantity: true } })).toEqual([{ quantity: 1 }])
+  })
+
+  it('admits the exact seventh-day deadline and rejects one millisecond later on stored shipment evidence', async () => {
+    const accepted = await fixture()
+    const expired = await fixture()
+    const instant = Date.now()
+    const deliveredAt = new Date(instant - 7 * 24 * 60 * 60 * 1000)
+    await db.shipment.updateMany({ where: { id: { in: [accepted.shipment.id, expired.shipment.id] } }, data: { deliveredAt } })
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(instant)
+    try {
+      await expect(returns.createReturn(accepted.buyer, accepted.input)).resolves.toMatchObject({ status: 'requested' })
+      clock.mockReturnValue(instant + 1)
+      await expect(returns.createReturn(expired.buyer, expired.input)).rejects.toMatchObject({ code: 'RETURN_WINDOW_EXPIRED' })
+      expect(await db.returnRequest.count({ where: { orderId: expired.order.id } })).toBe(0)
+    } finally {
+      clock.mockRestore()
+    }
+  })
+
+  it('fails closed for a historical delivered order with no delivery timestamp', async () => {
+    const f = await fixture()
+    await db.shipment.update({ where: { id: f.shipment.id }, data: { deliveredAt: null } })
+    await expect(returns.createReturn(f.buyer, f.input)).rejects.toMatchObject({ code: 'RETURN_DELIVERY_EVIDENCE_MISSING' })
+    expect(await db.returnRequest.count({ where: { orderId: f.order.id } })).toBe(0)
+  })
+
+  it('waits for another shop and starts the window at that shop delivery', async () => {
+    const f = await fixture()
+    const seller = await db.user.create({ data: { name: 'Second shop seller', email: `${randomUUID()}@example.test` } })
+    const profile = await db.sellerProfile.create({ data: { userId: seller.id } })
+    const shop = await db.shop.create({ data: { ownerId: seller.id, sellerProfileId: profile.id, name: 'Second shop', slug: randomUUID(), status: 'ACTIVE', contactEmail: seller.email, contactPhone: '0800000000' } })
+    const product = await db.product.create({ data: { shopId: shop.id, title: 'Second item', slug: randomUUID() } })
+    const variant = await db.productVariant.create({ data: { productId: product.id, title: 'Default', sku: randomUUID(), price: 34n } })
+    const item = await db.orderItem.create({ data: { orderId: f.order.id, shopId: shop.id, variantId: variant.id, productTitle: product.title, productSlug: product.slug,
+      variantTitle: variant.title, variantSku: variant.sku, shopName: shop.name, shopSlug: shop.slug, quantity: 3, unitPrice: 34n, lineTotal: 102n, currency: 'THB', fulfillmentStatus: 'SHIPPED' } })
+    const shopOrder = await db.shopOrder.create({ data: { orderId: f.order.id, shopId: shop.id, status: 'SHIPPED', fulfillmentStatus: 'SHIPPED', subtotal: 102n, discountTotal: 1n, grandTotal: 101n } })
+    await db.shopSaleSnapshot.create({ data: { shopOrderId: shopOrder.id, currency: 'THB', commissionBase: 101n, commissionBps: 1000, originalCommission: 10n,
+      originalShipping: 0n, buyerShipping: 0n, sellerShippingWaiver: 0n, platformShippingSubsidy: 0n } })
+    await db.itemSaleSnapshot.create({ data: { orderItemId: item.id, shopOrderId: shopOrder.id, originalQuantity: 3, grossMerchandise: 102n, sellerCouponDiscount: 1n,
+      platformCouponDiscount: 0n, coinDiscount: 0n, buyerMerchandise: 101n } })
+    const shipment = await db.shipment.create({ data: { orderId: f.order.id, shopId: shop.id, status: 'SHIPPED', shippedAt: new Date(),
+      items: { create: { orderItemId: item.id, quantity: 3 } } } })
+    const totals = { subtotal: 204n, discountTotal: 2n, grandTotal: 202n }
+    await db.checkout.update({ where: { id: f.order.checkoutId }, data: totals })
+    await db.order.update({ where: { id: f.order.id }, data: { ...totals, status: 'PARTIALLY_FULFILLED' } })
+    await db.payment.update({ where: { id: f.payment.id }, data: { amount: 202n } })
+    await db.shipment.update({ where: { id: f.shipment.id }, data: { deliveredAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } })
+    await expect(returns.createReturn(f.buyer, f.input)).rejects.toMatchObject({ code: 'ORDER_NOT_DELIVERED' })
+    expect(await db.returnRequest.count({ where: { orderId: f.order.id } })).toBe(0)
+    await db.$transaction([
+      db.shipment.update({ where: { id: shipment.id }, data: { status: 'DELIVERED', deliveredAt: new Date() } }),
+      db.orderItem.update({ where: { id: item.id }, data: { fulfillmentStatus: 'DELIVERED' } }),
+      db.shopOrder.update({ where: { id: shopOrder.id }, data: { status: 'DELIVERED', fulfillmentStatus: 'DELIVERED' } }),
+      db.order.update({ where: { id: f.order.id }, data: { status: 'DELIVERED' } }),
+    ])
+    await expect(returns.createReturn(f.buyer, f.input)).resolves.toMatchObject({ status: 'requested' })
+  })
+
+  it('checks the admission deadline after waiting for the Order lock', async () => {
+    const f = await fixture()
+    const deadline = Date.now() + 60000
+    await db.shipment.update({ where: { id: f.shipment.id }, data: { deliveredAt: new Date(deadline - 7 * 24 * 60 * 60 * 1000) } })
+    let release!: () => void
+    let ready!: () => void
+    const locked = new Promise<void>(resolve => { ready = resolve })
+    const gate = new Promise<void>(resolve => { release = resolve })
+    const holder = db.$transaction(async tx => {
+      await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${f.order.id}::uuid FOR UPDATE`
+      ready()
+      await gate
+    })
+    await locked
+    const admission = returns.createReturn(f.buyer, f.input)
+    try {
+      await expect.poll(async () => {
+        const rows = await db.$queryRaw<Array<{ waiting: boolean }>>`SELECT EXISTS (
+          SELECT 1 FROM pg_stat_activity WHERE application_name = ${applicationName}
+          AND wait_event_type = 'Lock' AND query LIKE '%FROM "Order"%FOR UPDATE%'
+        ) AS waiting`
+        return rows[0]?.waiting ?? false
+      }, { timeout: 2000 }).toBe(true)
+      vi.spyOn(Date, 'now').mockReturnValue(deadline + 1)
+      release()
+      await holder
+      await expect(admission).rejects.toMatchObject({ code: 'RETURN_WINDOW_EXPIRED' })
+      expect(await db.returnRequest.count({ where: { orderId: f.order.id } })).toBe(0)
+    } finally {
+      release()
+      await holder
+      vi.restoreAllMocks()
+    }
   })
 
   it('allows different items in one order to hold separate active returns', async () => {

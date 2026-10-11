@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { fetchAddresses, fetchProfile, fetchSellerApplicationSummary, requestProfilePhoneOtp, updateProfile, verifyProfilePhoneOtp } from "#/features/buyer/api";
+import { fetchAffiliateStats } from "#/features/affiliate/api";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { api } from "#/lib/eden";
@@ -19,6 +20,7 @@ export function ProfilePage() {
   const t = useTranslations();
   const profileQuery = useQuery({ queryKey: ["buyer-profile"], queryFn: fetchProfile });
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
+  const affiliateQuery = useQuery({ queryKey: ["affiliate", "stats"], queryFn: fetchAffiliateStats });
   const sellerApplicationQuery = useQuery({ queryKey: ["seller", "application"], queryFn: fetchSellerApplicationSummary });
   const staffInvitationsQuery = useQuery({ queryKey: ["shop-staff-invitations"], queryFn: async () => { const { data, error } = await api.api.seller.staff.invitations.get(); if (error) throw error; return data; } });
   const defaultAddress = addressesQuery.data?.find((address) => address.isDefault) ?? addressesQuery.data?.[0];
@@ -60,7 +62,7 @@ export function ProfilePage() {
                 <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/account/addresses")}><MapPinIcon className="size-4 text-orange-600" />{t("buyer.addresses")}</Link></Button>
                 <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/wishlist")}><HeartIcon className="size-4 text-orange-600" />{t("buyer.wishlist")}</Link></Button>
                 <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/vouchers")}><TicketIcon className="size-4 text-orange-600" />{t("buyer.vouchers")}</Link></Button>
-                <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/affiliates")}><LinkIcon className="size-4 text-orange-600" />{t("buyer.affiliates")}</Link></Button>
+                {affiliateQuery.isSuccess ? <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/affiliates")}><LinkIcon className="size-4 text-orange-600" />{t("buyer.affiliates")}</Link></Button> : null}
                 <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/followed-shops")}><StoreIcon className="size-4 text-orange-600" />{t("buyer.followedShops")}</Link></Button>
                 <Button asChild variant="outline" className="justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"><Link href={localePath("/notifications")}><BellIcon className="size-4 text-orange-600" />{t("buyer.notifications")}</Link></Button>
               </div>

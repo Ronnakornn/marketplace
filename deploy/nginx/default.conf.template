@@ -1,0 +1,69 @@
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+server {
+    listen 80 default_server;
+    server_name _;
+    return 444;
+}
+
+server {
+    listen 80;
+    server_name ${APP_HOST};
+    return 308 https://${APP_HOST}$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name ${APP_HOST};
+    ssl_certificate /etc/nginx/tls/fullchain.pem;
+    ssl_certificate_key /etc/nginx/tls/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    client_max_body_size 1m;
+
+    if ($host != ${APP_HOST}) {
+        return 444;
+    }
+
+    location ^~ /uploads/ {
+        alias /srv/marketplace/uploads/;
+        autoindex off;
+        add_header Cache-Control "public, max-age=604800, stale-while-revalidate=86400" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+        limit_except GET {
+            deny all;
+        }
+    }
+
+    location = /api/uploads/local-put {
+        client_max_body_size 25m;
+        include /etc/nginx/snippets/proxy-headers.conf;
+        proxy_set_header Connection "";
+        proxy_pass http://app:3001;
+    }
+
+    location = /api/realtime {
+        include /etc/nginx/snippets/proxy-headers.conf;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_read_timeout 300s;
+        proxy_pass http://app:3001;
+    }
+
+    location = /api/metrics/worker {
+        add_header Cache-Control "no-store" always;
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+        include /etc/nginx/snippets/proxy-headers.conf;
+        proxy_set_header Connection "";
+        proxy_pass http://app:3002/api/metrics;
+    }
+
+    location / {
+        include /etc/nginx/snippets/proxy-headers.conf;
+        proxy_set_header Connection "";
+        proxy_pass http://app:3000;
+    }
+}

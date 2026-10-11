@@ -4,6 +4,9 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '#generated/client/client.ts'
 import { PrismaShipmentRepository } from './shipment.repository.ts'
 import { ShipmentService } from './shipment.service.ts'
+import { CommissionService } from '#server/modules/commission'
+import { PrismaWalletRepository } from '#server/modules/wallet/wallet.repository.ts'
+import { WalletService } from '#server/modules/wallet/wallet.service.ts'
 
 const url = process.env.COMMERCE_TEST_DATABASE_URL
 const context = { logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }, config: { environment: 'test' } }
@@ -56,5 +59,34 @@ describe.skipIf(!url)('sibling shipment transactions on PostgreSQL', () => {
     expect(order.status).toBe('DELIVERED')
     expect(order.shipments.map((shipment) => shipment.status)).toEqual(['DELIVERED', 'DELIVERED'])
     expect(order.items.map((item) => item.fulfillmentStatus)).toEqual(['DELIVERED', 'DELIVERED'])
+  })
+
+  it('repairs an earning failure on concurrent delivery replay without changing delivery timestamps or repeating its event and audit', async () => {
+    const f = await fixture()
+    const actor = { id: f.seller.id, role: 'ADMIN' as const }
+    await Promise.all(f.shipments.map((shipment) => service.shipSellerShipment(f.seller, shipment.id, { carrier: 'Test carrier', trackingNo: shipment.id })))
+    await service.deliverAdminShipment(actor, f.shipments[0]!.id, { evidenceReference: 'CARRIER-1' })
+    const wallets = new WalletService(context, new PrismaWalletRepository(context, db), new CommissionService(context, 1000))
+    const recognize = wallets.createEarningsForCompletedOrder.bind(wallets)
+    vi.spyOn(wallets, 'createEarningsForCompletedOrder').mockRejectedValueOnce(new Error('recognition unavailable')).mockImplementation(recognize)
+    const event = { publish: vi.fn().mockResolvedValue(undefined) }
+    const audit = { createAuditLogBestEffort: vi.fn().mockResolvedValue(undefined) }
+    const delivery = new ShipmentService(context, new PrismaShipmentRepository(context, db), wallets, event as never, undefined, undefined, audit as never)
+    const shipmentId = f.shipments[1]!.id
+
+    await expect(delivery.deliverAdminShipment(actor, shipmentId, { evidenceReference: 'CARRIER-2' })).resolves.toMatchObject({ status: 'delivered' })
+    const before = await db.order.findUniqueOrThrow({ where: { id: f.order.id }, include: { shipments: true, items: true } })
+    expect(before.status).toBe('DELIVERED')
+    expect(await db.walletLedgerEntry.count({ where: { orderId: f.order.id } })).toBe(0)
+    await Promise.all([
+      delivery.deliverAdminShipment(actor, shipmentId, { evidenceReference: 'CARRIER-2' }),
+      delivery.deliverAdminShipment(actor, shipmentId, { evidenceReference: 'CARRIER-2' }),
+    ])
+
+    const after = await db.order.findUniqueOrThrow({ where: { id: f.order.id }, include: { shipments: true, items: true } })
+    expect(after).toEqual(before)
+    expect(await db.walletLedgerEntry.count({ where: { orderId: f.order.id, type: 'order_earning' } })).toBe(2)
+    expect(event.publish).toHaveBeenCalledOnce()
+    expect(audit.createAuditLogBestEffort).toHaveBeenCalledOnce()
   })
 })

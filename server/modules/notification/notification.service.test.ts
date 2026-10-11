@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
+import { InMemoryRealtimeAdapter, RealtimeService } from '#server/modules/realtime'
 import type { INotificationRepository, NotificationRecord } from './notification.repository.ts'
 import { NotificationService } from './notification.service.ts'
 
@@ -83,6 +84,26 @@ describe('NotificationService', () => {
         body: input.body,
         data: input.data as NotificationRecord['data'],
       }))
+  })
+
+  it('returns durable notification and read results when realtime transport rejects', async () => {
+    const context = createAppContext()
+    const adapter = new InMemoryRealtimeAdapter(context)
+    const realtime = new RealtimeService(context, {
+      findLiveSession: vi.fn(), findChatRoomAccess: vi.fn(), findShopOwnerId: vi.fn(),
+    }, adapter)
+    vi.spyOn(adapter, 'publish').mockRejectedValue(new Error('transport failure'))
+    service = new NotificationService(context, repo, realtime)
+
+    await expect(service.createNotification('user-1', 'chat_message', 'New message', 'Hello')).resolves.toMatchObject({
+      id: '11111111-1111-4111-8111-111111111111', title: 'New message', body: 'Hello',
+    })
+    await expect(service.markAsRead('11111111-1111-4111-8111-111111111111', 'user-1')).resolves.toMatchObject({ readAt: expect.any(Date) })
+    await expect(service.markAllAsRead('user-1')).resolves.toEqual({ updatedCount: 3 })
+    expect(repo.createNotification).toHaveBeenCalledOnce()
+    expect(repo.markAsRead).toHaveBeenCalledOnce()
+    expect(repo.markAllAsRead).toHaveBeenCalledOnce()
+    expect(context.logger.warn).toHaveBeenCalledWith('Realtime publication failed', expect.any(Object))
   })
 
   it('lists only the authenticated user notifications', async () => {

@@ -30,7 +30,7 @@ describe('seller shop composed HTTP input schemas', () => {
     vi.clearAllMocks()
     vi.mocked(getAuthContext).mockResolvedValue({ user: {
       id: 'seller-1', name: 'Seller', email: 'seller@example.test', role: 'USER', status: 'ACTIVE', emailVerified: true,
-    } })
+    }, session: { id: 'test-session-seller-1' } })
     vi.mocked(prisma.shop.count).mockResolvedValue(1)
     vi.mocked(prisma.shopStaff.count).mockResolvedValue(0)
     vi.mocked(prisma.sellerApplication.findFirst).mockResolvedValue(null)

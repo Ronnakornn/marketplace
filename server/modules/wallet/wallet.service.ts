@@ -37,6 +37,12 @@ export interface WalletTransactionResponse {
   createdAt: Date
 }
 
+export interface SellerEarningsReconciliationResult {
+  attemptedCount: number
+  succeededCount: number
+  failedCount: number
+}
+
 export class WalletService {
   private logger: ILogger
 
@@ -117,6 +123,34 @@ export class WalletService {
         }
       }
     })
+  }
+
+  async reconcileSellerEarnings(batchSize = 100): Promise<SellerEarningsReconciliationResult> {
+    if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 1000) {
+      throw new WalletServiceError('Invalid earnings reconciliation batch size', 400, 'INVALID_PAYOUT_STATE')
+    }
+    const result = { attemptedCount: 0, succeededCount: 0, failedCount: 0 }
+    let afterOrderId: string | null = null
+    while (true) {
+      const candidates = await this.repo.findOrdersMissingEarnings(afterOrderId, batchSize)
+      if (candidates.length === 0) break
+      for (const candidate of candidates) {
+        result.attemptedCount += 1
+        try {
+          await this.createEarningsForCompletedOrder(candidate.id)
+          result.succeededCount += 1
+        } catch (error) {
+          result.failedCount += 1
+          this.logger.error('WalletService seller earnings reconciliation failed', {
+            orderId: candidate.id,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
+        afterOrderId = candidate.id
+      }
+    }
+    this.logger.info('WalletService seller earnings reconciliation finished', result)
+    return result
   }
 
   private async createSnapshottedEarnings(repo: IWalletRepository, order: CompletedOrderRecord): Promise<void> {

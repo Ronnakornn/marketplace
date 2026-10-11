@@ -77,6 +77,7 @@ function repoMock(): IWalletRepository {
     createLedgerEntry: vi.fn(),
     lockOrder: vi.fn(),
     findCompletedOrder: vi.fn(),
+    findOrdersMissingEarnings: vi.fn(),
     hasOrderEarnings: vi.fn(),
     lockWallet: vi.fn(),
     recognizeShopSale: vi.fn(),
@@ -111,6 +112,22 @@ describe('WalletService', () => {
       availableBalanceCents: 9000n,
       sellerDebtCents: 0n,
     })
+  })
+
+  it('reconciles every candidate page after a failure and retries incomplete candidates next run', async () => {
+    const candidates = vi.fn().mockResolvedValueOnce([{ id: 'order-1' }, { id: 'order-2' }])
+      .mockResolvedValueOnce([{ id: 'order-3' }]).mockResolvedValueOnce([])
+    Object.assign(repo, { findOrdersMissingEarnings: candidates })
+    const recognize = vi.spyOn(service, 'createEarningsForCompletedOrder')
+      .mockRejectedValueOnce(new Error('inconsistent snapshot')).mockResolvedValue(undefined)
+
+    await expect(service.reconcileSellerEarnings(2)).resolves.toEqual({ attemptedCount: 3, succeededCount: 2, failedCount: 1 })
+    expect(candidates.mock.calls).toEqual([[null, 2], ['order-2', 2], ['order-3', 2]])
+    expect(recognize.mock.calls.map(([id]) => id)).toEqual(['order-1', 'order-2', 'order-3'])
+
+    candidates.mockResolvedValueOnce([{ id: 'order-1' }]).mockResolvedValueOnce([])
+    await expect(service.reconcileSellerEarnings(2)).resolves.toEqual({ attemptedCount: 1, succeededCount: 1, failedCount: 0 })
+    expect(candidates).toHaveBeenNthCalledWith(4, null, 2)
   })
 
   it('seller cannot see another wallet', async () => {

@@ -640,7 +640,7 @@
     "recipientName": "Recipient name",
     "region": "Region",
     "requestReturnRefund": "Request return or refund",
-    "returnEligibilityDescription": "Return requests are available after delivery.",
+    "returnEligibilityDescription": "Return requests are available after the whole order has been delivered, within the return request period.",
     "returnSubmitted": "Return request submitted.",
     "reviewEligibilityDescription": "Reviews are available after the item is delivered.",
     "reviewDeliveredItem": "Review delivered item",
@@ -720,7 +720,10 @@
     "loadingSellerStatus": "Loading seller status...",
     "returnQuantity": "Quantity to return",
     "returnRemaining": "{count} units remain eligible for return",
-    "invalidReturnQuantity": "Enter a whole quantity between 1 and the remaining eligible units."
+    "invalidReturnQuantity": "Enter a whole quantity between 1 and the remaining eligible units.",
+    "returnWindowExpired": "The return request period for this order has ended.",
+    "orderNotFullyDelivered": "You can request a return after the whole order has been delivered.",
+    "returnDeliveryEvidenceMissing": "Delivery information is incomplete. Please contact support to request a return."
   },
   "notification": {
     "all": "All",
@@ -769,6 +772,8 @@
     }
   },
   "affiliate": {
+    "unavailableTitle": "Affiliate program unavailable",
+    "unavailableDescription": "Affiliate links and commissions are currently unavailable.",
     "activeRecords": "active records",
     "affiliates": "Affiliates",
     "campaign": "Campaign",

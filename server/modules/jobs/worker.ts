@@ -1,7 +1,11 @@
+import { Elysia } from 'elysia'
 import { createContainer } from '#server/context/app-context.ts'
 import { createJobQueueEvents, createJobWorker, ensureRecurringJobSchedulers } from '#server/modules/jobs'
 import { getQueueConfigFromEnv } from '#server/modules/queue'
+import { createObservabilityRoutes } from '#server/modules/observability'
+import { getWorkerMetricsPortFromEnv } from './worker.config.ts'
 
+const metricsPort = getWorkerMetricsPortFromEnv()
 const container = createContainer()
 const logger = container.appContext.logger
 const config = getQueueConfigFromEnv()
@@ -16,6 +20,10 @@ if (!config) {
 const worker = createJobWorker(container, config)
 const events = createJobQueueEvents(container, config)
 const schedulerQueue = await ensureRecurringJobSchedulers(config)
+const metricsServer = metricsPort === null ? null : new Elysia().use(createObservabilityRoutes(container)).listen(metricsPort)
+if (metricsServer) {
+  logger.info('Job worker metrics listening', { port: metricsPort })
+}
 
 logger.info('Job worker running', {
   concurrency: config.concurrency,
@@ -29,6 +37,7 @@ async function shutdown(signal: string): Promise<void> {
     worker.close(),
     events.close(),
     schedulerQueue.close(),
+    metricsServer?.stop(),
   ])
 }
 

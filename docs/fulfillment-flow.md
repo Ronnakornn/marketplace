@@ -10,7 +10,7 @@ flowchart TD
   F --> G{Paid whole Order DELIVERED or FULFILLED?}
   G -- Yes --> H[Recognize surviving seller entitlement once]
   G -- No --> C
-  E --> I[Buyer requests a remaining item quantity]
+  G -- Yes --> I[Buyer requests a remaining item quantity within the return window]
   I --> J[Seller approves or rejects Return]
   J -- Approved --> K[Create PENDING refund with merchandise plan]
   A --> L[Admin prepares unshipped cancellation plan]
@@ -33,6 +33,7 @@ flowchart TD
 - A paid Order in DELIVERED or FULFILLED state qualifies for earnings recognition. Eligibility remains whole-Order based; this increment does not release earnings independently per Shop.
 - Policy 1 and 2 recognition use original sale snapshots, surviving seller gross merchandise and shipping rights, and the remaining original fee. Policy 2 includes frozen tax in seller receipts and excludes tax from the commission base. Successful refunds before recognition reduce future credit instead of debiting unearned funds. Current policy, commission settings and the v2 admission flag do not rewrite original rights.
 - Recognition locks the Order and Shop wallets in Shop ID order. `recognizedAt` makes repeated recognition a no-op, including a fully reversed sale whose surviving credit is zero.
+- Repeating DELIVERED delivery retries recognition without rewriting delivery timestamps or repeating delivery events. A recurring `reconcile_seller_earnings` job repairs missing recognition from committed Orders in bounded batches.
 
 ## Refund planning and approval
 
@@ -60,6 +61,13 @@ Buyer Return quantity is optional for legacy callers and defaults to all remaini
 rights; explicit quantity must be a positive Int32 within the server projection.
 Buyer Order items expose `remainingReturnQuantity` and `hasActiveReturn`.
 Create/cancel/approve/reject lock Order first and reread Return/settlement state.
+
+New buyer requests require the whole Order to be DELIVERED or FULFILLED, with
+every active item and non-canceled shipment delivered. The latest committed
+shipment `deliveredAt` starts the request window. `RETURN_WINDOW_DAYS` defaults
+to 7 and accepts integers from 1 through 365. The exact deadline is included.
+The service rereads delivery evidence and checks the deadline under the Order
+lock. Missing, invalid or future delivery timestamps prevent admission.
 
 Approval creates a PENDING merchandise plan atomically. It does not establish
 physical receipt or complete the refund. Free-text reasons do not authorize

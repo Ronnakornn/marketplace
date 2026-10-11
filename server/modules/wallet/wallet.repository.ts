@@ -49,6 +49,7 @@ export interface IWalletRepository {
   createLedgerEntry(input: CreateLedgerEntryInput): Promise<WalletLedgerEntry>
   lockOrder(orderId: string): Promise<void>
   findCompletedOrder(orderId: string): Promise<CompletedOrderRecord | null>
+  findOrdersMissingEarnings(afterOrderId: string | null, limit: number): Promise<Array<Pick<Order, 'id'>>>
   hasOrderEarnings(orderId: string, shopId: string): Promise<boolean>
   lockWallet(walletId: string): Promise<void>
   recognizeShopSale(shopOrderId: string, recognizedAt: Date): Promise<void>
@@ -167,6 +168,44 @@ export class PrismaWalletRepository implements IWalletRepository {
       },
       include: completedOrderInclude,
     })
+  }
+
+  findOrdersMissingEarnings(afterOrderId: string | null, limit: number): Promise<Array<Pick<Order, 'id'>>> {
+    return this.prisma.$queryRaw<Array<Pick<Order, 'id'>>>`
+      SELECT o."id" FROM "Order" o
+      WHERE o."status" IN ('DELIVERED', 'FULFILLED')
+        AND o."paymentStatus" = 'SUCCEEDED'
+        AND (${afterOrderId}::uuid IS NULL OR o."id" > ${afterOrderId}::uuid)
+        AND (
+          EXISTS (
+            SELECT 1 FROM "ShopOrder" so
+            JOIN "ShopSaleSnapshot" sale ON sale."shopOrderId" = so."id"
+            WHERE so."orderId" = o."id" AND sale."recognizedAt" IS NULL
+          )
+          OR (
+            NOT EXISTS (
+              SELECT 1 FROM "ShopOrder" so
+              JOIN "ShopSaleSnapshot" sale ON sale."shopOrderId" = so."id"
+              WHERE so."orderId" = o."id"
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM "OrderItem" oi
+              JOIN "ItemSaleSnapshot" sale ON sale."orderItemId" = oi."id"
+              WHERE oi."orderId" = o."id"
+            )
+            AND EXISTS (
+              SELECT 1 FROM "OrderItem" oi
+              WHERE oi."orderId" = o."id"
+                AND NOT EXISTS (
+                  SELECT 1 FROM "WalletLedgerEntry" entry
+                  WHERE entry."orderId" = o."id" AND entry."shopId" = oi."shopId"
+                    AND entry."type" = 'order_earning'
+                )
+            )
+          )
+        )
+      ORDER BY o."id" ASC LIMIT ${limit}
+    `
   }
 
   async lockOrder(orderId: string): Promise<void> {

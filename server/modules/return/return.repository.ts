@@ -9,6 +9,7 @@ import type {
   ReturnRequest,
   ReturnStatus,
   Shop,
+  Shipment,
   Upload,
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -28,6 +29,8 @@ export type ReturnOrderItem = OrderItem & {
   order: Order & {
     payments: Payment[]
     refunds: Refund[]
+    items: Array<Pick<OrderItem, 'shopId' | 'fulfillmentStatus'>>
+    shipments: Array<Pick<Shipment, 'shopId' | 'status' | 'deliveredAt'>>
   }
   returnItems: Array<ReturnItem & {
     returnRequest: Pick<ReturnRequest, 'id' | 'status'>
@@ -138,6 +141,8 @@ export class PrismaReturnRepository implements IReturnRepository {
               orderBy: { createdAt: 'desc' },
             },
             refunds: true,
+            items: { select: { shopId: true, fulfillmentStatus: true } },
+            shipments: { select: { shopId: true, status: true, deliveredAt: true } },
           },
         },
         returnItems: {

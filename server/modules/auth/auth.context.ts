@@ -1,4 +1,5 @@
 import type { Role, UserStatus } from "#generated/client/enums.ts";
+import type { Session } from "#generated/client/client.ts";
 import { auth } from "./auth.ts";
 
 export interface SessionUser {
@@ -12,6 +13,7 @@ export interface SessionUser {
 
 export interface AuthContext {
   user: SessionUser;
+  session: Pick<Session, "id">;
 }
 
 export async function getAuthContext(headers: Headers): Promise<AuthContext | null> {
@@ -20,5 +22,6 @@ export async function getAuthContext(headers: Headers): Promise<AuthContext | nu
 
   return {
     user: session.user as SessionUser,
+    session: { id: session.session.id },
   };
 }

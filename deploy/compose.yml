@@ -1,0 +1,127 @@
+name: marketplace
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: marketplace
+      POSTGRES_DB: ${POSTGRES_DB:-marketplace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U marketplace -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [database]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    command: [sh, -c, 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - redis-data:/data
+    networks: [database]
+
+  migrate:
+    image: ${MIGRATION_IMAGE:-marketplace-migration:local}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: migration
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://marketplace:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-marketplace}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [database]
+
+  app:
+    image: ${MARKETPLACE_IMAGE:-marketplace:local}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: production
+      args:
+        NEXT_PUBLIC_APP_URL: https://${APP_HOST:?Set APP_HOST}
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 60s
+    env_file:
+      - ${APP_ENV_FILE:?Set APP_ENV_FILE to the absolute runtime environment path}
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://marketplace:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-marketplace}
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379/0
+      BETTER_AUTH_URL: https://${APP_HOST:?Set APP_HOST}
+      NEXT_PUBLIC_APP_URL: https://${APP_HOST:?Set APP_HOST}
+      API_BASE_URL: http://127.0.0.1:3001
+      TRUST_PROXY: "true"
+      RATE_LIMIT_ENABLED: "true"
+      QUEUE_SKIP_REDIS_VERSION_CHECK: "false"
+      OPENAPI_ENABLED: "false"
+      ALLOW_INSECURE_HTTP: "false"
+      PAYMENT_PROVIDER: disabled
+      PAYMENT_MOCK_ENABLED: "false"
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-disabled}
+      PHONE_OTP_ENABLED: "false"
+      PUSH_NOTIFICATIONS_ENABLED: "false"
+      AFFILIATE_ENABLED: "false"
+      AI_SEARCH_ENABLED: "false"
+      METRICS_ENABLED: "true"
+      METRICS_WORKER_PORT: "3002"
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:?Set METRICS_AUTH_TOKEN}
+      UPLOAD_STORAGE: local
+      LOCAL_UPLOAD_DIR: /app/public
+      LOCAL_PRIVATE_UPLOAD_DIR: /app/.data/uploads
+      RETURN_WINDOW_DAYS: ${RETURN_WINDOW_DAYS:-7}
+      REQUEST_BODY_LIMIT_BYTES: "26214400"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    volumes:
+      - public-uploads:/app/public/uploads
+      - private-uploads:/app/.data/uploads
+    networks: [database, proxy]
+
+  nginx:
+    image: nginx:stable-alpine
+    restart: unless-stopped
+    environment:
+      APP_HOST: ${APP_HOST:?Set APP_HOST}
+      NGINX_ENVSUBST_FILTER: ^APP_HOST$
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+    volumes:
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/proxy-headers.conf:/etc/nginx/snippets/proxy-headers.conf:ro
+      - ${TLS_CERT_DIR:?Set TLS_CERT_DIR}:/etc/nginx/tls:ro
+      - public-uploads:/srv/marketplace/uploads:ro
+    networks: [proxy]
+
+networks:
+  database:
+    internal: true
+  proxy:
+
+volumes:
+  postgres-data:
+  redis-data:
+  public-uploads:
+  private-uploads:

@@ -7,6 +7,7 @@ import { ReturnRequestPage } from "./ReturnRequestPage";
 import { OrderDetailPage } from "#/features/order/components/OrderDetailPage";
 import { createReturnRequest, fetchOrder, type BuyerOrder } from "#/features/buyer/api";
 import { formatMinorCurrency, type MinorUnitValue } from "#/lib/money";
+import { ApiClientError } from "#/lib/api-client";
 
 vi.mock("next/link", () => ({ default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a> }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -31,6 +32,29 @@ beforeEach(() => { vi.mocked(fetchOrder).mockReset().mockResolvedValue(order());
 afterEach(cleanup);
 
 describe("partial return admission UI", () => {
+  it("waits for all shops rather than offering a return on a partially delivered order", async () => {
+    const data = order();
+    data.status = "PARTIALLY_FULFILLED";
+    vi.mocked(fetchOrder).mockResolvedValue(data);
+    mount(<ReturnRequestPage orderId="order-1" />);
+    await screen.findByText("buyer.noItemsEligibleForReturn");
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+    expect(screen.getByRole("button", { name: "buyer.submitRequest" })).toHaveProperty("disabled", true);
+  });
+
+  it.each([
+    ["RETURN_WINDOW_EXPIRED", "buyer.returnWindowExpired"],
+    ["ORDER_NOT_DELIVERED", "buyer.orderNotFullyDelivered"],
+    ["RETURN_DELIVERY_EVIDENCE_MISSING", "buyer.returnDeliveryEvidenceMissing"],
+  ])("localizes the server policy rejection %s", async (code, key) => {
+    vi.mocked(createReturnRequest).mockRejectedValue(new ApiClientError("Server policy rejection", 409, code));
+    mount(<ReturnRequestPage orderId="order-1" />);
+    await screen.findByRole("spinbutton");
+    fireEvent.click(screen.getByRole("button", { name: "buyer.submitRequest" }));
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", key);
+    expect(screen.queryByText("Server policy rejection")).toBeNull();
+  });
+
   it("uses the server remaining quantity and submits one explicit unit", async () => {
     mount(<ReturnRequestPage orderId="order-1" />);
     const input = await screen.findByRole("spinbutton", { name: "buyer.returnQuantity" });

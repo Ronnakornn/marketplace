@@ -23,9 +23,11 @@ export function createRealtimeRoutes(container: ServiceContainer) {
         container.realtimeService.addConnection({
           id: ws.id,
           userId: actor.id,
+          sessionId: ws.data.authContext.session.id,
           send: (data) => {
             ws.send(data)
           },
+          close: () => ws.close(),
         })
         ws.send(JSON.stringify({ event: 'realtime.connected', channel: `user:${actor.id}`, createdAt: new Date().toISOString() }))
       },
@@ -33,8 +35,8 @@ export function createRealtimeRoutes(container: ServiceContainer) {
         const actor = realtimeActor(ws.data.authContext)
         try {
           const result = message.action === 'subscribe'
-            ? await container.realtimeService.subscribe(actor, ws.id, message.channel)
-            : await container.realtimeService.unsubscribe(actor, ws.id, message.channel)
+            ? await container.realtimeService.subscribe(ws.id, message.channel)
+            : await container.realtimeService.unsubscribe(ws.id, message.channel)
           ws.send(JSON.stringify({
             event: `realtime.${message.action}d`,
             channel: result.channel,

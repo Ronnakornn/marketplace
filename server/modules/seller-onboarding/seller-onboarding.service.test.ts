@@ -375,6 +375,84 @@ describe('SellerOnboardingService', () => {
     expect(repo.approveApplication).not.toHaveBeenCalled()
   })
 
+  describe.each(['INDIVIDUAL', 'COMPANY'] as const)('%s bank book approval', (businessType) => {
+    it('rejects submission when BANK_BOOK is missing and all other required documents are uploaded', async () => {
+      const documents = completeInput.documents.filter((document) => document.documentType !== 'BANK_BOOK')
+      if (businessType === 'COMPANY') {
+        documents.push({ uploadId: 'business-upload', documentType: 'BUSINESS_CERTIFICATE' })
+      }
+
+      await expect(service.submitApplication(
+        { id: 'buyer-1', role: 'USER' },
+        { ...completeInput, businessType, companyRegistration: '0105555044321', documents },
+      )).rejects.toMatchObject({
+        code: 'SELLER_DOCUMENTS_REQUIRED',
+        status: 400,
+        details: { missing: ['BANK_BOOK'] },
+      })
+      expect(repo.submitApplication).not.toHaveBeenCalled()
+    })
+
+    it.each(['PENDING', 'REJECTED', 'MISSING'] as const)(
+      'blocks approval when BANK_BOOK is %s and all other required documents are approved',
+      async (bankBookStatus) => {
+        const documents: SellerApplicationRecord['documents'] = [
+          { ...createDocument('ID_CARD'), reviewStatus: 'APPROVED' },
+          { ...createDocument('TAX_DOCUMENT'), reviewStatus: 'APPROVED' },
+        ]
+        if (businessType === 'COMPANY') {
+          documents.push({ ...createDocument('BUSINESS_CERTIFICATE'), reviewStatus: 'APPROVED' })
+        }
+        if (bankBookStatus !== 'MISSING') {
+          documents.push({
+            ...createDocument('BANK_BOOK'),
+            reviewStatus: bankBookStatus,
+            rejectionReason: bankBookStatus === 'REJECTED' ? 'Account holder does not match' : null,
+          })
+        }
+        vi.mocked(repo.findApplicationById).mockResolvedValue(createApplication({ businessType, documents }))
+
+        await expect(service.reviewApplication(
+          { id: 'admin-1', role: 'ADMIN' },
+          '11111111-1111-4111-8111-111111111111',
+          { decision: 'APPROVED' },
+        )).rejects.toMatchObject({
+          code: 'SELLER_DOCUMENTS_NOT_APPROVED',
+          status: 409,
+          details: {
+            unresolved: [{
+              documentType: 'BANK_BOOK',
+              documentIds: bankBookStatus === 'MISSING' ? [] : ['bank_book-doc'],
+              reviewStatuses: bankBookStatus === 'MISSING' ? [] : [bankBookStatus],
+            }],
+          },
+        })
+        expect(repo.approveApplication).not.toHaveBeenCalled()
+      },
+    )
+  })
+
+  it('approves a company application after every required document including BANK_BOOK is approved', async () => {
+    const application = createApplication({
+      businessType: 'COMPANY',
+      documents: [
+        { ...createDocument('BUSINESS_CERTIFICATE'), reviewStatus: 'APPROVED' },
+        { ...createDocument('ID_CARD'), reviewStatus: 'APPROVED' },
+        { ...createDocument('TAX_DOCUMENT'), reviewStatus: 'APPROVED' },
+        { ...createDocument('BANK_BOOK'), reviewStatus: 'APPROVED' },
+      ],
+    })
+    vi.mocked(repo.findApplicationById).mockResolvedValue(application)
+    vi.mocked(repo.approveApplication).mockResolvedValue(createApplication({ ...application, status: 'APPROVED' }))
+
+    await expect(service.reviewApplication(
+      { id: 'admin-1', role: 'ADMIN' },
+      application.id,
+      { decision: 'APPROVED' },
+    )).resolves.toMatchObject({ status: 'APPROVED', businessType: 'COMPANY' })
+    expect(repo.approveApplication).toHaveBeenCalledWith(application.id, 'admin-1')
+  })
+
   it('rejects a submitted application with a reason', async () => {
     const result = await service.reviewApplication(
       { id: 'admin-1', role: 'ADMIN' },

@@ -41,6 +41,8 @@ export async function createFinanceFixture(db: ReturnType<typeof financeDatabase
     items.push(await db.orderItem.create({ data: { orderId: order.id, shopId: shop.id, variantId: variant.id, productTitle: product.title, productSlug: product.slug, variantTitle: variant.title, variantSku: variant.sku, shopName: shop.name, shopSlug: shop.slug, quantity: 1, unitPrice: price, lineTotal: price, currency: "THB", fulfillmentStatus: "DELIVERED" } }));
   }
   await db.payment.create({ data: { orderId: order.id, provider: "mock", providerIntentId: key, status: "SUCCEEDED", amount: 8500n, currency: "THB", paidAt: new Date() } });
+  await db.shipment.create({ data: { orderId: order.id, shopId: shop.id, status: "DELIVERED", shippedAt: new Date(), deliveredAt: new Date(),
+    items: { create: items.map((item) => ({ orderItemId: item.id, quantity: item.quantity })) } } });
   if (snapshotted) {
     const shopOrder = await db.shopOrder.findFirstOrThrow({ where: { orderId: order.id } });
     await db.shopSaleSnapshot.create({ data: { shopOrderId: shopOrder.id, currency: "THB", commissionBase: 8000n,
@@ -52,7 +54,6 @@ export async function createFinanceFixture(db: ReturnType<typeof financeDatabase
     await db.walletLedgerEntry.updateMany({ where: { walletId: wallet.id }, data: { amount: 8500n, orderId: order.id } });
     await db.walletLedgerEntry.create({ data: { walletId: wallet.id, shopId: shop.id, orderId: order.id,
       type: "commission_fee", amount: -800n, currency: "THB" } });
-    await db.shipment.create({ data: { orderId: order.id, shopId: shop.id, status: "DELIVERED", shippedAt: new Date(), deliveredAt: new Date() } });
   }
   return { buyer, seller, admin, secondAdmin, shop, wallet, order, items };
 }
@@ -72,6 +73,7 @@ export async function createPartialFinanceFixture(db: ReturnType<typeof financeD
     await db.shopOrder.updateMany({ where: { orderId: f.order.id }, data: totals })
     await db.payment.updateMany({ where: { orderId: f.order.id }, data: { amount: totals.grandTotal } })
     await db.orderItem.update({ where: { id: item.id }, data: { quantity: 3, unitPrice: coins ? 101n : 41n, lineTotal: totals.subtotal } })
+    await db.shipmentItem.updateMany({ where: { orderItemId: item.id }, data: { quantity: 3 } })
     const shopOrder = await db.shopOrder.findFirstOrThrow({ where: { orderId: f.order.id } })
     await db.shopSaleSnapshot.update({ where: { shopOrderId: shopOrder.id }, data: { policyVersion: 2,
       commissionBase: net, originalCommission: fee, originalShipping: 0n, buyerShipping: 0n, platformShippingSubsidy: 0n,

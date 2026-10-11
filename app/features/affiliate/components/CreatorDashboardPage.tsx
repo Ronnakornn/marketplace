@@ -19,6 +19,7 @@ import {
   fetchAffiliateStats,
   fetchAffiliateTargets,
   formatAffiliateMoney,
+  isAffiliateDisabledError,
   type AffiliateTargetOption,
   type AffiliateTargetType,
 } from "../api";
@@ -47,6 +48,7 @@ export function CreatorDashboardPage() {
 
       return normalizeAffiliateProductTargets(await fetchAffiliateProductTargets({ q: targetQuery, limit: 8 }));
     },
+    enabled: statsQuery.isSuccess && linksQuery.isSuccess,
   });
 
   const createLinkMutation = useMutation({
@@ -64,6 +66,22 @@ export function CreatorDashboardPage() {
   const links = linksQuery.data ?? [];
   const targetItems = targetsQuery.data ?? [];
   const error = statsQuery.error ?? linksQuery.error;
+  const unavailable = [statsQuery.error, linksQuery.error, targetsQuery.error, createLinkMutation.error].some(isAffiliateDisabledError);
+
+  if (unavailable || statsQuery.isPending || linksQuery.isPending || error) {
+    return (
+      <>
+        <ClientOnlyBuyerTopBar title={t("affiliate.affiliates")} />
+        <main className="mx-auto max-w-3xl px-3 pb-28 pt-4">
+          {unavailable ? (
+            <BuyerEmptyState title={t("affiliate.unavailableTitle")} description={t("affiliate.unavailableDescription")} />
+          ) : error ? (
+            <BuyerErrorState message={error.message} onRetry={() => { void statsQuery.refetch(); void linksQuery.refetch(); }} />
+          ) : <BuyerLoadingList />}
+        </main>
+      </>
+    );
+  }
 
   function handleTargetType(value: AffiliateTargetType) {
     setTargetType(value);
@@ -91,8 +109,6 @@ export function CreatorDashboardPage() {
     <>
       <ClientOnlyBuyerTopBar title={t("affiliate.affiliates")} />
       <main className="mx-auto max-w-6xl space-y-5 px-3 pb-28 pt-4">
-        {error ? <BuyerErrorState message={error.message} onRetry={() => { void statsQuery.refetch(); void linksQuery.refetch(); }} /> : null}
-
         <section className="rounded-3xl border border-orange-100 bg-white p-5 shadow-sm">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div>

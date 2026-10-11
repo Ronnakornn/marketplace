@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
+import { InMemoryRealtimeAdapter, RealtimeService } from '#server/modules/realtime'
 import { ChatServiceError } from './chat.errors.ts'
 import type { IChatRepository } from './chat.repository.ts'
 import { ChatService } from './chat.service.ts'
@@ -15,6 +16,15 @@ const appContext = {
   logger,
   config: { environment: 'test' },
 } satisfies AppContext
+
+function failingRealtime() {
+  const adapter = new InMemoryRealtimeAdapter(appContext)
+  const service = new RealtimeService(appContext, {
+    findLiveSession: vi.fn(), findChatRoomAccess: vi.fn(), findShopOwnerId: vi.fn(),
+  }, adapter)
+  vi.spyOn(adapter, 'publish').mockRejectedValue(new Error('transport failure'))
+  return service
+}
 
 function user(id = 'buyer-1') {
   return { id, role: 'USER' as const }
@@ -102,6 +112,19 @@ function createNotificationService(overrides: Record<string, any> = {}) {
 describe('ChatService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('returns committed message and read results when realtime transport rejects', async () => {
+    const repo = createRepo({ findRoomById: vi.fn().mockResolvedValue(createRoom({ messages: [createMessage()] })) })
+    const service = new ChatService(appContext, repo, failingRealtime())
+
+    await expect(service.sendMessage(user(), 'room-1', { messageType: 'text', body: 'Hello' })).resolves.toMatchObject({
+      roomId: 'room-1', lastMessage: { id: 'message-1', body: 'Hello' },
+    })
+    await expect(service.markRead(user(), 'room-1')).resolves.toMatchObject({ roomId: 'room-1' })
+    expect(repo.createMessage).toHaveBeenCalledOnce()
+    expect(repo.markBuyerRead).toHaveBeenCalledOnce()
+    expect(logger.warn).toHaveBeenCalledWith('Realtime publication failed', expect.any(Object))
   })
 
   it('lets a buyer create chat with a shop', async () => {

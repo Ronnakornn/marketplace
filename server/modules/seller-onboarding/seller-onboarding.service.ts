@@ -414,9 +414,7 @@ export class SellerOnboardingService {
     }
 
     if (requireComplete) {
-      const required: SellerKycDocumentType[] = businessType === 'COMPANY'
-        ? ['BUSINESS_CERTIFICATE', 'ID_CARD', 'TAX_DOCUMENT', 'BANK_BOOK']
-        : ['ID_CARD', 'TAX_DOCUMENT', 'BANK_BOOK']
+      const required = this.requiredDocumentTypes(businessType)
       const missing = required.filter((type) => !documentTypes.has(type))
       if (missing.length > 0) {
         throw new SellerOnboardingServiceError('Required KYC documents are missing', 400, 'SELLER_DOCUMENTS_REQUIRED', { missing })
@@ -526,8 +524,8 @@ export class SellerOnboardingService {
 
   private requiredDocumentTypes(businessType: SellerBusinessType): SellerKycDocumentType[] {
     return businessType === 'COMPANY'
-      ? ['BUSINESS_CERTIFICATE', 'ID_CARD', 'TAX_DOCUMENT']
-      : ['ID_CARD', 'TAX_DOCUMENT']
+      ? ['BUSINESS_CERTIFICATE', 'ID_CARD', 'TAX_DOCUMENT', 'BANK_BOOK']
+      : ['ID_CARD', 'TAX_DOCUMENT', 'BANK_BOOK']
   }
 
   private toAdminResponse(application: SellerApplicationRecord): AdminSellerApplicationResponse {

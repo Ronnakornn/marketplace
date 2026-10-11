@@ -20,6 +20,10 @@ export async function ensureRecurringJobSchedulers(config: QueueConfig): Promise
       name: 'cleanup_abandoned_carts',
       data: {},
     }),
+    queue.upsertJobScheduler('reconcile-seller-earnings', { every: 60_000 }, {
+      name: 'reconcile_seller_earnings',
+      data: { limit: 100 },
+    }),
   ])
   return queue
 }
@@ -48,9 +52,11 @@ export function createJobWorker(container: ServiceContainer, config: QueueConfig
     container.appContext.logger.info('Job worker started job', { jobName: job.name, jobId: job.id })
   })
   worker.on('completed', (job) => {
+    container.metricsCollector.recordQueueJobSuccess()
     container.appContext.logger.info('Job worker completed job', { jobName: job.name, jobId: job.id })
   })
   worker.on('failed', (job, error) => {
+    container.metricsCollector.recordQueueJobFailure()
     const attemptsMade = job?.attemptsMade ?? 0
     const attemptsAllowed = job?.opts.attempts ?? config.attempts
     container.appContext.logger.error('Job worker failed job', {

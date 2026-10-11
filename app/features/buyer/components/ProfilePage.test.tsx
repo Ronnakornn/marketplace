@@ -3,10 +3,12 @@
  */
 import { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProfilePage } from "./ProfilePage";
 import { requestProfilePhoneOtp, updateProfile, verifyProfilePhoneOtp } from "#/features/buyer/api";
+import { fetchAffiliateStats } from "#/features/affiliate/api";
+import { ApiClientError } from "#/lib/api-client";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean }) => <a href={href} {...props}>{children}</a>,
@@ -111,11 +113,13 @@ vi.mock("#/features/buyer/api", () => ({
   verifyProfilePhoneOtp: vi.fn(),
 }));
 
+vi.mock("#/features/affiliate/api", () => ({ fetchAffiliateStats: vi.fn() }));
+
 function renderWithClient(ui: ReactNode) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  return { ...render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>), client };
 }
 
 afterEach(() => cleanup());
@@ -123,6 +127,21 @@ afterEach(() => cleanup());
 describe("ProfilePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(fetchAffiliateStats).mockResolvedValue({ clicks: 0, conversions: 0, commissionCents: "0" });
+  });
+
+  it("hides the Affiliate shortcut when the program is disabled", async () => {
+    vi.mocked(fetchAffiliateStats).mockRejectedValue(new ApiClientError("Affiliate feature is disabled", 403, "AFFILIATE_DISABLED"));
+    const { client } = renderWithClient(<ProfilePage />);
+    await screen.findByText("Buyer One");
+    await waitFor(() => expect(client.getQueryState(["affiliate", "stats"])?.status).toBe("error"));
+    expect(screen.queryByRole("link", { name: "Affiliates" })).toBeNull();
+    expect(screen.queryByText("Affiliate feature is disabled")).toBeNull();
+  });
+
+  it("shows the Affiliate shortcut when the server confirms availability", async () => {
+    renderWithClient(<ProfilePage />);
+    expect((await screen.findByRole("link", { name: "Affiliates" })).getAttribute("href")).toBe("/affiliates");
   });
 
   it("preserves phone input and shows update errors", async () => {

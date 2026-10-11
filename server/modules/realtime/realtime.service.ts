@@ -3,10 +3,11 @@ import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { RealtimeAdapter } from './realtime.adapter.ts'
 import { RealtimeServiceError } from './realtime.errors.ts'
 import type { IRealtimeRepository } from './realtime.repository.ts'
-import type { RealtimeActor, RealtimeConnection, RealtimeEvent, RealtimeEventName } from './realtime.types.ts'
+import type { RealtimeActor, RealtimeConnection, RealtimeDeliveryDecision, RealtimeEvent, RealtimeEventName } from './realtime.types.ts'
 
 export class RealtimeService {
   private logger: ILogger
+  private pendingSubscriptions = new Map<RealtimeConnection, Map<string, symbol>>()
 
   constructor(
     appContext: AppContext,
@@ -14,36 +15,83 @@ export class RealtimeService {
     private adapter: RealtimeAdapter,
   ) {
     this.logger = appContext.logger
+    this.adapter.setDeliveryAuthorizer((connection, channel) => this.authorizeDelivery(connection, channel))
   }
 
   addConnection(connection: RealtimeConnection): void {
+    this.removeConnection(connection.id)
     this.adapter.addConnection(connection)
   }
 
   removeConnection(connectionId: string): void {
+    const connection = this.adapter.getConnection(connectionId)
+    if (connection) this.pendingSubscriptions.delete(connection)
     this.adapter.removeConnection(connectionId)
   }
 
-  async subscribe(actor: RealtimeActor, connectionId: string, channel: string): Promise<{ ok: true; channel: string }> {
-    await this.assertCanSubscribe(actor, channel)
-    this.adapter.subscribe(connectionId, channel)
-    return { ok: true, channel }
+  async subscribe(connectionId: string, channel: string): Promise<{ ok: true; channel: string }> {
+    const connection = this.adapter.getConnection(connectionId)
+    if (!connection) throw new RealtimeServiceError('Authentication required', 401, 'REALTIME_UNAUTHENTICATED')
+    const requests = this.pendingSubscriptions.get(connection) ?? new Map<string, symbol>()
+    const request = Symbol()
+    requests.set(channel, request)
+    this.pendingSubscriptions.set(connection, requests)
+    try {
+      const decision = await this.authorizeDelivery(connection, channel)
+      if (this.adapter.getConnection(connectionId) !== connection || requests.get(channel) !== request) {
+        throw new RealtimeServiceError('Subscription is no longer active', 401, 'REALTIME_UNAUTHENTICATED')
+      }
+      if (decision.status === 'drop-connection'
+        || (decision.status === 'allowed' && decision.expiresAt.getTime() <= Date.now())) {
+        this.removeConnection(connectionId)
+        connection.close()
+        throw new RealtimeServiceError('Authentication required', 401, 'REALTIME_UNAUTHENTICATED')
+      }
+      if (decision.status === 'deny') {
+        throw new RealtimeServiceError('Realtime authorization unavailable', 503, 'REALTIME_UNAVAILABLE')
+      }
+      if (decision.status !== 'allowed') throw new RealtimeServiceError('Realtime channel forbidden', 403, 'REALTIME_FORBIDDEN')
+      this.adapter.subscribe(connectionId, channel)
+      return { ok: true, channel }
+    } finally {
+      if (requests.get(channel) === request) requests.delete(channel)
+      if (!requests.size && this.pendingSubscriptions.get(connection) === requests) this.pendingSubscriptions.delete(connection)
+    }
   }
 
-  async unsubscribe(actor: RealtimeActor, connectionId: string, channel: string): Promise<{ ok: true; channel: string }> {
-    await this.assertCanSubscribe(actor, channel)
+  async unsubscribe(connectionId: string, channel: string): Promise<{ ok: true; channel: string }> {
+    const connection = this.adapter.getConnection(connectionId)
+    if (connection) this.pendingSubscriptions.get(connection)?.delete(channel)
     this.adapter.unsubscribe(connectionId, channel)
     return { ok: true, channel }
   }
 
-  publish<TPayload>(event: RealtimeEventName, channel: string, payload: TPayload): number {
+  async publish<TPayload>(event: RealtimeEventName, channel: string, payload: TPayload): Promise<number> {
     const realtimeEvent: RealtimeEvent<TPayload> = {
       event,
       channel,
       payload,
       createdAt: new Date().toISOString(),
     }
-    return this.adapter.publish(realtimeEvent)
+    try {
+      return await this.adapter.publish(realtimeEvent)
+    } catch {
+      this.logger.warn('Realtime publication failed', { event, channel })
+      return 0
+    }
+  }
+
+  private async authorizeDelivery(connection: RealtimeConnection, channel: string): Promise<RealtimeDeliveryDecision> {
+    try {
+      const session = await this.repo.findLiveSession(connection.sessionId, connection.userId, new Date())
+      if (!session) return { status: 'drop-connection' }
+      await this.assertCanSubscribe(session.user, channel)
+      return { status: 'allowed', expiresAt: session.expiresAt }
+    } catch (error) {
+      if (error instanceof RealtimeServiceError) return { status: 'drop-channel' }
+      this.logger.warn('Realtime authorization failed', { userId: connection.userId, channel })
+      return { status: 'deny' }
+    }
   }
 
   async assertCanSubscribe(actor: RealtimeActor, channel: string): Promise<void> {
@@ -80,7 +128,7 @@ export class RealtimeService {
   logConnectionError(error: unknown, metadata?: Record<string, unknown>): void {
     this.logger.warn('Realtime connection error', {
       ...metadata,
-      error: error instanceof Error ? error.message : String(error),
+      code: error instanceof RealtimeServiceError ? error.code : 'REALTIME_CONNECTION_ERROR',
     })
   }
 }

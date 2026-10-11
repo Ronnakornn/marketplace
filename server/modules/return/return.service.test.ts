@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FulfillmentStatus, PaymentStatus, ReturnStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { IReturnRepository, ReturnRecord } from './return.repository.ts'
@@ -103,6 +103,8 @@ function createOrderItem(overrides: Partial<{
       updatedAt: now,
       payments: [createPayment()],
       refunds: [],
+      items: [{ shopId: overrides.shopId ?? 'shop-1', fulfillmentStatus: 'DELIVERED' }],
+      shipments: [{ shopId: overrides.shopId ?? 'shop-1', status: 'DELIVERED', deliveredAt: now }],
     },
     returnItems: overrides.returnStatus ? [{
       id: '55555555-5555-4555-8555-555555555555',
@@ -200,7 +202,87 @@ function setup() {
 describe('ReturnService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.spyOn(Date, 'now').mockReturnValue(now.getTime())
     setup()
+  })
+
+  afterEach(() => vi.restoreAllMocks())
+
+  const input = {
+    orderId: '11111111-1111-4111-8111-111111111111',
+    orderItemId: '22222222-2222-4222-8222-222222222222',
+    reason: 'Damaged',
+  }
+
+  it('accepts a request exactly seven days after complete delivery', async () => {
+    vi.mocked(Date.now).mockReturnValue(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    await expect(service.createReturn(createActor(), input)).resolves.toMatchObject({ status: 'requested' })
+  })
+
+  it('rejects one millisecond after the seven-day deadline without creating or publishing', async () => {
+    vi.mocked(Date.now).mockReturnValue(now.getTime() + 7 * 24 * 60 * 60 * 1000 + 1)
+    await expect(service.createReturn(createActor(), input)).rejects.toMatchObject({ code: 'RETURN_WINDOW_EXPIRED', status: 409 })
+    expect(repo.createReturn).not.toHaveBeenCalled()
+    expect(eventPublisher.publish).not.toHaveBeenCalled()
+  })
+
+  it('starts the window when the last active shop delivery completes', async () => {
+    const item = createOrderItem()
+    item.order.items.push({ shopId: 'shop-2', fulfillmentStatus: 'DELIVERED' })
+    item.order.shipments[0].deliveredAt = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    item.order.shipments.push({ shopId: 'shop-2', status: 'DELIVERED', deliveredAt: now })
+    vi.mocked(repo.findOrderItemForReturn).mockResolvedValue(item)
+    await expect(service.createReturn(createActor(), input)).resolves.toMatchObject({ status: 'requested' })
+  })
+
+  it('waits for all shops even when the requested item is delivered', async () => {
+    const item = createOrderItem()
+    item.order.status = 'PARTIALLY_FULFILLED'
+    item.order.items.push({ shopId: 'shop-2', fulfillmentStatus: 'SHIPPED' })
+    item.order.shipments.push({ shopId: 'shop-2', status: 'SHIPPED', deliveredAt: null })
+    vi.mocked(repo.findOrderItemForReturn).mockResolvedValue(item)
+    await expect(service.createReturn(createActor(), input)).rejects.toMatchObject({ code: 'ORDER_NOT_DELIVERED' })
+    expect(repo.createReturn).not.toHaveBeenCalled()
+  })
+
+  it('does not use a stale fully-delivered parent status when one active shipment is still shipped', async () => {
+    const item = createOrderItem()
+    item.order.shipments[0].status = 'SHIPPED'
+    vi.mocked(repo.findOrderItemForReturn).mockResolvedValue(item)
+    await expect(service.createReturn(createActor(), input)).rejects.toMatchObject({ code: 'ORDER_NOT_DELIVERED' })
+  })
+
+  it('excludes cancelled shops and shipments from complete delivery', async () => {
+    const item = createOrderItem()
+    item.order.items.push({ shopId: 'shop-2', fulfillmentStatus: 'CANCELED' })
+    item.order.shipments.push({ shopId: 'shop-2', status: 'CANCELED', deliveredAt: null })
+    vi.mocked(repo.findOrderItemForReturn).mockResolvedValue(item)
+    await expect(service.createReturn(createActor(), input)).resolves.toMatchObject({ status: 'requested' })
+  })
+
+  it.each(['absent shipments', 'missing timestamp', 'future timestamp', 'invalid timestamp', 'missing shop'])('fails closed with %s delivery evidence', async (missing) => {
+    const item = createOrderItem()
+    if (missing === 'absent shipments') item.order.shipments = []
+    if (missing === 'missing timestamp') item.order.shipments[0].deliveredAt = null
+    if (missing === 'future timestamp') item.order.shipments[0].deliveredAt = new Date(now.getTime() + 1)
+    if (missing === 'invalid timestamp') item.order.shipments[0].deliveredAt = new Date(Number.NaN)
+    if (missing === 'missing shop') item.order.items.push({ shopId: 'shop-2', fulfillmentStatus: 'DELIVERED' })
+    vi.mocked(repo.findOrderItemForReturn).mockResolvedValue(item)
+    await expect(service.createReturn(createActor(), input)).rejects.toMatchObject({ code: 'RETURN_DELIVERY_EVIDENCE_MISSING' })
+    expect(repo.createReturn).not.toHaveBeenCalled()
+  })
+
+  it('uses the configured return window captured on construction', async () => {
+    service = new ReturnService(createAppContext(), repo, undefined, eventPublisher as any, { windowDays: 2 })
+    vi.mocked(Date.now).mockReturnValue(now.getTime() + 2 * 24 * 60 * 60 * 1000 + 1)
+    await expect(service.createReturn(createActor(), input)).rejects.toMatchObject({ code: 'RETURN_WINDOW_EXPIRED' })
+  })
+
+  it('checks ownership before returning delivery eligibility details', async () => {
+    const item = createOrderItem({ userId: 'another-buyer' })
+    item.order.shipments = []
+    vi.mocked(repo.findOrderItemForReturn).mockResolvedValue(item)
+    await expect(service.createReturn(createActor(), input)).rejects.toMatchObject({ code: 'RETURN_FORBIDDEN' })
   })
 
   it('lets a buyer request a return for a delivered order item', async () => {

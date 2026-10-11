@@ -1,4 +1,5 @@
 import IORedis from 'ioredis'
+import { readdirSync } from 'node:fs'
 import type { PrismaClient } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -37,16 +38,17 @@ export class PrismaHealthCheckRepository implements IHealthCheckRepository {
         (to_regclass('"_prisma_migrations"') IS NOT NULL) AS "migrationsReady"
       `, timeoutMs)
       if (!rows[0]?.schemaReady || !rows[0]?.migrationsReady) return false
-      const migrations = await withTimeout(this.prisma.$queryRaw<Array<{ ready: boolean }>>`
-        SELECT EXISTS (
-          SELECT 1
-          FROM "_prisma_migrations"
-          WHERE migration_name = '20260904161000_add_buyer_coin_debt_balance'
-            AND finished_at IS NOT NULL
-            AND rolled_back_at IS NULL
-        ) AS ready
+      const requiredMigrations = readdirSync(new URL('../../../prisma/migrations/', import.meta.url), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+      if (requiredMigrations.length === 0) return false
+      const migrations = await withTimeout(this.prisma.$queryRaw<Array<{ name: string }>>`
+        SELECT migration_name AS name
+        FROM "_prisma_migrations"
+        WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL
       `, timeoutMs)
-      return migrations[0]?.ready === true
+      const applied = new Set(migrations.map((migration) => migration.name))
+      return requiredMigrations.every((name) => applied.has(name))
     } catch (error) {
       this.logger.error('Database schema readiness check failed', {
         error: error instanceof Error ? error.message : String(error),

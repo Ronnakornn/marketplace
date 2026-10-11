@@ -21,8 +21,19 @@ export interface RealtimeEvent<TPayload = unknown> {
 export interface RealtimeConnection {
   id: string
   userId: string
+  sessionId: string
   send(data: string): void
+  close(): void
 }
+
+export type RealtimeDeliveryDecision =
+  | { status: 'allowed'; expiresAt: Date }
+  | { status: 'drop-connection' | 'drop-channel' | 'deny' }
+
+export type RealtimeDeliveryAuthorizer = (
+  connection: RealtimeConnection,
+  channel: string,
+) => Promise<RealtimeDeliveryDecision>
 
 export interface RealtimeSubscribeMessage {
   action: 'subscribe' | 'unsubscribe'

@@ -2,7 +2,11 @@
 
 import { formatMinorCurrency, minorUnitsText, type MinorUnitValue } from "#/lib/money";
 
-import { requestApi } from "#/lib/api-client";
+import { ApiClientError, requestApi } from "#/lib/api-client";
+
+export function isAffiliateDisabledError(error: unknown): boolean {
+  return error instanceof ApiClientError && error.code === "AFFILIATE_DISABLED";
+}
 
 export type AffiliateTargetType = "product" | "shop" | "campaign";
 export type AffiliateStatus = "ACTIVE" | "DISABLED";

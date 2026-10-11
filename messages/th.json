@@ -640,7 +640,7 @@
     "reason": "เหตุผล",
     "region": "ภูมิภาค",
     "requestReturnRefund": "ขอคืนสินค้าหรือคืนเงิน",
-    "returnEligibilityDescription": "ขอคืนสินค้าได้หลังจัดส่งสำเร็จ",
+    "returnEligibilityDescription": "ขอคืนสินค้าได้เมื่อจัดส่งครบทั้งคำสั่งซื้อแล้ว และยังอยู่ภายในระยะเวลายื่นคำขอ",
     "returnSubmitted": "ส่งคำขอคืนสินค้าแล้ว",
     "reviewEligibilityDescription": "รีวิวได้หลังได้รับสินค้าแล้ว",
     "reviewDeliveredItem": "รีวิวสินค้าที่ได้รับ",
@@ -720,7 +720,10 @@
     "loadingSellerStatus": "กำลังโหลดสถานะผู้ขาย...",
     "returnQuantity": "จำนวนที่ต้องการคืน",
     "returnRemaining": "ยังคืนได้อีก {count} ชิ้น",
-    "invalidReturnQuantity": "กรอกจำนวนเต็มตั้งแต่ 1 ถึงจำนวนที่ยังมีสิทธิ์คืน"
+    "invalidReturnQuantity": "กรอกจำนวนเต็มตั้งแต่ 1 ถึงจำนวนที่ยังมีสิทธิ์คืน",
+    "returnWindowExpired": "พ้นระยะเวลายื่นคำขอคืนสินค้าสำหรับคำสั่งซื้อนี้แล้ว",
+    "orderNotFullyDelivered": "ยื่นคำขอคืนสินค้าได้เมื่อจัดส่งสินค้าครบทั้งคำสั่งซื้อแล้ว",
+    "returnDeliveryEvidenceMissing": "ข้อมูลการจัดส่งยังไม่ครบ กรุณาติดต่อฝ่ายช่วยเหลือเพื่อขอคืนสินค้า"
   },
   "notification": {
     "all": "ทั้งหมด",
@@ -769,6 +772,8 @@
     }
   },
   "affiliate": {
+    "unavailableTitle": "โปรแกรมแอฟฟิลิเอตยังไม่เปิดให้บริการ",
+    "unavailableDescription": "ขณะนี้ยังไม่เปิดให้สร้างลิงก์แอฟฟิลิเอตและรับค่าคอมมิชชัน",
     "activeRecords": "รายการที่ใช้งาน",
     "affiliates": "แอฟฟิลิเอต",
     "campaign": "แคมเปญ",

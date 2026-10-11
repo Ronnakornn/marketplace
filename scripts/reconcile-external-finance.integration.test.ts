@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdtemp, readFile, unlink, writeFile, rmdir } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, unlink, writeFile, rmdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -62,7 +62,8 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('external finance CL
     if (observations.length > 0) observations[observations.length - 1]!.rowsUnchanged = true
   })
   afterAll(async () => {
-    await writeFile('docs/test-evidence/2026-10-04-audit-completion/external-finance-cli.json', JSON.stringify({ proof: 'Generated fixture comparison only. External provider and bank are not verified.', observations }, null, 2))
+    await mkdir('artifacts/quality', { recursive: true })
+    await writeFile('artifacts/quality/external-finance-cli.json', JSON.stringify({ proof: 'Generated fixture comparison only. External provider and bank are not verified.', observations }, null, 2))
     await db?.$disconnect()
     if (directory) {
       for (const file of ['manifest.json', 'original.json']) { try { await unlink(join(directory, file)) } catch { } }

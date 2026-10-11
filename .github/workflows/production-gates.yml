@@ -222,11 +222,64 @@ jobs:
   container:
     needs: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
+      - name: Add excluded environment canaries
+        run: |
+          test ! -e .env.local && test ! -e .env.production
+          printf '%s\n' 'DOCKER_CONTEXT_CANARY=marketplace_ci_local_secret_canary' > .env.local
+          printf '%s\n' 'DOCKER_CONTEXT_CANARY=marketplace_ci_production_secret_canary' > .env.production
       - uses: docker/build-push-action@v6
         with:
           context: .
+          target: production
+          load: true
           push: false
           tags: marketplace:ci
+          build-args: NEXT_PUBLIC_APP_URL=https://ci.marketplace.test
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migration
+          load: true
+          push: false
+          tags: marketplace-migration:ci
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: build
+          load: true
+          push: false
+          tags: marketplace-build:ci
+          build-args: NEXT_PUBLIC_APP_URL=https://ci.marketplace.test
+      - name: Reject secrets in the build context and generated frontend
+        run: |
+          docker run --rm --entrypoint bun marketplace-build:ci -e '
+          import { existsSync, readdirSync, readFileSync } from "node:fs";
+          import { join } from "node:path";
+          for (const name of [".env.local", ".env.production"]) {
+            if (existsSync(join("/app", name))) throw new Error("Private environment file entered build context");
+          }
+          const canaries = ["marketplace_ci_local_secret_canary", "marketplace_ci_production_secret_canary"];
+          function check(directory) {
+            for (const entry of readdirSync(directory, { withFileTypes: true })) {
+              const path = join(directory, entry.name);
+              if (entry.isDirectory()) check(path);
+              else if (entry.isFile()) {
+                const data = readFileSync(path);
+                if (canaries.some((canary) => data.includes(canary))) throw new Error("Private environment value entered frontend artifact");
+              }
+            }
+          }
+          check("/app/.next");'
+      - name: Run migrated production containers through the TLS proxy
+        run: bash deploy/ci-smoke.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-container-evidence
+          path: |
+            artifacts/container/*.json
+            artifacts/container/*.log

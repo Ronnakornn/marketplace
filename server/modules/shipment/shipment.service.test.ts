@@ -532,6 +532,31 @@ describe('ShipmentService', () => {
     })).rejects.toMatchObject({ code: 'INVALID_SHIPMENT_STATE' })
   })
 
+  it('keeps committed delivery successful on earning failure and retries without rewriting the transition', async () => {
+    const context = createAppContext()
+    const earnings = { createEarningsForCompletedOrder: vi.fn().mockRejectedValueOnce(new Error('wallet unavailable')).mockResolvedValue(undefined) }
+    const audit = { createAuditLogBestEffort: vi.fn().mockResolvedValue(undefined) }
+    const deliveredAt = new Date('2026-10-11T01:00:00Z')
+    const delivered = createSellerShipment({ status: 'DELIVERED', deliveredAt })
+    service = new ShipmentService(context, repo, earnings as unknown as WalletService, eventPublisher as never, undefined, undefined, audit as never)
+    vi.mocked(repo.findShipmentById).mockResolvedValueOnce(createSellerShipment({ status: 'SHIPPED' })).mockResolvedValue(delivered)
+    vi.mocked(repo.updateShipmentDelivered).mockResolvedValue(delivered)
+
+    await expect(service.deliverAdminShipment({ id: 'admin-1', role: 'ADMIN' }, 'shipment-1', { evidenceReference: 'DELIVERY-1' }))
+      .resolves.toMatchObject({ status: 'delivered' })
+    await expect(service.deliverAdminShipment({ id: 'admin-1', role: 'ADMIN' }, 'shipment-1', { evidenceReference: 'DELIVERY-1' }))
+      .resolves.toMatchObject({ status: 'delivered' })
+
+    expect(earnings.createEarningsForCompletedOrder).toHaveBeenCalledTimes(2)
+    expect(repo.updateShipmentDelivered).toHaveBeenCalledOnce()
+    expect(repo.updateOrderItemsStatus).toHaveBeenCalledOnce()
+    expect(repo.updateOrderStatus).toHaveBeenCalledOnce()
+    expect(delivered.deliveredAt).toEqual(deliveredAt)
+    expect(eventPublisher.publish).toHaveBeenCalledOnce()
+    expect(audit.createAuditLogBestEffort).toHaveBeenCalledOnce()
+    expect(context.logger.error).toHaveBeenCalledWith('ShipmentService seller earnings recognition failed', expect.objectContaining({ orderId: 'order-1', shipmentId: 'shipment-1', error: 'wallet unavailable' }))
+  })
+
   it('rejects delivered shipment updates and rolls back failed item status update', async () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
     vi.mocked(repo.findSellerShipmentById).mockResolvedValue(createSellerShipment({ status: 'DELIVERED' }))

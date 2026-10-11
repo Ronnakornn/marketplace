@@ -51,7 +51,7 @@ describe.skipIf(!databaseUrl)('checkout numeric thresholds on PostgreSQL', () =>
     const cart = await db.cart.create({ data: { userId: buyer.id, items: { create: { variantId: variant.id, unitPrice: price, quantity: 1 } } } })
     const input = { cartId: cart.id, addressId: address.id, paymentMethod: 'card' }
     const coinsApi = new Elysia().use(createPromotionRoutes({ promotionService: promotion } as ServiceContainer))
-    vi.mocked(getAuthContext).mockResolvedValue({ user: buyer } as Awaited<ReturnType<typeof getAuthContext>>)
+    vi.mocked(getAuthContext).mockResolvedValue({ user: buyer, session: { id: `test-session-${buyer.id}` } } as Awaited<ReturnType<typeof getAuthContext>>)
     return { buyer, shop, product, variant, address, cart, input, checkout, payments, coinsApi }
   }
 

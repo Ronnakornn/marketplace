@@ -1,4 +1,5 @@
 export { ReturnServiceError } from './return.errors.ts'
+export { getReturnConfigFromEnv, type ReturnConfig } from './return.config.ts'
 export { PrismaReturnRepository } from './return.repository.ts'
 export { ReturnService } from './return.service.ts'
 export { createReturnRoutes } from './return.routes.ts'

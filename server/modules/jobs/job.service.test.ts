@@ -3,6 +3,7 @@ import type { Checkout, InventoryReservation, Order } from '#generated/client/cl
 import type { PaymentStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { QueueProducer } from '#server/modules/queue'
+import type { WalletService } from '#server/modules/wallet'
 import type { IJobRepository } from './job.repository.ts'
 import { JobService } from './job.service.ts'
 
@@ -236,5 +237,27 @@ describe('JobService', () => {
       type: 'order_paid',
       title: 'Paid',
     })).rejects.toMatchObject({ code: 'INVALID_JOB_PAYLOAD' })
+  })
+
+  it('delegates recurring earnings recovery and exposes the completed candidate counts', async () => {
+    const wallets = { reconcileSellerEarnings: vi.fn().mockResolvedValue({ attemptedCount: 3, succeededCount: 3, failedCount: 0 }) }
+    service = new JobService(createAppContext(), repo, queueProducer, undefined, undefined, undefined, wallets as unknown as WalletService)
+    await expect(service.process('reconcile_seller_earnings', { limit: 25 })).resolves.toEqual({
+      ok: true, code: 'SELLER_EARNINGS_RECONCILED', processedCount: 3, attemptedCount: 3, succeededCount: 3, failedCount: 0,
+    })
+    expect(wallets.reconcileSellerEarnings).toHaveBeenCalledWith(25)
+  })
+
+  it('fails recurring recovery visibly when wallet wiring is missing or some candidates remain incomplete', async () => {
+    await expect(service.process('reconcile_seller_earnings', {})).rejects.toMatchObject({ code: 'JOB_FAILED', message: 'Wallet service is not configured' })
+    const wallets = { reconcileSellerEarnings: vi.fn().mockResolvedValue({ attemptedCount: 3, succeededCount: 2, failedCount: 1 }) }
+    service = new JobService(createAppContext(), repo, queueProducer, undefined, undefined, undefined, wallets as unknown as WalletService)
+    await expect(service.process('reconcile_seller_earnings', {})).rejects.toMatchObject({
+      code: 'JOB_FAILED', details: { attemptedCount: 3, succeededCount: 2, failedCount: 1 },
+    })
+  })
+
+  it.each([0, -1, 1.5, 1001, '100'])('rejects invalid reconciliation page size %s', async (limit) => {
+    await expect(service.process('reconcile_seller_earnings', { limit } as never)).rejects.toMatchObject({ code: 'INVALID_JOB_PAYLOAD' })
   })
 })
