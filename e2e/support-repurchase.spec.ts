@@ -1,7 +1,6 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { prisma } from '#server/lib/prisma.ts';
 import type { AppContext } from '#server/context/app-context.ts';
-import type { Prisma } from '#generated/client/client.ts';
 import { createLogger } from '#server/infrastructure/logging/index.ts';
 import { PrismaSupportRepository, type ISupportRepository } from '#server/modules/support/support.repository.ts';
 import { SupportService } from '#server/modules/support/support.service.ts';
@@ -200,23 +199,26 @@ test('rejected return appeal is durable under concurrent requests and admin deci
       const context: AppContext = { logger: createLogger({ level: 'silent', environment: 'test' }), config: { environment: 'test' } };
       let updatedStateObserved = false;
       class FailingSystemMessageRepository extends PrismaSupportRepository {
-        constructor(private readonly transactionDb: Prisma.TransactionClient) { super(context, transactionDb); }
         override transaction<T>(callback: (repo: ISupportRepository) => Promise<T>): Promise<T> {
-          return prisma.$transaction(tx => callback(new FailingSystemMessageRepository(tx)));
-        }
-        override async createMessage(input: Parameters<PrismaSupportRepository['createMessage']>[0]) {
-          if (input.senderType === 'SYSTEM') {
-            expect(await this.transactionDb.disputeCase.findUniqueOrThrow({ where: { returnRequestId: request.id } })).toMatchObject({ status: 'RESOLVED_BUYER', decision: 'Rollback this decision' });
-            expect(await this.transactionDb.supportTicket.findUniqueOrThrow({ where: { id: ticket.id } })).toMatchObject({ status: 'RESOLVED' });
-            updatedStateObserved = true;
-            throw new Error('Injected SYSTEM persistence failure');
-          }
-          return super.createMessage(input);
+          return prisma.$transaction(tx => {
+            const repository: ISupportRepository = new PrismaSupportRepository(context, tx);
+            const persistMessage = repository.createMessage.bind(repository);
+            repository.createMessage = async input => {
+              if (input.senderType === 'SYSTEM') {
+                expect(await tx.disputeCase.findUniqueOrThrow({ where: { returnRequestId: request.id } })).toMatchObject({ status: 'RESOLVED_BUYER', decision: 'Rollback this decision' });
+                expect(await tx.supportTicket.findUniqueOrThrow({ where: { id: ticket.id } })).toMatchObject({ status: 'RESOLVED' });
+                updatedStateObserved = true;
+                throw new Error('Injected SYSTEM persistence failure');
+              }
+              return persistMessage(input);
+            };
+            return callback(repository);
+          });
         }
       }
       const beforeDecision = await prisma.disputeCase.findUniqueOrThrow({ where: { returnRequestId: request.id } });
       const beforeTicket = await prisma.supportTicket.findUniqueOrThrow({ where: { id: ticket.id } });
-      const service = new SupportService(context, new FailingSystemMessageRepository(prisma));
+      const service = new SupportService(context, new FailingSystemMessageRepository(context, prisma));
       await expect(service.decide(adminIdentity.id, ticket.id, { status: 'RESOLVED_BUYER', decision: 'Rollback this decision' })).rejects.toThrow('Injected SYSTEM persistence failure');
       expect(updatedStateObserved).toBe(true);
       expect(await prisma.disputeCase.findUniqueOrThrow({ where: { returnRequestId: request.id } })).toEqual(beforeDecision);
@@ -335,8 +337,10 @@ test('Thai buyer creates general support with no shop context @mobile', async ({
   await loginUi(page, fixture.buyer, '/en/profile');
   await page.getByRole('link', { name: 'Support and appeals', exact: true }).click();
   await expect(page).toHaveURL('/en/support');
-  const ticket = await createTicketUi(page, { subject: 'สอบถามการใช้งานบัญชี', body: 'ต้องการความช่วยเหลือเกี่ยวกับบัญชีผู้ซื้อ' }, 'th');
+  const evidence = `ต้องการความช่วยเหลือเกี่ยวกับบัญชีผู้ซื้อ https://example.test/evidence/${'x'.repeat(250)}`;
+  const ticket = await createTicketUi(page, { subject: 'S'.repeat(200), body: evidence }, 'th');
   expect(ticket).toMatchObject({ userId: fixture.buyer.id, orderId: null, shopId: null, status: 'OPEN' });
+  await page.screenshot({ path: testInfo.outputPath('thai-long-support-subject-and-url.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const contexts: BrowserContext[] = [];
   try {
@@ -349,6 +353,6 @@ test('Thai buyer creates general support with no shop context @mobile', async ({
     for (const context of contexts) await context.close();
   }
   const response = await page.request.get(`/api/support/tickets/${ticket.id}`);
-  expect(await response.json()).toMatchObject({ messages: { total: 1, items: [expect.objectContaining({ body: 'ต้องการความช่วยเหลือเกี่ยวกับบัญชีผู้ซื้อ', senderType: 'BUYER', isInternal: false })] } });
+  expect(await response.json()).toMatchObject({ messages: { total: 1, items: [expect.objectContaining({ body: evidence, senderType: 'BUYER', isInternal: false })] } });
   await page.screenshot({ path: testInfo.outputPath('thai-general-support.png'), fullPage: true });
 });
