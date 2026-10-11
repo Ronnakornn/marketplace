@@ -93,7 +93,11 @@ test('buyer and shop seller converse while private notes and unrelated accounts 
     const adminTicket = admin.locator(`a[href="/en/admin/support/${ticket.id}"]`);
     await expect(adminTicket).toContainText(ticket.subject);
     await adminTicket.click();
-    await admin.getByLabel('Private note', { exact: true }).fill('INTERNAL ONLY: review seller incident history.');
+    await expect(admin).toHaveURL(`/en/admin/support/${ticket.id}`);
+    const privateNote = admin.getByLabel('Private note', { exact: true });
+    await privateNote.click();
+    await privateNote.fill('INTERNAL ONLY: review seller incident history.');
+    await expect(privateNote).toHaveValue('INTERNAL ONLY: review seller incident history.');
     const notePromise = admin.waitForResponse(response => response.url().endsWith(`/api/admin/support/tickets/${ticket.id}/notes`) && response.request().method() === 'POST');
     await admin.getByRole('button', { name: 'Add private note', exact: true }).click();
     expect((await notePromise).status()).toBe(200);
