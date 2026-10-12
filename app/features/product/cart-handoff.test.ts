@@ -41,7 +41,7 @@ const errorCopy = {
 };
 
 describe("product cart handoff", () => {
-  it("shows success with safe product context and explicit actions", () => {
+  it("shows a branded success with product context and one cart action", () => {
     const onViewCart = vi.fn();
 
     showAddToCartSuccess({
@@ -52,24 +52,23 @@ describe("product cart handoff", () => {
 
     expect(toastMocks.success).toHaveBeenCalledWith("Added to cart", {
       description: "Canvas Bag - Blue",
+      className: "cart-success-toast",
+      richColors: false,
+      duration: 3000,
       action: {
         label: "View cart",
         onClick: onViewCart,
       },
-      cancel: {
-        label: "Continue shopping",
-        onClick: expect.any(Function),
-      },
     });
   });
 
-  it("dismisses when continuing shopping by default", () => {
+  it("shows the fallback description without navigation when no cart action is supplied", () => {
     showAddToCartSuccess({ copy: successCopy });
 
     const options = toastMocks.success.mock.calls[0]?.[1];
-    options.cancel.onClick();
-
-    expect(toastMocks.dismiss).toHaveBeenCalled();
+    expect(options.description).toBe(successCopy.successDescription);
+    expect(options.action).toBeUndefined();
+    expect(options.cancel).toBeUndefined();
   });
 
   it("normalizes readable error messages without object string output", () => {

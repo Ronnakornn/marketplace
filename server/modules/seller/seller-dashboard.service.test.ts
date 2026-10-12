@@ -60,7 +60,7 @@ function createCacheService() {
       keys.forEach((key) => store.delete(key))
       return keys.length
     }),
-    keys: vi.fn(async () => []),
+    scan: vi.fn(async (): Promise<[string, string[]]> => ['0', []]),
   }
   return new CacheService(createAppContext(), {
     enabled: true,

@@ -13,6 +13,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "#/components/ui/sheet";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import { FavoriteStatusesProvider } from "#/features/buyer/favorites";
 import {
   normalizePublicCategories,
   normalizePublicBrands,
@@ -332,7 +333,9 @@ export function ProductListingPage({
             {products.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                  {products.map((product) => <ProductCard key={product.id} product={product} />)}
+                  <FavoriteStatusesProvider productIds={products.map((product) => product.id)}>
+                    {products.map((product) => <ProductCard key={product.id} product={product} />)}
+                  </FavoriteStatusesProvider>
                 </div>
                 <div className="flex flex-col items-center gap-2 py-3">
                   {isNextPageError ? (

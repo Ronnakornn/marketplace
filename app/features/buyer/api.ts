@@ -271,6 +271,12 @@ export async function fetchFavoriteStatus(productId: string): Promise<boolean> {
   return Boolean(response.favorited);
 }
 
+export async function fetchFavoriteStatuses(productIds: string[]) {
+  const { data, error } = await api.api.me.favorites.statuses.post({ productIds });
+  if (error) throw error;
+  return data;
+}
+
 export async function addFavoriteProduct(productId: string): Promise<void> {
   await apiFetch(`/api/me/favorites/${productId}`, { method: "PUT" });
 }

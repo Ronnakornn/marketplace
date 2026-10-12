@@ -16,8 +16,8 @@ export interface CacheConfig {
 export interface CacheClient {
   get(key: string): Promise<string | null>
   set(key: string, value: string, mode: 'EX', ttlSeconds: number): Promise<unknown>
-  del(...keys: string[]): Promise<unknown>
-  keys(pattern: string): Promise<string[]>
+  del(...keys: string[]): Promise<number>
+  scan(cursor: string, pattern: string, count: number): Promise<[string, string[]]>
   quit?(): Promise<unknown>
 }
 

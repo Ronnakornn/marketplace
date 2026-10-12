@@ -1,0 +1,858 @@
+[
+  {
+    "sourceId": 83,
+    "slug": "uat-blue-black-check-shirt",
+    "titleEn": "Blue & Black Check Shirt",
+    "titleTh": "เสื้อเชิ้ตลายตารางน้ำเงินดำ",
+    "descriptionEn": "The Blue & Black Check Shirt is a stylish and comfortable men's shirt featuring a classic check pattern. Made from high-quality fabric, it's suitable for both casual and semi-formal occasions. This listing is a UAT fixture.",
+    "descriptionTh": "เสื้อเชิ้ตลายตารางน้ำเงินดำ สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-fashion",
+    "categorySlug": "fashion",
+    "brandSlug": "uat-fashion",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-83-1",
+        "titleEn": "M",
+        "titleTh": "ไซซ์ M",
+        "priceMinor": "79000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      },
+      {
+        "sku": "UAT-83-2",
+        "titleEn": "L",
+        "titleTh": "ไซซ์ L",
+        "priceMinor": "84000",
+        "quantityOnHand": 45,
+        "reorderLevel": 5
+      },
+      {
+        "sku": "UAT-83-3",
+        "titleEn": "XL",
+        "titleTh": "ไซซ์ XL",
+        "priceMinor": "89000",
+        "quantityOnHand": 50,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/83-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/83-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/83-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/3.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/83-4.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/4.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 84,
+    "slug": "uat-gigabyte-aorus-men-tshirt",
+    "titleEn": "Gigabyte Aorus Men Tshirt",
+    "titleTh": "เสื้อยืด Aorus สีดำ",
+    "descriptionEn": "The Gigabyte Aorus Men Tshirt is a cool and casual shirt for gaming enthusiasts. With the Aorus logo and sleek design, it's perfect for expressing your gaming style. This listing is a UAT fixture.",
+    "descriptionTh": "เสื้อยืด Aorus สีดำ สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-fashion",
+    "categorySlug": "fashion",
+    "brandSlug": "uat-fashion",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-84-1",
+        "titleEn": "M",
+        "titleTh": "ไซซ์ M",
+        "priceMinor": "49000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      },
+      {
+        "sku": "UAT-84-2",
+        "titleEn": "L",
+        "titleTh": "ไซซ์ L",
+        "priceMinor": "54000",
+        "quantityOnHand": 45,
+        "reorderLevel": 5
+      },
+      {
+        "sku": "UAT-84-3",
+        "titleEn": "XL",
+        "titleTh": "ไซซ์ XL",
+        "priceMinor": "59000",
+        "quantityOnHand": 50,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/84-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/84-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/84-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/3.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/84-4.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/4.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 85,
+    "slug": "uat-man-plaid-shirt",
+    "titleEn": "Man Plaid Shirt",
+    "titleTh": "เสื้อเชิ้ตลายสก็อต",
+    "descriptionEn": "The Man Plaid Shirt is a timeless and versatile men's shirt with a classic plaid pattern. Its comfortable fit and casual style make it a wardrobe essential for various occasions. This listing is a UAT fixture.",
+    "descriptionTh": "เสื้อเชิ้ตลายสก็อต สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-fashion",
+    "categorySlug": "fashion",
+    "brandSlug": "uat-fashion",
+    "status": "DRAFT",
+    "variants": [
+      {
+        "sku": "UAT-85-1",
+        "titleEn": "M",
+        "titleTh": "ไซซ์ M",
+        "priceMinor": "69000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      },
+      {
+        "sku": "UAT-85-2",
+        "titleEn": "L",
+        "titleTh": "ไซซ์ L",
+        "priceMinor": "74000",
+        "quantityOnHand": 45,
+        "reorderLevel": 5
+      },
+      {
+        "sku": "UAT-85-3",
+        "titleEn": "XL",
+        "titleTh": "ไซซ์ XL",
+        "priceMinor": "79000",
+        "quantityOnHand": 50,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/85-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/85-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/85-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/3.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/85-4.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/4.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 86,
+    "slug": "uat-man-short-sleeve-shirt",
+    "titleEn": "Man Short Sleeve Shirt",
+    "titleTh": "เสื้อเชิ้ตแขนสั้นผู้ชาย",
+    "descriptionEn": "The Man Short Sleeve Shirt is a breezy and stylish option for warm days. With a comfortable fit and short sleeves, it's perfect for a laid-back yet polished look. This listing is a UAT fixture.",
+    "descriptionTh": "เสื้อเชิ้ตแขนสั้นผู้ชาย สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-fashion",
+    "categorySlug": "fashion",
+    "brandSlug": "uat-fashion",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-86-1",
+        "titleEn": "M",
+        "titleTh": "ไซซ์ M",
+        "priceMinor": "59000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      },
+      {
+        "sku": "UAT-86-2",
+        "titleEn": "L",
+        "titleTh": "ไซซ์ L",
+        "priceMinor": "64000",
+        "quantityOnHand": 45,
+        "reorderLevel": 5
+      },
+      {
+        "sku": "UAT-86-3",
+        "titleEn": "XL",
+        "titleTh": "ไซซ์ XL",
+        "priceMinor": "69000",
+        "quantityOnHand": 50,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/86-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/86-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/86-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/3.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/86-4.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/4.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 172,
+    "slug": "uat-blue-women-s-handbag",
+    "titleEn": "Blue Women's Handbag",
+    "titleTh": "กระเป๋าถือสีน้ำเงิน",
+    "descriptionEn": "The Blue Women's Handbag is a stylish and spacious accessory for everyday use. With a vibrant blue color and multiple compartments, it combines fashion and functionality. This listing is a UAT fixture.",
+    "descriptionTh": "กระเป๋าถือสีน้ำเงิน สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-fashion",
+    "categorySlug": "fashion",
+    "brandSlug": "uat-fashion",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-172-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "129000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/172-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/172-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/172-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/3.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 175,
+    "slug": "uat-white-faux-leather-backpack",
+    "titleEn": "White Faux Leather Backpack",
+    "titleTh": "กระเป๋าเป้หนังสังเคราะห์สีขาว",
+    "descriptionEn": "The White Faux Leather Backpack is a trendy and practical backpack for the modern woman. With a sleek white design and ample storage space, it's perfect for both casual and on-the-go styles. This listing is a UAT fixture.",
+    "descriptionTh": "กระเป๋าเป้หนังสังเคราะห์สีขาว สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-fashion",
+    "categorySlug": "fashion",
+    "brandSlug": "uat-fashion",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-175-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "99000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/175-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/175-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/175-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/3.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 100,
+    "slug": "uat-apple-airpods",
+    "titleEn": "Apple Airpods",
+    "titleTh": "หูฟัง Apple AirPods",
+    "descriptionEn": "The Apple Airpods offer a seamless wireless audio experience. With easy pairing, high-quality sound, and Siri integration, they are perfect for on-the-go listening. This listing is a UAT fixture.",
+    "descriptionTh": "หูฟัง Apple AirPods สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-gadget",
+    "categorySlug": "electronics",
+    "brandSlug": "uat-gadget",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-100-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "459000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/100-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/100-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/100-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/3.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 104,
+    "slug": "uat-apple-iphone-charger",
+    "titleEn": "Apple iPhone Charger",
+    "titleTh": "หัวชาร์จ Apple iPhone",
+    "descriptionEn": "The Apple iPhone Charger is a high-quality charger designed for fast and efficient charging of your iPhone. Ensure your device stays powered up and ready to go. This listing is a UAT fixture.",
+    "descriptionTh": "หัวชาร์จ Apple iPhone สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-gadget",
+    "categorySlug": "gadgets",
+    "brandSlug": "uat-gadget",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-104-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "69000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/104-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-iphone-charger/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/104-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-iphone-charger/2.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 105,
+    "slug": "uat-apple-magsafe-battery-pack",
+    "titleEn": "Apple MagSafe Battery Pack",
+    "titleTh": "แบตเตอรี่สำรอง Apple MagSafe",
+    "descriptionEn": "The Apple MagSafe Battery Pack is a portable and convenient way to add extra battery life to your MagSafe-compatible iPhone. Attach it magnetically for a secure connection. This listing is a UAT fixture.",
+    "descriptionTh": "แบตเตอรี่สำรอง Apple MagSafe สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-gadget",
+    "categorySlug": "gadgets",
+    "brandSlug": "uat-gadget",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-105-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "299000",
+        "quantityOnHand": 2,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/105-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-magsafe-battery-pack/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/105-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-magsafe-battery-pack/2.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 107,
+    "slug": "uat-beats-flex-wireless-earphones",
+    "titleEn": "Beats Flex Wireless Earphones",
+    "titleTh": "หูฟังไร้สาย Beats Flex",
+    "descriptionEn": "The Beats Flex Wireless Earphones offer a comfortable and versatile audio experience. With magnetic earbuds and up to 12 hours of battery life, they are ideal for everyday use. This listing is a UAT fixture.",
+    "descriptionTh": "หูฟังไร้สาย Beats Flex สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-gadget",
+    "categorySlug": "electronics",
+    "brandSlug": "uat-gadget",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-107-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "199000",
+        "quantityOnHand": 0,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/107-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/beats-flex-wireless-earphones/1.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 108,
+    "slug": "uat-iphone-12-silicone-case-with-magsafe-plum",
+    "titleEn": "iPhone 12 Silicone Case with MagSafe Plum",
+    "titleTh": "เคส iPhone 12 MagSafe สีพลัม",
+    "descriptionEn": "The iPhone 12 Silicone Case with MagSafe in Plum is a stylish and protective case designed for the iPhone 12. It features MagSafe technology for easy attachment of accessories. This listing is a UAT fixture.",
+    "descriptionTh": "เคส iPhone 12 MagSafe สีพลัม สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-gadget",
+    "categorySlug": "gadgets",
+    "brandSlug": "uat-gadget",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-108-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "59000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/108-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/108-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/108-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/3.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/108-4.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/4.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 99,
+    "slug": "uat-amazon-echo-plus",
+    "titleEn": "Amazon Echo Plus",
+    "titleTh": "ลำโพงอัจฉริยะ Amazon Echo Plus",
+    "descriptionEn": "The Amazon Echo Plus is a smart speaker with built-in Alexa voice control. It features premium sound quality and serves as a hub for controlling smart home devices. This listing is a UAT fixture.",
+    "descriptionTh": "ลำโพงอัจฉริยะ Amazon Echo Plus สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-gadget",
+    "categorySlug": "electronics",
+    "brandSlug": "uat-gadget",
+    "status": "ARCHIVED",
+    "variants": [
+      {
+        "sku": "UAT-99-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "349000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/99-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/amazon-echo-plus/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/99-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/amazon-echo-plus/2.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 43,
+    "slug": "uat-decoration-swing",
+    "titleEn": "Decoration Swing",
+    "titleTh": "ชิงช้าตกแต่งบ้าน",
+    "descriptionEn": "The Decoration Swing is a charming addition to your home decor. Crafted with intricate details, it adds a touch of elegance and whimsy to any room. This listing is a UAT fixture.",
+    "descriptionTh": "ชิงช้าตกแต่งบ้าน สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-home",
+    "categorySlug": "home",
+    "brandSlug": "uat-home",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-43-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "89000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/43-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/decoration-swing/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/43-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/decoration-swing/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/43-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/decoration-swing/3.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 44,
+    "slug": "uat-family-tree-photo-frame",
+    "titleEn": "Family Tree Photo Frame",
+    "titleTh": "กรอบรูปต้นไม้ครอบครัว",
+    "descriptionEn": "The Family Tree Photo Frame is a sentimental and stylish way to display your cherished family memories. With multiple photo slots, it tells the story of your loved ones. This listing is a UAT fixture.",
+    "descriptionTh": "กรอบรูปต้นไม้ครอบครัว สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-home",
+    "categorySlug": "home",
+    "brandSlug": "uat-home",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-44-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "39000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/44-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/family-tree-photo-frame/1.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 46,
+    "slug": "uat-plant-pot",
+    "titleEn": "Plant Pot",
+    "titleTh": "กระถางต้นไม้",
+    "descriptionEn": "The Plant Pot is a stylish container for your favorite plants. With a sleek design, it complements your indoor or outdoor garden, adding a modern touch to your plant display. This listing is a UAT fixture.",
+    "descriptionTh": "กระถางต้นไม้ สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-home",
+    "categorySlug": "home",
+    "brandSlug": "uat-home",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-46-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "29000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/46-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/plant-pot/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/46-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/plant-pot/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/46-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/plant-pot/3.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/46-4.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/plant-pot/4.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 51,
+    "slug": "uat-boxed-blender",
+    "titleEn": "Boxed Blender",
+    "titleTh": "เครื่องปั่นพร้อมกล่อง",
+    "descriptionEn": "The Boxed Blender is a powerful and compact blender perfect for smoothies, shakes, and more. Its convenient design and multiple functions make it a versatile kitchen appliance. This listing is a UAT fixture.",
+    "descriptionTh": "เครื่องปั่นพร้อมกล่อง สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-home",
+    "categorySlug": "home",
+    "brandSlug": "uat-home",
+    "status": "DRAFT",
+    "variants": [
+      {
+        "sku": "UAT-51-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "159000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/51-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/1.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/51-2.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/2.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/51-3.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/3.webp",
+        "width": 1000,
+        "height": 1000
+      },
+      {
+        "url": "/uat/products/51-4.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/4.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 65,
+    "slug": "uat-lunch-box",
+    "titleEn": "Lunch Box",
+    "titleTh": "กล่องอาหาร",
+    "descriptionEn": "The Lunch Box is a convenient and portable container for packing and carrying your meals. With compartments for different foods, it's perfect for on-the-go dining. This listing is a UAT fixture.",
+    "descriptionTh": "กล่องอาหาร สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-home",
+    "categorySlug": "home",
+    "brandSlug": "uat-home",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-65-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "25000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/65-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/lunch-box/1.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 1,
+    "slug": "uat-essence-mascara-lash-princess",
+    "titleEn": "Essence Mascara Lash Princess",
+    "titleTh": "มาสคาร่า Essence Lash Princess",
+    "descriptionEn": "The Essence Mascara Lash Princess is a popular mascara known for its volumizing and lengthening effects. Achieve dramatic lashes with this long-lasting and cruelty-free formula. This listing is a UAT fixture.",
+    "descriptionTh": "มาสคาร่า Essence Lash Princess สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-beauty",
+    "categorySlug": "beauty",
+    "brandSlug": "uat-beauty",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-1-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "29000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/1-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/beauty/essence-mascara-lash-princess/1.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 2,
+    "slug": "uat-eyeshadow-palette-with-mirror",
+    "titleEn": "Eyeshadow Palette with Mirror",
+    "titleTh": "พาเลตต์อายแชโดว์พร้อมกระจก",
+    "descriptionEn": "The Eyeshadow Palette with Mirror offers a versatile range of eyeshadow shades for creating stunning eye looks. With a built-in mirror, it's convenient for on-the-go makeup application. This listing is a UAT fixture.",
+    "descriptionTh": "พาเลตต์อายแชโดว์พร้อมกระจก สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-beauty",
+    "categorySlug": "beauty",
+    "brandSlug": "uat-beauty",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-2-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "49000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/2-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/beauty/eyeshadow-palette-with-mirror/1.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  },
+  {
+    "sourceId": 4,
+    "slug": "uat-red-lipstick",
+    "titleEn": "Red Lipstick",
+    "titleTh": "ลิปสติกสีแดง",
+    "descriptionEn": "The Red Lipstick is a classic and bold choice for adding a pop of color to your lips. With a creamy and pigmented formula, it provides a vibrant and long-lasting finish. This listing is a UAT fixture.",
+    "descriptionTh": "ลิปสติกสีแดง สำหรับทดสอบการค้นหา การเลือกสินค้า การสั่งซื้อ และการจัดส่งในระบบ UAT",
+    "shopSlug": "uat-beauty",
+    "categorySlug": "beauty",
+    "brandSlug": "uat-beauty",
+    "status": "ACTIVE",
+    "variants": [
+      {
+        "sku": "UAT-4-1",
+        "titleEn": "Standard",
+        "titleTh": "มาตรฐาน",
+        "priceMinor": "19000",
+        "quantityOnHand": 40,
+        "reorderLevel": 5
+      }
+    ],
+    "images": [
+      {
+        "url": "/uat/products/4-1.webp",
+        "sourceUrl": "https://cdn.dummyjson.com/product-images/beauty/red-lipstick/1.webp",
+        "width": 1000,
+        "height": 1000
+      }
+    ]
+  }
+]

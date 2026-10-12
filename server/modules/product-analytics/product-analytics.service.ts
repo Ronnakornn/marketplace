@@ -204,30 +204,25 @@ export class ProductAnalyticsService {
     const pagination = this.normalizePagination(query)
     const q = this.normalizeQuery(query.q)
     const sort = this.normalizeSort(query.sort, PRODUCT_SORTS, 'revenue')
-    const [candidates, views, addToCart, orderItems] = await Promise.all([
-      this.repo.findProductRankingCandidates(shopIds, q),
-      this.repo.countProductViews(shopIds, range),
-      this.repo.countProductAddToCart(shopIds, range),
-      this.repo.findPaidOrderItems(shopIds, range),
-    ])
-
-    const buckets = this.buildProductBuckets(views, addToCart, orderItems)
-    const ranked = this.sortProductMetrics(candidates.map((product) => ({
-      productId: product.id,
-      title: product.title,
-      ...this.productMetricTotals(this.bucket(buckets, product.id)),
-    })), sort)
-    const start = (pagination.page - 1) * pagination.limit
-    const pageIds = ranked.slice(start, start + pagination.limit).map((item) => item.productId)
+    const ranked = await this.repo.findProductRankingPage(shopIds, range, { ...pagination, q, sort })
+    const pageIds = ranked.items.map((item) => item.id)
     const products = await this.repo.findProductsByIds(shopIds, pageIds)
-    const byId = new Map(this.buildProductMetrics(products, views, addToCart, orderItems).map((item) => [item.productId, item]))
-    const items = pageIds.flatMap((id) => {
-      const item = byId.get(id)
-      return item ? [item] : []
+    const byId = new Map(products.map((product) => [product.id, product]))
+    const items = ranked.items.flatMap(({ id, addToCartQuantity: _quantity, ...metric }) => {
+      const product = byId.get(id)
+      return product ? [{
+        productId: product.id,
+        title: product.title,
+        slug: product.slug,
+        status: product.status,
+        coverImage: product.images[0]?.url ?? null,
+        shop: product.shop,
+        ...metric,
+      }] : []
     })
     return {
       items,
-      pagination: this.toPagination(candidates.length, pagination.page, pagination.limit),
+      pagination: this.toPagination(ranked.total, pagination.page, pagination.limit),
     }
   }
 
@@ -237,34 +232,26 @@ export class ProductAnalyticsService {
     const productId = this.normalizeUuid(query.productId, 'productId')
     const pagination = this.normalizePagination(query)
     const sort = this.normalizeSort(query.sort, SKU_SORTS, 'revenue')
-    const [candidates, addToCart, orderItems] = await Promise.all([
-      this.repo.findVariantRankingCandidates(shopIds, productId),
-      this.repo.countProductAddToCart(shopIds, range, productId),
-      this.repo.findPaidOrderItems(shopIds, range, productId),
-    ])
-
-    const buckets = this.buildSkuBuckets(addToCart, orderItems)
-    const ranked = this.sortSkuMetrics(candidates.map((variant) => {
-      const bucket = this.bucket(buckets, variant.id)
-      return {
-        variantId: variant.id,
-        sku: variant.sku,
-        addToCart: bucket.addToCart,
-        orders: bucket.orderIds.size,
-        unitsSold: bucket.unitsSold,
-        revenue: bucket.revenue,
-      }
-    }), sort)
-    const start = (pagination.page - 1) * pagination.limit
-    const pageIds = ranked.slice(start, start + pagination.limit).map((item) => item.variantId)
+    const ranked = await this.repo.findVariantRankingPage(shopIds, range, { ...pagination, productId, sort })
+    const pageIds = ranked.items.map((item) => item.id)
     const variants = await this.repo.findVariantsByIds(shopIds, pageIds)
-    const byId = new Map(this.buildSkuMetrics(variants, addToCart, orderItems).map((item) => [item.variantId, item]))
+    const byId = new Map(variants.map((variant) => [variant.id, variant]))
     return {
-      items: pageIds.flatMap((id) => {
-        const item = byId.get(id)
-        return item ? [item] : []
+      items: ranked.items.flatMap(({ id, conversionRate: _conversion, currency, ...metric }) => {
+        const variant = byId.get(id)
+        return variant ? [{
+          productId: variant.productId,
+          productTitle: variant.product.title,
+          productSlug: variant.product.slug,
+          variantId: variant.id,
+          sku: variant.sku,
+          title: variant.title,
+          status: variant.status,
+          ...metric,
+          currency: currency ?? variant.currency,
+        }] : []
       }),
-      pagination: this.toPagination(candidates.length, pagination.page, pagination.limit),
+      pagination: this.toPagination(ranked.total, pagination.page, pagination.limit),
     }
   }
 
@@ -497,12 +484,6 @@ export class ProductAnalyticsService {
       .filter((item) => item.views >= 10 && item.conversionRate < 0.01)
       .sort((a, b) => b.views - a.views || a.conversionRate - b.conversionRate || a.title.localeCompare(b.title))
       .slice(0, LOW_PERFORMING_LIMIT)
-  }
-
-  private sortProductMetrics<T extends object>(items: T[], sort: string): T[] {
-    const descending = sort.startsWith('-') || sort !== 'title'
-    const key = sort.startsWith('-') ? sort.slice(1) : sort
-    return [...items].sort((a, b) => this.compare(a, b, key, descending))
   }
 
   private sortSkuMetrics<T extends object>(items: T[], sort: string): T[] {

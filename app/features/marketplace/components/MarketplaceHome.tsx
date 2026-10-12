@@ -31,6 +31,7 @@ import {
   type MarketplaceShop,
 } from "#/features/marketplace/queries";
 import { ProductCard as BuyerProductCard } from "#/features/product/components/ProductCard";
+import { FavoriteStatusesProvider } from "#/features/buyer/favorites";
 import { showAddToCartError, showAddToCartSuccess } from "#/features/product/cart-handoff";
 import { getAnonymousSessionId, trackDiscoveryEvent, useTrackVisibleProducts } from "#/features/tracking";
 import { useFormatters, useLocale, useTranslations } from "#/i18n/client";
@@ -164,6 +165,7 @@ export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomePro
     <div className="min-h-screen bg-[#f7f8fb] pb-36 text-slate-950">
       <BuyerTopBar title={user?.name ? t("home.welcomeBack").replace("{name}", user.name) : t("common.marketplace")} prefetchLinks={false} />
 
+      <FavoriteStatusesProvider productIds={[...visibleProducts, ...home.newArrivals, ...home.recentlyViewed].map((product) => product.id)}>
       <main className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
         <HeroPromo banners={home.banners} />
         <VoucherStrip
@@ -224,6 +226,7 @@ export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomePro
         />
         {homeQuery.isError ? <HomeErrorState onRetry={() => void homeQuery.refetch()} /> : null}
       </main>
+      </FavoriteStatusesProvider>
 
       <MobileBottomNavigation prefetchLinks={false} />
     </div>

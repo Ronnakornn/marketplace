@@ -157,30 +157,13 @@ export class SearchService {
   }
 
   private async searchProductsFromRepository(filters: ReturnType<SearchService['normalizeInput']>): Promise<ProductSearchResponse> {
-    const products = await this.repo.findSearchableProducts({
-      q: filters.q,
-      categoryId: filters.categoryId,
-      brandId: filters.brandId,
-      shopId: filters.shopId,
-      minPrice: filters.minPrice,
-      maxPrice: filters.maxPrice,
-      attributeFilters: filters.attributeFilters,
-      inStock: filters.inStock,
-    })
-    const facets = await this.loadProductFacets(filters)
-
-    const items = products
-      .map((product) => this.toSearchItem(product, filters.locale))
-      .filter((item) => filters.rating === undefined || item.ratingSummary.averageRating >= filters.rating)
-      .filter((item) => !filters.inStock || item.variants.some((variant) => variant.stock > 0))
-      .filter((item) => filters.badges.length === 0 || filters.badges.every((badge) => item.badges.includes(badge)))
-
-    const sorted = this.sortItems(items, filters.sort)
-    const total = sorted.length
+    const newSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const [{ products, total, nextCursor }, facets] = await Promise.all([
+      this.repo.findSearchPage({ ...filters, newSince }),
+      this.loadProductFacets(filters),
+    ])
+    const pageItems = products.map((product) => this.toSearchItem(product, filters.locale, newSince))
     const totalPages = total === 0 ? 0 : Math.ceil(total / filters.limit)
-    const start = this.resolveStartOffset(sorted, filters)
-    const pageItems = sorted.slice(start, start + filters.limit)
-    const nextCursor = start + filters.limit < sorted.length ? pageItems.at(-1)?.productId ?? null : null
 
     return {
       items: pageItems,
@@ -323,17 +306,11 @@ export class SearchService {
     return [...new Set(input.split(',').map((badge) => badge.trim()).filter(Boolean))]
   }
 
-  private toSearchItem(product: SearchProductRecord, locale: ContentLocale): ProductSearchItem {
+  private toSearchItem(product: SearchProductRecord, locale: ContentLocale, newSince: Date): ProductSearchItem {
     const price = product.variants.map((variant) => moneyInteger(variant.price))
     const minPrice = moneyMin(price)
     const maxPrice = moneyMax(price)
-    const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0)
-    const totalReviewCount = product.reviews.length
-    const averageRating = totalReviewCount === 0 ? 0 : Number((totalRating / totalReviewCount).toFixed(2))
-    const soldCount = product.variants.reduce(
-      (sum, variant) => sum + variant.orderItems.reduce((variantSum, item) => variantSum + item.quantity, 0),
-      0,
-    )
+    const { averageRating, totalReviewCount, soldCount } = product.metrics
     const hasStock = product.variants.some((variant) =>
       variant.inventory ? variant.inventory.quantityOnHand - variant.inventory.quantityReserved > 0 : false)
 
@@ -392,7 +369,7 @@ export class SearchService {
           valueEn: value.valueEn,
         })),
       })),
-      badges: this.buildBadges(product, soldCount, hasStock),
+      badges: this.buildBadges(product, soldCount, hasStock, newSince),
     }
   }
 
@@ -402,11 +379,10 @@ export class SearchService {
     return parts.length > 0 ? [...new Set(parts)].join(', ') : null
   }
 
-  private buildBadges(product: SearchProductRecord, soldCount: number, hasStock: boolean): string[] {
+  private buildBadges(product: SearchProductRecord, soldCount: number, hasStock: boolean, newSince: Date): string[] {
     const badges: string[] = []
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
     const createdAtTime = product.createdAt instanceof Date ? product.createdAt.getTime() : new Date(product.createdAt).getTime()
-    if (createdAtTime >= sevenDaysAgo) badges.push('new')
+    if (createdAtTime >= newSince.getTime()) badges.push('new')
     if (soldCount >= 100) badges.push('best_seller')
     if (hasStock) badges.push('in_stock')
     return badges
@@ -440,33 +416,6 @@ export class SearchService {
         currency: 'THB',
       },
     }
-  }
-
-  private sortItems(items: ProductSearchItem[], sort: SearchSort): ProductSearchItem[] {
-    const sorted = [...items]
-    switch (sort) {
-      case 'price_asc':
-        return sorted.sort((a, b) => (a.minPrice < b.minPrice ? -1 : a.minPrice > b.minPrice ? 1 : 0) || a.title.localeCompare(b.title))
-      case 'price_desc':
-        return sorted.sort((a, b) => (b.minPrice < a.minPrice ? -1 : b.minPrice > a.minPrice ? 1 : 0) || a.title.localeCompare(b.title))
-      case 'top_sales':
-        return sorted.sort((a, b) => b.soldCount - a.soldCount || a.title.localeCompare(b.title))
-      case 'rating':
-        return sorted.sort((a, b) =>
-          b.ratingSummary.averageRating - a.ratingSummary.averageRating ||
-          b.ratingSummary.totalReviewCount - a.ratingSummary.totalReviewCount ||
-          a.title.localeCompare(b.title))
-      case 'relevance':
-      case 'newest':
-      default:
-        return sorted
-    }
-  }
-
-  private resolveStartOffset(items: ProductSearchItem[], filters: ReturnType<SearchService['normalizeInput']>): number {
-    if (!filters.cursor) return (filters.page - 1) * filters.limit
-    const cursorIndex = items.findIndex((item) => item.productId === filters.cursor)
-    return cursorIndex >= 0 ? cursorIndex + 1 : 0
   }
 
   private responseFilters(filters: ReturnType<SearchService['normalizeInput']>): ProductSearchResponse['filters'] {

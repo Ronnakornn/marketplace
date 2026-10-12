@@ -22,6 +22,42 @@ describe("tracking utilities", () => {
     expect(second).toBe(first);
   });
 
+  it("persists a UUID and submits events when crypto.randomUUID is unavailable", () => {
+    const browserCrypto = window.crypto;
+    const randomUUIDDescriptor = Object.getOwnPropertyDescriptor(browserCrypto, "randomUUID");
+    Object.defineProperty(browserCrypto, "randomUUID", { value: undefined, configurable: true });
+    vi.stubGlobal("crypto", browserCrypto);
+    vi.stubGlobal("navigator", { sendBeacon: undefined });
+
+    try {
+      const fetchMock = vi.spyOn(window, "fetch").mockResolvedValue(new Response("{}"));
+      const sessionId = getAnonymousSessionId();
+
+      expect(sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(window.localStorage.getItem("marketplace-anonymous-session-id")).toBe(sessionId);
+      expect(getAnonymousSessionId()).toBe(sessionId);
+
+      trackDiscoveryEvent({ eventType: "search_submitted", query: "tee", source: "search" });
+
+      expect(fetchMock).toHaveBeenCalledWith("/api/discovery/track", expect.objectContaining({
+        method: "POST",
+        keepalive: true,
+      }));
+      expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+        eventType: "search_submitted",
+        query: "tee",
+        source: "search",
+        sessionId,
+      });
+    } finally {
+      if (randomUUIDDescriptor) Object.defineProperty(browserCrypto, "randomUUID", randomUUIDDescriptor);
+      else Reflect.deleteProperty(browserCrypto, "randomUUID");
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+      window.localStorage.clear();
+    }
+  });
+
   it("sends tracking events with anonymous session data without awaiting navigation", () => {
     const fetchMock = vi.spyOn(window, "fetch").mockResolvedValue(new Response("{}"));
     Object.defineProperty(window.navigator, "sendBeacon", { value: undefined, configurable: true });

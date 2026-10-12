@@ -95,6 +95,7 @@ function createRepoMock(): IUserRepository {
     setDefaultAddress: vi.fn(),
     listFavoriteProducts: vi.fn(),
     findFavoriteProduct: vi.fn(),
+    findFavoriteProductIds: vi.fn(),
     addFavoriteProduct: vi.fn(),
     removeFavoriteProduct: vi.fn(),
     listFollowedShops: vi.fn(),
@@ -106,6 +107,16 @@ function createRepoMock(): IUserRepository {
 }
 
 describe("UserService", () => {
+  it("returns only requested favorite statuses for the current buyer in one repository read", async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findFavoriteProductIds).mockResolvedValue([{ productId: "product-2" }, { productId: "unrequested" }])
+    const service = new UserService(createAppContext(), repo)
+    expect(await service.getFavoriteStatuses("buyer-1", ["product-1", "product-2", "product-1"])).toEqual({
+      "product-1": false,
+      "product-2": true,
+    })
+    expect(repo.findFavoriteProductIds).toHaveBeenCalledExactlyOnceWith("buyer-1", ["product-1", "product-2"])
+  })
   beforeEach(() => {
     vi.clearAllMocks()
   })

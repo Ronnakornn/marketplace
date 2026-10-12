@@ -25,7 +25,7 @@ function createAppContext(): AppContext {
 
 function createRepoMock(): ISearchRepository {
   return {
-    findSearchableProducts: vi.fn(),
+    findSearchPage: vi.fn(),
     findProductFacets: vi.fn(async () => ({
       categories: [],
       brands: [],
@@ -47,7 +47,7 @@ function createCacheService() {
       keys.forEach((key) => store.delete(key))
       return keys.length
     }),
-    keys: vi.fn(async () => []),
+    scan: vi.fn(async (): Promise<[string, string[]]> => ['0', []]),
   }
   return new CacheService(createAppContext(), {
     enabled: true,
@@ -106,7 +106,6 @@ function createProduct(overrides: Partial<{
         price: overrides.price ? BigInt(overrides.price) : BigInt(1000),
         currency: 'USD',
         optionValues: [],
-        orderItems: [{ quantity: overrides.soldCount ?? 0 }],
         inventory: { quantityOnHand: 10, quantityReserved: 2 },
       },
       ...(overrides.secondPrice ? [{
@@ -116,15 +115,11 @@ function createProduct(overrides: Partial<{
         price: BigInt(overrides.secondPrice), // Convert price to bigint
         currency: 'USD',
         optionValues: [],
-        orderItems: [],
         inventory: { quantityOnHand: 0, quantityReserved: 0 },
       }] : []),
     ],
     options: [],
-    reviews: Array.from({ length: reviewCount }, () => ({
-      rating,
-      status: 'PUBLISHED' as const,
-    })),
+    metrics: { averageRating: rating, totalReviewCount: reviewCount, soldCount: overrides.soldCount ?? 0 },
   }
 }
 
@@ -136,10 +131,10 @@ describe('SearchService', () => {
     vi.clearAllMocks()
     repo = createRepoMock()
     service = new SearchService(createAppContext(), repo)
-    vi.mocked(repo.findSearchableProducts).mockResolvedValue([
+    vi.mocked(repo.findSearchPage).mockResolvedValue({ products: [
       createProduct({ id: 'p1', title: 'Cotton Tee', price: 1000n, rating: 4, soldCount: 20 }),
       createProduct({ id: 'p2', title: 'Denim Jacket', price: 3000n, rating: 5, soldCount: 5 }),
-    ])
+    ], total: 2, nextCursor: null })
     vi.mocked(repo.findSuggestions).mockResolvedValue([
       { id: 'p1', title: 'Cotton Tee' },
       { id: 'p3', title: 'Cotton Socks' },
@@ -149,7 +144,7 @@ describe('SearchService', () => {
   it('searches by keyword through the repository', async () => {
     const result = await service.searchProducts({ q: ' cotton ' })
 
-    expect(repo.findSearchableProducts).toHaveBeenCalledWith({
+    expect(repo.findSearchPage).toHaveBeenCalledWith(expect.objectContaining({
       q: 'cotton',
       categoryId: undefined,
       shopId: undefined,
@@ -158,17 +153,18 @@ describe('SearchService', () => {
       attributeFilters: undefined,
       brandId: undefined,
       inStock: false,
-    })
+    }))
     expect(result.items[0]).toMatchObject({ productId: 'p1', title: 'Cotton Tee' })
   })
 
   it('does not expose inactive products because repository is called with public active constraints', async () => {
     await service.searchProducts({})
 
-    expect(repo.findSearchableProducts).toHaveBeenCalledTimes(1)
+    expect(repo.findSearchPage).toHaveBeenCalledTimes(1)
   })
 
   it('supports pagination', async () => {
+    vi.mocked(repo.findSearchPage).mockResolvedValue({ products: [createProduct({ id: 'p2' })], total: 2, nextCursor: null })
     const result = await service.searchProducts({ page: 2, limit: 1 })
 
     expect(result.meta).toEqual({
@@ -196,6 +192,7 @@ describe('SearchService', () => {
   })
 
   it('supports sorting', async () => {
+    vi.mocked(repo.findSearchPage).mockResolvedValueOnce({ products: [createProduct({ id: 'p2' }), createProduct({ id: 'p1' })], total: 2, nextCursor: null })
     await expect(service.searchProducts({ sort: 'price_desc' })).resolves.toMatchObject({
       items: [{ productId: 'p2' }, { productId: 'p1' }],
       sort: 'price_desc',
@@ -212,21 +209,22 @@ describe('SearchService', () => {
   })
 
   it('supports shop and rating filters', async () => {
+    vi.mocked(repo.findSearchPage).mockResolvedValue({ products: [createProduct({ id: 'p2', rating: 5 })], total: 1, nextCursor: null })
     const result = await service.searchProducts({ shopId: 'shop-1', rating: 5 })
 
-    expect(repo.findSearchableProducts).toHaveBeenCalledWith(expect.objectContaining({ shopId: 'shop-1' }))
+    expect(repo.findSearchPage).toHaveBeenCalledWith(expect.objectContaining({ shopId: 'shop-1' }))
     expect(result.items).toHaveLength(1)
     expect(result.items[0]!.productId).toBe('p2')
   })
 
   it('supports price range and variant min/max output', async () => {
-    vi.mocked(repo.findSearchableProducts).mockResolvedValue([
+    vi.mocked(repo.findSearchPage).mockResolvedValue({ products: [
       createProduct({ id: 'p3', title: 'Sneakers', price: 2500n, secondPrice: 3500n }),
-    ])
+    ], total: 1, nextCursor: null })
 
     const result = await service.searchProducts({ minPrice: 2000, maxPrice: 4000 })
 
-    expect(repo.findSearchableProducts).toHaveBeenCalledWith(expect.objectContaining({
+    expect(repo.findSearchPage).toHaveBeenCalledWith(expect.objectContaining({
       minPrice: 2000,
       maxPrice: 4000,
     }))
@@ -285,6 +283,7 @@ describe('SearchService', () => {
   })
 
   it('supports contract filters for brand, attributes, in-stock, badges, and cursor', async () => {
+    vi.mocked(repo.findSearchPage).mockResolvedValue({ products: [createProduct({ id: 'p2' })], total: 2, nextCursor: null })
     const result = await service.searchProducts({
       brandId: 'brand-1',
       attributeFilters: 'Color:Red',
@@ -294,7 +293,7 @@ describe('SearchService', () => {
       limit: 1,
     })
 
-    expect(repo.findSearchableProducts).toHaveBeenCalledWith(expect.objectContaining({
+    expect(repo.findSearchPage).toHaveBeenCalledWith(expect.objectContaining({
       brandId: 'brand-1',
       attributeFilters: [{ key: 'color', value: 'Red' }],
       inStock: true,
@@ -323,22 +322,23 @@ describe('SearchService', () => {
     for (const value of [-1, 0.5, 9007199254740993, Number('9223372036854775807'), 1e100]) {
       await expect(service.searchProducts({ [field]: value })).rejects.toMatchObject({ status: 400, code: 'INVALID_FILTER' })
     }
-    expect(repo.findSearchableProducts).not.toHaveBeenCalled()
+    expect(repo.findSearchPage).not.toHaveBeenCalled()
     expect(repo.findProductFacets).not.toHaveBeenCalled()
   })
 
   it('preserves zero and maximum-safe minor-unit filters exactly', async () => {
     const result = await service.searchProducts({ minPrice: 0, maxPrice: Number.MAX_SAFE_INTEGER })
     expect(result.filters).toMatchObject({ minPrice: 0, maxPrice: Number.MAX_SAFE_INTEGER })
-    expect(repo.findSearchableProducts).toHaveBeenCalledWith(expect.objectContaining({ minPrice: 0, maxPrice: Number.MAX_SAFE_INTEGER }))
+    expect(repo.findSearchPage).toHaveBeenCalledWith(expect.objectContaining({ minPrice: 0, maxPrice: Number.MAX_SAFE_INTEGER }))
   })
 
   it.each([0, -1, 1.5, 9007199254740993, 1e100, 2_147_483_647])('rejects invalid or overflowing search page %s', async (page) => {
     await expect(service.searchProducts({ page, limit: 50 })).rejects.toMatchObject({ status: 400, code: 'INVALID_FILTER' })
-    expect(repo.findSearchableProducts).not.toHaveBeenCalled()
+    expect(repo.findSearchPage).not.toHaveBeenCalled()
   })
 
   it('accepts the largest supported search offset without rounding', async () => {
+    vi.mocked(repo.findSearchPage).mockResolvedValue({ products: [], total: 2, nextCursor: null })
     const result = await service.searchProducts({ page: 2_147_483_647, limit: 1 })
     expect(result.pagination).toMatchObject({ page: 2_147_483_647, limit: 1 })
     expect(result.items).toEqual([])
@@ -368,6 +368,6 @@ describe('SearchService', () => {
   it('uses one repository query for product search to avoid obvious N+1 patterns', async () => {
     await service.searchProducts({ q: 'tee', sort: 'rating' })
 
-    expect(repo.findSearchableProducts).toHaveBeenCalledTimes(1)
+    expect(repo.findSearchPage).toHaveBeenCalledTimes(1)
   })
 })

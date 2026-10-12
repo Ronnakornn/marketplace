@@ -23,6 +23,7 @@ vi.mock('#/features/product/queries', () => ({
   normalizePublicProductListing: (response: any) => ({ products: response.items, meta: response.meta, facets: { categories: response.facets.categories } }),
 }))
 vi.mock('#/features/product/components/ProductCard', () => ({ ProductCard: ({ product, showShopIdentity }: any) => <div data-testid="product-card">{product.id}:{String(showShopIdentity)}</div> }))
+vi.mock('#/features/buyer/favorites', () => ({ FavoriteStatusesProvider: ({ children }: { children: import('react').ReactNode }) => <>{children}</> }))
 vi.mock('#/i18n/client', () => ({ useTranslations: () => (key: string) => ({
   'storefront.resultSummary': 'Showing {shown} of {total}', 'storefront.loadMore': 'Load more', 'storefront.nextPageError': 'Next page failed', 'storefront.retry': 'Retry',
 }[key] ?? key) }))

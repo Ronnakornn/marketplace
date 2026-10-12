@@ -31,11 +31,13 @@ describe('PrismaCatalogRepository', () => {
       product('cheap', [['INACTIVE', 10], ['ACTIVE', 100]]), product('tie-a', [['ACTIVE', 500]]),
       product('inactive-only', [['INACTIVE', 1]]),
     ])
-    const repo = new PrismaCatalogRepository(createAppContext() as any, { product: { findMany } } as any)
+    const queryRaw = vi.fn().mockResolvedValue((expected as string[]).map((id) => ({ id, total: 4n })))
+    const tx = { $queryRaw: queryRaw, product: { findMany } }
+    const repo = new PrismaCatalogRepository(createAppContext() as any, { $transaction: vi.fn(async (fn) => fn(tx)) } as any)
     const result = await repo.findProducts({ shopId: 'shop-1', status: 'ACTIVE', publicOnly: true, sort, page: 1, limit: 12 })
     expect(result.data.map((item) => item.id)).toEqual(expected)
     expect(result.meta).toMatchObject({ nextCursor: null, totalCount: 4, page: 1, pageSize: 12, hasNextPage: false })
-    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ shopId: 'shop-1', status: 'ACTIVE' }) }))
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { id: { in: expected } } }))
   })
 
   it('returns public listing metadata from the same filters used for items', async () => {

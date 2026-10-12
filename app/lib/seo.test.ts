@@ -15,15 +15,8 @@ import {
   websiteJsonLd,
 } from "./seo";
 
-const findFirstProductMock = vi.fn();
-
-vi.mock("#server/lib/prisma.ts", () => ({
-  prisma: {
-    product: {
-      findFirst: findFirstProductMock,
-    },
-  },
-}));
+const { loadProductMock } = vi.hoisted(() => ({ loadProductMock: vi.fn() }));
+vi.mock("#/features/product/product-data.server", () => ({ getPublicProductData: loadProductMock }));
 
 function createSeoProduct(overrides: Record<string, unknown> = {}) {
   return {
@@ -44,13 +37,13 @@ function createSeoProduct(overrides: Record<string, unknown> = {}) {
         inventory: { quantityOnHand: 10, quantityReserved: 2 },
       },
     ],
-    reviews: [{ rating: 5 }, { rating: 4 }],
+    ratingSummary: { averageRating: 4.5, totalReviewCount: 2 },
     ...overrides,
   };
 }
 
 beforeEach(() => {
-  findFirstProductMock.mockReset();
+  loadProductMock.mockReset();
 });
 
 describe("SEO helpers", () => {
@@ -202,22 +195,14 @@ describe("SEO helpers", () => {
     expect(formatSeoPriceCents(BigInt(4890))).toBe("48.90");
   });
 
-  it("resolves active public product SEO by id with the public API visibility filters", async () => {
-    findFirstProductMock.mockResolvedValueOnce(createSeoProduct());
+  it("uses the shared public DTO for product SEO and exact prices", async () => {
+    loadProductMock.mockResolvedValueOnce({ product: createSeoProduct(), ratingSummary: {
+      averageRating: 4.5, totalReviewCount: 2, distribution: { 1: 0, 2: 0, 3: 0, 4: 1, 5: 1 },
+    } });
 
     const product = await getPublicProductSeo("22222222-2222-4222-8222-222222222222");
 
-    expect(findFirstProductMock).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        OR: [
-          { id: "22222222-2222-4222-8222-222222222222" },
-          { slug: "22222222-2222-4222-8222-222222222222" },
-        ],
-        status: "ACTIVE",
-        deletedAt: null,
-        shop: { status: "ACTIVE" },
-      },
-    }));
+    expect(loadProductMock).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222", "th");
     expect(product).toMatchObject({
       id: "22222222-2222-4222-8222-222222222222",
       title: "Canvas Bag",
@@ -230,31 +215,37 @@ describe("SEO helpers", () => {
   });
 
   it("resolves supported slug product SEO while keeping canonical id URL", async () => {
-    findFirstProductMock.mockResolvedValueOnce(createSeoProduct());
+    loadProductMock.mockResolvedValueOnce({ product: createSeoProduct() });
 
-    const product = await getPublicProductSeo("canvas-bag");
+    const product = await getPublicProductSeo("canvas-bag", "en");
 
-    expect(findFirstProductMock).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        OR: [{ slug: "canvas-bag" }],
-        status: "ACTIVE",
-        deletedAt: null,
-        shop: { status: "ACTIVE" },
-      }),
-    }));
+    expect(loadProductMock).toHaveBeenCalledWith("canvas-bag", "en");
     expect(product?.urlPath).toBe("/products/22222222-2222-4222-8222-222222222222");
   });
 
   it("returns null when product SEO lookup cannot find an active public product", async () => {
-    findFirstProductMock.mockResolvedValueOnce(null);
+    loadProductMock.mockResolvedValueOnce(null);
 
     await expect(getPublicProductSeo("missing-product")).resolves.toBeNull();
-    expect(findFirstProductMock).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        status: "ACTIVE",
-        deletedAt: null,
-        shop: { status: "ACTIVE" },
-      }),
-    }));
+  });
+
+  it("rounds the aggregate distribution once at one decimal, including halfway values", async () => {
+    loadProductMock.mockResolvedValueOnce({ product: createSeoProduct(), ratingSummary: {
+      averageRating: 4.15, totalReviewCount: 20, distribution: { 1: 0, 2: 0, 3: 0, 4: 17, 5: 3 },
+    } });
+    expect((await getPublicProductSeo("canvas-bag"))?.aggregateRating).toEqual({ ratingValue: 4.2, reviewCount: 20 });
+    loadProductMock.mockResolvedValueOnce({ product: createSeoProduct(), ratingSummary: {
+      averageRating: 4.15, totalReviewCount: 27, distribution: { 1: 0, 2: 0, 3: 0, 4: 23, 5: 4 },
+    } });
+    expect((await getPublicProductSeo("canvas-bag"))?.aggregateRating).toEqual({ ratingValue: 4.1, reviewCount: 27 });
+  });
+
+  it("omits aggregateRating for no published reviews and uses exact large offer money", async () => {
+    loadProductMock.mockResolvedValueOnce({ product: createSeoProduct({
+      variants: [{ price: "9007199254740993", currency: "THB", inventory: { quantityOnHand: 0, quantityReserved: 0 } }],
+    }), ratingSummary: { averageRating: 0, totalReviewCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } } });
+    expect(await getPublicProductSeo("canvas-bag")).toMatchObject({
+      price: "90071992547409.93", availability: "https://schema.org/OutOfStock", aggregateRating: null,
+    });
   });
 });

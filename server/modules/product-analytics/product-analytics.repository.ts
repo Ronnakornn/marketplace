@@ -9,8 +9,7 @@ import type {
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
-
-const RANKING_BATCH_SIZE = 500
+import { decodeRankingPage, productRankingQuery, variantRankingQuery, type RawAnalyticsRankingRow } from './product-analytics-ranking.sql.ts'
 
 export interface AnalyticsDateRange {
   from: Date
@@ -26,8 +25,28 @@ export type AnalyticsVariant = Pick<ProductVariant, 'id' | 'productId' | 'sku' |
   product: Pick<Product, 'id' | 'shopId' | 'title' | 'slug'>
 }
 
-export type AnalyticsProductRankingCandidate = Pick<Product, 'id' | 'title'>
-export type AnalyticsVariantRankingCandidate = Pick<ProductVariant, 'id' | 'sku'>
+export interface AnalyticsRankingMetric {
+  id: string
+  views: number
+  addToCart: number
+  addToCartQuantity: number
+  orders: number
+  unitsSold: number
+  revenue: bigint
+  conversionRate: number
+  currency: string | null
+}
+
+export interface AnalyticsRankingPage {
+  items: AnalyticsRankingMetric[]
+  total: number
+}
+
+export interface AnalyticsRankingOptions {
+  sort: string
+  page: number
+  limit: number
+}
 
 export interface AnalyticsCountRow {
   productId: string
@@ -59,8 +78,8 @@ export type AnalyticsOrderItem = Pick<OrderItem, 'id' | 'shopId' | 'variantId' |
 }
 
 export interface IProductAnalyticsRepository {
-  findProductRankingCandidates(shopIds: string[], q?: string): Promise<AnalyticsProductRankingCandidate[]>
-  findVariantRankingCandidates(shopIds: string[], productId?: string): Promise<AnalyticsVariantRankingCandidate[]>
+  findProductRankingPage(shopIds: string[], range: AnalyticsDateRange, options: AnalyticsRankingOptions & { q?: string }): Promise<AnalyticsRankingPage>
+  findVariantRankingPage(shopIds: string[], range: AnalyticsDateRange, options: AnalyticsRankingOptions & { productId?: string }): Promise<AnalyticsRankingPage>
   findProductsByIds(shopIds: string[], productIds: string[]): Promise<AnalyticsProduct[]>
   findVariantsByIds(shopIds: string[], variantIds: string[]): Promise<AnalyticsVariant[]>
   countProductViews(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsCountRow[]>
@@ -80,40 +99,16 @@ export class PrismaProductAnalyticsRepository implements IProductAnalyticsReposi
     this.logger = appContext.logger
   }
 
-  async findProductRankingCandidates(shopIds: string[], q?: string): Promise<AnalyticsProductRankingCandidate[]> {
-    if (shopIds.length === 0) return []
-    const candidates: AnalyticsProductRankingCandidate[] = []
-    let cursor: string | undefined
-    while (true) {
-      const batch = await this.prisma.product.findMany({
-        where: this.productWhere(shopIds, q),
-        select: { id: true, title: true },
-        orderBy: { id: 'asc' },
-        take: RANKING_BATCH_SIZE,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      })
-      candidates.push(...batch)
-      if (batch.length < RANKING_BATCH_SIZE) return candidates
-      cursor = batch.at(-1)?.id
-    }
+  async findProductRankingPage(shopIds: string[], range: AnalyticsDateRange, options: AnalyticsRankingOptions & { q?: string }): Promise<AnalyticsRankingPage> {
+    if (shopIds.length === 0) return { items: [], total: 0 }
+    const rows = await this.prisma.$queryRaw<RawAnalyticsRankingRow[]>(productRankingQuery(shopIds, range, options))
+    return decodeRankingPage(rows)
   }
 
-  async findVariantRankingCandidates(shopIds: string[], productId?: string): Promise<AnalyticsVariantRankingCandidate[]> {
-    if (shopIds.length === 0) return []
-    const candidates: AnalyticsVariantRankingCandidate[] = []
-    let cursor: string | undefined
-    while (true) {
-      const batch = await this.prisma.productVariant.findMany({
-        where: this.variantWhere(shopIds, productId),
-        select: { id: true, sku: true },
-        orderBy: { id: 'asc' },
-        take: RANKING_BATCH_SIZE,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      })
-      candidates.push(...batch)
-      if (batch.length < RANKING_BATCH_SIZE) return candidates
-      cursor = batch.at(-1)?.id
-    }
+  async findVariantRankingPage(shopIds: string[], range: AnalyticsDateRange, options: AnalyticsRankingOptions & { productId?: string }): Promise<AnalyticsRankingPage> {
+    if (shopIds.length === 0) return { items: [], total: 0 }
+    const rows = await this.prisma.$queryRaw<RawAnalyticsRankingRow[]>(variantRankingQuery(shopIds, range, options))
+    return decodeRankingPage(rows)
   }
 
   findProductsByIds(shopIds: string[], productIds: string[]): Promise<AnalyticsProduct[]> {
@@ -281,26 +276,10 @@ export class PrismaProductAnalyticsRepository implements IProductAnalyticsReposi
     })
   }
 
-  private productWhere(shopIds: string[], q?: string) {
+  private productWhere(shopIds: string[]) {
     return {
       shopId: { in: shopIds },
       deletedAt: null,
-      ...(q ? {
-        OR: [
-          { title: { contains: q, mode: 'insensitive' as const } },
-          { slug: { contains: q, mode: 'insensitive' as const } },
-        ],
-      } : {}),
-    }
-  }
-
-  private variantWhere(shopIds: string[], productId?: string) {
-    return {
-      ...(productId ? { productId } : {}),
-      product: {
-        shopId: { in: shopIds },
-        deletedAt: null,
-      },
     }
   }
 }

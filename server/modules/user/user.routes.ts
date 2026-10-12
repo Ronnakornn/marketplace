@@ -53,6 +53,10 @@ const AddressParams = t.Object({
 const ProductFavoriteParams = t.Object({
   productId: t.String({ format: 'uuid' }),
 })
+const MAX_FAVORITE_STATUS_IDS = 100
+const FavoriteStatusesBody = t.Object({
+  productIds: t.Array(ProductFavoriteParams.properties.productId, { minItems: 1, maxItems: MAX_FAVORITE_STATUS_IDS }),
+}, { additionalProperties: false })
 const ShopFollowParams = t.Object({
   shopId: t.String({ format: 'uuid' }),
 })
@@ -145,6 +149,12 @@ export function createUserRoutes(container: ServiceContainer) {
       moneyResponse(container.userService.getFavoriteStatus(authContext!.user.id, params.productId)), {
       withAuth: true,
       params: ProductFavoriteParams,
+    })
+    .post('/api/me/favorites/statuses', ({ authContext, body }: any) =>
+      moneyResponse(container.userService.getFavoriteStatuses(authContext!.user.id, body.productIds)), {
+      withAuth: true,
+      body: FavoriteStatusesBody,
+      response: t.Record(t.String(), t.Boolean()),
     })
     .put('/api/me/favorites/:productId', ({ authContext, params }: any) =>
       moneyResponse(container.userService.addFavoriteProduct(authContext!.user.id, params.productId)), {

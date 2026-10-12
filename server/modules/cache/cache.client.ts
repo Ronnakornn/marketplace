@@ -35,22 +35,29 @@ export function createRedisCacheClient(config: CacheConfig): CacheClient | null 
     // Cache failures are handled by CacheService; keep Redis connection errors from escaping as noisy stderr output.
   })
 
+  let connection: Promise<void> | null = null
+  function connect(): Promise<void> {
+    if (redis.status === 'ready') return Promise.resolve()
+    connection ??= ensureConnected(redis).finally(() => { connection = null })
+    return connection
+  }
+
   return {
     async get(key) {
-      await ensureConnected(redis)
+      await connect()
       return redis.get(key)
     },
     async set(key, value, mode, ttlSeconds) {
-      await ensureConnected(redis)
+      await connect()
       return redis.set(key, value, mode, ttlSeconds)
     },
     async del(...keys) {
-      await ensureConnected(redis)
+      await connect()
       return redis.del(...keys)
     },
-    async keys(pattern) {
-      await ensureConnected(redis)
-      return redis.keys(pattern)
+    async scan(cursor, pattern, count) {
+      await connect()
+      return redis.scan(cursor, 'MATCH', pattern, 'COUNT', count)
     },
     async quit() {
       return redis.quit()
@@ -62,8 +69,14 @@ async function ensureConnected(redis: IORedis): Promise<void> {
   if (redis.status === 'ready') return
   if (redis.status === 'connect' || redis.status === 'connecting') {
     await new Promise<void>((resolve, reject) => {
-      redis.once('ready', resolve)
-      redis.once('error', reject)
+      const cleanup = () => {
+        redis.removeListener('ready', onReady)
+        redis.removeListener('error', onError)
+      }
+      const onReady = () => { cleanup(); resolve() }
+      const onError = (error: Error) => { cleanup(); reject(error) }
+      redis.once('ready', onReady)
+      redis.once('error', onError)
     })
     return
   }

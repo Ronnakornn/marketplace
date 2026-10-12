@@ -95,6 +95,7 @@ export interface IUserRepository {
   setDefaultAddress(userId: string, addressId: string): Promise<BuyerAddress>
   listFavoriteProducts(userId: string): Promise<FavoriteProductRecord[]>
   findFavoriteProduct(userId: string, productId: string): Promise<FavoriteProduct | null>
+  findFavoriteProductIds(userId: string, productIds: string[]): Promise<Array<Pick<FavoriteProduct, 'productId'>>>
   addFavoriteProduct(userId: string, productId: string): Promise<FavoriteProduct>
   removeFavoriteProduct(userId: string, productId: string): Promise<void>
   listFollowedShops(userId: string): Promise<ShopFollowRecord[]>
@@ -342,6 +343,13 @@ export class PrismaUserRepository implements IUserRepository {
   findFavoriteProduct(userId: string, productId: string): Promise<FavoriteProduct | null> {
     return this.prisma.favoriteProduct.findUnique({
       where: { userId_productId: { userId, productId } },
+    })
+  }
+
+  findFavoriteProductIds(userId: string, productIds: string[]): Promise<Array<Pick<FavoriteProduct, 'productId'>>> {
+    return this.prisma.favoriteProduct.findMany({
+      where: { userId, productId: { in: productIds } },
+      select: { productId: true },
     })
   }
 

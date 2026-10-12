@@ -520,6 +520,74 @@ describe("public product normalization", () => {
     expect(itemsListing.facets.price).toEqual({ min: "100", max: "900", currency: "THB" });
   });
 
+  it("normalizes search listing variants with flat localized option values", () => {
+    const listing = normalizePublicProductListing({
+      items: [{
+        productId: "product-shirt",
+        title: "เสื้อเชิ้ตแขนสั้นผู้ชาย",
+        coverImage: "/uat/products/86-1.webp",
+        minPrice: "59000",
+        maxPrice: "64000",
+        shop: { id: "shop-fashion", name: "ยูเอที แฟชั่น", location: "กรุงเทพมหานคร, TH" },
+        variants: [{
+          id: "variant-m", sku: "UAT-86-1", title: "ไซซ์ M", price: "59000", currency: "THB", stock: 40,
+          optionValues: [{
+            id: "value-m", value: "ไซซ์ M", valueTh: "ไซซ์ M", valueEn: "M",
+            option: { id: "option-size", name: "ไซซ์", nameTh: "ไซซ์", nameEn: "Size" },
+          }],
+        }, {
+          id: "variant-l", sku: "UAT-86-2", title: "ไซซ์ L", price: "64000", currency: "THB", stock: 45,
+          optionValues: [{
+            id: "value-l", value: "ไซซ์ L", valueTh: "ไซซ์ L", valueEn: "L",
+            option: { id: "option-size", name: "ไซซ์", nameTh: "ไซซ์", nameEn: "Size" },
+          }],
+        }],
+        options: [{
+          id: "option-size", name: "ไซซ์", nameTh: "ไซซ์", nameEn: "Size",
+          values: [{ id: "value-m", value: "ไซซ์ M" }, { id: "value-l", value: "ไซซ์ L" }],
+        }],
+      }],
+      meta: { totalCount: 1, page: 1, pageSize: 40, hasNextPage: false },
+    } as unknown as Parameters<typeof normalizePublicProductListing>[0]);
+
+    expect(listing.products[0]).toMatchObject({
+      id: "product-shirt", title: "เสื้อเชิ้ตแขนสั้นผู้ชาย", minPrice: "59000", maxPrice: "64000", stock: 85,
+      images: ["/uat/products/86-1.webp"],
+    });
+    expect(listing.products[0]?.variants).toEqual([{
+      id: "variant-m", sku: "UAT-86-1", title: "ไซซ์ M", price: "59000", currency: "THB", stock: 40,
+      optionValues: [{ optionId: "option-size", optionName: "ไซซ์", valueId: "value-m", value: "ไซซ์ M", colorHex: null }],
+    }, {
+      id: "variant-l", sku: "UAT-86-2", title: "ไซซ์ L", price: "64000", currency: "THB", stock: 45,
+      optionValues: [{ optionId: "option-size", optionName: "ไซซ์", valueId: "value-l", value: "ไซซ์ L", colorHex: null }],
+    }]);
+    expect(listing.products[0]?.options).toEqual([{
+      id: "option-size", name: "ไซซ์",
+      values: [{ id: "value-m", value: "ไซซ์ M", colorHex: null }, { id: "value-l", value: "ไซซ์ L", colorHex: null }],
+    }]);
+  });
+
+  it.each([
+    ["missing flat value id", { id: "", value: "M", option: { id: "option-size", name: "Size" } }],
+    ["missing flat value", { id: "value-m", value: " ", option: { id: "option-size", name: "Size" } }],
+    ["missing flat option id", { id: "value-m", value: "M", option: { id: "", name: "Size" } }],
+    ["missing flat option name", { id: "value-m", value: "M", option: { id: "option-size", name: "" } }],
+    ["missing flat option", { id: "value-m", value: "M", option: null }],
+    ["nonobject flat value", "M"],
+    ["malformed nested value", { optionValueId: "value-m", optionValue: { id: "value-m", value: "M", option: { id: "option-size", name: "" } } }],
+    ...[null, undefined, {}, "M"].map((optionValue): [string, unknown] => [
+      `present ${String(optionValue)} nested value with valid flat fields`,
+      { id: "value-m", value: "M", option: { id: "option-size", name: "Size" }, optionValue },
+    ]),
+  ])("rejects a %s in listing variants", (_label, optionValue) => {
+    expect(() => normalizePublicProductListing({
+      items: [{
+        productId: "product-shirt", title: "Shirt", shop: { id: "shop-fashion", name: "Fashion" },
+        variants: [{ id: "variant-m", title: "M", price: "59000", currency: "THB", stock: 40, optionValues: [optionValue] }],
+      }],
+    } as unknown as Parameters<typeof normalizePublicProductListing>[0])).toThrow(/malformed variant option value/i);
+  });
+
   it("extracts image URLs from API product image records", () => {
     const products = normalizePublicProducts({
       data: [{
@@ -584,10 +652,12 @@ describe("public product normalization", () => {
     expect(product.badges).toContain("Free Shipping");
     expect(product.video?.url).toBe("/uploads/product_video/product-1/demo.mp4");
     expect(product.options[0]?.values[0]?.value).toBe("Red");
-    expect(product.variants[0]?.optionValues[0]).toMatchObject({
+    expect(product.variants[0]?.optionValues[0]).toEqual({
       optionId: "option-color",
+      optionName: "Color",
       valueId: "value-red",
       value: "Red",
+      colorHex: "#ff0000",
     });
   });
 });

@@ -11,6 +11,7 @@ import { Button } from "#/components/ui/button";
 import { fetchCoupons, formatMoney } from "#/features/buyer/api";
 import { marketplaceHomeQueryOptions, normalizeMarketplaceHome } from "#/features/marketplace/queries";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import { FavoriteStatusesProvider } from "#/features/buyer/favorites";
 import { formatDate, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -85,7 +86,9 @@ export function DealsPage() {
           {dealsQuery.isSuccess && products.length === 0 ? <BuyerEmptyState title={t("buyer.noDealsAvailable")} description={t("buyer.noDealsDescription")} /> : null}
           {products.length ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {products.map((product) => <ProductCard key={product.id} product={product.buyerProduct} />)}
+              <FavoriteStatusesProvider productIds={products.map((product) => product.id)}>
+                {products.map((product) => <ProductCard key={product.id} product={product.buyerProduct} />)}
+              </FavoriteStatusesProvider>
             </div>
           ) : null}
         </section>

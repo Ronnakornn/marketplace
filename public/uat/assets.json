@@ -1,0 +1,452 @@
+[
+  {
+    "url": "/uat/products/1-1.webp",
+    "sha256": "4c9b190e6d218f0ca7aae7523ffc083be9df44c585823796978148f9d81854ee",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/beauty/essence-mascara-lash-princess/1.webp"
+  },
+  {
+    "url": "/uat/products/100-1.webp",
+    "sha256": "60001ba208a6e259af2437623715b22adb43f1e51204320349325b11cf53afeb",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/1.webp"
+  },
+  {
+    "url": "/uat/products/100-2.webp",
+    "sha256": "58ab4d821905f9a441e61d479050cc09ed3de6de1f35366666fc911436a589fa",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/2.webp"
+  },
+  {
+    "url": "/uat/products/100-3.webp",
+    "sha256": "7ffbff4005807bc3fa4be4c2309662cdeb800600a128b267fd268bad5015114a",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/3.webp"
+  },
+  {
+    "url": "/uat/products/104-1.webp",
+    "sha256": "0bf8663bf6aa96da1e060f4fde4ddc4745b4a9aa02f36c83e467743752522f4a",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-iphone-charger/1.webp"
+  },
+  {
+    "url": "/uat/products/104-2.webp",
+    "sha256": "55e25cfb83e0991cafd65c9b500f21419176a4b6648f73f1094785d5042a62a9",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-iphone-charger/2.webp"
+  },
+  {
+    "url": "/uat/products/105-1.webp",
+    "sha256": "6358da20ed97a59466343687c7f179ee3edd5cdc0cd9797a420a17b3f19beaf5",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-magsafe-battery-pack/1.webp"
+  },
+  {
+    "url": "/uat/products/105-2.webp",
+    "sha256": "4182550f475bf5d5f69eed7cd6cb0fcda86f2876012e92aa84b34f12c7a701af",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-magsafe-battery-pack/2.webp"
+  },
+  {
+    "url": "/uat/products/107-1.webp",
+    "sha256": "f5c4e7da4732cf58bfe2927dd55f96c4dd8611871f4753fb835ab6cd030f07cd",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/beats-flex-wireless-earphones/1.webp"
+  },
+  {
+    "url": "/uat/products/108-1.webp",
+    "sha256": "5559d8ab36af9c315fd5dd00cc3d7a38ede9568b36f68ee98349779171dba413",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/1.webp"
+  },
+  {
+    "url": "/uat/products/108-2.webp",
+    "sha256": "19f68ba01935ec860b29b9016dae68f947f9fa304e383c5b310f4cc419299090",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/2.webp"
+  },
+  {
+    "url": "/uat/products/108-3.webp",
+    "sha256": "6948cbba51ca900f2f6da6c5f3575cf5c002e7e982c0068414a6d3038f6b2ed8",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/3.webp"
+  },
+  {
+    "url": "/uat/products/108-4.webp",
+    "sha256": "092e00f696c8f35c380756d903f16777b136c96588d5577775d803da6df85cb0",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/iphone-12-silicone-case-with-magsafe-plum/4.webp"
+  },
+  {
+    "url": "/uat/products/172-1.webp",
+    "sha256": "d835f10e79651a29ebebebb69c456714ed0d3adc7efe30ccff04b78a9be7d24f",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/1.webp"
+  },
+  {
+    "url": "/uat/products/172-2.webp",
+    "sha256": "68a81db99f90e351a30c555e19827f5a6e8a7b44115d644ceecfaf7518b076a6",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/2.webp"
+  },
+  {
+    "url": "/uat/products/172-3.webp",
+    "sha256": "3b887a263581175cab8cd504c019a7ff5df4c3d476e5e162f8069e7a149a9e30",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/blue-women's-handbag/3.webp"
+  },
+  {
+    "url": "/uat/products/175-1.webp",
+    "sha256": "bcdd9f951790dc029a7926b7a83f1f21b35da885692f72cd79c9e00888d87a06",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/1.webp"
+  },
+  {
+    "url": "/uat/products/175-2.webp",
+    "sha256": "ab71971f4473902eb5cbc35a292496d9aba73c23d9449badbf7928e30088479f",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/2.webp"
+  },
+  {
+    "url": "/uat/products/175-3.webp",
+    "sha256": "97c1f73688ab1499294c79c126e8567c45c9a1ea49dc6ae3139cc5ec45ebbf28",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/3.webp"
+  },
+  {
+    "url": "/uat/products/2-1.webp",
+    "sha256": "8af18a1b9c65e70aa1f0d019690366f42733469fcca124b669ccf7ba9770e2e6",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/beauty/eyeshadow-palette-with-mirror/1.webp"
+  },
+  {
+    "url": "/uat/products/4-1.webp",
+    "sha256": "278bed35d514122e810fb10c311a5c679b88983dca1b715fc58f848b54a88756",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/beauty/red-lipstick/1.webp"
+  },
+  {
+    "url": "/uat/products/43-1.webp",
+    "sha256": "b1a09e708a2c715a5b3f05ab7a6d280ae61650c5648d32e7bd9a0923e66b394e",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/decoration-swing/1.webp"
+  },
+  {
+    "url": "/uat/products/43-2.webp",
+    "sha256": "d34154804a6efa20cce67b207de8dc2047c315233b0cc40980f3fca2a22272d4",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/decoration-swing/2.webp"
+  },
+  {
+    "url": "/uat/products/43-3.webp",
+    "sha256": "e59acd27f89569df7f6bc357944c4b79d6c6cc3461c5e640af2c7aa56f23f26f",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/decoration-swing/3.webp"
+  },
+  {
+    "url": "/uat/products/44-1.webp",
+    "sha256": "50c6032d4fb7779124a058e339f87c5122120109f93d5649bb2669b1327adae9",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/family-tree-photo-frame/1.webp"
+  },
+  {
+    "url": "/uat/products/46-1.webp",
+    "sha256": "378b614ce6769c4c6c213766092327a5218ea1a679e8b418a679cdf41b2b72f2",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/plant-pot/1.webp"
+  },
+  {
+    "url": "/uat/products/46-2.webp",
+    "sha256": "2349be806f15e9e5588dfb08004c2a02cca0281b0fc02569ed70752547c3e52f",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/plant-pot/2.webp"
+  },
+  {
+    "url": "/uat/products/46-3.webp",
+    "sha256": "1e81f53cff1e09c178bf7501b5f0f36740abe648765bf185908faa0ea246af7e",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/plant-pot/3.webp"
+  },
+  {
+    "url": "/uat/products/46-4.webp",
+    "sha256": "5aca6f56213c5f10e2ba0ed5578517081f66cc2682b5a16e50ee96da881cdeb2",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/plant-pot/4.webp"
+  },
+  {
+    "url": "/uat/products/51-1.webp",
+    "sha256": "1fcd3941d13862e2c60a9d7538daa3778bb714af44535a18299b17d49497da53",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/1.webp"
+  },
+  {
+    "url": "/uat/products/51-2.webp",
+    "sha256": "a0c22fea0d0c1095788fb7d4a3b1ed0b5abc8020248dd826e3a18a60e44dfba4",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/2.webp"
+  },
+  {
+    "url": "/uat/products/51-3.webp",
+    "sha256": "7a6d4ec4ebc9e656c439df49ce70b2c5dc3adc012575ac1c47d33d0b72d9f7ad",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/3.webp"
+  },
+  {
+    "url": "/uat/products/51-4.webp",
+    "sha256": "92766f727f37fd831422c2e99eb1f59dcee83d0227e4116a477869ffc34775c4",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/4.webp"
+  },
+  {
+    "url": "/uat/products/65-1.webp",
+    "sha256": "e7cb3516f994d1584826de96a8e6bf59407ec2e3330ca379cecc74a4ecd4a6a8",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/kitchen-accessories/lunch-box/1.webp"
+  },
+  {
+    "url": "/uat/products/83-1.webp",
+    "sha256": "c6c356d6b07ba4c777c28cf74be8170594733ea88ef9de133fc2b9c0f1771a4f",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/1.webp"
+  },
+  {
+    "url": "/uat/products/83-2.webp",
+    "sha256": "a403a92c69a95452ce0ca593ee37e8b876e5cf7b7dfcd3c74e29aa8437ebc75b",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/2.webp"
+  },
+  {
+    "url": "/uat/products/83-3.webp",
+    "sha256": "477a6741f7346d068ecf4c3daf19c9c601cf6fe22ec6b75e744a7fbb47de8956",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/3.webp"
+  },
+  {
+    "url": "/uat/products/83-4.webp",
+    "sha256": "f446ca5802002d9647759d576cf7a9b0bd4b2fda1f027fd13b940dfcddadd25a",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/4.webp"
+  },
+  {
+    "url": "/uat/products/84-1.webp",
+    "sha256": "815b2a11ccda4fb9d054e79c5bd14d0ee55c99e76975ca6eaee3a9853cc9a586",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/1.webp"
+  },
+  {
+    "url": "/uat/products/84-2.webp",
+    "sha256": "efd79c42df9459a1f43e67a0c5035f026606da09713eb205edb71ec19330c231",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/2.webp"
+  },
+  {
+    "url": "/uat/products/84-3.webp",
+    "sha256": "21c47829d1ad38dba83aba54eed2f6d6b6ffd50c0542abe50e13af37b7521da6",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/3.webp"
+  },
+  {
+    "url": "/uat/products/84-4.webp",
+    "sha256": "aac030e18cd98f59a7ed85fe486ce9a329e7a3f0d7eb6198d9c3c253a37b052e",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/gigabyte-aorus-men-tshirt/4.webp"
+  },
+  {
+    "url": "/uat/products/85-1.webp",
+    "sha256": "2f88b095657383554b8ac76623f19211a2a8daad86db30067c6732362a02dc95",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/1.webp"
+  },
+  {
+    "url": "/uat/products/85-2.webp",
+    "sha256": "9f00193512ea77c414283e9a182f9014a8873bc075fe623b2ecde16a1fc7353c",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/2.webp"
+  },
+  {
+    "url": "/uat/products/85-3.webp",
+    "sha256": "65e7a883c88becba244ba936f8a715e4ad6770ed7946a4efa78c8b6309c8cc7e",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/3.webp"
+  },
+  {
+    "url": "/uat/products/85-4.webp",
+    "sha256": "8feb02a696ee10ea7163682c9500e6fcbd4945a591ee7419640e39b95f777ebc",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-plaid-shirt/4.webp"
+  },
+  {
+    "url": "/uat/products/86-1.webp",
+    "sha256": "a919351e54b801189bb176a72b9fc12de1d1116df8e9801516c143dfa79a3a45",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/1.webp"
+  },
+  {
+    "url": "/uat/products/86-2.webp",
+    "sha256": "a0c6cf758b417a7704c0a46c8dfea371daac86a2cad800a5270656ea92513f3f",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/2.webp"
+  },
+  {
+    "url": "/uat/products/86-3.webp",
+    "sha256": "90ece6fa63daffa71894b9645a08eb6266344285123ace90ffc0a1135b729b8d",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/3.webp"
+  },
+  {
+    "url": "/uat/products/86-4.webp",
+    "sha256": "2eedbeaeede7e51d342c76f77978f399f29642bdbb7f82fa783b7e2d83bb5b23",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mens-shirts/man-short-sleeve-shirt/4.webp"
+  },
+  {
+    "url": "/uat/products/99-1.webp",
+    "sha256": "5b416ffd85f8e138696934e50b4c563e51de2c6d9c3665ac36c9804ada4d0603",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/amazon-echo-plus/1.webp"
+  },
+  {
+    "url": "/uat/products/99-2.webp",
+    "sha256": "9c85de989f509e66c162f7b7019c1722e4b9c932380d93e5911130a67e7f8445",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/mobile-accessories/amazon-echo-plus/2.webp"
+  },
+  {
+    "url": "/uat/reviews/review-beauty.webp",
+    "sha256": "4c9b190e6d218f0ca7aae7523ffc083be9df44c585823796978148f9d81854ee",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/beauty/essence-mascara-lash-princess/1.webp"
+  },
+  {
+    "url": "/uat/reviews/review-home.webp",
+    "sha256": "b1a09e708a2c715a5b3f05ab7a6d280ae61650c5648d32e7bd9a0923e66b394e",
+    "width": 1000,
+    "height": 1000,
+    "sourceUrl": "https://cdn.dummyjson.com/product-images/home-decoration/decoration-swing/1.webp"
+  },
+  {
+    "url": "/uat/shops/uat-beauty-cover.svg",
+    "sha256": "750d62ef5bf54bfb47dd75f07a2dab7bd82be547ce7552a7d936df15aa2a858f",
+    "width": 1600,
+    "height": 480
+  },
+  {
+    "url": "/uat/shops/uat-beauty-logo.svg",
+    "sha256": "73ccc94a3c393f5c838b31cbeae638dd701adfd52739c71c23f992e5eeac8178",
+    "width": 400,
+    "height": 400
+  },
+  {
+    "url": "/uat/shops/uat-fashion-cover.svg",
+    "sha256": "b8a31dff597981316882ac1bbe5a2bae6c1264b37611017313434b132da0d8fd",
+    "width": 1600,
+    "height": 480
+  },
+  {
+    "url": "/uat/shops/uat-fashion-logo.svg",
+    "sha256": "69a4a6604d57fe4e6e46baeb1bf8053dc7c22a10ef3584e1ef49ed6ed1a69763",
+    "width": 400,
+    "height": 400
+  },
+  {
+    "url": "/uat/shops/uat-gadget-cover.svg",
+    "sha256": "217a8d71cc4421d0b4b9f49fee6f803a47f292e8e036a30c7fd882323bc12413",
+    "width": 1600,
+    "height": 480
+  },
+  {
+    "url": "/uat/shops/uat-gadget-logo.svg",
+    "sha256": "6329331997a2e24e0d3fceeeae644dc26a4c5fc5789d023c742ae593458d1444",
+    "width": 400,
+    "height": 400
+  },
+  {
+    "url": "/uat/shops/uat-home-cover.svg",
+    "sha256": "f104da919f8c356dd3ea0a7a6e443e2d6b4452a0c7890cb4706db711477475a3",
+    "width": 1600,
+    "height": 480
+  },
+  {
+    "url": "/uat/shops/uat-home-logo.svg",
+    "sha256": "f9da6fc1b3451dcb387034c4f7b0daaef5139ef696cd1ba46a0562ef98f5e7c4",
+    "width": 400,
+    "height": 400
+  },
+  {
+    "url": "/uat/brands/uat-beauty.svg",
+    "sha256": "73ccc94a3c393f5c838b31cbeae638dd701adfd52739c71c23f992e5eeac8178",
+    "width": 400,
+    "height": 400
+  },
+  {
+    "url": "/uat/brands/uat-fashion.svg",
+    "sha256": "69a4a6604d57fe4e6e46baeb1bf8053dc7c22a10ef3584e1ef49ed6ed1a69763",
+    "width": 400,
+    "height": 400
+  },
+  {
+    "url": "/uat/brands/uat-gadget.svg",
+    "sha256": "6329331997a2e24e0d3fceeeae644dc26a4c5fc5789d023c742ae593458d1444",
+    "width": 400,
+    "height": 400
+  },
+  {
+    "url": "/uat/brands/uat-home.svg",
+    "sha256": "f9da6fc1b3451dcb387034c4f7b0daaef5139ef696cd1ba46a0562ef98f5e7c4",
+    "width": 400,
+    "height": 400
+  }
+]

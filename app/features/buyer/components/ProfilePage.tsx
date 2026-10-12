@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BellIcon, HeartIcon, LinkIcon, MailIcon, MapPinIcon, MessageCircleIcon, PackageIcon, PhoneIcon, StoreIcon, TicketIcon, UserCircleIcon } from "lucide-react";
+import { BellIcon, HeartIcon, LinkIcon, LogOutIcon, MailIcon, MapPinIcon, MessageCircleIcon, PackageIcon, PhoneIcon, StoreIcon, TicketIcon, UserCircleIcon } from "lucide-react";
 import { BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
@@ -13,11 +14,25 @@ import { fetchAddresses, fetchProfile, fetchSellerApplicationSummary, requestPro
 import { fetchAffiliateStats } from "#/features/affiliate/api";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { signOut } from "#/lib/auth-client";
 import { api } from "#/lib/eden";
 
 export function ProfilePage() {
   const localePath = useLocalePath();
   const t = useTranslations();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const signOutMutation = useMutation({
+    mutationFn: async () => {
+      const result = await signOut();
+      if (result.error) throw new Error(result.error.message ?? t("auth.unexpectedError"));
+    },
+    onSuccess: () => {
+      queryClient.clear();
+      router.replace(localePath("/"));
+      router.refresh();
+    },
+  });
   const profileQuery = useQuery({ queryKey: ["buyer-profile"], queryFn: fetchProfile });
   const addressesQuery = useQuery({ queryKey: ["buyer-addresses"], queryFn: fetchAddresses });
   const affiliateQuery = useQuery({ queryKey: ["affiliate", "stats"], queryFn: fetchAffiliateStats });
@@ -53,6 +68,13 @@ export function ProfilePage() {
             </section>
 
             <ProfileIdentityForm profile={profileQuery.data} />
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <Button type="button" variant="outline" disabled={signOutMutation.isPending} onClick={() => signOutMutation.mutate()} className="w-full justify-start border-slate-300 text-slate-900 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700">
+                <LogOutIcon className="size-4 text-orange-600" />{t("common.logout")}
+              </Button>
+              {signOutMutation.error ? <p role="alert" className="mt-3 text-sm text-red-700">{signOutMutation.error.message}</p> : null}
+            </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="font-bold text-slate-950">{t("buyer.buyerShortcuts")}</h2>

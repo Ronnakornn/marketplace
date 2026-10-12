@@ -4,6 +4,92 @@
 
 @custom-variant dark (&:is([data-theme="dark"] *));
 
+[data-sonner-toast][data-styled="true"].cart-success-toast {
+  --cart-toast-accent: #ea580c;
+  width: min(390px, calc(100vw - 32px));
+  padding: 16px;
+  gap: 12px;
+  font-family: var(--font-noto-sans-thai), sans-serif;
+  border: 1px solid color-mix(in srgb, var(--cart-toast-accent) 20%, var(--border));
+  border-left: 3px solid var(--cart-toast-accent);
+  border-radius: 16px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 12px 36px -12px rgb(67 20 7 / 24%), 0 2px 6px rgb(67 20 7 / 5%);
+}
+
+[data-sonner-toast][data-styled="true"].cart-success-toast [data-icon] {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  justify-content: center;
+  margin: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cart-toast-accent) 10%, var(--popover));
+  color: var(--cart-toast-accent);
+}
+
+[data-sonner-toast][data-styled="true"].cart-success-toast [data-content] {
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+[data-sonner-toast][data-styled="true"].cart-success-toast [data-title] {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+[data-sonner-toast][data-styled="true"].cart-success-toast [data-description] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--popover-foreground) 65%, var(--popover));
+}
+
+[data-sonner-toast][data-styled="true"].cart-success-toast [data-button] {
+  height: 34px;
+  flex-shrink: 0;
+  margin: 0 6px 0 0;
+  padding: 0 12px;
+  border-radius: 9px;
+  background: #c2410c;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+[data-sonner-toast][data-styled="true"].cart-success-toast [data-button]:hover {
+  background: #9a3412;
+}
+
+[data-sonner-toast][data-styled="true"].cart-success-toast [data-close-button] {
+  top: 5px;
+  right: 5px;
+  left: auto;
+  transform: none;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--popover-foreground) 50%, var(--popover));
+}
+
+[data-sonner-toast][data-styled="true"].cart-success-toast [data-button]:focus-visible,
+[data-sonner-toast][data-styled="true"].cart-success-toast [data-close-button]:focus-visible {
+  outline: 2px solid var(--cart-toast-accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  [data-sonner-toast][data-styled="true"].cart-success-toast[data-y-position="bottom"] {
+    bottom: 64px;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

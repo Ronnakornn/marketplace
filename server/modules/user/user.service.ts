@@ -255,6 +255,13 @@ export class UserService {
     return { favorited: Boolean(await this.repo.findFavoriteProduct(userId, productId)) }
   }
 
+  async getFavoriteStatuses(userId: string, productIds: string[]): Promise<Record<string, boolean>> {
+    const ids = [...new Set(productIds)]
+    if (ids.length === 0) return {}
+    const favorites = new Set((await this.repo.findFavoriteProductIds(userId, ids)).map((row) => row.productId))
+    return Object.fromEntries(ids.map((id) => [id, favorites.has(id)]))
+  }
+
   async addFavoriteProduct(userId: string, productId: string): Promise<{ favorited: true }> {
     await this.repo.addFavoriteProduct(userId, productId)
     return { favorited: true }

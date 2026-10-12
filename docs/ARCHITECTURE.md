@@ -97,6 +97,43 @@ docs/
 - Hooks should use Eden Treaty + React Query and invalidate related query keys after mutations.
 - Do not duplicate backend response types on the frontend.
 
+## Bounded product reads
+
+Search, catalog price sorting, and seller product/SKU analytics rank and paginate
+in PostgreSQL. Repositories return an exact total and page IDs/aggregates before
+hydrating page details. Search ratings and sales use aggregates rather than loading
+historical review/order-item arrays. Each reader retains its existing paid-sale and
+cancellation policy. Analytics requires successful Payment evidence through EXISTS
+and keeps monetary sums exact through PostgreSQL numeric and TypeScript bigint.
+Analytics combines shop/date-scoped facts with candidate rows in one aggregate,
+then excludes groups without a candidate label. This avoids repeated candidate
+joins when PostgreSQL underestimates a newly populated shop. Selective product
+queries still aggregate the authorized shop/date facts; database work remains
+proportional to matching history even though application output is paginated.
+
+Title/SKU ranking uses `marketplace_locale_compare`, an ICU en-US nondeterministic
+collation managed by Prisma migration `20261012000000_locale_compare_ranking`.
+It preserves Unicode-equivalent comparisons before the explicit date/ID tie keys.
+PostgreSQL must support ICU; apply Prisma migrations before running this code.
+Prisma's schema language does not model collations, so the schema records this
+supporting SQL object in a comment and the migration owns its definition.
+
+Visible product cards share authenticated favorite-status batches of at most
+100 product IDs. Favorites remain private to the authenticated buyer; query keys
+include the user ID and mutations update/invalidate the user's batch/detail keys.
+Public product data does not contain favorite status.
+
+Product metadata and page rendering share a request-scoped React.cache loader
+of the Eden-inferred public detail and aggregate rating summary. The detail page
+receives these as TanStack Query initial data, so dependent reads can start with
+the canonical product ID. The loader uses no-store fetches, and SEO does not load
+individual reviews.
+
+Redis pattern invalidation iterates SCAN cursors and bounded DEL batches, including
+empty nonterminal scan pages. A shared connection promise prevents concurrent
+cache reads from accumulating connection listeners. Existing failure cooldown,
+pending-read generation checks, and inventory invalidation batching remain in place.
+
 ## Notification Delivery
 
 `Notification` rows remain the source of truth. Foreground clients receive realtime events; opted-in devices may also receive best-effort Web Push for payment, shipping, and refund updates. Push subscription endpoints and keys are encrypted at rest, push failure never rolls back notification creation, and expired provider subscriptions are removed after `404` or `410` responses. The push-only service worker does not cache application or API responses.

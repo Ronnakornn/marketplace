@@ -2,19 +2,17 @@
 
 import { type ReactNode, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   BellIcon,
   FlameIcon,
   HomeIcon,
-  LogOutIcon,
   MessageCircleIcon,
   PackageIcon,
   SearchIcon,
   ShoppingBagIcon,
   ShoppingCartIcon,
-  StoreIcon,
   UserCircleIcon,
 } from "lucide-react";
 import { LanguageSwitcher } from "#/components/LanguageSwitcher";
@@ -24,14 +22,13 @@ import { clearGuestCart, readGuestCart, writeGuestCart } from "#/features/cart/g
 import { fetchChatRooms } from "#/features/chat/api";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
-import { signOut, useSession } from "#/lib/auth-client";
+import { useSession } from "#/lib/auth-client";
 import { cn } from "#/lib/utils";
 
 const navItems = [
   { href: "/", labelKey: "nav.home", icon: HomeIcon },
   { href: "/search", labelKey: "nav.search", icon: SearchIcon },
   { href: "/deals", labelKey: "common.deals", icon: FlameIcon },
-  { href: "/cart", labelKey: "nav.cart", icon: ShoppingCartIcon },
   { href: "/orders", labelKey: "nav.orders", icon: PackageIcon },
   { href: "/profile", labelKey: "nav.profile", icon: UserCircleIcon },
 ] as const;
@@ -56,7 +53,6 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
   const hasHydrated = useHasHydrated();
   const hydratedSession = hasHydrated ? session : null;
   const isHydratingSession = !hasHydrated || isSessionPending;
-  const router = useRouter();
   const t = useTranslations();
   const locale = useLocale();
   const localePath = useLocalePath();
@@ -67,7 +63,6 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
   const canUseBuyerCart = Boolean(hydratedSession && hydratedSession.user.role !== "ADMIN");
   const canUseChat = Boolean(hydratedSession && hydratedSession.user.role !== "ADMIN");
   const chatHref = "/chat";
-  const sellerChatHref = "/seller/chat";
   const cartQuery = useQuery({
     queryKey: ["buyer-cart", locale],
     queryFn: () => fetchCart(locale),
@@ -109,14 +104,9 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
   const chatUnreadCount = chatRoomsQuery.data?.reduce((total, room) => total + room.unreadCount, 0) ?? 0;
   const notificationUnreadCount = notificationsQuery.data?.filter((notification) => !notification.readAt && !isChatNotification(notification.type)).length ?? 0;
 
-  async function handleSignOut() {
-    await signOut();
-    router.push(localePath("/"));
-  }
-
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center gap-2">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-3 shadow-sm backdrop-blur-xl sm:px-4">
+      <div className="mx-auto flex max-w-6xl items-center gap-1.5 sm:gap-3">
         <Link aria-label={t("common.marketplace")} href={localePath("/")} prefetch={prefetchLinks} className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-orange-700 px-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-orange-800">
           <ShoppingBagIcon className="size-4 text-white" />
           <span className="hidden sm:inline text-white">{t("common.marketplace")}</span>
@@ -125,16 +115,17 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
           <MenuIcon className="size-5" />
           <span className="sr-only">{t("common.categories")}</span>
         </Link> */}
-        <form action={localePath("/search")} className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-orange-200 md:max-w-[520px] lg:max-w-[640px]">
+        <form suppressHydrationWarning action={localePath("/search")} className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-orange-200">
           <SearchIcon className="size-4 shrink-0 text-slate-900" />
           <Input
+            suppressHydrationWarning
             name="q"
             defaultValue={searchQuery}
             placeholder={t("home.searchPlaceholder")}
             className="h-8 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
           />
         </form>
-        <Link href={localePath(notificationHref)} prefetch={prefetchLinks} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+        <Link href={localePath(notificationHref)} prefetch={prefetchLinks} className="relative flex size-10 shrink-0 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
           <BellIcon className="size-5" />
           {notificationUnreadCount > 0 ? (
             <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-700 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
@@ -144,7 +135,7 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
           <span className="sr-only">{t("common.notifications")}</span>
         </Link>
         {canUseChat ? (
-          <Link href={localePath(chatHref)} prefetch={prefetchLinks} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+          <Link href={localePath(chatHref)} prefetch={prefetchLinks} className="relative flex size-10 shrink-0 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
             <MessageCircleIcon className="size-5" />
             {chatUnreadCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-700 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
@@ -155,7 +146,7 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
           </Link>
         ) : null}
         {canUseBuyerCart ? (
-          <Link href={localePath("/cart")} prefetch={prefetchLinks} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+          <Link href={localePath("/cart")} prefetch={prefetchLinks} className="relative flex size-10 shrink-0 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
             <ShoppingCartIcon className="size-5" />
             {cartItemCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-orange-700 px-1 text-[10px] font-bold leading-4 text-white ring-2 ring-white">
@@ -167,58 +158,31 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
         ) : null}
         {hydratedSession ? (
           <>
-            {hydratedSession.user.role !== "ADMIN" ? (
-              <Link href={localePath("/seller/register")} prefetch={false} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900 sm:flex">
-                <StoreIcon className="size-4" />
-                {t("buyer.startSelling")}
-              </Link>
-            ) : null}
-            {hydratedSession.user.role !== "ADMIN" && !isSellerRoute ? (
-              <Link href={localePath(sellerChatHref)} prefetch={prefetchLinks} className="hidden h-10 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-slate-900 transition hover:bg-emerald-50 hover:text-emerald-900 lg:flex">
-                <StoreIcon className="size-4" />
-                {t("buyer.sellerChat")}
-              </Link>
-            ) : null}
-            <Link aria-label={t("common.profile")} href={localePath("/profile")} prefetch={prefetchLinks} className="flex h-10 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+            <Link aria-label={t("common.profile")} href={localePath("/profile")} prefetch={prefetchLinks} className="hidden size-10 shrink-0 items-center justify-center rounded-full text-slate-900 md:flex transition hover:bg-orange-50 hover:text-orange-600">
               <UserCircleIcon className="size-5" />
              
             </Link>
-            <button
-              type="button"
-              onClick={() => void handleSignOut()}
-              className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600"
-            >
-              <LogOutIcon className="size-5" />
-              <span className="sr-only">{t("common.logout")}</span>
-            </button>
           </>
         ) : isHydratingSession ? (
           // The session resolves client-side, so it is null during SSR and until
           // hydration settles. Rendering the signed-out controls here would flash
           // "sign in" at buyers who are already signed in.
-          <div className="h-10 w-[185px] shrink-0 rounded-full bg-slate-100" />
+          <div className="h-10 w-20 shrink-0 rounded-full bg-slate-100" />
         ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <Link
                 href={localePath("/login")}
                 prefetch={prefetchLinks}
-                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
+                className="flex h-10 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 no-underline transition hover:bg-slate-50"
               >
                 {t("common.login")}
-              </Link>
-              <Link
-                href={localePath("/signup")}
-                prefetch={prefetchLinks}
-                className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-3 py-1.5 text-xs font-semibold text-[var(--lagoon-deep)] no-underline transition hover:bg-[rgba(79,184,178,0.24)]"
-              >
-                {t("common.signup")}
               </Link>
             </div>
         )}
       </div>
-      <div className="mx-auto mt-1 flex max-w-6xl items-center justify-between gap-2 px-1">
+      <div className="mx-auto mt-2 flex max-w-6xl items-center justify-between gap-3">
         <p className="min-w-0 truncate text-xs font-semibold text-orange-700">{title ?? t("common.marketplace")}</p>
-        <LanguageSwitcher prefetch={prefetchLinks} />
+        <div className="shrink-0"><LanguageSwitcher prefetch={prefetchLinks} /></div>
       </div>
     </header>
   );
@@ -239,7 +203,7 @@ export function MobileBottomNavigation({ prefetchLinks = true }: { prefetchLinks
   if (hasActionBar) return null;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-[max(env(safe-area-inset-bottom),0.4rem)] pt-1.5 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-6">
+      <div className="mx-auto grid max-w-md grid-cols-5">
         {navItems.map(({ href, labelKey, icon: Icon }) => {
           const localizedHref = localePath(href);
           const active = href === "/" ? pathname === localizedHref : pathname.startsWith(localizedHref);

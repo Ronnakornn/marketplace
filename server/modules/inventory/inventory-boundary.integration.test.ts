@@ -38,9 +38,9 @@ function memoryCache() {
     get: async key => store.get(key) ?? null,
     set: async (key, value) => { store.set(key, value); return 'OK' },
     del: async (...keys) => keys.filter(key => store.delete(key)).length,
-    keys: async pattern => {
+    scan: async (_cursor, pattern) => {
       const regex = new RegExp(`^${pattern.replaceAll('*', '.*')}$`)
-      return [...store.keys()].filter(key => regex.test(key))
+      return ['0', [...store.keys()].filter(key => regex.test(key))]
     },
   }
   const cache = new CacheService(context, { enabled: true, redisUrl: 'memory-test', keyPrefix: randomUUID(),

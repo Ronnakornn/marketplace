@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "concurrently -n frontend,backend -c cyan,magenta \"bun run dev:frontend\" \"bun run dev:server\"",
+    "dev:uat": "cross-env CHECKOUT_V2_SETTLEMENT_ENABLED=true PAYMENT_PROVIDER=mock bun run dev",
     "dev:push": "bun run scripts/dev-push.ts",
     "dev:frontend": "cross-env NODE_ENV=development next dev --port 3000",
     "dev:server": "cross-env NODE_ENV=development bun run --watch server/index.ts",
@@ -32,6 +33,9 @@
     "db:push": "bunx prisma db push",
     "db:migrate:deploy": "bunx prisma migrate deploy",
     "db:seed": "bun run scripts/seed.ts",
+    "db:seed:uat": "bun run scripts/seed-uat.ts",
+    "db:verify:uat": "bun run scripts/verify-uat.ts",
+    "uat:assets": "bun run scripts/prepare-uat-assets.ts",
     "db:seed-bootstrap-master": "bun run scripts/seed-bootstrap-master.ts",
     "db:seed-demo-catalog": "bun run scripts/seed-demo-catalog.ts",
     "db:studio": "bunx prisma studio",

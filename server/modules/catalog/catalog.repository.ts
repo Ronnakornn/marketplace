@@ -1,5 +1,5 @@
-import { moneyInteger, moneyMin } from '#server/lib/money.ts'
-import type { Brand, Category, CategoryAttributeDefinition, ModerationAction, ModerationCase, Prisma, PrismaClient, Product, ProductAttribute, ProductHighlight, ProductImage, ProductOption, ProductOptionValue, ProductVariant, ProductVariantOptionValue, ProductVideo, Shop, ShopAddress, Upload } from '#generated/client/client.ts'
+import { moneyInteger } from '#server/lib/money.ts'
+import { Prisma, type Brand, type Category, type CategoryAttributeDefinition, type ModerationAction, type ModerationCase, type PrismaClient, type Product, type ProductAttribute, type ProductHighlight, type ProductImage, type ProductOption, type ProductOptionValue, type ProductVariant, type ProductVariantOptionValue, type ProductVideo, type Shop, type ShopAddress, type Upload } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -851,25 +851,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     const cursor = filters.cursor ? { id: filters.cursor } : undefined
     const take = filters.cursor ? filters.limit + 1 : filters.limit
     if (filters.sort === 'price_asc' || filters.sort === 'price_desc') {
-      // ponytail: price sorting materializes matching products; replace with a composite SQL cursor if storefront scale proves this costly.
-      const rows = await this.prisma.product.findMany({ where, include: productInclude })
-      const direction = filters.sort === 'price_asc' ? 1 : -1
-      const sorted = rows
-        .filter((product) => product.variants.some((variant) => variant.status === 'ACTIVE'))
-        .sort((left, right) => {
-          const leftPrice = moneyMin(left.variants.filter((variant) => variant.status === 'ACTIVE').map((variant) => moneyInteger(variant.price)))
-          const rightPrice = moneyMin(right.variants.filter((variant) => variant.status === 'ACTIVE').map((variant) => moneyInteger(variant.price)))
-          return (leftPrice < rightPrice ? -1 : leftPrice > rightPrice ? 1 : 0) * direction || left.id.localeCompare(right.id)
-        })
-      const data = sorted.slice(skip, skip + filters.limit)
-      return {
-        data, items: data,
-        meta: {
-          nextCursor: null, totalCount: sorted.length, page, pageSize: filters.limit,
-          hasNextPage: skip + filters.limit < sorted.length,
-          query: this.buildResultQuery(filters),
-        },
-      }
+      return this.findPricePage(filters, skip, page)
     }
     // These read-committed listing queries never shared a stable snapshot.
     // Avoid holding a transaction connection across relation loading.
@@ -1281,6 +1263,71 @@ export class PrismaCatalogRepository implements ICatalogRepository {
         include: { actions: { orderBy: { createdAt: 'desc' } } },
       })
     })
+  }
+
+  private async findPricePage(filters: ProductListFilters, skip: number, page: number): Promise<PaginatedResult<CatalogProductListItem>> {
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ id: string | null; total: bigint }>>(this.buildPricePageQuery(filters, skip))
+      const ids = rows.flatMap((row) => row.id ? [row.id] : [])
+      const totalCount = Number(rows[0]?.total ?? 0n)
+      const products = ids.length ? await tx.product.findMany({ where: { id: { in: ids } }, include: productInclude }) : []
+      const byId = new Map(products.map((product) => [product.id, product]))
+      const data = ids.flatMap((id) => {
+        const product = byId.get(id)
+        return product ? [product] : []
+      })
+      return {
+        data, items: data,
+        meta: {
+          nextCursor: null, totalCount, page, pageSize: filters.limit,
+          hasNextPage: skip + filters.limit < totalCount,
+          query: this.buildResultQuery(filters),
+        },
+      }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead })
+  }
+
+  private buildPricePageQuery(filters: ProductListFilters, skip: number): Prisma.Sql {
+    const predicates = [Prisma.sql`p."deletedAt" IS NULL`]
+    if (filters.categoryId) predicates.push(Prisma.sql`c.slug = ${filters.categoryId} AND c."isActive"`)
+    if (filters.brandId) predicates.push(Prisma.sql`p."brandId" = ${filters.brandId}::uuid`)
+    if (filters.shopId) predicates.push(Prisma.sql`p."shopId" = ${filters.shopId}::uuid`)
+    if (filters.status) predicates.push(Prisma.sql`p.status = ${filters.status}::"ProductStatus"`)
+    if (filters.publicOnly) predicates.push(Prisma.sql`s.status = 'ACTIVE'`)
+    if (filters.excludeProductId) predicates.push(Prisma.sql`p.id <> ${filters.excludeProductId}::uuid`)
+    for (const attribute of filters.attributeFilters ?? []) {
+      predicates.push(Prisma.sql`EXISTS (
+        SELECT 1 FROM "ProductAttribute" a WHERE a."productId" = p.id AND a."isFilterable"
+        AND a."attributeKey" = ${attribute.key} AND a.value ILIKE ${attribute.value}
+      )`)
+    }
+    if (filters.keyword) {
+      const pattern = `%${filters.keyword}%`
+      predicates.push(Prisma.sql`(
+        p.title ILIKE ${pattern} OR p."titleTh" ILIKE ${pattern} OR p."titleEn" ILIKE ${pattern}
+        OR p.description ILIKE ${pattern} OR p."descriptionTh" ILIKE ${pattern} OR p."descriptionEn" ILIKE ${pattern}
+        OR p.slug ILIKE ${pattern} OR c.name ILIKE ${pattern} OR c."nameTh" ILIKE ${pattern} OR c."nameEn" ILIKE ${pattern}
+      )`)
+    }
+    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+      const pricePredicates = [Prisma.sql`priced."productId" = p.id`]
+      if (filters.minPrice !== undefined) pricePredicates.push(Prisma.sql`priced.price >= ${BigInt(filters.minPrice)}`)
+      if (filters.maxPrice !== undefined) pricePredicates.push(Prisma.sql`priced.price <= ${BigInt(filters.maxPrice)}`)
+      predicates.push(Prisma.sql`EXISTS (SELECT 1 FROM "ProductVariant" priced WHERE ${Prisma.join(pricePredicates, ' AND ')})`)
+    }
+    const direction = filters.sort === 'price_asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`
+    return Prisma.sql`
+      WITH candidates AS (
+        SELECT p.id, MIN(v.price) AS "minPrice"
+        FROM "Product" p JOIN "Shop" s ON s.id = p."shopId" LEFT JOIN "Category" c ON c.id = p."categoryId"
+        JOIN "ProductVariant" v ON v."productId" = p.id AND v.status = 'ACTIVE'
+        WHERE ${Prisma.join(predicates, ' AND ')} GROUP BY p.id
+      ), page AS (
+        SELECT id, ROW_NUMBER() OVER (ORDER BY "minPrice" ${direction}, id ASC) AS position FROM candidates
+        ORDER BY "minPrice" ${direction}, id ASC LIMIT ${filters.limit} OFFSET ${skip}
+      ), total AS (SELECT COUNT(*) AS total FROM candidates)
+      SELECT page.id, total.total FROM total LEFT JOIN page ON TRUE ORDER BY page.position
+    `
   }
 
   private buildProductWhere(filters: ProductListFilters): Prisma.ProductWhereInput {

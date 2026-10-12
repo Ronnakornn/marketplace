@@ -50,13 +50,24 @@ describe.skipIf(!databaseUrl || !redisUrl)('settlement cancellation cache on Pos
   })
   afterAll(async () => {
     await cache?.deleteByPattern(`${prefix}:*`)
-    if (client) expect(await client.keys(`${prefix}:*`)).toEqual([])
+    if (client) expect(await matchingKeys(`${prefix}:*`)).toEqual([])
     await client?.quit?.()
     await prisma?.$disconnect()
   })
 
+  async function matchingKeys(pattern: string) {
+    const keys: string[] = []
+    let cursor = '0'
+    do {
+      const page = await client.scan(cursor, pattern, 200)
+      cursor = page[0]
+      keys.push(...page[1])
+    } while (cursor !== '0')
+    return [...new Set(keys)]
+  }
+
   async function warmEntry(pattern: string) {
-    const keys = await client.keys(pattern)
+    const keys = await matchingKeys(pattern)
     expect(keys).toHaveLength(1)
     const key = keys[0]
     if (!key) throw new Error(`Expected one warmed cache key for ${pattern}`)

@@ -3,12 +3,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { locales, resolveLocale, type Locale, withLocale } from "#/i18n/config";
 import { isSecretStorageUrl } from "#/lib/assets";
+import type { InitialPublicProduct, InitialProductRatingSummary } from "#/features/product/product-data.server";
 
 const DEFAULT_SITE_URL = "http://localhost:3000";
 const DEFAULT_SITE_NAME = "Marketplace";
 const FALLBACK_IMAGE_PATH = "/icons/icon-512.png";
 const DEFAULT_DESCRIPTION = "Shop active products from trusted marketplace sellers.";
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function getSiteUrl(): string {
   const rawUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? DEFAULT_SITE_URL;
@@ -99,84 +99,23 @@ export const privatePageMetadata: Metadata = {
   },
 };
 
-export async function getPublicProductSeo(productId: string) {
-  const { prisma } = await import("#server/lib/prisma.ts");
-  const product = await prisma.product.findFirst({
-    where: {
-      OR: [
-        ...(UUID_PATTERN.test(productId) ? [{ id: productId }] : []),
-        { slug: productId },
-      ],
-      status: "ACTIVE",
-      deletedAt: null,
-      shop: { status: "ACTIVE" },
-    },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      slug: true,
-      updatedAt: true,
-      category: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          isActive: true,
-        },
-      },
-      brand: {
-        select: {
-          name: true,
-        },
-      },
-      shop: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        },
-      },
-      images: {
-        orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
-        take: 1,
-        select: {
-          url: true,
-        },
-      },
-      variants: {
-        where: { status: "ACTIVE" },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          price: true,
-          currency: true,
-          inventory: {
-            select: {
-              quantityOnHand: true,
-              quantityReserved: true,
-            },
-          },
-        },
-      },
-      reviews: {
-        where: { status: "PUBLISHED" },
-        select: {
-          rating: true,
-        },
-      },
-    },
-  });
+export async function getPublicProductSeo(productId: string, locale: Locale = "th") {
+  const { getPublicProductData } = await import("#/features/product/product-data.server");
+  const data = await getPublicProductData(productId, locale);
+  return data ? publicProductSeo(data.product, data.ratingSummary) : null;
+}
 
-  if (!product) return null;
+export function publicProductSeo(product: InitialPublicProduct, summary?: InitialProductRatingSummary) {
   const firstVariant = product.variants[0];
   const availableStock = product.variants.reduce((total, variant) => {
     const inventory = variant.inventory;
     return total + Math.max(0, (inventory?.quantityOnHand ?? 0) - (inventory?.quantityReserved ?? 0));
   }, 0);
-  const ratingCount = product.reviews.length;
+  const ratingCount = summary?.totalReviewCount ?? product.ratingSummary?.totalReviewCount ?? 0;
   const ratingValue = ratingCount
-    ? product.reviews.reduce((total, review) => total + review.rating, 0) / ratingCount
+    ? summary
+      ? Object.entries(summary.distribution).reduce((total, [rating, count]) => total + Number(rating) * count, 0) / ratingCount
+      : product.ratingSummary?.averageRating ?? 0
     : null;
 
   return {
@@ -190,8 +129,8 @@ export async function getPublicProductSeo(productId: string) {
     price: firstVariant ? formatSeoPriceCents(firstVariant.price) : null,
     currency: firstVariant?.currency ?? null,
     availability: availableStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-    shop: product.shop,
-    brand: product.brand,
+    shop: { id: product.shop.id, name: product.shop.name, slug: product.shop.slug },
+    brand: product.brand ? { name: product.brand.name } : null,
     category: product.category?.isActive ? product.category : null,
     aggregateRating: ratingValue
       ? {
@@ -202,8 +141,8 @@ export async function getPublicProductSeo(productId: string) {
   };
 }
 
-export async function requirePublicProductSeo(productId: string) {
-  const product = await getPublicProductSeo(productId);
+export async function requirePublicProductSeo(productId: string, locale: Locale = "th") {
+  const product = await getPublicProductSeo(productId, locale);
   if (!product) notFound();
   return product;
 }

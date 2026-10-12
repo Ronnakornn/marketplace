@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { HeartIcon, ImageOffIcon, MessageCircleIcon, MinusIcon, PlayIcon, PlusIcon, RotateCcwIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, StoreIcon, TruckIcon } from "lucide-react";
+import { HeartIcon, MessageCircleIcon, MinusIcon, PlusIcon, RotateCcwIcon, ShieldCheckIcon, ShoppingCartIcon, StarIcon, StoreIcon, TruckIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerProductDetailSkeleton } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
@@ -15,15 +15,17 @@ import {
   addCartItem,
   addFavoriteProduct,
   fetchCart,
-  fetchFavoriteStatus,
   fetchShopFollowStatus,
   followShop,
   formatMoney,
   removeFavoriteProduct,
   unfollowShop,
 } from "#/features/buyer/api";
+import { FavoriteStatusesProvider, updateFavoriteCaches, useFavoriteStatus } from "#/features/buyer/favorites";
+import type { InitialPublicProduct, InitialProductRatingSummary } from "#/features/product/product-data.server";
 import { createChatRoom } from "#/features/chat";
 import { ProductCard } from "#/features/product/components/ProductCard";
+import { ProductImageGallery } from "#/features/product/components/ProductImageGallery";
 import { addGuestCartItem } from "#/features/cart/guest-cart";
 import {
   normalizePublicProduct,
@@ -69,7 +71,11 @@ type ReviewContentFilter = "all" | "media" | "comment";
 const PRODUCT_DETAIL_REVIEW_PAGE_LIMIT = 5;
 const PRODUCT_DETAIL_QUESTION_PAGE_LIMIT = 5;
 
-export function ProductDetailPage({ productId }: { productId: string }) {
+export function ProductDetailPage({ productId, initialData, initialRatingSummary }: {
+  productId: string;
+  initialData?: InitialPublicProduct;
+  initialRatingSummary?: InitialProductRatingSummary;
+}) {
   const router = useRouter();
   const t = useTranslations();
   const locale = useLocale();
@@ -78,8 +84,6 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   const tracking = useDiscoveryTracking("product_detail");
   const queryClient = useQueryClient();
   const canFetchBuyerState = session?.user.role === "USER";
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [showVideo, setShowVideo] = useState(false);
   const [selectedOptionValues, setSelectedOptionValues] = useState<Record<string, string>>({});
   const [selectedStandaloneVariantId, setSelectedStandaloneVariantId] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -96,9 +100,10 @@ export function ProductDetailPage({ productId }: { productId: string }) {
 
   const productQuery = useQuery({
     ...publicProductDetailQueryOptions({ productId, locale }),
+    initialData,
     select: normalizePublicProduct,
   });
-  const resolvedProductId = productQuery.data?.id ?? "";
+  const resolvedProductId = productQuery.data?.id ?? initialData?.id ?? "";
   const relatedQuery = useQuery({
     ...publicRelatedProductsQueryOptions({ productId, limit: 8, locale }),
     select: normalizePublicProducts,
@@ -123,6 +128,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   });
   const ratingSummaryQuery = useQuery({
     ...publicProductRatingSummaryQueryOptions(resolvedProductId),
+    initialData: initialRatingSummary,
     select: normalizePublicProductRatingSummary,
     enabled: Boolean(resolvedProductId),
   });
@@ -137,11 +143,8 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     select: normalizePublicProductQuestionsPage,
     enabled: Boolean(resolvedProductId),
   });
-  const favoriteQuery = useQuery({
-    queryKey: ["buyer-favorite-status", resolvedProductId],
-    queryFn: () => fetchFavoriteStatus(resolvedProductId),
-    enabled: canFetchBuyerState && Boolean(resolvedProductId),
-  });
+  const buyerId = canFetchBuyerState ? session.user.id : "";
+  const favoriteQuery = useFavoriteStatus(resolvedProductId, buyerId, canFetchBuyerState);
   const shopId = productQuery.data?.shop.id ?? "";
   const followQuery = useQuery({
     queryKey: ["buyer-shop-follow-status", shopId],
@@ -164,14 +167,11 @@ export function ProductDetailPage({ productId }: { productId: string }) {
     }),
   });
   const favoriteMutation = useMutation({
-    mutationFn: async () => {
-      if (!session) throw new Error(t("common.login"));
-      return favoriteQuery.data ? removeFavoriteProduct(resolvedProductId) : addFavoriteProduct(resolvedProductId);
+    mutationFn: async ({ productId, favorited }: { userId: string; productId: string; favorited: boolean }) => {
+      if (favorited) await addFavoriteProduct(productId);
+      else await removeFavoriteProduct(productId);
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["buyer-favorite-status", resolvedProductId] });
-      void queryClient.invalidateQueries({ queryKey: ["buyer-favorites"] });
-    },
+    onSuccess: (_result, { userId, productId, favorited }) => updateFavoriteCaches(queryClient, userId, productId, favorited),
   });
   const createChatMutation = useMutation({
     mutationFn: () => {
@@ -334,8 +334,6 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   }
 
   const galleryImages = product.images.map((image) => resolveUploadedImageUrl(image)).filter(Boolean);
-  const hasGalleryImages = galleryImages.length > 0;
-  const selectedImage = galleryImages[selectedImageIndex] ?? galleryImages[0] ?? resolveUploadedImageUrl(undefined);
   const displayPrice = selectedVariant?.price ?? product.minPrice;
   const displayCurrency = selectedVariant?.currency ?? product.currency;
   const hasPriceRange = !selectedVariant && compareMinorUnits(product.maxPrice, product.minPrice) > 0;
@@ -439,56 +437,9 @@ export function ProductDetailPage({ productId }: { productId: string }) {
   return (
     <>
       <BuyerTopBar title={product.title} />
-      <article className="mx-auto max-w-6xl space-y-4 px-3 pb-40 pt-4 sm:pb-36">
+      <article className="mx-auto max-w-6xl space-y-4 px-3 pb-32 pt-4 md:pb-24">
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="relative aspect-square bg-slate-100">
-              {showVideo && product.video ? (
-                <video controls className="size-full object-contain" aria-label={t("product.productVideo").replace("{title}", product.title)}>
-                  <source src={product.video.url} type={product.video.contentType} />
-                </video>
-              ) : hasGalleryImages ? (
-                <Image src={selectedImage} alt={product.title} fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" />
-              ) : (
-                <div className="flex size-full flex-col items-center justify-center gap-3 px-4 text-center text-slate-500" role="img" aria-label={t("product.noProductImages").replace("{title}", product.title)}>
-                  <ImageOffIcon className="size-12 text-slate-400" aria-hidden="true" />
-                  <p className="max-w-xs text-sm font-medium text-slate-600">{t("product.noProductImageAvailable")}</p>
-                </div>
-              )}
-            </div>
-            {(hasGalleryImages || product.video) ? (
-              <div className="flex gap-2 overflow-x-auto p-3" aria-label={t("product.productMediaGallery")} role="listbox">
-                {galleryImages.slice(0, 8).map((image, index) => (
-                  <button
-                    key={`${image}-${index}`}
-                    type="button"
-                    aria-label={t("product.showProductImage").replace("{index}", String(index + 1))}
-                    aria-selected={!showVideo && selectedImageIndex === index}
-                    role="option"
-                    className={`relative size-16 shrink-0 overflow-hidden rounded-md border bg-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${!showVideo && selectedImageIndex === index ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`}
-                    onClick={() => {
-                      setShowVideo(false);
-                      setSelectedImageIndex(index);
-                    }}
-                  >
-                    <Image src={image} alt={t("product.productImage").replace("{title}", product.title).replace("{index}", String(index + 1))} fill sizes="64px" className="object-cover" />
-                  </button>
-                ))}
-                {product.video ? (
-                  <button
-                    type="button"
-                    aria-label={t("product.showProductVideo")}
-                    aria-selected={showVideo}
-                    role="option"
-                    className={`flex size-16 shrink-0 items-center justify-center rounded-md border bg-slate-950 text-white outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${showVideo ? "border-orange-500 ring-2 ring-orange-100" : "border-slate-200"}`}
-                    onClick={() => setShowVideo(true)}
-                  >
-                    <PlayIcon className="size-5" aria-hidden="true" />
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          <ProductImageGallery key={product.id} images={galleryImages} title={product.title} video={product.video} />
 
           <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center gap-2">
@@ -745,16 +696,18 @@ export function ProductDetailPage({ productId }: { productId: string }) {
           />
         </section>
 
-        <ProductDiscoverySection
-          title={t("product.relatedProducts")}
-          isLoading={relatedQuery.isLoading}
-          error={relatedQuery.error}
-          onRetry={() => void relatedQuery.refetch()}
-          emptyTitle={t("product.relatedEmptyTitle")}
-          emptyDescription={t("product.relatedEmptyDescription")}
-        >
-          {relatedProducts.map((item) => <ProductCard key={item.id} product={item} />)}
-        </ProductDiscoverySection>
+        <FavoriteStatusesProvider productIds={relatedProducts.map((item) => item.id)}>
+          <ProductDiscoverySection
+            title={t("product.relatedProducts")}
+            isLoading={relatedQuery.isLoading}
+            error={relatedQuery.error}
+            onRetry={() => void relatedQuery.refetch()}
+            emptyTitle={t("product.relatedEmptyTitle")}
+            emptyDescription={t("product.relatedEmptyDescription")}
+          >
+            {relatedProducts.map((item) => <ProductCard key={item.id} product={item} />)}
+          </ProductDiscoverySection>
+        </FavoriteStatusesProvider>
 
         <ProductDiscoverySection
           title={t("home.recentlyViewedTitle")}
@@ -768,39 +721,39 @@ export function ProductDetailPage({ productId }: { productId: string }) {
         </ProductDiscoverySection>
       </article>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-2 pb-[max(env(safe-area-inset-bottom),0.65rem)] shadow-[0_-12px_30px_rgba(15,23,42,0.12)] sm:p-3 sm:pb-[max(env(safe-area-inset-bottom),0.75rem)]">
-        <div className="mx-auto grid max-w-6xl gap-2 sm:gap-3 md:grid-cols-[minmax(0,1fr)_auto]" data-testid="product-sticky-buy-bar">
-          <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-1.5 pb-[max(env(safe-area-inset-bottom),0.375rem)] shadow-[0_-4px_16px_rgba(15,23,42,0.06)] sm:p-2 sm:pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+        <div className="mx-auto grid max-w-6xl items-center gap-1.5 md:grid-cols-[minmax(0,1fr)_auto]" data-testid="product-sticky-buy-bar">
+          <div className="grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg bg-slate-50 px-3 py-1">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-950">{priceLabel}</p>
-              <p className="truncate text-xs text-slate-600">{selectedPurchaseSummary}</p>
-              <p className={`truncate text-xs ${purchaseDisabledReason || purchaseErrorMessage ? "text-orange-700" : "text-emerald-700"}`}>
+              <p className="truncate text-xs font-semibold leading-4 text-slate-950">{priceLabel}</p>
+              <p className="truncate text-[11px] leading-[14px] text-slate-600">{selectedPurchaseSummary}</p>
+              <p className={`truncate text-[10px] leading-3 ${purchaseDisabledReason || purchaseErrorMessage ? "text-orange-700" : "text-emerald-700"}`}>
                 {purchaseStatusText}
               </p>
               <p className="sr-only" aria-live="polite">
                 {purchaseStatusText}
               </p>
             </div>
-            <div className="rounded-lg bg-white px-2 py-2 text-center sm:px-3">
+            <div className="rounded-md bg-white px-2 py-1 text-center">
               <p className="text-[11px] font-medium uppercase tracking-normal text-slate-500">{t("product.quantityShort")}</p>
               <p className="text-sm font-bold text-slate-950">{quantity}</p>
             </div>
           </div>
-          <div className="grid grid-cols-[44px_minmax(0,1fr)_minmax(0,1fr)] gap-2 sm:grid-cols-[48px_140px_150px_150px]">
-            <Button variant="outline" size="icon" className="size-11 shrink-0 rounded-2xl sm:size-12" aria-label={favoriteQuery.data ? t("product.removeFromWishlistShort") : t("product.addToWishlist")} disabled={favoriteMutation.isPending} onClick={() => {
+          <div className="grid grid-cols-[40px_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 sm:grid-cols-[40px_120px_130px_130px]">
+            <Button variant="outline" size="icon" className="size-10 shrink-0 rounded-xl" aria-label={favoriteQuery.data ? t("product.removeFromWishlistShort") : t("product.addToWishlist")} disabled={favoriteMutation.isPending} onClick={() => {
               if (!session) router.push(localePath("/login"));
-              else if (canFetchBuyerState) favoriteMutation.mutate();
+              else if (canFetchBuyerState) favoriteMutation.mutate({ userId: buyerId, productId: resolvedProductId, favorited: !favoriteQuery.data });
             }}>
               <HeartIcon className={`size-5 ${favoriteQuery.data ? "fill-orange-500 text-orange-500" : ""}`} />
               <span className="sr-only">{t("product.wishlist")}</span>
             </Button>
-            <Button variant="outline" className="hidden h-12 rounded-2xl sm:inline-flex" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
+            <Button variant="outline" className="hidden h-10 rounded-xl text-xs sm:inline-flex" onClick={handleChatSeller} disabled={createChatMutation.isPending}>
               <MessageCircleIcon className="size-4" />
               {t("chat.chatSeller")}
             </Button>
             <Button
               variant="outline"
-              className="h-11 min-w-0 rounded-2xl px-2 text-xs sm:h-12 sm:px-4 sm:text-sm"
+              className="h-10 min-w-0 rounded-xl px-2 text-xs sm:px-3"
               aria-describedby={`${purchaseStatusId}${purchaseErrorMessage ? ` ${purchaseErrorId}` : ""}`}
               title={purchaseBlockedReason ?? undefined}
               onClick={() => handlePurchaseAction("cart")}
@@ -819,7 +772,7 @@ export function ProductDetailPage({ productId }: { productId: string }) {
               </span>
             </Button>
             <Button
-              className="h-11 min-w-0 rounded-2xl bg-orange-600 px-2 text-xs hover:bg-orange-700 sm:h-12 sm:px-4 sm:text-sm"
+              className="h-10 min-w-0 rounded-xl bg-orange-600 px-2 text-xs hover:bg-orange-700 sm:px-3"
               aria-describedby={`${purchaseStatusId}${purchaseErrorMessage ? ` ${purchaseErrorId}` : ""}`}
               title={purchaseBlockedReason ?? undefined}
               onClick={() => handlePurchaseAction("buy-now")}

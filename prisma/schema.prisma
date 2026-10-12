@@ -15,6 +15,10 @@ datasource db {
   provider = "postgresql"
 }
 
+// SQL ranking uses the ICU en-US nondeterministic collation
+// marketplace_locale_compare, managed by the locale_compare_ranking migration.
+// Prisma does not represent PostgreSQL collations in its schema language.
+
 enum Role {
   USER
   ADMIN

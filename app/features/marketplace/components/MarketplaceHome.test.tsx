@@ -96,6 +96,8 @@ const queryMocks = vi.hoisted(() => ({
   homeResponse: null as { sections: Record<string, unknown> } | null,
   homeError: null as Error | null,
   homeQueryFn: vi.fn(),
+  favoriteStatuses: vi.fn(async (ids: string[]) => Object.fromEntries(ids.map((id) => [id, false]))),
+  favoriteStatus: vi.fn(async () => false),
 }));
 
 vi.mock("next/link", () => ({
@@ -141,7 +143,8 @@ vi.mock("#/components/ui/skeleton", () => ({
 vi.mock("#/features/buyer/api", () => ({
   addCartItem: vi.fn(),
   addFavoriteProduct: vi.fn(async () => ({})),
-  fetchFavoriteStatus: vi.fn(async () => false),
+  fetchFavoriteStatus: queryMocks.favoriteStatus,
+  fetchFavoriteStatuses: queryMocks.favoriteStatuses,
   formatMoney: (cents: number, currency = "THB") => `${currency} ${(cents / 100).toFixed(2)}`,
   removeFavoriteProduct: vi.fn(async () => ({})),
 }));
@@ -252,7 +255,7 @@ vi.mock("#/i18n/navigation", () => ({
 }));
 
 vi.mock("#/lib/auth-client", () => ({
-  useSession: () => ({ data: { user: { role: "USER" } } }),
+  useSession: () => ({ data: { user: { id: "buyer-1", role: "USER" } } }),
 }));
 
 function renderWithClient(ui: ReactNode) {
@@ -279,6 +282,8 @@ afterEach(() => cleanup());
 
 describe("MarketplaceHome", () => {
   beforeEach(() => {
+    queryMocks.favoriteStatuses.mockClear();
+    queryMocks.favoriteStatus.mockClear();
     i18nMocks.locale = "en";
     queryMocks.homeError = null;
     queryMocks.homeResponse = structuredClone(queryMocks.defaultHomeResponse);
@@ -302,6 +307,15 @@ describe("MarketplaceHome", () => {
     expect(screen.getByText("Recently viewed bottle")).toBeTruthy();
     expect(screen.getAllByText("Live Shop").length).toBeGreaterThan(0);
     expect(screen.queryByText("Canvas Weekender Bag with laptop sleeve")).toBeNull();
+  });
+
+  it("loads one favorite batch across recommended, new and recently viewed product cards", async () => {
+    renderWithClient(<MarketplaceHome />);
+    expect(await screen.findByText("Live marketplace tote")).toBeTruthy();
+    expect(screen.getByText("New arrival cap")).toBeTruthy();
+    expect(screen.getByText("Recently viewed bottle")).toBeTruthy();
+    await waitFor(() => expect(queryMocks.favoriteStatuses).toHaveBeenCalledExactlyOnceWith(["product-1", "product-2", "product-3"]));
+    expect(queryMocks.favoriteStatus).not.toHaveBeenCalled();
   });
 
   it("renders partial and empty section states when optional API data is missing", async () => {

@@ -13,8 +13,8 @@ import { showAddToCartError, showAddToCartSuccess } from "#/features/product/car
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
-
-const favoriteQueryKey = ["buyer-favorites"] as const;
+import { useSession } from "#/lib/auth-client";
+import { favoriteQueryKeys, updateFavoriteCaches } from "#/features/buyer/favorites";
 
 export function WishlistPage() {
   const queryClient = useQueryClient();
@@ -22,7 +22,10 @@ export function WishlistPage() {
   const localePath = useLocalePath();
   const locale = useLocale();
   const t = useTranslations();
-  const favoritesQuery = useQuery({ queryKey: favoriteQueryKey, queryFn: fetchFavoriteProducts });
+  const { data: session } = useSession();
+  const buyerId = session?.user.role === "USER" ? session.user.id : "";
+  const favoriteQueryKey = favoriteQueryKeys.list(buyerId);
+  const favoritesQuery = useQuery({ queryKey: favoriteQueryKey, queryFn: fetchFavoriteProducts, enabled: Boolean(buyerId) });
   const removeMutation = useMutation({
     mutationFn: removeFavoriteProduct,
     onMutate: async (productId) => {
@@ -33,23 +36,24 @@ export function WishlistPage() {
         current?.filter((favorite) => favorite.productId !== productId) ?? current,
       );
 
-      return { previousFavorites };
+      return { previousFavorites, buyerId, favoriteQueryKey };
     },
-    onSuccess: () => {
+    onSuccess: async (_result, productId, context) => {
+      await updateFavoriteCaches(queryClient, context.buyerId, productId, false);
       toast.success(t("buyer.removedFromWishlist"), {
         description: t("buyer.removedFromWishlistDescription"),
       });
     },
     onError: (error, _productId, context) => {
       if (context?.previousFavorites) {
-        queryClient.setQueryData(favoriteQueryKey, context.previousFavorites);
+        queryClient.setQueryData(context.favoriteQueryKey, context.previousFavorites);
       }
 
       toast.error(t("buyer.wishlistRemoveErrorTitle"), {
         description: error instanceof Error ? error.message : t("buyer.wishlistRemoveErrorDescription"),
       });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: favoriteQueryKey }),
+    onSettled: (_result, _error, _productId, context) => queryClient.invalidateQueries({ queryKey: context?.favoriteQueryKey ?? favoriteQueryKey }),
   });
   const addToCartMutation = useMutation({
     mutationFn: ({ variantId }: { product: BuyerFavoriteProduct; variantId: string }) => addCartItem(variantId, 1),

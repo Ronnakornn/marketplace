@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { JsonLd } from "#/components/JsonLd";
 import { ProductDetailPage } from "#/features/product";
-import { breadcrumbJsonLd, productJsonLd, publicPageMetadata, requirePublicProductSeo } from "#/lib/seo";
+import { breadcrumbJsonLd, productJsonLd, publicPageMetadata, publicProductSeo } from "#/lib/seo";
+import { requirePublicProductData } from "#/features/product/product-data.server";
+import { resolveLocale } from "#/i18n/config";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; productId: string }> }): Promise<Metadata> {
   const { locale, productId } = await params;
-  const product = await requirePublicProductSeo(productId);
+  const data = await requirePublicProductData(productId, resolveLocale(locale));
+  const product = publicProductSeo(data.product, data.ratingSummary);
 
   return publicPageMetadata({
     title: product.title,
@@ -17,8 +20,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ locale: string; productId: string }> }) {
-  const { productId } = await params;
-  const product = await requirePublicProductSeo(productId);
+  const { productId, locale } = await params;
+  const data = await requirePublicProductData(productId, resolveLocale(locale));
+  const product = publicProductSeo(data.product, data.ratingSummary);
 
   return (
     <>
@@ -28,7 +32,7 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
         ...(product.category ? [{ name: product.category.name, path: `/categories/${product.category.slug}` }] : []),
         { name: product.title, path: product.urlPath },
       ])} />
-      <ProductDetailPage productId={productId} />
+      <ProductDetailPage productId={productId} initialData={data.product} initialRatingSummary={data.ratingSummary} />
     </>
   );
 }

@@ -19,7 +19,7 @@ const cardMocks = vi.hoisted(() => ({
   showAddToCartError: vi.fn(),
   showAddToCartSuccess: vi.fn(),
   trackProductClick: vi.fn(),
-  session: { user: { role: "USER" } } as { user: { role: string } } | null,
+  session: { user: { id: "buyer-1", role: "USER" } } as { user: { id: string; role: string } } | null,
 }));
 
 vi.mock("next/link", () => ({
@@ -140,7 +140,7 @@ beforeEach(() => {
   cardMocks.showAddToCartError.mockClear();
   cardMocks.showAddToCartSuccess.mockClear();
   cardMocks.trackProductClick.mockClear();
-  cardMocks.session = { user: { role: "USER" } };
+  cardMocks.session = { user: { id: "buyer-1", role: "USER" } };
 });
 
 describe("ProductCard", () => {
@@ -366,7 +366,7 @@ describe("ProductCard", () => {
   });
 
   it("disables quick add for non-buyer accounts", () => {
-    cardMocks.session = { user: { role: "SELLER" } };
+    cardMocks.session = { user: { id: "seller-1", role: "SELLER" } };
     const product = createProductFixture({
       variants: [{ ...createVariant("variant-safe", 1200, 4), optionValues: [] }],
       options: [],

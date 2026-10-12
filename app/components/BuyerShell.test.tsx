@@ -2,11 +2,10 @@
  * @vitest-environment jsdom
  */
 import { type ReactNode } from "react";
-import type * as React from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BuyerTopBar, MobileBottomNavigation } from "./BuyerShell";
 
@@ -61,10 +60,6 @@ vi.mock("#/components/LanguageSwitcher", () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher" />,
 }));
 
-vi.mock("#/components/ui/input", () => ({
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
-}));
-
 function createTestClient() {
   return new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -83,6 +78,48 @@ afterEach(() => {
 });
 
 describe("buyer shell smoke", () => {
+  it("hydrates browser-annotated search controls without warnings and keeps search usable", async () => {
+    pathname = "/en/search";
+    sessionState = { data: null, isPending: false };
+    const client = createTestClient();
+    const ui = (
+      <QueryClientProvider client={client}>
+        <BuyerTopBar searchQuery="tee" />
+      </QueryClientProvider>
+    );
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(ui);
+    document.body.append(container);
+    const form = container.querySelector("form");
+    const input = container.querySelector<HTMLInputElement>('input[name="q"]');
+    if (!form || !input) throw new Error("Server-rendered search controls are missing");
+    form.setAttribute("gcruniqueid", "3");
+    input.setAttribute("gcruniqueid", "4");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const recoverableError = vi.fn();
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+
+    try {
+      await act(async () => {
+        root = hydrateRoot(container, ui, { onRecoverableError: recoverableError });
+      });
+
+      expect(consoleError.mock.calls).toEqual([]);
+      expect(recoverableError.mock.calls).toEqual([]);
+      expect(container.querySelector("form")).toBe(form);
+      expect(container.querySelector('input[name="q"]')).toBe(input);
+      expect(form.getAttribute("action")).toBe("/en/search");
+      expect(input.value).toBe("tee");
+      fireEvent.change(input, { target: { value: "linen shirt" } });
+      expect(new FormData(form).get("q")).toBe("linen shirt");
+    } finally {
+      await act(async () => root?.unmount());
+      consoleError.mockRestore();
+      client.clear();
+      container.remove();
+    }
+  });
+
   it("keeps the server session placeholder stable while hydrating a cached session", async () => {
     sessionState = { data: null, isPending: true };
     const serverHtml = renderToString(
@@ -90,7 +127,7 @@ describe("buyer shell smoke", () => {
         <BuyerTopBar title="Seller Products" />
       </QueryClientProvider>,
     );
-    expect(serverHtml).toContain("h-10 w-[185px]");
+    expect(serverHtml).toContain("h-10 w-20");
 
     sessionState = signedInSession;
     const container = document.createElement("div");
@@ -118,7 +155,7 @@ describe("buyer shell smoke", () => {
     }
   });
 
-  it("keeps buyer cart and start selling entry visible for active sellers", async () => {
+  it("keeps buyer tools and profile while account actions live on profile", async () => {
     renderWithClient(<BuyerTopBar title="Seller Products" />);
 
     await waitFor(() => {
@@ -127,7 +164,9 @@ describe("buyer shell smoke", () => {
 
     expect(document.body.textContent).toContain("Cart");
     expect(document.querySelector('a[href="/en/chat"]')).toBeTruthy();
-    expect(document.querySelector('a[href="/en/seller/register"]')).toBeTruthy();
+    expect(document.querySelector('a[href="/en/seller/register"]')).toBeNull();
+    expect(document.querySelector('a[href="/en/seller/chat"]')).toBeNull();
+    expect(screen.queryByRole("button", { name: "common.logout" })).toBeNull();
   });
 
   it("does not offer sign in while the session is still resolving", async () => {
@@ -154,13 +193,22 @@ describe("buyer shell smoke", () => {
       expect(document.querySelector('a[href="/en/login"]')).toBeTruthy();
     });
 
-    expect(document.querySelector('a[href="/en/signup"]')).toBeTruthy();
+    expect(document.querySelector('a[href="/en/signup"]')).toBeNull();
   });
 
   it("gives the profile icon link a discernible name", () => {
     renderWithClient(<BuyerTopBar title="Seller Products" />);
 
     expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/en/profile");
+  });
+
+  it("keeps profile in the five-link mobile navigation without a duplicate cart entry", () => {
+    pathname = "/en";
+    const { container } = renderWithClient(<MobileBottomNavigation />);
+    const links = [...container.querySelectorAll("nav a")];
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/en/", "/en/search", "/en/deals", "/en/orders", "/en/profile",
+    ]);
   });
 
   it("does not mark a marketplace mobile item active on shop routes", () => {

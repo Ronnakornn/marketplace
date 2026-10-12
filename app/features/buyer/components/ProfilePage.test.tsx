@@ -8,7 +8,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProfilePage } from "./ProfilePage";
 import { requestProfilePhoneOtp, updateProfile, verifyProfilePhoneOtp } from "#/features/buyer/api";
 import { fetchAffiliateStats } from "#/features/affiliate/api";
+import { signOut } from "#/lib/auth-client";
 import { ApiClientError } from "#/lib/api-client";
+
+let localePrefix = "";
+const { replace, refresh } = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh }) }));
+vi.mock("#/lib/auth-client", () => ({ signOut: vi.fn() }));
 
 vi.mock("next/link", () => ({
   default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean }) => <a href={href} {...props}>{children}</a>,
@@ -82,6 +88,7 @@ vi.mock("#/i18n/client", () => ({
     "buyer.verifyAndLink": "Verify and link",
     "buyer.viewSellerStatus": "View seller status",
     "checkout.phone": "Phone",
+    "common.logout": "Sign out",
     "common.add": "Add",
     "common.save": "Save",
     "common.saving": "Saving...",
@@ -91,7 +98,7 @@ vi.mock("#/i18n/client", () => ({
 }));
 
 vi.mock("#/i18n/navigation", () => ({
-  useLocalePath: () => (path: string) => path,
+  useLocalePath: () => (path: string) => `${localePrefix}${path}`,
 }));
 
 vi.mock("#/features/buyer/api", () => ({
@@ -125,8 +132,45 @@ function renderWithClient(ui: ReactNode) {
 afterEach(() => cleanup());
 
 describe("ProfilePage", () => {
+  it("offers start selling and seller chat from the profile", async () => {
+    renderWithClient(<ProfilePage />);
+    expect((await screen.findByRole("link", { name: "Start selling" })).getAttribute("href")).toBe("/seller/register");
+    expect(screen.getByRole("link", { name: "Seller chat" }).getAttribute("href")).toBe("/seller/chat");
+  });
+
+  it("signs out, clears cached account data and returns home", async () => {
+    localePrefix = "/th";
+    vi.mocked(signOut).mockResolvedValue({ data: { success: true, url: undefined, redirect: undefined }, error: null });
+    const { client } = renderWithClient(<ProfilePage />);
+    client.setQueryData(["account-private-cache"], { secret: "cached account value" });
+    fireEvent.click(await screen.findByRole("button", { name: "Sign out" }));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/th/"));
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(client.getQueryData(["account-private-cache"])).toBeUndefined();
+    expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the account accessible when signing out fails", async () => {
+    vi.mocked(signOut).mockResolvedValue({ data: null, error: { message: "Please try again", status: 500, statusText: "Server error" } });
+    renderWithClient(<ProfilePage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Sign out" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Please try again");
+    expect(replace).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Sign out" })).toHaveProperty("disabled", false);
+  });
+
+  it("disables sign out while the request is pending", async () => {
+    vi.mocked(signOut).mockImplementation(() => new Promise(() => {}));
+    renderWithClient(<ProfilePage />);
+    const button = await screen.findByRole("button", { name: "Sign out" });
+    fireEvent.click(button);
+    await waitFor(() => expect(button).toHaveProperty("disabled", true));
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    localePrefix = "";
     vi.mocked(fetchAffiliateStats).mockResolvedValue({ clicks: 0, conversions: 0, commissionCents: "0" });
   });
 

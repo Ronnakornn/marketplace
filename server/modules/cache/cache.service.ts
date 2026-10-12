@@ -4,6 +4,8 @@ import { createCacheKeys } from './cache.keys.ts'
 import type { CacheClient, CacheConfig, CacheKeyBuilder, CacheSetOptions } from './cache.types.ts'
 import { encodeCacheValue, decodeCacheValue } from './cache.codec.ts'
 
+const INVALIDATION_BATCH_SIZE = 200
+
 export class CacheService {
   private logger: ILogger
   private unavailableUntilMs = 0
@@ -113,10 +115,17 @@ export class CacheService {
     if (!this.isEnabled()) return 0
 
     try {
-      const keys = await this.client!.keys(pattern)
-      if (keys.length === 0) return 0
-      await this.client!.del(...keys)
-      return keys.length
+      let cursor = '0'
+      let deleted = 0
+      do {
+        const page = await this.client!.scan(cursor, pattern, INVALIDATION_BATCH_SIZE)
+        cursor = page[0]
+        for (let offset = 0; offset < page[1].length; offset += INVALIDATION_BATCH_SIZE) {
+          const keys = [...new Set(page[1].slice(offset, offset + INVALIDATION_BATCH_SIZE))]
+          deleted += await this.client!.del(...keys)
+        }
+      } while (cursor !== '0')
+      return deleted
     } catch (error) {
       this.markTemporarilyUnavailable()
       this.logger.warn('Cache invalidation failed', {

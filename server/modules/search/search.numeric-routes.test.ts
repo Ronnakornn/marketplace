@@ -14,14 +14,14 @@ vi.mock('#server/lib/prisma.ts', () => ({ prisma: {} }))
 
 const context: AppContext = { logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }, config: { environment: 'test' } }
 const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-const findSearchableProducts = vi.fn(async () => [])
+const findSearchPage = vi.fn(async () => ({ products: [], total: 0, nextCursor: null }))
 const findProductFacets = vi.fn(async () => ({ categories: [], brands: [], price: { min: null, max: null, currency: 'THB' } }))
 const findTrendingProducts = vi.fn(async () => [])
 const listProductReviews = vi.fn(async () => ({ items: [], totalCount: 0 }))
 
 function app() {
   return new Elysia()
-    .use(createSearchRoutes({ searchService: new SearchService(context, { findSearchableProducts, findProductFacets } as never) } as never))
+    .use(createSearchRoutes({ searchService: new SearchService(context, { findSearchPage, findProductFacets } as never) } as never))
     .use(createRecommendationRoutes({ recommendationService: new RecommendationService(context, { findTrendingProducts } as never) } as never))
     .use(createReviewRoutes({ reviewService: new ReviewService(context, { findActiveProduct: vi.fn(async () => ({ id, status: 'ACTIVE' })), listProductReviews } as never) } as never))
 }
@@ -34,7 +34,7 @@ describe('numeric discovery HTTP boundaries', () => {
       const response = await app().handle(new Request(`http://localhost/api/search/products?${field}=${value}`))
       expect(response.status, await response.clone().text()).toBe(422)
     }
-    expect(findSearchableProducts).not.toHaveBeenCalled()
+    expect(findSearchPage).not.toHaveBeenCalled()
     expect(findProductFacets).not.toHaveBeenCalled()
   })
 
@@ -42,7 +42,7 @@ describe('numeric discovery HTTP boundaries', () => {
     const response = await app().handle(new Request('http://localhost/api/search/products?minPrice=0&maxPrice=9007199254740991'))
     expect(response.status, await response.clone().text()).toBe(200)
     expect((await response.json()).filters).toMatchObject({ minPrice: '0', maxPrice: '9007199254740991' })
-    expect(findSearchableProducts).toHaveBeenCalledWith(expect.objectContaining({ minPrice: 0, maxPrice: Number.MAX_SAFE_INTEGER }))
+    expect(findSearchPage).toHaveBeenCalledWith(expect.objectContaining({ minPrice: 0, maxPrice: Number.MAX_SAFE_INTEGER }))
   })
 
   it.each(['/api/search/products', '/api/recommendations/trending', `/api/products/${id}/reviews`])('bounds page, limit and calculated offset for %s', async path => {
@@ -52,7 +52,7 @@ describe('numeric discovery HTTP boundaries', () => {
     }
     const overflow = await app().handle(new Request(`http://localhost${path}?page=2147483647&limit=20`))
     expect(overflow.status, await overflow.clone().text()).toBe(400)
-    expect(findSearchableProducts).not.toHaveBeenCalled()
+    expect(findSearchPage).not.toHaveBeenCalled()
     expect(findTrendingProducts).not.toHaveBeenCalled()
     expect(listProductReviews).not.toHaveBeenCalled()
   })

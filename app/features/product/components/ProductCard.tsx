@@ -6,11 +6,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type MouseEvent, useSyncExternalStore } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { HeartIcon, MapPinIcon, ShoppingCartIcon, StarIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { addCartItem, addFavoriteProduct, fetchFavoriteStatus, formatMoney, removeFavoriteProduct } from "#/features/buyer/api";
+import { addCartItem, addFavoriteProduct, formatMoney, removeFavoriteProduct } from "#/features/buyer/api";
+import { updateFavoriteCaches, useFavoriteStatus } from "#/features/buyer/favorites";
 import { showAddToCartError, showAddToCartSuccess } from "#/features/product/cart-handoff";
 import type { BuyerProduct } from "#/features/product/queries";
 import { useDiscoveryTracking } from "#/features/tracking";
@@ -44,17 +45,14 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
       : null;
   const isOutOfStock = product.stock <= 0;
   const canFetchBuyerState = hydratedSession?.user.role === "USER";
-  const favoriteQuery = useQuery({
-    queryKey: ["buyer-favorite-status", product.id],
-    queryFn: () => fetchFavoriteStatus(product.id),
-    enabled: canFetchBuyerState,
-  });
+  const buyerId = canFetchBuyerState ? hydratedSession.user.id : "";
+  const favoriteQuery = useFavoriteStatus(product.id, buyerId, canFetchBuyerState);
   const favoriteMutation = useMutation({
-    mutationFn: () => favoriteQuery.data ? removeFavoriteProduct(product.id) : addFavoriteProduct(product.id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["buyer-favorite-status", product.id] });
-      void queryClient.invalidateQueries({ queryKey: ["buyer-favorites"] });
+    mutationFn: async ({ productId, favorited }: { userId: string; productId: string; favorited: boolean }) => {
+      if (favorited) await addFavoriteProduct(productId);
+      else await removeFavoriteProduct(productId);
     },
+    onSuccess: (_result, { userId, productId, favorited }) => updateFavoriteCaches(queryClient, userId, productId, favorited),
   });
   const addToCartMutation = useMutation({
     mutationFn: () => {
@@ -108,7 +106,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
     event.preventDefault();
     event.stopPropagation();
     if (!canFetchBuyerState || favoriteMutation.isPending) return;
-    favoriteMutation.mutate();
+    favoriteMutation.mutate({ userId: buyerId, productId: product.id, favorited: !favoriteQuery.data });
   }
 
   function handleQuickAdd(event: MouseEvent<HTMLButtonElement>) {

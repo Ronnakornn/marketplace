@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
-import type { IProductAnalyticsRepository } from './product-analytics.repository.ts'
+import type { AnalyticsRankingMetric, IProductAnalyticsRepository } from './product-analytics.repository.ts'
 import { ProductAnalyticsService } from './product-analytics.service.ts'
 
 const SHOP_ID = '11111111-1111-4111-8111-111111111111'
@@ -25,8 +25,8 @@ function createAppContext(): AppContext {
 
 function createRepo(): IProductAnalyticsRepository {
   return {
-    findProductRankingCandidates: vi.fn(),
-    findVariantRankingCandidates: vi.fn(),
+    findProductRankingPage: vi.fn(),
+    findVariantRankingPage: vi.fn(),
     findProductsByIds: vi.fn(),
     findVariantsByIds: vi.fn(),
     countProductViews: vi.fn(),
@@ -87,6 +87,10 @@ function createActor() {
   return { id: 'seller-1', role: 'USER' as const }
 }
 
+function createRankingMetric(id: string, overrides: Partial<AnalyticsRankingMetric> = {}): AnalyticsRankingMetric {
+  return { id, views: 10, addToCart: 3, addToCartQuantity: 4, orders: 1, unitsSold: 2, revenue: 2400n, conversionRate: 0.1, currency: 'THB', ...overrides }
+}
+
 let repo: IProductAnalyticsRepository
 let activeShopResolver: ActiveShopResolver
 let service: ProductAnalyticsService
@@ -97,8 +101,8 @@ describe('ProductAnalyticsService', () => {
     repo = createRepo()
     activeShopResolver = createActiveShopResolver()
     service = new ProductAnalyticsService(createAppContext(), repo, activeShopResolver)
-    vi.mocked(repo.findProductRankingCandidates).mockResolvedValue([{ id: PRODUCT_ID, title: 'Cotton Tee' }])
-    vi.mocked(repo.findVariantRankingCandidates).mockResolvedValue([{ id: VARIANT_ID, sku: 'TEE-BLK-M' }])
+    vi.mocked(repo.findProductRankingPage).mockResolvedValue({ items: [createRankingMetric(PRODUCT_ID)], total: 1 })
+    vi.mocked(repo.findVariantRankingPage).mockResolvedValue({ items: [createRankingMetric(VARIANT_ID, { views: 0, conversionRate: 0 })], total: 1 })
     vi.mocked(repo.findProductsByIds).mockResolvedValue([createProduct()])
     vi.mocked(repo.findVariantsByIds).mockResolvedValue([createVariant()])
     vi.mocked(repo.countProductViews).mockResolvedValue([{ productId: PRODUCT_ID, count: 10 }])
@@ -154,12 +158,12 @@ describe('ProductAnalyticsService', () => {
       sort: 'unitsSold',
     })
 
-    expect(repo.findVariantRankingCandidates).toHaveBeenCalledWith([SHOP_ID], PRODUCT_ID)
-    expect(repo.countProductAddToCart).toHaveBeenCalledWith([SHOP_ID], expect.objectContaining({
+    expect(repo.findVariantRankingPage).toHaveBeenCalledWith([SHOP_ID], expect.objectContaining({
       from: new Date('2026-05-31T17:00:00.000Z'),
       to: new Date('2026-06-07T16:59:59.999Z'),
-    }), PRODUCT_ID)
-    expect(repo.findPaidOrderItems).toHaveBeenCalledWith([SHOP_ID], expect.any(Object), PRODUCT_ID)
+    }), { productId: PRODUCT_ID, page: 2, limit: 10, sort: 'unitsSold' })
+    expect(repo.countProductAddToCart).not.toHaveBeenCalled()
+    expect(repo.findPaidOrderItems).not.toHaveBeenCalled()
   })
 
   it('returns zero summary values for empty analytics', async () => {
@@ -184,113 +188,45 @@ describe('ProductAnalyticsService', () => {
     })
   })
 
-  it('paginates and sorts product table metrics', async () => {
-    vi.mocked(repo.findProductRankingCandidates).mockResolvedValue([
-      { id: PRODUCT_ID, title: 'Cotton Tee' },
-      { id: PRODUCT_2_ID, title: 'Silk Scarf' },
-    ])
-    vi.mocked(repo.findProductsByIds).mockResolvedValue([
-      createProduct({ id: PRODUCT_ID, title: 'Cotton Tee' }),
-      createProduct({ id: PRODUCT_2_ID, title: 'Silk Scarf', slug: 'silk-scarf' }),
-    ])
-    vi.mocked(repo.countProductViews).mockResolvedValue([
-      { productId: PRODUCT_ID, count: 20 },
-      { productId: PRODUCT_2_ID, count: 5 },
-    ])
-    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([
-      createOrderItem({ lineTotal: 1200n }),
-      createOrderItem({
-        id: 'item-2',
-        variantId: VARIANT_2_ID,
-        lineTotal: 5000n,
-        variant: { id: VARIANT_2_ID, productId: PRODUCT_2_ID },
-      }),
-    ])
-
-    const result = await service.getProducts(createActor(), {
-      range: 'custom',
-      from: '2026-06-01',
-      to: '2026-06-07',
-      q: 'tee',
-      page: 1,
-      limit: 2,
-      sort: 'revenue',
+  it('returns the database page order and exact metrics while hydrating only its IDs', async () => {
+    vi.mocked(repo.findProductRankingPage).mockResolvedValue({
+      items: [createRankingMetric(PRODUCT_2_ID, { revenue: 18446744073709551615n }), createRankingMetric(PRODUCT_ID)], total: 501,
     })
-
-    expect(repo.findProductRankingCandidates).toHaveBeenCalledWith([SHOP_ID], 'tee')
-    expect(result.pagination).toEqual({ page: 1, limit: 2, total: 2, totalPages: 1 })
-    expect(result.items[0]!.productId).toBe(PRODUCT_2_ID)
-    expect(result.items[0]!.revenue).toBe(5000n)
-  })
-
-  it('ranks product revenue globally before paging and retains deterministic ties', async () => {
-    const products = [
-      createProduct({ id: 'product-a', title: 'A' }),
-      createProduct({ id: 'product-b', title: 'B' }),
-      createProduct({ id: 'product-c', title: 'C' }),
-      createProduct({ id: 'product-d', title: 'D' }),
-    ]
-    vi.mocked(repo.findProductRankingCandidates).mockResolvedValue(products.map(({ id, title }) => ({ id, title })))
-    vi.mocked(repo.findProductsByIds).mockImplementation(async (_shopIds, ids) => products.filter((product) => ids.includes(product.id)))
-    vi.mocked(repo.countProductViews).mockResolvedValue([])
-    vi.mocked(repo.countProductAddToCart).mockResolvedValue([])
-    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([
-      createOrderItem({ lineTotal: 100n, variant: { id: 'variant-a', productId: 'product-a' } }),
-      createOrderItem({ lineTotal: 200n, variant: { id: 'variant-b', productId: 'product-b' } }),
-      createOrderItem({ lineTotal: 900n, variant: { id: 'variant-c', productId: 'product-c' } }),
-      createOrderItem({ lineTotal: 200n, variant: { id: 'variant-d', productId: 'product-d' } }),
+    vi.mocked(repo.findProductsByIds).mockResolvedValue([
+      createProduct(), createProduct({ id: PRODUCT_2_ID, title: 'Silk Scarf', slug: 'silk-scarf' }),
     ])
-
-    const first = await service.getProducts(createActor(), { page: 1, limit: 2, sort: 'revenue' })
-    const second = await service.getProducts(createActor(), { page: 2, limit: 2, sort: 'revenue' })
-
-    expect(first.items.map((item) => [item.productId, item.revenue])).toEqual([['product-c', 900n], ['product-b', 200n]])
-    expect(second.items.map((item) => [item.productId, item.revenue])).toEqual([['product-d', 200n], ['product-a', 100n]])
-    expect(first.pagination).toEqual({ page: 1, limit: 2, total: 4, totalPages: 2 })
-    expect(repo.findProductsByIds).toHaveBeenNthCalledWith(1, [SHOP_ID], ['product-c', 'product-b'])
-    expect(repo.findProductsByIds).toHaveBeenNthCalledWith(2, [SHOP_ID], ['product-d', 'product-a'])
+    const result = await service.getProducts(createActor(), {
+      range: 'custom', from: '2026-06-01', to: '2026-06-07', q: ' tee ', page: 2, limit: 2, sort: 'revenue',
+    })
+    expect(repo.findProductRankingPage).toHaveBeenCalledWith([SHOP_ID], expect.any(Object), { q: 'tee', page: 2, limit: 2, sort: 'revenue' })
+    expect(repo.findProductsByIds).toHaveBeenCalledWith([SHOP_ID], [PRODUCT_2_ID, PRODUCT_ID])
+    expect(result.items.map((item) => [item.productId, item.revenue])).toEqual([[PRODUCT_2_ID, 18446744073709551615n], [PRODUCT_ID, 2400n]])
+    expect(result.pagination).toEqual({ page: 2, limit: 2, total: 501, totalPages: 251 })
+    expect(result.items[0]).not.toHaveProperty('addToCartQuantity')
+    expect(repo.countProductViews).not.toHaveBeenCalled()
+    expect(repo.countProductAddToCart).not.toHaveBeenCalled()
+    expect(repo.findPaidOrderItems).not.toHaveBeenCalled()
   })
 
-  it('orders lifetime revenue differing by one cent above MAX_SAFE before paging', async () => {
-    const products = [createProduct({ id: 'product-a', title: 'A' }), createProduct({ id: 'product-z', title: 'Z' })]
-    vi.mocked(repo.findProductRankingCandidates).mockResolvedValue(products.map(({ id, title }) => ({ id, title })))
-    vi.mocked(repo.findProductsByIds).mockImplementation(async (_shopIds, ids) => products.filter((product) => ids.includes(product.id)))
-    vi.mocked(repo.countProductViews).mockResolvedValue([])
-    vi.mocked(repo.countProductAddToCart).mockResolvedValue([])
-    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([
-      createOrderItem({ lineTotal: 9007199254740992n, variant: { id: 'variant-a', productId: 'product-a' } }),
-      createOrderItem({ lineTotal: 9007199254740993n, variant: { id: 'variant-z', productId: 'product-z' } }),
-    ])
-    const result = await service.getProducts(createActor(), { page: 1, limit: 1, sort: 'revenue' })
-    expect(result.items.map((item) => [item.productId, item.revenue])).toEqual([['product-z', 9007199254740993n]])
-    const summary = await service.getSummary(createActor(), { range: '7d' })
-    expect(summary.revenue).toBe(18014398509481985n)
+  it('returns an empty out-of-range page with the database total', async () => {
+    vi.mocked(repo.findProductRankingPage).mockResolvedValue({ items: [], total: 501 })
+    vi.mocked(repo.findProductsByIds).mockResolvedValue([])
+    const result = await service.getProducts(createActor(), { page: 30, limit: 20 })
+    expect(result).toEqual({ items: [], pagination: { page: 30, limit: 20, total: 501, totalPages: 26 } })
+    expect(repo.findProductsByIds).toHaveBeenCalledWith([SHOP_ID], [])
   })
 
-  it('ranks SKU revenue globally before paging', async () => {
-    const variants = [
-      createVariant({ id: 'variant-a', sku: 'A' }),
-      createVariant({ id: 'variant-b', sku: 'B' }),
-      createVariant({ id: 'variant-c', sku: 'C' }),
-    ]
-    vi.mocked(repo.findVariantRankingCandidates).mockResolvedValue(variants.map(({ id, sku }) => ({ id, sku })))
-    vi.mocked(repo.findVariantsByIds).mockImplementation(async (_shopIds, ids) => variants.filter((variant) => ids.includes(variant.id)))
-    vi.mocked(repo.countProductAddToCart).mockResolvedValue([])
-    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([
-      createOrderItem({ variantId: 'variant-a', lineTotal: 100n }),
-      createOrderItem({ variantId: 'variant-b', lineTotal: 200n }),
-      createOrderItem({ variantId: 'variant-c', lineTotal: 900n }),
-    ])
-
-    const first = await service.getSkus(createActor(), { page: 1, limit: 2, sort: 'revenue' })
-    const second = await service.getSkus(createActor(), { page: 2, limit: 2, sort: 'revenue' })
-
-    expect(first.items.map((item) => [item.variantId, item.revenue])).toEqual([['variant-c', 900n], ['variant-b', 200n]])
-    expect(second.items.map((item) => [item.variantId, item.revenue])).toEqual([['variant-a', 100n]])
-    expect(repo.findVariantsByIds).toHaveBeenNthCalledWith(1, [SHOP_ID], ['variant-c', 'variant-b'])
-    expect(repo.findVariantsByIds).toHaveBeenNthCalledWith(2, [SHOP_ID], ['variant-a'])
+  it('hydrates ranked SKUs and retains the variant currency fallback for empty or mixed sales', async () => {
+    vi.mocked(repo.findVariantRankingPage).mockResolvedValue({
+      items: [createRankingMetric(VARIANT_2_ID, { views: 0, currency: null }), createRankingMetric(VARIANT_ID, { views: 0, currency: 'USD' })], total: 2,
+    })
+    vi.mocked(repo.findVariantsByIds).mockResolvedValue([createVariant(), createVariant({ id: VARIANT_2_ID, currency: 'JPY' })])
+    const result = await service.getSkus(createActor(), { page: 1, limit: 2, sort: '-sku' })
+    expect(repo.findVariantsByIds).toHaveBeenCalledWith([SHOP_ID], [VARIANT_2_ID, VARIANT_ID])
+    expect(result.items.map((item) => [item.variantId, item.currency])).toEqual([[VARIANT_2_ID, 'JPY'], [VARIANT_ID, 'USD']])
+    expect(result.items[0]).not.toHaveProperty('conversionRate')
+    expect(repo.findPaidOrderItems).not.toHaveBeenCalled()
   })
-
   it('builds daily series from event and order timestamps', async () => {
     const result = await service.getDaily(createActor(), {
       range: 'custom',

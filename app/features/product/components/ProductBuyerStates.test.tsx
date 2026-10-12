@@ -4,7 +4,7 @@
 import { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { DealsPage } from "#/features/buyer/components/DealsPage";
 import { ProductDetailPage } from "./ProductDetailPage";
 import { ProductListingPage } from "./ProductListingPage";
@@ -41,12 +41,13 @@ const queryMocks = vi.hoisted(() => ({
   createProductQuestion: vi.fn(async () => ({ id: "question-new" })),
   couponsQueryFn: vi.fn(async () => []),
   addCartItem: vi.fn(async () => ({})),
+  addFavoriteProduct: vi.fn(async (_productId: string): Promise<void> => undefined),
   addGuestCartItem: vi.fn(),
   fetchCart: vi.fn(async (): Promise<{ shops: Array<{ items: Array<{ quantity: number }> }> }> => ({ shops: [] })),
   showAddToCartSuccess: vi.fn(),
   showAddToCartError: vi.fn(),
   routerPush: vi.fn(),
-  session: { user: { role: "USER" } } as { user: { role: string } } | null,
+  session: { user: { id: "buyer-1", role: "USER" } } as { user: { id: string; role: string } } | null,
 }));
 
 vi.mock("next/link", () => ({
@@ -101,9 +102,10 @@ vi.mock("#/components/ui/skeleton", () => ({
 
 vi.mock("#/features/buyer/api", () => ({
   addCartItem: queryMocks.addCartItem,
-  addFavoriteProduct: vi.fn(async () => ({})),
+  addFavoriteProduct: queryMocks.addFavoriteProduct,
   fetchCart: queryMocks.fetchCart,
   fetchFavoriteStatus: vi.fn(async () => false),
+  fetchFavoriteStatuses: vi.fn(async (ids: string[]) => Object.fromEntries(ids.map((id) => [id, false]))),
   fetchShopFollowStatus: vi.fn(async () => false),
   followShop: vi.fn(async () => ({})),
   fetchCoupons: queryMocks.couponsQueryFn,
@@ -142,9 +144,10 @@ vi.mock("#/features/product/queries", () => ({
     queryKey: ["product", "public", "lists", { locale: "en", limit: 40, page: input.page ?? 1 }],
     queryFn: () => queryMocks.productsQueryFn(input.page ?? 1),
   }),
-  publicProductDetailQueryOptions: () => ({
-    queryKey: ["product", "public", "details", { locale: "en", productId: "product-1" }],
+  publicProductDetailQueryOptions: (input: { productId: string }) => ({
+    queryKey: ["product", "public", "details", { locale: "en", productId: input.productId }],
     queryFn: queryMocks.productDetailQueryFn,
+    staleTime: 60_000,
   }),
   publicRelatedProductsQueryOptions: () => ({
     queryKey: ["product", "public", "related", { locale: "en", productId: "product-1", limit: 8 }],
@@ -160,6 +163,7 @@ vi.mock("#/features/product/queries", () => ({
   publicProductRatingSummaryQueryOptions: (productId: string) => ({
     queryKey: ["product", "public", "rating-summary", productId],
     queryFn: () => queryMocks.ratingSummaryQueryFn(productId),
+    staleTime: 60_000,
   }),
   publicProductQuestionsQueryOptions: (input: { productId?: string; page?: number; answerStatus?: string; sort?: string } | string = "product-1") => {
     const normalized = typeof input === "string" ? { productId: input, page: 1 } : input;
@@ -480,6 +484,26 @@ function renderWithClient(ui: ReactNode) {
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 
+beforeAll(() => {
+  vi.stubGlobal("matchMedia", vi.fn((media: string) => ({
+    matches: false, media, onchange: null,
+    addListener: vi.fn(), removeListener: vi.fn(),
+    addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+  })));
+  vi.stubGlobal("ResizeObserver", class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  });
+  vi.stubGlobal("IntersectionObserver", class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  });
+});
+
+afterAll(() => vi.unstubAllGlobals());
+
 beforeEach(() => {
   cleanup();
   queryMocks.productsResponse = { items: [] };
@@ -502,8 +526,9 @@ beforeEach(() => {
   queryMocks.reviewsError = null;
   queryMocks.questionsError = null;
   queryMocks.ratingSummaryError = null;
-  queryMocks.session = { user: { role: "USER" } };
+  queryMocks.session = { user: { id: "buyer-1", role: "USER" } };
   queryMocks.addCartItem.mockClear();
+  queryMocks.addFavoriteProduct.mockReset().mockResolvedValue(undefined);
   queryMocks.addGuestCartItem.mockClear();
   queryMocks.fetchCart.mockClear();
   queryMocks.fetchCart.mockResolvedValue({ shops: [] });
@@ -815,6 +840,48 @@ describe("DealsPage buyer states", () => {
 });
 
 describe("ProductDetailPage buyer transaction states", () => {
+  it("keeps a late favorite completion on the original product after navigating to another product", async () => {
+    const a = "11111111-1111-4111-8111-111111111111";
+    const b = "22222222-2222-4222-8222-222222222222";
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    const batchKey = ["buyer-favorite-state", "buyer-1", "batches", [a, b]];
+    client.setQueryData(batchKey, { [a]: false, [b]: false });
+    client.setQueryData(["buyer-favorite-state", "buyer-1", "detail", a], false);
+    client.setQueryData(["buyer-favorite-state", "buyer-1", "detail", b], false);
+    let finish!: () => void;
+    queryMocks.addFavoriteProduct.mockImplementationOnce(() => new Promise<void>((resolve) => { finish = resolve; }));
+    const component = (id: string, title: string) => <QueryClientProvider client={client}>
+      <ProductDetailPage productId={id} initialData={{ ...createProductDetailFixture(), id, title } as unknown as NonNullable<Parameters<typeof ProductDetailPage>[0]["initialData"]>} />
+    </QueryClientProvider>;
+    const view = render(component(a, "Original Bag"));
+    fireEvent.click(screen.getByRole("button", { name: "Add to wishlist" }));
+    await waitFor(() => expect(queryMocks.addFavoriteProduct).toHaveBeenCalledExactlyOnceWith(a));
+    view.rerender(component(b, "Next Bag"));
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Next Bag");
+    finish();
+    await waitFor(() => expect(client.getQueryData(batchKey)).toEqual({ [a]: true, [b]: false }));
+    expect(client.getQueryData(["buyer-favorite-state", "buyer-1", "detail", a])).toBe(true);
+    expect(client.getQueryData(["buyer-favorite-state", "buyer-1", "detail", b])).toBe(false);
+  });
+
+  it("renders server initial data immediately and fetches reviews and questions without another detail request", async () => {
+    const id = "5f210b44-092b-47d5-a19c-cbd36100a016";
+    const initialData = { ...createProductDetailFixture(), id } as unknown as NonNullable<Parameters<typeof ProductDetailPage>[0]["initialData"]>;
+    queryMocks.productDetailQueryFn.mockImplementation(() => new Promise(() => {}));
+    queryMocks.ratingSummaryQueryFn.mockClear();
+    renderWithClient(<ProductDetailPage productId="summer-bag" initialData={initialData} initialRatingSummary={{
+      averageRating: 4.5, totalReviewCount: 2, distribution: { 1: 0, 2: 0, 3: 0, 4: 1, 5: 1 },
+    }} />);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Variant Product");
+    expect(screen.getByRole("button", { name: /Add to cart/ })).toHaveProperty("disabled", true);
+    await waitFor(() => {
+      expect(queryMocks.reviewsQueryFn).toHaveBeenCalledWith(expect.objectContaining({ productId: id }));
+      expect(queryMocks.questionsQueryFn).toHaveBeenCalledWith(expect.objectContaining({ productId: id }));
+    });
+    expect(queryMocks.productDetailQueryFn).not.toHaveBeenCalled();
+    expect(queryMocks.ratingSummaryQueryFn).not.toHaveBeenCalled();
+  });
+
   it("waits for a slug to resolve before fetching UUID-only product subresources", async () => {
     let resolveProduct!: (value: unknown) => void;
     queryMocks.productDetailQueryFn.mockImplementation(() => new Promise(resolve => { resolveProduct = resolve; }));
@@ -1139,7 +1206,7 @@ describe("ProductDetailPage buyer transaction states", () => {
   });
 
   it("disables product detail purchase actions for non-buyer accounts with a reason", async () => {
-    queryMocks.session = { user: { role: "SELLER" } };
+    queryMocks.session = { user: { id: "seller-1", role: "SELLER" } };
 
     renderWithClient(<ProductDetailPage productId="product-1" />);
 

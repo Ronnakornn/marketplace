@@ -74,6 +74,8 @@ vi.mock("#/features/product/cart-handoff", () => ({
   showAddToCartSuccess: wishlistMocks.showAddToCartSuccess,
 }));
 
+vi.mock("#/lib/auth-client", () => ({ useSession: () => ({ data: { user: { id: "buyer-1", role: "USER" } } }) }));
+
 vi.mock("#/i18n/client", () => ({
   useLocale: () => "en",
   useTranslations: () => (key: string) => ({

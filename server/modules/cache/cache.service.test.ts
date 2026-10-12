@@ -46,17 +46,63 @@ function createClient(): CacheClient {
       return 'OK'
     }),
     del: vi.fn(async (...keys: string[]) => {
-      keys.forEach((key) => store.delete(key))
-      return keys.length
+      return keys.filter((key) => store.delete(key)).length
     }),
-    keys: vi.fn(async (pattern: string) => {
+    scan: vi.fn(async (_cursor: string, pattern: string): Promise<[string, string[]]> => {
       const regex = new RegExp(`^${pattern.replaceAll('*', '.*')}$`)
-      return [...store.keys()].filter((key) => regex.test(key))
+      return ['0', [...store.keys()].filter((key) => regex.test(key))]
     }),
   }
 }
 
 describe('CacheService', () => {
+  it('continues through empty scan pages, removes duplicate keys once and preserves unrelated entries', async () => {
+    const client = createClient()
+    const service = new CacheService(createAppContext(), createConfig(), client)
+    await service.set('target:1', 1)
+    await service.set('target:2', 2)
+    await service.set('other:1', 3)
+    vi.mocked(client.scan)
+      .mockResolvedValueOnce(['7', []])
+      .mockResolvedValueOnce(['19', ['target:1', 'target:1']])
+      .mockResolvedValueOnce(['0', ['target:1', 'target:2']])
+
+    await expect(service.deleteByPattern('target:*')).resolves.toBe(2)
+    await expect(service.get('target:1')).resolves.toBeNull()
+    await expect(service.get('target:2')).resolves.toBeNull()
+    await expect(service.get('other:1')).resolves.toBe(3)
+    expect(client.scan).toHaveBeenNthCalledWith(1, '0', 'target:*', 200)
+    expect(client.scan).toHaveBeenNthCalledWith(2, '7', 'target:*', 200)
+    expect(client.scan).toHaveBeenNthCalledWith(3, '19', 'target:*', 200)
+  })
+
+  it('bounds deletion commands even when Redis returns more keys than the scan count hint', async () => {
+    const client = createClient()
+    const service = new CacheService(createAppContext(), createConfig(), client)
+    const keys = Array.from({ length: 450 }, (_, index) => `target:${index}`)
+    await Promise.all(keys.map(key => service.set(key, 1)))
+    vi.mocked(client.scan).mockResolvedValueOnce(['0', keys])
+
+    await expect(service.deleteByPattern('target:*')).resolves.toBe(450)
+    expect(vi.mocked(client.del).mock.calls.map(batch => batch.length)).toEqual([200, 200, 50])
+    await expect(service.get('target:449')).resolves.toBeNull()
+  })
+
+  it('fails open and bypasses Redis temporarily if scanning fails partway through', async () => {
+    const client = createClient()
+    const context = createAppContext()
+    const service = new CacheService(context, createConfig(), client)
+    await service.set('target:1', 1)
+    vi.mocked(client.scan)
+      .mockResolvedValueOnce(['7', ['target:1']])
+      .mockRejectedValueOnce(new Error('Redis unavailable'))
+
+    await expect(service.deleteByPattern('target:*')).resolves.toBe(0)
+    expect(context.logger.warn).toHaveBeenCalledWith('Cache invalidation failed', expect.objectContaining({ code: 'CACHE_INVALIDATION_FAILED' }))
+    await expect(service.remember('new', async () => 2)).resolves.toBe(2)
+    expect(client.get).not.toHaveBeenCalled()
+  })
+
   it('shares concurrent cold reads instead of exhausting database connections', async () => {
     const service = new CacheService(createAppContext(), createConfig(), createClient())
     const fetcher = vi.fn(async () => ({ items: [1] }))

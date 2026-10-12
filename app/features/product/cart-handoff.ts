@@ -33,16 +33,15 @@ export function showAddToCartSuccess(options: ShowAddToCartSuccessOptions) {
 
   return toast.success(options.copy.successTitle, {
     description,
+    className: "cart-success-toast",
+    richColors: false,
+    duration: 3000,
     action: options.onViewCart
       ? {
           label: options.copy.viewCart,
           onClick: options.onViewCart,
         }
       : undefined,
-    cancel: {
-      label: options.copy.continueShopping,
-      onClick: options.onContinueShopping ?? (() => toast.dismiss()),
-    },
   });
 }
 

@@ -1144,7 +1144,7 @@ function normalizeProductOptions(optionsInput: unknown): BuyerProduct["options"]
 function normalizeVariantOptionValues(optionValuesInput: unknown): BuyerProduct["variants"][number]["optionValues"] {
   return readOptionalArray(optionValuesInput, "variant option values").map((item) => {
     const link = toRecord(item);
-    const optionValue = toRecord(link.optionValue);
+    const optionValue = toRecord("optionValue" in link ? link.optionValue : link);
     const option = toRecord(optionValue.option);
     const optionId = readString(option.id);
     const optionName = readString(option.name);
