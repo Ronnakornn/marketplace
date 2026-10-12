@@ -1,4 +1,5 @@
 import type { Role } from '#generated/client/enums.ts'
+import { randomUUID } from 'node:crypto'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { RealtimeService } from '#server/modules/realtime'
@@ -6,6 +7,7 @@ import { NotificationServiceError } from './notification.errors.ts'
 import type { INotificationRepository, NotificationRecord } from './notification.repository.ts'
 import type { NotificationData, NotificationType } from './notification.types.ts'
 import type { PushService } from './push.service.ts'
+import type { NotificationRuntimeConfig, NotificationEmailSender } from './notification-runtime.contract.ts'
 
 export interface NotificationActor {
   id: string
@@ -30,8 +32,10 @@ export class NotificationService {
   constructor(
     appContext: AppContext,
     private repo: INotificationRepository,
-    private realtimeService?: RealtimeService,
-    private pushService?: PushService,
+    private realtimeService?: Pick<RealtimeService, 'publish'>,
+    private pushService?: Pick<PushService, 'deliver'>,
+    private runtimeConfig?: NotificationRuntimeConfig,
+    private emailService?: NotificationEmailSender,
   ) {
     this.logger = appContext.logger
   }
@@ -84,16 +88,46 @@ export class NotificationService {
     body?: string | null,
     data?: NotificationData | null,
   ): Promise<NotificationResponse> {
-    const notification = await this.repo.createNotification({
+    const channels = this.runtimeConfig ? await this.runtimeConfig.deliveryConfig() : { inApp: true, push: true, email: false }
+    const recipient = this.runtimeConfig ? await this.repo.findRecipientForNotification?.(userId) : null
+    const text = (value: unknown) => typeof value === 'string' ? value : undefined
+    const sellerAudience = data?.audience === 'seller' || type === 'payout_paid' || type === 'payout_rejected' || text(data?.targetPath)?.startsWith('/seller/')
+    const money = (value: unknown) => typeof value === 'bigint' ? value.toString() : typeof value === 'string' && /^(0|[1-9][0-9]*|-[1-9][0-9]*)$/.test(value) ? value : undefined
+    const values = {
+      name: recipient?.name,
+      buyerName: text(data?.buyerName) ?? (sellerAudience ? undefined : recipient?.name),
+      orderNumber: text(data?.orderNumber) ?? text(data?.orderNo),
+      shopName: text(data?.shopName),
+      trackingNumber: text(data?.trackingNumber) ?? text(data?.trackingNo),
+      supportTicketNumber: text(data?.supportTicketNumber),
+      amount: money(data?.amount),
+      currency: text(data?.currency),
+    }
+    const render = async (channel: 'EMAIL' | 'PUSH' | 'IN_APP') => {
+      try { return await this.runtimeConfig?.renderNotification({ key: type, channel, values }) }
+      catch (error) {
+        this.logger.warn('Notification template rendering failed', { type, channel, error: error instanceof Error ? error.message : String(error) })
+        return null
+      }
+    }
+    const [inAppTemplate, pushTemplate, emailTemplate] = await Promise.all([
+      channels.inApp ? render('IN_APP') : null,
+      channels.push ? render('PUSH') : null,
+      channels.email ? render('EMAIL') : null,
+    ])
+    const input = {
       userId,
       type,
-      title: title.trim(),
-      body: this.normalizeBody(body),
+      title: inAppTemplate?.subject?.trim() || title.trim(),
+      body: this.normalizeBody(inAppTemplate?.body ?? body),
       data: this.normalizeData(data),
-    })
+    }
+    const notification = channels.inApp ? await this.repo.createNotification(input) : { ...input, id: randomUUID(), readAt: null, createdAt: new Date() }
     const response = this.toResponse(notification)
-    await this.realtimeService?.publish('notification.created', `user:${userId}:notifications`, response)
-    await this.bestEffort('deliverPush', () => this.pushService?.deliver(userId, response) ?? Promise.resolve())
+    if (channels.inApp) await this.realtimeService?.publish('notification.created', `user:${userId}:notifications`, response)
+    if (channels.push) await this.bestEffort('deliverPush', () => this.pushService?.deliver(userId, { ...response, title: pushTemplate?.subject?.trim() || title.trim(), body: this.normalizeBody(pushTemplate?.body ?? body) ?? undefined }) ?? Promise.resolve())
+    const emailService = this.emailService
+    if (channels.email && recipient?.email && emailService) await this.bestEffort('deliverEmail', () => emailService.sendMessage({ to: recipient.email, subject: emailTemplate?.subject?.trim() || title.trim(), text: emailTemplate?.body ?? body?.trim() ?? title.trim() }))
     return response
   }
 
@@ -114,12 +148,13 @@ export class NotificationService {
   async notifySellerOrderPaid(orderId: string): Promise<void> {
     await this.bestEffort('notifySellerOrderPaid', async () => {
       const sellerUserIds = await this.repo.findSellerUserIdsForOrder(orderId)
+      const order = this.runtimeConfig ? await this.repo.findOrderForNotification(orderId) : null
       await Promise.all(sellerUserIds.map((sellerUserId) => this.createNotification(
         sellerUserId,
         'order_paid',
         'New paid order',
         'A buyer paid for an order from your shop.',
-        { orderId, audience: 'seller', targetPath: '/seller/orders' },
+        { orderId, ...(order ? { orderNo: order.orderNumber } : {}), audience: 'seller', targetPath: '/seller/orders' },
       )))
     })
   }
@@ -281,7 +316,7 @@ export class NotificationService {
     }
   }
 
-  private toResponse(notification: NotificationRecord): NotificationResponse {
+  private toResponse(notification: Pick<NotificationRecord, 'id' | 'type' | 'title' | 'body' | 'readAt' | 'createdAt'> & { data?: unknown }): NotificationResponse {
     return {
       id: notification.id,
       type: notification.type,

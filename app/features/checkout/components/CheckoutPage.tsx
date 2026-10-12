@@ -70,10 +70,10 @@ export function CheckoutPage() {
   const itemCount = selectedItemIds.length;
   const cartId = cartQuery.data?.id ?? null;
   const quoteQuery = useQuery({
-    queryKey: ["checkout-quote", cartId, selectedItemIds, appliedCoupon, shopCouponCode, platformCouponCode, coinsToUse, locale],
+    queryKey: ["checkout-quote", cartId, selectedItemIds, addressId, appliedCoupon, shopCouponCode, platformCouponCode, coinsToUse, locale],
     queryFn: () => {
       if (!cartId) throw new Error(t("checkout.emptyTitle"));
-      return quoteCheckout({ cartId, cartItemIds: selectedItemIds, couponCode: appliedCoupon ?? undefined,
+      return quoteCheckout({ cartId, addressId: addressId || undefined, cartItemIds: selectedItemIds, couponCode: appliedCoupon ?? undefined,
         shopCouponCode: shopCouponCode ?? undefined, platformCouponCode: platformCouponCode ?? undefined, coinsToUse });
     },
     enabled: Boolean(cartId) && itemCount > 0,

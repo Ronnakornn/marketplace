@@ -3,6 +3,8 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { ReviewServiceError } from './review.errors.ts'
 import type { IReviewRepository, ProductReview, RatingSummaryRecord, ReviewMediaInput, ReviewSort, ReviewUpload } from './review.repository.ts'
+import { Value } from '@sinclair/typebox/value'
+import { ReportReviewSchema, type ReportReviewInput } from './review-report.schemas.ts'
 
 const MAX_REVIEW_IMAGE_COUNT = 5
 const MAX_PAGINATION_OFFSET = 2_147_483_647
@@ -93,6 +95,14 @@ export class ReviewService {
     private repo: IReviewRepository,
   ) {
     this.logger = appContext.logger
+  }
+
+  async reportReview(actor: ReviewActor, input: ReportReviewInput) {
+    if (!Value.Check(ReportReviewSchema, input) || ('reviewId' in input) === ('shopRatingId' in input)) throw new ReviewServiceError('Exactly one review target is required', 400, 'INVALID_REPORT_TARGET')
+    const detail = input.detail?.trim() || null
+    if (detail && detail.length > 2000) throw new ReviewServiceError('Report detail is too long', 400, 'INVALID_REPORT_DETAIL')
+    if (input.reason === 'OTHER' && !detail) throw new ReviewServiceError('Please explain the reason for this report', 400, 'REPORT_DETAIL_REQUIRED')
+    return this.repo.reportReview(actor.id, { ...input, detail })
   }
 
   async listProductReviews(productId: string, input: ListProductReviewsInput = {}): Promise<PaginatedReviewResponse> {

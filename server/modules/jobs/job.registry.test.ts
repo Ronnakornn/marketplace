@@ -37,6 +37,8 @@ describe('job worker observability and recurring recovery', () => {
   it('installs durable earnings recovery every minute alongside existing schedulers', async () => {
     await ensureRecurringJobSchedulers({ redisUrl: 'redis://localhost:6381/1', concurrency: 1, attempts: 2, skipRedisVersionCheck: false })
     expect(fake.schedulers).toHaveBeenCalledWith('reconcile-seller-earnings', { every: 60_000 }, { name: 'reconcile_seller_earnings', data: { limit: 100 } })
-    expect(fake.schedulers).toHaveBeenCalledTimes(3)
+    expect(fake.schedulers).toHaveBeenCalledWith('process-admin-report-schedules', { every: 60_000 }, { name: 'process_admin_report_schedules', data: {} })
+    expect(fake.schedulers).toHaveBeenCalledWith('prepare-admin-payouts', { every: 60_000 }, { name: 'prepare_admin_payouts', data: {} })
+    expect(fake.schedulers).toHaveBeenCalledTimes(5)
   })
 })

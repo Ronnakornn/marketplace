@@ -35,6 +35,7 @@ function createRepoMock(): IUploadRepository {
       completedAt,
     })),
     hasActiveShop: vi.fn(async () => true),
+    canReadSupportAttachment: vi.fn(async () => false),
   }
 }
 

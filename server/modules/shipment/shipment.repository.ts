@@ -143,16 +143,21 @@ export class PrismaShipmentRepository implements IShipmentRepository {
     `
   }
 
-  createShipment(input: ShipmentCreateInput): Promise<ShipmentWithItems> {
+  async createShipment(input: ShipmentCreateInput): Promise<ShipmentWithItems> {
     this.logger.info('PrismaShipmentRepository.createShipment', {
       orderId: input.orderId,
       shopId: input.shopId,
     })
+    const purchased = await this.prisma.shopOrder.findUnique({ where: { orderId_shopId: { orderId: input.orderId, shopId: input.shopId } }, select: { saleSnapshot: { select: { shippingProviderId: true, shippingProviderName: true } } } })
+    const provider = purchased?.saleSnapshot?.shippingProviderId
+      ? await this.prisma.shippingProvider.findUnique({ where: { id: purchased.saleSnapshot.shippingProviderId }, select: { id: true } }) : null
     return this.prisma.shipment.create({
       data: {
         orderId: input.orderId,
         shopId: input.shopId,
         status: 'PENDING_PACK',
+        providerId: provider?.id ?? null,
+        carrier: purchased?.saleSnapshot?.shippingProviderName ?? null,
         items: {
           create: input.items.map((item) => ({
             orderItemId: item.orderItemId,

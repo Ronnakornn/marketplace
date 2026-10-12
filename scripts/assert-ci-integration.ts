@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { z } from 'zod'
 
-const databaseKeys = ['DATABASE_URL', 'COMMERCE_TEST_DATABASE_URL', 'QUEUE_TEST_DATABASE_URL', 'TAX_TEST_DATABASE_URL', 'ROLLOUT_TEST_DATABASE_URL', 'AUDIT_TEST_DATABASE_URL'] as const
+const databaseKeys = ['DATABASE_URL', 'COMMERCE_TEST_DATABASE_URL', 'QUEUE_TEST_DATABASE_URL', 'TAX_TEST_DATABASE_URL', 'ROLLOUT_TEST_DATABASE_URL', 'AUDIT_TEST_DATABASE_URL', 'REPORTING_TEST_DATABASE_URL', 'ADMIN_DIRECTORY_TEST_DATABASE_URL', 'ADMIN_OPERATIONS_TEST_DATABASE_URL', 'FULL_ADMIN_BOUNDARIES_TEST_DATABASE_URL'] as const
 const redisKeys = ['CACHE_TEST_REDIS_URL', 'QUEUE_TEST_REDIS_URL'] as const
 
 export function assertCiIntegrationEnvironment(env: NodeJS.ProcessEnv): void {

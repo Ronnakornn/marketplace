@@ -34,7 +34,9 @@ function createAppContext() {
 
 function createRepoMock(): ICheckoutRepository {
   return {
+    readCouponTargets: vi.fn(async () => ({ productIds: [], categoryIds: [] })),
     readTaxPolicy: vi.fn(async () => null),
+    applyShippingPolicy: vi.fn(async (items) => items),
     transaction: vi.fn(async (callback) => callback(repo as ICheckoutRepository)),
     lockCartForCheckout: vi.fn(),
     findCartForCheckout: vi.fn(),
@@ -219,7 +221,12 @@ async function setupSuccess(overrides: {
   }
   vi.mocked(repo.findCartForCheckout).mockResolvedValue(overrides.cart ?? createCart())
   vi.mocked(repo.findAddressForUser).mockResolvedValue(overrides.address === undefined ? createAddress() : overrides.address)
-  vi.mocked(repo.findCouponByCode).mockResolvedValue(null)
+  vi.mocked(repo.findCouponByCode).mockResolvedValue({
+    id: '99999999-9999-4999-8999-999999999999', code: 'SAVE10', shopId: overrides.couponShopId ?? null,
+    discountType: 'FIXED_AMOUNT', discountValue: 0n, discountPercentBps: null, minOrder: null, maxDiscount: null,
+    startsAt: null, endsAt: null, usageLimit: null, perUserLimit: null, isActive: true, createdAt: new Date(), updatedAt: new Date(),
+    _count: { redemptions: 0 },
+  })
   vi.mocked(repo.countCouponRedemptionsForUser).mockResolvedValue(0)
   vi.mocked(repo.commitCheckout).mockImplementation(async (input) => createCreatedOrder(input))
   if (overrides.couponError) {

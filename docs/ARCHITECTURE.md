@@ -228,6 +228,23 @@ lock Order before SupportTicket. Final decisions and administrator SYSTEM notes
 commit atomically and have no financial or inventory effects. See
 [support cases](support-cases.md) for API, access, and transition details.
 
+## Full Admin control and operations
+
+Admin access, configuration, reporting, directory and operations modules share a
+closed permission registry while retaining domain ownership. The global guard
+maps exact method/path pairs and rejects unknown administrative endpoints.
+Membership changes and sensitive financial/catalog decisions use a shared
+transaction lock and fresh permission checks. Existing user APIs protect the
+final eligible owner.
+
+Checkout freezes per-shop commission, shipping rule/provider and dispatch/delivery
+SLA, and limits coupon allocations to eligible products/categories. Support
+disputes link exact frozen refund plans; compensation becomes final only after
+refund settlement succeeds. CSV/XLSX imports preview original facts and commit
+atomically. Published CMS title/body remain frozen while drafts are edited.
+See [Full Admin workflows](full-admin.md) for routes, worker setup and external
+integration boundaries.
+
 ## Database Workflow
 
 After editing `prisma/schema.prisma`:

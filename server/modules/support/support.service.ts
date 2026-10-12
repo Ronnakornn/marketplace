@@ -104,7 +104,7 @@ export class SupportService {
     return { ...await this.repo.listAppealableReturns(orderId, userId, pagination), ...pagination }
   }
 
-  async reply(scope: SupportScope, ticketId: string, input: { body: string }, internal = false) {
+  async reply(scope: SupportScope, ticketId: string, input: { body: string; attachmentIds?: string[] }, internal = false) {
     const body = text(input.body, 5000)
     if (internal && scope.kind !== 'admin') throw new SupportServiceError('Administrator required', 403, 'FORBIDDEN')
     return this.repo.transaction(async (repo) => {
@@ -112,7 +112,15 @@ export class SupportService {
       const ticket = await this.requireTicket(repo, scope, ticketId)
       if (!internal && !activeTickets.includes(ticket.status)) throw new SupportServiceError('Ticket is closed for replies', 409, 'SUPPORT_TICKET_TERMINAL')
       const senderType = scope.kind === 'admin' ? 'ADMIN' : scope.kind === 'seller' ? 'SELLER' : 'BUYER'
-      const message = await repo.createMessage({ ticketId, senderId: scope.userId, senderType, body, isInternal: internal })
+      const attachmentIds = [...new Set(input.attachmentIds ?? [])]
+      if (attachmentIds.length > 5) throw new SupportServiceError('Too many attachments', 400, 'INVALID_SUPPORT_ATTACHMENT')
+      if (attachmentIds.length) {
+        const uploads = await repo.findAttachments(attachmentIds, scope.userId)
+        if (uploads.length !== attachmentIds.length || uploads.some((upload) => upload.usage !== 'SUPPORT_ATTACHMENT' || upload.status !== 'COMPLETED')) {
+          throw new SupportServiceError('Attachments must be your completed support uploads', 400, 'INVALID_SUPPORT_ATTACHMENT')
+        }
+      }
+      const message = await repo.createMessage({ ticketId, senderId: scope.userId, senderType, body, isInternal: internal, ...(attachmentIds.length ? { attachmentIds } : {}) })
       if (!internal) {
         const hasDispute = ticket.disputes.some((dispute) => activeDisputes.includes(dispute.status))
         const status = scope.kind === 'buyer' ? (hasDispute || !ticket.shopId ? 'PENDING_ADMIN' : 'PENDING_SELLER')
@@ -153,6 +161,33 @@ export class SupportService {
       await repo.updateTicket(ticketId, { status: terminal ? 'RESOLVED' : 'PENDING_ADMIN', closedAt: null })
       await repo.createMessage({ ticketId, senderId: userId, senderType: 'SYSTEM', body: `[${input.status}] ${decision}`, isInternal: false })
       this.context.logger.info('Support dispute updated', { ticketId, disputeId: dispute.id, status: input.status, actorId: userId, at: now.toISOString() })
+      return this.requireTicket(repo, { kind: 'admin', userId }, ticketId)
+    })
+  }
+
+  async compensationRefunds(userId: string, ticketId: string) {
+    const ticket = await this.requireTicket(this.repo, { kind: 'admin', userId }, ticketId)
+    if (!ticket.orderId) return []
+    return this.repo.listCompensationRefunds(ticket.orderId)
+  }
+
+  async linkCompensation(userId: string, ticketId: string, refundId: string) {
+    return this.repo.transaction(async (repo) => {
+      await this.lockTicket(repo, ticketId)
+      const ticket = await this.requireTicket(repo, { kind: 'admin', userId }, ticketId)
+      const dispute = ticket.disputes.find((row) => row.status === 'RESOLVED_BUYER' || row.status === 'COMPENSATED')
+      if (!dispute?.returnRequestId || !ticket.orderId) throw new SupportServiceError('Resolve the appeal for the buyer first', 409, 'COMPENSATION_DECISION_REQUIRED')
+      if (dispute.refundId) {
+        if (dispute.refundId === refundId) return ticket
+        const previous = await repo.findCompensationRefund(dispute.refundId, dispute.returnRequestId)
+        if (dispute.status !== 'RESOLVED_BUYER' || previous?.status !== 'FAILED') throw new SupportServiceError('A refund is already linked', 409, 'COMPENSATION_ALREADY_LINKED')
+      }
+      const refund = await repo.findCompensationRefund(refundId, dispute.returnRequestId)
+      if (!refund || refund.orderId !== ticket.orderId || !refund.matchesReturn || !['PROCESSING', 'SUCCESS'].includes(refund.status)) {
+        throw new SupportServiceError('Refund must have a frozen plan matching the appealed items', 409, 'INVALID_COMPENSATION_REFUND')
+      }
+      await repo.linkCompensation(dispute.id, refund.id, refund.amount, refund.status === 'SUCCESS', userId)
+      await repo.createMessage({ ticketId, senderId: userId, senderType: 'SYSTEM', body: `[${refund.status === 'SUCCESS' ? 'COMPENSATED' : 'RESOLVED_BUYER'}] ${refund.id}`, isInternal: false })
       return this.requireTicket(repo, { kind: 'admin', userId }, ticketId)
     })
   }

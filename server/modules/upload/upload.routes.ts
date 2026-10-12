@@ -88,6 +88,13 @@ export function createUploadRoutes(container: ServiceContainer) {
     }, {
       query: LocalGetQuerySchema,
     })
+    .get('/api/support/tickets/:ticketId/attachments/:fileId', async ({ authContext, params, request }: any) => {
+      const downloadUrl = await container.uploadService.getSupportAttachmentDownload(authContext!.user, params.ticketId, params.fileId)
+      return Response.redirect(new URL(downloadUrl, request.url), 302)
+    }, {
+      withAuth: true,
+      params: t.Object({ ticketId: t.String({ format: 'uuid' }), fileId: t.String({ format: 'uuid' }) }),
+    })
     .get('/api/uploads/:fileId/content', async ({ authContext, params, request }: any) => {
       const downloadUrl = await container.uploadService.getDownloadUrl(authContext!.user, params.fileId)
       return Response.redirect(new URL(downloadUrl, request.url), 302)

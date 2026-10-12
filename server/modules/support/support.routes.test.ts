@@ -14,8 +14,8 @@ vi.mock('#server/lib/prisma.ts', () => ({ prisma: { shop: { count: async () => r
 
 const context: AppContext = { config: { environment: 'test' }, logger: { info: vi.fn(), debug: vi.fn(), error: vi.fn(), warn: vi.fn() } }
 const repo: ISupportRepository = {
-  transaction: vi.fn(), lockOrder: vi.fn(), lockTicket: vi.fn(), findTicketReference: vi.fn(), findOwnedOrder: vi.fn(), findReturn: vi.fn(), findAppeal: vi.fn(),
-  listAppealableReturns: vi.fn(), listTickets: vi.fn().mockResolvedValue({ items: [], total: 0 }), findTicket: vi.fn(), listMessages: vi.fn(), createTicket: vi.fn(), createDispute: vi.fn(), createMessage: vi.fn(), updateTicket: vi.fn(), updateDispute: vi.fn(),
+  listCompensationRefunds: vi.fn(), findCompensationRefund: vi.fn(), linkCompensation: vi.fn(), transaction: vi.fn(), lockOrder: vi.fn(), lockTicket: vi.fn(), findTicketReference: vi.fn(), findOwnedOrder: vi.fn(), findReturn: vi.fn(), findAppeal: vi.fn(),
+  listAppealableReturns: vi.fn(), listTickets: vi.fn().mockResolvedValue({ items: [], total: 0 }), findTicket: vi.fn(), listMessages: vi.fn(), createTicket: vi.fn(), createDispute: vi.fn(), createMessage: vi.fn(), findAttachments: vi.fn(), updateTicket: vi.fn(), updateDispute: vi.fn(),
 }
 function app() { return new Elysia().use(createSupportRoutes({ supportService: new SupportService(context, repo) })) }
 function auth(overrides: Partial<AuthContext['user']> = {}) {

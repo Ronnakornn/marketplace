@@ -6,6 +6,7 @@ import { isAPIError } from 'better-auth/api'
 import type { AppContext } from '#server/context/app-context.ts'
 import { auth } from '#server/lib/auth.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { AdminAuthorizer, AdminPermission } from '#server/modules/admin-access/admin-access.contract.ts'
 import { createEmailService, type EmailService } from '#server/modules/email'
 import type { AddressData, AdminUserListItem, BuyerAddress, FavoriteProductRecord, IUserRepository, ShopFollowRecord, UserProfile } from './user.repository.ts'
 import { UserServiceError } from './user.errors.ts'
@@ -87,6 +88,7 @@ export class UserService {
     appContext: AppContext,
     private repo: IUserRepository,
     emailService?: EmailService,
+    private adminAuthorizer?: AdminAuthorizer,
   ) {
     this.logger = appContext.logger
     this.otpHashSecret = getOtpHashSecret()
@@ -293,7 +295,8 @@ export class UserService {
     return { following: false }
   }
 
-  async createForAdmin(data: CreateAdminUserData): Promise<AdminUserListItem> {
+  async createForAdmin(data: CreateAdminUserData, actorId?: string): Promise<AdminUserListItem> {
+    if (actorId && this.adminAuthorizer) await this.requireAdminPermission(actorId, data.role === 'ADMIN' ? 'team.manage' : 'users.write')
     this.logger.info('UserService.createForAdmin', { email: data.email, role: data.role })
     this.validateCreateInput(data)
 
@@ -313,7 +316,7 @@ export class UserService {
       })
 
       const createdUser = data.role !== 'USER'
-        ? await this.repo.updateUser(result.user.id, { role: data.role })
+        ? await this.repo.updateUser(result.user.id, { role: data.role }, actorId ? { id: actorId, role: 'ADMIN' } : undefined)
         : await this.repo.findById(result.user.id)
 
       if (!createdUser) {
@@ -342,6 +345,7 @@ export class UserService {
       throw new UserServiceError('User not found', 404)
     }
 
+    if (this.adminAuthorizer) await this.requireAdminPermission(actorId, targetUser.role === 'ADMIN' || data.role !== targetUser.role ? 'team.manage' : 'users.write')
     if (targetUser.id === actorId && targetUser.role === 'ADMIN' && data.role !== 'ADMIN') {
       throw new UserServiceError('You cannot remove your own admin access', 400)
     }
@@ -363,7 +367,7 @@ export class UserService {
       name: data.name.trim(),
       email,
       role: data.role,
-    })
+    }, { id: actorId, role: 'ADMIN' })
 
     return this.toAdminUser(updated)
   }
@@ -389,12 +393,13 @@ export class UserService {
     if (!targetUser) {
       throw new UserServiceError('User not found', 404)
     }
+    if (this.adminAuthorizer) await this.requireAdminPermission(actorId, targetUser.role === 'ADMIN' ? 'team.manage' : 'users.write')
 
     if (targetUser.id === actorId && status === 'SUSPENDED') {
       throw new UserServiceError('You cannot suspend your own account', 400)
     }
 
-    const updated = await this.repo.updateUser(targetUserId, { status })
+    const updated = await this.repo.updateUser(targetUserId, { status }, { id: actorId, role: 'ADMIN' })
     return this.toAdminUser(updated)
   }
 
@@ -405,6 +410,7 @@ export class UserService {
     if (!targetUser) {
       throw new UserServiceError('User not found', 404)
     }
+    if (this.adminAuthorizer) await this.requireAdminPermission(actorId, targetUser.role === 'ADMIN' ? 'team.manage' : 'users.write')
 
     if (targetUser.id === actorId) {
       throw new UserServiceError('You cannot delete your own account', 400)
@@ -417,7 +423,13 @@ export class UserService {
       }
     }
 
-    await this.repo.delete(targetUserId)
+    await this.repo.delete(targetUserId, { id: actorId, role: 'ADMIN' })
+  }
+
+  private async requireAdminPermission(actorId: string, permission: AdminPermission) {
+    const actor = await this.repo.findById(actorId)
+    if (!actor || !this.adminAuthorizer) throw new UserServiceError('Administrator permission required', 403)
+    await this.adminAuthorizer.require(actor, permission)
   }
 
   private validateCreateInput(data: CreateAdminUserData): void {

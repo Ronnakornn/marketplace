@@ -191,6 +191,7 @@ function ModerationActionError(props: { error: unknown; fallback: string }) {
 
 export function AdminUsersTable() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const [page, setPage] = useState(1);
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
@@ -207,7 +208,7 @@ export function AdminUsersTable() {
           <TableBody>
             {rows.length ? rows.map((user: AdminUser) => (
               <TableRow key={user.id} className="border-white/8 hover:bg-white/4">
-                <TableCell className="px-5 py-4"><p className="font-medium text-white">{user.name}</p><p className="text-xs text-slate-500">{user.email}</p></TableCell>
+                <TableCell className="px-5 py-4"><Link href={localePath(`/admin/users/${user.id}`)} className="font-medium text-white underline underline-offset-4">{user.name}</Link><p className="text-xs text-slate-500">{user.email}</p></TableCell>
                 <TableCell><AdminStatusBadge status={user.role} /></TableCell>
                 <TableCell><AdminStatusBadge status={user.status} /></TableCell>
                 <TableCell className="text-sm text-slate-300">{formatDate(user.createdAt)}</TableCell>
@@ -224,6 +225,7 @@ export function AdminUsersTable() {
 
 export function AdminShopsTable() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
@@ -299,7 +301,7 @@ export function AdminShopsTable() {
 
         <div className="overflow-hidden rounded-lg border border-white/10">
           <Table><TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">{t("admin.ui.shop")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.owner")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.status")}</TableHead><TableHead className="text-slate-300">{t("admin.ui.created")}</TableHead><TableHead className="text-right text-slate-300">{t("admin.ui.actions")}</TableHead></TableRow></TableHeader><TableBody>
-            {rows.length ? rows.map((shop: AdminShop) => <TableRow key={shop.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><p className="font-medium text-white">{shop.name}</p><p className="text-xs text-slate-500">{shop.slug}</p></TableCell><TableCell><p className="text-sm text-slate-200">{shop.owner.name}</p><p className="text-xs text-slate-500">{shop.owner.email}</p></TableCell><TableCell><AdminStatusBadge status={shop.status} /></TableCell><TableCell className="text-sm text-slate-300">{formatDate(shop.createdAt)}</TableCell><TableCell><div className="flex justify-end gap-2"><Button type="button" size="icon-sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={() => startEdit(shop)}><Edit3Icon className="size-4" /><span className="sr-only">Edit {shop.name}</span></Button><Button type="button" size="icon-sm" variant="outline" className="border-red-400/30 bg-red-500/10 text-red-200" disabled={deleteShop.isPending} onClick={() => setDeleteTarget(shop)}><Trash2Icon className="size-4" /><span className="sr-only">Delete {shop.name}</span></Button><AdminStatusAction label={shop.name} currentStatus={shop.status} options={SHOP_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: shop.id, status: next })} /></div></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
+            {rows.length ? rows.map((shop: AdminShop) => <TableRow key={shop.id} className="border-white/8 hover:bg-white/4"><TableCell className="px-5 py-4"><Link href={localePath(`/admin/shops/${shop.id}`)} className="font-medium text-white underline underline-offset-4">{shop.name}</Link><p className="text-xs text-slate-500">{shop.slug}</p></TableCell><TableCell><p className="text-sm text-slate-200">{shop.owner.name}</p><p className="text-xs text-slate-500">{shop.owner.email}</p></TableCell><TableCell><AdminStatusBadge status={shop.status} /></TableCell><TableCell className="text-sm text-slate-300">{formatDate(shop.createdAt)}</TableCell><TableCell><div className="flex justify-end gap-2"><Button type="button" size="icon-sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={() => startEdit(shop)}><Edit3Icon className="size-4" /><span className="sr-only">Edit {shop.name}</span></Button><Button type="button" size="icon-sm" variant="outline" className="border-red-400/30 bg-red-500/10 text-red-200" disabled={deleteShop.isPending} onClick={() => setDeleteTarget(shop)}><Trash2Icon className="size-4" /><span className="sr-only">Delete {shop.name}</span></Button><AdminStatusAction label={shop.name} currentStatus={shop.status} options={SHOP_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: shop.id, status: next })} /></div></TableCell></TableRow>) : <EmptyRow colSpan={5} />}
           </TableBody></Table>
         </div>
         <AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} />

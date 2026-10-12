@@ -43,6 +43,8 @@ async function main() {
     );
   }
 
+  const administrators = await prisma.user.findMany({ where: { email: { in: emails }, role: "ADMIN" }, select: { id: true } });
+  await prisma.adminTeamMember.createMany({ data: administrators.map(user => ({ userId: user.id, label: "Bootstrap owner", isOwner: true, permissions: [], isActive: true })), skipDuplicates: true });
   console.log(`Promoted ${result.count} user(s) to ADMIN.`);
 }
 

@@ -28,6 +28,8 @@ function payout(status: PayoutRecord['status'] = 'requested'): PayoutRecord {
     rejectedById: null,
     paidById: null,
     externalReference: null,
+    cycleKey: null,
+    evidenceUploadId: null,
     rejectionReason: null,
     requestedAt: new Date('2026-05-01T00:00:00.000Z'),
     approvedAt: null,

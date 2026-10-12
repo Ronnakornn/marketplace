@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JsonLd } from "#/components/JsonLd";
 import { HomeGuestSection } from "#/features/home/components/HomeGuestSection";
 import { getInitialMarketplaceHome } from "#/features/home/home-data.server";
+import { HomeCampaignPopup } from "#/features/discovery/HomeCampaignPopup";
 import { isLocale } from "#/i18n/config";
 import { createTranslator } from "#/i18n/server";
 import { getServerSession } from "#/lib/auth-server";
@@ -31,6 +32,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     return (
       <>
         <JsonLd data={websiteJsonLd()} />
+        <HomeCampaignPopup initialHome={initialHome} />
         <HomeAuthenticatedSection initialHome={initialHome} user={session.user} />
       </>
     );
@@ -39,6 +41,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   return (
     <>
       <JsonLd data={websiteJsonLd()} />
+      <HomeCampaignPopup initialHome={initialHome} />
       <HomeGuestSection initialHome={initialHome} locale={locale} />
     </>
   );

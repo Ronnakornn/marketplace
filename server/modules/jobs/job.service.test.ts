@@ -260,4 +260,24 @@ describe('JobService', () => {
   it.each([0, -1, 1.5, 1001, '100'])('rejects invalid reconciliation page size %s', async (limit) => {
     await expect(service.process('reconcile_seller_earnings', { limit } as never)).rejects.toMatchObject({ code: 'INVALID_JOB_PAYLOAD' })
   })
+
+  it('delegates report and payout schedulers with exact instants and fails missing wiring', async () => {
+    const callbacks = { processDueSchedules: vi.fn(async () => ({ checked: 2 })), prepareDuePayouts: vi.fn(async () => ({ checked: 3 })) }
+    service = new JobService(createAppContext(), repo, queueProducer, undefined, undefined, undefined, undefined, callbacks)
+    await expect(service.process('process_admin_report_schedules', { now: '2026-10-14T08:00:00+07:00' })).resolves.toEqual({ ok: true, code: 'ADMIN_REPORT_SCHEDULES_PROCESSED' })
+    await expect(service.process('prepare_admin_payouts', { now: '2026-10-14T01:00:00Z' })).resolves.toEqual({ ok: true, code: 'ADMIN_PAYOUTS_PREPARED' })
+    expect(callbacks.processDueSchedules).toHaveBeenCalledWith(new Date('2026-10-14T01:00:00Z'))
+    expect(callbacks.prepareDuePayouts).toHaveBeenCalledWith(new Date('2026-10-14T01:00:00Z'))
+    await expect(service.process('prepare_admin_payouts', { now: '2026-10-14' })).rejects.toMatchObject({ code: 'INVALID_JOB_PAYLOAD' })
+    service = new JobService(createAppContext(), repo, queueProducer)
+    await expect(service.process('process_admin_report_schedules', {})).rejects.toMatchObject({ code: 'JOB_FAILED' })
+  })
+
+  it('sends queued notifications through the configured delivery owner', async () => {
+    const notification = { createNotification: vi.fn(async () => ({ id: 'n', type: 'order_paid', title: 'Paid', createdAt: now })) }
+    service = new JobService(createAppContext(), repo, queueProducer, undefined, undefined, undefined, undefined, undefined, notification)
+    await service.process('send_notification', { userId: 'user-1', type: 'order_paid', title: 'Paid', body: 'Original text', data: { orderNo: 'ORD-1' } })
+    expect(notification.createNotification).toHaveBeenCalledWith('user-1', 'order_paid', 'Paid', 'Original text', { orderNo: 'ORD-1' })
+    expect(repo.createNotification).not.toHaveBeenCalled()
+  })
 })

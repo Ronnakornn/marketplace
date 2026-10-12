@@ -7,6 +7,8 @@ export const jobNames = [
   'cleanup_abandoned_carts',
   'sync_order_status',
   'reconcile_seller_earnings',
+  'process_admin_report_schedules',
+  'prepare_admin_payouts',
 ] as const
 
 export type JobName = typeof jobNames[number]
@@ -43,6 +45,8 @@ export interface ReconcileSellerEarningsJobPayload {
   limit?: number
 }
 
+export interface AdminScheduledJobPayload { now?: string }
+
 export type JobPayloadByName = {
   send_notification: SendNotificationJobPayload
   send_email: SendEmailJobPayload
@@ -50,6 +54,8 @@ export type JobPayloadByName = {
   cleanup_abandoned_carts: CleanupAbandonedCartsJobPayload
   sync_order_status: SyncOrderStatusJobPayload
   reconcile_seller_earnings: ReconcileSellerEarningsJobPayload
+  process_admin_report_schedules: AdminScheduledJobPayload
+  prepare_admin_payouts: AdminScheduledJobPayload
 }
 
 export type AnyJobPayload = JobPayloadByName[JobName]

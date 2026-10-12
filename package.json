@@ -73,6 +73,8 @@
     "dotenv": "^17.4.2",
     "elysia": "^1.4.29",
     "embla-carousel-react": "^8.6.0",
+    "fast-xml-parser": "5.9.0",
+    "fflate": "0.8.2",
     "input-otp": "^1.5.0",
     "ioredis": "^5.11.1",
     "lucide-react": "^1.33.0",

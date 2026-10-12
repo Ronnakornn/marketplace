@@ -271,6 +271,9 @@ LAN IPs and public HTTP domains are not secure contexts and cannot use Web Push.
 
 ## Deployment
 
+Full Admin workflows, team bootstrap, scheduled jobs and provider setup are
+documented in [Full Admin](docs/full-admin.md).
+
 ### Docker
 
 ```bash

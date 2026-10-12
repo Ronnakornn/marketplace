@@ -11,6 +11,14 @@ import { getObservabilityConfigFromEnv, createObservabilityRoutes } from "#serve
 import { createObservabilityPlugin } from "#server/plugins/observability.plugin";
 import { createCachePlugin } from "#server/plugins/cache.plugin";
 import { createAdminRoutes } from "#server/modules/admin";
+import { createAdminAccessGuard, createAdminAccessRoutes } from "#server/modules/admin-access";
+import { createAdminConfigGuard, createAdminConfigRoutes } from "#server/modules/admin-config";
+import { createAdminReportingRoutes } from "#server/modules/admin-reporting/reporting.routes.ts";
+import { createCatalogImportRoutes } from "#server/modules/catalog-import/catalog-import.routes.ts";
+import { fullAdminRoutePermissions } from "#server/modules/admin-access/full-admin-route-permissions.ts";
+import { createAdminOperationsRoutes, createPublishedContentRoutes, adminOperationsPermissions } from "#server/modules/admin-operations";
+import { createAdminDirectoryRoutes } from "#server/modules/admin-directory/admin-directory.routes.ts";
+import { createCouponTargetsRoutes } from "#server/modules/promotion/coupon-targets.routes.ts";
 import { createAiSearchRoutes } from "#server/modules/ai-search";
 import { createAffiliateRoutes } from "#server/modules/affiliate";
 import { createCartRoutes } from "#server/modules/cart";
@@ -119,6 +127,16 @@ const baseApp = new Elysia()
 
   // --- Better Auth handler + auth macro ---
   .use(authPlugin)
+  .use(createAdminAccessGuard(container.adminAccessService, { routes: [...fullAdminRoutePermissions, ...adminOperationsPermissions] }))
+  .use(createAdminConfigGuard(container.adminConfigService))
+  .use(createAdminAccessRoutes(container))
+  .use(createAdminConfigRoutes(container))
+  .use(createAdminReportingRoutes(container.adminReportingService, container.orderDocumentsService))
+  .use(createCatalogImportRoutes(container.catalogImportService))
+  .use(createAdminOperationsRoutes(container))
+  .use(createPublishedContentRoutes(container))
+  .use(createAdminDirectoryRoutes(container))
+  .use(createCouponTargetsRoutes(container))
 
   // --- Phone OTP auth routes ---
   .use(createPhoneOtpRoutes(container))

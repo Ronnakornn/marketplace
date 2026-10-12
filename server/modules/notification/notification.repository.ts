@@ -29,6 +29,7 @@ export interface CreateNotificationInput {
 }
 
 export interface INotificationRepository {
+  findRecipientForNotification?(userId: string): Promise<{ name: string; email: string } | null>
   createNotification(input: CreateNotificationInput): Promise<NotificationRecord>
   findNotificationsForUser(userId: string): Promise<NotificationRecord[]>
   countUnreadForUser(userId: string): Promise<number>
@@ -50,6 +51,10 @@ export class PrismaNotificationRepository implements INotificationRepository {
     private prisma: PrismaClient,
   ) {
     this.logger = appContext.logger
+  }
+
+  findRecipientForNotification(userId: string) {
+    return this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } })
   }
 
   createNotification(input: CreateNotificationInput): Promise<NotificationRecord> {

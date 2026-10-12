@@ -232,6 +232,9 @@ async function seedUsers(prisma: Prisma, ctx: SeedContext) {
         emailVerified: true,
       },
     });
+    if (seed.role === "ADMIN") {
+      await prisma.adminTeamMember.upsert({ where: { userId: user.id }, update: {}, create: { userId: user.id, label: "Demo owner", isOwner: true, permissions: [], isActive: true } });
+    }
     ctx.users.set(seed.email, user.id);
     await ensureCredentialAccount(prisma, user.id);
 

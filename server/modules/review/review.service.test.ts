@@ -24,6 +24,7 @@ function createAppContext() {
 
 function createRepoMock(): IReviewRepository {
   return {
+    reportReview: vi.fn(),
     findActiveProduct: vi.fn(),
     findOrderItemForReview: vi.fn(),
     findReviewByOrderItem: vi.fn(),

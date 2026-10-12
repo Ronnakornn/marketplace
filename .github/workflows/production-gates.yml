@@ -40,6 +40,10 @@ jobs:
       TAX_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_tax
       ROLLOUT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_rollout
       AUDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_readiness_audit
+      REPORTING_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_reporting
+      ADMIN_DIRECTORY_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_directory
+      ADMIN_OPERATIONS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_admin_operations
+      FULL_ADMIN_BOUNDARIES_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_admin_boundaries
       CHECKOUT_V2_SETTLEMENT_ENABLED: 'true'
       QUEUE_TEST_REDIS_URL: redis://127.0.0.1:56379/15
       CACHE_TEST_REDIS_URL: redis://127.0.0.1:56379/14
@@ -68,6 +72,14 @@ jobs:
           DATABASE_URL="$TAX_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
           DATABASE_URL="$ROLLOUT_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
           DATABASE_URL="$AUDIT_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_reporting
+          DATABASE_URL="$REPORTING_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_directory
+          DATABASE_URL="$ADMIN_DIRECTORY_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_admin_operations
+          DATABASE_URL="$ADMIN_OPERATIONS_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_admin_boundaries
+          DATABASE_URL="$FULL_ADMIN_BOUNDARIES_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
       - run: bunx --bun prisma generate
       - run: bunx --bun prisma validate
       - run: bunx --bun prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code

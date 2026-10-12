@@ -44,6 +44,7 @@ export interface CreateCheckoutData {
 
 export interface QuoteCheckoutData {
   cartId: string
+  addressId?: string
   cartItemIds?: string[]
   couponCode?: string
   shopCouponCode?: string
@@ -68,6 +69,8 @@ export class CheckoutService {
     private quoteEvaluator: CheckoutQuoteEvaluator,
     private cacheInvalidation?: CacheInvalidation,
     private paymentConfig: PaymentProviderConfig = getPaymentProviderConfigFromEnv(),
+    private requireOperationalAdmission?: (input: { userId: string; shopIds: string[] }) => Promise<void>,
+    private requirePaymentChannel?: (channel: 'card' | 'promptpay' | 'bankTransfer') => Promise<void>,
   ) {
     this.logger = appContext.logger
   }
@@ -75,6 +78,11 @@ export class CheckoutService {
   async createCheckout(actor: CheckoutActor, data: CreateCheckoutData): Promise<CheckoutResponse> {
     this.assertBuyer(actor)
     this.validateInput(data)
+    const channel = data.paymentMethod.trim().toLowerCase()
+    if (this.requirePaymentChannel) {
+      if (!['card', 'promptpay', 'banktransfer', 'bank_transfer'].includes(channel)) throw new CheckoutServiceError('Unsupported payment method', 400, 'CHECKOUT_FAILED')
+      await this.requirePaymentChannel(channel === 'card' ? 'card' : channel === 'promptpay' ? 'promptpay' : 'bankTransfer')
+    }
     if (this.paymentConfig.provider === 'disabled') {
       throw new CheckoutServiceError('Payment checkout is not configured', 503, 'PAYMENT_UNAVAILABLE')
     }
@@ -89,9 +97,11 @@ export class CheckoutService {
       if (!address) throw new CheckoutServiceError('Address not found', 404, 'ADDRESS_NOT_FOUND')
 
       this.validateItems(items)
+      await this.requireOperationalAdmission?.({ userId: actor.id, shopIds: [...new Set(items.map((item) => item.variant.product.shop.id))] })
+      const shippingItems = await txRepo.applyShippingPolicy(items, address)
       const evaluation = await this.quoteEvaluator.evaluate(txRepo, {
         userId: actor.id,
-        items,
+        items: shippingItems,
         couponCode: data.couponCode,
         shopCouponCode: data.shopCouponCode,
         platformCouponCode: data.platformCouponCode,
@@ -148,10 +158,13 @@ export class CheckoutService {
     const cart = await this.repo.findCartForCheckout(data.cartId)
     this.assertCart(actor, cart)
     const items = this.selectCartItems(cart.items, data.cartItemIds)
-
+    await this.requireOperationalAdmission?.({ userId: actor.id, shopIds: [...new Set(items.map((item) => item.variant.product.shop.id))] })
+    const address = data.addressId ? await this.repo.findAddressForUser(data.addressId, actor.id) : null
+    if (data.addressId && !address) throw new CheckoutServiceError('Address not found', 404, 'ADDRESS_NOT_FOUND')
+    const shippingItems = await this.repo.applyShippingPolicy(items, address)
     const evaluation = await this.quoteEvaluator.evaluate(this.repo, {
       userId: actor.id,
-      items,
+      items: shippingItems,
       couponCode: data.couponCode,
       shopCouponCode: data.shopCouponCode,
       platformCouponCode: data.platformCouponCode,

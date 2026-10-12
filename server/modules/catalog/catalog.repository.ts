@@ -1,3 +1,4 @@
+import { touchProductContent } from './catalog-publication.service.ts'
 import { moneyInteger } from '#server/lib/money.ts'
 import { Prisma, type Brand, type Category, type CategoryAttributeDefinition, type ModerationAction, type ModerationCase, type PrismaClient, type Product, type ProductAttribute, type ProductHighlight, type ProductImage, type ProductOption, type ProductOptionValue, type ProductVariant, type ProductVariantOptionValue, type ProductVideo, type Shop, type ShopAddress, type Upload } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
@@ -536,8 +537,13 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   constructor(
     appContext: AppContext,
     private prisma: PrismaClient,
+    private publicationApprovalRequired?: () => Promise<boolean>,
   ) {
     this.logger = appContext.logger
+  }
+
+  private touchProductContent(tx: Prisma.TransactionClient, productId: string) {
+    return touchProductContent(tx, productId, this.publicationApprovalRequired)
   }
 
   findActiveCategories(): Promise<CatalogCategoryListItem[]> {
@@ -1031,6 +1037,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   async updateProduct(id: string, data: UpdateProductRecord): Promise<CatalogProductDetail> {
     this.logger.info('PrismaCatalogRepository.updateProduct', { id })
     return this.prisma.$transaction(async (tx) => {
+      const updatedAt = await this.touchProductContent(tx, id)
       if (data.highlights !== undefined) {
         await tx.productHighlight.deleteMany({ where: { productId: id } })
         if (data.highlights.length > 0) await tx.productHighlight.createMany({ data: data.highlights.map((item) => ({ ...item, productId: id })) })
@@ -1041,7 +1048,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       }
       return tx.product.update({
         where: { id },
-        data: this.updateProductScalarData(data),
+        data: { ...this.updateProductScalarData(data), updatedAt },
         include: productInclude,
       })
     })
@@ -1050,6 +1057,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   async createProductImage(data: CreateProductImageRecord): Promise<CatalogProductImageRecord> {
     this.logger.info('PrismaCatalogRepository.createProductImage', { productId: data.productId })
     return this.prisma.$transaction(async (tx) => {
+      await this.touchProductContent(tx, data.productId)
       if (data.isPrimary) {
         await tx.productImage.updateMany({
           where: { productId: data.productId, isPrimary: true },
@@ -1063,6 +1071,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   async updateProductImage(productId: string, imageId: string, data: UpdateProductImageRecord): Promise<CatalogProductImageRecord | null> {
     this.logger.info('PrismaCatalogRepository.updateProductImage', { productId, imageId })
     return this.prisma.$transaction(async (tx) => {
+      await this.touchProductContent(tx, productId)
       const image = await tx.productImage.findFirst({ where: { id: imageId, productId } })
       if (!image) return null
       if (data.isPrimary) {
@@ -1081,6 +1090,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   async deleteProductImage(productId: string, imageId: string): Promise<CatalogProductImageRecord | null> {
     this.logger.info('PrismaCatalogRepository.deleteProductImage', { productId, imageId })
     return this.prisma.$transaction(async (tx) => {
+      await this.touchProductContent(tx, productId)
       const image = await tx.productImage.findFirst({ where: { id: imageId, productId } })
       if (!image) return null
       return tx.productImage.delete({ where: { id: imageId } })
@@ -1089,7 +1099,9 @@ export class PrismaCatalogRepository implements ICatalogRepository {
 
   upsertProductVideo(data: UpsertProductVideoRecord): Promise<CatalogProductVideoRecord> {
     this.logger.info('PrismaCatalogRepository.upsertProductVideo', { productId: data.productId })
-    return this.prisma.productVideo.upsert({
+    return this.prisma.$transaction(async tx => {
+      await this.touchProductContent(tx, data.productId)
+      return tx.productVideo.upsert({
       where: { productId: data.productId },
       create: data,
       update: {
@@ -1100,19 +1112,24 @@ export class PrismaCatalogRepository implements ICatalogRepository {
         fileSize: data.fileSize,
         sortOrder: data.sortOrder ?? 0,
       },
+      })
     })
   }
 
   async deleteProductVideo(productId: string): Promise<CatalogProductVideoRecord | null> {
     this.logger.info('PrismaCatalogRepository.deleteProductVideo', { productId })
-    const video = await this.prisma.productVideo.findUnique({ where: { productId } })
-    if (!video) return null
-    return this.prisma.productVideo.delete({ where: { productId } })
+    return this.prisma.$transaction(async tx => {
+      await this.touchProductContent(tx, productId)
+      const video = await tx.productVideo.findUnique({ where: { productId } })
+      if (!video) return null
+      return tx.productVideo.delete({ where: { productId } })
+    })
   }
 
   async replaceProductOptions(productId: string, options: ProductOptionWriteRecord[]): Promise<CatalogProductDetail> {
     this.logger.info('PrismaCatalogRepository.replaceProductOptions', { productId, optionCount: options.length })
     return this.prisma.$transaction(async (tx) => {
+      await this.touchProductContent(tx, productId)
       await tx.productOption.deleteMany({ where: { productId } })
       for (const option of options) {
         await tx.productOption.create({
@@ -1142,6 +1159,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   async updateProductImagesOrder(productId: string, images: UpdateImageOrderRecord[]): Promise<CatalogProductImageRecord[]> {
     this.logger.info('PrismaCatalogRepository.updateProductImagesOrder', { productId, imageCount: images.length })
     return this.prisma.$transaction(async (tx) => {
+      await this.touchProductContent(tx, productId)
       const existing = await tx.productImage.findMany({ where: { productId }, select: { id: true } })
       const existingIds = new Set(existing.map((image) => image.id))
       if (existing.length !== images.length || images.some((image) => !existingIds.has(image.id))) {
@@ -1164,6 +1182,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     this.logger.info('PrismaCatalogRepository.createVariant', { productId: data.productId, sku: data.sku })
     const { optionValueIds, ...variantData } = data
     return this.prisma.$transaction(async (tx) => {
+      await this.touchProductContent(tx, data.productId)
       const variant = await tx.productVariant.create({
         data: {
           ...variantData,
@@ -1181,6 +1200,8 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     this.logger.info('PrismaCatalogRepository.updateVariant', { id })
     const { optionValueIds, ...variantData } = data
     return this.prisma.$transaction(async (tx) => {
+      const variant = await tx.productVariant.findUniqueOrThrow({ where: { id }, select: { productId: true } })
+      await this.touchProductContent(tx, variant.productId)
       if (optionValueIds !== undefined) {
         await tx.productVariantOptionValue.deleteMany({ where: { variantId: id } })
       }
@@ -1199,8 +1220,10 @@ export class PrismaCatalogRepository implements ICatalogRepository {
 
   deleteVariant(id: string): Promise<CatalogVariantRecord> {
     this.logger.info('PrismaCatalogRepository.deleteVariant', { id })
-    return this.prisma.productVariant.delete({
-      where: { id },
+    return this.prisma.$transaction(async tx => {
+      const variant = await tx.productVariant.findUniqueOrThrow({ where: { id }, select: { productId: true } })
+      await this.touchProductContent(tx, variant.productId)
+      return tx.productVariant.delete({ where: { id } })
     })
   }
 

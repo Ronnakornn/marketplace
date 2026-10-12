@@ -223,6 +223,7 @@ function isProbablyUiString(source: string, matchIndex: number, raw: string, val
   if (!englishWordPattern.test(literalText)) return false;
   if (value.length > 140) return false;
   if (/^(undefined|null|true|false)$/i.test(value)) return false;
+  if (/^(?:\.csv|\.xlsx|noopener,noreferrer)$/.test(value)) return false;
   if (/^[a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*\.?$/.test(value) && value.includes(".")) return false;
   if (/^[a-z][a-z0-9_-]*$/.test(value)) return false;
   if (/^[A-Z0-9_./:-]+$/.test(value)) return false;

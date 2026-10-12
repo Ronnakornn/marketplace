@@ -3,7 +3,7 @@
 import { compareMinorUnits, type MinorUnitValue } from "#/lib/money";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowLeftIcon, BoxesIcon, CheckCircle2Icon, ClipboardListIcon, ImageIcon, RotateCcwIcon, ShieldCheckIcon, StoreIcon, XCircleIcon } from "lucide-react";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -13,7 +13,8 @@ import { Skeleton } from "#/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
 import { Textarea } from "#/components/ui/textarea";
 import { useAdminCatalogProductDetail } from "#/features/catalog";
-import type { CatalogProduct } from "#/features/catalog";
+import { useAdminAccess } from "#/features/admin/access/useAdminAccess";
+import { useCatalogPublicationReview } from "#/features/admin/operations/useCatalogPublicationReview";
 import {
   useRestoreCatalogProduct,
   useSuspendCatalogProduct,
@@ -26,26 +27,9 @@ interface AdminProductModerationDetailProps {
   productId: string;
 }
 
-type ModerationCase = {
-  id: string;
-  status: string;
-  reason: string;
-  severity: string;
-  title?: string | null;
-  description?: string | null;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-  resolvedAt?: string | Date | null;
-  actions: Array<{
-    id: string;
-    action: string;
-    note?: string | null;
-    createdAt: string | Date;
-  }>;
-};
+type ModerationProduct = NonNullable<ReturnType<typeof useAdminCatalogProductDetail>["data"]>;
+type ModerationCase = NonNullable<ModerationProduct["moderationCase"]>;
 type ModerationAction = ModerationCase["actions"][number];
-type ModerationProduct = CatalogProduct & { moderationCase?: ModerationCase | null };
-
 function readErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object") {
@@ -87,15 +71,21 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
   const localePath = useLocalePath();
   const formatters = useFormatters();
   const { data: productData, isLoading, error, refetch } = useAdminCatalogProductDetail(productId);
+  const access = useAdminAccess();
+  const canWrite = access.data?.permissions.includes("catalog.write") ?? false;
+  const review = useCatalogPublicationReview();
+  const [approvalDecision, setApprovalDecision] = useState<"APPROVE" | "REJECT" | null>(null);
+  const [approvalReason, setApprovalReason] = useState("");
+  const approvalPending = useRef(false);
   const suspend = useSuspendCatalogProduct();
   const restore = useRestoreCatalogProduct();
   const [reasonAction, setReasonAction] = useState(false);
   const [reason, setReason] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const mutationError = suspend.error ?? restore.error;
-  const isMutating = suspend.isPending || restore.isPending;
+  const mutationError = review.error ?? suspend.error ?? restore.error;
+  const isMutating = review.isPending || suspend.isPending || restore.isPending;
 
-  const moderationProduct = productData as ModerationProduct | undefined;
+  const moderationProduct = productData;
   const primaryImage = useMemo(() => moderationProduct?.images.find((image) => image.isPrimary) ?? moderationProduct?.images[0] ?? null, [moderationProduct]);
   const lowestPrice = useMemo(() => moderationProduct ? [...moderationProduct.variants].sort((a, b) => compareMinorUnits(a.price, b.price))[0] ?? null : null, [moderationProduct]);
 
@@ -164,8 +154,9 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
             <p className="mt-3 font-mono text-xs text-slate-500">{product.id}</p>
           </div>
           <div className="flex flex-wrap gap-2 xl:justify-end">
-            <Button variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={isMutating || product.status !== "ACTIVE"} onClick={() => setReasonAction(true)}>{t("admin.ui.suspend")}</Button>
-            <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={isMutating || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setMessage(t("admin.productModerationDetail.restored").replace("{title}", product.title)) })}>
+            {canWrite && product.status === "PENDING_REVIEW" ? <><Button disabled={isMutating} onClick={() => { setApprovalDecision("APPROVE"); setApprovalReason(""); }}>{t("admin.integration.approval.approve")}</Button><Button variant="destructive" disabled={isMutating} onClick={() => { setApprovalDecision("REJECT"); setApprovalReason(""); }}>{t("admin.integration.approval.reject")}</Button></> : null}
+            <Button variant="outline" className="border-red-400/30 bg-red-500/10 text-red-100" disabled={!canWrite || isMutating || product.status !== "ACTIVE"} onClick={() => setReasonAction(true)}>{t("admin.ui.suspend")}</Button>
+            <Button variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={!canWrite || isMutating || product.status !== "SUSPENDED"} onClick={() => restore.mutate(product.id, { onSuccess: () => setMessage(t("admin.productModerationDetail.restored").replace("{title}", product.title)) })}>
               <RotateCcwIcon className="size-4" />
               {restore.isPending ? t("admin.productModerationDetail.restoring") : t("admin.productModerationDetail.restore")}
             </Button>
@@ -175,7 +166,11 @@ export function AdminProductModerationDetail({ productId }: AdminProductModerati
         {mutationError ? <div className="mt-5 rounded-lg border border-red-300/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">{readErrorMessage(mutationError, t("admin.sellerApplications.operationFailed"))}</div> : null}
       </section>
 
-      {reasonAction ? (
+      {canWrite && approvalDecision && product.status === "PENDING_REVIEW" ? <form className="admin-panel grid gap-4 rounded-xl p-5" onSubmit={event => { event.preventDefault(); if (approvalPending.current || approvalReason.trim().length < 3) return; approvalPending.current = true; review.mutate({ productId: product.id, input: { decision: approvalDecision, reason: approvalReason.trim(), expectedUpdatedAt: new Date(product.updatedAt).toISOString() } }, { onSuccess: () => { setApprovalDecision(null); setApprovalReason(""); setMessage(t(approvalDecision === "APPROVE" ? "admin.integration.approval.approved" : "admin.integration.approval.rejected")); }, onSettled: () => { approvalPending.current = false; } }); }}>
+        <Label htmlFor="catalog-approval-reason">{t("admin.integration.approval.reason")}</Label><p className="text-sm text-muted-foreground">{t("admin.integration.approval.versioned")}</p><Textarea id="catalog-approval-reason" required minLength={3} maxLength={5000} value={approvalReason} onChange={event => setApprovalReason(event.target.value)} /><div className="flex gap-2"><Button type="submit" disabled={isMutating || approvalReason.trim().length < 3}>{t(approvalDecision === "APPROVE" ? "admin.integration.approval.confirmApprove" : "admin.integration.approval.confirmReject")}</Button><Button type="button" variant="outline" disabled={isMutating} onClick={() => setApprovalDecision(null)}>{t("admin.ui.cancel")}</Button></div>
+      </form> : null}
+
+      {canWrite && reasonAction ? (
         <section className="admin-panel rounded-xl border border-white/10 bg-white/5 p-5">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="space-y-2">

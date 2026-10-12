@@ -6,6 +6,7 @@ import type { EventPublisherService } from '#server/modules/event-bus'
 import type { EmailService } from '#server/modules/email'
 import type { QueueProducer } from '#server/modules/queue'
 import type { WalletService } from '#server/modules/wallet'
+import type { NotificationService } from '#server/modules/notification'
 import { JobServiceError } from './job.errors.ts'
 import type { ExpiredPaymentRecord, IJobRepository, ReleaseReservationInput } from './job.repository.ts'
 import type {
@@ -18,11 +19,16 @@ import type {
   SendEmailJobPayload,
   SendNotificationJobPayload,
   SyncOrderStatusJobPayload,
+  AdminScheduledJobPayload,
 } from './job.types.ts'
 
 const defaultAbandonedCartMinutes = 60 * 24 * 14
 const retryableJobNames = new Set<JobName>(['send_notification', 'send_email'])
 const terminalPaymentStatuses: PaymentStatus[] = ['SUCCEEDED', 'FAILED', 'CANCELED', 'REFUNDED']
+export interface AdminScheduledJobs {
+  processDueSchedules?(now: Date): Promise<unknown>
+  prepareDuePayouts?(now: Date): Promise<unknown>
+}
 
 export interface JobProcessResult {
   ok: true
@@ -44,6 +50,8 @@ export class JobService {
     private eventPublisher?: EventPublisherService,
     private emailService?: EmailService,
     private walletService?: WalletService,
+    private adminScheduledJobs?: AdminScheduledJobs,
+    private notificationService?: Pick<NotificationService, 'createNotification'>,
   ) {
     this.logger = appContext.logger
   }
@@ -93,10 +101,17 @@ export class JobService {
         return this.syncOrderStatus(payload as SyncOrderStatusJobPayload)
       case 'reconcile_seller_earnings':
         return this.reconcileSellerEarnings(payload as ReconcileSellerEarningsJobPayload)
+      case 'process_admin_report_schedules':
+      case 'prepare_admin_payouts':
+        return this.runAdminScheduledJob(jobName, payload as AdminScheduledJobPayload)
     }
   }
 
   private async sendNotification(payload: SendNotificationJobPayload): Promise<JobProcessResult> {
+    if (this.notificationService) {
+      await this.notificationService.createNotification(payload.userId, payload.type, payload.title, payload.body, payload.data)
+      return { ok: true, code: 'NOTIFICATION_SENT', processedCount: 1 }
+    }
     await this.repo.createNotification({
       userId: payload.userId,
       type: payload.type,
@@ -195,6 +210,18 @@ export class JobService {
     return { ok: true, code: 'SELLER_EARNINGS_RECONCILED', processedCount: result.succeededCount, ...result }
   }
 
+  private async runAdminScheduledJob(name: 'process_admin_report_schedules' | 'prepare_admin_payouts', payload: AdminScheduledJobPayload): Promise<JobProcessResult> {
+    const now = this.parseOptionalDate(payload.now) ?? new Date()
+    if (name === 'process_admin_report_schedules') {
+      if (!this.adminScheduledJobs?.processDueSchedules) throw new JobServiceError('Report schedule processor is not configured', 'JOB_FAILED')
+      await this.adminScheduledJobs.processDueSchedules(now)
+      return { ok: true, code: 'ADMIN_REPORT_SCHEDULES_PROCESSED' }
+    }
+    if (!this.adminScheduledJobs?.prepareDuePayouts) throw new JobServiceError('Payout preparation processor is not configured', 'JOB_FAILED')
+    await this.adminScheduledJobs.prepareDuePayouts(now)
+    return { ok: true, code: 'ADMIN_PAYOUTS_PREPARED' }
+  }
+
   private getActiveReservations(payment: ExpiredPaymentRecord): ReleaseReservationInput[] {
     return payment.order.checkout.inventoryReservations
       .filter((reservation) => reservation.status === 'ACTIVE')
@@ -206,7 +233,7 @@ export class JobService {
   }
 
   private validatePayload(jobName: JobName, payload: unknown): void {
-    if (!payload || typeof payload !== 'object') {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new JobServiceError('Invalid job payload', 'INVALID_JOB_PAYLOAD', { jobName })
     }
 
@@ -239,6 +266,17 @@ export class JobService {
       if (input.limit !== undefined && (!Number.isInteger(input.limit) || input.limit < 1 || input.limit > 1000)) {
         throw new JobServiceError('Invalid earnings reconciliation payload', 'INVALID_JOB_PAYLOAD', { jobName })
       }
+      return
+    }
+
+    if (jobName === 'process_admin_report_schedules' || jobName === 'prepare_admin_payouts') {
+      const input = payload as AdminScheduledJobPayload
+      if (input.now !== undefined && (typeof input.now !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/.test(input.now))) throw new JobServiceError('Scheduled admin jobs require an explicit ISO timestamp offset', 'INVALID_JOB_PAYLOAD')
+      if (input.now !== undefined) {
+        const day = input.now.slice(0, 10), parsed = new Date(`${day}T00:00:00Z`)
+        if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== day) throw new JobServiceError('Invalid scheduled admin job date', 'INVALID_JOB_PAYLOAD')
+      }
+      this.validateOptionalTimestamp(jobName, input.now)
       return
     }
 

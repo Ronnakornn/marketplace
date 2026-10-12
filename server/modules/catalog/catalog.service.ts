@@ -2,6 +2,7 @@ import { moneyInteger } from '#server/lib/money.ts'
 import type { ProductStatus, Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { CatalogApprovalRepository } from './catalog-approval.repository.ts'
 import type { CacheInvalidation, CacheService } from '#server/modules/cache'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ActiveShopResolver } from '#server/modules/security'
@@ -282,6 +283,8 @@ export class CatalogService {
     private eventPublisher?: EventPublisherService,
     private activeShopResolver?: ActiveShopResolver,
     private auditLogService?: AuditLogService,
+    private publicationApprovalRequired?: () => Promise<boolean>,
+    private approvalRepository?: CatalogApprovalRepository,
   ) {
     this.logger = appContext.logger
   }
@@ -823,9 +826,11 @@ export class CatalogService {
       attributes: readinessAttributes,
     } as CatalogProductDetail
     if (product.status === 'ACTIVE') await this.assertPublishReady(productForReadiness)
+    const requiresReview = (product.status === 'ACTIVE' || product.status === 'PENDING_REVIEW') && actor.role !== 'ADMIN' && await this.publicationApprovalRequired?.()
 
     const updated = await this.handleUniqueConstraint(() =>
       this.repo.updateProduct(product.id, {
+        ...(requiresReview ? { status: 'PENDING_REVIEW' as const } : {}),
         ...(data.categoryId === undefined ? {} : { categoryId: this.normalizeNullableText(data.categoryId) }),
         ...(data.brandId === undefined ? {} : { brandId: this.normalizeNullableText(data.brandId) }),
         ...(data.title === undefined ? {} : { title: data.title.trim() }),
@@ -870,7 +875,8 @@ export class CatalogService {
     }
     await this.validateProductAttributesForCategory(product.categoryId, this.toProductAttributeData(product.attributes))
     await this.assertPublishReady(product)
-    const updated = await this.repo.updateProduct(product.id, { status: 'ACTIVE' })
+    const needsApproval = await this.publicationApprovalRequired?.() ?? false
+    const updated = await this.repo.updateProduct(product.id, { status: needsApproval ? 'PENDING_REVIEW' : 'ACTIVE' })
     await this.cacheInvalidation?.invalidateProduct(updated.id)
     await this.invalidateSellerDashboardForShop(updated.shopId)
     await this.publishBestEffort('product.updated', updated.id, actor.id, {
@@ -878,6 +884,24 @@ export class CatalogService {
       shopId: updated.shopId,
       changedFields: ['status'],
     })
+    return updated
+  }
+
+  async reviewPublication(actor: CatalogActor, productId: string, input: { decision: 'APPROVE' | 'REJECT'; reason?: string; expectedUpdatedAt: string }): Promise<CatalogProductDetail> {
+    this.assertAdmin(actor)
+    if (!this.approvalRepository) throw new CatalogServiceError('Publication review is unavailable', 503, 'CATALOG_ERROR')
+    const product = await this.repo.findProductById(productId)
+    if (!product || product.status !== 'PENDING_REVIEW') throw new CatalogServiceError('Product is not awaiting review', 409, 'PRODUCT_PUBLISH_STATUS_INVALID')
+    const expected = new Date(input.expectedUpdatedAt)
+    if (!Number.isFinite(expected.getTime())) throw new CatalogServiceError('Submission date is invalid', 400, 'PRODUCT_PUBLISH_STATUS_INVALID')
+    if (input.decision === 'APPROVE') await this.assertPublishReady(product)
+    const reason = input.reason?.trim() ?? ''
+    if (input.decision === 'REJECT' && !reason) throw new CatalogServiceError('Rejection reason is required', 400, 'PRODUCT_MODERATION_REASON_REQUIRED')
+    await this.approvalRepository.review(actor, productId, input.decision, reason, expected)
+    await this.cacheInvalidation?.invalidateProduct(productId)
+    await this.invalidateSellerDashboardForShop(product.shopId)
+    const updated = await this.repo.findProductById(productId)
+    if (!updated) throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     return updated
   }
 

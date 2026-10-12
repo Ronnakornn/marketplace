@@ -13,6 +13,7 @@ const RejectBody = t.Object({
 })
 
 const MarkPaidBody = t.Object({
+  evidenceId: t.Optional(t.String({ format: 'uuid' })),
   externalReference: t.String({ minLength: 1, maxLength: 200 }),
 })
 

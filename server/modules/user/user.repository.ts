@@ -1,7 +1,9 @@
+import type { AdminActor, AdminAuthorizer } from '#server/modules/admin-access/admin-access.contract.ts'
 import type { Account, Address, FavoriteProduct, Inventory, PrismaClient, Product, ProductImage, ProductVariant, Shop, ShopFollow, User, Verification } from '#generated/client/client.ts'
 import type { Role, UserStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { lockAdminUserChange } from './admin-user-invariants.ts'
 
 export type AdminUserListItem = Pick<
   User,
@@ -75,7 +77,7 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<User | null>
   findByPhone(phone: string): Promise<User | null>
   countAdmins(excludeUserId?: string): Promise<number>
-  updateUser(id: string, data: UpdateAdminUserData): Promise<User>
+  updateUser(id: string, data: UpdateAdminUserData, actor?: AdminActor): Promise<User>
   updateCurrentUser(id: string, data: UpdateCurrentUserData): Promise<UserProfile>
   markEmailVerified(userId: string): Promise<User>
   createVerification(data: CreateVerificationData): Promise<Verification>
@@ -85,7 +87,7 @@ export interface IUserRepository {
   findCredentialAccount(userId: string): Promise<Account | null>
   updateCredentialPassword(accountId: string, passwordHash: string): Promise<Account>
   completePasswordReset(data: CompletePasswordResetData): Promise<boolean>
-  delete(id: string): Promise<User>
+  delete(id: string, actor?: AdminActor): Promise<User>
   promoteByEmails(emails: string[]): Promise<number>
   listAddresses(userId: string): Promise<BuyerAddress[]>
   findAddress(userId: string, addressId: string): Promise<BuyerAddress | null>
@@ -111,6 +113,7 @@ export class PrismaUserRepository implements IUserRepository {
   constructor(
     appContext: AppContext,
     private prisma: PrismaClient,
+    private adminAuthorizer?: AdminAuthorizer,
   ) {
     this.logger = appContext.logger
   }
@@ -158,11 +161,13 @@ export class PrismaUserRepository implements IUserRepository {
     })
   }
 
-  updateUser(id: string, data: UpdateAdminUserData): Promise<User> {
+  updateUser(id: string, data: UpdateAdminUserData, actor?: AdminActor): Promise<User> {
     this.logger.info('PrismaUserRepository.updateUser', { id, data })
-    return this.prisma.user.update({
-      where: { id },
-      data,
+    return this.prisma.$transaction(async (tx) => {
+      await lockAdminUserChange(tx, id, data, actor, this.adminAuthorizer)
+      const user = await tx.user.update({ where: { id }, data })
+      if (data.role === 'USER') await tx.adminTeamMember.updateMany({ where: { userId: id }, data: { isActive: false, version: { increment: 1 } } })
+      return user
     })
   }
 
@@ -234,9 +239,13 @@ export class PrismaUserRepository implements IUserRepository {
     })
   }
 
-  delete(id: string): Promise<User> {
+  delete(id: string, actor?: AdminActor): Promise<User> {
     this.logger.info('PrismaUserRepository.delete', { id })
-    return this.prisma.user.delete({ where: { id } })
+    return this.prisma.$transaction(async (tx) => {
+      await lockAdminUserChange(tx, id, { deleting: true }, actor, this.adminAuthorizer)
+      await tx.adminTeamMember.deleteMany({ where: { userId: id } })
+      return tx.user.delete({ where: { id } })
+    })
   }
 
   async promoteByEmails(emails: string[]): Promise<number> {
@@ -246,6 +255,8 @@ export class PrismaUserRepository implements IUserRepository {
       where: { email: { in: emails } },
       data: { role: 'ADMIN' },
     })
+    const owners = await this.prisma.user.findMany({ where: { email: { in: emails }, role: 'ADMIN' }, select: { id: true } })
+    await this.prisma.adminTeamMember.createMany({ data: owners.map((user) => ({ userId: user.id, label: 'Owner', isOwner: true, isActive: true, permissions: [] })), skipDuplicates: true })
     return result.count
   }
 

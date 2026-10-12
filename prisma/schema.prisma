@@ -354,6 +354,9 @@ enum UploadUsage {
   REVIEW_IMAGE
   REVIEW_VIDEO
   KYC_DOCUMENT
+  SUPPORT_ATTACHMENT
+  FINANCE_EVIDENCE
+  CATALOG_IMPORT
 }
 
 enum UploadStatus {
@@ -539,6 +542,8 @@ model User {
   moderationActions               ModerationAction[]
   webhookEvents                   WebhookEvent[]           @relation("WebhookEventProcessedBy")
   inventoryMovements              InventoryMovement[]      @relation("InventoryMovementActor")
+  adminTeamMember                 AdminTeamMember?
+  reportSchedules                 ReportSchedule[]
 }
 
 model Address {
@@ -708,6 +713,8 @@ model Shop {
   viewLogs                ShopViewLog[]
   productViewLogs         ProductViewLog[]
   productAddToCartLogs    ProductAddToCartLog[]
+  operationPolicy         ShopOperationPolicy?
+  shippingRateRules       ShippingRateRule[]
 
   @@index([ownerId])
   @@index([sellerProfileId])
@@ -1541,6 +1548,7 @@ model Order {
   supportTickets         SupportTicket[]
   disputeCases           DisputeCase[]
   buyerCoinLedgerEntries BuyerCoinLedger[]
+  documents              OrderDocument[]
 
   @@index([userId, status, createdAt])
   @@index([paymentStatus, createdAt])
@@ -1598,13 +1606,13 @@ model OrderItem {
   currency          String            @default("THB")
   fulfillmentStatus FulfillmentStatus @default(PENDING)
 
-  order         Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  shop          Shop              @relation(fields: [shopId], references: [id])
-  variant       ProductVariant    @relation(fields: [variantId], references: [id])
-  review        Review?
-  returnItems   ReturnItem[]
-  shipmentItems ShipmentItem[]
-  saleSnapshot  ItemSaleSnapshot?
+  order          Order                     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shop           Shop                      @relation(fields: [shopId], references: [id])
+  variant        ProductVariant            @relation(fields: [variantId], references: [id])
+  review         Review?
+  returnItems    ReturnItem[]
+  shipmentItems  ShipmentItem[]
+  saleSnapshot   ItemSaleSnapshot?
   affiliateBases AffiliateCommissionItem[]
 
   @@index([orderId, shopId])
@@ -1823,6 +1831,7 @@ model ReviewReport {
 }
 
 model Refund {
+  supportDispute    DisputeCase?
   id                String       @id @default(uuid()) @db.Uuid
   orderId           String       @db.Uuid
   paymentId         String       @db.Uuid
@@ -1838,11 +1847,11 @@ model Refund {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  order              Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  payment            Payment                @relation(fields: [paymentId], references: [id])
-  returnRequest      ReturnRequest?         @relation(fields: [returnRequestId], references: [id])
-  processingBy       User?                  @relation("RefundProcessingBy", fields: [processingById], references: [id], onDelete: SetNull)
-  completedBy        User?                  @relation("RefundCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  order              Order                     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment            Payment                   @relation(fields: [paymentId], references: [id])
+  returnRequest      ReturnRequest?            @relation(fields: [returnRequestId], references: [id])
+  processingBy       User?                     @relation("RefundProcessingBy", fields: [processingById], references: [id], onDelete: SetNull)
+  completedBy        User?                     @relation("RefundCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
   walletEntries      WalletLedgerEntry[]
   sellerTransactions SellerTransaction[]
   itemAllocations    RefundItemAllocation[]
@@ -1864,24 +1873,30 @@ enum RefundShippingCause {
 }
 
 model ShopSaleSnapshot {
-  taxRatePpm Int?
-  taxMode String?
-  taxFundingBasis String?
-  taxableShipping Boolean?
-  taxShippingBasis String?
-  taxRounding String?
-  taxCustodian String?
-  taxExclusiveFunding String?
-  taxPolicyRevision String?
+  shippingProviderId     String?  @db.Uuid
+  shippingProviderName   String?
+  shippingRateRuleId     String?  @db.Uuid
+  shippingRateVersion    Int?
+  dispatchSlaHours       Int      @default(72)
+  deliverySlaHours       Int      @default(168)
+  taxRatePpm             Int?
+  taxMode                String?
+  taxFundingBasis        String?
+  taxableShipping        Boolean?
+  taxShippingBasis       String?
+  taxRounding            String?
+  taxCustodian           String?
+  taxExclusiveFunding    String?
+  taxPolicyRevision      String?
   sellerGrossMerchandise BigInt?
-  sellerGrossShipping BigInt?
-  buyerShippingNet BigInt?
-  buyerShippingTax BigInt?
-  platformShippingNet BigInt?
-  platformShippingTax BigInt?
-  includedTaxTotal BigInt?
-  addedTaxTotal BigInt?
-  reportedTaxTotal BigInt?
+  sellerGrossShipping    BigInt?
+  buyerShippingNet       BigInt?
+  buyerShippingTax       BigInt?
+  platformShippingNet    BigInt?
+  platformShippingTax    BigInt?
+  includedTaxTotal       BigInt?
+  addedTaxTotal          BigInt?
+  reportedTaxTotal       BigInt?
 
   shopOrderId             String                 @id @db.Uuid
   policyVersion           Int                    @default(1)
@@ -1900,18 +1915,18 @@ model ShopSaleSnapshot {
 }
 
 model ItemSaleSnapshot {
-  buyerMerchandiseNet BigInt?
-  buyerMerchandiseTax BigInt?
-  platformCouponNet BigInt?
-  platformCouponTax BigInt?
-  coinFundingNet BigInt?
-  coinFundingTax BigInt?
-  originalCashbackEligibleNet BigInt?
+  buyerMerchandiseNet          BigInt?
+  buyerMerchandiseTax          BigInt?
+  platformCouponNet            BigInt?
+  platformCouponTax            BigInt?
+  coinFundingNet               BigInt?
+  coinFundingTax               BigInt?
+  originalCashbackEligibleNet  BigInt?
   originalAffiliateEligibleNet BigInt?
-  shopCouponId String? @db.Uuid
-  shopCouponCode String?
-  platformCouponId String? @db.Uuid
-  platformCouponCode String?
+  shopCouponId                 String? @db.Uuid
+  shopCouponCode               String?
+  platformCouponId             String? @db.Uuid
+  platformCouponCode           String?
 
   orderItemId            String                 @id @db.Uuid
   shopOrderId            String                 @db.Uuid
@@ -1931,10 +1946,10 @@ model ItemSaleSnapshot {
 }
 
 model RefundItemAllocation {
-  successfulQuantityBefore Int @default(0)
-  buyerTaxRefund BigInt @default(0)
+  successfulQuantityBefore  Int    @default(0)
+  buyerTaxRefund            BigInt @default(0)
   platformCouponTaxReversal BigInt @default(0)
-  coinTaxReversal BigInt @default(0)
+  coinTaxReversal           BigInt @default(0)
 
   id                     String           @id @default(uuid()) @db.Uuid
   refundId               String           @db.Uuid
@@ -1951,7 +1966,7 @@ model RefundItemAllocation {
 }
 
 model RefundShopAllocation {
-  buyerShippingTaxRefund BigInt @default(0)
+  buyerShippingTaxRefund      BigInt @default(0)
   platformShippingTaxReversal BigInt @default(0)
 
   id                       String              @id @default(uuid()) @db.Uuid
@@ -2029,6 +2044,8 @@ model SellerPayout {
   rejectedById      String?      @db.Uuid
   paidById          String?      @db.Uuid
   externalReference String?
+  cycleKey          String?
+  evidenceUploadId  String?      @db.Uuid
   rejectionReason   String?
   requestedAt       DateTime     @default(now())
   approvedAt        DateTime?
@@ -2046,6 +2063,7 @@ model SellerPayout {
   entries      WalletLedgerEntry[]
   transactions SellerTransaction[]
 
+  @@unique([shopId, cycleKey])
   @@index([walletId, status])
   @@index([shopId, status])
   @@index([status, requestedAt])
@@ -2469,11 +2487,11 @@ model AffiliateCommission {
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
 
-  affiliate Affiliate       @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
-  link      AffiliateLink   @relation(fields: [linkId], references: [id], onDelete: Cascade)
-  click     AffiliateClick? @relation(fields: [clickId], references: [id], onDelete: SetNull)
-  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  itemBases AffiliateCommissionItem[]
+  affiliate       Affiliate                 @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  link            AffiliateLink             @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  click           AffiliateClick?           @relation(fields: [clickId], references: [id], onDelete: SetNull)
+  order           Order                     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemBases       AffiliateCommissionItem[]
   refundReversals AffiliateRefundReversal[]
 
   @@index([affiliateId, createdAt])
@@ -2482,27 +2500,27 @@ model AffiliateCommission {
 }
 
 model AffiliateCommissionItem {
-  id String @id @default(uuid()) @db.Uuid
-  commissionId String @db.Uuid
-  orderItemId String @db.Uuid
-  originalQuantity Int
+  id                  String              @id @default(uuid()) @db.Uuid
+  commissionId        String              @db.Uuid
+  orderItemId         String              @db.Uuid
+  originalQuantity    Int
   originalEligibleNet BigInt
-  commission AffiliateCommission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  commission          AffiliateCommission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  orderItem           OrderItem           @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
   @@unique([commissionId, orderItemId])
   @@index([orderItemId])
 }
 
 model AffiliateRefundReversal {
-  id String @id @default(uuid()) @db.Uuid
-  commissionId String @db.Uuid
-  refundId String @db.Uuid
+  id                  String              @id @default(uuid()) @db.Uuid
+  commissionId        String              @db.Uuid
+  refundId            String              @db.Uuid
   eligibleNetReversed BigInt
-  amount BigInt
-  createdAt DateTime @default(now())
-  commission AffiliateCommission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
-  refund Refund @relation(fields: [refundId], references: [id], onDelete: Cascade)
+  amount              BigInt
+  createdAt           DateTime            @default(now())
+  commission          AffiliateCommission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  refund              Refund              @relation(fields: [refundId], references: [id], onDelete: Cascade)
 
   @@unique([commissionId, refundId])
   @@index([refundId])
@@ -2724,8 +2742,9 @@ model ShippingProvider {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  shop      Shop?      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shop      Shop?              @relation(fields: [shopId], references: [id], onDelete: Cascade)
   shipments Shipment[]
+  rateRules ShippingRateRule[]
 
   @@unique([shopId, code])
   @@index([shopId, isActive])
@@ -2907,22 +2926,24 @@ model TicketMessage {
 }
 
 model DisputeCase {
-  id           String            @id @default(uuid()) @db.Uuid
-  returnRequestId String?         @unique @db.Uuid
-  ticketId     String?           @db.Uuid
-  orderId      String?           @db.Uuid
-  openedById   String            @db.Uuid
-  status       DisputeCaseStatus @default(OPEN)
-  reason       String
-  decision     String?
-  compensation BigInt?
-  resolvedAt   DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  refundId        String?           @unique @db.Uuid
+  refund          Refund?           @relation(fields: [refundId], references: [id], onDelete: Restrict)
+  id              String            @id @default(uuid()) @db.Uuid
+  returnRequestId String?           @unique @db.Uuid
+  ticketId        String?           @db.Uuid
+  orderId         String?           @db.Uuid
+  openedById      String            @db.Uuid
+  status          DisputeCaseStatus @default(OPEN)
+  reason          String
+  decision        String?
+  compensation    BigInt?
+  resolvedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-  ticket   SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
-  order    Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  openedBy User           @relation("DisputeOpenedBy", fields: [openedById], references: [id], onDelete: Cascade)
+  ticket        SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  order         Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  openedBy      User           @relation("DisputeOpenedBy", fields: [openedById], references: [id], onDelete: Cascade)
   returnRequest ReturnRequest? @relation(fields: [returnRequestId], references: [id], onDelete: SetNull)
 
   @@index([ticketId])
@@ -3023,10 +3044,15 @@ model ReportExportJob {
   fileUrl       String?
   error         String?
   expiresAt     DateTime?
+  scheduleId    String?            @db.Uuid
+  runKey        String?            @unique
+  result        Json?
+  claimedAt     DateTime?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
-  requestedBy User @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  requestedBy User            @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  schedule    ReportSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
 
   @@index([requestedById, createdAt])
   @@index([type, status, createdAt])
@@ -3234,4 +3260,188 @@ model IntegrationLog {
   @@index([relatedType, relatedId])
   @@index([requestId])
   @@index([createdAt])
+}
+
+model AdminTeamMember {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @db.Uuid
+  label       String
+  permissions String[] @default([])
+  isOwner     Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([isActive, isOwner])
+}
+
+model AdminAccessRule {
+  id           String    @id @default(uuid()) @db.Uuid
+  subjectType  String
+  subjectValue String
+  effect       String
+  actions      String[]  @default([])
+  priority     Int       @default(0)
+  reason       String
+  expiresAt    DateTime?
+  isActive     Boolean   @default(true)
+  createdById  String    @db.Uuid
+  version      Int       @default(1)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([subjectType, subjectValue, isActive])
+  @@index([isActive, expiresAt])
+}
+
+model ShopOperationPolicy {
+  id                   String   @id @default(uuid()) @db.Uuid
+  shopId               String   @unique @db.Uuid
+  commissionBps        Int?
+  dispatchSlaHours     Int      @default(72)
+  deliverySlaHours     Int      @default(168)
+  shippingRatesEnabled Boolean  @default(false)
+  payoutCadence        String   @default("MANUAL")
+  payoutMinimum        BigInt   @default(0)
+  version              Int      @default(1)
+  updatedById          String   @db.Uuid
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+
+model ShippingRateRule {
+  id                String   @id @default(uuid()) @db.Uuid
+  providerId        String   @db.Uuid
+  shopId            String?  @db.Uuid
+  name              String
+  country           String   @default("TH")
+  postalPrefixes    String[] @default([])
+  regions           String[] @default([])
+  minWeightGrams    Int      @default(0)
+  maxWeightGrams    Int?
+  maxLengthMm       Int?
+  maxWidthMm        Int?
+  maxHeightMm       Int?
+  volumetricDivisor Int      @default(5000)
+  baseFee           BigInt   @default(0)
+  perKgFee          BigInt   @default(0)
+  priority          Int      @default(0)
+  isActive          Boolean  @default(true)
+  version           Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  provider ShippingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  shop     Shop?            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, isActive, priority])
+  @@index([providerId, isActive])
+}
+
+model FinanceReconciliation {
+  id                String    @id @default(uuid()) @db.Uuid
+  kind              String
+  batchKey          String?
+  paymentId         String?   @db.Uuid
+  payoutId          String?   @db.Uuid
+  refundId          String?   @db.Uuid
+  sourceKey         String    @unique
+  amount            BigInt
+  currency          String    @default("THB")
+  externalReference String?
+  occurredAt        DateTime?
+  uploadId          String?   @db.Uuid
+  status            String    @default("UNMATCHED")
+  note              String?
+  createdById       String    @db.Uuid
+  reviewedById      String?   @db.Uuid
+  reviewedAt        DateTime?
+  version           Int       @default(1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([kind, status, createdAt])
+  @@index([paymentId])
+  @@index([payoutId])
+  @@index([batchKey])
+}
+
+model ReportSchedule {
+  id            String             @id @default(uuid()) @db.Uuid
+  name          String
+  type          String
+  format        ReportExportFormat @default(XLSX)
+  filters       Json
+  cadence       String             @default("DAILY")
+  hour          Int                @default(8)
+  timeZone      String             @default("Asia/Bangkok")
+  isActive      Boolean            @default(true)
+  requestedById String             @db.Uuid
+  lastRunAt     DateTime?
+  nextRunAt     DateTime
+  version       Int                @default(1)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  requestedBy User              @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+  exports     ReportExportJob[]
+
+  @@index([isActive, nextRunAt])
+}
+
+model ContentPage {
+  publishedTitle String?
+  id             String    @id @default(uuid()) @db.Uuid
+  slug           String
+  locale         String
+  title          String
+  draftBody      String
+  publishedBody  String?
+  publishedAt    DateTime?
+  version        Int       @default(1)
+  updatedById    String    @db.Uuid
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([slug, locale])
+  @@index([publishedAt])
+}
+
+model CatalogImportJob {
+  id                 String   @id @default(uuid()) @db.Uuid
+  requestedById      String   @db.Uuid
+  requestKey         String   @unique
+  shopId             String?  @db.Uuid
+  mode               String
+  rows               Json
+  previewFingerprint String
+  status             String   @default("PREVIEW")
+  result             Json?
+  expiresAt          DateTime
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([requestedById, createdAt])
+  @@index([status, expiresAt])
+}
+
+model OrderDocument {
+  id          String   @id @default(uuid()) @db.Uuid
+  orderId     String   @db.Uuid
+  kind        String
+  number      String   @unique
+  locale      String
+  snapshot    Json
+  createdById String   @db.Uuid
+  issuedAt    DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, kind, locale])
+  @@index([issuedAt])
 }

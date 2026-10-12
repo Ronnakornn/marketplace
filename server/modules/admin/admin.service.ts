@@ -2,6 +2,8 @@ import { moneyInteger } from '#server/lib/money.ts'
 import { randomUUID } from 'node:crypto'
 import { parseFrozenTaxPolicy } from '#server/modules/checkout/sale-economics.ts'
 import type { Prisma } from '#generated/client/client.ts'
+import type { AdminAuthorizer } from '#server/modules/admin-access/admin-access.contract.ts'
+import { validateManagedSetting } from '#server/modules/admin-config/admin-config.service.ts'
 import type {
   AffiliateCommissionStatus,
   OrderStatus,
@@ -185,6 +187,7 @@ export class AdminService {
     private eventPublisher?: EventPublisherService,
     private walletService?: WalletService,
     private cacheInvalidation?: CacheInvalidation,
+    private adminAuthorizer?: AdminAuthorizer,
   ) {
     this.logger = appContext.logger
   }
@@ -255,11 +258,13 @@ export class AdminService {
   ): Promise<AdminSystemSettingRecord> {
     this.assertAdmin(actor)
     const key = keyValue.trim().toLowerCase()
+    if (key.startsWith('coupon.targets.')) throw new AdminServiceError('Use the coupon targets editor for this setting', 409, 'MANAGED_SETTING_REQUIRES_VERSION')
     if (!/^[a-z][a-z0-9_.-]{1,119}$/.test(key)) {
       throw new AdminServiceError('Setting key must use lowercase letters, numbers, dots, underscores, or dashes', 400, 'INVALID_ADMIN_INPUT')
     }
     const valueType = this.parseEnum<SettingValueType>(input.valueType ?? 'JSON', SETTING_VALUE_TYPES)
     let value = this.normalizeSystemSettingValue(input.value, valueType)
+    if (validateManagedSetting(key, value, valueType)) throw new AdminServiceError('Use the versioned configuration editor for this setting', 409, 'MANAGED_SETTING_REQUIRES_VERSION')
     if (key === 'checkout.tax') {
       if (valueType !== 'JSON' || value === null) throw new AdminServiceError('Tax policy must contain JSON', 400, 'INVALID_ADMIN_INPUT')
       try { value = { ...parseFrozenTaxPolicy(value), revision: randomUUID() } }
@@ -362,13 +367,14 @@ export class AdminService {
     const email = this.normalizeEmail(input.email)
     const password = this.normalizePassword(input.password)
     const role = input.role === undefined ? 'USER' : this.parseEnum<Role>(input.role, ROLES)
+    if (role === 'ADMIN') await this.adminAuthorizer?.require(actor, 'team.manage')
     if (await this.repository.findUserByEmail(email)) {
       throw new AdminServiceError('Email is already in use', 409, 'USER_EMAIL_EXISTS')
     }
     this.logger.info('AdminService.createUser', { actorId: actor.id, email, role })
     try {
       const created = await auth.api.signUpEmail({ body: { name, email, password } })
-      const user = await this.repository.createUser({ id: created.user.id, name, email, role })
+      const user = await this.repository.createUser({ id: created.user.id, name, email, role }, actor)
       await this.auditUserChange(actor, 'ADMIN_CONFIG_CHANGED', user.id, null, user)
       return user
     } catch (error) {
@@ -386,6 +392,7 @@ export class AdminService {
     this.assertAdmin(actor)
     const existing = await this.repository.findUserById(userId)
     if (!existing) throw new AdminServiceError('User not found', 404, 'USER_NOT_FOUND')
+    if (existing.role === 'ADMIN') await this.adminAuthorizer?.require(actor, 'team.manage')
     const update: { name?: string; email?: string; role?: Role; status?: UserStatus } = {}
     if (input.name !== undefined) update.name = this.normalizeRequiredText(input.name, 'User name')
     if (input.email !== undefined) {
@@ -397,6 +404,7 @@ export class AdminService {
     }
     if (input.role !== undefined) {
       update.role = this.parseEnum<Role>(input.role, ROLES)
+      if (update.role !== existing.role) await this.adminAuthorizer?.require(actor, 'team.manage')
       await this.assertRoleChangeAllowed(actor, existing, update.role)
     }
     if (input.status !== undefined) {
@@ -407,7 +415,7 @@ export class AdminService {
     }
     if (Object.keys(update).length === 0) return this.toAdminUserRecord(existing)
     this.logger.info('AdminService.updateUser', { actorId: actor.id, userId, fields: Object.keys(update) })
-    const updated = await this.repository.updateUser(userId, update)
+    const updated = await this.repository.updateUser(userId, update, actor)
     await this.auditUserChange(actor, 'ADMIN_CONFIG_CHANGED', userId, existing, updated)
     return updated
   }
@@ -424,6 +432,7 @@ export class AdminService {
     if (!existing) {
       throw new AdminServiceError('User not found', 404, 'USER_NOT_FOUND')
     }
+    if (existing.role === 'ADMIN') await this.adminAuthorizer?.require(actor, 'team.manage')
     if (actor.id === userId && status === 'SUSPENDED') {
       throw new AdminServiceError('Admin cannot suspend own account', 409, 'INVALID_STATUS_TRANSITION')
     }
@@ -431,7 +440,7 @@ export class AdminService {
       throw new AdminServiceError('At least one admin must remain', 409, 'INVALID_STATUS_TRANSITION')
     }
     this.logger.info('AdminService.updateUserStatus', { actorId: actor.id, userId, status })
-    const updated = await this.repository.updateUserStatus(userId, status)
+    const updated = await this.repository.updateUserStatus(userId, status, actor)
     await this.auditStatusChange(actor, 'USER_STATUS_CHANGED', 'User', userId, existing, updated)
     return updated
   }
@@ -440,13 +449,14 @@ export class AdminService {
     this.assertAdmin(actor)
     const existing = await this.repository.findUserById(userId)
     if (!existing) throw new AdminServiceError('User not found', 404, 'USER_NOT_FOUND')
+    if (existing.role === 'ADMIN') await this.adminAuthorizer?.require(actor, 'team.manage')
     if (actor.id === userId) {
       throw new AdminServiceError('Admin cannot delete own account', 409, 'INVALID_STATUS_TRANSITION')
     }
     if (existing.role === 'ADMIN' && await this.repository.countAdmins(userId) < 1) {
       throw new AdminServiceError('At least one admin must remain', 409, 'INVALID_STATUS_TRANSITION')
     }
-    await this.repository.deleteUser(userId)
+    await this.repository.deleteUser(userId, actor)
     await this.auditUserChange(actor, 'ADMIN_CONFIG_CHANGED', userId, existing, null)
     return { id: userId, deleted: true }
   }

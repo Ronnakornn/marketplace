@@ -42,6 +42,8 @@ import {
   DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { useTranslations } from "#/i18n/client";
+import { useAdminAccess } from "#/features/admin/access/useAdminAccess";
+import { adminPath, canVisitAdminPath } from "#/features/admin/operations/navigation";
 import { useLocalePath } from "#/i18n/navigation";
 import { signOut } from "#/lib/auth-client";
 import {
@@ -73,6 +75,20 @@ interface AdminSidebarNavProps {
 }
 
 const ADMIN_NAV_ITEMS = [
+  { title: "admin.integration.nav.team", href: "/admin/team", icon: ShieldCheckIcon, match: (path: string) => path.startsWith("/admin/team") },
+  { title: "admin.integration.nav.shopPolicies", href: "/admin/shop-policies", icon: Building2Icon, match: (path: string) => path.startsWith("/admin/shop-policies") },
+  { title: "admin.integration.nav.categories", href: "/admin/categories", icon: PackageSearchIcon, match: (path: string) => path.startsWith("/admin/categories") },
+  { title: "admin.integration.nav.imports", href: "/admin/catalog/imports", icon: PackageSearchIcon, match: (path: string) => path.startsWith("/admin/catalog/imports") },
+  { title: "admin.integration.nav.documents", href: "/admin/order-documents", icon: FileClockIcon, match: (path: string) => path.startsWith("/admin/order-documents") },
+  { title: "admin.integration.nav.finance", href: "/admin/finance", icon: BanknoteIcon, match: (path: string) => path.startsWith("/admin/finance") },
+  { title: "admin.integration.nav.reconciliation", href: "/admin/reconciliation", icon: CreditCardIcon, match: (path: string) => path.startsWith("/admin/reconciliation") },
+  { title: "admin.integration.nav.shipping", href: "/admin/shipping", icon: ShoppingBagIcon, match: (path: string) => path.startsWith("/admin/shipping") },
+  { title: "admin.integration.nav.marketing", href: "/admin/marketing", icon: BadgePercentIcon, match: (path: string) => path.startsWith("/admin/marketing") },
+  { title: "admin.integration.nav.content", href: "/admin/content", icon: FileClockIcon, match: (path: string) => path === "/admin/content" || path.startsWith("/admin/content/") },
+  { title: "admin.integration.nav.templates", href: "/admin/templates", icon: BellIcon, match: (path: string) => path.startsWith("/admin/templates") },
+  { title: "admin.integration.nav.schedules", href: "/admin/report-schedules", icon: BarChart3Icon, match: (path: string) => path.startsWith("/admin/report-schedules") },
+  { title: "admin.integration.nav.controls", href: "/admin/settings/controls", icon: SettingsIcon, match: (path: string) => path.startsWith("/admin/settings/controls") },
+  { title: "admin.integration.nav.accessRules", href: "/admin/security/access", icon: ShieldAlertIcon, match: (path: string) => path.startsWith("/admin/security/access") },
   {
     title: "support.title",
     href: "/admin/support",
@@ -101,7 +117,7 @@ const ADMIN_NAV_ITEMS = [
     title: "admin.nav.products",
     href: "/admin/products",
     icon: PackageSearchIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/products") || pathname.startsWith("/admin/catalog"),
+    match: (pathname: string) => pathname.startsWith("/admin/products") || (pathname.startsWith("/admin/catalog") && !pathname.startsWith("/admin/catalog/imports")),
   },
   {
     title: "admin.nav.contentModeration",
@@ -173,7 +189,7 @@ const ADMIN_NAV_ITEMS = [
     title: "admin.nav.settings",
     href: "/admin/settings",
     icon: SettingsIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/settings") || pathname.startsWith("/admin/profile"),
+    match: (pathname: string) => (pathname.startsWith("/admin/settings") && !pathname.startsWith("/admin/settings/controls")) || pathname.startsWith("/admin/profile"),
   },
 ] as const;
 
@@ -190,7 +206,10 @@ export function AdminSidebarNav({
   const t = useTranslations();
   const router = useRouter();
   const localePath = useLocalePath();
-  const pathname = usePathname();
+  const pathname = adminPath(usePathname());
+  const access = useAdminAccess();
+  const menuOrder: readonly string[] = ["/admin/dashboard", "/admin/users", "/admin/team", "/admin/shops", "/admin/shop-policies", "/admin/shipping", "/admin/products", "/admin/categories", "/admin/catalog/imports", "/admin/orders", "/admin/order-documents", "/admin/returns", "/admin/refunds", "/admin/finance", "/admin/payouts", "/admin/reconciliation", "/admin/commissions", "/admin/marketing", "/admin/flash-sales", "/admin/affiliates", "/admin/content-moderation", "/admin/content", "/admin/templates", "/admin/support", "/admin/reports", "/admin/report-schedules", "/admin/fraud", "/admin/security/access", "/admin/audit-logs", "/admin/settings", "/admin/settings/controls"];
+  const visibleItems = ADMIN_NAV_ITEMS.filter(item => canVisitAdminPath(access.data?.permissions, item.href)).sort((a, b) => menuOrder.indexOf(a.href) - menuOrder.indexOf(b.href));
   const prefersReducedMotion = useReducedMotion();
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -218,7 +237,7 @@ export function AdminSidebarNav({
       >
         <SidebarHeader className="px-3 py-4">
           <Link
-            href={localePath("/admin")}
+            href={localePath(visibleItems[0]?.href ?? "/admin/profile")}
             className="flex items-center gap-3 rounded-lg px-3 py-3 no-underline"
           >
             <div className="flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -240,7 +259,7 @@ export function AdminSidebarNav({
             <SidebarGroupLabel>{t("admin.navigation")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {ADMIN_NAV_ITEMS.map((item) => (
+                {visibleItems.map((item) => (
                   <SidebarMenuItem key={item.href} className="relative">
                     {item.match(pathname) ? (
                       <motion.span
@@ -286,8 +305,8 @@ export function AdminSidebarNav({
               <DropdownMenuLabel className="font-normal"><p className="truncate text-sm font-semibold">{user.name}</p><p className="truncate text-xs text-muted-foreground">{user.email}</p></DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild><Link href={localePath("/admin/profile")}><ShieldCheckIcon />{t("common.account")}</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link href={localePath("/admin/payouts")}><CreditCardIcon />{t("common.billing")}</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link href={localePath("/admin/settings")}><BellIcon />{t("common.notifications")}</Link></DropdownMenuItem>
+              {canVisitAdminPath(access.data?.permissions, "/admin/payouts") ? <DropdownMenuItem asChild><Link href={localePath("/admin/payouts")}><CreditCardIcon />{t("common.billing")}</Link></DropdownMenuItem> : null}
+              {canVisitAdminPath(access.data?.permissions, "/admin/settings") ? <DropdownMenuItem asChild><Link href={localePath("/admin/settings")}><BellIcon />{t("common.notifications")}</Link></DropdownMenuItem> : null}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => void handleSignOut()}><LogOutIcon />{t("common.logout")}</DropdownMenuItem>
             </DropdownMenuContent>

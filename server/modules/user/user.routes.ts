@@ -189,7 +189,7 @@ export function createUserRoutes(container: ServiceContainer) {
       withRole: 'ADMIN',
       response: t.Array(AdminUserResponse),
     })
-    .post('/api/users', ({ body }) => moneyResponse(container.userService.createForAdmin(body)), {
+    .post('/api/users', ({ authContext, body }: any) => moneyResponse(container.userService.createForAdmin(body, authContext.user.id)), {
       withRole: 'ADMIN',
       body: CreateUserBody,
       response: AdminUserResponse,

@@ -24,6 +24,8 @@ export async function ensureRecurringJobSchedulers(config: QueueConfig): Promise
       name: 'reconcile_seller_earnings',
       data: { limit: 100 },
     }),
+    queue.upsertJobScheduler('process-admin-report-schedules', { every: 60_000 }, { name: 'process_admin_report_schedules', data: {} }),
+    queue.upsertJobScheduler('prepare-admin-payouts', { every: 60_000 }, { name: 'prepare_admin_payouts', data: {} }),
   ])
   return queue
 }

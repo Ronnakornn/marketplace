@@ -18,6 +18,7 @@ export interface IUploadRepository {
   findUploadById(fileId: string): Promise<Upload | null>
   markCompleted(fileId: string, completedAt: Date): Promise<Upload>
   hasActiveShop(ownerId: string): Promise<boolean>
+  canReadSupportAttachment(userId: string, isAdmin: boolean, ticketId: string, fileId: string): Promise<boolean>
 }
 
 export class PrismaUploadRepository implements IUploadRepository {
@@ -69,6 +70,21 @@ export class PrismaUploadRepository implements IUploadRepository {
       select: { id: true },
     })
     return Boolean(shop)
+  }
+
+  async canReadSupportAttachment(userId: string, isAdmin: boolean, ticketId: string, fileId: string): Promise<boolean> {
+    const message = await this.prisma.ticketMessage.findFirst({
+      where: {
+        ticketId,
+        attachments: { array_contains: [fileId] },
+        ...(!isAdmin ? {
+          isInternal: false,
+          ticket: { OR: [{ userId }, { shop: { ownerId: userId, status: 'ACTIVE', deletedAt: null } }] },
+        } : {}),
+      },
+      select: { id: true },
+    })
+    return Boolean(message)
   }
 }
 

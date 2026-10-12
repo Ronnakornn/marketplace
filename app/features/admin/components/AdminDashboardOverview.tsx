@@ -19,6 +19,10 @@ import { Skeleton } from "#/components/ui/skeleton";
 import { useAdminDashboard } from "../hooks/useAdminOperations";
 import { AdminPageIntro } from "./AdminPageIntro";
 import { useTranslations } from "#/i18n/client";
+import { useAdminAccess } from "#/features/admin/access/useAdminAccess";
+import { canVisitAdminPath } from "#/features/admin/operations/navigation";
+import { useLocalePath } from "#/i18n/navigation";
+import { AdminAnalytics } from "../reporting/AdminAnalytics";
 
 interface AdminDashboardOverviewProps {
   userName: string;
@@ -99,6 +103,10 @@ export function AdminDashboardOverview({
   heroVisual,
 }: AdminDashboardOverviewProps) {
   const t = useTranslations();
+  const access = useAdminAccess();
+  const localePath = useLocalePath();
+  const permittedLinks = quickLinks.filter(item => canVisitAdminPath(access.data?.permissions, item.href));
+  const permittedExceptions = exceptionCards.filter(item => canVisitAdminPath(access.data?.permissions, item.href));
   const { data: dashboard, isLoading, error } = useAdminDashboard();
   const prefersReducedMotion = useReducedMotion();
 
@@ -111,9 +119,10 @@ export function AdminDashboardOverview({
       >
         {heroVisual}
       </AdminPageIntro>
+      {access.data?.permissions.includes("reports.read") ? <AdminAnalytics compact /> : null}
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {exceptionCards.map((item, index) => {
+        {permittedExceptions.map((item, index) => {
           const value = dashboard?.exceptions?.[item.key] ?? 0;
           return (
             <motion.div
@@ -122,7 +131,7 @@ export function AdminDashboardOverview({
               animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
               transition={prefersReducedMotion ? undefined : { duration: 0.35, delay: index * 0.03 }}
             >
-              <Link href={item.href} className="admin-panel block rounded-lg border border-white/10 bg-white/5 px-4 py-4 no-underline">
+              <Link href={localePath(item.href)} className="admin-panel block rounded-lg border border-white/10 bg-white/5 px-4 py-4 no-underline">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-slate-300">{t(`admin.overview.${item.title}` as Parameters<typeof t>[0])}</p>
@@ -173,10 +182,10 @@ export function AdminDashboardOverview({
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {isLoading
-          ? quickLinks.map((item) => (
+          ? permittedLinks.map((item) => (
               <AdminDashboardLinkSkeleton key={item.href} />
             ))
-          : quickLinks.map((item, index) => (
+          : permittedLinks.map((item, index) => (
               <motion.div
                 key={item.href}
                 initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
@@ -188,7 +197,7 @@ export function AdminDashboardOverview({
                 }
               >
                 <Link
-                  href={item.href}
+                  href={localePath(item.href)}
                   className="admin-panel group block rounded-2xl px-5 py-5 no-underline"
                 >
                   <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-cyan-300/12 text-cyan-200">

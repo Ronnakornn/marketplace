@@ -1,8 +1,8 @@
-import type { FlashSale, FlashSaleItem, FlashSaleReservation, Inventory, MarketingBanner, PrismaClient, Product, ProductImage, ProductVariant, Shop } from '#generated/client/client.ts'
+import type { FlashSale, FlashSaleItem, FlashSaleReservation, Inventory, MarketingBanner, Prisma, PrismaClient, Product, ProductImage, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
-export type DiscoveryBannerRecord = Pick<MarketingBanner, 'id' | 'placement' | 'title' | 'subtitle' | 'imageUrl' | 'mobileImageUrl' | 'targetUrl' | 'sortOrder'>
+export type DiscoveryBannerRecord = Pick<MarketingBanner, 'id' | 'placement' | 'title' | 'subtitle' | 'imageUrl' | 'mobileImageUrl' | 'targetUrl' | 'sortOrder'> & Partial<Pick<MarketingBanner, 'metadata' | 'startsAt' | 'endsAt'>>
 
 export type DiscoveryFeaturedShopRecord = Pick<Shop, 'id' | 'name' | 'slug' | 'logoUrl' | 'coverUrl' | 'ratingAverage' | 'ratingCount' | 'followerCount' | 'productCount'>
 
@@ -35,16 +35,14 @@ export class PrismaDiscoveryRepository implements IDiscoveryRepository {
     this.logger = appContext.logger
   }
 
-  findHomeBanners(limit: number, now: Date): Promise<DiscoveryBannerRecord[]> {
+  async findHomeBanners(limit: number, now: Date): Promise<DiscoveryBannerRecord[]> {
     this.logger.debug('PrismaDiscoveryRepository.findHomeBanners', { limit })
-    return this.prisma.marketingBanner.findMany({
-      where: {
-        placement: { in: ['HOME_HERO', 'HOME_HIGHLIGHT'] },
-        status: 'PUBLISHED',
+    const where = {
+        status: { in: ['PUBLISHED', 'SCHEDULED'] },
         OR: [{ startsAt: null }, { startsAt: { lte: now } }],
         AND: [{ OR: [{ endsAt: null }, { endsAt: { gt: now } }] }],
-      },
-      select: {
+    } satisfies Prisma.MarketingBannerWhereInput
+    const select = {
         id: true,
         placement: true,
         title: true,
@@ -53,10 +51,16 @@ export class PrismaDiscoveryRepository implements IDiscoveryRepository {
         mobileImageUrl: true,
         targetUrl: true,
         sortOrder: true,
-      },
-      orderBy: [{ placement: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
-      take: limit,
-    })
+        metadata: true,
+        startsAt: true,
+        endsAt: true,
+    } as const
+    const orderBy = [{ sortOrder: 'asc' }, { createdAt: 'desc' }, { id: 'asc' }] as const
+    const [banners, popups] = await Promise.all([
+      this.prisma.marketingBanner.findMany({ where: { ...where, placement: { in: ['HOME_HERO', 'HOME_HIGHLIGHT'] } }, select, orderBy: [...orderBy], take: limit }),
+      this.prisma.marketingBanner.findMany({ where: { ...where, placement: 'HOME_POPUP' }, select, orderBy: [...orderBy], take: 1 }),
+    ])
+    return [...banners, ...popups]
   }
 
   findActiveFlashSale(limit: number, now: Date): Promise<DiscoveryFlashSaleRecord | null> {

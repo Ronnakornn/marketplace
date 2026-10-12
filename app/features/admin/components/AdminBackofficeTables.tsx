@@ -8,6 +8,8 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
+import Link from "next/link";
+import { useLocalePath } from "#/i18n/navigation";
 import { useTranslations } from "#/i18n/client";
 import { AdminDataShell } from "./AdminDataShell";
 import { AdminStatusAction } from "./AdminStatusAction";
@@ -82,6 +84,7 @@ function EmptyRow({ colSpan }: { colSpan: number }) {
 
 export function AdminReturnsTable() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
@@ -100,7 +103,7 @@ export function AdminReturnsTable() {
             {rows.length ? rows.map((item: AdminReturn) => (
               <TableRow key={item.id} className="border-white/8 hover:bg-white/4">
                 <TableCell className="px-5 py-4"><p className="font-medium text-white">{item.order.orderNumber}</p><p className="text-xs text-slate-500">{item.reason ?? t("admin.common.noReason")} · {formatDate(item.createdAt)}</p></TableCell>
-                <TableCell><p className="text-sm text-slate-200">{item.user.name}</p><p className="text-xs text-slate-500">{item.user.email}</p></TableCell>
+                <TableCell><Link href={localePath(`/admin/users/${item.user.id}`)} className="text-sm text-slate-200 underline underline-offset-4">{item.user.name}</Link><p className="text-xs text-slate-500">{item.user.email}</p></TableCell>
                 <TableCell className="text-sm text-slate-300">{t("admin.common.returnCounts").replace("{items}", String(item.items.length)).replace("{refunds}", String(item.refunds.length))}</TableCell>
                 <TableCell><AdminStatusBadge status={item.status} /></TableCell>
                 <TableCell className="flex justify-end"><AdminStatusAction label={item.order.orderNumber} currentStatus={item.status} options={RETURN_STATUSES} isPending={updateStatus.isPending} onConfirm={(next) => updateStatus.mutate({ id: item.id, status: next })} /></TableCell>
@@ -116,6 +119,7 @@ export function AdminReturnsTable() {
 
 export function AdminPayoutsTable() {
   const t = useTranslations();
+  const localePath = useLocalePath();
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const query = useAdminPayoutsList({ status });
@@ -134,7 +138,7 @@ export function AdminPayoutsTable() {
           <TableBody>
             {rows.length ? rows.map((item: AdminPayout) => (
               <TableRow key={item.id} className="border-white/8 hover:bg-white/4">
-                <TableCell className="px-5 py-4"><p className="font-medium text-white">{item.shop.name}</p><p className="text-xs text-slate-500">{item.id}</p></TableCell>
+                <TableCell className="px-5 py-4"><Link href={localePath(`/admin/shops/${item.shop.id}`)} className="font-medium text-white underline underline-offset-4">{item.shop.name}</Link><p className="text-xs text-slate-500">{item.id}</p></TableCell>
                 <TableCell className="text-sm font-semibold text-slate-100">{formatMoney(item.amount, item.currency)}</TableCell>
                 <TableCell><AdminStatusBadge status={item.status} /></TableCell>
                 <TableCell className="text-sm text-slate-300">{formatDate(item.requestedAt)}</TableCell>

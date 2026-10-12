@@ -1,3 +1,5 @@
+import type { AdminAuthorizer, AdminPermission } from '#server/modules/admin-access/admin-access.contract.ts'
+import { payoutCycleKey } from '#server/modules/admin-operations/payout-cycle.ts'
 import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -22,6 +24,7 @@ export interface RejectPayoutInput {
 }
 
 export interface MarkPayoutPaidInput {
+  evidenceId?: string
   externalReference: string
 }
 
@@ -53,6 +56,7 @@ export class PayoutService {
     private eventPublisher?: EventPublisherService,
     private activeShopResolver?: ActiveShopResolver,
     private auditLogService?: AuditLogService,
+    private adminAuthorizer?: AdminAuthorizer,
   ) {
     this.logger = appContext.logger
   }
@@ -124,31 +128,64 @@ export class PayoutService {
     return this.toResponse(payout)
   }
 
-  async approveAdminPayout(actor: PayoutActor, payoutId: string): Promise<PayoutResponse> {
+  async approveAdminPayout(
+    actor: PayoutActor,
+    payoutId: string,
+  ): Promise<PayoutResponse> {
     this.assertAdmin(actor)
-    this.logger.info('PayoutService.approveAdminPayout', { actorId: actor.id, payoutId })
+    this.logger.info('PayoutService.approveAdminPayout', {
+      actorId: actor.id,
+      payoutId,
+    })
     const result = await this.repo.transaction(async (txRepo) => {
+      await this.authorizeTransaction(txRepo, actor, 'payouts.approve')
       const payout = await this.getPayoutForUpdate(txRepo, payoutId)
       if (payout.status !== 'requested') {
-        throw new WalletServiceError('Only requested payouts can be approved', 409, 'INVALID_PAYOUT_STATE')
+        throw new WalletServiceError(
+          'Only requested payouts can be approved',
+          409,
+          'INVALID_PAYOUT_STATE',
+        )
       }
       await this.assertReservedPayoutFunded(txRepo, payout)
-      return { beforeStatus: payout.status, response: this.toResponse(await txRepo.updatePayout(payout.id, {
-        status: 'approved',
-        approvedById: actor.id,
-        approvedAt: new Date(),
-      })) }
+      await txRepo.auditOperation?.(actor.id, payout.id, 'approved', {
+        beforeStatus: payout.status,
+      })
+      return {
+        beforeStatus: payout.status,
+        response: this.toResponse(
+          await txRepo.updatePayout(payout.id, {
+            status: 'approved',
+            approvedById: actor.id,
+            approvedAt: new Date(),
+          }),
+        ),
+      }
     })
-    await this.auditPayoutStatus(actor, payoutId, result.beforeStatus, result.response.status)
+    await this.auditPayoutStatus(
+      actor,
+      payoutId,
+      result.beforeStatus,
+      result.response.status,
+    )
     return result.response
   }
 
-  async rejectAdminPayout(actor: PayoutActor, payoutId: string, input: RejectPayoutInput = {}): Promise<PayoutResponse> {
+  async rejectAdminPayout(
+    actor: PayoutActor,
+    payoutId: string,
+    input: RejectPayoutInput = {},
+  ): Promise<PayoutResponse> {
     this.assertAdmin(actor)
     const result = await this.repo.transaction(async (txRepo) => {
+      await this.authorizeTransaction(txRepo, actor, 'payouts.approve')
       const payout = await this.getPayoutForUpdate(txRepo, payoutId)
       if (payout.status !== 'requested' && payout.status !== 'approved') {
-        throw new WalletServiceError('Only requested or approved payouts can be rejected', 409, 'INVALID_PAYOUT_STATE')
+        throw new WalletServiceError(
+          'Only requested or approved payouts can be rejected',
+          409,
+          'INVALID_PAYOUT_STATE',
+        )
       }
       const updated = await txRepo.updatePayout(payout.id, {
         status: 'rejected',
@@ -165,34 +202,95 @@ export class PayoutService {
         currency: payout.currency,
         description: 'Payout reserve released after rejection',
       })
-      return { response: this.toResponse(updated), requestedById: payout.requestedById, beforeStatus: payout.status }
+      await txRepo.auditOperation?.(actor.id, payout.id, 'rejected', {
+        beforeStatus: payout.status,
+        reason: input.reason?.trim() ?? '',
+      })
+      return {
+        response: this.toResponse(updated),
+        requestedById: payout.requestedById,
+        beforeStatus: payout.status,
+      }
     })
-    await this.publishBestEffort('payout.rejected', result.response.id, actor.id, {
-      payoutId: result.response.id,
-      shopId: result.response.shop.id,
-      sellerUserId: result.requestedById,
-      reason: result.response.rejectionReason,
-    })
-    await this.auditPayoutStatus(actor, payoutId, result.beforeStatus, result.response.status)
+    await this.publishBestEffort(
+      'payout.rejected',
+      result.response.id,
+      actor.id,
+      {
+        payoutId: result.response.id,
+        shopId: result.response.shop.id,
+        sellerUserId: result.requestedById,
+        reason: result.response.rejectionReason,
+      },
+    )
+    await this.auditPayoutStatus(
+      actor,
+      payoutId,
+      result.beforeStatus,
+      result.response.status,
+    )
     return result.response
   }
 
-  async markAdminPayoutPaid(actor: PayoutActor, payoutId: string, input: MarkPayoutPaidInput): Promise<PayoutResponse> {
+  async markAdminPayoutPaid(
+    actor: PayoutActor,
+    payoutId: string,
+    input: MarkPayoutPaidInput,
+  ): Promise<PayoutResponse> {
     this.assertAdmin(actor)
     const externalReference = input.externalReference?.trim()
     if (!externalReference) {
-      throw new WalletServiceError('External transfer reference is required', 400, 'INVALID_PAYOUT_STATE')
+      throw new WalletServiceError(
+        'External transfer reference is required',
+        400,
+        'INVALID_PAYOUT_STATE',
+      )
     }
     const result = await this.repo.transaction(async (txRepo) => {
+      await this.authorizeTransaction(txRepo, actor, 'payouts.complete')
       const payout = await this.getPayoutForUpdate(txRepo, payoutId)
       if (payout.status !== 'approved') {
-        throw new WalletServiceError('Only approved payouts can be marked paid', 409, 'INVALID_PAYOUT_STATE')
+        throw new WalletServiceError(
+          'Only approved payouts can be marked paid',
+          409,
+          'INVALID_PAYOUT_STATE',
+        )
       }
       if (payout.approvedById === actor.id) {
-        throw new WalletServiceError('Payout must be paid by a different administrator', 409, 'INVALID_PAYOUT_STATE')
+        throw new WalletServiceError(
+          'Payout must be paid by a different administrator',
+          409,
+          'INVALID_PAYOUT_STATE',
+        )
       }
       await this.assertReservedPayoutFunded(txRepo, payout)
+      let evidenceUploadId: string | undefined
+      if (input.evidenceId) {
+        if (!txRepo.validatePaidEvidence)
+          throw new WalletServiceError(
+            'Finance evidence validation is unavailable',
+            409,
+            'INVALID_PAYOUT_STATE',
+          )
+        try {
+          evidenceUploadId = await txRepo.validatePaidEvidence({
+            evidenceId: input.evidenceId,
+            payoutId: payout.id,
+            amount: moneyInteger(payout.amount),
+            currency: payout.currency,
+            externalReference,
+            actorId: actor.id,
+          })
+        } catch (error) {
+          throw new WalletServiceError(
+            error instanceof Error ? error.message : 'Invalid payout evidence',
+            409,
+            'INVALID_PAYOUT_STATE',
+          )
+        }
+      }
       const updated = await txRepo.updatePayout(payout.id, {
+        evidenceUploadId,
         status: 'paid',
         paidById: actor.id,
         externalReference,
@@ -207,6 +305,10 @@ export class PayoutService {
         currency: payout.currency,
         description: 'Payout marked paid manually',
       })
+      await txRepo.auditOperation?.(actor.id, payout.id, 'paid', {
+        externalReference,
+        ...(input.evidenceId ? { evidenceId: input.evidenceId } : {}),
+      })
       const response = this.toResponse(updated)
       await this.publishBestEffort('payout.paid', response.id, actor.id, {
         payoutId: response.id,
@@ -217,10 +319,176 @@ export class PayoutService {
       })
       return { response, beforeStatus: payout.status }
     })
-    await this.auditPayoutStatus(actor, payoutId, result.beforeStatus, result.response.status, {
-      externalReference,
-    })
+    await this.auditPayoutStatus(
+      actor,
+      payoutId,
+      result.beforeStatus,
+      result.response.status,
+      {
+        externalReference,
+      },
+    )
     return result.response
+  }
+
+  async prepareDuePayouts(now: Date, actor?: PayoutActor) {
+    if (actor) this.assertAdmin(actor)
+    if (
+      !Number.isFinite(now.getTime()) ||
+      !this.repo.findCyclePolicies ||
+      !this.repo.findCyclePayout
+    )
+      throw new WalletServiceError(
+        'Payout cycle preparation is unavailable',
+        409,
+        'INVALID_PAYOUT_STATE',
+      )
+    const results: Array<{
+      shopId: string
+      cycleKey: string
+      payoutId: string | null
+      status: string
+    }> = []
+    let afterShopId: string | undefined
+    while (true) {
+      const policies = await this.repo.findCyclePolicies(afterShopId)
+      for (const policy of policies) {
+        const cycleKey = payoutCycleKey(policy.payoutCadence, now)
+        if (!cycleKey) continue
+        const storedRequester = actor
+          ? null
+          : await this.repo.findCycleRequester?.(policy.updatedById)
+        const requester =
+          actor ??
+          (storedRequester?.role === 'ADMIN' &&
+          storedRequester.status === 'ACTIVE' &&
+          storedRequester.emailVerified
+            ? storedRequester
+            : null)
+        if (!requester || (!actor && !this.adminAuthorizer)) {
+          results.push({
+            shopId: policy.shopId,
+            cycleKey,
+            payoutId: null,
+            status: 'REQUESTER_UNAVAILABLE',
+          })
+          continue
+        }
+        try {
+          results.push(
+            await this.prepareAdminCycle(requester, policy.shopId, now, !actor),
+          )
+        } catch (error) {
+          if (
+            error &&
+            typeof error === 'object' &&
+            'status' in error &&
+            error.status === 403
+          )
+            results.push({
+              shopId: policy.shopId,
+              cycleKey,
+              payoutId: null,
+              status: 'REQUESTER_FORBIDDEN',
+            })
+          else throw error
+        }
+      }
+      if (policies.length < 100) break
+      afterShopId = policies[policies.length - 1]?.shopId
+    }
+    return { preparedAt: now, results, transferPerformed: false }
+  }
+
+  async prepareAdminCycle(
+    actor: PayoutActor,
+    shopId: string,
+    now: Date,
+    scheduled = false,
+  ) {
+    this.assertAdmin(actor)
+    if (!this.repo.findCyclePolicy || !this.repo.findCyclePayout)
+      throw new WalletServiceError(
+        'Payout cycle preparation is unavailable',
+        409,
+        'INVALID_PAYOUT_STATE',
+      )
+    return this.repo.transaction(async (txRepo) => {
+      await this.authorizeTransaction(txRepo, actor, 'payouts.approve')
+      const policy = await txRepo.findCyclePolicy?.(shopId)
+      const cycleKey = policy ? payoutCycleKey(policy.payoutCadence, now) : null
+      if (
+        !policy ||
+        policy.shop.status !== 'ACTIVE' ||
+        !cycleKey ||
+        (scheduled && policy.updatedById !== actor.id)
+      )
+        return {
+          shopId,
+          cycleKey: cycleKey ?? '',
+          payoutId: null,
+          status: 'POLICY_CHANGED',
+        }
+      const wallet = await txRepo.ensureWallet(shopId, 'THB')
+      await txRepo.lockWallet(wallet.id)
+      const existing = await txRepo.findCyclePayout?.(shopId, cycleKey)
+      if (existing)
+        return { shopId, cycleKey, payoutId: existing.id, status: 'EXISTING' }
+      if (wallet.currency !== 'THB')
+        return {
+          shopId,
+          cycleKey,
+          payoutId: null,
+          status: 'CURRENCY_MISMATCH',
+        }
+      const balance = await txRepo.sumLedger(wallet.id, wallet.currency)
+      if (balance <= 0n || balance < policy.payoutMinimum)
+        return {
+          shopId,
+          cycleKey,
+          payoutId: null,
+          status: 'BELOW_MINIMUM_OR_DEBT',
+        }
+      const payout = await txRepo.createPayout({
+        walletId: wallet.id,
+        shopId,
+        amount: balance,
+        currency: wallet.currency,
+        requestedById: policy.shop.ownerId,
+        cycleKey,
+      })
+      await txRepo.createLedgerEntry({
+        walletId: wallet.id,
+        shopId,
+        payoutId: payout.id,
+        type: 'payout_reserved',
+        amount: -balance,
+        currency: wallet.currency,
+        description: `Scheduled payout reserved for ${cycleKey}`,
+      })
+      await txRepo.auditOperation?.(actor.id, payout.id, 'cycle-prepared', {
+        cycleKey,
+        amount: balance.toString(),
+        policyVersion: policy.version.toString(),
+      })
+      return { shopId, cycleKey, payoutId: payout.id, status: 'REQUESTED' }
+    })
+  }
+
+  private async authorizeTransaction(
+    repo: IPayoutRepository,
+    actor: PayoutActor,
+    permission: AdminPermission,
+  ) {
+    if (!this.adminAuthorizer) return
+    if (!repo.lockAdminGrants)
+      throw new WalletServiceError(
+        'Administrative grant locking is unavailable',
+        409,
+        'INVALID_PAYOUT_STATE',
+      )
+    await repo.lockAdminGrants()
+    await this.adminAuthorizer.require(actor, permission)
   }
 
   private async getPayoutForUpdate(repo: IPayoutRepository, payoutId: string): Promise<PayoutRecord> {

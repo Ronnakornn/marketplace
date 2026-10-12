@@ -4,7 +4,7 @@ import { completeSettlementRefundPlan, createSettlementRefundPlan, validateSettl
 function fixture(): SettlementRefundState {
   return { orderId: 'order', currency: 'THB', history: [],
     shops: [{ id: 'shop-order', orderId: 'order', shopId: 'shop', currency: 'THB', subtotal: 100n, discountTotal: 20n, shippingTotal: 5n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 85n, saleSnapshot: {
-      shopOrderId: 'shop-order', policyVersion: 1, currency: 'THB', commissionBase: 100n, commissionBps: 1000, originalCommission: 10n,
+      shopOrderId: 'shop-order', policyVersion: 1, currency: 'THB', shippingProviderId: null, shippingProviderName: null, shippingRateRuleId: null, shippingRateVersion: null, dispatchSlaHours: 72, deliverySlaHours: 168, commissionBase: 100n, commissionBps: 1000, originalCommission: 10n,
       originalShipping: 5n, buyerShipping: 5n, sellerShippingWaiver: 0n, platformShippingSubsidy: 0n, recognizedAt: null,
       taxRatePpm: null, taxMode: null, taxFundingBasis: null, taxableShipping: null, taxShippingBasis: null, taxRounding: null, taxCustodian: null, taxExclusiveFunding: null, taxPolicyRevision: null,
       sellerGrossMerchandise: null, sellerGrossShipping: null, buyerShippingNet: null, buyerShippingTax: null, platformShippingNet: null, platformShippingTax: null, includedTaxTotal: null, addedTaxTotal: null, reportedTaxTotal: null,

@@ -1,6 +1,7 @@
 import type { Order, Payment, Prisma, PrismaClient, Refund, RefundStatus } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { AdminAuthorizer } from '#server/modules/admin-access/admin-access.contract.ts'
 import { reverseBuyerCoinsForRefund } from '#server/modules/promotion/buyer-coin.transitions.ts'
 import { reverseOriginalAffiliateForRefund } from '#server/modules/affiliate/affiliate-refund.repository.ts'
 import { calculateRefundDebits } from './refund-amount.service.ts'
@@ -140,6 +141,7 @@ export class PrismaRefundRepository implements IRefundRepository {
   constructor(
     appContext: AppContext,
     private prisma: Pick<PrismaClient, '$transaction' | 'refund'>,
+    private adminAuthorizer?: AdminAuthorizer,
   ) {
     this.logger = appContext.logger
   }
@@ -207,11 +209,18 @@ export class PrismaRefundRepository implements IRefundRepository {
       if (!reference) return null
       // Serialize all refunds for this order, including their cumulative coin reversal.
       await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${reference.orderId}::uuid FOR UPDATE`
-      const refund = await tx.refund.findUnique({ where: { id: refundId }, include: { ...refundInclude, returnRequest: { include: { items: true } }, itemAllocations: true, shopAllocations: true } })
+      const refund = await tx.refund.findUnique({ where: { id: refundId }, include: { ...refundInclude, returnRequest: { include: { items: true } }, itemAllocations: true, shopAllocations: true, supportDispute: { select: { id: true, status: true, compensation: true } } } })
       if (!refund || refund.status !== expectedStatus) return null
       if (refund.status !== 'PROCESSING' || !data.completedById || !data.externalReference?.trim()
         || !refund.processingById || refund.processingById === data.completedById) {
         throw new RefundServiceError('Refund requires an external reference and two administrators', 409, 'INVALID_REFUND_STATE')
+      }
+      if (this.adminAuthorizer) {
+        await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(719362804)`
+        await this.adminAuthorizer.require({ id: data.completedById, role: 'ADMIN' }, 'refunds.complete')
+      }
+      if (refund.supportDispute && (refund.supportDispute.status !== 'RESOLVED_BUYER' || refund.supportDispute.compensation !== refund.amount)) {
+        throw new RefundServiceError('Support compensation does not match the frozen refund plan', 409, 'INVALID_REFUND_STATE')
       }
       const invalidHistory = () => new RefundServiceError('Refund allocation history is inconsistent', 409, 'INVALID_REFUND_STATE')
       if (refund.orderId !== reference.orderId || refund.order.id !== refund.orderId
@@ -231,6 +240,7 @@ export class PrismaRefundRepository implements IRefundRepository {
         await validateRefundShipping(tx, settlement, plan)
         const updated = await tx.refund.updateMany({ where: { id: refundId, status: expectedStatus, processingById: refund.processingById }, data: { ...data, status: 'SUCCESS' } })
         if (updated.count !== 1) return null
+        if (refund.supportDispute) await tx.disputeCase.update({ where: { id: refund.supportDispute.id }, data: { status: 'COMPENSATED', resolvedAt: new Date() } })
         await applyPreShipmentCancellation(tx, settlement, plan, refundId, data.completedById)
         for (const allocation of [...plan.shops].sort((a, b) => (settlement.shops.find((shop) => shop.id === a.shopOrderId)?.shopId ?? '').localeCompare(settlement.shops.find((shop) => shop.id === b.shopOrderId)?.shopId ?? ''))) {
           const shop = settlement.shops.find((shop) => shop.id === allocation.shopOrderId)
@@ -315,6 +325,7 @@ export class PrismaRefundRepository implements IRefundRepository {
         data: { ...data, status: 'SUCCESS' },
       })
       if (result.count !== 1) return null
+      if (refund.supportDispute) await tx.disputeCase.update({ where: { id: refund.supportDispute.id }, data: { status: 'COMPENSATED', resolvedAt: new Date() } })
 
       for (const debit of debits) {
         if (debit.amount === 0n) continue

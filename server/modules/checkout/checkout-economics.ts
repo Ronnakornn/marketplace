@@ -7,14 +7,15 @@ import { calculateSaleEconomics, type FrozenTaxPolicyV2 } from './sale-economics
 export type CheckoutDiscountFunding = {
   sellerCouponDiscount: number; sellerCouponShopId: string | null; platformCouponDiscount: number; coinDiscount: number
   sellerFreeShippingShopIds: string[]; platformFreeShippingShopIds: string[]
+  sellerCouponItemIds?: string[]; platformCouponItemIds?: string[]
 }
 
 export function calculateCheckoutEconomics(items: readonly CheckoutPricedItem[], funding: CheckoutDiscountFunding, policy: FrozenTaxPolicyV2) {
   const stable = [...items].sort((a, b) => a.variant.product.shop.id.localeCompare(b.variant.product.shop.id) || a.id.localeCompare(b.id))
   const gross = stable.map((item) => BigInt(item.unitPrice) * BigInt(item.quantity))
-  const sellerDiscounts = allocateRefundAmount(BigInt(funding.sellerCouponDiscount), stable.map((item, index) => item.variant.product.shop.id === funding.sellerCouponShopId ? gross[index]! : 0n))
+  const sellerDiscounts = allocateRefundAmount(BigInt(funding.sellerCouponDiscount), stable.map((item, index) => item.variant.product.shop.id === funding.sellerCouponShopId && (!funding.sellerCouponItemIds || funding.sellerCouponItemIds.includes(item.id)) ? gross[index]! : 0n))
   const sellerMerchandise = gross.map((amount, index) => amount - sellerDiscounts[index]!)
-  const platformDiscounts = allocateRefundAmount(BigInt(funding.platformCouponDiscount), sellerMerchandise)
+  const platformDiscounts = allocateRefundAmount(BigInt(funding.platformCouponDiscount), sellerMerchandise.map((amount, index) => !funding.platformCouponItemIds || funding.platformCouponItemIds.includes(stable[index]!.id) ? amount : 0n))
   const coinDiscounts = allocateRefundAmount(BigInt(funding.coinDiscount), sellerMerchandise.map((amount, index) => amount - platformDiscounts[index]!))
   const shopIds = [...new Set(stable.map((item) => item.variant.product.shop.id))]
   const shops = shopIds.map((shopId) => {

@@ -3,6 +3,20 @@ import { validateProductionRuntimeEnv } from '#server/config/production-env.ts'
 import { createLogger } from '#server/infrastructure/logging/index.ts'
 import { createEmailService } from '#server/modules/email'
 import { prisma } from '#server/lib/prisma.ts'
+import { AdminAccessRepository, AdminAccessService } from '#server/modules/admin-access'
+import { AdminConfigRepository, AdminConfigService } from '#server/modules/admin-config'
+import { AdminReportingRepository } from '#server/modules/admin-reporting/reporting.repository.ts'
+import { AdminReportingService } from '#server/modules/admin-reporting/reporting.service.ts'
+import { OrderDocumentsService } from '#server/modules/admin-reporting/order-documents.service.ts'
+import { CatalogImportRepository } from '#server/modules/catalog-import/catalog-import.repository.ts'
+import { CatalogImportService } from '#server/modules/catalog-import/catalog-import.service.ts'
+import { CatalogBulkRepository } from '#server/modules/catalog/catalog-bulk.repository.ts'
+import { CatalogApprovalRepository } from '#server/modules/catalog/catalog-approval.repository.ts'
+import { AdminOperationsService, PrismaAdminOperationsRepository } from '#server/modules/admin-operations'
+import { AdminDirectoryRepository } from '#server/modules/admin-directory/admin-directory.repository.ts'
+import { AdminDirectoryService } from '#server/modules/admin-directory/admin-directory.service.ts'
+import { CouponTargetsRepository } from '#server/modules/promotion/coupon-targets.repository.ts'
+import { CouponTargetsService } from '#server/modules/promotion/coupon-targets.service.ts'
 import { PrismaCartRepository } from '#server/modules/cart/cart.repository.ts'
 import { CartService } from '#server/modules/cart/cart.service.ts'
 import { PrismaChatRepository } from '#server/modules/chat/chat.repository.ts'
@@ -93,6 +107,14 @@ export interface ServiceContainer {
   appContext: AppContext
   auditLogService: AuditLogService
   adminService: AdminService
+  adminAccessService: AdminAccessService
+  adminConfigService: AdminConfigService
+  adminReportingService: AdminReportingService
+  orderDocumentsService: OrderDocumentsService
+  catalogImportService: CatalogImportService
+  adminOperationsService: AdminOperationsService
+  adminDirectoryService: AdminDirectoryService
+  couponTargetsService: CouponTargetsService
   aiSearchService: AiSearchService
   affiliateService: AffiliateService
   cartService: CartService
@@ -150,6 +172,12 @@ export function createContainer(): ServiceContainer {
   const logger = createLogger({ environment, level: process.env['LOG_LEVEL'] })
   const config: AppConfig = { environment }
   const appContext: AppContext = { logger, config }
+  const adminAccessService = new AdminAccessService(new AdminAccessRepository(prisma))
+  const adminConfigService = new AdminConfigService(new AdminConfigRepository(prisma), adminAccessService)
+  const adminReportingService = new AdminReportingService(new AdminReportingRepository(prisma), adminAccessService)
+  const orderDocumentsService = new OrderDocumentsService(prisma, adminAccessService)
+  const adminDirectoryService = new AdminDirectoryService(new AdminDirectoryRepository(prisma), adminAccessService)
+  const couponTargetsService = new CouponTargetsService(new CouponTargetsRepository(prisma, adminAccessService), adminAccessService)
   const supportService = new SupportService(appContext, new PrismaSupportRepository(appContext, prisma))
   const emailService = createEmailService(appContext)
   const observabilityConfig = getObservabilityConfigFromEnv()
@@ -174,9 +202,9 @@ export function createContainer(): ServiceContainer {
   const contentModerationService = new ContentModerationService(appContext, contentModerationRepo, auditLogService)
   const fraudRepo = new PrismaFraudRepository(appContext, prisma)
   const fraudService = new FraudService(appContext, fraudRepo, fraudRuleConfig, auditLogService)
-  const refundRepo = new PrismaRefundRepository(appContext, prisma)
+  const refundRepo = new PrismaRefundRepository(appContext, prisma, adminAccessService)
   const refundService = new RefundService(appContext, refundRepo)
-  const adminRepo = new PrismaAdminRepository(appContext, prisma)
+  const adminRepo = new PrismaAdminRepository(appContext, prisma, adminAccessService)
   const affiliateRepo = new PrismaAffiliateRepository(appContext, prisma)
   const affiliateService = new AffiliateService(appContext, affiliateRepo)
   const realtimeRepo = new PrismaRealtimeRepository(appContext, prisma)
@@ -186,18 +214,22 @@ export function createContainer(): ServiceContainer {
   const commissionService = new CommissionService(appContext)
   const walletRepo = new PrismaWalletRepository(appContext, prisma)
   const walletService = new WalletService(appContext, walletRepo, commissionService, activeShopResolver)
-  const adminService = new AdminService(appContext, adminRepo, auditLogService, refundRepo, eventPublisherService, walletService, cacheInvalidation)
+  const adminService = new AdminService(appContext, adminRepo, auditLogService, refundRepo, eventPublisherService, walletService, cacheInvalidation, adminAccessService)
   const checkoutRepo = new PrismaCheckoutRepository(appContext, prisma)
-  const checkoutQuoteEvaluator = new CheckoutQuoteEvaluator(promotionService)
-  const checkoutService = new CheckoutService(appContext, checkoutRepo, checkoutQuoteEvaluator, cacheInvalidation)
+  const checkoutQuoteEvaluator = new CheckoutQuoteEvaluator(promotionService, undefined, input => adminConfigService.requireFeature('promotions', input))
+  const checkoutService = new CheckoutService(appContext, checkoutRepo, checkoutQuoteEvaluator, cacheInvalidation, undefined, async input => {
+    await adminConfigService.requireAdmission(input)
+    await adminConfigService.requireFeature('checkout', input)
+  }, channel => adminConfigService.requirePaymentChannel(channel))
   const notificationRepo = new PrismaNotificationRepository(appContext, prisma)
   const pushRepo = new PrismaPushRepository(appContext, prisma)
   const pushService = new PushService(appContext, pushRepo, getPushConfigFromEnv())
-  const notificationService = new NotificationService(appContext, notificationRepo, realtimeService, pushService)
+  const notificationService = new NotificationService(appContext, notificationRepo, realtimeService, pushService, adminConfigService, emailService)
   const chatRepo = new PrismaChatRepository(appContext, prisma)
   const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService)
-  const catalogRepo = new PrismaCatalogRepository(appContext, prisma)
-  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver, auditLogService)
+  const catalogRepo = new PrismaCatalogRepository(appContext, prisma, () => adminConfigService.publicationApprovalRequired())
+  const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver, auditLogService,
+    () => adminConfigService.publicationApprovalRequired(), new CatalogApprovalRepository(prisma, adminAccessService))
   const trackingRepo = new PrismaTrackingRepository(appContext, prisma)
   const trackingService = new TrackingService(appContext, trackingRepo, catalogService)
   const cartRepo = new PrismaCartRepository(appContext, prisma)
@@ -205,6 +237,7 @@ export function createContainer(): ServiceContainer {
   const discoveryRepo = new PrismaDiscoveryRepository(appContext, prisma)
   const inventoryRepo = new PrismaInventoryRepository(appContext, prisma)
   const inventoryService = new InventoryService(appContext, inventoryRepo, activeShopResolver, cacheInvalidation)
+  const catalogImportService = new CatalogImportService(new CatalogImportRepository(prisma), adminAccessService, inventoryRepo, new CatalogBulkRepository(() => adminConfigService.publicationApprovalRequired()), cacheInvalidation)
   const orderRepo = new PrismaOrderRepository(appContext, prisma)
   const orderService = new OrderService(appContext, orderRepo, activeShopResolver)
   const shipmentRepo = new PrismaShipmentRepository(appContext, prisma)
@@ -227,7 +260,7 @@ export function createContainer(): ServiceContainer {
     eventPublisherService,
   )
   const payoutRepo = new PrismaPayoutRepository(appContext, prisma)
-  const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService, activeShopResolver, auditLogService)
+  const payoutService = new PayoutService(appContext, payoutRepo, eventPublisherService, activeShopResolver, auditLogService, adminAccessService)
   const phoneOtpRepo = new PrismaPhoneOtpRepository(appContext, prisma)
   const phoneOtpService = new PhoneOtpService(appContext, phoneOtpRepo, createPhoneOtpProvider())
   const returnRepo = new PrismaReturnRepository(appContext, prisma)
@@ -266,7 +299,8 @@ export function createContainer(): ServiceContainer {
   const sellerOnboardingService = new SellerOnboardingService(appContext, sellerOnboardingRepo)
   const uploadRepo = new PrismaUploadRepository(appContext, prisma)
   const uploadStorage = createUploadStorageFromEnv()
-  const uploadService = new UploadService(appContext, uploadRepo, uploadStorage)
+  const uploadService = new UploadService(appContext, uploadRepo, uploadStorage, adminAccessService)
+  const adminOperationsService = new AdminOperationsService(appContext, new PrismaAdminOperationsRepository(appContext, prisma), adminAccessService, payoutService, uploadService)
   const queueProducer: QueueProducer = new OptionalQueueProducer(
     queueConfig ? new BullMqQueueProducer(appContext, queueConfig) : null,
   )
@@ -279,6 +313,8 @@ export function createContainer(): ServiceContainer {
     eventPublisherService,
     emailService,
     walletService,
+    { processDueSchedules: now => adminReportingService.processDueSchedules(now), prepareDuePayouts: now => payoutService.prepareDuePayouts(now) },
+    notificationService,
   )
   const healthCheckRepo = new PrismaHealthCheckRepository(appContext, prisma)
   const observabilityService = new ObservabilityService(appContext, healthCheckRepo, metricsCollector, {
@@ -286,8 +322,8 @@ export function createContainer(): ServiceContainer {
     healthCheckTimeoutMs: observabilityConfig.healthCheckTimeoutMs,
     queueConfig,
   })
-  const userRepo = new PrismaUserRepository(appContext, prisma)
-  const userService = new UserService(appContext, userRepo, emailService)
+  const userRepo = new PrismaUserRepository(appContext, prisma, adminAccessService)
+  const userService = new UserService(appContext, userRepo, emailService, adminAccessService)
 
   eventHandlerRegistry.registerMany(createCoreCommerceEventHandlers({
     cacheInvalidation,
@@ -301,6 +337,14 @@ export function createContainer(): ServiceContainer {
     appContext,
     auditLogService,
     adminService,
+    adminAccessService,
+    adminConfigService,
+    adminReportingService,
+    orderDocumentsService,
+    catalogImportService,
+    adminOperationsService,
+    adminDirectoryService,
+    couponTargetsService,
     aiSearchService,
     affiliateService,
     cartService,

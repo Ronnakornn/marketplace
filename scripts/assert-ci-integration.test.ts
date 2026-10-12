@@ -10,6 +10,10 @@ function environment(): NodeJS.ProcessEnv {
     TAX_TEST_DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_tax',
     ROLLOUT_TEST_DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_rollout',
     AUDIT_TEST_DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_readiness_audit',
+    REPORTING_TEST_DATABASE_URL: 'postgresql://postgres@127.0.0.1:55439/marketplace_test_reporting',
+    ADMIN_DIRECTORY_TEST_DATABASE_URL: 'postgresql://postgres@127.0.0.1:55439/marketplace_test_directory',
+    ADMIN_OPERATIONS_TEST_DATABASE_URL: 'postgresql://postgres@127.0.0.1:55439/marketplace_test_admin_operations',
+    FULL_ADMIN_BOUNDARIES_TEST_DATABASE_URL: 'postgresql://postgres@127.0.0.1:55439/marketplace_test_admin_boundaries',
     CACHE_TEST_REDIS_URL: 'redis://127.0.0.1:56379/14', QUEUE_TEST_REDIS_URL: 'redis://127.0.0.1:56379/15',
   }
 }
@@ -30,7 +34,7 @@ describe('mandatory CI integration environment', () => {
     expect(() => assertCiIntegrationEnvironment(environment())).not.toThrow()
   })
 
-  it.each(['DATABASE_URL', 'COMMERCE_TEST_DATABASE_URL', 'QUEUE_TEST_DATABASE_URL', 'TAX_TEST_DATABASE_URL', 'ROLLOUT_TEST_DATABASE_URL', 'AUDIT_TEST_DATABASE_URL', 'CACHE_TEST_REDIS_URL', 'QUEUE_TEST_REDIS_URL'])('rejects missing %s instead of allowing suite skips', key => {
+  it.each(['DATABASE_URL', 'COMMERCE_TEST_DATABASE_URL', 'QUEUE_TEST_DATABASE_URL', 'TAX_TEST_DATABASE_URL', 'ROLLOUT_TEST_DATABASE_URL', 'AUDIT_TEST_DATABASE_URL', 'REPORTING_TEST_DATABASE_URL', 'ADMIN_DIRECTORY_TEST_DATABASE_URL', 'ADMIN_OPERATIONS_TEST_DATABASE_URL', 'FULL_ADMIN_BOUNDARIES_TEST_DATABASE_URL', 'CACHE_TEST_REDIS_URL', 'QUEUE_TEST_REDIS_URL'])('rejects missing %s instead of allowing suite skips', key => {
     const env = environment()
     delete env[key]
     expect(() => assertCiIntegrationEnvironment(env)).toThrow(key)

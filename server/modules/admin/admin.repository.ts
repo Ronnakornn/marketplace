@@ -1,4 +1,6 @@
+import type { AdminActor, AdminAuthorizer } from '#server/modules/admin-access/admin-access.contract.ts'
 import { moneyInteger, moneyRoundedRatio } from '#server/lib/money.ts'
+import { Prisma as PrismaSql } from '#generated/client/client.ts'
 import type {
   Order,
   OrderItem,
@@ -33,6 +35,7 @@ import type {
 } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { lockAdminUserChange } from '#server/modules/user/admin-user-invariants.ts'
 import { PrismaReturnRepository } from '#server/modules/return/return.repository.ts'
 import { AdminServiceError } from './admin.errors.ts'
 
@@ -215,10 +218,10 @@ export interface IAdminRepository {
   findUserById(userId: string): Promise<User | null>
   findUserByEmail(email: string): Promise<User | null>
   countAdmins(excludeUserId?: string): Promise<number>
-  createUser(input: AdminUserCreateInput): Promise<AdminUserRecord>
-  updateUser(userId: string, input: AdminUserUpdateInput): Promise<AdminUserRecord>
-  deleteUser(userId: string): Promise<AdminUserRecord>
-  updateUserStatus(userId: string, status: UserStatus): Promise<AdminUserRecord>
+  createUser(input: AdminUserCreateInput, actor?: AdminActor): Promise<AdminUserRecord>
+  updateUser(userId: string, input: AdminUserUpdateInput, actor?: AdminActor): Promise<AdminUserRecord>
+  deleteUser(userId: string, actor?: AdminActor): Promise<AdminUserRecord>
+  updateUserStatus(userId: string, status: UserStatus, actor?: AdminActor): Promise<AdminUserRecord>
   listBrands(filters: AdminBrandListFilters, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminBrandRecord>>
   findBrandById(brandId: string): Promise<AdminBrandRecord | null>
   findBrandBySlug(slug: string): Promise<AdminBrandRecord | null>
@@ -453,7 +456,10 @@ function toAdminCommissionRecord(row: AdminCommissionRow): AdminCommissionRecord
   }
 }
 
-const shipmentDelayCutoff = () => new Date(Date.now() - 72 * 60 * 60 * 1000)
+const delayedShipment = (now: Date) => PrismaSql.sql`s.status::text IN ('PENDING_PACK', 'PACKED', 'PENDING', 'READY')
+  AND s."createdAt" + COALESCE(sale."dispatchSlaHours", 72) * INTERVAL '1 hour' < ${now}`
+const delayedShipmentJoins = PrismaSql.sql`FROM "Shipment" s LEFT JOIN "ShopOrder" so ON so."orderId" = s."orderId" AND so."shopId" = s."shopId"
+  LEFT JOIN "ShopSaleSnapshot" sale ON sale."shopOrderId" = so.id`
 
 export class PrismaAdminRepository implements IAdminRepository {
   private logger: ILogger
@@ -461,6 +467,7 @@ export class PrismaAdminRepository implements IAdminRepository {
   constructor(
     appContext: AppContext,
     private prisma: PrismaClient,
+    private adminAuthorizer?: AdminAuthorizer,
   ) {
     this.logger = appContext.logger
   }
@@ -512,11 +519,11 @@ export class PrismaAdminRepository implements IAdminRepository {
       this.prisma.refund.count({ where: { status: 'FAILED' } }),
       this.prisma.order.count({ where: { paymentStatus: { in: ['PENDING', 'REQUIRES_ACTION'] } } }),
       this.prisma.order.count({ where: { paymentStatus: 'FAILED' } }),
-      this.prisma.shipment.count({ where: { status: { in: ['PENDING_PACK', 'PACKED', 'PENDING', 'READY'] }, createdAt: { lt: shipmentDelayCutoff() } } }),
+      this.prisma.$queryRaw<Array<{ count: bigint }>>(PrismaSql.sql`SELECT COUNT(*) AS count ${delayedShipmentJoins} WHERE ${delayedShipment(new Date())}`).then(rows => Number(rows[0]?.count ?? 0n)),
       this.prisma.returnRequest.count({ where: { status: { in: ['REQUESTED', 'APPROVED', 'RECEIVED'] } } }),
       this.prisma.refund.count({ where: { status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } }),
       this.prisma.shop.count({ where: { status: 'PENDING' } }),
-      this.prisma.product.count({ where: { status: 'DRAFT' } }),
+      this.prisma.product.count({ where: { status: 'PENDING_REVIEW' } }),
       this.prisma.sellerPayout.count({ where: { status: { in: ['requested', 'approved'] } } }),
       this.prisma.fraudCase.count({ where: { status: { in: ['OPEN', 'REVIEWED'] } } }),
     ])
@@ -727,24 +734,39 @@ export class PrismaAdminRepository implements IAdminRepository {
     })
   }
 
-  createUser(input: AdminUserCreateInput): Promise<AdminUserRecord> {
-    return this.prisma.user.update({
+  createUser(input: AdminUserCreateInput, actor?: AdminActor): Promise<AdminUserRecord> {
+    return this.prisma.$transaction(async tx => {
+      await lockAdminUserChange(tx, input.id, { role: input.role }, actor, this.adminAuthorizer)
+      return tx.user.update({
       where: { id: input.id },
       data: { name: input.name, email: input.email, role: input.role },
       select: userSelect,
+      })
     })
   }
 
-  updateUser(userId: string, input: AdminUserUpdateInput): Promise<AdminUserRecord> {
-    return this.prisma.user.update({ where: { id: userId }, data: input, select: userSelect })
+  updateUser(userId: string, input: AdminUserUpdateInput, actor?: AdminActor): Promise<AdminUserRecord> {
+    return this.prisma.$transaction(async (tx) => {
+      await lockAdminUserChange(tx, userId, input, actor, this.adminAuthorizer)
+      const user = await tx.user.update({ where: { id: userId }, data: input, select: userSelect })
+      if (input.role === 'USER') await tx.adminTeamMember.updateMany({ where: { userId }, data: { isActive: false, version: { increment: 1 } } })
+      return user
+    })
   }
 
-  deleteUser(userId: string): Promise<AdminUserRecord> {
-    return this.prisma.user.delete({ where: { id: userId }, select: userSelect })
+  deleteUser(userId: string, actor?: AdminActor): Promise<AdminUserRecord> {
+    return this.prisma.$transaction(async (tx) => {
+      await lockAdminUserChange(tx, userId, { deleting: true }, actor, this.adminAuthorizer)
+      await tx.adminTeamMember.deleteMany({ where: { userId } })
+      return tx.user.delete({ where: { id: userId }, select: userSelect })
+    })
   }
 
-  updateUserStatus(userId: string, status: UserStatus): Promise<AdminUserRecord> {
-    return this.prisma.user.update({ where: { id: userId }, data: { status }, select: userSelect })
+  updateUserStatus(userId: string, status: UserStatus, actor?: AdminActor): Promise<AdminUserRecord> {
+    return this.prisma.$transaction(async (tx) => {
+      await lockAdminUserChange(tx, userId, { status }, actor, this.adminAuthorizer)
+      return tx.user.update({ where: { id: userId }, data: { status }, select: userSelect })
+    })
   }
 
   listBrands(filters: AdminBrandListFilters, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminBrandRecord>> {
@@ -888,18 +910,28 @@ export class PrismaAdminRepository implements IAdminRepository {
     return this.prisma.product.findUnique({ where: { id: productId }, include: productInclude })
   }
 
-  listOrders(
+  async listOrders(
     filters: { status?: OrderStatus; shopId?: string; paymentState?: 'PENDING' | 'FAILED'; shipmentState?: 'DELAYED' },
     pagination: AdminPaginationInput,
   ): Promise<AdminPaginatedResult<AdminOrderRecord>> {
+    if (filters.shipmentState === 'DELAYED') {
+      const predicates = [PrismaSql.sql`EXISTS (SELECT 1 ${delayedShipmentJoins} WHERE s."orderId" = o.id AND ${delayedShipment(new Date())})`]
+      if (filters.status) predicates.push(PrismaSql.sql`o.status::text = ${filters.status}`)
+      if (filters.shopId) predicates.push(PrismaSql.sql`EXISTS (SELECT 1 FROM "OrderItem" oi WHERE oi."orderId" = o.id AND oi."shopId" = ${filters.shopId}::uuid)`)
+      if (filters.paymentState === 'PENDING') predicates.push(PrismaSql.sql`o."paymentStatus"::text IN ('PENDING', 'REQUIRES_ACTION')`)
+      if (filters.paymentState === 'FAILED') predicates.push(PrismaSql.sql`o."paymentStatus"::text = 'FAILED'`)
+      const predicate = PrismaSql.join(predicates, ' AND ')
+      const [ids, totals] = await Promise.all([
+        this.prisma.$queryRaw<Array<{ id: string }>>(PrismaSql.sql`SELECT o.id FROM "Order" o WHERE ${predicate} ORDER BY o."createdAt" DESC, o.id DESC LIMIT ${pagination.limit} OFFSET ${(pagination.page - 1) * pagination.limit}`),
+        this.prisma.$queryRaw<Array<{ count: bigint }>>(PrismaSql.sql`SELECT COUNT(*) AS count FROM "Order" o WHERE ${predicate}`),
+      ])
+      return { items: await this.prisma.order.findMany({ where: { id: { in: ids.map(row => row.id) } }, include: orderInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }), total: Number(totals[0]?.count ?? 0n) }
+    }
     const where: Prisma.OrderWhereInput = {
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.shopId ? { items: { some: { shopId: filters.shopId } } } : {}),
       ...(filters.paymentState === 'PENDING' ? { paymentStatus: { in: ['PENDING', 'REQUIRES_ACTION'] } } : {}),
       ...(filters.paymentState === 'FAILED' ? { paymentStatus: 'FAILED' } : {}),
-      ...(filters.shipmentState === 'DELAYED'
-        ? { shipments: { some: { status: { in: ['PENDING_PACK', 'PACKED', 'PENDING', 'READY'] }, createdAt: { lt: shipmentDelayCutoff() } } } }
-        : {}),
     }
     return this.paginate(
       this.prisma.order.findMany({ where, include: orderInclude, orderBy: { createdAt: 'desc' }, ...this.toSkipTake(pagination) }),

@@ -12,6 +12,8 @@ import type {
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import type { ReportReviewInput } from './review-report.schemas.ts'
+import { ReviewServiceError } from './review.errors.ts'
 
 export type ReviewOrderItem = OrderItem & {
   order: Pick<Order, 'id' | 'userId' | 'status'>
@@ -78,6 +80,7 @@ export interface PaginatedProductReviews {
 }
 
 export interface IReviewRepository {
+  reportReview(userId: string, input: ReportReviewInput): ReturnType<PrismaReviewRepository['reportReview']>
   findActiveProduct(productId: string): Promise<Pick<Product, 'id' | 'status'> | null>
   findOrderItemForReview(orderItemId: string): Promise<ReviewOrderItem | null>
   findReviewByOrderItem(orderItemId: string): Promise<Pick<Review, 'id'> | null>
@@ -123,6 +126,22 @@ export class PrismaReviewRepository implements IReviewRepository {
     private prisma: PrismaClient,
   ) {
     this.logger = appContext.logger
+  }
+
+  reportReview(userId: string, input: ReportReviewInput) {
+    return this.prisma.$transaction(async (tx) => {
+      const target = input.reviewId !== undefined ? { reviewId: input.reviewId } : { shopRatingId: input.shopRatingId }
+      if (input.reviewId !== undefined) await tx.$queryRaw`SELECT id FROM "Review" WHERE id = ${input.reviewId}::uuid FOR UPDATE`
+      else await tx.$queryRaw`SELECT id FROM "ShopRating" WHERE id = ${input.shopRatingId}::uuid FOR UPDATE`
+      const review = input.reviewId !== undefined
+        ? await tx.review.findUnique({ where: { id: input.reviewId }, select: { id: true, userId: true, status: true } })
+        : await tx.shopRating.findUnique({ where: { id: input.shopRatingId }, select: { id: true, userId: true, status: true } })
+      if (!review || review.status !== 'PUBLISHED') throw new ReviewServiceError('Published review not found', 404, 'REVIEW_NOT_FOUND')
+      if (review.userId === userId) throw new ReviewServiceError('You cannot report your own review', 403, 'REPORT_OWN_REVIEW')
+      const duplicate = await tx.reviewReport.findFirst({ where: { ...target, reportedById: userId, OR: [{ status: { in: ['OPEN', 'UNDER_REVIEW'] } }, { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }] }, select: { id: true } })
+      if (duplicate) throw new ReviewServiceError('You already reported this review', 409, 'REVIEW_ALREADY_REPORTED')
+      return tx.reviewReport.create({ data: { ...target, reportedById: userId, reason: input.reason, detail: input.detail ?? null }, select: { id: true, reviewId: true, shopRatingId: true, reason: true, status: true, createdAt: true } })
+    })
   }
 
   findActiveProduct(productId: string): Promise<Pick<Product, 'id' | 'status'> | null> {

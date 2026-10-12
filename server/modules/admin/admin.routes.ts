@@ -5,6 +5,7 @@ import { authPlugin } from '#server/modules/auth'
 import { RefundServiceError } from '#server/modules/refund/refund.errors.ts'
 import { SettlementRefundPlanSchema } from '#server/modules/refund/settlement-refund.schema.ts'
 import { AdminServiceError } from './admin.errors.ts'
+import { UserServiceError } from '#server/modules/user/user.errors.ts'
 
 const PaginationQuery = t.Object({
   page: t.Optional(t.Numeric()),
@@ -79,6 +80,7 @@ export function createAdminRoutes(container: ServiceContainer) {
   return new Elysia()
     .use(authPlugin)
     .onError(({ error }) => {
+      if (error instanceof UserServiceError) return moneyHttpError(error.status, toMoneyDto({ error: { code: 'ADMIN_USER_POLICY_REJECTED', message: error.message } }))
       if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof AdminServiceError || error instanceof RefundServiceError) {
         return moneyHttpError(error.status, toMoneyDto({

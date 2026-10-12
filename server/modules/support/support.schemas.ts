@@ -27,7 +27,10 @@ export const AppealSchema = t.Composite([
   t.Pick(SupportTicketPlain, ['subject']),
   t.Pick(TicketMessagePlain, ['body']),
 ], { additionalProperties: false })
-export const ReplySchema = t.Pick(TicketMessagePlain, ['body'], { additionalProperties: false })
+export const ReplySchema = t.Composite([
+  t.Pick(TicketMessagePlain, ['body']),
+  t.Object({ attachmentIds: t.Optional(t.Array(t.String({ format: 'uuid' }), { maxItems: 5 })) }),
+], { additionalProperties: false })
 export const TicketStatusSchema = t.Pick(SupportTicketPlain, ['status'], { additionalProperties: false })
 export const DisputeStatusSchema = t.Composite([
   t.Object({ status: t.Exclude(DisputeCasePlain.properties.status, t.Literal('COMPENSATED')) }),

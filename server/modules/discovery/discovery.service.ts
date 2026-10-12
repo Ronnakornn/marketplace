@@ -24,6 +24,7 @@ export interface DiscoveryHomeInput {
 export interface DiscoveryHomeResponse {
   sections: {
     banners?: ReturnType<DiscoveryService['toBanner']>[]
+    popups?: ReturnType<DiscoveryService['toBanner']>[]
     categories?: Awaited<ReturnType<CatalogService['listCategories']>>
     flashSale?: Awaited<ReturnType<DiscoveryService['toFlashSale']>>
     recommendedProducts?: Awaited<ReturnType<RecommendationService['getTrending']>>['items']
@@ -85,10 +86,13 @@ export class DiscoveryService {
     const normalizedFlashSale = flashSale && flashSale.items.length > 0
       ? await this.toFlashSale(flashSale)
       : null
+    const regularBanners = banners.filter(banner => banner.placement !== 'HOME_POPUP')
+    const popups = banners.filter(banner => banner.placement === 'HOME_POPUP')
 
     return {
       sections: {
-        ...(banners.length > 0 ? { banners: banners.map((banner) => this.toBanner(banner)) } : {}),
+        ...(regularBanners.length > 0 ? { banners: regularBanners.map((banner) => this.toBanner(banner)) } : {}),
+        ...(popups.length > 0 ? { popups: popups.map((banner) => this.toBanner(banner)) } : {}),
         categories,
         ...(normalizedFlashSale ? { flashSale: normalizedFlashSale } : {}),
         recommendedProducts: recommended.items,
@@ -113,6 +117,10 @@ export class DiscoveryService {
   }
 
   private toBanner(banner: DiscoveryBannerRecord) {
+    const metadata = banner.metadata && typeof banner.metadata === 'object' && !Array.isArray(banner.metadata) ? banner.metadata : {}
+    const localized = (key: string) => typeof metadata[key] === 'string' ? metadata[key] : null
+    const frequency = metadata.popupFrequency
+    const popupFrequency: 'SESSION' | 'DAILY' | 'ALWAYS' = frequency === 'DAILY' || frequency === 'ALWAYS' ? frequency : 'SESSION'
     return {
       id: banner.id,
       placement: banner.placement,
@@ -122,6 +130,13 @@ export class DiscoveryService {
       mobileImageUrl: publicAssetUrl(banner.mobileImageUrl),
       targetUrl: banner.targetUrl,
       sortOrder: banner.sortOrder,
+      startsAt: banner.startsAt?.toISOString() ?? null,
+      endsAt: banner.endsAt?.toISOString() ?? null,
+      popupFrequency,
+      titleTh: localized('titleTh'),
+      titleEn: localized('titleEn'),
+      bodyTh: localized('bodyTh'),
+      bodyEn: localized('bodyEn'),
     }
   }
 

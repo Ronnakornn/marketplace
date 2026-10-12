@@ -576,6 +576,12 @@ export function createCatalogRoutes(container: ServiceContainer) {
       withRole: 'ADMIN',
       params: ProductVariantParamsSchema,
     })
+    .post('/api/admin/catalog/products/:productId/approval', ({ authContext, params, body }: any) =>
+      moneyResponse(container.catalogService.reviewPublication(authContext.user, params.productId, body)), {
+      withRole: 'ADMIN',
+      params: ProductParamsSchema,
+      body: t.Object({ decision: t.Union([t.Literal('APPROVE'), t.Literal('REJECT')]), reason: t.Optional(t.String({ maxLength: 5000 })), expectedUpdatedAt: t.String({ format: 'date-time' }) }),
+    })
     .patch('/api/admin/catalog/products/:productId/suspend', ({ authContext, params, body }: any) =>
       moneyResponse(container.catalogService.suspendProduct(authContext.user, params.productId, body)), {
       withRole: 'ADMIN',

@@ -850,6 +850,10 @@ body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialo
 }
 
 /* Explicitly win over per-cell text-slate utilities on every admin table. */
+.admin-shell table:not([data-slot="table"]) thead {
+  background: linear-gradient(90deg, #123d70, #256092);
+}
+
 .admin-shell [data-slot="table-head"],
 .admin-shell table thead th {
   color: #fff !important;

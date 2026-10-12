@@ -59,6 +59,7 @@ import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
+import { ReviewReportButton } from './ReviewReportButton';
 
 type OptionValueState = "selected" | "available" | "unavailable" | "out-of-stock";
 type TrustItem = {
@@ -1242,6 +1243,7 @@ function ReviewCard({ review }: { review: BuyerProductReview }) {
           </p>
         </div>
       ) : null}
+      <ReviewReportButton reviewId={review.id} />
     </article>
   );
 }

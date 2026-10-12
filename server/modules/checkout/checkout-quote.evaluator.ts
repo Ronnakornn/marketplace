@@ -2,6 +2,7 @@ import { calculateCheckoutEconomics, checkoutFingerprint } from './checkout-econ
 import { parseFrozenTaxPolicy } from './sale-economics.ts'
 import { allocateRefundAmount } from '#server/modules/refund/refund-amount.service.ts'
 import { moneyNumber } from '#server/lib/money.ts'
+import { couponTargetEligible } from '#server/modules/promotion/coupon-targets.schemas.ts'
 import { PromotionServiceError } from '#server/modules/promotion/promotion.errors.ts'
 import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
 import { CheckoutServiceError } from './checkout.errors.ts'
@@ -53,20 +54,21 @@ export interface EvaluateCheckoutQuoteInput {
 }
 
 export class CheckoutQuoteEvaluator {
-  constructor(private promotionService: PromotionService, private v2Supported = process.env['CHECKOUT_V2_SETTLEMENT_ENABLED'] === 'true') {}
+  constructor(private promotionService: PromotionService, private v2Supported = process.env['CHECKOUT_V2_SETTLEMENT_ENABLED'] === 'true', private requirePromotionAdmission?: (input: { userId: string; shopIds: string[] }) => Promise<void>) {}
 
   async evaluate(
     repo: ICheckoutRepository,
     input: EvaluateCheckoutQuoteInput,
   ): Promise<CheckoutQuoteEvaluation> {
-    const items = await this.priceItems(repo, input.items, input.policy)
+    const items = await this.priceItems(repo, input.items, input.policy, input.userId)
+    if (input.couponCode || input.shopCouponCode || input.platformCouponCode || input.coinsToUse) await this.requirePromotionAdmission?.({ userId: input.userId, shopIds: [...new Set(items.map(item => item.variant.product.shop.id))] })
     const baseTotals = this.calculateTotals(items)
     const taxPolicy = parseFrozenTaxPolicy(await repo.readTaxPolicy())
     const explicitStack = input.shopCouponCode !== undefined || input.platformCouponCode !== undefined
     if (input.couponCode && explicitStack) throw new CheckoutServiceError('Use either legacy coupon or named shop/platform coupons', 400, 'INVALID_COUPON')
     const versionTwo = taxPolicy.ratePpm !== 0 || explicitStack
     if (versionTwo && !this.v2Supported) throw new CheckoutServiceError('Version-two tax settlement is not enabled', 503, 'TAX_SETTLEMENT_UNAVAILABLE')
-    type ValidatedCoupon = Awaited<ReturnType<PromotionService['validateCouponForsubtotal']>>
+    type ValidatedCoupon = Awaited<ReturnType<CheckoutQuoteEvaluator['validateCoupon']>>
     let sellerCoupon: ValidatedCoupon | null = null
     let platformCoupon: ValidatedCoupon | null = null
     const couponOutcomes: CouponOutcome[] = []
@@ -81,7 +83,7 @@ export class CheckoutQuoteEvaluator {
           if ((kind === 'shop' && !coupon.couponShopId) || (kind === 'platform' && coupon.couponShopId)) throw new CheckoutServiceError('Coupon funding scope does not match its slot', 400, 'INVALID_COUPON')
         }
         this.assertAmount(coupon.discount, 'Coupon discount')
-        const eligibleSubtotal = items.filter((item) => !coupon.couponShopId || item.variant.product.shop.id === coupon.couponShopId)
+        const eligibleSubtotal = items.filter((item) => coupon.eligibleItemIds.includes(item.id) && (!coupon.couponShopId || item.variant.product.shop.id === coupon.couponShopId))
           .reduce((sum, item) => sum + item.unitPrice * item.quantity - (adjustments.get(item.id) ?? 0), 0)
         coupon = { ...coupon, discount: Math.min(coupon.discount, eligibleSubtotal), discountCents: Math.min(coupon.discount, eligibleSubtotal) }
         couponOutcomes.push({ code: coupon.couponCode, applied: true })
@@ -102,7 +104,7 @@ export class CheckoutQuoteEvaluator {
       if (input.shopCouponCode !== undefined) sellerCoupon = await validate(input.shopCouponCode, 'shop')
       if (sellerCoupon) {
         const stable = [...items].sort((a, b) => a.variant.product.shop.id.localeCompare(b.variant.product.shop.id) || a.id.localeCompare(b.id))
-        const discounts = allocateRefundAmount(BigInt(sellerCoupon.discount), stable.map((item) => item.variant.product.shop.id === sellerCoupon!.couponShopId ? BigInt(item.unitPrice) * BigInt(item.quantity) : 0n))
+        const discounts = allocateRefundAmount(BigInt(sellerCoupon.discount), stable.map((item) => item.variant.product.shop.id === sellerCoupon!.couponShopId && sellerCoupon!.eligibleItemIds.includes(item.id) ? BigInt(item.unitPrice) * BigInt(item.quantity) : 0n))
         stable.forEach((item, index) => adjustments.set(item.id, moneyNumber(discounts[index]!)))
       }
       if (input.platformCouponCode !== undefined) platformCoupon = await validate(input.platformCouponCode, 'platform')
@@ -111,6 +113,7 @@ export class CheckoutQuoteEvaluator {
     this.assertAmount(couponDiscount, 'Coupon discount')
     const coinsApplied = await this.resolveCoinRedemption(repo, input.userId, input.coinsToUse, baseTotals.subtotal, couponDiscount, input.policy === 'commit')
     const funding = { sellerCouponDiscount: sellerCoupon?.discount ?? 0, sellerCouponShopId: sellerCoupon?.couponShopId ?? null,
+      sellerCouponItemIds: sellerCoupon?.eligibleItemIds, platformCouponItemIds: platformCoupon?.eligibleItemIds,
       platformCouponDiscount: platformCoupon?.discount ?? 0, coinDiscount: coinsApplied * 100,
       sellerFreeShippingShopIds: sellerCoupon?.freeShippingShopIds ?? [], platformFreeShippingShopIds: platformCoupon?.freeShippingShopIds ?? [] }
     const computed = calculateCheckoutEconomics(items, funding, taxPolicy)
@@ -181,6 +184,7 @@ export class CheckoutQuoteEvaluator {
     repo: ICheckoutRepository,
     items: CheckoutCartItem[],
     policy: EvaluateCheckoutQuoteInput['policy'],
+    userId: string,
   ): Promise<CheckoutPricedItem[]> {
     const now = new Date()
     return Promise.all(items.map(async (item) => {
@@ -194,6 +198,7 @@ export class CheckoutQuoteEvaluator {
       if (!flashSaleItem) {
         return { ...item, unitPrice: regularPrice }
       }
+      await this.requirePromotionAdmission?.({ userId, shopIds: [item.variant.product.shop.id] })
       const salePrice = this.toBoundedAmount(flashSaleItem.salePrice)
       this.assertAmount(salePrice, 'Flash sale price')
       if (salePrice === 0 || salePrice >= regularPrice) return { ...item, unitPrice: regularPrice }
@@ -208,19 +213,25 @@ export class CheckoutQuoteEvaluator {
     items: CheckoutPricedItem[],
     adjustments: ReadonlyMap<string, number> = new Map(),
   ) {
+    const candidate = await repo.findCouponByCode(couponCode.trim().toUpperCase())
+    if (!candidate) throw new CheckoutServiceError('Coupon not found', 400, 'INVALID_COUPON')
+    const targets = await repo.readCouponTargets(candidate.id)
+    const eligibleItems = items.filter(item => (!candidate.shopId || candidate.shopId === item.variant.product.shop.id) && couponTargetEligible(targets, item.variant.product))
+    if (!eligibleItems.length) throw new CheckoutServiceError('No items are eligible for this coupon', 400, 'INVALID_COUPON', { reason: 'COUPON_SCOPE_MISMATCH' })
     const subtotals = new Map<string, number>()
-    for (const item of items) {
+    for (const item of eligibleItems) {
       const shopId = item.variant.product.shop.id
       subtotals.set(shopId, (subtotals.get(shopId) ?? 0) + item.unitPrice * item.quantity - (adjustments.get(item.id) ?? 0))
     }
     const shopSubtotals = [...subtotals].map(([shopId, subtotal]) => ({ shopId, subtotal }))
     try {
-      return await this.promotionService.validateCouponForsubtotal(repo, {
+      const result = await this.promotionService.validateCouponForsubtotal(repo, {
         userId,
         couponCode,
         subtotal: shopSubtotals.reduce((total, shop) => total + shop.subtotal, 0),
         shopSubtotals,
       })
+      return { ...result, eligibleItemIds: eligibleItems.map(item => item.id) }
     } catch (error) {
       if (error instanceof PromotionServiceError) {
         throw new CheckoutServiceError('Invalid coupon', 400, 'INVALID_COUPON', {

@@ -1,7 +1,8 @@
 import { Elysia } from 'elysia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAdminRoutes } from './admin.routes.ts'
-import { getAuthContext } from '#server/modules/auth/auth.context.ts'
+import { getAuthContext, type AuthContext } from '#server/modules/auth/auth.context.ts'
+import { UserServiceError } from '#server/modules/user/user.errors.ts'
 
 vi.mock('#server/modules/auth/auth.ts', () => ({
   auth: {
@@ -42,8 +43,9 @@ function createApp(container = createContainer()) {
   return new Elysia().use(createAdminRoutes(container))
 }
 
-function mockAuthContext(overrides: Record<string, unknown> = {}) {
+function mockAuthContext(overrides: Partial<AuthContext['user']> = {}): AuthContext {
   return {
+    session: { id: 'admin-session' },
     user: {
       id: 'admin-1',
       email: 'admin@example.com',
@@ -101,5 +103,14 @@ describe('admin routes authorization', () => {
 
     expect(response.status).toBe(200)
     expect(container.adminService.getDashboard).toHaveBeenCalledWith({ id: 'admin-1', role: 'ADMIN' })
+  })
+
+  it.each([403, 409] as const)('returns user policy rejection %s from the shared owner invariant', async (status) => {
+    const container = createContainer()
+    container.adminService.updateUser = vi.fn(async () => { throw new UserServiceError('Owner account policy rejected this change', status) })
+    vi.mocked(getAuthContext).mockResolvedValue(mockAuthContext())
+    const response = await createApp(container).handle(new Request('http://localhost/api/admin/users/owner', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'other@example.test' }) }))
+    expect(response.status).toBe(status)
+    expect(await response.json()).toEqual({ error: { code: 'ADMIN_USER_POLICY_REJECTED', message: 'Owner account policy rejected this change' } })
   })
 })

@@ -4,6 +4,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import { InMemoryRealtimeAdapter, RealtimeService } from '#server/modules/realtime'
 import type { INotificationRepository, NotificationRecord } from './notification.repository.ts'
 import { NotificationService } from './notification.service.ts'
+import type { NotificationRuntimeConfig } from './notification-runtime.contract.ts'
 
 function createLogger() {
   return {
@@ -289,5 +290,41 @@ describe('NotificationService', () => {
     expect(realtimeService.publish).toHaveBeenCalledWith('notification.created', 'user:user-1:notifications', expect.objectContaining({ type: 'coupon_available' }))
     expect(realtimeService.publish).toHaveBeenCalledWith('notification.read', 'user:user-1:notifications', expect.objectContaining({ id: '11111111-1111-4111-8111-111111111111' }))
     expect(realtimeService.publish).toHaveBeenCalledWith('notification.read', 'user:user-1:notifications', { updatedCount: 3 })
+  })
+
+  it('uses actual recipient and projected purchase values in each enabled channel template', async () => {
+    repo.findRecipientForNotification = vi.fn(async () => ({ name: 'Actual buyer', email: 'actual@example.test' }))
+    const runtime: NotificationRuntimeConfig = {
+      deliveryConfig: vi.fn(async () => ({ inApp: true, push: true, email: true })),
+      renderNotification: vi.fn(async input => ({ subject: `${input.channel} ${input.values.name}`, body: `Order ${input.values.orderNumber}, tracking ${input.values.trackingNumber}` })),
+    }
+    const push = { deliver: vi.fn(async () => {}) }, email = { sendMessage: vi.fn(async () => {}) }, realtime = { publish: vi.fn(async () => 1) }
+    service = new NotificationService(createAppContext(), repo, realtime, push, runtime, email)
+    await service.createNotification('user-1', 'shipment_shipped', 'Fallback', 'Fallback body', { orderNo: 'ORD-actual', trackingNo: 'TRACK-actual' })
+    expect(repo.createNotification).toHaveBeenCalledWith(expect.objectContaining({ title: 'IN_APP Actual buyer', body: 'Order ORD-actual, tracking TRACK-actual' }))
+    expect(push.deliver).toHaveBeenCalledWith('user-1', expect.objectContaining({ title: 'PUSH Actual buyer' }))
+    expect(email.sendMessage).toHaveBeenCalledWith({ to: 'actual@example.test', subject: 'EMAIL Actual buyer', text: 'Order ORD-actual, tracking TRACK-actual' })
+  })
+
+  it('disables in-app persistence, realtime and push independently while preserving enabled email', async () => {
+    repo.findRecipientForNotification = vi.fn(async () => ({ name: 'Recipient', email: 'actual@example.test' }))
+    const runtime: NotificationRuntimeConfig = { deliveryConfig: vi.fn(async () => ({ inApp: false, push: false, email: true })), renderNotification: vi.fn(async () => null) }
+    const push = { deliver: vi.fn(async () => {}) }, email = { sendMessage: vi.fn(async () => {}) }, realtime = { publish: vi.fn(async () => 1) }
+    service = new NotificationService(createAppContext(), repo, realtime, push, runtime, email)
+    await service.createNotification('user-1', 'order_paid', 'Purchase', 'Saved purchase')
+    expect(repo.createNotification).not.toHaveBeenCalled(); expect(realtime.publish).not.toHaveBeenCalled(); expect(push.deliver).not.toHaveBeenCalled()
+    expect(runtime.renderNotification).toHaveBeenCalledOnce()
+    expect(email.sendMessage).toHaveBeenCalledWith({ to: 'actual@example.test', subject: 'Purchase', text: 'Saved purchase' })
+  })
+
+  it('preserves default delivery and falls back to projected text when a configured template is invalid', async () => {
+    const runtime: NotificationRuntimeConfig = { deliveryConfig: vi.fn(async () => ({ inApp: true, push: false, email: false })), renderNotification: vi.fn(async () => { throw new Error('Missing variable') }) }
+    service = new NotificationService(createAppContext(), repo, undefined, undefined, runtime)
+    await service.createNotification('user-1', 'order_paid', 'Actual fallback', 'Order actual')
+    expect(repo.createNotification).toHaveBeenCalledWith(expect.objectContaining({ title: 'Actual fallback', body: 'Order actual' }))
+    const email = { sendMessage: vi.fn(async () => {}) }
+    service = new NotificationService(createAppContext(), repo, undefined, undefined, undefined, email)
+    await service.createNotification('user-1', 'order_paid', 'Legacy behavior')
+    expect(email.sendMessage).not.toHaveBeenCalled()
   })
 })

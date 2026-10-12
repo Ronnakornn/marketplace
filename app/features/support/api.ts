@@ -41,9 +41,10 @@ export async function listAppealableReturns(orderId: string, page: number) {
   return data
 }
 
-export async function replySupport(role: SupportRole, ticketId: string, body: string, internal: boolean) {
-  const response = role === 'admin' ? internal ? await api.api.admin.support.tickets({ ticketId }).notes.post({ body }) : await api.api.admin.support.tickets({ ticketId }).messages.post({ body })
-    : role === 'seller' ? await api.api.seller.support.tickets({ ticketId }).messages.post({ body }) : await api.api.support.tickets({ ticketId }).messages.post({ body })
+export async function replySupport(role: SupportRole, ticketId: string, body: string, internal: boolean, attachmentIds: string[] = []) {
+  const input = { body, ...(attachmentIds.length ? { attachmentIds } : {}) }
+  const response = role === 'admin' ? internal ? await api.api.admin.support.tickets({ ticketId }).notes.post(input) : await api.api.admin.support.tickets({ ticketId }).messages.post(input)
+    : role === 'seller' ? await api.api.seller.support.tickets({ ticketId }).messages.post(input) : await api.api.support.tickets({ ticketId }).messages.post(input)
   if (response.error || !response.data) throw new Error('SUPPORT_REQUEST_FAILED')
   return response.data
 }
@@ -58,4 +59,15 @@ export async function decideSupport(ticketId: string, status: DisputeStatus, dec
   const { data, error } = await api.api.admin.support.tickets({ ticketId }).dispute.patch({ status, decision })
   if (error || !data) throw new Error('SUPPORT_REQUEST_FAILED')
   return data
+}
+export async function listCompensationRefunds(ticketId: string) {
+  const response = await api.api.admin.support.tickets({ ticketId })['compensation-refunds'].get()
+  if (response.error || !response.data) throw new Error('SUPPORT_REQUEST_FAILED')
+  return response.data
+}
+
+export async function linkSupportCompensation(ticketId: string, refundId: string) {
+  const response = await api.api.admin.support.tickets({ ticketId }).compensation.post({ refundId })
+  if (response.error || !response.data) throw new Error('SUPPORT_REQUEST_FAILED')
+  return response.data
 }

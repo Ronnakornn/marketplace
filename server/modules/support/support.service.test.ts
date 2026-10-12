@@ -57,14 +57,16 @@ function harness() {
     createDispute: async (input) => {
       const row = tickets.find((ticket) => ticket.id === input.ticketId)
       if (!row) throw new Error('Ticket missing')
-      row.disputes.push({ id: 'dispute', returnRequestId: input.returnRequestId, status: 'OPEN', reason: input.reason, decision: null, resolvedAt: null, createdAt: new Date() })
+      row.disputes.push({ id: 'dispute', returnRequestId: input.returnRequestId, status: 'OPEN', refundId: null, compensation: null, reason: input.reason, decision: null, resolvedAt: null, createdAt: new Date() })
     },
     createMessage: async (input) => {
       if (failMessage) throw new Error('Database unavailable')
-      const row = { ...input, id: `message-${messages.length}`, createdAt: new Date() }
+      const row = { ...input, attachments: input.attachmentIds ?? null, id: `message-${messages.length}`, createdAt: new Date() }
       messages.push(row)
       return structuredClone(row)
     },
+    listCompensationRefunds: async () => [], findCompensationRefund: async () => null, linkCompensation: async () => {},
+    findAttachments: async (ids, userId) => ids.map((id) => ({ id, userId, usage: 'SUPPORT_ATTACHMENT' as const, status: 'COMPLETED' as const })),
     updateTicket: async (id, input) => { const row = tickets.find((ticket) => ticket.id === id); if (row) Object.assign(row, input) },
     updateDispute: async (id, input) => { const row = tickets.flatMap((ticket) => ticket.disputes).find((dispute) => dispute.id === id); if (row) Object.assign(row, input) },
   }

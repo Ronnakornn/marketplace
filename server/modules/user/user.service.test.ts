@@ -217,7 +217,7 @@ describe("UserService", () => {
       name: "Updated Name",
       email: "updated@example.com",
       role: "ADMIN",
-    })
+    }, { id: "admin-1", role: "ADMIN" })
   })
 
   it("updates the current user profile", async () => {
@@ -458,6 +458,6 @@ describe("UserService", () => {
     const service = new UserService(createAppContext(), repo)
 
     await expect(service.deleteForAdmin("admin-1", "user-9")).resolves.toBeUndefined()
-    expect(repo.delete).toHaveBeenCalledWith("user-9")
+    expect(repo.delete).toHaveBeenCalledWith("user-9", { id: "admin-1", role: "ADMIN" })
   })
 })

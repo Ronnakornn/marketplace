@@ -57,7 +57,7 @@ function snapshottedOrder(): CompletedOrderRecord {
       currency: 'THB', version: 1, createdAt: now, updatedAt: now,
       saleSnapshot: {
       taxRatePpm: null, taxMode: null, taxFundingBasis: null, taxableShipping: null, taxShippingBasis: null, taxRounding: null, taxCustodian: null, taxExclusiveFunding: null, taxPolicyRevision: null, sellerGrossMerchandise: null, sellerGrossShipping: null, buyerShippingNet: null, buyerShippingTax: null, platformShippingNet: null, platformShippingTax: null, includedTaxTotal: null, addedTaxTotal: null, reportedTaxTotal: null,
-        shopOrderId: 'shop-order-1', policyVersion: 1, currency: 'THB', commissionBase: 90000n, commissionBps: 1000,
+        shopOrderId: 'shop-order-1', policyVersion: 1, currency: 'THB', shippingProviderId: null, shippingProviderName: null, shippingRateRuleId: null, shippingRateVersion: null, dispatchSlaHours: 72, deliverySlaHours: 168, commissionBase: 90000n, commissionBps: 1000,
         originalCommission: 9000n, originalShipping: 4000n, buyerShipping: 4000n, sellerShippingWaiver: 0n,
         platformShippingSubsidy: 0n, recognizedAt: null, refundAllocations: [],
       },

@@ -2,6 +2,8 @@ import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
 import { ReviewServiceError } from './review.errors.ts'
+import { getAuthContext } from '#server/modules/auth/auth.context.ts'
+import { ReportReviewSchema } from './review-report.schemas.ts'
 
 const ProductParamsSchema = t.Object({
   productId: t.String({ format: 'uuid' }),
@@ -56,6 +58,11 @@ export function createReviewRoutes(container: ServiceContainer) {
       params: ProductParamsSchema,
       query: ListProductReviewsQuerySchema,
     })
+    .post('/api/review-reports', async ({ request, body }) => {
+      const context = await getAuthContext(request.headers)
+      if (!context) throw new ReviewServiceError('Authentication required', 401, 'AUTH_REQUIRED')
+      return container.reviewService.reportReview(context.user, body)
+    }, { withAuth: true, body: ReportReviewSchema })
     .get('/api/products/:productId/rating-summary', ({ params }: any) =>
       container.reviewService.getRatingSummary(params.productId), {
       params: ProductParamsSchema,

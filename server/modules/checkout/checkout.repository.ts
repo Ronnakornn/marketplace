@@ -13,6 +13,7 @@ import type {
   FlashSaleItem,
   Shop,
   ShopSetting,
+  ShopOperationPolicy,
 } from '#generated/client/client.ts'
 import { randomUUID } from 'node:crypto'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -23,6 +24,9 @@ import { CheckoutServiceError } from './checkout.errors.ts'
 import { CommissionService } from '#server/modules/commission/commission.service.ts'
 import { calculateCheckoutEconomics, type CheckoutDiscountFunding } from './checkout-economics.ts'
 import { parseFrozenTaxPolicy, type FrozenTaxPolicyV2 } from './sale-economics.ts'
+import { quoteShipping } from '#server/modules/admin-operations/shipping-quote.ts'
+import { AdminOperationsError } from '#server/modules/admin-operations/operations.errors.ts'
+import { storedCouponTargetsSchema, type CouponTargets } from '#server/modules/promotion/coupon-targets.schemas.ts'
 
 type CheckoutTx = Omit<
   PrismaClient,
@@ -30,6 +34,7 @@ type CheckoutTx = Omit<
 >
 
 export type CheckoutCartItem = CartItem & {
+  shippingQuote?: ReturnType<typeof quoteShipping>
   variant: (Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
     titleTh?: string | null
     titleEn?: string | null
@@ -43,6 +48,7 @@ export type CheckoutCartItem = CartItem & {
     }) & {
       shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'> & {
         settings: Pick<ShopSetting, 'shippingFee'> | null
+        operationPolicy?: Pick<ShopOperationPolicy, 'commissionBps' | 'dispatchSlaHours' | 'deliverySlaHours' | 'shippingRatesEnabled'> | null
       }
     }
   }
@@ -106,6 +112,8 @@ export interface CreatedCheckoutOrder {
 }
 
 export interface ICheckoutRepository extends IPromotionValidationRepository {
+  readCouponTargets(couponId: string): Promise<CouponTargets>
+  applyShippingPolicy(items: CheckoutCartItem[], address: CheckoutAddress | null): Promise<CheckoutCartItem[]>
   readTaxPolicy(): Promise<unknown>
   transaction<T>(callback: (repo: ICheckoutRepository) => Promise<T>): Promise<T>
   lockCartForCheckout(cartId: string): Promise<void>
@@ -136,6 +144,7 @@ const checkoutCartInclude = {
                   settings: {
                     select: { shippingFee: true },
                   },
+                  operationPolicy: { select: { commissionBps: true, dispatchSlaHours: true, deliverySlaHours: true, shippingRatesEnabled: true } },
                 },
               },
             },
@@ -206,6 +215,14 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     })
   }
 
+  async readCouponTargets(couponId: string): Promise<CouponTargets> {
+    const setting = await this.prisma.systemSetting.findUnique({ where: { key: `coupon.targets.${couponId}` }, select: { value: true } })
+    if (!setting) return { productIds: [], categoryIds: [] }
+    const parsed = storedCouponTargetsSchema.safeParse(setting.value)
+    if (!parsed.success) throw new CheckoutServiceError('Coupon targets are invalid', 400, 'INVALID_COUPON')
+    return parsed.data
+  }
+
   countCouponRedemptionsForUser(couponId: string, userId: string): Promise<number> {
     this.logger.debug('PrismaCheckoutRepository.countCouponRedemptionsForUser', { couponId, userId })
     return this.prisma.couponRedemption.count({
@@ -248,10 +265,37 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     return setting?.value ?? null
   }
 
+  async applyShippingPolicy(items: CheckoutCartItem[], address: CheckoutAddress | null): Promise<CheckoutCartItem[]> {
+    const enabledShops = [...new Set(items.filter((item) => item.variant.product.shop.operationPolicy?.shippingRatesEnabled).map((item) => item.variant.product.shop.id))]
+    if (!enabledShops.length) return items
+    if (!address) throw new CheckoutServiceError('Select an address to calculate shipping', 400, 'CHECKOUT_ADDRESS_REQUIRED')
+    const rules = await this.prisma.shippingRateRule.findMany({ where: { isActive: true, OR: [{ shopId: null }, { shopId: { in: enabledShops } }] }, include: { provider: { select: { id: true, shopId: true, name: true, isActive: true } } }, take: 2501, orderBy: [{ priority: 'desc' }, { id: 'asc' }] })
+    if (rules.length > 2500) throw new CheckoutServiceError('Shipping policy has too many active rules', 409, 'CHECKOUT_FAILED')
+    const quotes = new Map<string, ReturnType<typeof quoteShipping>>()
+    for (const shopId of enabledShops) {
+      const shopItems = items.filter((item) => item.variant.product.shop.id === shopId)
+      const packages = shopItems.flatMap((item) => {
+        if (item.quantity > 100) throw new CheckoutServiceError('Configured shipping supports at most 100 parcels', 400, 'CHECKOUT_FAILED')
+        return Array.from({ length: item.quantity }, () => ({ weightGrams: item.variant.weightGrams ?? 0, lengthMm: item.variant.lengthMm ?? 0, widthMm: item.variant.widthMm ?? 0, heightMm: item.variant.heightMm ?? 0 }))
+      })
+      try {
+        quotes.set(shopId, quoteShipping({ shopId, enabled: true, flatFee: 0n, country: address.country, postalCode: address.postalCode, region: address.region ?? undefined, packages }, rules))
+      } catch (error) {
+        if (error instanceof AdminOperationsError) throw new CheckoutServiceError(error.message, error.status, error.code)
+        throw error
+      }
+    }
+    return items.map((item) => {
+      const resolved = quotes.get(item.variant.product.shop.id)
+      if (!resolved) return item
+      return { ...item, shippingQuote: resolved, variant: { ...item.variant, product: { ...item.variant.product, shop: { ...item.variant.product.shop, settings: { shippingFee: resolved.fee } } } } }
+    })
+  }
+
   async commitCheckout(input: CheckoutCommitmentInput): Promise<CreatedCheckoutOrder> {
     this.logger.debug('PrismaCheckoutRepository.commitCheckout', { cartId: input.cartId, userId: input.userId })
     const quote = input.acceptedQuote
-    const commissionBps = this.commissionService.calculate(0).commissionBps
+    const defaultCommissionBps = this.commissionService.calculate(0).commissionBps
     const policy = quote.taxPolicy ?? parseFrozenTaxPolicy(null)
     const funding = quote.funding ?? { sellerCouponDiscount: quote.couponShopId ? quote.couponDiscount : 0, sellerCouponShopId: quote.couponShopId,
       platformCouponDiscount: quote.couponShopId ? 0 : quote.couponDiscount, coinDiscount: quote.coinDiscount,
@@ -263,6 +307,11 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     if (policyVersion === 1 && policy.ratePpm !== 0) throw new CheckoutServiceError('Tax requires complete version-two settlement', 409, 'CHECKOUT_FAILED')
     const shopOrderCreates = [...shopOrderGroups.values()].map((group) => {
       const economics = group.economics
+      const firstItem = quote.items.find((item) => item.variant.product.shop.id === group.shopId)
+      const operationPolicy = firstItem?.variant.product.shop.operationPolicy
+      const commissionBps = operationPolicy?.commissionBps ?? defaultCommissionBps
+      if (!Number.isInteger(commissionBps) || commissionBps < 0 || commissionBps > 10000) throw new CheckoutServiceError('Invalid shop commission policy', 409, 'CHECKOUT_FAILED')
+      const shippingQuote = firstItem?.shippingQuote
       const originalCommission = economics.commissionBase * BigInt(commissionBps) / 10000n
       const sellerGross = economics.sellerGrossMerchandise + economics.sellerGrossShipping
       try {
@@ -278,6 +327,9 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
         subtotal, discountTotal, shippingTotal: group.buyerShippingGross, taxTotal: economics.addedTaxTotal,
         includedTaxTotal: economics.includedTaxTotal, reportedTaxTotal: economics.reportedTaxTotal, grandTotal: economics.buyerCash, currency: quote.totals.currency,
         saleSnapshot: { create: { policyVersion, currency: quote.totals.currency, commissionBase: economics.commissionBase, commissionBps, originalCommission,
+          shippingProviderId: shippingQuote?.providerId, shippingProviderName: shippingQuote?.providerName,
+          shippingRateRuleId: shippingQuote?.ruleId, shippingRateVersion: shippingQuote?.ruleVersion,
+          dispatchSlaHours: operationPolicy?.dispatchSlaHours ?? 72, deliverySlaHours: operationPolicy?.deliverySlaHours ?? 168,
           originalShipping: group.originalShipping, buyerShipping: economics.buyerShipping.net + economics.buyerShipping.tax,
           sellerShippingWaiver: group.sellerShippingWaiver, platformShippingSubsidy: group.platformShippingSubsidy,
           ...(policyVersion === 2 ? { taxRatePpm: policy.ratePpm, taxMode: policy.mode, taxFundingBasis: policy.fundingBasis,

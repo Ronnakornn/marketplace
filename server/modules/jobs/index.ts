@@ -1,4 +1,5 @@
 export { JobService } from './job.service.ts'
+export type { AdminScheduledJobs } from './job.service.ts'
 export { PrismaJobRepository } from './job.repository.ts'
 export { createJobQueueEvents, createJobWorker, ensureRecurringJobSchedulers, isJobName, queueName } from './job.registry.ts'
 export { JobServiceError } from './job.errors.ts'
