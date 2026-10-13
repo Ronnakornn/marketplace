@@ -123,28 +123,23 @@ function GuestTopBar({ locale, t }: { locale: Locale; t: Translator }) {
   const localePath = (pathname: string) => withLocale(pathname, locale);
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center gap-2">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 sm:gap-3 md:flex-nowrap">
         <Link aria-label={t("common.marketplace")} href={localePath("/")} prefetch={false} className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-orange-700 px-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-orange-800">
           <ShoppingBagIcon className="size-4 text-white" />
           <span className="hidden text-white sm:inline">{t("common.marketplace")}</span>
         </Link>
-        <form action={localePath("/search")} className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-orange-200 md:max-w-[520px] lg:max-w-[640px]">
+        <form action={localePath("/search")} className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-slate-100 px-3 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-orange-200">
           <SearchIcon className="size-4 shrink-0 text-slate-900" />
           <Input name="q" placeholder={t("home.searchPlaceholder")} className="h-8 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0" />
         </form>
-        <Link href={localePath("/notifications")} prefetch={false} className="relative flex size-10 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
+        <Link href={localePath("/notifications")} prefetch={false} className="relative flex size-10 shrink-0 items-center justify-center rounded-full text-slate-900 transition hover:bg-orange-50 hover:text-orange-600">
           <BellIcon className="size-5" />
           <span className="sr-only">{t("common.notifications")}</span>
         </Link>
         <GuestCartLink href={localePath("/cart")} label={t("nav.cart")} />
-        <div className="flex items-center gap-2">
-          <Link href={localePath("/login")} prefetch={false} className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 no-underline transition hover:bg-slate-50">{t("common.login")}</Link>
-          <Link href={localePath("/signup")} prefetch={false} className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-3 py-1.5 text-xs font-semibold text-[var(--lagoon-deep)] no-underline transition hover:bg-[rgba(79,184,178,0.24)]">{t("common.signup")}</Link>
-        </div>
-      </div>
-      <div className="mx-auto mt-1 flex max-w-6xl items-center justify-between gap-2 px-1">
-        <p className="min-w-0 truncate text-xs font-semibold text-orange-700">{t("common.marketplace")}</p>
-        <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1" aria-label={t("common.language")}>
+        <Link href={localePath("/login")} prefetch={false} className="flex h-10 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 no-underline transition hover:bg-slate-50">{t("common.login")}</Link>
+        <div className="ml-auto flex w-full justify-end md:w-auto md:shrink-0">
+        <div className="flex h-10 items-center gap-1 rounded-full border border-slate-200 bg-white p-1" aria-label={t("common.language")}>
           {locales.map((targetLocale) => (
             <Link
               key={targetLocale}
@@ -156,6 +151,7 @@ function GuestTopBar({ locale, t }: { locale: Locale; t: Translator }) {
               {targetLocale === "th" ? "ไทย" : "EN"}
             </Link>
           ))}
+        </div>
         </div>
       </div>
     </header>

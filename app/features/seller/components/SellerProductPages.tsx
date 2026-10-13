@@ -4,13 +4,14 @@ import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/l
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import type { ColumnDef } from "@tanstack/react-table";
-import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, BarChart3Icon, EditIcon, PlusIcon, SaveIcon, SendIcon, TrashIcon, UploadIcon } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { ArchiveIcon, ArrowDownIcon, ArrowUpIcon, BarChart3Icon, EditIcon, ImageIcon, PlusIcon, RefreshCwIcon, SaveIcon, SearchIcon, SendIcon, TrashIcon, UploadIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { decimalInputToMinorUnits, minorUnitsToDecimalInput } from "#/lib/input-decimal";
+import { resolveUploadedImageUrl } from "#/lib/assets";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,14 +23,15 @@ import {
   AlertDialogTitle,
 } from "#/components/ui/alert-dialog";
 import { Button } from "#/components/ui/button";
+import { Badge } from "#/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { DataTable } from "#/components/ui/data-table";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Textarea } from "#/components/ui/textarea";
 import type { BuyerProductQuestion } from "#/features/product/queries";
 import { SellerPageHeader } from "./SellerShell";
+import { SellerDataTable } from "./SellerDataTable";
 import {
   type SellerProduct,
   type SellerProductImage,
@@ -735,17 +737,21 @@ function toProductInput(form: ProductFormState): SellerProductInput {
   };
 }
 
-function formatMoney(cents: MinorUnitValue | undefined, currency = "THB") {
-  return formatMinorCurrency(cents ?? 0, "en-US", currency ?? "THB");
-}
-
 function StatusPill({ value }: { value: string }) {
   const t = useTranslations();
   const labels: Record<string, string> = {
     DRAFT: t("seller.products.statusDraft"), PENDING_REVIEW: t("seller.products.statusPendingReview"), ACTIVE: t("seller.manage.status.active"),
     REJECTED: t("seller.manage.status.rejected"), SUSPENDED: t("seller.products.suspended"), ARCHIVED: t("seller.products.archivedStatus"),
   };
-  return <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{labels[value] ?? value.replaceAll("_", " ")}</span>;
+  const colors: Record<string, string> = {
+    DRAFT: "border-slate-200 bg-slate-50 text-slate-600",
+    PENDING_REVIEW: "border-amber-200 bg-amber-50 text-amber-800",
+    ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    REJECTED: "border-red-200 bg-red-50 text-red-700",
+    SUSPENDED: "border-orange-200 bg-orange-50 text-orange-800",
+    ARCHIVED: "border-slate-200 bg-slate-100 text-slate-500",
+  };
+  return <Badge variant="outline" className={`px-2.5 py-1 font-medium ${colors[value] ?? colors.DRAFT}`}>{labels[value] ?? value.replaceAll("_", " ")}</Badge>;
 }
 
 function ErrorState({ error, retry }: { error: unknown; retry: () => void }) {
@@ -811,33 +817,77 @@ function CategorySpecField({
   );
 }
 
-function getVariantPriceContext(product: SellerProduct) {
+function getVariantPriceContext(product: SellerProduct, locale: AppLocale, noVariants: string) {
   const variants = product.variants ?? [];
-  if (!variants.length) return "No variants";
-  const prices = variants.map((variant) => variant.price).sort(compareMinorUnits);
-  const min = prices[0];
-  const max = prices[prices.length - 1];
-  const currency = variants[0]?.currency ?? "THB";
-  return min === max ? formatMoney(min, currency) : `${formatMoney(min, currency)} - ${formatMoney(max, currency)}`;
+  if (!variants.length) return noVariants;
+  const byCurrency = new Map<string, MinorUnitValue[]>();
+  for (const variant of variants) {
+    const prices = byCurrency.get(variant.currency) ?? [];
+    prices.push(variant.price);
+    byCurrency.set(variant.currency, prices);
+  }
+  return Array.from(byCurrency, ([currency, prices]) => {
+    prices.sort(compareMinorUnits);
+    const min = prices[0];
+    const max = prices[prices.length - 1];
+    const format = (price: MinorUnitValue) => formatMinorCurrency(price, locale, currency);
+    return compareMinorUnits(min, max) === 0 ? format(min) : `${format(min)} - ${format(max)}`;
+  }).join(" · ");
 }
 
-function getVariantStockContext(product: SellerProduct, labels?: { noStock: string; available: string }) {
-  const variants = product.variants ?? [];
-  if (!variants.length) return labels?.noStock ?? "No stock";
-  const available = variants.reduce((total, variant) => total + ((variant.inventory?.quantityOnHand ?? 0) - (variant.inventory?.quantityReserved ?? 0)), 0);
-  return `${available} ${labels?.available ?? "available"}`;
+function ProductListThumbnail({ url, title }: { url?: string; title: string }) {
+  const t = useTranslations();
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+      {url && !failed ? (
+        <img src={resolveUploadedImageUrl(url)} alt={title} width={56} height={56} loading="lazy" onError={() => setFailed(true)} className="size-full object-cover" />
+      ) : (
+        <span role="img" aria-label={t("seller.catalogUi.noImage").replace("{title}", title)}>
+          <ImageIcon className="size-5 text-slate-400" aria-hidden="true" />
+        </span>
+      )}
+    </div>
+  );
+}
+
+function sellerShopPath(path: string, shopId?: string) {
+  return shopId ? `${path}?shopId=${encodeURIComponent(shopId)}` : path;
 }
 
 export function SellerProductsPage() {
+  const searchParams = useSearchParams();
+  const shopId = searchParams.get("shopId") || undefined;
+  return <SellerProductsWorkspace key={shopId ?? "active-shop"} shopId={shopId} />;
+}
+
+function SellerProductsWorkspace({ shopId }: { shopId?: string }) {
   const t = useTranslations();
+  const locale = useLocale();
   const localePath = useLocalePath();
   const [status, setStatus] = useState<"" | ProductStatus>("");
   const [q, setQ] = useState("");
-  const [cursor, setCursor] = useState<string | undefined>();
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const [archiveTarget, setArchiveTarget] = useState<SellerProduct | null>(null);
-  const query = useSellerProducts({ q, status, cursor });
+  const query = useSellerProducts({ q, status, shopId, page: pagination.pageIndex + 1, limit: pagination.pageSize });
   const archiveProduct = useArchiveSellerProduct();
   const products = query.data?.data ?? [];
+  const totalRows = query.data?.meta.totalCount ?? products.length;
+  const productHref = (path: string) => localePath(sellerShopPath(path, shopId));
+
+  useEffect(() => {
+    if (!query.data) return;
+    const lastPageIndex = Math.max(0, Math.ceil(totalRows / pagination.pageSize) - 1);
+    if (pagination.pageIndex > lastPageIndex) {
+      setPagination((current) => ({ ...current, pageIndex: lastPageIndex }));
+    }
+  }, [pagination.pageIndex, pagination.pageSize, query.data, totalRows]);
+
+  function resetFilters() {
+    setQ("");
+    setStatus("");
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+  }
 
   function confirmArchiveProduct() {
     if (!archiveTarget) return;
@@ -854,76 +904,103 @@ export function SellerProductsPage() {
     {
       accessorKey: "title",
       header: t("seller.products.product"),
-      cell: ({ row }) => (
-        <div className="min-w-52">
-          <p className="font-medium text-slate-950">{row.original.title}</p>
-          <p className="text-xs text-slate-500">{row.original.slug}</p>
-          <p className="mt-1 text-xs text-slate-500">{row.original.category?.name ?? t("seller.products.noCategory")} · {row.original.brand?.name ?? t("seller.products.noBrand")}</p>
-        </div>
-      ),
+      enableHiding: false,
+      cell: ({ row }) => {
+        const product = row.original;
+        const title = getLocalizedText(locale, product.title, product.titleTh, product.titleEn);
+        const image = product.images?.find((item) => item.isPrimary) ?? product.images?.[0];
+        return (
+          <div className="flex min-w-64 max-w-md items-center gap-3 py-1">
+            <ProductListThumbnail key={image?.url ?? product.id} url={image?.url} title={title} />
+            <div className="min-w-0">
+              <p className="line-clamp-2 font-semibold leading-5 text-slate-950">{title}</p>
+              <p className="mt-1 truncate text-xs text-slate-500">{product.slug}</p>
+              <p className="mt-1 truncate text-xs text-slate-500">{getLocalizedText(locale, product.category?.name, product.category?.nameTh, product.category?.nameEn) || t("seller.products.noCategory")} · {product.brand?.name ?? t("seller.products.noBrand")}</p>
+            </div>
+          </div>
+        );
+      },
     },
     { accessorKey: "status", header: t("seller.products.status"), cell: ({ row }) => <StatusPill value={row.original.status} /> },
     {
-      id: "assets",
-      header: t("seller.products.assets"),
-      cell: ({ row }) => <div className="text-sm"><p>{row.original.images?.length ?? 0} {t("seller.products.images")}</p><p className="text-xs text-slate-500">{row.original.variants.length} {t("seller.products.variants")}</p></div>,
+      id: "price",
+      header: t("seller.catalogUi.price"),
+      cell: ({ row }) => <div className="min-w-32 text-sm font-semibold tabular-nums text-slate-900">{getVariantPriceContext(row.original, locale, t("seller.catalogUi.noVariants"))}</div>,
     },
     {
-      id: "priceStock",
-      header: t("seller.products.priceStock"),
-      cell: ({ row }) => <div className="min-w-36 text-sm"><p>{getVariantPriceContext(row.original)}</p><p className="text-xs text-slate-500">{getVariantStockContext(row.original, { noStock: t("seller.products.noStock"), available: t("seller.products.available") })}</p></div>,
+      id: "stock",
+      header: t("seller.catalogUi.availableStock"),
+      cell: ({ row }) => {
+        const variants = row.original.variants;
+        const available = variants.reduce((total, variant) => total + (variant.inventory?.quantityOnHand ?? 0) - (variant.inventory?.quantityReserved ?? 0), 0);
+        return (
+          <div className="min-w-28">
+            <p className={`text-sm font-semibold tabular-nums ${available > 0 ? "text-slate-900" : "text-amber-700"}`}>{variants.length ? available.toLocaleString(locale) : t("seller.products.noStock")}</p>
+            <p className="mt-1 text-xs text-slate-500">{variants.length} {t("seller.products.variants")}</p>
+          </div>
+        );
+      },
     },
     {
       id: "actions",
+      enableHiding: false,
       header: () => <span className="sr-only">{t("seller.products.actions")}</span>,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
-          <Button asChild variant="outline" size="sm" aria-label={t("seller.products.editLabel").replace("{title}", row.original.title)}>
-            <Link href={localePath(`/seller/products/${row.original.id}`)}>
+          <Button asChild variant="outline" size="sm" aria-label={t("seller.products.editLabel").replace("{title}", getLocalizedText(locale, row.original.title, row.original.titleTh, row.original.titleEn))}>
+            <Link href={productHref(`/seller/products/${row.original.id}`)}>
               <EditIcon className="size-4" />
-              <span className="sr-only">{t("seller.products.edit")}</span>
+              {t("seller.products.edit")}
             </Link>
           </Button>
-          <Button type="button" variant="outline" size="sm" aria-label={t("seller.products.archiveLabel").replace("{title}", row.original.title)} onClick={() => setArchiveTarget(row.original)} disabled={row.original.status === "ARCHIVED"}>
+          <Button type="button" variant="ghost" size="icon-sm" aria-label={t("seller.products.archiveLabel").replace("{title}", getLocalizedText(locale, row.original.title, row.original.titleTh, row.original.titleEn))} onClick={() => setArchiveTarget(row.original)} disabled={row.original.status === "ARCHIVED" || archiveProduct.isPending} className="text-slate-500 hover:text-red-700">
             <ArchiveIcon className="size-4" />
             <span className="sr-only">{t("seller.products.archive")}</span>
           </Button>
         </div>
       ),
     },
-  ], [localePath, t]);
+  ], [archiveProduct.isPending, locale, localePath, shopId, t]);
 
   return (
     <>
-      <SellerPageHeader title={t("seller.products.title")} description={t("seller.products.description")} />
+      <SellerPageHeader title={t("seller.products.title")} description={t("seller.catalogUi.description")} actions={
+        <>
+          <Button asChild variant="outline" className="w-full sm:w-auto"><Link href={productHref("/seller/analytics/products")}><BarChart3Icon className="size-4" />{t("seller.products.analytics")}</Link></Button>
+          <Button asChild className="w-full sm:w-auto"><Link href={productHref("/seller/products/new")}><PlusIcon className="size-4" />{t("seller.products.create")}</Link></Button>
+        </>
+      } />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <SellerProductQuestionsPanel products={products} />
-      <Card className="rounded-lg border-slate-200 bg-white">
-        <CardContent className="pt-6">
-          <DataTable
+      <Card className="gap-0 overflow-hidden rounded-xl border-slate-200 bg-white py-0 shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <CardTitle className="text-base">{t("seller.catalogUi.listTitle")}</CardTitle>
+              {query.data && !query.error ? <Badge variant="secondary" className="bg-slate-100 text-slate-600">{totalRows.toLocaleString(locale)} {t("seller.catalogUi.products")}</Badge> : null}
+            </div>
+            <Button variant="ghost" size="sm" aria-label={t("seller.catalogUi.refresh")} onClick={() => void query.refetch()} disabled={query.isFetching}><RefreshCwIcon className={`size-4 ${query.isFetching ? "animate-spin motion-reduce:animate-none" : ""}`} />{t("seller.catalogUi.refresh")}</Button>
+          </div>
+        </CardHeader>
+        <CardContent className="px-4 pb-2 pt-4 sm:px-5">
+          <SellerDataTable
             columns={columns}
             data={products}
             isLoading={query.isLoading}
             loadingMessage={t("seller.products.loading")}
-            emptyMessage={t("seller.products.empty")}
-            pageSize={10}
+            emptyMessage={<div className="space-y-1 py-8"><p className="font-medium text-slate-900">{t("seller.products.empty")}</p><p className="text-sm text-slate-500">{t(q || status ? "seller.catalogUi.emptyFiltered" : "seller.catalogUi.emptyCatalog")}</p></div>}
+            getRowId={(row) => row.id}
+            pagination={{ ...pagination, totalRows, onPaginationChange: setPagination }}
+            columnLabels={{ title: t("seller.products.product"), status: t("seller.products.status"), price: t("seller.catalogUi.price"), stock: t("seller.catalogUi.availableStock") }}
             className="overflow-x-auto"
-            labels={{
-              showing: t("common.showing"),
-              of: t("common.of"),
-              rows: t("common.rows"),
-              previous: t("common.previous"),
-              next: t("common.next"),
-              previousPage: t("common.previousPage"),
-              nextPage: t("common.nextPage"),
-              sortBy: t("common.sortBy"),
-            }}
             renderToolbar={() => (
               <>
-                <div className="flex w-full flex-col gap-3 sm:flex-row">
-                  <Input value={q} onChange={(event) => { setQ(event.target.value); setCursor(undefined); }} placeholder={t("seller.products.search")} aria-label={t("seller.products.search")} className="sm:max-w-sm" />
-                  <Select value={status || "ALL"} onValueChange={(value) => { setStatus(value === "ALL" ? "" : value as ProductStatus); setCursor(undefined); }}>
-                    <SelectTrigger className="sm:w-48" aria-label={t("seller.products.filterStatus")}><SelectValue /></SelectTrigger>
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-1 sm:flex-row">
+                  <div className="relative w-full sm:max-w-sm">
+                    <SearchIcon aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                    <Input value={q} onChange={(event) => { setQ(event.target.value); setPagination((current) => ({ ...current, pageIndex: 0 })); }} placeholder={t("seller.products.search")} aria-label={t("seller.products.search")} className="h-10 bg-white pl-9" />
+                  </div>
+                  <Select value={status || "ALL"} onValueChange={(value) => { setStatus(value === "ALL" ? "" : value as ProductStatus); setPagination((current) => ({ ...current, pageIndex: 0 })); }}>
+                    <SelectTrigger className="h-10 w-full bg-white sm:w-48" aria-label={t("seller.products.filterStatus")}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">{t("seller.products.allStatuses")}</SelectItem>
                       <SelectItem value="DRAFT">{t("seller.products.statusDraft")}</SelectItem>
@@ -934,35 +1011,20 @@ export function SellerProductsPage() {
                       <SelectItem value="ARCHIVED">{t("seller.products.archivedStatus")}</SelectItem>
                     </SelectContent>
                   </Select>
+                  {q || status ? <Button type="button" variant="ghost" className="h-10" onClick={resetFilters}><XIcon className="size-4" />{t("seller.catalogUi.clearFilters")}</Button> : null}
                 </div>
-                <Button asChild className="w-full sm:w-auto">
-                  <Link href={localePath("/seller/analytics/products")}>
-                    <BarChart3Icon className="size-4" />
-                    {t("seller.products.analytics")}
-                  </Link>
-                </Button>
-                <Button asChild>
-                  <Link href={localePath("/seller/products/new")}>
-                    <PlusIcon className="size-4" />
-                    {t("seller.products.create")}
-                  </Link>
-                </Button>
               </>
             )}
           />
-          {query.data?.meta.nextCursor ? (
-            <div className="mt-4 flex justify-end">
-              <Button type="button" variant="outline" onClick={() => setCursor(query.data.meta.nextCursor ?? undefined)}>{t("seller.products.nextPage")}</Button>
-            </div>
-          ) : null}
         </CardContent>
       </Card>
+      {!query.isLoading && !query.error ? <SellerProductQuestionsPanel products={products} /> : null}
       <AlertDialog open={Boolean(archiveTarget)} onOpenChange={(open) => { if (!open) setArchiveTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("seller.products.archiveTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("seller.products.archiveDescription").replace("{title}", archiveTarget?.title ?? t("seller.products.thisProduct"))}
+              {t("seller.products.archiveDescription").replace("{title}", archiveTarget ? getLocalizedText(locale, archiveTarget.title, archiveTarget.titleTh, archiveTarget.titleEn) : t("seller.products.thisProduct"))}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -986,10 +1048,10 @@ function SellerProductQuestionsPanel({ products }: { products: SellerProduct[] }
       <Card className="mb-4 rounded-lg border-slate-200 bg-white">
         <CardHeader>
           <CardTitle>{t("seller.products.questionsTitle")}</CardTitle>
-          <p className="text-sm text-slate-500">{t("seller.products.questionsActiveDescription")}</p>
+          <p className="text-sm text-slate-500">{t("seller.catalogUi.questionsScope")}</p>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-500">{t("seller.products.noActiveQuestions")}</p>
+          <p className="text-sm text-slate-500">{t("seller.catalogUi.noActiveOnPage")}</p>
         </CardContent>
       </Card>
     );
@@ -999,7 +1061,7 @@ function SellerProductQuestionsPanel({ products }: { products: SellerProduct[] }
     <Card className="mb-4 rounded-lg border-slate-200 bg-white">
       <CardHeader>
         <CardTitle>{t("seller.products.questionsTitle")}</CardTitle>
-        <p className="text-sm text-slate-500">{t("seller.products.questionsDescription")}</p>
+        <p className="text-sm text-slate-500">{t("seller.catalogUi.questionsScope")}</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {activeProducts.map((product) => (
@@ -1091,6 +1153,8 @@ export function SellerProductCreatePage() {
   const t = useTranslations();
   const localePath = useLocalePath();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const shopId = searchParams.get("shopId") || undefined;
   const createProduct = useCreateSellerProduct();
   const [error, setError] = useState("");
   const startedRef = useRef(false);
@@ -1101,18 +1165,19 @@ export function SellerProductCreatePage() {
     createProduct.mutate(
       {
         title: t("seller.editor.untitledDraft"),
+        ...(shopId ? { shopId } : {}),
       },
       {
         onSuccess: (product) => {
           toast.success(t("seller.editor.success.draftCreated"));
-          router.push(localePath(`/seller/products/${product.id}`));
+          router.push(localePath(sellerShopPath(`/seller/products/${product.id}`, shopId)));
         },
         onError: (mutationError: unknown) => {
           setError(mutationError instanceof Error ? mutationError.message : t("seller.editor.error.draftCreate"));
         },
       },
     );
-  }, [createProduct, localePath, router, t]);
+  }, [createProduct, localePath, router, shopId, t]);
 
   return (
     <>
@@ -1129,9 +1194,9 @@ export function SellerProductCreatePage() {
               <Button type="button" variant="outline" onClick={() => {
                 setError("");
                 createProduct.mutate(
-                  { title: t("seller.editor.untitledDraft") },
+                  { title: t("seller.editor.untitledDraft"), ...(shopId ? { shopId } : {}) },
                   {
-                    onSuccess: (product) => router.push(localePath(`/seller/products/${product.id}`)),
+                    onSuccess: (product) => router.push(localePath(sellerShopPath(`/seller/products/${product.id}`, shopId))),
                     onError: (mutationError: unknown) => setError(mutationError instanceof Error ? mutationError.message : t("seller.editor.error.draftCreate")),
                   },
                 );
@@ -1165,7 +1230,9 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
   const locale = useLocale();
   const localePath = useLocalePath();
   const router = useRouter();
-  const productsQuery = useSellerProducts({ limit: 50 });
+  const searchParams = useSearchParams();
+  const shopId = searchParams.get("shopId") || undefined;
+  const productsQuery = useSellerProducts({ limit: 50, shopId });
   const productQuery = useSellerProduct(mode === "edit" ? productId : undefined);
   const categoriesQuery = useSellerCategories();
   const brandsQuery = useSellerBrands();
@@ -1263,7 +1330,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
       setConfirmation({ type: "discard" });
       return;
     }
-    router.push(localePath("/seller/products"));
+    router.push(localePath(sellerShopPath("/seller/products", shopId)));
   }
 
   function addOption() {
@@ -1775,7 +1842,7 @@ function SellerProductFormPage({ mode, productId }: { mode: "create" | "edit"; p
     const pending = confirmation;
     setConfirmation(null);
     if (pending.type === "discard") {
-      router.push(localePath("/seller/products"));
+      router.push(localePath(sellerShopPath("/seller/products", shopId)));
       return;
     }
     if (pending.type === "remove-option") {

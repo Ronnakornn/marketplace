@@ -848,12 +848,17 @@
       "content": "Search content, products, shops, or users"
     },
     "filters": {
-      "roles": "Roles",
-      "statuses": "Statuses",
+      "roles": "All roles",
+      "statuses": "All statuses",
       "risk": "Risk",
-      "shops": "Shops",
+      "shops": "All shops",
       "paymentExceptions": "Payment exceptions",
-      "shipmentExceptions": "Shipment exceptions"
+      "shipmentExceptions": "Shipment exceptions",
+      "roleLabel": "Role",
+      "statusLabel": "Status",
+      "paymentLabel": "Payment",
+      "shipmentLabel": "Shipping",
+      "shopLabel": "Shop"
     },
     "ui": {
       "action": "Action",
@@ -1085,9 +1090,9 @@
         "description": "Review seller storefront status and ownership signals."
       },
       "users": {
-        "eyebrow": "Crew Access",
+        "eyebrow": "User accounts",
         "title": "Manage user accounts",
-        "description": "Create accounts, adjust roles, and remove access without leaving the control deck."
+        "description": "Review users, roles, and account access."
       }
     },
     "reports": {
@@ -1522,7 +1527,13 @@
         "description": "Manage destination, weight and package rules. Preview the exact fee before enabling rules on a shop.",
         "providers": "Providers",
         "rates": "Rate rules",
-        "quote": "Preview shipping quote"
+        "quote": "Preview shipping quote",
+        "provider": "Shipping provider",
+        "searchProviders": "Search carrier name or code",
+        "chooseProvider": "Choose a shipping provider",
+        "selectedProvider": "Current shipping provider",
+        "providerSearchHelp": "Search providers on the current list page. A saved selection stays available.",
+        "quoteDescription": "Enter a shop, destination and package size to check the shipping fee."
       },
       "marketing": {
         "title": "Banners and popups",
@@ -1724,7 +1735,9 @@
         "ADMIN_OPERATIONS_INVALID": "Invalid row. Check its fields.",
         "FINANCE_EVIDENCE_MISMATCH": "Amount, currency or reference does not match the target.",
         "ADMIN_OPERATIONS_STALE": "The record changed. Preview again."
-      }
+      },
+      "editorDescription": "Complete the fields, then save your changes. Your list stays in place.",
+      "confirmDescription": "Review the selected item and provide a reason before confirming."
     },
     "productModeration": {
       "loadError": "Unable to load product policy detail."
@@ -2058,7 +2071,18 @@
       },
       "recordedExpenses": "Recorded operating expenses",
       "operatingContribution": "Contribution after recorded expenses",
-      "legacyNote": "Some legacy lines lack sale snapshots. Their merchandise, discounts, shipping and tax use retained purchase totals with exact allocation; original commission and platform funding are unavailable."
+      "legacyNote": "Some legacy lines lack sale snapshots. Their merchandise, discounts, shipping and tax use retained purchase totals with exact allocation; original commission and platform funding are unavailable.",
+      "filters": "Report filters",
+      "lastSevenDays": "Last 7 days",
+      "thisMonth": "This month",
+      "moreFilters": "More filters",
+      "advancedFilterHint": "Use the complete shop or category ID to narrow the report, or leave the fields blank.",
+      "pendingFilters": "Changes are ready. Apply filters to update the report and export.",
+      "appliedFilters": "The report shows the applied filters.",
+      "applyFilters": "Apply filters",
+      "resetFilters": "Reset",
+      "filterDateError": "The end date must be after the start date.",
+      "filterIdError": "Enter a complete shop or category ID."
     },
     "directory": {
       "loading": "Loading details...",
@@ -2142,6 +2166,82 @@
         "approved": "The product publication was approved.",
         "rejected": "The product publication was rejected."
       }
+    },
+    "table": {
+      "showing": "Showing",
+      "of": "of",
+      "rows": "rows",
+      "previous": "Previous",
+      "next": "Next",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "sortBy": "Sort by",
+      "search": "Search table",
+      "searchPlaceholder": "Search records...",
+      "clearSearch": "Clear search",
+      "columns": "Columns",
+      "rowsPerPage": "Rows per page",
+      "firstPage": "First page",
+      "lastPage": "Last page",
+      "page": "Page",
+      "empty": "No records found",
+      "loading": "Loading records...",
+      "searchPage": "Search this page",
+      "searchPageDescription": "Search applies to the records on this page.",
+      "activeFilters": "Active filters",
+      "resetFilters": "Clear all filters",
+      "removeFilter": "Remove {filter} filter",
+      "refreshing": "Refreshing records...",
+      "refreshFailed": "Refresh failed. The displayed records may be out of date.",
+      "searchAllDescription": "Search applies to all matching records."
+    },
+    "workspace": {
+      "console": "Marketplace workspace",
+      "search": "Search navigation",
+      "searchDescription": "Find a page available to your administrator account.",
+      "searchPlaceholder": "Search pages…",
+      "noResults": "No pages found. Try another search.",
+      "location": "Current page",
+      "storefront": "View storefront",
+      "shortcut": "Ctrl K",
+      "dashboardDescription": "Review pending work and keep marketplace operations moving.",
+      "refresh": "Refresh",
+      "attention": "Needs attention",
+      "attentionDescription": "Open a queue to review and resolve pending work.",
+      "summary": "Marketplace overview",
+      "quickLinks": "Quick access",
+      "unavailable": "Unavailable",
+      "groups": {
+        "overview": "Overview",
+        "marketplace": "Marketplace",
+        "orders": "Orders & fulfillment",
+        "finance": "Finance",
+        "content": "Marketing & content",
+        "trust": "Support & security",
+        "settings": "Administration"
+      },
+      "updatedStatus": "{title} updated to {status}."
+    },
+    "financialAction": {
+      "target": "Target",
+      "recordId": "Record ID",
+      "amount": "Amount",
+      "externalReference": "External payment reference",
+      "externalReferenceHint": "Enter the bank or payment provider reference for the completed transfer. This does not initiate a transfer.",
+      "internalReference": "Internal adjustment reference",
+      "internalReferenceHint": "Enter the internal audit reference for this zero-cash adjustment.",
+      "reason": "Reason",
+      "reasonHint": "Describe why this request is being rejected.",
+      "commissionReasonHint": "Give a reason of at least 3 characters for the audit log.",
+      "approvePayoutHint": "Approve this shop's payout request after reviewing its amount.",
+      "markPaidHint": "Confirm this payout only after the transfer has completed and its reference has been verified.",
+      "rejectPayoutHint": "Reject this payout request. The reason is recorded for review.",
+      "approveCommissionHint": "Approve this affiliate commission after checking the order and amount.",
+      "voidCommissionHint": "Void this affiliate commission and record the reason.",
+      "updateRefundStatus": "Change refund to {status}",
+      "refundStatusHint": "Confirm the refund status {status} after reviewing the saved amount and settlement plan.",
+      "confirming": "Saving…",
+      "failed": "The action could not be saved. Review the details and try again."
     }
   },
   "storefront": {
@@ -3119,6 +3219,73 @@
         "authorizedCompanySignatory": "Authorized company signatory",
         "faceVerification": "Face verification"
       }
+    },
+    "ui": {
+      "workspace": "Seller workspace",
+      "workspaceDescription": "Manage your shop",
+      "currentShop": "Current shop",
+      "skipToContent": "Skip to content",
+      "accountMenu": "Account menu for",
+      "breadcrumb": "Current page",
+      "navigation": {
+        "work": "Shop operations",
+        "business": "Business",
+        "account": "Shop and account"
+      },
+      "table": {
+        "showing": "Showing",
+        "of": "of",
+        "rows": "records",
+        "previous": "Previous",
+        "next": "Next",
+        "previousPage": "Previous page",
+        "nextPage": "Next page",
+        "sortBy": "Sort by",
+        "firstPage": "First page",
+        "lastPage": "Last page",
+        "page": "Page",
+        "search": "Search records",
+        "searchPlaceholder": "Search records...",
+        "clearSearch": "Clear search",
+        "columns": "Columns",
+        "rowsPerPage": "Rows per page",
+        "empty": "No records found",
+        "loading": "Loading records..."
+      }
+    },
+    "catalogUi": {
+      "description": "Manage your listings, prices and stock in one place.",
+      "listTitle": "Product catalog",
+      "products": "products",
+      "price": "Price",
+      "availableStock": "Available stock",
+      "noVariants": "No variants yet",
+      "noImage": "No image for {title}",
+      "refresh": "Refresh products",
+      "clearFilters": "Clear filters",
+      "emptyFiltered": "Try another search or clear your filters.",
+      "emptyCatalog": "Create your first product to start building your catalog.",
+      "questionsScope": "Unanswered questions for up to six active products on this page.",
+      "noActiveOnPage": "This page has no active products to show questions for."
+    },
+    "operationsUi": {
+      "amount": "Amount",
+      "date": "Date",
+      "transaction": "Transaction",
+      "packOrders": "Prepare orders",
+      "viewOrders": "View all orders",
+      "shipDialogTitle": "Ship order",
+      "shipDialogDescription": "Add the carrier and tracking number for {orderNo}.",
+      "shippingRequired": "Enter both a carrier and tracking number.",
+      "shippingSaved": "Shipment marked as shipped.",
+      "shippingFailed": "Could not save shipping details. Your entries are saved here. Try again.",
+      "shippingSaving": "Saving shipment…",
+      "packedSaved": "Shipment marked as packed.",
+      "packFailed": "Could not mark this shipment as packed. Try again.",
+      "payoutSaved": "Payout requested.",
+      "payoutFailed": "Could not request payout. Check the amount and try again.",
+      "analyticsSort": "Rank products by",
+      "transactionPage": "Page {page} · {count} transactions on this page"
     }
   },
   "support": {

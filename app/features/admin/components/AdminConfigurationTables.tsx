@@ -1,5 +1,8 @@
 "use client";
 
+import type { ColumnDef } from "@tanstack/react-table";
+import { AdminTable } from "./AdminTable";
+
 import { useDeferredValue, useState, type FormEvent } from "react";
 import { BadgePercentIcon, PencilIcon, PlusIcon, SettingsIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
@@ -8,12 +11,13 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Switch } from "#/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "#/components/ui/table";
+
 import { Textarea } from "#/components/ui/textarea";
 import { useFormatters, useTranslations } from "#/i18n/client";
 import { AdminDataShell } from "./AdminDataShell";
+import { AdminActionDialog } from "./AdminActionDialog";
 import { AdminStatusBadge } from "./AdminStatusBadge";
-import { AdminTablePagination } from "./AdminTablePagination";
+
 import {
   PAGE_SIZE,
   type AdminCommission,
@@ -83,11 +87,124 @@ export function AdminCommissionsTable() {
   const query = useAdminCommissionsList({ page, limit: PAGE_SIZE, status, q: deferredSearch });
   const updateStatus = useUpdateCommissionStatus();
   const rows = query.data?.items ?? [];
+  const [decision, setDecision] = useState<{ item: AdminCommission; status: "APPROVED" | "VOID" } | null>(null);
 
-  const decide = (item: AdminCommission, nextStatus: "APPROVED" | "VOID") => {
-    const reason = window.prompt(t("admin.commissions.reasonPrompt"))?.trim();
-    if (reason) updateStatus.mutate({ id: item.id, status: nextStatus, reason });
-  };
+  const columns: ColumnDef<AdminCommission>[] = [
+    {
+      id: "affiliate",
+      header: t("admin.commissions.affiliate"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="font-medium text-foreground">{item.affiliateName}</p>
+            <p className="text-xs text-muted-foreground">
+              {item.affiliateEmail} · {item.linkCode}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "order",
+      header: t("admin.order"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="text-sm text-foreground">{item.orderNumber}</p>
+            <p className="text-xs text-muted-foreground">{formatters.date(item.createdAt)}</p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "eligible",
+      header: t("admin.commissions.eligible"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div className="text-sm text-muted-foreground">
+            {formatters.currency(item.eligibleSubtotalCents, item.currency)}
+          </div>
+        );
+      },
+    },
+    {
+      id: "commission",
+      header: t("admin.commissions.commission"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="font-semibold text-foreground">
+              {formatters.currency(item.commissionCents, item.currency)}
+            </p>
+            <p className="text-xs text-muted-foreground">{(item.commissionBps / 100).toFixed(2)}%</p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: t("admin.status"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <AdminStatusBadge status={item.status} />
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: t("admin.actions"),
+      enableSorting: false,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <div className="flex justify-end gap-2">
+              {item.status === "PENDING" ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-border bg-background text-foreground"
+                  disabled={updateStatus.isPending}
+                  onClick={() => setDecision({ item, status: "APPROVED" })}
+                >
+                  {t("admin.ui.approve")}
+                </Button>
+              ) : null}
+              {item.status !== "VOID" ? (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={updateStatus.isPending}
+                  onClick={() => setDecision({ item, status: "VOID" })}
+                >
+                  {t("admin.commissions.void")}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <AdminDataShell
@@ -96,69 +213,70 @@ export function AdminCommissionsTable() {
       icon={BadgePercentIcon}
       search={search}
       searchPlaceholder={t("admin.commissions.search")}
-      onSearchChange={(value) => { setSearch(value); setPage(1); }}
+      onSearchChange={(value) => {
+        setSearch(value);
+        setPage(1);
+      }}
       isLoading={query.isLoading}
       error={query.error}
       onRetry={() => void query.refetch()}
-      filters={(
-        <Select value={status || "ALL"} onValueChange={(value) => { setStatus(value === "ALL" ? "" : value); setPage(1); }}>
-          <SelectTrigger className="h-10 w-full border-white/10 bg-slate-950/60 text-slate-100 md:w-44">
+      filters={
+        <Select
+          value={status || "ALL"}
+          onValueChange={(value) => {
+            setStatus(value === "ALL" ? "" : value);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="h-10 w-full border-border bg-muted/40 text-foreground md:w-44">
             <SelectValue placeholder={t("admin.filters.statuses")} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">{t("admin.common.allStatuses")}</SelectItem>
-            {COMMISSION_STATUSES.map((value) => <SelectItem key={value} value={value}>{t(`admin.statuses.${value}`)}</SelectItem>)}
+            {COMMISSION_STATUSES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {t(`admin.statuses.${value}`)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
-      )}
+      }
     >
       <CardContent className="overflow-x-auto p-0">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
-              <TableHead className="px-5 text-slate-300">{t("admin.commissions.affiliate")}</TableHead>
-              <TableHead className="text-slate-300">{t("admin.order")}</TableHead>
-              <TableHead className="text-slate-300">{t("admin.commissions.eligible")}</TableHead>
-              <TableHead className="text-slate-300">{t("admin.commissions.commission")}</TableHead>
-              <TableHead className="text-slate-300">{t("admin.status")}</TableHead>
-              <TableHead className="text-right text-slate-300">{t("admin.actions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length ? rows.map((item: AdminCommission) => (
-              <TableRow key={item.id} className="border-white/8 hover:bg-white/4">
-                <TableCell className="px-5 py-4">
-                  <p className="font-medium text-white">{item.affiliateName}</p>
-                  <p className="text-xs text-slate-500">{item.affiliateEmail} · {item.linkCode}</p>
-                </TableCell>
-                <TableCell>
-                  <p className="text-sm text-slate-200">{item.orderNumber}</p>
-                  <p className="text-xs text-slate-500">{formatters.date(item.createdAt)}</p>
-                </TableCell>
-                <TableCell className="text-sm text-slate-300">{formatters.currency(item.eligibleSubtotalCents, item.currency)}</TableCell>
-                <TableCell>
-                  <p className="font-semibold text-white">{formatters.currency(item.commissionCents, item.currency)}</p>
-                  <p className="text-xs text-slate-500">{(item.commissionBps / 100).toFixed(2)}%</p>
-                </TableCell>
-                <TableCell><AdminStatusBadge status={item.status} /></TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-2">
-                    {item.status === "PENDING" ? (
-                      <Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" disabled={updateStatus.isPending} onClick={() => decide(item, "APPROVED")}>{t("admin.ui.approve")}</Button>
-                    ) : null}
-                    {item.status !== "VOID" ? (
-                      <Button size="sm" variant="destructive" disabled={updateStatus.isPending} onClick={() => decide(item, "VOID")}>{t("admin.commissions.void")}</Button>
-                    ) : null}
-                  </div>
-                </TableCell>
-              </TableRow>
-            )) : (
-              <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={6} className="h-32 text-center text-slate-400">{t("admin.commissions.empty")}</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
-        <AdminTablePagination page={page} totalPages={query.data?.pagination.totalPages ?? 1} total={query.data?.pagination.total ?? 0} visible={rows.length} onPageChange={setPage} />
+        <AdminTable
+          columns={columns}
+          data={rows}
+          isLoading={query.isLoading}
+          emptyMessage={t("admin.ui.noRecords")}
+          getRowId={(item) => item.id}
+          pagination={{
+            pageIndex: page - 1,
+            pageSize: PAGE_SIZE,
+            totalRows: query.data?.pagination.total ?? 0,
+            onPaginationChange: (updater) => {
+              const current = { pageIndex: page - 1, pageSize: PAGE_SIZE };
+              const next = typeof updater === "function" ? updater(current) : updater;
+              setPage(next.pageIndex + 1);
+            },
+          }}
+        />
       </CardContent>
+      {decision ? (
+        <AdminActionDialog
+          key={`${decision.status}-${decision.item.id}`}
+          action={t(decision.status === "APPROVED" ? "admin.ui.approve" : "admin.commissions.void")}
+          description={t(decision.status === "APPROVED" ? "admin.financialAction.approveCommissionHint" : "admin.financialAction.voidCommissionHint")}
+          target={`${decision.item.affiliateName} · ${decision.item.orderNumber}`}
+          recordId={decision.item.id}
+          amount={formatters.currency(decision.item.commissionCents, decision.item.currency)}
+          currency={decision.item.currency}
+          destructive={decision.status === "VOID"}
+          isPending={updateStatus.isPending}
+          field={{ label: t("admin.financialAction.reason"), helper: t("admin.financialAction.commissionReasonHint"), minLength: 3, maxLength: 500, multiline: true }}
+          onClose={() => setDecision(null)}
+          onConfirm={(reason) => updateStatus.mutateAsync({ id: decision.item.id, status: decision.status, reason })}
+        />
+      ) : null}
     </AdminDataShell>
   );
 }
@@ -210,43 +328,239 @@ export function AdminSettingsManager() {
     }
   };
 
+  const columns: ColumnDef<AdminSystemSetting>[] = [
+    {
+      id: "key",
+      header: t("admin.settingsEditor.key"),
+      accessorFn: (item) => item.key,
+      enableSorting: true,
+      cell: ({ row }) => {
+        const setting = row.original;
+
+        return (
+          <div>
+            <p className="font-mono text-sm text-foreground">{setting.key}</p>
+            <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+              {setting.description ?? t("admin.settingsEditor.noDescription")}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "value",
+      header: t("admin.settingsEditor.value"),
+      accessorFn: (item) => settingValuePreview(item),
+      enableSorting: true,
+      cell: ({ row }) => {
+        const setting = row.original;
+
+        return (
+          <div
+            className="max-w-sm truncate font-mono text-xs text-muted-foreground"
+            title={settingValuePreview(setting)}
+          >
+            {settingValuePreview(setting)}
+          </div>
+        );
+      },
+    },
+    {
+      id: "type",
+      header: t("admin.settingsEditor.type"),
+      accessorFn: (item) => item.valueType,
+      enableSorting: true,
+      cell: ({ row }) => {
+        const setting = row.original;
+
+        return (
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{setting.valueType}</span>
+              {setting.isPublic ? (
+                <span className="rounded-full bg-cyan-500/15 px-2 py-1 text-xs text-primary">
+                  {t("admin.settingsEditor.public")}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "updated",
+      header: t("admin.settingsEditor.updated"),
+      accessorFn: (item) => new Date(item.updatedAt).getTime(),
+      enableSorting: true,
+      cell: ({ row }) => {
+        const setting = row.original;
+
+        return <div className="text-sm text-muted-foreground">{formatters.date(setting.updatedAt)}</div>;
+      },
+    },
+    {
+      id: "actions",
+      header: t("admin.actions"),
+      enableSorting: false,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const setting = row.original;
+
+        return (
+          <div className="text-right">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-border bg-background text-foreground"
+              onClick={() => edit(setting)}
+            >
+              <PencilIcon className="size-4" />
+              {t("admin.common.edit")}
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-      <Card className="admin-panel h-fit rounded-xl border-white/10 bg-white/5">
+      <Card className="admin-panel h-fit rounded-xl border-border bg-background">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white"><SettingsIcon className="size-5 text-cyan-200" />{form.editing ? t("admin.settingsEditor.edit") : t("admin.settingsEditor.create")}</CardTitle>
-          <p className="text-sm text-slate-400">{t("admin.settingsEditor.description")}</p>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <SettingsIcon className="size-5 text-primary" />
+            {form.editing ? t("admin.settingsEditor.edit") : t("admin.settingsEditor.create")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">{t("admin.settingsEditor.description")}</p>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={submit}>
-            <div className="space-y-2"><Label htmlFor="setting-key" className="text-slate-200">{t("admin.settingsEditor.key")}</Label><Input id="setting-key" value={form.key} disabled={form.editing} required minLength={2} maxLength={120} pattern="[a-z][a-z0-9_.-]+" onChange={(event) => setForm((current) => ({ ...current, key: event.target.value }))} className="border-white/10 bg-slate-950/60 text-slate-100" /></div>
-            <div className="space-y-2"><Label className="text-slate-200">{t("admin.settingsEditor.type")}</Label><Select value={form.valueType} onValueChange={(value: SettingValueType) => setForm((current) => ({ ...current, valueType: value }))}><SelectTrigger className="border-white/10 bg-slate-950/60 text-slate-100"><SelectValue /></SelectTrigger><SelectContent>{SETTING_VALUE_TYPES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label htmlFor="setting-value" className="text-slate-200">{t("admin.settingsEditor.value")}</Label><Textarea id="setting-value" value={form.value} required onChange={(event) => setForm((current) => ({ ...current, value: event.target.value }))} className="min-h-32 border-white/10 bg-slate-950/60 font-mono text-slate-100" /></div>
-            <div className="space-y-2"><Label htmlFor="setting-description" className="text-slate-200">{t("admin.settingsEditor.fieldDescription")}</Label><Textarea id="setting-description" value={form.description} maxLength={500} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} className="border-white/10 bg-slate-950/60 text-slate-100" /></div>
-            <div className="flex items-center justify-between rounded-lg border border-white/10 bg-slate-950/40 p-3"><div><Label htmlFor="setting-public" className="text-slate-200">{t("admin.settingsEditor.public")}</Label><p className="mt-1 text-xs text-slate-500">{t("admin.settingsEditor.publicHint")}</p></div><Switch id="setting-public" checked={form.isPublic} onCheckedChange={(checked) => setForm((current) => ({ ...current, isPublic: checked }))} /></div>
-            {validationError ? <p className="text-sm text-red-300">{validationError}</p> : null}
-            {upsert.error ? <p className="text-sm text-red-300">{t("admin.settingsEditor.saveFailed")}</p> : null}
-            <div className="flex gap-2"><Button type="submit" disabled={upsert.isPending}>{t("admin.common.save")}</Button>{form.editing ? <Button type="button" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={reset}>{t("admin.cancel")}</Button> : null}</div>
+            <div className="space-y-2">
+              <Label htmlFor="setting-key" className="text-foreground">
+                {t("admin.settingsEditor.key")}
+              </Label>
+              <Input
+                id="setting-key"
+                value={form.key}
+                disabled={form.editing}
+                required
+                minLength={2}
+                maxLength={120}
+                pattern="[a-z][a-z0-9_.-]+"
+                onChange={(event) => setForm((current) => ({ ...current, key: event.target.value }))}
+                className="border-border bg-muted/40 text-foreground"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-foreground">{t("admin.settingsEditor.type")}</Label>
+              <Select
+                value={form.valueType}
+                onValueChange={(value: SettingValueType) =>
+                  setForm((current) => ({ ...current, valueType: value }))
+                }
+              >
+                <SelectTrigger className="border-border bg-muted/40 text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SETTING_VALUE_TYPES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="setting-value" className="text-foreground">
+                {t("admin.settingsEditor.value")}
+              </Label>
+              <Textarea
+                id="setting-value"
+                value={form.value}
+                required
+                onChange={(event) => setForm((current) => ({ ...current, value: event.target.value }))}
+                className="min-h-32 border-border bg-muted/40 font-mono text-foreground"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="setting-description" className="text-foreground">
+                {t("admin.settingsEditor.fieldDescription")}
+              </Label>
+              <Textarea
+                id="setting-description"
+                value={form.description}
+                maxLength={500}
+                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                className="border-border bg-muted/40 text-foreground"
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 p-3">
+              <div>
+                <Label htmlFor="setting-public" className="text-foreground">
+                  {t("admin.settingsEditor.public")}
+                </Label>
+                <p className="mt-1 text-xs text-muted-foreground">{t("admin.settingsEditor.publicHint")}</p>
+              </div>
+              <Switch
+                id="setting-public"
+                checked={form.isPublic}
+                onCheckedChange={(checked) => setForm((current) => ({ ...current, isPublic: checked }))}
+              />
+            </div>
+            {validationError ? <p className="text-sm text-destructive">{validationError}</p> : null}
+            {upsert.error ? (
+              <p className="text-sm text-destructive">{t("admin.settingsEditor.saveFailed")}</p>
+            ) : null}
+            <div className="flex gap-2">
+              <Button type="submit" disabled={upsert.isPending}>
+                {t("admin.common.save")}
+              </Button>
+              {form.editing ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-border bg-background text-foreground"
+                  onClick={reset}
+                >
+                  {t("admin.cancel")}
+                </Button>
+              ) : null}
+            </div>
           </form>
         </CardContent>
       </Card>
 
-      <AdminDataShell title={t("admin.settingsEditor.listTitle")} description={t("admin.settingsEditor.listDescription")} icon={SettingsIcon} search={settingsSearch} searchPlaceholder={t("admin.settingsEditor.search")} onSearchChange={setSettingsSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()} filters={<Button type="button" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={reset}><PlusIcon className="size-4" />{t("admin.settingsEditor.new")}</Button>}>
+      <AdminDataShell
+        title={t("admin.settingsEditor.listTitle")}
+        description={t("admin.settingsEditor.listDescription")}
+        icon={SettingsIcon}
+        search={settingsSearch}
+        searchPlaceholder={t("admin.settingsEditor.search")}
+        onSearchChange={setSettingsSearch}
+        isLoading={query.isLoading}
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        filters={
+          <Button
+            type="button"
+            variant="outline"
+            className="border-border bg-background text-foreground"
+            onClick={reset}
+          >
+            <PlusIcon className="size-4" />
+            {t("admin.settingsEditor.new")}
+          </Button>
+        }
+      >
         <CardContent className="overflow-x-auto p-0">
-          <Table>
-            <TableHeader><TableRow className="border-white/10 bg-white/6 hover:bg-white/6"><TableHead className="px-5 text-slate-300">{t("admin.settingsEditor.key")}</TableHead><TableHead className="text-slate-300">{t("admin.settingsEditor.value")}</TableHead><TableHead className="text-slate-300">{t("admin.settingsEditor.type")}</TableHead><TableHead className="text-slate-300">{t("admin.settingsEditor.updated")}</TableHead><TableHead className="text-right text-slate-300">{t("admin.actions")}</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {settingsRows.length ? settingsRows.map((setting: AdminSystemSetting) => (
-                <TableRow key={setting.id} className="border-white/8 hover:bg-white/4">
-                  <TableCell className="px-5 py-4"><p className="font-mono text-sm text-white">{setting.key}</p><p className="mt-1 max-w-sm text-xs text-slate-500">{setting.description ?? t("admin.settingsEditor.noDescription")}</p></TableCell>
-                  <TableCell className="max-w-sm truncate font-mono text-xs text-slate-300" title={settingValuePreview(setting)}>{settingValuePreview(setting)}</TableCell>
-                  <TableCell><div className="flex items-center gap-2"><span className="text-xs text-slate-300">{setting.valueType}</span>{setting.isPublic ? <span className="rounded-full bg-cyan-500/15 px-2 py-1 text-xs text-cyan-200">{t("admin.settingsEditor.public")}</span> : null}</div></TableCell>
-                  <TableCell className="text-sm text-slate-300">{formatters.date(setting.updatedAt)}</TableCell>
-                  <TableCell className="text-right"><Button size="sm" variant="outline" className="border-white/10 bg-white/5 text-slate-100" onClick={() => edit(setting)}><PencilIcon className="size-4" />{t("admin.common.edit")}</Button></TableCell>
-                </TableRow>
-              )) : <TableRow className="border-white/8 hover:bg-transparent"><TableCell colSpan={5} className="h-32 text-center text-slate-400">{t("admin.settingsEditor.empty")}</TableCell></TableRow>}
-            </TableBody>
-          </Table>
+          <AdminTable
+            columns={columns}
+            data={settingsRows}
+            isLoading={query.isLoading}
+            emptyMessage={t("admin.settingsEditor.empty")}
+            getRowId={(item) => item.id}
+          />
         </CardContent>
       </AdminDataShell>
     </div>

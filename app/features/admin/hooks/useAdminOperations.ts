@@ -160,6 +160,7 @@ export function useAdminProductsList(filters: AdminListFilters) {
 export function useAdminCatalogModerationList(filters: AdminListFilters & { q?: string }) {
   const query = Object.fromEntries(
     Object.entries({
+      page: filters.page,
       q: filters.q || undefined,
       status: filters.status || undefined,
       limit: filters.limit ?? PAGE_SIZE,

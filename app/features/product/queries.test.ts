@@ -126,6 +126,15 @@ describe("product query keys", () => {
     ]);
   });
 
+  it("preserves seller page and shop scope in the API query and cache key", () => {
+    const input = { q: "bag", status: "ACTIVE" as const, shopId: "shop-2", page: 3, limit: 10 };
+    expect(cleanSellerProductListInput(input)).toEqual({ q: "bag", status: "ACTIVE", shopId: "shop-2", page: 3, limit: 10 });
+    expect(productQueryKeys.seller.list(input)).toEqual([
+      "product", "seller", "lists", { q: "bag", status: "ACTIVE", shopId: "shop-2", page: 3, limit: 10 },
+    ]);
+    expect(productQueryKeys.seller.list({ ...input, page: 2 })).not.toEqual(productQueryKeys.seller.list(input));
+  });
+
   it("uses separate public list, search, detail, category, and shop product keys", () => {
     expect(productQueryKeys.public.list({ locale: "en" }).slice(0, 3)).toEqual(["product", "public", "lists"]);
     expect(productQueryKeys.public.search({ locale: "en", q: "bag" }).slice(0, 3)).toEqual(["product", "public", "searches"]);

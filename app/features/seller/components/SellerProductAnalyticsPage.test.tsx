@@ -99,6 +99,7 @@ vi.mock("#/i18n/navigation", () => ({
 }));
 
 vi.mock("#/i18n/client", () => ({
+  useLocale: () => "en",
   useTranslations: () => (key: string) => ({
     "seller.nav.dashboard": "Dashboard",
     "seller.nav.products": "Products",
@@ -280,6 +281,18 @@ describe("Seller product analytics page", () => {
 
     fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-06-05" } });
     expect(hook).toHaveBeenLastCalledWith(expect.objectContaining({ range: "custom", from: "2026-06-05" }));
+  });
+
+  it("pages through the server total and resets to page one when the range changes", () => {
+    analyticsState = makeState({ data: { ...analyticsData, productPagination: { page: 1, limit: 20, total: 45, totalPages: 3 } } });
+    const hook = vi.mocked(useSellerProductAnalytics);
+    render(<SellerProductAnalyticsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "seller.ui.table.nextPage" }));
+    expect(hook).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, limit: 20 }));
+    fireEvent.change(screen.getByLabelText("seller.ui.table.rowsPerPage"), { target: { value: "50" } });
+    expect(hook).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, limit: 50 }));
+    fireEvent.click(screen.getByRole("button", { name: "7 days" }));
+    expect(hook).toHaveBeenLastCalledWith(expect.objectContaining({ range: "7d", page: 1 }));
   });
 
   it("shows loading, empty, error, retry, and custom date validation states", () => {

@@ -277,6 +277,12 @@ describe("SellerDashboardPage", () => {
     expect(screen.queryByText("seller.manage.staffDescription")).toBeNull();
   });
 
+  it("keeps the selected shop in dashboard action links", () => {
+    render(<SellerDashboardPage />);
+    expect(screen.getByRole("link", { name: "seller.operationsUi.packOrders" }).getAttribute("href")).toBe("/en/seller/orders?shopId=shop-1&status=pending_pack");
+    expect(screen.getAllByRole("link", { name: "seller.manage.restock" }).every((link) => link.getAttribute("href") === "/en/seller/inventory?shopId=shop-1")).toBe(true);
+  });
+
   it("submits localized shop content while preserving base fields", async () => {
     render(<SellerShopProfilePage shopId="shop-1" />);
     const description = screen.getAllByLabelText("seller.manage.baseDescription").at(-1)!;

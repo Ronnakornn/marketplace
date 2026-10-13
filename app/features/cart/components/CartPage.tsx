@@ -154,7 +154,7 @@ export function CartPage({ initialVoucher = "" }: { initialVoucher?: string }) {
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-slate-700">{t("cart.subtotal")}</p>
-              <p className="text-lg font-bold text-slate-950">{selectedItems.length === 0 ? formatMoney(0, cart.currency) : selectionQuote.data ? formatMoney(selectionQuote.data.subtotal, cart.currency) : <Skeleton className="h-6 w-24" />}</p>
+              <div className="text-lg font-bold text-slate-950">{selectedItems.length === 0 ? formatMoney(0, cart.currency) : selectionQuote.data ? formatMoney(selectionQuote.data.subtotal, cart.currency) : <Skeleton className="h-6 w-24" />}</div>
               {selectionQuote.isError ? <p role="alert" className="text-sm text-red-600">{selectionQuote.error.message}</p> : null}
               <p className="text-xs text-slate-500">{t("cart.selectedCount").replace("{count}", String(selectedItems.length))}</p>
             </div>

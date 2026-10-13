@@ -1,5 +1,21 @@
 "use client";
 
+import { AdminTable } from "../components/AdminTable";
+import { AdminActionDialog } from "../components/AdminActionDialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "#/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "#/components/ui/dialog";
+import { Input } from "#/components/ui/input";
+
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "#/components/ui/button";
@@ -14,17 +30,16 @@ import {
   type EvidenceRow,
   type StatementFileInput,
   type StatementFilePreview,
+  type CycleRows,
 } from "./api";
 import {
-  Cell,
-  DataTable,
   Editor,
   Field,
   OperationsFrame,
-  Pager,
   SelectField,
   dateInput,
   toDateInput,
+  operationError,
 } from "./shared";
 
 const blankEvidence: EvidenceInput = {
@@ -49,8 +64,13 @@ export function AdminReconciliation() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<unknown>(null);
   const [uploading, setUploading] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [reviewing, setReviewing] = useState<EvidenceRow | null>(null);
   const [reviewReason, setReviewReason] = useState("");
+  const [reviewTargetId, setReviewTargetId] = useState("");
+  const [reviewTargetType, setReviewTargetType] = useState<
+    "PAYMENT" | "PAYOUT" | "REFUND"
+  >("PAYMENT");
   const rows = useOperationQuery(["reconciliation", page], () =>
     operationsApi.finance.reconciliation.get({ query: { page, limit: 20 } }),
   );
@@ -58,17 +78,23 @@ export function AdminReconciliation() {
     operationsApi.finance.reconciliation.post(body),
   );
   const match = useOperationMutation(
-    (input: { row: EvidenceRow; reject: boolean }) =>
+    (input: {
+      row: EvidenceRow;
+      reject: boolean;
+      reason: string;
+      targetId: string;
+      targetType: "PAYMENT" | "PAYOUT" | "REFUND";
+    }) =>
       operationsApi.finance.reconciliation({ id: input.row.id }).match.post({
         expectedVersion: input.row.version,
-        reason: reviewReason,
+        reason: input.reason,
         reject: input.reject,
-        ...(input.row.kind !== "OPERATING_EXPENSE" && targetId
-          ? targetType === "PAYMENT"
-            ? { paymentId: targetId }
-            : targetType === "PAYOUT"
-              ? { payoutId: targetId }
-              : { refundId: targetId }
+        ...(input.row.kind !== "OPERATING_EXPENSE" && input.targetId
+          ? input.targetType === "PAYMENT"
+            ? { paymentId: input.targetId }
+            : input.targetType === "PAYOUT"
+              ? { payoutId: input.targetId }
+              : { refundId: input.targetId }
           : {}),
       }),
   );
@@ -116,7 +142,9 @@ export function AdminReconciliation() {
       });
       setForm(blankEvidence);
       setTargetId("");
+      setTargetType("PAYMENT");
       setFile(null);
+      setEvidenceOpen(false);
     } catch (error) {
       setUploadError(error);
     } finally {
@@ -145,120 +173,217 @@ export function AdminReconciliation() {
       <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
         {t("admin.operations.evidenceOnly")}
       </p>
-      <DataTable
-        headings={[
-          "sourceKey",
-          "kind",
-          "amount",
-          "externalReference",
-          "status",
-          "actions",
-        ]}
-      >
-        {rows.data?.items.map((row) => (
-          <tr key={row.id}>
-            <Cell>
-              <span className="break-all">{row.sourceKey}</span>
-            </Cell>
-            <Cell>{t(`admin.operations.values.${row.kind}`)}</Cell>
-            <Cell>
-              {currency(row.amount)} {row.currency}
-            </Cell>
-            <Cell>{row.externalReference}</Cell>
-            <Cell>{t(`admin.operations.values.${row.status}`)}</Cell>
-            <Cell>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setReviewing(row);
-                    setTargetId(
-                      row.paymentId ?? row.payoutId ?? row.refundId ?? "",
-                    );
-                    setTargetType(
-                      row.payoutId
-                        ? "PAYOUT"
-                        : row.refundId
-                          ? "REFUND"
-                          : "PAYMENT",
-                    );
-                    setReviewReason("");
-                  }}
-                >
-                  {t("admin.operations.review")}
-                </Button>
-                {row.uploadId ? (
+      <AdminTable
+        isLoading={rows.isLoading}
+        data={rows.data?.items ?? []}
+        columns={[
+          {
+            id: "sourceKey",
+            header: t("admin.operations.fields.sourceKey"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                <span className="break-all">{row.sourceKey}</span>
+              </>
+            ),
+          },
+          {
+            id: "kind",
+            header: t("admin.operations.fields.kind"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>{t(`admin.operations.values.${row.kind}`)}</>
+            ),
+          },
+          {
+            id: "amount",
+            header: t("admin.operations.fields.amount"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                {currency(row.amount)} {row.currency}
+              </>
+            ),
+          },
+          {
+            id: "externalReference",
+            header: t("admin.operations.fields.externalReference"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.externalReference}</>,
+          },
+          {
+            id: "status",
+            header: t("admin.operations.fields.status"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>{t(`admin.operations.values.${row.status}`)}</>
+            ),
+          },
+          {
+            id: "actions",
+            header: t("admin.operations.fields.actions"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => void download(row)}
+                    onClick={() => {
+                      setReviewing(row);
+                      setReviewTargetId(
+                        row.paymentId ?? row.payoutId ?? row.refundId ?? "",
+                      );
+                      setReviewTargetType(
+                        row.payoutId
+                          ? "PAYOUT"
+                          : row.refundId
+                            ? "REFUND"
+                            : "PAYMENT",
+                      );
+                      setReviewReason("");
+                    }}
                   >
-                    {t("admin.operations.viewEvidence")}
+                    {t("admin.operations.review")}
                   </Button>
-                ) : null}
-              </div>
-            </Cell>
-          </tr>
-        ))}
-      </DataTable>
-      <Pager page={page} total={rows.data?.total ?? 0} onPage={setPage} />
+                  {row.uploadId ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void download(row)}
+                    >
+                      {t("admin.operations.viewEvidence")}
+                    </Button>
+                  ) : null}
+                </div>
+              </>
+            ),
+          },
+        ]}
+        pagination={{
+          pageIndex: page - 1,
+          pageSize: 20,
+          totalRows: rows.data?.total ?? 0,
+          onPaginationChange: (updater) => {
+            const next =
+              typeof updater === "function"
+                ? updater({ pageIndex: page - 1, pageSize: 20 })
+                : updater;
+            setPage(next.pageIndex + 1);
+          },
+        }}
+      />
       {reviewing ? (
-        <section className="admin-panel grid gap-4 rounded-xl p-5">
-          <h2 className="text-lg font-medium">
-            {t("admin.operations.review")}: {reviewing.sourceKey}
-          </h2>
-          <p>
-            {currency(reviewing.amount)} {reviewing.currency} ·{" "}
-            {reviewing.externalReference}
-          </p>
-          <SelectField
-            label="targetType"
-            value={targetType}
-            values={["PAYMENT", "PAYOUT", "REFUND"]}
-            onChange={setTargetType}
-          />
-          <Field label="targetId" value={targetId} onChange={setTargetId} />
-          <Field
-            label="reason"
-            value={reviewReason}
-            required
-            onChange={setReviewReason}
-          />
-          <div className="flex gap-2">
-            <Button
-              disabled={match.isPending || reviewReason.trim().length < 3}
-              onClick={() =>
-                match.mutate(
-                  { row: reviewing, reject: false },
-                  { onSuccess: () => setReviewing(null) },
-                )
-              }
-            >
-              {t("admin.operations.match")}
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={match.isPending || reviewReason.trim().length < 3}
-              onClick={() =>
-                match.mutate(
-                  { row: reviewing, reject: true },
-                  { onSuccess: () => setReviewing(null) },
-                )
-              }
-            >
-              {t("admin.operations.reject")}
-            </Button>
-            <Button variant="outline" onClick={() => setReviewing(null)}>
-              {t("admin.operations.cancel")}
-            </Button>
-          </div>
-        </section>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open && !match.isPending) setReviewing(null);
+          }}
+        >
+          <DialogContent
+            showCloseButton={false}
+            className="max-h-[90dvh] overflow-y-auto"
+          >
+            <DialogHeader>
+              <DialogTitle className="break-words">
+                {t("admin.operations.review")}: {reviewing.sourceKey}
+              </DialogTitle>
+              <DialogDescription>
+                {t("admin.operations.evidenceOnly")}
+              </DialogDescription>
+            </DialogHeader>
+            {match.error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {operationError(match.error, t)}
+              </p>
+            ) : null}
+            <p>
+              {currency(reviewing.amount, reviewing.currency)} ·{" "}
+              {reviewing.externalReference}
+            </p>
+            <fieldset disabled={match.isPending} className="grid min-w-0 gap-4">
+              <SelectField
+                label="targetType"
+                value={reviewTargetType}
+                values={["PAYMENT", "PAYOUT", "REFUND"]}
+                onChange={(value) => {
+                  setReviewTargetType(value);
+                  setReviewTargetId("");
+                }}
+              />
+              <Field
+                label="targetId"
+                value={reviewTargetId}
+                onChange={setReviewTargetId}
+              />
+              <Field
+                label="reason"
+                value={reviewReason}
+                required
+                onChange={setReviewReason}
+              />
+              <div className="flex gap-2">
+                <Button
+                  disabled={match.isPending || reviewReason.trim().length < 3}
+                  onClick={() =>
+                    match.mutate(
+                      {
+                        row: reviewing,
+                        reject: false,
+                        reason: reviewReason,
+                        targetId: reviewTargetId,
+                        targetType: reviewTargetType,
+                      },
+                      { onSuccess: () => setReviewing(null) },
+                    )
+                  }
+                >
+                  {t("admin.operations.match")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={match.isPending || reviewReason.trim().length < 3}
+                  onClick={() =>
+                    match.mutate(
+                      {
+                        row: reviewing,
+                        reject: true,
+                        reason: reviewReason,
+                        targetId: reviewTargetId,
+                        targetType: reviewTargetType,
+                      },
+                      { onSuccess: () => setReviewing(null) },
+                    )
+                  }
+                >
+                  {t("admin.operations.reject")}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={match.isPending}
+                  onClick={() => setReviewing(null)}
+                >
+                  {t("admin.operations.cancel")}
+                </Button>
+              </div>
+            </fieldset>
+          </DialogContent>
+        </Dialog>
       ) : null}
       <Editor
         title="createEvidence"
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+        error={create.error ?? uploadError}
+        onCancel={() => {
+          setForm(blankEvidence);
+          setTargetId("");
+          setTargetType("PAYMENT");
+          setFile(null);
+          setUploadError(null);
+        }}
         busy={uploading || create.isPending}
-        onSubmit={() => void saveEvidence()}
+        onSubmit={saveEvidence}
       >
         <SelectField
           label="kind"
@@ -319,7 +444,10 @@ export function AdminReconciliation() {
           label="targetType"
           value={targetType}
           values={["PAYMENT", "PAYOUT", "REFUND"]}
-          onChange={setTargetType}
+          onChange={(value) => {
+            setTargetType(value);
+            setTargetId("");
+          }}
         />
         <Field label="targetId" value={targetId} onChange={setTargetId} />
         <label className="grid gap-2 text-sm">
@@ -344,6 +472,7 @@ export function AdminReconciliation() {
 
 export function StatementImport() {
   const t = useTranslations();
+  const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [reason, setReason] = useState("");
   const [batchKey, setBatchKey] = useState("");
@@ -390,81 +519,115 @@ export function StatementImport() {
     }
   }
   return (
-    <OperationsFrame area="statement" error={error ?? importing.error}>
-      <section className="admin-panel grid gap-4 rounded-xl p-5">
-        <p className="text-sm text-muted-foreground">
-          {t("admin.operations.statementHelp")}
-        </p>
-        <Field
-          label="batchKey"
-          value={batchKey}
-          required
-          onChange={(value) => {
-            setBatchKey(value);
-            setPreview(null);
-          }}
-        />
-        <Field
-          label="reason"
-          value={reason}
-          required
-          onChange={(value) => {
-            setReason(value);
-            setPreview(null);
-          }}
-        />
-        <label className="grid gap-2 text-sm">
-          <span>{t("admin.operations.fields.upload")}</span>
-          <input
-            type="file"
-            accept=".csv,.xlsx"
-            onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null);
-              setPreview(null);
-            }}
-          />
-        </label>
-        <Button
-          variant="outline"
-          disabled={!file || reason.trim().length < 3 || !batchKey}
-          onClick={() => void inspect()}
-        >
-          {t("admin.operations.preview")}
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <Button variant="outline" type="button">
+          {t("admin.operations.statement.title")}
         </Button>
-        {preview ? (
-          <>
-            <DataTable headings={["row", "sourceKey", "valid", "error"]}>
-              {preview.rows.map((row) => (
-                <tr key={row.row}>
-                  <Cell>{row.row}</Cell>
-                  <Cell>{row.sourceKey}</Cell>
-                  <Cell>
-                    {t(
-                      row.valid
-                        ? "admin.operations.yes"
-                        : "admin.operations.no",
-                    )}
-                  </Cell>
-                  <Cell>
-                    {row.error
-                      ? t(
-                          `admin.operations.errors.${row.errorCode ?? "ADMIN_OPERATIONS_INVALID"}`,
-                        )
-                      : null}
-                  </Cell>
-                </tr>
-              ))}
-            </DataTable>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-4">
+        <OperationsFrame area="statement" error={error ?? importing.error}>
+          <section className="admin-panel grid gap-4 rounded-xl p-5">
+            <p className="text-sm text-muted-foreground">
+              {t("admin.operations.statementHelp")}
+            </p>
+            <Field
+              label="batchKey"
+              value={batchKey}
+              required
+              onChange={(value) => {
+                setBatchKey(value);
+                setPreview(null);
+              }}
+            />
+            <Field
+              label="reason"
+              value={reason}
+              required
+              onChange={(value) => {
+                setReason(value);
+                setPreview(null);
+              }}
+            />
+            <label className="grid gap-2 text-sm">
+              <span>{t("admin.operations.fields.upload")}</span>
+              <Input
+                type="file"
+                accept=".csv,.xlsx"
+                onChange={(event) => {
+                  setFile(event.target.files?.[0] ?? null);
+                  setPreview(null);
+                }}
+              />
+            </label>
             <Button
-              disabled={!preview.valid || importing.isPending}
-              onClick={() => importing.mutate()}
+              variant="outline"
+              disabled={!file || reason.trim().length < 3 || !batchKey}
+              onClick={() => void inspect()}
             >
-              {t("admin.operations.import")}
+              {t("admin.operations.preview")}
             </Button>
-          </>
-        ) : null}
-      </section>
-    </OperationsFrame>
+            {preview ? (
+              <>
+                <AdminTable
+                  data={preview.rows ?? []}
+                  columns={[
+                    {
+                      id: "row",
+                      header: t("admin.operations.fields.row"),
+                      enableSorting: false,
+                      cell: ({ row: { original: row } }) => <>{row.row}</>,
+                    },
+                    {
+                      id: "sourceKey",
+                      header: t("admin.operations.fields.sourceKey"),
+                      enableSorting: false,
+                      cell: ({ row: { original: row } }) => (
+                        <>{row.sourceKey}</>
+                      ),
+                    },
+                    {
+                      id: "valid",
+                      header: t("admin.operations.fields.valid"),
+                      enableSorting: false,
+                      cell: ({ row: { original: row } }) => (
+                        <>
+                          {t(
+                            row.valid
+                              ? "admin.operations.yes"
+                              : "admin.operations.no",
+                          )}
+                        </>
+                      ),
+                    },
+                    {
+                      id: "error",
+                      header: t("admin.operations.fields.error"),
+                      enableSorting: false,
+                      cell: ({ row: { original: row } }) => (
+                        <>
+                          {row.error
+                            ? t(
+                                `admin.operations.errors.${row.errorCode ?? "ADMIN_OPERATIONS_INVALID"}`,
+                              )
+                            : null}
+                        </>
+                      ),
+                    },
+                  ]}
+                />
+                <Button
+                  disabled={!preview.valid || importing.isPending}
+                  onClick={() => importing.mutate()}
+                >
+                  {t("admin.operations.import")}
+                </Button>
+              </>
+            ) : null}
+          </section>
+        </OperationsFrame>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -474,7 +637,12 @@ export function AdminFinance() {
   const [page, setPage] = useState(1);
   const [evidenceId, setEvidenceId] = useState("");
   const [reference, setReference] = useState("");
-  const [payoutId, setPayoutId] = useState("");
+  const [payoutTarget, setPayoutTarget] = useState<
+    NonNullable<CycleRows>["items"][number] | null
+  >(null);
+  const [approvalTarget, setApprovalTarget] = useState<
+    NonNullable<CycleRows>["items"][number] | null
+  >(null);
   const channels = useOperationQuery(["channels"], () =>
     operationsApi.finance.channels.get(),
   );
@@ -484,10 +652,18 @@ export function AdminFinance() {
   const prepare = useOperationMutation(() =>
     operationsApi.finance.cycles.prepare.post(),
   );
-  const record = useOperationMutation(() =>
-    operationsApi.finance
-      .payouts({ id: payoutId })
-      .record.post({ evidenceId, externalReference: reference }),
+  const record = useOperationMutation(
+    (input: {
+      payoutId: string;
+      evidenceId: string;
+      externalReference: string;
+    }) =>
+      operationsApi.finance
+        .payouts({ id: input.payoutId })
+        .record.post({
+          evidenceId: input.evidenceId,
+          externalReference: input.externalReference,
+        }),
   );
   const approve = useOperationMutation((id: string) =>
     api.api.admin.payouts({ payoutId: id }).approve.patch(),
@@ -549,72 +725,145 @@ export function AdminFinance() {
           {t("admin.operations.prepareCycles")}
         </Button>
       </section>
-      <DataTable
-        headings={[
-          "name",
-          "cycleKey",
-          "amount",
-          "status",
-          "externalReference",
-          "actions",
+      <AdminTable
+        isLoading={cycles.isLoading}
+        data={cycles.data?.items ?? []}
+        columns={[
+          {
+            id: "name",
+            header: t("admin.operations.fields.name"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.shop.name}</>,
+          },
+          {
+            id: "cycleKey",
+            header: t("admin.operations.fields.cycleKey"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.cycleKey}</>,
+          },
+          {
+            id: "amount",
+            header: t("admin.operations.fields.amount"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                {currency(row.amount)} {row.currency}
+              </>
+            ),
+          },
+          {
+            id: "status",
+            header: t("admin.operations.fields.status"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>{t(`admin.operations.values.${row.status}`)}</>
+            ),
+          },
+          {
+            id: "externalReference",
+            header: t("admin.operations.fields.externalReference"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.externalReference}</>,
+          },
+          {
+            id: "actions",
+            header: t("admin.operations.fields.actions"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {row.status === "requested" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={approve.isPending}
+                      onClick={() => setApprovalTarget(row)}
+                    >
+                      {t("admin.operations.approve")}
+                    </Button>
+                  ) : null}
+                  {row.status === "approved" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEvidenceId("");
+                        setReference("");
+                        setPayoutTarget(row);
+                      }}
+                    >
+                      {t("admin.operations.recordPaid")}
+                    </Button>
+                  ) : null}
+                  {row.evidenceUploadId ? (
+                    <a
+                      className="underline"
+                      href={`/api/uploads/${row.evidenceUploadId}/content`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("admin.operations.viewSlip")}
+                    </a>
+                  ) : null}
+                </div>
+              </>
+            ),
+          },
         ]}
-      >
-        {cycles.data?.items.map((row) => (
-          <tr key={row.id}>
-            <Cell>{row.shop.name}</Cell>
-            <Cell>{row.cycleKey}</Cell>
-            <Cell>
-              {currency(row.amount)} {row.currency}
-            </Cell>
-            <Cell>{t(`admin.operations.values.${row.status}`)}</Cell>
-            <Cell>{row.externalReference}</Cell>
-            <Cell>
-              <div className="flex flex-wrap gap-2">
-                {row.status === "requested" ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={approve.isPending}
-                    onClick={() => approve.mutate(row.id)}
-                  >
-                    {t("admin.operations.approve")}
-                  </Button>
-                ) : null}
-                {row.status === "approved" ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPayoutId(row.id)}
-                  >
-                    {t("admin.operations.recordPaid")}
-                  </Button>
-                ) : null}
-                {row.evidenceUploadId ? (
-                  <a
-                    className="underline"
-                    href={`/api/uploads/${row.evidenceUploadId}/content`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t("admin.operations.viewSlip")}
-                  </a>
-                ) : null}
-              </div>
-            </Cell>
-          </tr>
-        ))}
-      </DataTable>
-      <Pager page={page} total={cycles.data?.total ?? 0} onPage={setPage} />
-      {payoutId ? (
+        pagination={{
+          pageIndex: page - 1,
+          pageSize: 20,
+          totalRows: cycles.data?.total ?? 0,
+          onPaginationChange: (updater) => {
+            const next =
+              typeof updater === "function"
+                ? updater({ pageIndex: page - 1, pageSize: 20 })
+                : updater;
+            setPage(next.pageIndex + 1);
+          },
+        }}
+      />
+      {payoutTarget ? (
         <Editor
           title="recordPaid"
+          open
+          onOpenChange={(open) => {
+            if (!open) setPayoutTarget(null);
+          }}
+          error={record.error}
           busy={record.isPending}
-          onCancel={() => setPayoutId("")}
-          onSubmit={() =>
-            record.mutate(undefined, { onSuccess: () => setPayoutId("") })
-          }
+          onCancel={() => setPayoutTarget(null)}
+          onSubmit={async () => {
+            await record.mutateAsync({
+              payoutId: payoutTarget.id,
+              evidenceId,
+              externalReference: reference,
+            });
+            setPayoutTarget(null);
+          }}
         >
-          <p className="sm:col-span-2 break-all text-sm">{payoutId}</p>
+          <dl className="grid gap-2 rounded-lg border border-border bg-muted/40 p-3 sm:col-span-2">
+            <div>
+              <dt className="text-xs text-muted-foreground">
+                {t("admin.financialAction.target")}
+              </dt>
+              <dd className="font-medium">{payoutTarget.shop.name}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">
+                {t("admin.financialAction.amount")}
+              </dt>
+              <dd className="font-semibold tabular-nums">
+                {currency(payoutTarget.amount, payoutTarget.currency)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">
+                {t("admin.financialAction.recordId")}
+              </dt>
+              <dd className="break-all font-mono text-xs">{payoutTarget.id}</dd>
+            </div>
+          </dl>
           <Field
             label="evidenceId"
             value={evidenceId}
@@ -631,6 +880,19 @@ export function AdminFinance() {
             {t("admin.operations.twoPersonHelp")}
           </p>
         </Editor>
+      ) : null}
+      {approvalTarget ? (
+        <AdminActionDialog
+          action={t("admin.operations.approve")}
+          description={t("admin.financialAction.approvePayoutHint")}
+          target={approvalTarget.shop.name}
+          recordId={approvalTarget.id}
+          amount={currency(approvalTarget.amount, approvalTarget.currency)}
+          currency={approvalTarget.currency}
+          isPending={approve.isPending}
+          onConfirm={() => approve.mutateAsync(approvalTarget.id)}
+          onClose={() => setApprovalTarget(null)}
+        />
       ) : null}
     </OperationsFrame>
   );

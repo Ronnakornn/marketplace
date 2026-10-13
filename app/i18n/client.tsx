@@ -2,7 +2,7 @@
 
 import { formatMinorCurrency, formatMinorInteger, type MinorUnitValue } from "#/lib/money";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import type enMessages from "../../messages/en.json";
 import type { Locale } from "./config";
 import { defaultCurrency, defaultTimeZone, fallbackLocale, resolveLocale } from "./config";
@@ -41,6 +41,10 @@ export function I18nProvider({
     () => ({ locale: resolveLocale(locale), messages, fallbackMessages }),
     [fallbackMessages, locale, messages],
   );
+
+  useEffect(() => {
+    document.documentElement.lang = value.locale;
+  }, [value.locale]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

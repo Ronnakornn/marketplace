@@ -1,3 +1,4 @@
+import { seedProductImages } from "./seed-product-images.ts";
 import { statSync } from "node:fs";
 import sharp from "sharp";
 import { hashPassword } from "better-auth/crypto";
@@ -340,6 +341,7 @@ async function main() {
   try {
     const explicitPassword = process.env.SEED_UAT_PASSWORD;
     const result = await seedUat(db, products, explicitPassword ?? UAT_PASSWORD, explicitPassword !== undefined);
+    await seedProductImages(db);
     const cacheConfig = getCacheConfigFromEnv();
     const cacheClient = createRedisCacheClient(cacheConfig);
     if (cacheClient) {

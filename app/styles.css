@@ -371,72 +371,94 @@ pre code {
   color: #ea580c;
 }
 
+body:has(.seller-shell),
 .seller-shell {
   --background: #ffffff;
-  --foreground: #431407;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #431407;
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #431407;
+  --popover-foreground: #0f172a;
   --primary: #ea580c;
   --primary-foreground: #ffffff;
-  --secondary: #ffedd5;
-  --secondary-foreground: #9a3412;
-  --muted: #fff7ed;
-  --muted-foreground: #9a3412;
-  --accent: #ffedd5;
-  --accent-foreground: #9a3412;
-  --border: #eee7e1;
-  --input: #eee7e1;
-  --ring: #fb923c;
-  background: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #334155;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #ea580c;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #475569;
+  --sidebar-primary: #ea580c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #ea580c;
+  color-scheme: light;
 }
 
-.seller-shell [data-slot="card"],
-.seller-shell [data-slot="dialog-content"],
-.seller-shell [data-slot="select-content"] {
-  border-color: #eee7e1;
+.seller-shell {
+  background: #f8fafc;
+  font-variant-numeric: tabular-nums;
+}
+
+body:has(.seller-shell) :is([data-slot="card"], [data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="sheet-content"]) {
+  border-color: #e2e8f0;
   background-color: #ffffff;
+  color: #0f172a;
 }
 
-.seller-shell [data-slot="button"][data-variant="default"] {
+body:has(.seller-shell) [data-slot="button"][data-variant="default"] {
   background-color: #ea580c;
   color: #ffffff;
 }
 
-.seller-shell [data-slot="button"][data-variant="default"]:hover {
+body:has(.seller-shell) [data-slot="button"][data-variant="default"]:hover {
   background-color: #c2410c;
 }
 
-.seller-shell [data-slot="input"],
-.seller-shell textarea,
-.seller-shell select {
-  border-color: #eee7e1;
+body:has(.seller-shell) :is([data-slot="input"], [data-slot="textarea"], select, [data-slot="button"][data-variant="outline"]) {
+  border-color: #cbd5e1;
   background-color: #ffffff;
 }
 
-.seller-shell .border-orange-200 {
-  border-color: #eee7e1;
+body:has(.seller-shell) [data-slot="button"][data-variant="outline"]:hover {
+  background-color: #f1f5f9;
 }
 
-.seller-shell [data-slot="input"]:focus-visible,
-.seller-shell textarea:focus-visible,
-.seller-shell select:focus-visible {
-  border-color: #f97316;
-  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.2);
+body:has(.seller-shell) :is([data-slot="input"], [data-slot="textarea"], select):focus-visible {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgb(234 88 12 / 15%);
 }
 
 .seller-shell .text-emerald-600,
 .seller-shell .text-emerald-700 {
-  color: #c2410c;
+  color: #047857;
 }
 
 .seller-shell .bg-emerald-50 {
-  background-color: #fff7ed;
+  background-color: #ecfdf5;
+}
+
+.seller-shell [data-slot="table-row"] {
+  border-color: var(--border);
 }
 
 .seller-shell [data-slot="table-row"]:hover {
-  background-color: #fff7ed;
+  background-color: #f8fafc;
+}
+
+.seller-shell [data-slot="sidebar-trigger"] > .sr-only {
+  display: none;
+}
+
+.seller-shell [data-slot="data-table"] [data-slot="table-head"] {
+  white-space: nowrap;
 }
 
 /* Auth surfaces stay light even when user selects the global dark theme. */
@@ -551,91 +573,74 @@ a {
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
-.admin-shell {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --sidebar: hsl(0 0% 98%);
-  --sidebar-foreground: hsl(240 5.3% 26.1%);
-  --sidebar-primary: hsl(240 5.9% 10%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
-  --sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --sidebar-border: hsl(220 13% 91%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+.admin-shell,
+body:has(.admin-shell) {
+  --background: #f6f8fb;
+  --foreground: #182338;
+  --card: #ffffff;
+  --card-foreground: #182338;
+  --popover: #ffffff;
+  --popover-foreground: #182338;
+  --primary: #0369a1;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #334155;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #eaf4fa;
+  --accent-foreground: #075985;
+  --border: #e2e8f0;
+  --input: #d5dde8;
+  --ring: #0284c7;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #475569;
+  --sidebar-primary: #0369a1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf4fa;
+  --sidebar-accent-foreground: #075985;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #0284c7;
+  color-scheme: light;
   color: var(--foreground);
   background: var(--background);
 }
 
-.admin-shell:has([data-admin-theme="dark"]) {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(0 0% 98%);
-  --sidebar-primary-foreground: hsl(240 5.9% 10%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
-
+.admin-shell:has([data-admin-theme="dark"]),
 body:has(.admin-shell [data-admin-theme="dark"]) {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --card: #172033;
+  --card-foreground: #e2e8f0;
+  --popover: #172033;
+  --popover-foreground: #e2e8f0;
+  --primary: #38bdf8;
+  --primary-foreground: #082f49;
+  --secondary: #223047;
+  --secondary-foreground: #e2e8f0;
+  --muted: #223047;
+  --muted-foreground: #a1b0c5;
+  --accent: #123248;
+  --accent-foreground: #7dd3fc;
+  --border: #2b384e;
+  --input: #3b4960;
+  --ring: #38bdf8;
+  --sidebar: #111b2d;
+  --sidebar-foreground: #b5c1d3;
+  --sidebar-primary: #38bdf8;
+  --sidebar-primary-foreground: #082f49;
+  --sidebar-accent: #123248;
+  --sidebar-accent-foreground: #7dd3fc;
+  --sidebar-border: #2b384e;
+  --sidebar-ring: #38bdf8;
+  color-scheme: dark;
 }
 
 .admin-shell [data-slot="sidebar-wrapper"] {
   min-height: 100vh;
-  background: var(--muted);
+  background: var(--background);
 }
 
 .admin-shell [data-slot="sidebar-inner"] {
-  border: 1px solid var(--sidebar-border);
   background: var(--sidebar);
   box-shadow: none;
 }
@@ -673,11 +678,6 @@ body:has(.admin-shell [data-admin-theme="dark"]) {
   color: var(--foreground);
 }
 
-/* Keep administrative table labels legible against their tinted header rows. */
-.admin-shell [data-slot="table-head"] {
-  color: #fff !important;
-}
-
 .admin-shell .text-slate-300,
 .admin-shell .text-slate-400,
 .admin-shell .admin-users-scope .text-\[var\(--sea-ink-soft\)\] {
@@ -705,7 +705,11 @@ body:has(.admin-shell [data-admin-theme="dark"]) {
   border-color: var(--border);
 }
 
-.admin-shell :is(.text-cyan-100, .text-cyan-200, .text-cyan-300, .text-sky-100, .text-sky-200, .text-violet-100, .text-violet-200, .text-fuchsia-100, .text-fuchsia-200) {
+.admin-shell :is(.text-cyan-100, .text-cyan-200, .text-cyan-300, .text-sky-100, .text-sky-200) {
+  color: var(--primary);
+}
+
+.admin-shell :is(.text-violet-100, .text-violet-200, .text-fuchsia-100, .text-fuchsia-200) {
   color: var(--foreground);
 }
 
@@ -777,40 +781,40 @@ body:has(.admin-shell [data-admin-theme="dark"]) {
   background: rgb(127 29 29 / 0.45);
 }
 
-.admin-shell [data-slot="button"][data-variant="default"] {
+.admin-shell :is([data-slot="button"], button)[data-variant="default"] {
   border-color: var(--primary);
   background: var(--primary);
   color: var(--primary-foreground);
   box-shadow: none;
 }
 
-.admin-shell [data-slot="button"][data-variant="outline"] {
+.admin-shell :is([data-slot="button"], button)[data-variant="outline"] {
   border-color: var(--border);
   background: var(--background);
   color: var(--foreground);
   box-shadow: none;
 }
 
-.admin-shell [data-slot="button"][data-variant="outline"]:hover,
-.admin-shell [data-slot="button"][data-variant="ghost"]:hover {
+.admin-shell :is([data-slot="button"], button)[data-variant="outline"]:hover,
+.admin-shell :is([data-slot="button"], button)[data-variant="ghost"]:hover {
   background: var(--accent);
   color: var(--accent-foreground);
 }
 
-body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="select-content"]) {
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="sheet-content"], [data-slot="tooltip-content"]) {
   border-color: var(--border);
   background: var(--popover);
   color: var(--popover-foreground);
   box-shadow: 0 20px 50px rgb(0 0 0 / 0.12);
 }
 
-body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) [data-slot="button"][data-variant="default"] {
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) :is([data-slot="button"], button)[data-variant="default"] {
   border-color: var(--primary);
   background: var(--primary);
   color: var(--primary-foreground);
 }
 
-body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) [data-slot="button"][data-variant="outline"] {
+body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) :is([data-slot="button"], button)[data-variant="outline"] {
   border-color: var(--border);
   background: var(--background);
   color: var(--foreground);
@@ -849,14 +853,38 @@ body:has(.admin-shell) :is([data-slot="dialog-content"], [data-slot="alert-dialo
   border-color: var(--border);
 }
 
-/* Explicitly win over per-cell text-slate utilities on every admin table. */
-.admin-shell table:not([data-slot="table"]) thead {
-  background: linear-gradient(90deg, #123d70, #256092);
+.admin-shell table thead,
+.admin-shell table thead tr {
+  background: var(--muted) !important;
 }
 
 .admin-shell [data-slot="table-head"],
 .admin-shell table thead th {
-  color: #fff !important;
+  color: var(--muted-foreground) !important;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.admin-shell [data-slot="table-row"] {
+  border-color: var(--border);
+}
+
+.admin-shell .admin-attention-card {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+}
+
+.admin-shell [data-slot="sidebar-menu-button"][data-active="true"] {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+
+body:has(.admin-shell) [data-slot="sheet-content"] [data-slot="sidebar"] {
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+}
+
+.admin-shell [data-slot="skeleton"] {
+  background: var(--muted);
 }
 
 @media (prefers-reduced-motion: reduce) {

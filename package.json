@@ -34,6 +34,7 @@
     "db:migrate:deploy": "bunx prisma migrate deploy",
     "db:seed": "bun run scripts/seed.ts",
     "db:seed:uat": "bun run scripts/seed-uat.ts",
+    "db:seed:product-images": "bun run scripts/seed-product-images.ts",
     "db:verify:uat": "bun run scripts/verify-uat.ts",
     "uat:assets": "bun run scripts/prepare-uat-assets.ts",
     "db:seed-bootstrap-master": "bun run scripts/seed-bootstrap-master.ts",

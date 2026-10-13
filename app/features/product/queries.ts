@@ -99,6 +99,7 @@ export interface SellerProductListInput {
   minPrice?: number | string;
   maxPrice?: number | string;
   cursor?: string;
+  page?: number;
   limit?: number;
 }
 
@@ -793,6 +794,7 @@ export function cleanSellerProductListInput(input: SellerProductListInput = {}):
     minPrice: input.minPrice,
     maxPrice: input.maxPrice,
     cursor: input.cursor,
+    page: input.page,
     limit: input.limit ?? SELLER_PRODUCT_PAGE_SIZE,
   });
 }

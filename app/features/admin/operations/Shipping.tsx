@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { AdminTable } from "../components/AdminTable";
+
+import { useId, useState } from "react";
 import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "#/components/ui/native-select";
 import { useTranslations, useFormatters } from "#/i18n/client";
 import {
   operationsApi,
@@ -14,14 +21,12 @@ import {
   type RateRow,
 } from "./api";
 import {
-  Cell,
   CheckField,
-  DataTable,
   EditButton,
   Editor,
   Field,
   OperationsFrame,
-  Pager,
+  OperationConfirmation,
   splitList,
   optionalNumber,
 } from "./shared";
@@ -56,19 +61,88 @@ const blankRate: RateInput = {
   isActive: true,
   reason: "",
 };
+export function ShippingProviderPicker(props: {
+  value: string;
+  onChange: (value: string) => void;
+  providers: readonly Pick<ProviderRow, "id" | "name" | "code">[];
+  selected?: Pick<RateRow["provider"], "id" | "name"> | null;
+}) {
+  const t = useTranslations();
+  const id = useId();
+  const [search, setSearch] = useState("");
+  const options = props.providers.filter(
+    (provider) =>
+      provider.id === props.value ||
+      `${provider.name} ${provider.code}`
+        .toLocaleLowerCase()
+        .includes(search.toLocaleLowerCase()),
+  );
+  const missingSelected =
+    props.value && !options.some((provider) => provider.id === props.value);
+  return (
+    <div className="grid gap-2 text-sm">
+      <label htmlFor={id}>{t("admin.operations.shipping.provider")}</label>
+      <Input
+        aria-label={t("admin.operations.shipping.searchProviders")}
+        placeholder={t("admin.operations.shipping.searchProviders")}
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
+      <NativeSelect
+        id={id}
+        value={props.value}
+        required
+        onChange={(event) => props.onChange(event.target.value)}
+      >
+        <NativeSelectOption value="">
+          {t("admin.operations.shipping.chooseProvider")}
+        </NativeSelectOption>
+        {missingSelected ? (
+          <NativeSelectOption value={props.value}>
+            {props.selected?.id === props.value
+              ? props.selected.name
+              : t("admin.operations.shipping.selectedProvider")}
+          </NativeSelectOption>
+        ) : null}
+        {options.map((provider) => (
+          <NativeSelectOption key={provider.id} value={provider.id}>
+            {provider.name} · {provider.code}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
+      <p className="text-xs text-muted-foreground">
+        {t("admin.operations.shipping.providerSearchHelp")}
+      </p>
+    </div>
+  );
+}
 export function AdminShipping() {
   const t = useTranslations();
   const { currency } = useFormatters();
-  const [page, setPage] = useState(1);
+  const [providerPage, setProviderPage] = useState(1);
+  const [ratePage, setRatePage] = useState(1);
   const [provider, setProvider] = useState(blankProvider);
   const [providerId, setProviderId] = useState<string | null>(null);
   const [rate, setRate] = useState(blankRate);
   const [rateId, setRateId] = useState<string | null>(null);
-  const providers = useOperationQuery(["providers", page], () =>
-    operationsApi.shipping.providers.get({ query: { page, limit: 20 } }),
+  const [providerOpen, setProviderOpen] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<
+    RateRow["provider"] | null
+  >(null);
+  const [removing, setRemoving] = useState<
+    | { kind: "provider"; row: ProviderRow }
+    | { kind: "rate"; row: RateRow }
+    | null
+  >(null);
+  const [removeReason, setRemoveReason] = useState("");
+  const providers = useOperationQuery(["providers", providerPage], () =>
+    operationsApi.shipping.providers.get({
+      query: { page: providerPage, limit: 20 },
+    }),
   );
-  const rates = useOperationQuery(["rates", page], () =>
-    operationsApi.shipping.rates.get({ query: { page, limit: 20 } }),
+  const rates = useOperationQuery(["rates", ratePage], () =>
+    operationsApi.shipping.rates.get({ query: { page: ratePage, limit: 20 } }),
   );
   const saveProvider = useOperationMutation((body: ProviderInput) =>
     providerId
@@ -80,18 +154,18 @@ export function AdminShipping() {
       ? operationsApi.shipping.rates({ id: rateId }).patch(body)
       : operationsApi.shipping.rates.post(body),
   );
-  const removeProvider = useOperationMutation((row: ProviderRow) =>
-    operationsApi.shipping
-      .providers({ id: row.id })
-      .delete({
-        expectedUpdatedAt: new Date(row.updatedAt).toISOString(),
-        reason: provider.reason,
+  const removeProvider = useOperationMutation(
+    (input: { row: ProviderRow; reason: string }) =>
+      operationsApi.shipping.providers({ id: input.row.id }).delete({
+        expectedUpdatedAt: new Date(input.row.updatedAt).toISOString(),
+        reason: input.reason,
       }),
   );
-  const removeRate = useOperationMutation((row: RateRow) =>
-    operationsApi.shipping
-      .rates({ id: row.id })
-      .delete({ expectedVersion: row.version, reason: rate.reason }),
+  const removeRate = useOperationMutation(
+    (input: { row: RateRow; reason: string }) =>
+      operationsApi.shipping
+        .rates({ id: input.row.id })
+        .delete({ expectedVersion: input.row.version, reason: input.reason }),
   );
   const [quote, setQuote] = useState({
     shopId: "",
@@ -108,7 +182,10 @@ export function AdminShipping() {
       Awaited<ReturnType<typeof operationsApi.shipping.quote.post>>["data"]
     >(null);
   const [quoteError, setQuoteError] = useState<unknown>(null);
+  const [quoteBusy, setQuoteBusy] = useState(false);
   function editProvider(row: ProviderRow) {
+    saveProvider.reset();
+    setProviderOpen(true);
     setProviderId(row.id);
     setProvider({
       shopId: row.shopId,
@@ -124,6 +201,9 @@ export function AdminShipping() {
     });
   }
   function editRate(row: RateRow) {
+    saveRate.reset();
+    setRateOpen(true);
+    setSelectedProvider(row.provider);
     setRateId(row.id);
     setRate({
       providerId: row.providerId,
@@ -163,41 +243,24 @@ export function AdminShipping() {
       <h2 className="text-lg font-medium">
         {t("admin.operations.shipping.providers")}
       </h2>
-      <DataTable headings={["name", "code", "shopId", "active", "actions"]}>
-        {providers.data?.items.map((row) => (
-          <tr key={row.id}>
-            <Cell>{row.name}</Cell>
-            <Cell>{row.code}</Cell>
-            <Cell>{row.shopId ?? t("admin.operations.global")}</Cell>
-            <Cell>
-              {t(row.isActive ? "admin.operations.yes" : "admin.operations.no")}
-            </Cell>
-            <Cell>
-              <div className="flex gap-2">
-                <EditButton onClick={() => editProvider(row)} />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={provider.reason.trim().length < 3}
-                  onClick={() => removeProvider.mutate(row)}
-                >
-                  {t("admin.operations.delete")}
-                </Button>
-              </div>
-            </Cell>
-          </tr>
-        ))}
-      </DataTable>
       <Editor
         title={providerId ? "editProvider" : "createProvider"}
+        triggerLabel="createProvider"
+        open={providerOpen}
+        onOpenChange={(open) => {
+          setProviderOpen(open);
+          if (open) saveProvider.reset();
+        }}
+        error={saveProvider.error ?? providers.error}
         busy={saveProvider.isPending}
         onCancel={() => {
           setProviderId(null);
           setProvider(blankProvider);
         }}
         onSubmit={() =>
-          saveProvider.mutate(provider, {
+          saveProvider.mutateAsync(provider, {
             onSuccess: () => {
+              setProviderOpen(false);
               setProviderId(null);
               setProvider(blankProvider);
             },
@@ -261,70 +324,112 @@ export function AdminShipping() {
           onChange={(value) => setProvider({ ...provider, reason: value })}
         />
       </Editor>
+      <AdminTable
+        isLoading={providers.isLoading}
+        data={providers.data?.items ?? []}
+        columns={[
+          {
+            id: "name",
+            header: t("admin.operations.fields.name"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.name}</>,
+          },
+          {
+            id: "code",
+            header: t("admin.operations.fields.code"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.code}</>,
+          },
+          {
+            id: "shopId",
+            header: t("admin.operations.fields.shopId"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>{row.shopId ?? t("admin.operations.global")}</>
+            ),
+          },
+          {
+            id: "active",
+            header: t("admin.operations.fields.active"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                {t(
+                  row.isActive ? "admin.operations.yes" : "admin.operations.no",
+                )}
+              </>
+            ),
+          },
+          {
+            id: "actions",
+            header: t("admin.operations.fields.actions"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                <div className="flex gap-2">
+                  <EditButton onClick={() => editProvider(row)} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={removeProvider.isPending}
+                    onClick={() => {
+                      removeProvider.reset();
+                      setRemoveReason("");
+                      setRemoving({ kind: "provider", row });
+                    }}
+                  >
+                    {t("admin.operations.delete")}
+                  </Button>
+                </div>
+              </>
+            ),
+          },
+        ]}
+        pagination={{
+          pageIndex: providerPage - 1,
+          pageSize: 20,
+          totalRows: providers.data?.total ?? 0,
+          onPaginationChange: (updater) => {
+            const next =
+              typeof updater === "function"
+                ? updater({ pageIndex: providerPage - 1, pageSize: 20 })
+                : updater;
+            setProviderPage(next.pageIndex + 1);
+          },
+        }}
+      />
       <h2 className="text-lg font-medium">
         {t("admin.operations.shipping.rates")}
       </h2>
-      <DataTable
-        headings={[
-          "name",
-          "providerId",
-          "baseFee",
-          "perKgFee",
-          "weight",
-          "actions",
-        ]}
-      >
-        {rates.data?.items.map((row) => (
-          <tr key={row.id}>
-            <Cell>{row.name}</Cell>
-            <Cell>{row.provider.name}</Cell>
-            <Cell>{currency(row.baseFee)}</Cell>
-            <Cell>{currency(row.perKgFee)}</Cell>
-            <Cell>
-              {row.minWeightGrams} /{" "}
-              {row.maxWeightGrams ?? t("admin.operations.unbounded")}
-            </Cell>
-            <Cell>
-              <div className="flex gap-2">
-                <EditButton onClick={() => editRate(row)} />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={rate.reason.trim().length < 3}
-                  onClick={() => removeRate.mutate(row)}
-                >
-                  {t("admin.operations.delete")}
-                </Button>
-              </div>
-            </Cell>
-          </tr>
-        ))}
-      </DataTable>
-      <Pager
-        page={page}
-        total={Math.max(providers.data?.total ?? 0, rates.data?.total ?? 0)}
-        onPage={setPage}
-      />
       <Editor
         title={rateId ? "editRate" : "createRate"}
+        triggerLabel="createRate"
+        open={rateOpen}
+        onOpenChange={(open) => {
+          setRateOpen(open);
+          if (open) saveRate.reset();
+        }}
+        error={saveRate.error ?? providers.error ?? rates.error}
         busy={saveRate.isPending}
         onCancel={() => {
           setRateId(null);
           setRate(blankRate);
+          setSelectedProvider(null);
         }}
         onSubmit={() =>
-          saveRate.mutate(rate, {
+          saveRate.mutateAsync(rate, {
             onSuccess: () => {
+              setRateOpen(false);
               setRateId(null);
               setRate(blankRate);
             },
           })
         }
       >
-        <Field
-          label="providerId"
+        <ShippingProviderPicker
           value={rate.providerId}
-          required
+          providers={providers.data?.items ?? []}
+          selected={selectedProvider}
           onChange={(value) => setRate({ ...rate, providerId: value })}
         />
         <Field
@@ -433,10 +538,92 @@ export function AdminShipping() {
           onChange={(value) => setRate({ ...rate, reason: value })}
         />
       </Editor>
+      <AdminTable
+        isLoading={rates.isLoading}
+        data={rates.data?.items ?? []}
+        columns={[
+          {
+            id: "name",
+            header: t("admin.operations.fields.name"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.name}</>,
+          },
+          {
+            id: "providerId",
+            header: t("admin.operations.shipping.provider"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.provider.name}</>,
+          },
+          {
+            id: "baseFee",
+            header: t("admin.operations.fields.baseFee"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{currency(row.baseFee)}</>,
+          },
+          {
+            id: "perKgFee",
+            header: t("admin.operations.fields.perKgFee"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{currency(row.perKgFee)}</>,
+          },
+          {
+            id: "weight",
+            header: t("admin.operations.fields.weight"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                {row.minWeightGrams} /{" "}
+                {row.maxWeightGrams ?? t("admin.operations.unbounded")}
+              </>
+            ),
+          },
+          {
+            id: "actions",
+            header: t("admin.operations.fields.actions"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                <div className="flex gap-2">
+                  <EditButton onClick={() => editRate(row)} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={removeRate.isPending}
+                    onClick={() => {
+                      removeRate.reset();
+                      setRemoveReason("");
+                      setRemoving({ kind: "rate", row });
+                    }}
+                  >
+                    {t("admin.operations.delete")}
+                  </Button>
+                </div>
+              </>
+            ),
+          },
+        ]}
+        pagination={{
+          pageIndex: ratePage - 1,
+          pageSize: 20,
+          totalRows: rates.data?.total ?? 0,
+          onPaginationChange: (updater) => {
+            const next =
+              typeof updater === "function"
+                ? updater({ pageIndex: ratePage - 1, pageSize: 20 })
+                : updater;
+            setRatePage(next.pageIndex + 1);
+          },
+        }}
+      />
       <Editor
         title="shipping.quote"
+        submitLabel="shipping.quote"
+        description="shipping.quoteDescription"
+        error={quoteError ?? providers.error ?? rates.error}
+        busy={quoteBusy}
         onSubmit={async () => {
           try {
+            setQuoteBusy(true);
             setQuoteError(null);
             const { weightGrams, lengthMm, widthMm, heightMm, ...address } =
               quote;
@@ -450,6 +637,8 @@ export function AdminShipping() {
             );
           } catch (error) {
             setQuoteError(error);
+          } finally {
+            setQuoteBusy(false);
           }
         }}
       >
@@ -493,6 +682,37 @@ export function AdminShipping() {
           </p>
         ) : null}
       </Editor>
+      <OperationConfirmation
+        open={removing !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoving(null);
+        }}
+        title="delete"
+        target={removing?.row.name ?? ""}
+        reason={removeReason}
+        onReasonChange={setRemoveReason}
+        destructive
+        busy={removeProvider.isPending || removeRate.isPending}
+        error={
+          removing?.kind === "provider"
+            ? removeProvider.error
+            : removeRate.error
+        }
+        onConfirm={() => {
+          if (!removing) return;
+          const options = { onSuccess: () => setRemoving(null) };
+          if (removing.kind === "provider")
+            removeProvider.mutate(
+              { row: removing.row, reason: removeReason },
+              options,
+            );
+          else
+            removeRate.mutate(
+              { row: removing.row, reason: removeReason },
+              options,
+            );
+        }}
+      />
     </OperationsFrame>
   );
 }

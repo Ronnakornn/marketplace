@@ -1,3 +1,4 @@
+import { seedProductImages } from "./seed-product-images.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { hashPassword } from "better-auth/crypto";
@@ -200,6 +201,7 @@ async function main() {
 
   await seedUsers(prisma, ctx);
   await seedCatalog(prisma, ctx);
+  await seedProductImages(prisma);
   await seedCoupons(prisma, ctx);
   await seedEngagement(prisma, ctx);
   await seedCommerce(prisma, ctx);

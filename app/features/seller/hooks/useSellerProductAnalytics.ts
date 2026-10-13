@@ -66,7 +66,7 @@ export function useSellerProductAnalytics(filters: SellerProductAnalyticsFilters
         api.api.seller.analytics.products.summary.get({ query }),
         api.api.seller.analytics.products.daily.get({ query }),
         api.api.seller.analytics.products.get({ query }),
-        api.api.seller.analytics.products.skus.get({ query: { ...query, limit: 5 } }),
+        api.api.seller.analytics.products.skus.get({ query: { ...query, page: 1, sort: "revenue", limit: 5 } }),
       ]);
       if (summary.error) throw summary.error;
       if (daily.error) throw daily.error;

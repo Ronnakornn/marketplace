@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PrepareCancellationRefund, RefundSettlementActions } from "./AdminSettlementRefundActions";
 
 const { prepare, updatePlan, updateStatus } = vi.hoisted(() => ({ prepare: vi.fn(), updatePlan: vi.fn(), updateStatus: vi.fn() }));
@@ -12,12 +12,24 @@ vi.mock("#/components/ui/button", () => ({ Button: ({ children, ...props }: Reac
 vi.mock("../hooks/useAdminOperations", () => ({
   usePrepareCancellationRefund: () => ({ mutate: prepare, isPending: false, error: planError }),
   useUpdateRefundPlan: () => ({ mutate: updatePlan, isPending: false, data: planData, error: planError }),
-  useUpdateRefundStatus: () => ({ mutate: updateStatus, isPending: false }),
+  useUpdateRefundStatus: () => ({ mutate: updateStatus, mutateAsync: updateStatus, isPending: false }),
 }));
-vi.mock("./AdminStatusAction", () => ({ AdminStatusAction: ({ disabled, onConfirm }: { disabled?: boolean; onConfirm: (status: string) => void }) => <>
-  <button disabled={disabled} onClick={() => onConfirm("PROCESSING")}>Process</button>
-  <button disabled={disabled} onClick={() => onConfirm("SUCCESS")}>Complete</button>
-</> }));
+vi.mock("#/components/ui/select", () => ({
+  Select: ({ disabled, onValueChange, children }: { disabled?: boolean; onValueChange: (value: string) => void; children: ReactNode }) => <select aria-label="Refund status" disabled={disabled} onChange={(event) => onValueChange(event.target.value)} defaultValue=""><option value="" />{children}</select>,
+  SelectTrigger: () => null,
+  SelectValue: () => null,
+  SelectContent: ({ children }: { children: ReactNode }) => children,
+  SelectItem: ({ value, children }: { value: string; children: ReactNode }) => <option value={value}>{children}</option>,
+}));
+
+function chooseStatus(status: string) {
+  fireEvent.change(screen.getByRole("combobox", { name: "Refund status" }), { target: { value: status } });
+}
+
+function confirmStatus(status: string) {
+  chooseStatus(status);
+  fireEvent.click(screen.getByRole("button", { name: "admin.financialAction.updateRefundStatus" }));
+}
 
 function order(): Parameters<typeof PrepareCancellationRefund>[0]["order"] {
   return { id: "order-1", status: "PAID", paymentStatus: "SUCCEEDED", items: [{ id: "item-1", quantity: 2 }],
@@ -56,7 +68,7 @@ describe("settlement refund review controls", () => {
     const shippingCheckbox = screen.getByRole("checkbox", { name: "admin.refunds.confirmedSellerFaultShipping" });
     fireEvent.click(screen.getByText("admin.refunds.confirmedSellerFaultShipping"));
     expect(shippingCheckbox).toHaveProperty("checked", true);
-    expect(screen.getByRole("button", { name: "Process" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("combobox", { name: "Refund status" }).hasAttribute("disabled")).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "admin.refunds.updatePlan" }));
     expect(updatePlan).toHaveBeenCalledWith({ refundId: "refund-1", plan: {
       items: [{ orderItemId: "item-1", quantity: 2 }], shipping: [{ shopOrderId: "shop-order-1", cause: "SELLER_FAULT" }],
@@ -65,14 +77,14 @@ describe("settlement refund review controls", () => {
     planData = { amount: "8700", payment: { currency: "THB" } };
     view.rerender(<RefundSettlementActions refund={{ ...data, amount: "8700", shopAllocations: [{ shopOrderId: "shop-order-1", shippingCause: "SELLER_FAULT", buyerShippingRefund: "400", buyerShippingTaxRefund: "0", platformShippingReversal: "0", platformShippingTaxReversal: "0" }] }} />);
     expect(screen.getByRole("status").textContent).toMatch(/87\.00/);
-    expect(screen.getByRole("button", { name: "Process" }).hasAttribute("disabled")).toBe(false);
-    fireEvent.click(screen.getByRole("button", { name: "Process" }));
+    expect(screen.getByRole("combobox", { name: "Refund status" }).hasAttribute("disabled")).toBe(false);
+    confirmStatus("PROCESSING");
     expect(updateStatus).toHaveBeenCalledWith({ id: "refund-1", status: "PROCESSING", externalReference: undefined });
   });
 
   it("keeps an unchanged refund plan when processing without a shipping edit", () => {
     render(<RefundSettlementActions refund={refund()} />);
-    fireEvent.click(screen.getByRole("button", { name: "Process" }));
+    confirmStatus("PROCESSING");
     expect(updatePlan).not.toHaveBeenCalled();
     expect(updateStatus).toHaveBeenCalledWith({ id: "refund-1", status: "PROCESSING", externalReference: undefined });
   });
@@ -84,11 +96,52 @@ describe("settlement refund review controls", () => {
   });
 
   it("uses an internal evidence reference to complete a zero-cash adjustment", () => {
-    const prompt = vi.spyOn(window, "prompt").mockReturnValue("INTERNAL-1");
     render(<RefundSettlementActions refund={{ ...refund(), amount: "0", status: "PROCESSING" }} />);
-    fireEvent.click(screen.getByRole("button", { name: "Complete" }));
-    expect(prompt).toHaveBeenCalledWith("admin.refunds.internalReferencePrompt");
+    chooseStatus("SUCCESS");
+    expect(screen.getByRole("textbox", { name: "admin.financialAction.internalReference" })).toBeTruthy();
+    expect(updateStatus).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "INTERNAL-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "admin.financialAction.updateRefundStatus" }));
     expect(updateStatus).toHaveBeenCalledWith({ id: "refund-1", status: "SUCCESS", externalReference: "INTERNAL-1" });
+  });
+
+  it("cancels a cash refund confirmation without writing and requires an external reference", () => {
+    render(<RefundSettlementActions refund={{ ...refund(), status: "PROCESSING" }} />);
+    chooseStatus("SUCCESS");
+    expect(screen.getByText("refund-1")).toBeTruthy();
+    expect(screen.getByText("ORD-1")).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "admin.financialAction.externalReference" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "admin.financialAction.updateRefundStatus" })).toHaveProperty("disabled", true);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "REFUND-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "admin.common.cancel" }));
+    expect(updateStatus).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("submits a cash SUCCESS reference through the existing refund mutation", async () => {
+    updateStatus.mockResolvedValueOnce(undefined);
+    render(<RefundSettlementActions refund={{ ...refund(), status: "PROCESSING" }} />);
+    chooseStatus("SUCCESS");
+    fireEvent.change(screen.getByRole("textbox", { name: "admin.financialAction.externalReference" }), { target: { value: "  BANK-REFUND-1  " } });
+    fireEvent.click(screen.getByRole("button", { name: "admin.financialAction.updateRefundStatus" }));
+    expect(updateStatus).toHaveBeenCalledWith({ id: "refund-1", status: "SUCCESS", externalReference: "BANK-REFUND-1" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("keeps the reference dialog open after the server denies refund completion", async () => {
+    updateStatus.mockRejectedValueOnce({ value: { error: { message: "A different reviewer must complete this refund" } } });
+    render(<RefundSettlementActions refund={{ ...refund(), status: "PROCESSING" }} />);
+    chooseStatus("SUCCESS");
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "BANK-REFUND-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "admin.financialAction.updateRefundStatus" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("A different reviewer must complete this refund");
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("textbox")).toHaveProperty("value", "BANK-REFUND-1");
+  });
+
+  it("retains the original status choices without adding transitions", () => {
+    render(<RefundSettlementActions refund={refund()} />);
+    expect(screen.getAllByRole("option").map((option) => option.getAttribute("value"))).toEqual(["", "PROCESSING", "SUCCESS", "FAILED"]);
   });
 
   it("shows the server conflict and retains the review gate after a failed plan edit", () => {
@@ -97,12 +150,12 @@ describe("settlement refund review controls", () => {
     planError = { value: { error: { message: "Shipping has already been refunded" } } };
     view.rerender(<RefundSettlementActions refund={refund()} />);
     expect(screen.getByRole("alert").textContent).toBe("Shipping has already been refunded");
-    expect(screen.getByRole("button", { name: "Process" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("combobox", { name: "Refund status" }).hasAttribute("disabled")).toBe(true);
   });
   it("saves a partial quantity using the authoritative remaining capacity", () => {
     render(<RefundSettlementActions refund={refund()} />);
     fireEvent.change(screen.getByRole("spinbutton", { name: "admin.refunds.quantity 1" }), { target: { value: "1" } });
-    expect(screen.getByRole("button", { name: "Process" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("combobox", { name: "Refund status" })).toHaveProperty("disabled", true);
     fireEvent.click(screen.getByRole("button", { name: "admin.refunds.updatePlan" }));
     expect(updatePlan).toHaveBeenCalledWith({ refundId: "refund-1", plan: { items: [{ orderItemId: "item-1", quantity: 1 }], shipping: [{ shopOrderId: "shop-order-1", cause: "NONE" }] } }, expect.objectContaining({ onSuccess: expect.any(Function) }));
   });
@@ -111,7 +164,7 @@ describe("settlement refund review controls", () => {
     render(<RefundSettlementActions refund={refund()} />);
     fireEvent.change(screen.getByRole("spinbutton"), { target: { value: quantity } });
     expect(screen.getByRole("button", { name: "admin.refunds.updatePlan" })).toHaveProperty("disabled", true);
-    expect(screen.getByRole("button", { name: "Process" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("combobox", { name: "Refund status" })).toHaveProperty("disabled", true);
     expect(updatePlan).not.toHaveBeenCalled();
   });
 
@@ -123,7 +176,7 @@ describe("settlement refund review controls", () => {
     const shipping = screen.getByRole("checkbox", { name: "admin.refunds.confirmedSellerFaultShipping" });
     expect(shipping).toHaveProperty("disabled", false);
     fireEvent.click(shipping);
-    expect(screen.getByRole("button", { name: "Process" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("combobox", { name: "Refund status" })).toHaveProperty("disabled", true);
     fireEvent.click(screen.getByRole("button", { name: "admin.refunds.updatePlan" }));
     expect(updatePlan).toHaveBeenCalledWith({ refundId: "refund-1", plan: {
       items: [{ orderItemId: "item-1", quantity: 2 }], shipping: [{ shopOrderId: "shop-order-1", cause: "SELLER_FAULT" }],

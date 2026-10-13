@@ -3,10 +3,11 @@
  */
 import type { ReactNode } from "react";
 import * as React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SellerProductCreatePage, SellerProductEditPage, SellerProductsPage } from "./SellerProductPages";
+import { useSellerProducts } from "../hooks/useSellerManage";
 
 const refetch = vi.fn();
 const push = vi.fn();
@@ -26,6 +27,8 @@ const deleteVideoMutate = vi.fn();
 const updateOptionsMutate = vi.fn();
 const publishMutate = vi.fn();
 const answerQuestionMutate = vi.fn();
+let sellerSearchParams = "";
+let sellerLocale: "en" | "th" = "en";
 
 const products: Array<any> = [
   {
@@ -113,7 +116,7 @@ const products: Array<any> = [
 ];
 
 let sellerProductsState: {
-  data?: { data: typeof products; meta: { nextCursor: string | null; hasNextPage: boolean } };
+  data?: { data: typeof products; meta: { nextCursor: string | null; hasNextPage: boolean; totalCount?: number; page?: number; pageSize?: number } };
   error?: Error | null;
   isLoading?: boolean;
 } = {
@@ -154,6 +157,7 @@ vi.mock("next/link", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
+  useSearchParams: () => new URLSearchParams(sellerSearchParams),
 }));
 
 vi.mock("sonner", () => ({
@@ -163,7 +167,7 @@ vi.mock("sonner", () => ({
 vi.mock("#/i18n/client", async () => {
   const { default: messages } = await import("../../../../messages/en.json");
   return {
-    useLocale: () => "en",
+    useLocale: () => sellerLocale,
     useTranslations: () => (key: string) => {
       const value = key.split(".").reduce<unknown>((current, part) => {
         if (!current || typeof current !== "object") return undefined;
@@ -214,32 +218,6 @@ vi.mock("#/components/ui/card", () => ({
   CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CardHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CardTitle: ({ children }: { children: ReactNode }) => <h3>{children}</h3>,
-}));
-
-vi.mock("#/components/ui/data-table", () => ({
-  DataTable: ({ columns, data, renderToolbar, isLoading, loadingMessage, emptyMessage }: {
-    columns: Array<{ id?: string; accessorKey?: string; cell?: (context: { row: { original: (typeof products)[number] } }) => ReactNode }>;
-    data: typeof products;
-    renderToolbar?: () => ReactNode;
-    isLoading?: boolean;
-    loadingMessage?: string;
-    emptyMessage?: string;
-  }) => (
-    <div>
-      <div>{renderToolbar?.()}</div>
-      {isLoading ? <p>{loadingMessage}</p> : null}
-      {!isLoading && !data.length ? <p>{emptyMessage}</p> : null}
-      {data.map((row) => (
-        <article key={row.id}>
-          {columns.map((column) => (
-            <div key={String(column.id ?? column.accessorKey)}>
-              {column.cell ? column.cell({ row: { original: row } }) : String(row[column.accessorKey as keyof typeof row] ?? "")}
-            </div>
-          ))}
-        </article>
-      ))}
-    </div>
-  ),
 }));
 
 vi.mock("#/components/ui/input", () => ({
@@ -313,6 +291,8 @@ afterEach(() => {
   sellerQuestionPending = false;
   sellerQuestionSuccess = false;
   sellerQuestionError = null;
+  sellerSearchParams = "";
+  sellerLocale = "en";
 });
 
 describe("Seller product pages", () => {
@@ -324,6 +304,88 @@ describe("Seller product pages", () => {
     expect(screen.getByLabelText("Filter by product status")).toBeTruthy();
     expect(screen.getByRole("link", { name: /create product/i }).getAttribute("href")).toBe("/en/seller/products/new");
     expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/en/seller/products/prod_1");
+  });
+
+  it("renders the full server page and uses one footer for server navigation", () => {
+    sellerProductsState.data = {
+      data: Array.from({ length: 20 }, (_, index) => ({ ...products[0], id: `product-${index}`, title: `Product ${index}`, titleEn: `Product ${index}` })),
+      meta: { nextCursor: "legacy-cursor", hasNextPage: true, totalCount: 45, page: 1, pageSize: 20 },
+    };
+    render(<SellerProductsPage />);
+
+    expect(within(screen.getByRole("table")).getAllByRole("row")).toHaveLength(21);
+    expect(screen.getAllByRole("button", { name: "Next page" })).toHaveLength(1);
+    expect(screen.getByText(/Showing 1-20 of 45/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Sort by/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "", status: "", shopId: undefined, page: 2, limit: 20 });
+    fireEvent.click(screen.getByRole("button", { name: "Previous page" }));
+    expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "", status: "", shopId: undefined, page: 1, limit: 20 });
+  });
+
+  it("resets server pagination when search, status or page size changes", () => {
+    sellerProductsState.data = { data: products, meta: { nextCursor: null, hasNextPage: true, totalCount: 60 } };
+    render(<SellerProductsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    fireEvent.change(screen.getByLabelText("Search products"), { target: { value: "shirt" } });
+    expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "shirt", status: "", shopId: undefined, page: 1, limit: 20 });
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    fireEvent.click(screen.getByRole("button", { name: "Active" }));
+    expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "shirt", status: "ACTIVE", shopId: undefined, page: 1, limit: 20 });
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    fireEvent.change(screen.getByLabelText("Rows per page"), { target: { value: "50" } });
+    expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "shirt", status: "ACTIVE", shopId: undefined, page: 1, limit: 50 });
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "", status: "", shopId: undefined, page: 1, limit: 50 });
+  });
+
+  it("resets pagination and keeps product actions scoped when the selected shop changes", () => {
+    sellerSearchParams = "shopId=shop-1";
+    sellerProductsState.data = { data: products, meta: { nextCursor: null, hasNextPage: true, totalCount: 45 } };
+    const view = render(<SellerProductsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "", status: "", shopId: "shop-1", page: 2, limit: 20 });
+
+    sellerSearchParams = "shopId=shop-2";
+    view.rerender(<SellerProductsPage />);
+    expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "", status: "", shopId: "shop-2", page: 1, limit: 20 });
+    expect(screen.getByRole("link", { name: "Edit Cotton Shirt" }).getAttribute("href")).toBe("/en/seller/products/prod_1?shopId=shop-2");
+  });
+
+  it("renders localized product titles and an accessible image fallback", () => {
+    sellerLocale = "th";
+    render(<SellerProductsPage />);
+    expect(screen.getByText("เสื้อผ้าฝ้าย")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "เสื้อผ้าฝ้าย" }).getAttribute("src")).toBe("https://example.com/shirt.jpg");
+    expect(screen.getByRole("img", { name: "No image for Archived Hat" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Edit เสื้อผ้าฝ้าย" })).toBeTruthy();
+  });
+
+  it("displays large prices exactly and keeps different currencies separate", () => {
+    sellerProductsState.data = {
+      data: [{ ...products[0], variants: [
+        { ...products[0].variants[0], price: "9007199254740993", currency: "USD" },
+        { ...products[0].variants[0], id: "thb-variant", price: "1299", currency: "THB" },
+      ] }],
+      meta: { nextCursor: null, hasNextPage: false, totalCount: 1 },
+    };
+    render(<SellerProductsPage />);
+    expect(screen.getByText(/\$90,071,992,547,409\.93/)).toBeTruthy();
+    expect(screen.getByText(/THB\s*12\.99/)).toBeTruthy();
+  });
+
+  it("returns to a valid page when an archive removes the final row", async () => {
+    sellerProductsState.data = { data: products, meta: { nextCursor: null, hasNextPage: true, totalCount: 41 } };
+    const view = render(<SellerProductsPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "", status: "", shopId: undefined, page: 3, limit: 20 });
+
+    sellerProductsState.data = { data: [], meta: { nextCursor: null, hasNextPage: false, totalCount: 40 } };
+    view.rerender(<SellerProductsPage />);
+    await waitFor(() => expect(useSellerProducts).toHaveBeenLastCalledWith({ q: "", status: "", shopId: undefined, page: 2, limit: 20 }));
   });
 
   it("renders unanswered product questions and submits seller answers", () => {
@@ -352,6 +414,8 @@ describe("Seller product pages", () => {
 
     expect(screen.getByText("Product questions")).toBeTruthy();
     expect(screen.getByText("Does this ship with a box?")).toBeTruthy();
+    expect(screen.getByRole("table").compareDocumentPosition(screen.getByText("Product questions")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("Unanswered questions for up to six active products on this page.")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Answer question from Jane Buyer"), { target: { value: "Yes, retail box is included." } });
     fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
@@ -394,6 +458,7 @@ describe("Seller product pages", () => {
     render(<SellerProductsPage />);
 
     fireEvent.click(screen.getByRole("button", { name: "Archive Cotton Shirt" }));
+    expect(archiveMutate).not.toHaveBeenCalled();
     expect(screen.getByRole("alertdialog")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Archive product" }));
 
@@ -416,6 +481,22 @@ describe("Seller product pages", () => {
     render(<SellerProductCreatePage />);
 
     expect(push).toHaveBeenCalledWith("/en/seller/products/prod_new");
+  });
+
+  it("creates the draft in the selected shop and preserves that shop when opening the editor", () => {
+    sellerSearchParams = "shopId=shop-2";
+    createMutate.mockImplementation((_input, options) => options.onSuccess({ id: "prod_new" }));
+    render(<SellerProductCreatePage />);
+    expect(createMutate).toHaveBeenCalledWith({ title: "Untitled product draft", shopId: "shop-2" }, expect.objectContaining({ onSuccess: expect.any(Function) }));
+    expect(push).toHaveBeenCalledWith("/en/seller/products/prod_new?shopId=shop-2");
+    createMutate.mockReset();
+  });
+
+  it("keeps the selected shop when canceling a clean Product Studio edit", () => {
+    sellerSearchParams = "shopId=shop-2";
+    render(<SellerProductEditPage productId="prod_1" />);
+    fireEvent.click(screen.getAllByRole("button", { name: "Cancel" })[0]);
+    expect(push).toHaveBeenCalledWith("/en/seller/products?shopId=shop-2");
   });
 
   it("renders edit form data and page-level retry state", async () => {

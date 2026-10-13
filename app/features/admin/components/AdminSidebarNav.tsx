@@ -3,36 +3,57 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
-  CommandIcon,
-  BellIcon,
   BadgePercentIcon,
-  BoltIcon,
   BanknoteIcon,
   BarChart3Icon,
+  BellIcon,
+  BoltIcon,
   Building2Icon,
-  FileClockIcon,
-  LinkIcon,
-  LayoutDashboardIcon,
   ChevronUpIcon,
+  ChevronDownIcon,
   CreditCardIcon,
+  ExternalLinkIcon,
+  FileClockIcon,
+  LayoutDashboardIcon,
+  LinkIcon,
   LogOutIcon,
-  PanelLeftCloseIcon,
-  MenuIcon,
   MoonIcon,
   PackageSearchIcon,
   MessageSquareWarningIcon,
   RotateCcwIcon,
+  SearchIcon,
   SettingsIcon,
-  ShieldCheckIcon,
   ShieldAlertIcon,
+  ShieldCheckIcon,
   ShoppingBagIcon,
   SunIcon,
   Undo2Icon,
+  UsersIcon,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "#/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "#/components/ui/avatar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "#/components/ui/breadcrumb";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "#/components/ui/command";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,18 +62,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
-import { useTranslations } from "#/i18n/client";
-import { useAdminAccess } from "#/features/admin/access/useAdminAccess";
-import { adminPath, canVisitAdminPath } from "#/features/admin/operations/navigation";
-import { useLocalePath } from "#/i18n/navigation";
-import { signOut } from "#/lib/auth-client";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -62,159 +77,231 @@ import {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
+  useSidebar,
 } from "#/components/ui/sidebar";
+import { useTranslations } from "#/i18n/client";
+import { useAdminAccess } from "#/features/admin/access/useAdminAccess";
+import {
+  adminPath,
+  canVisitAdminPath,
+} from "#/features/admin/operations/navigation";
+import { useLocalePath } from "#/i18n/navigation";
+import { signOut } from "#/lib/auth-client";
 
 interface AdminSidebarNavProps {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role?: string | null;
-  };
+  user: { id: string; name: string; email: string; role?: string | null };
   children: ReactNode;
 }
 
-const ADMIN_NAV_ITEMS = [
-  { title: "admin.integration.nav.team", href: "/admin/team", icon: ShieldCheckIcon, match: (path: string) => path.startsWith("/admin/team") },
-  { title: "admin.integration.nav.shopPolicies", href: "/admin/shop-policies", icon: Building2Icon, match: (path: string) => path.startsWith("/admin/shop-policies") },
-  { title: "admin.integration.nav.categories", href: "/admin/categories", icon: PackageSearchIcon, match: (path: string) => path.startsWith("/admin/categories") },
-  { title: "admin.integration.nav.imports", href: "/admin/catalog/imports", icon: PackageSearchIcon, match: (path: string) => path.startsWith("/admin/catalog/imports") },
-  { title: "admin.integration.nav.documents", href: "/admin/order-documents", icon: FileClockIcon, match: (path: string) => path.startsWith("/admin/order-documents") },
-  { title: "admin.integration.nav.finance", href: "/admin/finance", icon: BanknoteIcon, match: (path: string) => path.startsWith("/admin/finance") },
-  { title: "admin.integration.nav.reconciliation", href: "/admin/reconciliation", icon: CreditCardIcon, match: (path: string) => path.startsWith("/admin/reconciliation") },
-  { title: "admin.integration.nav.shipping", href: "/admin/shipping", icon: ShoppingBagIcon, match: (path: string) => path.startsWith("/admin/shipping") },
-  { title: "admin.integration.nav.marketing", href: "/admin/marketing", icon: BadgePercentIcon, match: (path: string) => path.startsWith("/admin/marketing") },
-  { title: "admin.integration.nav.content", href: "/admin/content", icon: FileClockIcon, match: (path: string) => path === "/admin/content" || path.startsWith("/admin/content/") },
-  { title: "admin.integration.nav.templates", href: "/admin/templates", icon: BellIcon, match: (path: string) => path.startsWith("/admin/templates") },
-  { title: "admin.integration.nav.schedules", href: "/admin/report-schedules", icon: BarChart3Icon, match: (path: string) => path.startsWith("/admin/report-schedules") },
-  { title: "admin.integration.nav.controls", href: "/admin/settings/controls", icon: SettingsIcon, match: (path: string) => path.startsWith("/admin/settings/controls") },
-  { title: "admin.integration.nav.accessRules", href: "/admin/security/access", icon: ShieldAlertIcon, match: (path: string) => path.startsWith("/admin/security/access") },
-  {
-    title: "support.title",
-    href: "/admin/support",
-    icon: MessageSquareWarningIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/support"),
-  },
-  {
-    title: "admin.nav.dashboard",
-    href: "/admin/dashboard",
-    icon: LayoutDashboardIcon,
-    match: (pathname: string) => pathname === "/admin" || pathname === "/admin/dashboard",
-  },
-  {
-    title: "admin.nav.users",
-    href: "/admin/users",
-    icon: ShieldCheckIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/users"),
-  },
-  {
-    title: "admin.nav.shops",
-    href: "/admin/shops",
-    icon: Building2Icon,
-    match: (pathname: string) => pathname.startsWith("/admin/shops"),
-  },
-  {
-    title: "admin.nav.products",
-    href: "/admin/products",
-    icon: PackageSearchIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/products") || (pathname.startsWith("/admin/catalog") && !pathname.startsWith("/admin/catalog/imports")),
-  },
-  {
-    title: "admin.nav.contentModeration",
-    href: "/admin/content-moderation",
-    icon: MessageSquareWarningIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/content-moderation"),
-  },
-  {
-    title: "admin.nav.orders",
-    href: "/admin/orders",
-    icon: ShoppingBagIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/orders"),
-  },
-  {
-    title: "admin.nav.refunds",
-    href: "/admin/refunds",
-    icon: RotateCcwIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/refunds"),
-  },
-  {
-    title: "admin.nav.returns",
-    href: "/admin/returns",
-    icon: Undo2Icon,
-    match: (pathname: string) => pathname.startsWith("/admin/returns"),
-  },
-  {
-    title: "admin.nav.flashSales",
-    href: "/admin/flash-sales",
-    icon: BoltIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/flash-sales"),
-  },
-  {
-    title: "admin.nav.payouts",
-    href: "/admin/payouts",
-    icon: BanknoteIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/payouts"),
-  },
-  {
-    title: "admin.nav.commissions",
-    href: "/admin/commissions",
-    icon: BadgePercentIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/commissions"),
-  },
-  {
-    title: "admin.nav.affiliates",
-    href: "/admin/affiliates",
-    icon: LinkIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/affiliates"),
-  },
-  {
-    title: "admin.nav.fraud",
-    href: "/admin/fraud",
-    icon: ShieldAlertIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/fraud"),
-  },
-  {
-    title: "admin.nav.auditLogs",
-    href: "/admin/audit-logs",
-    icon: FileClockIcon,
-    match: (pathname: string) => pathname.startsWith("/admin/audit-logs"),
-  },
-  {
-    title: "admin.nav.reports",
-    href: "/admin/reports",
-    icon: BarChart3Icon,
-    match: (pathname: string) => pathname.startsWith("/admin/reports"),
-  },
-  {
-    title: "admin.nav.settings",
-    href: "/admin/settings",
-    icon: SettingsIcon,
-    match: (pathname: string) => (pathname.startsWith("/admin/settings") && !pathname.startsWith("/admin/settings/controls")) || pathname.startsWith("/admin/profile"),
-  },
-] as const;
+interface AdminNavigationItem {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  aliases?: readonly string[];
+}
 
-function getPageTitle(pathname: string) {
+interface AdminNavigationGroup {
+  title: string;
+  items: readonly AdminNavigationItem[];
+}
+
+const ADMIN_NAV_GROUPS: readonly AdminNavigationGroup[] = [
+  {
+    title: "admin.workspace.groups.overview",
+    items: [
+      {
+        title: "admin.nav.dashboard",
+        href: "/admin/dashboard",
+        icon: LayoutDashboardIcon,
+        aliases: ["/admin"],
+      },
+      {
+        title: "admin.nav.reports",
+        href: "/admin/reports",
+        icon: BarChart3Icon,
+      },
+      {
+        title: "admin.integration.nav.schedules",
+        href: "/admin/report-schedules",
+        icon: FileClockIcon,
+      },
+    ],
+  },
+  {
+    title: "admin.workspace.groups.marketplace",
+    items: [
+      { title: "admin.nav.users", href: "/admin/users", icon: UsersIcon },
+      { title: "admin.nav.shops", href: "/admin/shops", icon: Building2Icon },
+      {
+        title: "admin.integration.nav.shopPolicies",
+        href: "/admin/shop-policies",
+        icon: SettingsIcon,
+      },
+      {
+        title: "admin.nav.products",
+        href: "/admin/products",
+        icon: PackageSearchIcon,
+        aliases: ["/admin/catalog"],
+      },
+      {
+        title: "admin.integration.nav.categories",
+        href: "/admin/categories",
+        icon: PackageSearchIcon,
+      },
+      {
+        title: "admin.integration.nav.imports",
+        href: "/admin/catalog/imports",
+        icon: PackageSearchIcon,
+      },
+    ],
+  },
+  {
+    title: "admin.workspace.groups.orders",
+    items: [
+      {
+        title: "admin.nav.orders",
+        href: "/admin/orders",
+        icon: ShoppingBagIcon,
+      },
+      {
+        title: "admin.integration.nav.shipping",
+        href: "/admin/shipping",
+        icon: ShoppingBagIcon,
+      },
+      {
+        title: "admin.integration.nav.documents",
+        href: "/admin/order-documents",
+        icon: FileClockIcon,
+      },
+      { title: "admin.nav.returns", href: "/admin/returns", icon: Undo2Icon },
+      {
+        title: "admin.nav.refunds",
+        href: "/admin/refunds",
+        icon: RotateCcwIcon,
+      },
+    ],
+  },
+  {
+    title: "admin.workspace.groups.finance",
+    items: [
+      {
+        title: "admin.integration.nav.finance",
+        href: "/admin/finance",
+        icon: CreditCardIcon,
+      },
+      {
+        title: "admin.nav.payouts",
+        href: "/admin/payouts",
+        icon: BanknoteIcon,
+      },
+      {
+        title: "admin.integration.nav.reconciliation",
+        href: "/admin/reconciliation",
+        icon: CreditCardIcon,
+      },
+      {
+        title: "admin.nav.commissions",
+        href: "/admin/commissions",
+        icon: BadgePercentIcon,
+      },
+    ],
+  },
+  {
+    title: "admin.workspace.groups.content",
+    items: [
+      {
+        title: "admin.integration.nav.marketing",
+        href: "/admin/marketing",
+        icon: BadgePercentIcon,
+      },
+      {
+        title: "admin.nav.flashSales",
+        href: "/admin/flash-sales",
+        icon: BoltIcon,
+      },
+      {
+        title: "admin.nav.affiliates",
+        href: "/admin/affiliates",
+        icon: LinkIcon,
+      },
+      {
+        title: "admin.integration.nav.content",
+        href: "/admin/content",
+        icon: FileClockIcon,
+      },
+      {
+        title: "admin.nav.contentModeration",
+        href: "/admin/content-moderation",
+        icon: MessageSquareWarningIcon,
+      },
+      {
+        title: "admin.integration.nav.templates",
+        href: "/admin/templates",
+        icon: BellIcon,
+      },
+    ],
+  },
+  {
+    title: "admin.workspace.groups.trust",
+    items: [
+      {
+        title: "support.title",
+        href: "/admin/support",
+        icon: MessageSquareWarningIcon,
+      },
+      { title: "admin.nav.fraud", href: "/admin/fraud", icon: ShieldAlertIcon },
+      {
+        title: "admin.integration.nav.accessRules",
+        href: "/admin/security/access",
+        icon: ShieldCheckIcon,
+      },
+      {
+        title: "admin.nav.auditLogs",
+        href: "/admin/audit-logs",
+        icon: FileClockIcon,
+      },
+    ],
+  },
+  {
+    title: "admin.workspace.groups.settings",
+    items: [
+      {
+        title: "admin.integration.nav.team",
+        href: "/admin/team",
+        icon: UsersIcon,
+      },
+      {
+        title: "admin.nav.settings",
+        href: "/admin/settings",
+        icon: SettingsIcon,
+      },
+      {
+        title: "admin.integration.nav.controls",
+        href: "/admin/settings/controls",
+        icon: SettingsIcon,
+      },
+    ],
+  },
+];
+
+const ADMIN_NAV_ITEMS = ADMIN_NAV_GROUPS.flatMap((group) => group.items);
+
+function matchesNavigationItem(item: AdminNavigationItem, pathname: string) {
+  if (pathname === item.href || item.aliases?.includes(pathname)) return true;
+  if (pathname.startsWith(`${item.href}/`)) return true;
   return (
-    ADMIN_NAV_ITEMS.find((item) => item.match(pathname))?.title ?? "admin.brand"
+    item.aliases?.some(
+      (alias) => alias !== "/admin" && pathname.startsWith(`${alias}/`),
+    ) ?? false
   );
 }
 
-export function AdminSidebarNav({
-  user,
-  children,
-}: AdminSidebarNavProps) {
-  const t = useTranslations();
-  const router = useRouter();
-  const localePath = useLocalePath();
-  const pathname = adminPath(usePathname());
-  const access = useAdminAccess();
-  const menuOrder: readonly string[] = ["/admin/dashboard", "/admin/users", "/admin/team", "/admin/shops", "/admin/shop-policies", "/admin/shipping", "/admin/products", "/admin/categories", "/admin/catalog/imports", "/admin/orders", "/admin/order-documents", "/admin/returns", "/admin/refunds", "/admin/finance", "/admin/payouts", "/admin/reconciliation", "/admin/commissions", "/admin/marketing", "/admin/flash-sales", "/admin/affiliates", "/admin/content-moderation", "/admin/content", "/admin/templates", "/admin/support", "/admin/reports", "/admin/report-schedules", "/admin/fraud", "/admin/security/access", "/admin/audit-logs", "/admin/settings", "/admin/settings/controls"];
-  const visibleItems = ADMIN_NAV_ITEMS.filter(item => canVisitAdminPath(access.data?.permissions, item.href)).sort((a, b) => menuOrder.indexOf(a.href) - menuOrder.indexOf(b.href));
-  const prefersReducedMotion = useReducedMotion();
+export function AdminSidebarNav(props: AdminSidebarNavProps) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
-
   useEffect(() => {
-    setTheme(window.localStorage.getItem("admin-theme") === "dark" ? "dark" : "light");
+    setTheme(
+      window.localStorage.getItem("admin-theme") === "dark" ? "dark" : "light",
+    );
   }, []);
 
   function toggleTheme() {
@@ -223,144 +310,342 @@ export function AdminSidebarNav({
     window.localStorage.setItem("admin-theme", nextTheme);
   }
 
+  return (
+    <SidebarProvider defaultOpen data-admin-theme={theme}>
+      <AdminNavigation {...props} theme={theme} onToggleTheme={toggleTheme} />
+    </SidebarProvider>
+  );
+}
+
+function AdminNavigation({
+  user,
+  children,
+  theme,
+  onToggleTheme,
+}: AdminSidebarNavProps & {
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
+}) {
+  const t = useTranslations();
+  const router = useRouter();
+  const localePath = useLocalePath();
+  const pathname = adminPath(usePathname());
+  const access = useAdminAccess();
+  const { setOpenMobile, state } = useSidebar();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const visibleGroups = ADMIN_NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) =>
+      canVisitAdminPath(access.data?.permissions, item.href),
+    ),
+  })).filter((group) => group.items.length > 0);
+  const firstPath = visibleGroups[0]?.items[0]?.href ?? "/admin/profile";
+  const currentItem = ADMIN_NAV_ITEMS.filter((item) =>
+    matchesNavigationItem(item, pathname),
+  ).sort((a, b) => b.href.length - a.href.length)[0];
+  const currentGroup = ADMIN_NAV_GROUPS.find(
+    (group) => currentItem && group.items.includes(currentItem),
+  );
+  useEffect(() => {
+    if (!currentGroup) return;
+    setExpandedGroups((current) =>
+      current.includes(currentGroup.title)
+        ? current
+        : [...current, currentGroup.title],
+    );
+  }, [currentGroup]);
+  const themeLabel =
+    theme === "light"
+      ? t("admin.common.darkMode")
+      : t("admin.common.lightMode");
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setSearchOpen((open) => !open);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  function openPage(href: string) {
+    setSearchOpen(false);
+    setOpenMobile(false);
+    router.push(localePath(href));
+  }
+
   async function handleSignOut() {
     await signOut();
     router.push(localePath("/login"));
   }
 
   return (
-    <SidebarProvider defaultOpen data-admin-theme={theme}>
-      <Sidebar
-        variant="inset"
-        collapsible="icon"
-        className="border-r bg-sidebar md:p-2"
-      >
+    <>
+      <Sidebar collapsible="icon" className="border-r">
         <SidebarHeader className="px-3 py-4">
           <Link
-            href={localePath(visibleItems[0]?.href ?? "/admin/profile")}
-            className="flex items-center gap-3 rounded-lg px-3 py-3 no-underline"
+            href={localePath(firstPath)}
+            aria-label={t("admin.brand")}
+            onClick={() => setOpenMobile(false)}
+            className="flex min-h-10 items-center gap-2.5 rounded-lg no-underline group-data-[collapsible=icon]:justify-center"
           >
-            <div className="flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <ShieldCheckIcon className="size-5" />
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <ShieldCheckIcon className="size-4" aria-hidden="true" />
             </div>
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-              <p className="text-sm font-semibold text-foreground">
+              <p className="text-sm font-semibold tracking-tight text-foreground">
                 {t("admin.brand")}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {user.email}
+              <p className="text-xs text-muted-foreground">
+                {t("admin.workspace.console")}
               </p>
             </div>
           </Link>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip={t("admin.workspace.search")}
+                onClick={() => setSearchOpen(true)}
+                className="mt-3 border border-sidebar-border bg-background text-muted-foreground"
+              >
+                <SearchIcon aria-hidden="true" />
+                <span>{t("admin.workspace.search")}</span>
+                <kbd className="ml-auto text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden">
+                  {t("admin.workspace.shortcut")}
+                </kbd>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarHeader>
-
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>{t("admin.navigation")}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {visibleItems.map((item) => (
-                  <SidebarMenuItem key={item.href} className="relative">
-                    {item.match(pathname) ? (
-                      <motion.span
-                        layoutId="admin-nav-active"
-                        className="absolute inset-y-1 left-0 w-1 rounded-full bg-primary"
-                        transition={
-                          prefersReducedMotion
-                            ? undefined
-                            : { type: "spring", stiffness: 380, damping: 32 }
-                        }
-                      />
-                    ) : null}
-                    <SidebarMenuButton
-                      asChild
-                      isActive={item.match(pathname)}
-                      tooltip={t(item.title)}
-                      className="rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
-                    >
-                      <Link href={localePath(item.href)}>
-                        <item.icon className="size-4" />
-                        <span>{t(item.title)}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+        <SidebarContent className="gap-0">
+          {visibleGroups.map((group) => (
+            <Collapsible
+              key={group.title}
+              asChild
+              open={
+                state === "collapsed" || expandedGroups.includes(group.title)
+              }
+              onOpenChange={(open) =>
+                setExpandedGroups((current) =>
+                  open
+                    ? [...new Set([...current, group.title])]
+                    : current.filter((title) => title !== group.title),
+                )
+              }
+            >
+              <SidebarGroup className="px-3 py-1">
+                <CollapsibleTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="mb-1 h-9 w-full justify-between px-2 text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden"
+                  >
+                    <span>{t(group.title)}</span>
+                    <ChevronDownIcon
+                      aria-hidden="true"
+                      className={
+                        expandedGroups.includes(group.title)
+                          ? "size-3.5 rotate-180"
+                          : "size-3.5"
+                      }
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent asChild>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="gap-0.5">
+                      {group.items.map((item) => (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={item === currentItem}
+                            tooltip={t(item.title)}
+                            className="h-9 rounded-md text-sidebar-foreground data-[active=true]:font-semibold"
+                          >
+                            <Link
+                              href={localePath(item.href)}
+                              onClick={() => setOpenMobile(false)}
+                            >
+                              <item.icon
+                                className="size-4"
+                                aria-hidden="true"
+                              />
+                              <span>{t(item.title)}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          ))}
         </SidebarContent>
-
         <SidebarSeparator />
-
-        <SidebarFooter className="space-y-2 p-3">
+        <SidebarFooter className="p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuButton size="lg" tooltip={`${user.name} · ${user.email}`} className="h-auto min-h-12 border border-sidebar-border bg-sidebar px-2 py-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent">
-                <Avatar className="size-8 rounded-lg"><AvatarFallback className="rounded-lg bg-primary/15 text-primary">{user.name.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar>
-                <span className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden"><span className="block truncate text-sm font-semibold">{user.name}</span><span className="block truncate text-xs text-muted-foreground">{user.email}</span></span>
+              <SidebarMenuButton
+                size="lg"
+                tooltip={`${user.name} · ${user.email}`}
+                aria-label={`${user.name} · ${user.email}`}
+                className="rounded-lg border border-sidebar-border hover:bg-sidebar-accent"
+              >
+                <Avatar className="size-8 rounded-lg">
+                  <AvatarFallback className="rounded-lg bg-muted text-foreground">
+                    {user.name.slice(0, 1).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
+                  <span className="block truncate text-sm font-medium">
+                    {user.name}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
+                </span>
                 <ChevronUpIcon className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end" sideOffset={8} className="w-60">
-              <DropdownMenuLabel className="font-normal"><p className="truncate text-sm font-semibold">{user.name}</p><p className="truncate text-xs text-muted-foreground">{user.email}</p></DropdownMenuLabel>
+            <DropdownMenuContent
+              side={state === "collapsed" ? "right" : "top"}
+              align="end"
+              sideOffset={8}
+              className="w-60"
+            >
+              <DropdownMenuLabel className="font-normal">
+                <p className="truncate text-sm font-medium">{user.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {user.email}
+                </p>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href={localePath("/admin/profile")}><ShieldCheckIcon />{t("common.account")}</Link></DropdownMenuItem>
-              {canVisitAdminPath(access.data?.permissions, "/admin/payouts") ? <DropdownMenuItem asChild><Link href={localePath("/admin/payouts")}><CreditCardIcon />{t("common.billing")}</Link></DropdownMenuItem> : null}
-              {canVisitAdminPath(access.data?.permissions, "/admin/settings") ? <DropdownMenuItem asChild><Link href={localePath("/admin/settings")}><BellIcon />{t("common.notifications")}</Link></DropdownMenuItem> : null}
+              <DropdownMenuItem asChild>
+                <Link href={localePath("/admin/profile")}>
+                  <ShieldCheckIcon />
+                  {t("common.account")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onToggleTheme}>
+                {theme === "light" ? <MoonIcon /> : <SunIcon />}
+                {themeLabel}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => void handleSignOut()}><LogOutIcon />{t("common.logout")}</DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => void handleSignOut()}
+              >
+                <LogOutIcon />
+                {t("common.logout")}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full justify-start group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-            onClick={toggleTheme}
-            aria-label={theme === "light" ? t("admin.common.darkMode") : t("admin.common.lightMode")}
-          >
-            {theme === "light" ? <MoonIcon className="size-4" /> : <SunIcon className="size-4" />}
-            <span className="group-data-[collapsible=icon]:hidden">{theme === "light" ? t("admin.common.darkMode") : t("admin.common.lightMode")}</span>
-          </Button>
         </SidebarFooter>
-        <SidebarRail />
+        <SidebarRail
+          aria-label={t("admin.toggleSidebar")}
+          title={t("admin.toggleSidebar")}
+        />
       </Sidebar>
-
-      <SidebarInset className="min-w-0 bg-transparent">
-        <div className="relative flex min-h-screen w-full min-w-0 flex-col px-4 pb-8 pt-6 md:px-6">
-          <div className="mb-5 flex items-center justify-between md:hidden">
-            <SidebarTrigger className="h-10 w-10 rounded-md border bg-background text-foreground">
-              <MenuIcon className="size-4" />
-              <span className="sr-only">{t("admin.openAdminNavigation")}</span>
-            </SidebarTrigger>
-            <div className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-xs text-muted-foreground">
-              <CommandIcon className="size-3.5" />
-              {t(getPageTitle(pathname))}
-            </div>
-          </div>
-          <div className="mb-5 hidden md:flex">
-            <SidebarTrigger className="h-10 rounded-md border bg-background px-4 text-foreground hover:bg-accent">
-              <PanelLeftCloseIcon className="size-4" />
-              <span>{t("admin.toggleSidebar")}</span>
-            </SidebarTrigger>
-          </div>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              className="min-w-0 flex-1"
-              key={pathname}
-              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18, filter: "blur(8px)" }}
-              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={prefersReducedMotion ? undefined : { opacity: 0, y: -10, filter: "blur(6px)" }}
-              transition={
-                prefersReducedMotion
-                  ? undefined
-                  : { duration: 0.32, ease: "easeOut" }
-              }
+      <SidebarInset className="min-w-0 bg-background">
+        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b bg-card px-4 sm:px-6">
+          <SidebarTrigger
+            className="size-9 shrink-0"
+            aria-label={t("admin.toggleSidebar")}
+            title={t("admin.toggleSidebar")}
+          />
+          <div className="h-5 w-px shrink-0 bg-border" aria-hidden="true" />
+          <Breadcrumb
+            className="min-w-0"
+            aria-label={t("admin.workspace.location")}
+          >
+            <BreadcrumbList className="flex-nowrap">
+              {currentGroup ? (
+                <>
+                  <BreadcrumbItem className="hidden sm:inline-flex">
+                    {t(currentGroup.title)}
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden sm:block" />
+                </>
+              ) : null}
+              <BreadcrumbItem className="min-w-0">
+                <BreadcrumbPage className="truncate font-medium">
+                  {t(currentItem?.title ?? "common.account")}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSearchOpen(true)}
+              aria-label={t("admin.workspace.search")}
+              title={t("admin.workspace.search")}
             >
-              {children}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+              <SearchIcon className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleTheme}
+              aria-label={themeLabel}
+              title={themeLabel}
+            >
+              {theme === "light" ? (
+                <MoonIcon className="size-4" />
+              ) : (
+                <SunIcon className="size-4" />
+              )}
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="ml-1 hidden sm:inline-flex"
+            >
+              <Link href={localePath("/")}>
+                <ExternalLinkIcon className="size-3.5" />
+                {t("admin.workspace.storefront")}
+              </Link>
+            </Button>
+          </div>
+        </header>
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+        </main>
       </SidebarInset>
-    </SidebarProvider>
+      <CommandDialog
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        title={t("admin.workspace.search")}
+        description={t("admin.workspace.searchDescription")}
+      >
+        <CommandInput
+          placeholder={t("admin.workspace.searchPlaceholder")}
+          aria-label={t("admin.workspace.search")}
+        />
+        <CommandList className="max-h-[min(65vh,480px)]">
+          <CommandEmpty>{t("admin.workspace.noResults")}</CommandEmpty>
+          {visibleGroups.map((group) => (
+            <CommandGroup key={group.title} heading={t(group.title)}>
+              {group.items.map((item) => (
+                <CommandItem
+                  key={item.href}
+                  value={`${t(item.title)} ${t(group.title)} ${item.href}`}
+                  onSelect={() => openPage(item.href)}
+                >
+                  <item.icon className="size-4" />
+                  <span>{t(item.title)}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ))}
+        </CommandList>
+      </CommandDialog>
+    </>
   );
 }

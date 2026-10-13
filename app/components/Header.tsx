@@ -76,12 +76,6 @@ export default function Header() {
                   >
                     {t("common.login")}
                   </Link>
-                  <Link
-                    href={localePath("/signup")}
-                    className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-3 py-1.5 text-xs font-semibold text-[var(--lagoon-deep)] no-underline transition hover:bg-[rgba(79,184,178,0.24)]"
-                  >
-                    {t("common.signup")}
-                  </Link>
                 </div>
               )}
             </>

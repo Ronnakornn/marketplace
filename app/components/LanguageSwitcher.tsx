@@ -12,14 +12,15 @@ const localeLabels: Record<Locale, string> = {
   en: "EN",
 };
 
-export function LanguageSwitcher({ prefetch = true }: { prefetch?: boolean }) {
+export function LanguageSwitcher({ prefetch = true, queryString: currentQueryString }: { prefetch?: boolean; queryString?: string }) {
   const locale = useLocale();
   const pathname = usePathname();
   const t = useTranslations();
-  const [queryString, setQueryString] = useState("");
+  const [initialQueryString, setInitialQueryString] = useState("");
+  const queryString = currentQueryString ?? initialQueryString;
 
   useEffect(() => {
-    setQueryString(window.location.search.replace(/^\?/, ""));
+    setInitialQueryString(window.location.search.replace(/^\?/, ""));
   }, []);
 
   return (

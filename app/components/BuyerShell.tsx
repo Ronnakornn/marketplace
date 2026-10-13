@@ -179,10 +179,11 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
               </Link>
             </div>
         )}
+        <div className="hidden h-10 shrink-0 md:block [&>div]:h-full"><LanguageSwitcher prefetch={prefetchLinks} /></div>
       </div>
-      <div className="mx-auto mt-2 flex max-w-6xl items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-xs font-semibold text-orange-700">{title ?? t("common.marketplace")}</p>
-        <div className="shrink-0"><LanguageSwitcher prefetch={prefetchLinks} /></div>
+      <div className={cn("mx-auto mt-2 flex max-w-6xl items-center justify-between gap-3", !title && "md:hidden")}>
+        {title ? <p className="min-w-0 truncate text-xs font-semibold text-orange-700">{title}</p> : null}
+        <div className="ml-auto shrink-0 md:hidden"><LanguageSwitcher prefetch={prefetchLinks} /></div>
       </div>
     </header>
   );

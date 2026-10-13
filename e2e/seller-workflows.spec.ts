@@ -89,12 +89,21 @@ test("orders and returns expose state-safe actions", async ({ page }) => {
   await openSellerRoute(page, "/orders");
   const shipmentActions = page.getByRole("button", { name: /ทำเครื่องหมายว่าแพ็กแล้ว|จัดส่ง|ทำเครื่องหมายว่าส่งแล้ว/ });
   const emptyShipments = page.getByText("ไม่มีการจัดส่งที่ต้องดำเนินการ", { exact: true });
-  await expect(shipmentActions.first().or(emptyShipments)).toBeVisible();
+  const existingShipment = page.getByRole("table").getByRole("row").nth(1);
+  await expect(existingShipment.or(emptyShipments)).toBeVisible();
   if (await shipmentActions.count()) {
-    await expect(page.locator('input[name="carrier"]').first()).toBeVisible();
-    await expect(page.locator('input[name="trackingNo"]').first()).toBeVisible();
+    await expect(page.locator('input[name="carrier"]')).toHaveCount(0);
+    const shipButton = page.getByRole("button", { name: "จัดส่ง", exact: true }).first();
+    if (await shipButton.count()) {
+      await shipButton.click();
+      const dialog = page.getByRole("dialog");
+      await expect(dialog.locator('input[name="carrier"]')).toBeVisible();
+      await expect(dialog.locator('input[name="trackingNo"]')).toBeVisible();
+      await dialog.getByRole("button", { name: "ยกเลิก", exact: true }).click();
+      await expect(dialog).toHaveCount(0);
+    }
   } else {
-    await expect(emptyShipments).toBeVisible();
+    await expect(existingShipment.or(emptyShipments)).toBeVisible();
   }
 
   await openSellerRoute(page, "/returns");

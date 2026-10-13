@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminTable } from "../components/AdminTable";
+
 import { CouponTargetsManager } from "#/features/admin/marketing-targets/CouponTargetsManager";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
@@ -17,14 +19,12 @@ import {
   type TemplateRow,
 } from "./api";
 import {
-  Cell,
   CheckField,
-  DataTable,
   EditButton,
   Editor,
   Field,
   OperationsFrame,
-  Pager,
+  OperationConfirmation,
   SelectField,
   TextField,
   dateInput,
@@ -61,6 +61,9 @@ export function AdminMarketing() {
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(blankBanner);
   const [id, setId] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [removing, setRemoving] = useState<BannerRow | null>(null);
+  const [removeReason, setRemoveReason] = useState("");
   const rows = useOperationQuery(["banners", page], () =>
     operationsApi.marketing.banners.get({ query: { page, limit: 20 } }),
   );
@@ -69,15 +72,16 @@ export function AdminMarketing() {
       ? operationsApi.marketing.banners({ id }).patch(body)
       : operationsApi.marketing.banners.post(body),
   );
-  const remove = useOperationMutation((row: BannerRow) =>
-    operationsApi.marketing
-      .banners({ id: row.id })
-      .delete({
-        expectedUpdatedAt: new Date(row.updatedAt).toISOString(),
-        reason: form.reason,
+  const remove = useOperationMutation(
+    (input: { row: BannerRow; reason: string }) =>
+      operationsApi.marketing.banners({ id: input.row.id }).delete({
+        expectedUpdatedAt: new Date(input.row.updatedAt).toISOString(),
+        reason: input.reason,
       }),
   );
   function edit(row: BannerRow) {
+    setEditorOpen(true);
+    save.reset();
     const frequency = metaValue(row.metadata, "popupFrequency");
     setId(row.id);
     setForm({
@@ -107,46 +111,24 @@ export function AdminMarketing() {
       loading={rows.isLoading}
       error={save.error ?? remove.error ?? rows.error}
     >
-      <DataTable
-        headings={["title", "placement", "status", "activeNow", "actions"]}
-      >
-        {rows.data?.items.map((row) => (
-          <tr key={row.id}>
-            <Cell>{row.title}</Cell>
-            <Cell>{t(`admin.operations.values.${row.placement}`)}</Cell>
-            <Cell>{t(`admin.operations.values.${row.status}`)}</Cell>
-            <Cell>
-              {t(
-                row.activeNow ? "admin.operations.yes" : "admin.operations.no",
-              )}
-            </Cell>
-            <Cell>
-              <div className="flex gap-2">
-                <EditButton onClick={() => edit(row)} />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={form.reason.trim().length < 3}
-                  onClick={() => remove.mutate(row)}
-                >
-                  {t("admin.operations.delete")}
-                </Button>
-              </div>
-            </Cell>
-          </tr>
-        ))}
-      </DataTable>
-      <Pager page={page} total={rows.data?.total ?? 0} onPage={setPage} />
       <Editor
         title={id ? "editBanner" : "createBanner"}
+        triggerLabel="createBanner"
+        open={editorOpen}
+        onOpenChange={(open) => {
+          setEditorOpen(open);
+          if (open) save.reset();
+        }}
+        error={save.error ?? rows.error}
         busy={save.isPending}
         onCancel={() => {
           setId(null);
           setForm(blankBanner);
         }}
         onSubmit={() =>
-          save.mutate(form, {
+          save.mutateAsync(form, {
             onSuccess: () => {
+              setEditorOpen(false);
               setId(null);
               setForm(blankBanner);
             },
@@ -250,19 +232,119 @@ export function AdminMarketing() {
           required
           onChange={(value) => setForm({ ...form, reason: value })}
         />
-      </Editor>
-      <section className="admin-panel rounded-xl p-5">
-        <h2 className="text-lg font-medium">{t("admin.operations.preview")}</h2>
-        <h3 className="mt-3 font-medium">{form.title}</h3>
-        <p className="whitespace-pre-wrap text-sm">
-          {form.bodyTh || form.bodyEn || form.subtitle}
-        </p>
-        {form.targetUrl ? (
-          <p className="mt-3 break-all text-sm text-muted-foreground">
-            {form.targetUrl}
+        <section className="rounded-lg border bg-muted/30 p-4 sm:col-span-2">
+          <h2 className="text-lg font-medium">
+            {t("admin.operations.preview")}
+          </h2>
+          <h3 className="mt-3 font-medium">{form.title}</h3>
+          <p className="whitespace-pre-wrap text-sm">
+            {form.bodyTh || form.bodyEn || form.subtitle}
           </p>
-        ) : null}
-      </section>
+          {form.targetUrl ? (
+            <p className="mt-3 break-all text-sm text-muted-foreground">
+              {form.targetUrl}
+            </p>
+          ) : null}
+        </section>
+      </Editor>
+      <AdminTable
+        isLoading={rows.isLoading}
+        data={rows.data?.items ?? []}
+        columns={[
+          {
+            id: "title",
+            header: t("admin.operations.fields.title"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.title}</>,
+          },
+          {
+            id: "placement",
+            header: t("admin.operations.fields.placement"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>{t(`admin.operations.values.${row.placement}`)}</>
+            ),
+          },
+          {
+            id: "status",
+            header: t("admin.operations.fields.status"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>{t(`admin.operations.values.${row.status}`)}</>
+            ),
+          },
+          {
+            id: "activeNow",
+            header: t("admin.operations.fields.activeNow"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                {t(
+                  row.activeNow
+                    ? "admin.operations.yes"
+                    : "admin.operations.no",
+                )}
+              </>
+            ),
+          },
+          {
+            id: "actions",
+            header: t("admin.operations.fields.actions"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                <div className="flex gap-2">
+                  <EditButton onClick={() => edit(row)} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={remove.isPending}
+                    onClick={() => {
+                      remove.reset();
+                      setRemoveReason("");
+                      setRemoving(row);
+                    }}
+                  >
+                    {t("admin.operations.delete")}
+                  </Button>
+                </div>
+              </>
+            ),
+          },
+        ]}
+        pagination={{
+          pageIndex: page - 1,
+          pageSize: 20,
+          totalRows: rows.data?.total ?? 0,
+          onPaginationChange: (updater) => {
+            const next =
+              typeof updater === "function"
+                ? updater({ pageIndex: page - 1, pageSize: 20 })
+                : updater;
+            setPage(next.pageIndex + 1);
+          },
+        }}
+      />
+      <OperationConfirmation
+        open={removing !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoving(null);
+        }}
+        title="delete"
+        target={removing?.title ?? ""}
+        reason={removeReason}
+        onReasonChange={setRemoveReason}
+        busy={remove.isPending}
+        error={remove.error}
+        destructive
+        onConfirm={() => {
+          if (removing)
+            remove.mutate(
+              { row: removing, reason: removeReason },
+              { onSuccess: () => setRemoving(null) },
+            );
+        }}
+      />
       <CouponTargetsManager />
     </OperationsFrame>
   );
@@ -280,6 +362,12 @@ export function AdminContent() {
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(blankContent);
   const [editing, setEditing] = useState<ContentRow | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [publication, setPublication] = useState<{
+    row: ContentRow;
+    unpublish: boolean;
+  } | null>(null);
+  const [publishReason, setPublishReason] = useState("");
   const rows = useOperationQuery(["content", page], () =>
     operationsApi.content.pages.get({ query: { page, limit: 20 } }),
   );
@@ -289,22 +377,20 @@ export function AdminContent() {
       : operationsApi.content.pages.post(body),
   );
   const publish = useOperationMutation(
-    (input: { row: ContentRow; unpublish: boolean }) =>
+    (input: { row: ContentRow; unpublish: boolean; reason: string }) =>
       input.unpublish
-        ? operationsApi.content
-            .pages({ id: input.row.id })
-            .unpublish.post({
-              expectedVersion: input.row.version,
-              reason: form.reason,
-            })
-        : operationsApi.content
-            .pages({ id: input.row.id })
-            .publish.post({
-              expectedVersion: input.row.version,
-              reason: form.reason,
-            }),
+        ? operationsApi.content.pages({ id: input.row.id }).unpublish.post({
+            expectedVersion: input.row.version,
+            reason: input.reason,
+          })
+        : operationsApi.content.pages({ id: input.row.id }).publish.post({
+            expectedVersion: input.row.version,
+            reason: input.reason,
+          }),
   );
   function edit(row: ContentRow) {
+    setEditorOpen(true);
+    save.reset();
     setEditing(row);
     setForm({
       slug: row.slug,
@@ -321,55 +407,24 @@ export function AdminContent() {
       loading={rows.isLoading}
       error={save.error ?? publish.error ?? rows.error}
     >
-      <DataTable
-        headings={["title", "slug", "locale", "publishedAt", "actions"]}
-      >
-        {rows.data?.items.map((row) => (
-          <tr key={row.id}>
-            <Cell>{row.title}</Cell>
-            <Cell>{row.slug}</Cell>
-            <Cell>{row.locale}</Cell>
-            <Cell>
-              {row.publishedAt
-                ? new Date(row.publishedAt).toLocaleString()
-                : t("admin.operations.values.DRAFT")}
-            </Cell>
-            <Cell>
-              <div className="flex flex-wrap gap-2">
-                <EditButton onClick={() => edit(row)} />
-                <Button
-                  size="sm"
-                  disabled={form.reason.trim().length < 3}
-                  onClick={() => publish.mutate({ row, unpublish: false })}
-                >
-                  {t("admin.operations.publish")}
-                </Button>
-                {row.publishedAt ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={form.reason.trim().length < 3}
-                    onClick={() => publish.mutate({ row, unpublish: true })}
-                  >
-                    {t("admin.operations.unpublish")}
-                  </Button>
-                ) : null}
-              </div>
-            </Cell>
-          </tr>
-        ))}
-      </DataTable>
-      <Pager page={page} total={rows.data?.total ?? 0} onPage={setPage} />
       <Editor
         title={editing ? "editContent" : "createContent"}
+        triggerLabel="createContent"
+        open={editorOpen}
+        onOpenChange={(open) => {
+          setEditorOpen(open);
+          if (open) save.reset();
+        }}
+        error={save.error ?? rows.error}
         busy={save.isPending}
         onCancel={() => {
           setEditing(null);
           setForm(blankContent);
         }}
         onSubmit={() =>
-          save.mutate(form, {
+          save.mutateAsync(form, {
             onSuccess: () => {
+              setEditorOpen(false);
               setEditing(null);
               setForm(blankContent);
             },
@@ -408,12 +463,118 @@ export function AdminContent() {
             onChange={(value) => setForm({ ...form, draftBody: value })}
           />
         </div>
+        <section className="rounded-lg border bg-muted/30 p-4 sm:col-span-2">
+          <h2 className="text-lg font-medium">
+            {t("admin.operations.preview")}
+          </h2>
+          <h3 className="mt-4 text-xl font-medium">{form.title}</h3>
+          <p className="mt-4 whitespace-pre-wrap">{form.draftBody}</p>
+        </section>
       </Editor>
-      <section className="admin-panel rounded-xl p-5">
-        <h2 className="text-lg font-medium">{t("admin.operations.preview")}</h2>
-        <h3 className="mt-4 text-xl font-medium">{form.title}</h3>
-        <p className="mt-4 whitespace-pre-wrap">{form.draftBody}</p>
-      </section>
+      <AdminTable
+        isLoading={rows.isLoading}
+        data={rows.data?.items ?? []}
+        columns={[
+          {
+            id: "title",
+            header: t("admin.operations.fields.title"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.title}</>,
+          },
+          {
+            id: "slug",
+            header: t("admin.operations.fields.slug"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.slug}</>,
+          },
+          {
+            id: "locale",
+            header: t("admin.operations.fields.locale"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.locale}</>,
+          },
+          {
+            id: "publishedAt",
+            header: t("admin.operations.fields.publishedAt"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                {row.publishedAt
+                  ? new Date(row.publishedAt).toLocaleString()
+                  : t("admin.operations.values.DRAFT")}
+              </>
+            ),
+          },
+          {
+            id: "actions",
+            header: t("admin.operations.fields.actions"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <EditButton onClick={() => edit(row)} />
+                  <Button
+                    size="sm"
+                    disabled={publish.isPending}
+                    onClick={() => {
+                      publish.reset();
+                      setPublishReason("");
+                      setPublication({ row, unpublish: false });
+                    }}
+                  >
+                    {t("admin.operations.publish")}
+                  </Button>
+                  {row.publishedAt ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={publish.isPending}
+                      onClick={() => {
+                        publish.reset();
+                        setPublishReason("");
+                        setPublication({ row, unpublish: true });
+                      }}
+                    >
+                      {t("admin.operations.unpublish")}
+                    </Button>
+                  ) : null}
+                </div>
+              </>
+            ),
+          },
+        ]}
+        pagination={{
+          pageIndex: page - 1,
+          pageSize: 20,
+          totalRows: rows.data?.total ?? 0,
+          onPaginationChange: (updater) => {
+            const next =
+              typeof updater === "function"
+                ? updater({ pageIndex: page - 1, pageSize: 20 })
+                : updater;
+            setPage(next.pageIndex + 1);
+          },
+        }}
+      />
+      <OperationConfirmation
+        open={publication !== null}
+        onOpenChange={(open) => {
+          if (!open) setPublication(null);
+        }}
+        title={publication?.unpublish ? "unpublish" : "publish"}
+        target={publication?.row.title ?? ""}
+        reason={publishReason}
+        onReasonChange={setPublishReason}
+        busy={publish.isPending}
+        error={publish.error}
+        onConfirm={() => {
+          if (publication)
+            publish.mutate(
+              { ...publication, reason: publishReason },
+              { onSuccess: () => setPublication(null) },
+            );
+        }}
+      />
     </OperationsFrame>
   );
 }
@@ -432,6 +593,9 @@ export function AdminTemplates() {
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(blankTemplate);
   const [editing, setEditing] = useState<TemplateRow | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [removing, setRemoving] = useState<TemplateRow | null>(null);
+  const [removeReason, setRemoveReason] = useState("");
   const [preview, setPreview] =
     useState<
       Awaited<ReturnType<typeof operationsApi.templates.preview.post>>["data"]
@@ -445,15 +609,18 @@ export function AdminTemplates() {
       ? operationsApi.templates({ id: editing.id }).patch(body)
       : operationsApi.templates.post(body),
   );
-  const remove = useOperationMutation((row: TemplateRow) =>
-    operationsApi
-      .templates({ id: row.id })
-      .delete({
-        expectedUpdatedAt: new Date(row.updatedAt).toISOString(),
-        reason: form.reason,
+  const remove = useOperationMutation(
+    (input: { row: TemplateRow; reason: string }) =>
+      operationsApi.templates({ id: input.row.id }).delete({
+        expectedUpdatedAt: new Date(input.row.updatedAt).toISOString(),
+        reason: input.reason,
       }),
   );
   function edit(row: TemplateRow) {
+    setEditorOpen(true);
+    save.reset();
+    setPreview(null);
+    setPreviewError(null);
     setEditing(row);
     setForm({
       key: row.key,
@@ -472,42 +639,26 @@ export function AdminTemplates() {
       loading={rows.isLoading}
       error={save.error ?? remove.error ?? previewError ?? rows.error}
     >
-      <DataTable headings={["key", "channel", "locale", "active", "actions"]}>
-        {rows.data?.items.map((row) => (
-          <tr key={row.id}>
-            <Cell>{row.key}</Cell>
-            <Cell>{t(`admin.operations.values.${row.channel}`)}</Cell>
-            <Cell>{row.locale}</Cell>
-            <Cell>
-              {t(row.isActive ? "admin.operations.yes" : "admin.operations.no")}
-            </Cell>
-            <Cell>
-              <div className="flex gap-2">
-                <EditButton onClick={() => edit(row)} />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={form.reason.trim().length < 3}
-                  onClick={() => remove.mutate(row)}
-                >
-                  {t("admin.operations.delete")}
-                </Button>
-              </div>
-            </Cell>
-          </tr>
-        ))}
-      </DataTable>
-      <Pager page={page} total={rows.data?.total ?? 0} onPage={setPage} />
       <Editor
         title={editing ? "editTemplate" : "createTemplate"}
+        triggerLabel="createTemplate"
+        open={editorOpen}
+        onOpenChange={(open) => {
+          setEditorOpen(open);
+          if (open) save.reset();
+        }}
+        error={save.error ?? previewError ?? rows.error}
         busy={save.isPending}
         onCancel={() => {
           setEditing(null);
           setForm(blankTemplate);
+          setPreview(null);
+          setPreviewError(null);
         }}
         onSubmit={() =>
-          save.mutate(form, {
+          save.mutateAsync(form, {
             onSuccess: () => {
+              setEditorOpen(false);
               setEditing(null);
               setForm(blankTemplate);
             },
@@ -578,21 +729,115 @@ export function AdminTemplates() {
         >
           {t("admin.operations.preview")}
         </Button>
-      </Editor>
-      {preview ? (
-        <section className="admin-panel rounded-xl p-5">
-          <h2 className="text-lg font-medium">{preview.subject}</h2>
-          <p className="mt-4 whitespace-pre-wrap">{preview.body}</p>
-          <p className="mt-4 text-sm text-muted-foreground">
-            {t("admin.operations.allowedVariables")}:{" "}
-            {preview.allowedVariables.join(", ")}
+        {preview ? (
+          <section className="rounded-lg border bg-muted/30 p-4 sm:col-span-2">
+            <h2 className="text-lg font-medium">{preview.subject}</h2>
+            <p className="mt-4 whitespace-pre-wrap">{preview.body}</p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              {t("admin.operations.allowedVariables")}:{" "}
+              {preview.allowedVariables.join(", ")}
+            </p>
+          </section>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {t("admin.operations.templateHelp")}
           </p>
-        </section>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          {t("admin.operations.templateHelp")}
-        </p>
-      )}
+        )}
+      </Editor>
+      <AdminTable
+        isLoading={rows.isLoading}
+        data={rows.data?.items ?? []}
+        columns={[
+          {
+            id: "key",
+            header: t("admin.operations.fields.key"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.key}</>,
+          },
+          {
+            id: "channel",
+            header: t("admin.operations.fields.channel"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>{t(`admin.operations.values.${row.channel}`)}</>
+            ),
+          },
+          {
+            id: "locale",
+            header: t("admin.operations.fields.locale"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.locale}</>,
+          },
+          {
+            id: "active",
+            header: t("admin.operations.fields.active"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                {t(
+                  row.isActive ? "admin.operations.yes" : "admin.operations.no",
+                )}
+              </>
+            ),
+          },
+          {
+            id: "actions",
+            header: t("admin.operations.fields.actions"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                <div className="flex gap-2">
+                  <EditButton onClick={() => edit(row)} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={remove.isPending}
+                    onClick={() => {
+                      remove.reset();
+                      setRemoveReason("");
+                      setRemoving(row);
+                    }}
+                  >
+                    {t("admin.operations.delete")}
+                  </Button>
+                </div>
+              </>
+            ),
+          },
+        ]}
+        pagination={{
+          pageIndex: page - 1,
+          pageSize: 20,
+          totalRows: rows.data?.total ?? 0,
+          onPaginationChange: (updater) => {
+            const next =
+              typeof updater === "function"
+                ? updater({ pageIndex: page - 1, pageSize: 20 })
+                : updater;
+            setPage(next.pageIndex + 1);
+          },
+        }}
+      />
+      <OperationConfirmation
+        open={removing !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoving(null);
+        }}
+        title="delete"
+        target={removing?.key ?? ""}
+        reason={removeReason}
+        onReasonChange={setRemoveReason}
+        busy={remove.isPending}
+        error={remove.error}
+        destructive
+        onConfirm={() => {
+          if (removing)
+            remove.mutate(
+              { row: removing, reason: removeReason },
+              { onSuccess: () => setRemoving(null) },
+            );
+        }}
+      />
     </OperationsFrame>
   );
 }

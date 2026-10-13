@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { AdminTable } from "./AdminTable";
+
+import { useState } from "react";
 import { MessageSquareWarningIcon } from "lucide-react";
 import {
   AlertDialog,
@@ -15,27 +18,14 @@ import {
 import { Button } from "#/components/ui/button";
 import { CardContent } from "#/components/ui/card";
 import { Label } from "#/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "#/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "#/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
+
 import { Textarea } from "#/components/ui/textarea";
 import { useTranslations } from "#/i18n/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { AdminDataShell } from "./AdminDataShell";
 import { AdminStatusBadge } from "./AdminStatusBadge";
-import { AdminTablePagination } from "./AdminTablePagination";
+
 import {
   PAGE_SIZE,
   type AdminModerationAnswer,
@@ -84,12 +74,7 @@ type ActionTarget =
     };
 
 const REVIEW_STATUSES = ["PENDING", "PUBLISHED", "REJECTED", "HIDDEN"] as const;
-const REPORT_STATUSES = [
-  "OPEN",
-  "UNDER_REVIEW",
-  "RESOLVED_REMOVED",
-  "RESOLVED_DISMISSED",
-] as const;
+const REPORT_STATUSES = ["OPEN", "UNDER_REVIEW", "RESOLVED_REMOVED", "RESOLVED_DISMISSED"] as const;
 const QUESTION_STATUSES = ["PENDING", "PUBLISHED", "HIDDEN"] as const;
 const ANSWER_STATUSES = ["PENDING", "PUBLISHED", "HIDDEN"] as const;
 
@@ -102,16 +87,6 @@ function formatDate(value: string | Date) {
   }).format(new Date(value));
 }
 
-function textMatch(values: Array<unknown>, query: string) {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-  return values.some((value) =>
-    String(value ?? "")
-      .toLowerCase()
-      .includes(needle),
-  );
-}
-
 function readErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object") {
@@ -120,12 +95,7 @@ function readErrorMessage(error: unknown, fallback: string) {
       error?: { message?: string };
       message?: string;
     };
-    return (
-      record.value?.error?.message ??
-      record.error?.message ??
-      record.message ??
-      fallback
-    );
+    return record.value?.error?.message ?? record.error?.message ?? record.message ?? fallback;
   }
   return fallback;
 }
@@ -141,32 +111,20 @@ function FilterSelect(props: {
       value={props.value || "ALL"}
       onValueChange={(value) => props.onChange(value === "ALL" ? "" : value)}
     >
-      <SelectTrigger className="h-10 w-full border-white/10 bg-slate-950/60 text-slate-100 md:w-52">
+      <SelectTrigger className="h-10 w-full border-border bg-muted/40 text-foreground md:w-52">
         <SelectValue placeholder={t("admin.status")} />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="ALL">{t("admin.common.allStatuses")}</SelectItem>
         {props.options.map((option) => (
           <SelectItem key={option} value={option}>
-            {t(`admin.statuses.${option}` as Parameters<typeof t>[0]) ===
-            `admin.statuses.${option}`
+            {t(`admin.statuses.${option}` as Parameters<typeof t>[0]) === `admin.statuses.${option}`
               ? option.replaceAll("_", " ")
               : t(`admin.statuses.${option}` as Parameters<typeof t>[0])}
           </SelectItem>
         ))}
       </SelectContent>
     </Select>
-  );
-}
-
-function EmptyRow() {
-  const t = useTranslations();
-  return (
-    <TableRow className="border-white/8 hover:bg-transparent">
-      <TableCell colSpan={6} className="h-32 text-center text-slate-400">
-        {t("admin.contentModeration.empty")}
-      </TableCell>
-    </TableRow>
   );
 }
 
@@ -186,12 +144,11 @@ function StatusActions(props: {
             key={status}
             size="sm"
             variant="outline"
-            className="border-white/10 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
+            className="border-border bg-background text-foreground hover:bg-background hover:text-foreground"
             disabled={props.disabled}
             onClick={() => props.onSelect(status)}
           >
-            {t(`admin.statuses.${status}` as Parameters<typeof t>[0]) ===
-            `admin.statuses.${status}`
+            {t(`admin.statuses.${status}` as Parameters<typeof t>[0]) === `admin.statuses.${status}`
               ? status.replaceAll("_", " ")
               : t(`admin.statuses.${status}` as Parameters<typeof t>[0])}
           </Button>
@@ -268,87 +225,15 @@ export function AdminContentModerationQueues() {
   const updateQuestion = useUpdateModerationQuestionStatus();
   const updateAnswer = useUpdateModerationAnswerStatus();
   const mutationError =
-    updateReview.error ??
-    updateReport.error ??
-    updateQuestion.error ??
-    updateAnswer.error;
+    updateReview.error ?? updateReport.error ?? updateQuestion.error ?? updateAnswer.error;
   const isMutating =
-    updateReview.isPending ||
-    updateReport.isPending ||
-    updateQuestion.isPending ||
-    updateAnswer.isPending;
-  const isNoteMissing = Boolean(
-    actionTarget?.requiresNote && note.trim().length === 0,
-  );
+    updateReview.isPending || updateReport.isPending || updateQuestion.isPending || updateAnswer.isPending;
+  const isNoteMissing = Boolean(actionTarget?.requiresNote && note.trim().length === 0);
 
-  const reviews = useMemo(
-    () =>
-      (reviewsQuery.data?.items ?? []).filter((item: AdminModerationReview) =>
-        textMatch(
-          [
-            item.body,
-            item.product.title,
-            item.shop.name,
-            item.user.email,
-            item.status,
-          ],
-          search,
-        ),
-      ),
-    [reviewsQuery.data, search],
-  );
-  const reports = useMemo(
-    () =>
-      (reportsQuery.data?.items ?? []).filter(
-        (item: AdminModerationReviewReport) =>
-          textMatch(
-            [
-              item.reason,
-              item.detail,
-              item.reportedBy.email,
-              item.review?.body,
-              item.review?.product.title,
-              item.status,
-            ],
-            search,
-          ),
-      ),
-    [reportsQuery.data, search],
-  );
-  const questions = useMemo(
-    () =>
-      (questionsQuery.data?.items ?? []).filter(
-        (item: AdminModerationQuestion) =>
-          textMatch(
-            [
-              item.question,
-              item.product.title,
-              item.shop.name,
-              item.user.email,
-              item.status,
-            ],
-            search,
-          ),
-      ),
-    [questionsQuery.data, search],
-  );
-  const answers = useMemo(
-    () =>
-      (answersQuery.data?.items ?? []).filter((item: AdminModerationAnswer) =>
-        textMatch(
-          [
-            item.answer,
-            item.question.question,
-            item.question.product.title,
-            item.question.shop.name,
-            item.user.email,
-            item.status,
-          ],
-          search,
-        ),
-      ),
-    [answersQuery.data, search],
-  );
+  const reviews = reviewsQuery.data?.items ?? [];
+  const reports = reportsQuery.data?.items ?? [];
+  const questions = questionsQuery.data?.items ?? [];
+  const answers = answersQuery.data?.items ?? [];
 
   const activeQuery =
     activeQueue === "reviews"
@@ -358,14 +243,6 @@ export function AdminContentModerationQueues() {
         : activeQueue === "questions"
           ? questionsQuery
           : answersQuery;
-  const activeRows =
-    activeQueue === "reviews"
-      ? reviews
-      : activeQueue === "reports"
-        ? reports
-        : activeQueue === "questions"
-          ? questions
-          : answers;
   const activeStatuses =
     activeQueue === "reviews"
       ? REVIEW_STATUSES
@@ -374,10 +251,6 @@ export function AdminContentModerationQueues() {
         : activeQueue === "questions"
           ? QUESTION_STATUSES
           : ANSWER_STATUSES;
-
-  function setActivePage(nextPage: number) {
-    setPage((current) => ({ ...current, [activeQueue]: nextPage }));
-  }
 
   function setActiveStatus(nextStatus: string) {
     setStatus((current) => ({ ...current, [activeQueue]: nextStatus }));
@@ -398,19 +271,437 @@ export function AdminContentModerationQueues() {
     };
     const options = {
       onSuccess: () => {
-        setMessage(
-          `${actionTarget.title} updated to ${actionTarget.status.replaceAll("_", " ")}.`,
-        );
+        setMessage(t("admin.workspace.updatedStatus").replace("{title}", actionTarget.title).replace("{status}", t(`admin.statuses.${actionTarget.status}`)));
         setActionTarget(null);
         setNote("");
       },
     };
     if (actionTarget.queue === "reviews") updateReview.mutate(payload, options);
     if (actionTarget.queue === "reports") updateReport.mutate(payload, options);
-    if (actionTarget.queue === "questions")
-      updateQuestion.mutate(payload, options);
+    if (actionTarget.queue === "questions") updateQuestion.mutate(payload, options);
     if (actionTarget.queue === "answers") updateAnswer.mutate(payload, options);
   }
+
+  const reviewsColumns: ColumnDef<AdminModerationReview>[] = [
+    {
+      id: "review",
+      header: t("admin.ui.review"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div className="max-w-md px-5 py-4">
+            <p className="font-medium text-foreground">
+              {t("admin.contentModeration.reviewSummary")
+                .replace("{rating}", String(item.rating))
+                .replace("{count}", String(item.reportCount))}
+            </p>
+            <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
+              {item.body ?? t("admin.contentModeration.noReviewBody")}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {item.orderItem.productTitle} · {item.orderItem.variantTitle}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "product",
+      header: t("admin.ui.product"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="text-sm text-foreground">{item.product.title}</p>
+            <p className="text-xs text-muted-foreground">{item.shop.name}</p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "author",
+      header: t("admin.ui.author"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="text-sm text-foreground">{item.user.name}</p>
+            <p className="text-xs text-muted-foreground">{item.user.email}</p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: t("admin.ui.status"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <AdminStatusBadge status={item.status} />
+          </div>
+        );
+      },
+    },
+    {
+      id: "created",
+      header: t("admin.ui.created"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return <div className="text-sm text-muted-foreground">{formatDate(item.createdAt)}</div>;
+      },
+    },
+    {
+      id: "actions",
+      header: t("admin.ui.actions"),
+      enableSorting: false,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <StatusActions
+              currentStatus={item.status}
+              options={REVIEW_STATUSES}
+              disabled={isMutating}
+              onSelect={(next) =>
+                openAction({
+                  queue: "reviews",
+                  id: item.id,
+                  title: item.product.title,
+                  status: next,
+                  requiresNote: needsReviewNote(next),
+                })
+              }
+            />
+          </div>
+        );
+      },
+    },
+  ];
+
+  const reportsColumns: ColumnDef<AdminModerationReviewReport>[] = [
+    {
+      id: "report",
+      header: t("admin.ui.report"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div className="max-w-md px-5 py-4">
+            <p className="font-medium text-foreground">{item.reason}</p>
+            <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">
+              {item.detail ?? t("admin.contentModeration.noDetail")}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "review",
+      header: t("admin.ui.review"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="text-sm text-foreground">
+              {item.review?.product.title ?? t("admin.contentModeration.reviewRemoved")}
+            </p>
+            <p className="line-clamp-2 text-xs text-muted-foreground">
+              {item.review?.body ?? t("admin.contentModeration.noReviewBody")}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "reporter",
+      header: t("admin.ui.reporter"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="text-sm text-foreground">{item.reportedBy.name}</p>
+            <p className="text-xs text-muted-foreground">{item.reportedBy.email}</p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: t("admin.ui.status"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <AdminStatusBadge status={item.status} />
+          </div>
+        );
+      },
+    },
+    {
+      id: "created",
+      header: t("admin.ui.created"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return <div className="text-sm text-muted-foreground">{formatDate(item.createdAt)}</div>;
+      },
+    },
+    {
+      id: "actions",
+      header: t("admin.ui.actions"),
+      enableSorting: false,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <StatusActions
+              currentStatus={item.status}
+              options={REPORT_STATUSES}
+              disabled={isMutating}
+              onSelect={(next) =>
+                openAction({
+                  queue: "reports",
+                  id: item.id,
+                  title: item.review?.product.title ?? t("admin.contentModeration.reviewReport"),
+                  status: next,
+                  requiresNote: needsReportNote(next),
+                })
+              }
+            />
+          </div>
+        );
+      },
+    },
+  ];
+
+  const questionsColumns: ColumnDef<AdminModerationQuestion>[] = [
+    {
+      id: "question",
+      header: t("admin.ui.question"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div className="max-w-md px-5 py-4">
+            <p className="line-clamp-3 font-medium text-foreground">{item.question}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("admin.contentModeration.answerCount").replace("{count}", String(item.answerCount))}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "product",
+      header: t("admin.ui.product"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="text-sm text-foreground">{item.product.title}</p>
+            <p className="text-xs text-muted-foreground">{item.shop.name}</p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "author",
+      header: t("admin.ui.author"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="text-sm text-foreground">{item.user.name}</p>
+            <p className="text-xs text-muted-foreground">{item.user.email}</p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: t("admin.ui.status"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <AdminStatusBadge status={item.status} />
+          </div>
+        );
+      },
+    },
+    {
+      id: "created",
+      header: t("admin.ui.created"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return <div className="text-sm text-muted-foreground">{formatDate(item.createdAt)}</div>;
+      },
+    },
+    {
+      id: "actions",
+      header: t("admin.ui.actions"),
+      enableSorting: false,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <StatusActions
+              currentStatus={item.status}
+              options={QUESTION_STATUSES}
+              disabled={isMutating}
+              onSelect={(next) =>
+                openAction({
+                  queue: "questions",
+                  id: item.id,
+                  title: item.product.title,
+                  status: next,
+                  requiresNote: needsQuestionNote(next),
+                })
+              }
+            />
+          </div>
+        );
+      },
+    },
+  ];
+
+  const answersColumns: ColumnDef<AdminModerationAnswer>[] = [
+    {
+      id: "answer",
+      header: t("admin.ui.answer"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div className="max-w-md px-5 py-4">
+            <p className="line-clamp-3 font-medium text-foreground">{item.answer}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {item.question.product.title} · {item.question.shop.name}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "question",
+      header: t("admin.ui.question"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="line-clamp-2 text-sm text-foreground">{item.question.question}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("admin.contentModeration.askedBy").replace("{email}", item.question.user.email)}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "author",
+      header: t("admin.ui.author"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <p className="text-sm text-foreground">{item.user.name}</p>
+            <p className="text-xs text-muted-foreground">{item.user.email}</p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: t("admin.ui.status"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <AdminStatusBadge status={item.status} />
+          </div>
+        );
+      },
+    },
+    {
+      id: "created",
+      header: t("admin.ui.created"),
+      enableSorting: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return <div className="text-sm text-muted-foreground">{formatDate(item.createdAt)}</div>;
+      },
+    },
+    {
+      id: "actions",
+      header: t("admin.ui.actions"),
+      enableSorting: false,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const item = row.original;
+
+        return (
+          <div>
+            <StatusActions
+              currentStatus={item.status}
+              options={ANSWER_STATUSES}
+              disabled={isMutating}
+              onSelect={(next) =>
+                openAction({
+                  queue: "answers",
+                  id: item.id,
+                  title: item.question.product.title,
+                  status: next,
+                  requiresNote: needsAnswerNote(next),
+                })
+              }
+            />
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <AdminDataShell
@@ -421,27 +712,23 @@ export function AdminContentModerationQueues() {
       searchPlaceholder={t("admin.search.content")}
       onSearchChange={(value) => {
         setSearch(value);
-        setActivePage(1);
+        setPage({ reviews: 1, reports: 1, questions: 1, answers: 1 });
       }}
       isLoading={activeQuery.isLoading}
       error={activeQuery.error}
       onRetry={() => void activeQuery.refetch()}
       filters={
-        <FilterSelect
-          value={status[activeQueue]}
-          onChange={setActiveStatus}
-          options={activeStatuses}
-        />
+        <FilterSelect value={status[activeQueue]} onChange={setActiveStatus} options={activeStatuses} />
       }
     >
       <CardContent className="p-0">
         {message ? (
-          <div className="border-b border-emerald-300/20 bg-emerald-300/10 px-5 py-3 text-sm text-emerald-100">
+          <div className="border-b border-emerald-300/20 bg-emerald-300/10 px-5 py-3 text-sm text-emerald-700 dark:text-emerald-300">
             {message}
           </div>
         ) : null}
         {mutationError ? (
-          <div className="border-b border-red-300/20 bg-red-500/10 px-5 py-3 text-sm text-red-200">
+          <div className="border-b border-red-300/20 bg-red-500/10 px-5 py-3 text-sm text-destructive">
             {readErrorMessage(mutationError, t("admin.sellerApplications.operationFailed"))}
           </div>
         ) : null}
@@ -453,8 +740,8 @@ export function AdminContentModerationQueues() {
           }}
           className="w-full"
         >
-          <div className="border-b border-white/10 px-5 py-3">
-            <TabsList className="bg-slate-950/60">
+          <div className="border-b border-border px-5 py-3">
+            <TabsList className="bg-muted/40">
               {QUEUES.map((queue) => (
                 <TabsTrigger key={queue} value={queue}>
                   {t(`admin.contentModeration.queues.${queue}`)}
@@ -464,360 +751,86 @@ export function AdminContentModerationQueues() {
           </div>
 
           <TabsContent value="reviews" className="m-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
-                  <TableHead className="px-5 text-slate-300">
-                    {t("admin.ui.review")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.product")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.author")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.status")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.created")}
-                  </TableHead>
-                  <TableHead className="text-right text-slate-300">
-                    {t("admin.ui.actions")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reviews.length ? (
-                  reviews.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="border-white/8 hover:bg-white/4"
-                    >
-                      <TableCell className="max-w-md px-5 py-4">
-                        <p className="font-medium text-white">
-                          {t("admin.contentModeration.reviewSummary").replace("{rating}", String(item.rating)).replace("{count}", String(item.reportCount))}
-                        </p>
-                        <p className="mt-1 line-clamp-3 text-sm text-slate-300">
-                          {item.body ?? t("admin.contentModeration.noReviewBody")}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {item.orderItem.productTitle} ·{" "}
-                          {item.orderItem.variantTitle}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-slate-200">
-                          {item.product.title}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {item.shop.name}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-slate-200">
-                          {item.user.name}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {item.user.email}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <AdminStatusBadge status={item.status} />
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-300">
-                        {formatDate(item.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <StatusActions
-                          currentStatus={item.status}
-                          options={REVIEW_STATUSES}
-                          disabled={isMutating}
-                          onSelect={(next) =>
-                            openAction({
-                              queue: "reviews",
-                              id: item.id,
-                              title: item.product.title,
-                              status: next,
-                              requiresNote: needsReviewNote(next),
-                            })
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <EmptyRow />
-                )}
-              </TableBody>
-            </Table>
+            <AdminTable
+              columns={reviewsColumns}
+              data={reviews}
+              isLoading={reviewsQuery.isLoading}
+              emptyMessage={t("admin.contentModeration.empty")}
+              getRowId={(item) => item.id}
+              pagination={{
+                pageIndex: page.reviews - 1,
+                pageSize: PAGE_SIZE,
+                totalRows: reviewsQuery.data?.pagination.total ?? 0,
+                onPaginationChange: (updater) => {
+                  const current = { pageIndex: page.reviews - 1, pageSize: PAGE_SIZE };
+                  const next = typeof updater === "function" ? updater(current) : updater;
+                  setPage((current) => ({ ...current, reviews: next.pageIndex + 1 }));
+                },
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="reports" className="m-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
-                  <TableHead className="px-5 text-slate-300">
-                    {t("admin.ui.report")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.review")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.reporter")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.status")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.created")}
-                  </TableHead>
-                  <TableHead className="text-right text-slate-300">
-                    {t("admin.ui.actions")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reports.length ? (
-                  reports.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="border-white/8 hover:bg-white/4"
-                    >
-                      <TableCell className="max-w-md px-5 py-4">
-                        <p className="font-medium text-white">{item.reason}</p>
-                        <p className="mt-1 line-clamp-3 text-sm text-slate-300">
-                          {item.detail ?? t("admin.contentModeration.noDetail")}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-slate-200">
-                          {item.review?.product.title ?? t("admin.contentModeration.reviewRemoved")}
-                        </p>
-                        <p className="line-clamp-2 text-xs text-slate-500">
-                          {item.review?.body ?? t("admin.contentModeration.noReviewBody")}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-slate-200">
-                          {item.reportedBy.name}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {item.reportedBy.email}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <AdminStatusBadge status={item.status} />
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-300">
-                        {formatDate(item.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <StatusActions
-                          currentStatus={item.status}
-                          options={REPORT_STATUSES}
-                          disabled={isMutating}
-                          onSelect={(next) =>
-                            openAction({
-                              queue: "reports",
-                              id: item.id,
-                              title:
-                                item.review?.product.title ?? t("admin.contentModeration.reviewReport"),
-                              status: next,
-                              requiresNote: needsReportNote(next),
-                            })
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <EmptyRow />
-                )}
-              </TableBody>
-            </Table>
+            <AdminTable
+              columns={reportsColumns}
+              data={reports}
+              isLoading={reportsQuery.isLoading}
+              emptyMessage={t("admin.contentModeration.empty")}
+              getRowId={(item) => item.id}
+              pagination={{
+                pageIndex: page.reports - 1,
+                pageSize: PAGE_SIZE,
+                totalRows: reportsQuery.data?.pagination.total ?? 0,
+                onPaginationChange: (updater) => {
+                  const current = { pageIndex: page.reports - 1, pageSize: PAGE_SIZE };
+                  const next = typeof updater === "function" ? updater(current) : updater;
+                  setPage((current) => ({ ...current, reports: next.pageIndex + 1 }));
+                },
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="questions" className="m-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
-                  <TableHead className="px-5 text-slate-300">
-                    {t("admin.ui.question")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.product")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.author")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.status")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.created")}
-                  </TableHead>
-                  <TableHead className="text-right text-slate-300">
-                    {t("admin.ui.actions")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {questions.length ? (
-                  questions.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="border-white/8 hover:bg-white/4"
-                    >
-                      <TableCell className="max-w-md px-5 py-4">
-                        <p className="line-clamp-3 font-medium text-white">
-                          {item.question}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {t("admin.contentModeration.answerCount").replace("{count}", String(item.answerCount))}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-slate-200">
-                          {item.product.title}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {item.shop.name}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-slate-200">
-                          {item.user.name}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {item.user.email}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <AdminStatusBadge status={item.status} />
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-300">
-                        {formatDate(item.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <StatusActions
-                          currentStatus={item.status}
-                          options={QUESTION_STATUSES}
-                          disabled={isMutating}
-                          onSelect={(next) =>
-                            openAction({
-                              queue: "questions",
-                              id: item.id,
-                              title: item.product.title,
-                              status: next,
-                              requiresNote: needsQuestionNote(next),
-                            })
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <EmptyRow />
-                )}
-              </TableBody>
-            </Table>
+            <AdminTable
+              columns={questionsColumns}
+              data={questions}
+              isLoading={questionsQuery.isLoading}
+              emptyMessage={t("admin.contentModeration.empty")}
+              getRowId={(item) => item.id}
+              pagination={{
+                pageIndex: page.questions - 1,
+                pageSize: PAGE_SIZE,
+                totalRows: questionsQuery.data?.pagination.total ?? 0,
+                onPaginationChange: (updater) => {
+                  const current = { pageIndex: page.questions - 1, pageSize: PAGE_SIZE };
+                  const next = typeof updater === "function" ? updater(current) : updater;
+                  setPage((current) => ({ ...current, questions: next.pageIndex + 1 }));
+                },
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="answers" className="m-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10 bg-white/6 hover:bg-white/6">
-                  <TableHead className="px-5 text-slate-300">
-                    {t("admin.ui.answer")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.question")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.author")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.status")}
-                  </TableHead>
-                  <TableHead className="text-slate-300">
-                    {t("admin.ui.created")}
-                  </TableHead>
-                  <TableHead className="text-right text-slate-300">
-                    {t("admin.ui.actions")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {answers.length ? (
-                  answers.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="border-white/8 hover:bg-white/4"
-                    >
-                      <TableCell className="max-w-md px-5 py-4">
-                        <p className="line-clamp-3 font-medium text-white">
-                          {item.answer}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {item.question.product.title} ·{" "}
-                          {item.question.shop.name}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="line-clamp-2 text-sm text-slate-200">
-                          {item.question.question}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {t("admin.contentModeration.askedBy").replace("{email}", item.question.user.email)}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-slate-200">
-                          {item.user.name}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {item.user.email}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <AdminStatusBadge status={item.status} />
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-300">
-                        {formatDate(item.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <StatusActions
-                          currentStatus={item.status}
-                          options={ANSWER_STATUSES}
-                          disabled={isMutating}
-                          onSelect={(next) =>
-                            openAction({
-                              queue: "answers",
-                              id: item.id,
-                              title: item.question.product.title,
-                              status: next,
-                              requiresNote: needsAnswerNote(next),
-                            })
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <EmptyRow />
-                )}
-              </TableBody>
-            </Table>
+            <AdminTable
+              columns={answersColumns}
+              data={answers}
+              isLoading={answersQuery.isLoading}
+              emptyMessage={t("admin.contentModeration.empty")}
+              getRowId={(item) => item.id}
+              pagination={{
+                pageIndex: page.answers - 1,
+                pageSize: PAGE_SIZE,
+                totalRows: answersQuery.data?.pagination.total ?? 0,
+                onPaginationChange: (updater) => {
+                  const current = { pageIndex: page.answers - 1, pageSize: PAGE_SIZE };
+                  const next = typeof updater === "function" ? updater(current) : updater;
+                  setPage((current) => ({ ...current, answers: next.pageIndex + 1 }));
+                },
+              }}
+            />
           </TabsContent>
         </Tabs>
-        <AdminTablePagination
-          page={page[activeQueue]}
-          totalPages={activeQuery.data?.pagination.totalPages ?? 1}
-          total={activeQuery.data?.pagination.total ?? 0}
-          visible={activeRows.length}
-          onPageChange={setActivePage}
-        />
+
         <AlertDialog
           open={Boolean(actionTarget)}
           onOpenChange={(open) => {
@@ -826,15 +839,10 @@ export function AdminContentModerationQueues() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>
-                {t("admin.ui.confirmModeration")}
-              </AlertDialogTitle>
+              <AlertDialogTitle>{t("admin.ui.confirmModeration")}</AlertDialogTitle>
               <AlertDialogDescription>
                 {t("admin.contentModeration.confirmDescription")
-                  .replace(
-                    "{title}",
-                    actionTarget?.title ?? t("admin.contentModeration.content"),
-                  )
+                  .replace("{title}", actionTarget?.title ?? t("admin.contentModeration.content"))
                   .replace(
                     "{status}",
                     actionTarget
@@ -844,9 +852,7 @@ export function AdminContentModerationQueues() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-2">
-              <Label htmlFor="content-moderation-note">
-                {t("admin.ui.moderationNote")}
-              </Label>
+              <Label htmlFor="content-moderation-note">{t("admin.ui.moderationNote")}</Label>
               <Textarea
                 id="content-moderation-note"
                 value={note}
@@ -859,18 +865,13 @@ export function AdminContentModerationQueues() {
                 }
               />
               {isNoteMissing ? (
-                <p className="text-sm font-medium text-red-600">
-                  {t("admin.ui.moderationNoteRequired")}
-                </p>
+                <p className="text-sm font-medium text-red-600">{t("admin.ui.moderationNoteRequired")}</p>
               ) : null}
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel>{t("admin.ui.cancel")}</AlertDialogCancel>
               <AlertDialogAction asChild>
-                <Button
-                  disabled={!actionTarget || isNoteMissing || isMutating}
-                  onClick={submitAction}
-                >
+                <Button disabled={!actionTarget || isNoteMissing || isMutating} onClick={submitAction}>
                   {isMutating ? t("admin.ui.saving") : t("admin.ui.confirm")}
                 </Button>
               </AlertDialogAction>

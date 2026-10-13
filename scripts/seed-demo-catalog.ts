@@ -1,3 +1,4 @@
+import { seedProductImages } from "./seed-product-images.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { bootstrapBrands, bootstrapCategories, seedBootstrapMasterData, validateBootstrapMasterSeedData } from "./seed-bootstrap-master.ts";
@@ -303,6 +304,7 @@ export async function seedDemoCatalogData() {
   for (const seller of demoCatalogSellers) {
     await seedSellerCatalog(prisma, categoryBySlug, brandBySlug, seller);
   }
+  await seedProductImages(prisma);
 }
 
 async function seedSellerCatalog(
@@ -416,15 +418,6 @@ async function seedProduct(
       () => prisma.productHighlight.findFirst({ where: { productId: product.id, sortOrder: index } }),
       () => prisma.productHighlight.create({ data: { productId: product.id, text: highlight, sortOrder: index } }),
       (id) => prisma.productHighlight.update({ where: { id }, data: { text: highlight, sortOrder: index } }),
-      (row) => row.id,
-    );
-  }
-
-  for (const imageSeed of productSeed.images) {
-    await upsertByFindFirst(
-      () => prisma.productImage.findFirst({ where: { productId: product.id, url: imageSeed.url } }),
-      () => prisma.productImage.create({ data: { productId: product.id, ...imageSeed } }),
-      (id) => prisma.productImage.update({ where: { id }, data: imageSeed }),
       (row) => row.id,
     );
   }

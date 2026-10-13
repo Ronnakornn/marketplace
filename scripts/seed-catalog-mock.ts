@@ -1,3 +1,4 @@
+import { seedProductImages } from "./seed-product-images.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -291,6 +292,7 @@ async function main() {
     }
   }
 
+  await seedProductImages(prisma);
   console.log("Seeded clothing catalog mock data with size/color variants.");
 }
 

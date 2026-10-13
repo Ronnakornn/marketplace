@@ -44,7 +44,9 @@ export interface ProductFilters {
   q?: string;
   status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "ARCHIVED" | "";
   categoryId?: string;
+  shopId?: string;
   cursor?: string;
+  page?: number;
   limit?: number;
 }
 
@@ -85,6 +87,7 @@ export interface SellerShopSettingsUpdateInput {
 
 export interface SellerProductInput {
   title: string;
+  shopId?: string;
   titleTh?: string | null;
   titleEn?: string | null;
   slug?: string;
@@ -189,7 +192,9 @@ function cleanProductFilters(filters: ProductFilters = {}) {
       q: filters.q || undefined,
       status: filters.status || undefined,
       categoryId: filters.categoryId || undefined,
+      shopId: filters.shopId || undefined,
       cursor: filters.cursor || undefined,
+      page: filters.page,
       limit: filters.limit ?? SELLER_PAGE_SIZE,
     }).filter(([, value]) => value !== undefined),
   );
@@ -466,11 +471,11 @@ export function useSellerWallet() {
   });
 }
 
-export function useSellerTransactions() {
+export function useSellerTransactions(page = 1, limit = SELLER_PAGE_SIZE) {
   return useQuery({
-    queryKey: sellerKey("transactions"),
+    queryKey: [...sellerKey("transactions"), { page, limit }],
     queryFn: async () => {
-      const { data, error } = await api.api.seller.wallet.transactions.get({ query: { page: 1, limit: SELLER_PAGE_SIZE } });
+      const { data, error } = await api.api.seller.wallet.transactions.get({ query: { page, limit } });
       if (error) throw error;
       return data;
     },

@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 import type { ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DiscoveryHomeResponse } from "#/features/marketplace/queries";
 import { MarketplaceGuestHome } from "./MarketplaceGuestHome";
 
@@ -61,7 +61,19 @@ const home = {
   },
 } as unknown as DiscoveryHomeResponse;
 
+afterEach(cleanup);
+
 describe("MarketplaceGuestHome performance", () => {
+  it("shows login without signup or a duplicate marketplace title in the guest header", () => {
+    const { container } = render(<MarketplaceGuestHome initialHome={home} locale="th" />);
+    const header = container.querySelector("header");
+
+    expect(header?.querySelector('a[href="/th/login"]')).not.toBeNull();
+    expect(header?.querySelector('a[href="/th/signup"]')).toBeNull();
+    expect(header?.querySelector("p")).toBeNull();
+    expect(header?.querySelector('a[hreflang="en"]')).not.toBeNull();
+  });
+
   it("eagerly fetches only the first above-the-fold recommendation", () => {
     render(<MarketplaceGuestHome initialHome={home} locale="th" />);
 

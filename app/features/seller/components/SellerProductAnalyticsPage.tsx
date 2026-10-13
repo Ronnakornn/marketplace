@@ -8,9 +8,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { BarChart3Icon, BoxesIcon, RefreshCwIcon, SearchIcon, ShoppingCartIcon, TrendingDownIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { DataTable } from "#/components/ui/data-table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Input } from "#/components/ui/input";
 import { SellerPageHeader } from "./SellerShell";
+import { SellerDataTable } from "./SellerDataTable";
 import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import {
@@ -38,6 +39,8 @@ export function SellerProductAnalyticsPage() {
   const productColumns = useMemo<ColumnDef<SellerProductAnalyticsProductMetric>[]>(() => [
     {
       id: "product",
+      accessorFn: (product) => product.title,
+      enableHiding: false,
       header: t("seller.analytics.product"),
       cell: ({ row }) => <div className="min-w-64"><Link href={localePath(`/seller/products/${row.original.productId}`)} className="font-semibold text-slate-950 no-underline">{row.original.title}</Link><p className="text-xs text-slate-500">{row.original.shop.name} / {row.original.status}</p></div>,
     },
@@ -147,8 +150,17 @@ export function SellerProductAnalyticsPage() {
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="overflow-hidden rounded-lg border-slate-200 bg-white">
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><BoxesIcon className="size-4 text-emerald-600" />{t("seller.analytics.performance")}</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <DataTable columns={productColumns} data={data?.products ?? []} isLoading={query.isLoading} loadingMessage={t("seller.analytics.loadingProducts")} emptyMessage={t("seller.analytics.emptyProducts")} pageSize={10} className="overflow-x-auto" labels={{ showing: t("common.showing"), of: t("common.of"), rows: t("common.rows"), previous: t("common.previous"), next: t("common.next"), previousPage: t("common.previousPage"), nextPage: t("common.nextPage"), sortBy: t("common.sortBy") }} />
+          <CardContent className="p-4 sm:p-6">
+            <SellerDataTable columns={productColumns} data={data?.products ?? []} getRowId={(product) => product.productId} isLoading={query.isLoading} loadingMessage={t("seller.analytics.loadingProducts")} emptyMessage={t("seller.analytics.emptyProducts")} className="overflow-x-auto" searchable={false} pagination={{
+              pageIndex: (filters.page ?? 1) - 1,
+              pageSize: filters.limit ?? 20,
+              totalRows: data?.productPagination?.total ?? 0,
+              onPaginationChange: (updater) => setFilters((current) => {
+                const previous = { pageIndex: (current.page ?? 1) - 1, pageSize: current.limit ?? 20 };
+                const next = typeof updater === "function" ? updater(previous) : updater;
+                return { ...current, page: next.pageIndex + 1, limit: next.pageSize };
+              }),
+            }} renderToolbar={() => <Select value={filters.sort ?? "revenue"} onValueChange={(sort) => setFilters((current) => ({ ...current, sort, page: 1 }))}><SelectTrigger className="w-full sm:w-56" aria-label={t("seller.operationsUi.analyticsSort")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="revenue">{t("seller.analytics.revenue")}</SelectItem><SelectItem value="views">{t("seller.analytics.views")}</SelectItem><SelectItem value="orders">{t("seller.analytics.orders")}</SelectItem><SelectItem value="unitsSold">{t("seller.analytics.unitsSold")}</SelectItem></SelectContent></Select>} />
           </CardContent>
         </Card>
 

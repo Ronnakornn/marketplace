@@ -65,6 +65,28 @@ configured adapters and credentials. Management screens do not simulate their
 success. Commerce currently uses THB; selecting a default language does not
 introduce foreign-exchange conversion.
 
+## Admin interface
+
+The workspace uses the existing shadcn/ui components and TanStack Table v8.
+Navigation groups follow daily tasks and only include pages the administrator can
+access. Ctrl/Command+K opens page search. The header provides theme and storefront
+controls; mobile navigation closes after choosing a page.
+Navigation sections collapse to keep the current area visible without showing
+every menu entry at once. Page search still covers all permitted pages.
+
+List screens offer column visibility and pagination. Server-backed lists retain
+their API page sizes and totals, without sorting or filtering just one page as
+though it were the full dataset. Searches limited to the current page are labeled
+accordingly. Analytics retains its exact bigint count and external pagination.
+Active filters can be removed individually or cleared together. Refresh keeps
+existing rows visible while fetching; authorization failures hide cached rows.
+
+Operations create/edit forms open in a side panel with a scrollable body and a
+visible save/cancel footer. Failed writes retain the draft. Financial decisions
+show their exact target and amount and collect the required reference or audit
+reason before submitting. Canceling does not write a change. Report filters are
+drafts until Apply, with week/month presets; exports use the applied filters.
+
 ## Verification
 
 The production quality workflow requires separate disposable PostgreSQL databases

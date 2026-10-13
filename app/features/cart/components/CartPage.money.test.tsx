@@ -22,6 +22,25 @@ vi.mock("#/features/buyer/api", async () => ({
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("cart exact selection total", () => {
+  it("keeps the subtotal loading skeleton outside paragraph elements", async () => {
+    cartMocks.fetchCart.mockResolvedValue({ id: "cart-1", currency: "THB", subtotal: "10", shops: [{
+      shopId: "shop-1", shopName: "Shop", subtotal: "10", items: [{
+        id: "item-1", variantId: "variant-1", productId: "product-1", title: "Product", quantity: 1,
+        unitPrice: "10", currency: "THB", availableQuantity: 1,
+      }],
+    }] });
+    cartMocks.quoteCheckout.mockImplementation(() => new Promise(() => {}));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(<QueryClientProvider client={client}><CartPage /></QueryClientProvider>);
+    fireEvent.click(await screen.findByRole("checkbox", { name: "cart.selectItem" }));
+    await waitFor(() => {
+      const skeleton = container.querySelector('[data-slot="skeleton"].h-6.w-24');
+      expect(skeleton).not.toBeNull();
+      expect(skeleton?.closest("p")).toBeNull();
+    });
+    client.clear();
+  });
+
   it("displays the selected subtotal returned by the server quote", async () => {
     cartMocks.fetchCart.mockResolvedValue({ id: "cart-1", currency: "THB", subtotal: "10", shops: [{
       shopId: "shop-1", shopName: "Shop", subtotal: "10", items: [{

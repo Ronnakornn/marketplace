@@ -1,35 +1,36 @@
-'use client'
+"use client";
+import { AdminTable } from "../components/AdminTable";
 
-import { useState } from 'react'
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { useTranslations } from '#/i18n/client'
+import { useState } from "react";
+import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
+import { useTranslations } from "#/i18n/client";
 import {
   useAdminAccess,
   useAdminTeam,
   useSaveTeamMember,
   type TeamMember,
   type TeamInput,
-} from './useAdminAccess'
+} from "./useAdminAccess";
 
 export function AdminTeamManager() {
-  const t = useTranslations()
-  const [page, setPage] = useState(1)
-  const team = useAdminTeam(page)
-  const access = useAdminAccess()
-  const save = useSaveTeamMember()
-  const [userId, setUserId] = useState('')
-  const [editing, setEditing] = useState<TeamMember | null>(null)
+  const t = useTranslations();
+  const [page, setPage] = useState(1);
+  const team = useAdminTeam(page);
+  const access = useAdminAccess();
+  const save = useSaveTeamMember();
+  const [userId, setUserId] = useState("");
+  const [editing, setEditing] = useState<TeamMember | null>(null);
   const [input, setInput] = useState<TeamInput>({
-    label: '',
+    label: "",
     permissions: [],
     isOwner: false,
     isActive: true,
     expectedVersion: 0,
-  })
+  });
   function edit(member: TeamMember) {
-    setEditing(member)
-    setUserId(member.userId)
+    setEditing(member);
+    setUserId(member.userId);
     setInput({
       label: member.label,
       permissions:
@@ -39,116 +40,130 @@ export function AdminTeamManager() {
       isOwner: member.isOwner,
       isActive: member.isActive,
       expectedVersion: member.version,
-    })
+    });
   }
   return (
     <div className="grid gap-5">
       <section className="admin-panel rounded-xl p-5">
-        <h2 className="text-xl font-semibold">{t('admin.access.teamTitle')}</h2>
+        <h2 className="text-xl font-semibold">{t("admin.access.teamTitle")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          {t('admin.access.teamDescription')}
+          {t("admin.access.teamDescription")}
         </p>
         {team.isPending ? (
           <p role="status" className="mt-4">
-            {t('admin.access.loading')}
+            {t("admin.access.loading")}
           </p>
         ) : team.error ? (
           <p role="alert" className="mt-4 text-destructive">
-            {t('admin.access.loadFailed')}
+            {t("admin.access.loadFailed")}
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="p-3">{t('admin.access.member')}</th>
-                  <th className="p-3">{t('admin.access.label')}</th>
-                  <th className="p-3">{t('admin.access.status')}</th>
-                  <th className="p-3">{t('admin.access.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {team.data?.items.map((member) => (
-                  <tr key={member.id} className="border-b">
-                    <td className="p-3">
+            <AdminTable
+              data={team.data?.items ?? []}
+              columns={[
+                {
+                  id: "member",
+                  header: t("admin.access.member"),
+                  enableSorting: false,
+                  cell: ({ row: { original: member } }) => (
+                    <>
                       {member.user.name}
                       <p className="text-muted-foreground">
                         {member.user.email}
                       </p>
-                    </td>
-                    <td className="p-3">
+                    </>
+                  ),
+                },
+                {
+                  id: "label",
+                  header: t("admin.access.label"),
+                  enableSorting: false,
+                  cell: ({ row: { original: member } }) => (
+                    <>
                       {member.label}
-                      {member.isOwner ? ` (${t('admin.access.owner')})` : ''}
-                    </td>
-                    <td className="p-3">
+                      {member.isOwner ? ` (${t("admin.access.owner")})` : ""}
+                    </>
+                  ),
+                },
+                {
+                  id: "status",
+                  header: t("admin.access.status"),
+                  enableSorting: false,
+                  cell: ({ row: { original: member } }) => (
+                    <>
                       {t(
                         member.isActive
-                          ? 'admin.access.active'
-                          : 'admin.access.revoked',
+                          ? "admin.access.active"
+                          : "admin.access.revoked",
                       )}
-                    </td>
-                    <td className="p-3">
+                    </>
+                  ),
+                },
+                {
+                  id: "actions",
+                  header: t("admin.access.actions"),
+                  enableSorting: false,
+                  cell: ({ row: { original: member } }) => (
+                    <>
                       <Button variant="outline" onClick={() => edit(member)}>
-                        {t('admin.access.edit')}
+                        {t("admin.access.edit")}
                       </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </>
+                  ),
+                },
+              ]}
+              pagination={{
+                pageIndex: page - 1,
+                pageSize: 20,
+                totalRows: team.data?.total ?? 0,
+                onPaginationChange: (updater) => {
+                  const next =
+                    typeof updater === "function"
+                      ? updater({ pageIndex: page - 1, pageSize: 20 })
+                      : updater;
+                  setPage(next.pageIndex + 1);
+                },
+              }}
+            />
             {!team.data?.items.length && (
-              <p className="p-3">{t('admin.access.empty')}</p>
+              <p className="p-3">{t("admin.access.empty")}</p>
             )}
           </div>
         )}
         <div className="mt-4 flex items-center gap-3">
-          <Button
-            variant="outline"
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-          >
-            {t('admin.access.previous')}
-          </Button>
-          <span>{page}</span>
-          <Button
-            variant="outline"
-            disabled={!team.data || page * 20 >= team.data.total}
-            onClick={() => setPage(page + 1)}
-          >
-            {t('admin.access.next')}
-          </Button>
           <Button variant="outline" onClick={() => team.refetch()}>
-            {t('admin.access.reload')}
+            {t("admin.access.reload")}
           </Button>
         </div>
       </section>
       <form
         className="admin-panel grid gap-4 rounded-xl p-5"
         onSubmit={(event) => {
-          event.preventDefault()
+          event.preventDefault();
           save.mutate(
             { userId, input },
             {
               onSuccess: () => {
-                setEditing(null)
-                setUserId('')
+                setEditing(null);
+                setUserId("");
                 setInput({
-                  label: '',
+                  label: "",
                   permissions: [],
                   isOwner: false,
                   isActive: true,
                   expectedVersion: 0,
-                })
+                });
               },
             },
-          )
+          );
         }}
       >
         <h3 className="font-semibold">
-          {t(editing ? 'admin.access.editMember' : 'admin.access.addMember')}
+          {t(editing ? "admin.access.editMember" : "admin.access.addMember")}
         </h3>
         <label className="grid gap-2">
-          {t('admin.access.userId')}
+          {t("admin.access.userId")}
           <Input
             required
             value={userId}
@@ -157,7 +172,7 @@ export function AdminTeamManager() {
           />
         </label>
         <label className="grid gap-2">
-          {t('admin.access.label')}
+          {t("admin.access.label")}
           <Input
             required
             maxLength={100}
@@ -175,7 +190,7 @@ export function AdminTeamManager() {
               setInput({ ...input, isActive: event.target.checked })
             }
           />
-          {t('admin.access.active')}
+          {t("admin.access.active")}
         </label>
         <label className="flex gap-2">
           <input
@@ -186,10 +201,10 @@ export function AdminTeamManager() {
               setInput({ ...input, isOwner: event.target.checked })
             }
           />
-          {t('admin.access.owner')}
+          {t("admin.access.owner")}
         </label>
         <fieldset className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <legend className="mb-3">{t('admin.access.permissions')}</legend>
+          <legend className="mb-3">{t("admin.access.permissions")}</legend>
           {access.data?.registry.map((permission) => (
             <label key={permission} className="flex gap-2">
               <input
@@ -207,41 +222,41 @@ export function AdminTeamManager() {
                   })
                 }
               />
-              {t(`admin.access.permission.${permission.replace('.', '_')}`)}
+              {t(`admin.access.permission.${permission.replace(".", "_")}`)}
             </label>
           ))}
         </fieldset>
         {save.error && (
           <p role="alert" className="text-destructive">
-            {t('admin.access.saveFailed')}
+            {t("admin.access.saveFailed")}
           </p>
         )}
         <div className="flex gap-3">
           <Button type="submit" disabled={save.isPending || !access.data}>
-            {t('admin.access.save')}
+            {t("admin.access.save")}
           </Button>
           {editing && (
             <Button
               variant="outline"
               type="button"
               onClick={() => {
-                setEditing(null)
-                setUserId('')
+                setEditing(null);
+                setUserId("");
                 setInput({
-                  label: '',
+                  label: "",
                   permissions: [],
                   isOwner: false,
                   isActive: true,
                   expectedVersion: 0,
-                })
-                save.reset()
+                });
+                save.reset();
               }}
             >
-              {t('admin.access.cancel')}
+              {t("admin.access.cancel")}
             </Button>
           )}
         </div>
       </form>
     </div>
-  )
+  );
 }

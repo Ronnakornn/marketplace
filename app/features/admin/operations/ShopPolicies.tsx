@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminTable } from "../components/AdminTable";
+
 import { useState } from "react";
 import { useTranslations, useFormatters } from "#/i18n/client";
 import {
@@ -10,14 +12,11 @@ import {
   type PolicyRow,
 } from "./api";
 import {
-  Cell,
   CheckField,
-  DataTable,
   EditButton,
   Editor,
   Field,
   OperationsFrame,
-  Pager,
   SelectField,
 } from "./shared";
 
@@ -43,6 +42,7 @@ export function AdminShopPolicies() {
     operationsApi["shop-policies"]({ id: editing?.id ?? "" }).patch(body),
   );
   function edit(row: PolicyRow) {
+    save.reset();
     setEditing(row);
     const policy = row.operationPolicy;
     setForm({
@@ -67,46 +67,91 @@ export function AdminShopPolicies() {
       loading={rows.isLoading}
       error={save.error ?? rows.error}
     >
-      <DataTable
-        headings={[
-          "name",
-          "commissionBps",
-          "dispatchSlaHours",
-          "payoutCadence",
-          "payoutMinimum",
-          "actions",
+      <AdminTable
+        isLoading={rows.isLoading}
+        data={rows.data?.items ?? []}
+        columns={[
+          {
+            id: "name",
+            header: t("admin.operations.fields.name"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => <>{row.name}</>,
+          },
+          {
+            id: "commissionBps",
+            header: t("admin.operations.fields.commissionBps"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                {row.operationPolicy?.commissionBps ??
+                  t("admin.operations.default")}
+              </>
+            ),
+          },
+          {
+            id: "dispatchSlaHours",
+            header: t("admin.operations.fields.dispatchSlaHours"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>{row.operationPolicy?.dispatchSlaHours ?? 72}</>
+            ),
+          },
+          {
+            id: "payoutCadence",
+            header: t("admin.operations.fields.payoutCadence"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                {t(
+                  `admin.operations.values.${row.operationPolicy?.payoutCadence ?? "MANUAL"}`,
+                )}
+              </>
+            ),
+          },
+          {
+            id: "payoutMinimum",
+            header: t("admin.operations.fields.payoutMinimum"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>{money(row.operationPolicy?.payoutMinimum ?? "0", "THB")}</>
+            ),
+          },
+          {
+            id: "actions",
+            header: t("admin.operations.fields.actions"),
+            enableSorting: false,
+            cell: ({ row: { original: row } }) => (
+              <>
+                <EditButton onClick={() => edit(row)} />
+              </>
+            ),
+          },
         ]}
-      >
-        {rows.data?.items.map((row) => (
-          <tr key={row.id}>
-            <Cell>{row.name}</Cell>
-            <Cell>
-              {row.operationPolicy?.commissionBps ??
-                t("admin.operations.default")}
-            </Cell>
-            <Cell>{row.operationPolicy?.dispatchSlaHours ?? 72}</Cell>
-            <Cell>
-              {t(
-                `admin.operations.values.${row.operationPolicy?.payoutCadence ?? "MANUAL"}`,
-              )}
-            </Cell>
-            <Cell>
-              {money(row.operationPolicy?.payoutMinimum ?? "0", "THB")}
-            </Cell>
-            <Cell>
-              <EditButton onClick={() => edit(row)} />
-            </Cell>
-          </tr>
-        ))}
-      </DataTable>
-      <Pager page={page} total={rows.data?.total ?? 0} onPage={setPage} />
+        pagination={{
+          pageIndex: page - 1,
+          pageSize: 20,
+          totalRows: rows.data?.total ?? 0,
+          onPaginationChange: (updater) => {
+            const next =
+              typeof updater === "function"
+                ? updater({ pageIndex: page - 1, pageSize: 20 })
+                : updater;
+            setPage(next.pageIndex + 1);
+          },
+        }}
+      />
       {editing ? (
         <Editor
           title="editPolicy"
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditing(null);
+          }}
+          error={save.error ?? rows.error}
           busy={save.isPending}
           onCancel={() => setEditing(null)}
           onSubmit={() =>
-            save.mutate(form, { onSuccess: () => setEditing(null) })
+            save.mutateAsync(form, { onSuccess: () => setEditing(null) })
           }
         >
           <p className="sm:col-span-2">{editing.name}</p>
