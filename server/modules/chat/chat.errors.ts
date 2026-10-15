@@ -1,3 +1,5 @@
+import { ParseError } from 'elysia'
+
 export class ChatServiceError extends Error {
   constructor(
     message: string,
@@ -8,4 +10,8 @@ export class ChatServiceError extends Error {
     super(message)
     this.name = 'ChatServiceError'
   }
+}
+
+export function isChatParserError(error: unknown): boolean {
+  return error instanceof ParseError && error.cause instanceof ChatServiceError
 }

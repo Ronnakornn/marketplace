@@ -180,7 +180,7 @@ export function ProductDetailPage({ productId, initialData, initialRatingSummary
       if (!product?.shop.id) throw new Error(t("product.shopNotFound"));
       return createChatRoom({ shopId: product.shop.id, productId: product.id });
     },
-    onSuccess: (room) => router.push(localePath(`/chat/${room.roomId}`)),
+    onSuccess: (room) => router.push(localePath(`/chat/${room.roomId}?productId=${encodeURIComponent(resolvedProductId)}`)),
   });
   const followMutation = useMutation({
     mutationFn: async () => {
@@ -259,7 +259,7 @@ export function ProductDetailPage({ productId, initialData, initialRatingSummary
       router.push(getProductLoginPath());
       return;
     }
-    if (!canFetchBuyerState) return;
+    if (session.user.role === "ADMIN") return;
     createChatMutation.mutate();
   }
 
@@ -586,6 +586,7 @@ export function ProductDetailPage({ productId, initialData, initialRatingSummary
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" aria-label={t("product.shopTrust")}>
+          {createChatMutation.isError ? <p role="alert" className="mb-3 text-sm text-red-700">{t("chat.openError")}</p> : null}
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-normal text-orange-600">{t("product.soldBy")}</p>

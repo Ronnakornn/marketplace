@@ -1,5 +1,6 @@
 import { ChatThreadPage } from "#/features/chat";
 import { enforceSellerRoute } from "#/lib/seller-route-guard";
+import { getSellerAccess } from "#/lib/auth-server";
 
 export default async function SellerChatThreadPage({
   params,
@@ -11,5 +12,6 @@ export default async function SellerChatThreadPage({
   const [{ locale, roomId }, { shopId }] = await Promise.all([params, searchParams]);
   await enforceSellerRoute(`/seller/chat/${roomId}`, locale);
 
-  return <ChatThreadPage roomId={roomId} audience="seller" shopId={shopId} />;
+  const access = await getSellerAccess();
+  return <ChatThreadPage roomId={roomId} audience="seller" shopId={shopId ?? access.activeShop?.id} />;
 }

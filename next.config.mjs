@@ -90,6 +90,7 @@ const nextConfig = {
   allowedDevOrigins: allowedDevOrigins(),
   experimental: {
     inlineCss: true,
+    proxyClientMaxBodySize: 21 * 1024 * 1024,
   },
   images: {
     remotePatterns: imageRemotePatterns(),

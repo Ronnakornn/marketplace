@@ -226,7 +226,8 @@ export function createContainer(): ServiceContainer {
   const pushService = new PushService(appContext, pushRepo, getPushConfigFromEnv())
   const notificationService = new NotificationService(appContext, notificationRepo, realtimeService, pushService, adminConfigService, emailService)
   const chatRepo = new PrismaChatRepository(appContext, prisma)
-  const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService)
+  const uploadStorage = createUploadStorageFromEnv()
+  const chatService = new ChatService(appContext, chatRepo, realtimeService, notificationService, uploadStorage.chatObjects)
   const catalogRepo = new PrismaCatalogRepository(appContext, prisma, () => adminConfigService.publicationApprovalRequired())
   const catalogService = new CatalogService(appContext, catalogRepo, cacheService, cacheInvalidation, eventPublisherService, activeShopResolver, auditLogService,
     () => adminConfigService.publicationApprovalRequired(), new CatalogApprovalRepository(prisma, adminAccessService))
@@ -298,7 +299,6 @@ export function createContainer(): ServiceContainer {
   const sellerOnboardingRepo = new PrismaSellerOnboardingRepository(appContext, prisma)
   const sellerOnboardingService = new SellerOnboardingService(appContext, sellerOnboardingRepo)
   const uploadRepo = new PrismaUploadRepository(appContext, prisma)
-  const uploadStorage = createUploadStorageFromEnv()
   const uploadService = new UploadService(appContext, uploadRepo, uploadStorage, adminAccessService)
   const adminOperationsService = new AdminOperationsService(appContext, new PrismaAdminOperationsRepository(appContext, prisma), adminAccessService, payoutService, uploadService)
   const queueProducer: QueueProducer = new OptionalQueueProducer(

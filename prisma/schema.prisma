@@ -389,6 +389,12 @@ enum AuditAction {
 enum ChatMessageType {
   TEXT
   IMAGE
+  FILE
+}
+
+enum ChatAttachmentKind {
+  IMAGE
+  FILE
 }
 
 enum WalletLedgerEntryType {
@@ -2214,6 +2220,8 @@ model ChatThread {
   lastMessageAt DateTime?
   buyerReadAt   DateTime?
   sellerReadAt  DateTime?
+  buyerReadMessageId String? @db.Uuid
+  sellerReadMessageId String? @db.Uuid
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -2237,6 +2245,7 @@ model ChatMessage {
   messageType ChatMessageType @default(TEXT)
   body        String?
   attachments String[]        @default([])
+  files       ChatAttachment[]
   createdAt   DateTime        @default(now())
   deletedAt   DateTime?
 
@@ -2246,10 +2255,27 @@ model ChatMessage {
   order   Order?     @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@index([threadId, createdAt])
+  @@index([threadId, createdAt, id])
   @@index([senderId])
   @@index([productId])
   @@index([orderId])
   @@index([deletedAt])
+}
+
+model ChatAttachment {
+  id          String @id @default(uuid()) @db.Uuid
+  messageId   String @db.Uuid
+  ordinal     Int
+  storageKey  String @unique
+  fileName    String
+  contentType String
+  byteSize    Int
+  sha256      String @db.VarChar(64)
+  kind        ChatAttachmentKind
+  createdAt   DateTime @default(now())
+  message     ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, ordinal])
 }
 
 model ChatThreadReadState {

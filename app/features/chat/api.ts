@@ -1,200 +1,72 @@
 "use client";
 
-import { requestApi } from "#/lib/api-client";
+import { treaty, type Treaty } from "@elysiajs/eden";
+import type { createChatRoutes } from "#server/modules/chat/chat.routes";
+import { ApiClientError } from "#/lib/api-client";
 
-export interface ChatUserSummary {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+const origin = typeof window === "undefined"
+  ? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  : window.location.origin;
 
-export interface ChatShopSummary {
-  id: string;
-  name: string;
-  slug: string;
-  ownerId: string;
-}
+export const chatApi = treaty<ReturnType<typeof createChatRoutes>>(origin, {
+  parseDate: false,
+  fetch: { credentials: "include" },
+});
 
-export interface ChatMessage {
-  id: string;
-  sender: ChatUserSummary;
-  messageType: "text" | "image";
-  body: string | null;
-  attachments: string[];
-  createdAt: string;
-}
-
-export interface ChatRoom {
-  roomId: string;
-  shop: ChatShopSummary;
-  buyer: ChatUserSummary;
-  product?: {
-    id: string;
-    title: string;
-    slug: string;
-  } | null;
-  order?: {
-    id: string;
-    orderNumber: string;
-    status: string;
-  } | null;
-  lastMessage: ChatMessage | null;
-  unreadCount: number;
-  messages?: ChatMessage[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-export interface CreateChatRoomInput {
-  shopId: string;
-  productId?: string;
-  orderId?: string;
-}
-
+type RoomEndpoint = ReturnType<typeof chatApi.api.chats>;
+export type ChatRoom = Treaty.Data<ReturnType<RoomEndpoint["get"]>>;
+export type ChatMessage = NonNullable<ChatRoom["messages"]>[number];
 export type ChatAudience = "buyer" | "seller";
+export type CreateChatRoomInput = Parameters<typeof chatApi.api.chats.post>[0];
+type SendChatMessageWireInput = Parameters<RoomEndpoint["messages"]["post"]>[0];
+export type SendChatMessageInput = Omit<SendChatMessageWireInput, "files"> & { files?: Extract<NonNullable<SendChatMessageWireInput["files"]>, File[]> };
+export type ChatRoomQuery = NonNullable<Parameters<RoomEndpoint["get"]>[0]>["query"];
 
-export async function fetchChatRooms(audience?: ChatAudience, shopId?: string): Promise<ChatRoom[]> {
-  const query = new URLSearchParams();
-  if (audience) query.set("scope", audience);
-  if (shopId) query.set("shopId", shopId);
-  const response = await chatFetch(`/api/chats${query.size ? `?${query}` : ""}`);
-  return readArray(response).map(normalizeRoom);
+export async function fetchChatRooms(scope?: ChatAudience, shopId?: string) {
+  return requireChatData(chatApi.api.chats.get({ query: { scope, shopId } }));
 }
 
-export async function fetchChatRoom(roomId: string, page = 1, limit = 30, audience?: ChatAudience): Promise<ChatRoom> {
-  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
-  if (audience) query.set("scope", audience);
-  return normalizeRoom(await chatFetch(`/api/chats/${roomId}?${query}`));
+export async function fetchChatRoom(roomId: string, query: ChatRoomQuery = {}) {
+  return requireChatData(chatApi.api.chats({ roomId }).get({ query: { limit: 30, ...query } }));
 }
 
-export async function createChatRoom(input: CreateChatRoomInput): Promise<ChatRoom> {
-  return normalizeRoom(await chatFetch("/api/chats", {
-    method: "POST",
-    body: JSON.stringify(input),
-  }));
+export async function createChatRoom(input: CreateChatRoomInput) {
+  return requireChatData(chatApi.api.chats.post(input));
 }
 
-export async function sendChatMessage(roomId: string, body: string, audience?: ChatAudience): Promise<ChatRoom> {
-  return normalizeRoom(await chatFetch(`/api/chats/${roomId}/messages`, {
-    method: "POST",
-    body: JSON.stringify({ messageType: "text", body, ...(audience ? { scope: audience } : {}) }),
-  }));
+export async function sendChatMessage(roomId: string, input: SendChatMessageInput) {
+  if (input.files?.length) {
+    const form = new FormData();
+    for (const key of ["clientMessageId", "body", "productId", "orderId", "scope"] as const) {
+      const value = input[key];
+      if (value !== undefined) form.append(key, value);
+    }
+    for (const file of input.files) form.append("files", file, file.name);
+    const response = await fetch(`/api/chats/${encodeURIComponent(roomId)}/messages`, { method: "POST", credentials: "include", body: form });
+    type SendResponse = Treaty.Data<ReturnType<RoomEndpoint["messages"]["post"]>>;
+    const value: unknown = await response.json();
+    if (!response.ok) return requireChatData<SendResponse>(Promise.resolve({ data: null, error: { status: response.status, value } }));
+    if (!value || typeof value !== "object" || !("sentMessage" in value) || !("roomId" in value)) throw new ApiClientError("Chat response missing");
+    return value as SendResponse;
+  }
+  return requireChatData(chatApi.api.chats({ roomId }).messages.post(input));
 }
 
-export async function markChatRead(roomId: string, audience?: ChatAudience): Promise<ChatRoom> {
-  const query = audience ? `?scope=${encodeURIComponent(audience)}` : "";
-  return normalizeRoom(await chatFetch(`/api/chats/${roomId}/read${query}`, {
-    method: "PATCH",
-  }));
+export async function markChatRead(roomId: string, scope: ChatAudience, throughMessageId: string) {
+  return requireChatData(chatApi.api.chats({ roomId }).read.patch(undefined, { query: { scope, throughMessageId } }));
 }
 
-async function chatFetch(path: string, init: RequestInit = {}): Promise<unknown> {
-  return requestApi(path, { ...init, headers: { "content-type": "application/json", ...init.headers } });
-}
-
-function normalizeRoom(input: unknown): ChatRoom {
-  const record = toRecord(input);
-  const messages = readArray(record.messages).map(normalizeMessage);
-  return {
-    roomId: readString(record.roomId, readString(record.id)),
-    shop: normalizeShop(record.shop),
-    buyer: normalizeUser(record.buyer),
-    product: normalizeOptionalProduct(record.product),
-    order: normalizeOptionalOrder(record.order),
-    lastMessage: record.lastMessage ? normalizeMessage(record.lastMessage) : null,
-    unreadCount: readNumber(record.unreadCount),
-    ...(messages.length ? { messages } : {}),
-    ...(record.pagination ? { pagination: normalizePagination(record.pagination) } : {}),
-  };
-}
-
-function normalizeMessage(input: unknown): ChatMessage {
-  const record = toRecord(input);
-  return {
-    id: readString(record.id),
-    sender: normalizeUser(record.sender),
-    messageType: readString(record.messageType, "text") === "image" ? "image" : "text",
-    body: optionalString(record.body),
-    attachments: readArray(record.attachments).map(String),
-    createdAt: readString(record.createdAt, new Date().toISOString()),
-  };
-}
-
-function normalizeUser(input: unknown): ChatUserSummary {
-  const record = toRecord(input);
-  return {
-    id: readString(record.id),
-    name: readString(record.name, "User"),
-    email: readString(record.email),
-    role: readString(record.role, "USER"),
-  };
-}
-
-function normalizeShop(input: unknown): ChatShopSummary {
-  const record = toRecord(input);
-  return {
-    id: readString(record.id),
-    name: readString(record.name, "Shop"),
-    slug: readString(record.slug),
-    ownerId: readString(record.ownerId),
-  };
-}
-
-function normalizeOptionalProduct(input: unknown): ChatRoom["product"] {
-  if (!input) return null;
-  const record = toRecord(input);
-  const id = readString(record.id);
-  if (!id) return null;
-  return {
-    id,
-    title: readString(record.title, "Product"),
-    slug: readString(record.slug),
-  };
-}
-
-function normalizeOptionalOrder(input: unknown): ChatRoom["order"] {
-  if (!input) return null;
-  const record = toRecord(input);
-  const id = readString(record.id);
-  if (!id) return null;
-  return {
-    id,
-    orderNumber: readString(record.orderNumber, "Order"),
-    status: readString(record.status),
-  };
-}
-
-function normalizePagination(input: unknown): NonNullable<ChatRoom["pagination"]> {
-  const record = toRecord(input);
-  return {
-    page: readNumber(record.page, 1),
-    limit: readNumber(record.limit, 30),
-    total: readNumber(record.total),
-    totalPages: readNumber(record.totalPages),
-  };
-}
-
-function toRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function readArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function readString(value: unknown, fallback = ""): string {
-  return typeof value === "string" && value.trim() ? value : fallback;
-}
-
-function optionalString(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value : null;
-}
-
-function readNumber(value: unknown, fallback = 0): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+async function requireChatData<T>(request: Promise<{ data: T | null; error: unknown }>): Promise<NonNullable<T>> {
+  const { data, error } = await request;
+  if (error) {
+    const value = typeof error === "object" && "value" in error ? error.value : null;
+    const detail = value && typeof value === "object" && "error" in value ? value.error : value;
+    const message = detail && typeof detail === "object" && "message" in detail && typeof detail.message === "string"
+      ? detail.message : "Chat request failed";
+    const code = detail && typeof detail === "object" && "code" in detail && typeof detail.code === "string" ? detail.code : undefined;
+    const status = typeof error === "object" && "status" in error && typeof error.status === "number" ? error.status : undefined;
+    throw new ApiClientError(message, status, code);
+  }
+  if (data === null || data === undefined) throw new ApiClientError("Chat response missing");
+  return data;
 }

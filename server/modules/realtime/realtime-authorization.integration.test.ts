@@ -106,6 +106,26 @@ describe.skipIf(!databaseUrl)('realtime live authorization on PostgreSQL', () =>
     expect(data.buyerReceiver.send).toHaveBeenCalledOnce()
   })
 
+  it('revokes all existing chat deliveries after promotion to administrator while preserving notifications', async () => {
+    const data = await fixture()
+    await data.service.subscribe(data.buyerReceiver.id, `user:${data.buyer.id}:chats`)
+    await data.service.subscribe(data.buyerReceiver.id, `user:${data.buyer.id}:notifications`)
+    await db.user.updateMany({ where: { id: { in: [data.buyer.id, data.seller.id] } }, data: { role: 'ADMIN' } })
+
+    for (const channel of [`chat:${data.room.id}`, `seller:${data.shop.id}:chats`, `user:${data.buyer.id}:chats`]) {
+      expect(await data.service.publish('chat.message.created', channel, { body: 'Private chat' })).toBe(0)
+    }
+    expect(data.buyerReceiver.send).not.toHaveBeenCalled()
+    expect(data.sellerReceiver.send).not.toHaveBeenCalled()
+    expect(data.buyerReceiver.close).not.toHaveBeenCalled()
+    expect(data.sellerReceiver.close).not.toHaveBeenCalled()
+    for (const user of [data.buyer, data.seller]) {
+      expect(await data.service.publish('notification.created', `user:${user.id}:notifications`, { notificationId: 'Still allowed' })).toBe(1)
+    }
+    expect(data.buyerReceiver.send).toHaveBeenCalledOnce()
+    expect(data.sellerReceiver.send).toHaveBeenCalledOnce()
+  })
+
   it('delivers only the exact permitted notification recipient without exposing session identity', async () => {
     const data = await fixture()
 

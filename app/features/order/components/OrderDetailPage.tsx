@@ -24,7 +24,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
   const localePath = useLocalePath();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const canUseBuyerChat = session?.user.role === "USER";
+  const canUseBuyerChat = Boolean(session) && session?.user.role !== "ADMIN";
   const orderQuery = useQuery({
     queryKey: ["buyer-order", orderId],
     queryFn: () => fetchOrder(orderId),
@@ -32,7 +32,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
   const createChatMutation = useMutation({
     mutationFn: (shopId: string) => createChatRoom({ shopId, orderId }),
     onSuccess: (room) => {
-      router.push(localePath(`/chat/${room.roomId}`));
+      router.push(localePath(`/chat/${room.roomId}?orderId=${encodeURIComponent(orderId)}`));
     },
   });
   const cancelMutation = useMutation({
@@ -113,6 +113,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
 
             <section className="rounded-lg border border-slate-200 bg-white p-4">
               <h2 className="mb-3 flex items-center gap-2 font-bold"><TruckIcon className="size-5" />{t("order.shipments")}</h2>
+              {createChatMutation.isError ? <p role="alert" className="mb-3 text-sm text-red-700">{t("chat.openError")}</p> : null}
               <div className="space-y-3">
                 {orderQuery.data.shipments.map((shipment) => (
                   <div key={shipment.id} className="rounded-lg border border-slate-200 p-3">

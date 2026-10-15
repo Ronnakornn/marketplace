@@ -17,7 +17,12 @@ export function resetSecurityRateLimitBuckets(): void {
   buckets.clear()
 }
 
-export function createSecurityPlugin(appContext: AppContext, config: SecurityConfig) {
+export function createSecurityPlugin(
+  appContext: AppContext,
+  config: SecurityConfig,
+  deferError?: (error: unknown) => boolean,
+  requestBodyLimit?: (request: Request) => number | undefined,
+) {
   const securityService = new SecurityService(appContext)
   const rateLimitStore = createRateLimitStore(appContext)
 
@@ -32,10 +37,11 @@ export function createSecurityPlugin(appContext: AppContext, config: SecurityCon
       }
 
       const remoteAddress = server?.requestIP(request)?.address
-      enforceRequestSize(request, config, securityService, remoteAddress)
+      enforceRequestSize(request, config, securityService, remoteAddress, requestBodyLimit)
       await enforceRateLimit(request, config, securityService, rateLimitStore, remoteAddress)
     })
     .onError(({ error, set }) => {
+      if (deferError?.(error)) return
       const formatted = securityService.formatError(error, appContext.config.environment)
       set.status = formatted.status
       return formatted.body
@@ -48,6 +54,7 @@ function enforceRequestSize(
   config: SecurityConfig,
   securityService: SecurityService,
   remoteAddress?: string,
+  requestBodyLimit?: (request: Request) => number | undefined,
 ): void {
   const contentLength = request.headers.get('content-length')
   if (!contentLength) {
@@ -58,14 +65,15 @@ function enforceRequestSize(
   }
 
   const size = Number(contentLength)
-  if (Number.isFinite(size) && size > config.requestBodyLimitBytes) {
+  const limit = requestBodyLimit?.(request) ?? config.requestBodyLimitBytes
+  if (Number.isFinite(size) && size > limit) {
     securityService.logSuspiciousActivity({
       type: 'REQUEST_BODY_TOO_LARGE',
       severity: 'medium',
       ipAddress: getClientIp(request, config, remoteAddress),
       userAgent: request.headers.get('user-agent'),
       path: new URL(request.url).pathname,
-      metadata: { size, limit: config.requestBodyLimitBytes },
+      metadata: { size, limit },
     })
     throw new SecurityError('Request payload is too large', 413, 'PAYLOAD_TOO_LARGE')
   }

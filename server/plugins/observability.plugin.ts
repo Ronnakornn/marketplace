@@ -10,6 +10,7 @@ export function createObservabilityPlugin(
   appContext: AppContext,
   metrics: MetricsCollector,
   config: ObservabilityConfig,
+  deferError?: (error: unknown) => boolean,
 ) {
   let completedRequests = 0
   const sampleEvery = config.successfulRequestSampleRate > 0
@@ -62,6 +63,8 @@ export function createObservabilityPlugin(
 
       if (!set.headers) set.headers = {}
       set.headers['x-request-id'] = requestId
+
+      if (deferError?.(error)) return
 
       return {
         error: {

@@ -1,3 +1,5 @@
 export { createChatRoutes } from './chat.routes.ts'
+export { isChatParserError } from './chat.errors.ts'
+export { getChatRequestBodyLimit } from './chat.multipart.ts'
 export { ChatService } from './chat.service.ts'
 export { PrismaChatRepository } from './chat.repository.ts'

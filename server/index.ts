@@ -22,7 +22,7 @@ import { createCouponTargetsRoutes } from "#server/modules/promotion/coupon-targ
 import { createAiSearchRoutes } from "#server/modules/ai-search";
 import { createAffiliateRoutes } from "#server/modules/affiliate";
 import { createCartRoutes } from "#server/modules/cart";
-import { createChatRoutes } from "#server/modules/chat";
+import { createChatRoutes, getChatRequestBodyLimit, isChatParserError } from "#server/modules/chat";
 import { createCheckoutRoutes } from "#server/modules/checkout";
 import { createCatalogRoutes } from "#server/modules/catalog";
 import { createDiscoveryRoutes } from "#server/modules/discovery";
@@ -69,10 +69,10 @@ const baseApp = new Elysia()
   })
 
   // --- Observability: request IDs, request/error logs, metrics ---
-  .use(createObservabilityPlugin(container.appContext, container.metricsCollector, getObservabilityConfigFromEnv()))
+  .use(createObservabilityPlugin(container.appContext, container.metricsCollector, getObservabilityConfigFromEnv(), isChatParserError))
 
   // --- Security hardening middleware ---
-  .use(createSecurityPlugin(container.appContext, getSecurityConfigFromEnv()))
+  .use(createSecurityPlugin(container.appContext, getSecurityConfigFromEnv(), isChatParserError, getChatRequestBodyLimit))
 
   // --- Swagger/OpenAPI documentation ---
   .use(isOpenApiEnabled ? swagger({
@@ -242,7 +242,7 @@ const baseApp = new Elysia()
   // --- Fraud detection admin review queue routes ---
   .use(createFraudRoutes(container));
 
-const app = baseApp.listen(port);
+const app = baseApp.listen({ port, maxRequestBodySize: 21 * 1024 * 1024 });
 
 log.info("API server running", { port: app.server?.port });
 

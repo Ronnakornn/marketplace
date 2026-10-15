@@ -45,6 +45,14 @@ server {
         proxy_pass http://app:3001;
     }
 
+    location ~ "^/api/chats/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/messages$" {
+        client_max_body_size 21m;
+        client_body_timeout 30s;
+        include /etc/nginx/snippets/proxy-headers.conf;
+        proxy_set_header Connection "";
+        proxy_pass http://app:3001;
+    }
+
     location = /api/realtime {
         include /etc/nginx/snippets/proxy-headers.conf;
         proxy_set_header Upgrade $http_upgrade;

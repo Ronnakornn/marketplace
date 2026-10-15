@@ -103,7 +103,13 @@ export class RealtimeService {
       throw new RealtimeServiceError('Notification channel forbidden', 403, 'REALTIME_FORBIDDEN')
     }
 
+    if (channel.startsWith('user:') && channel.endsWith(':chats')) {
+      if (channel === `user:${actor.id}:chats` && actor.role !== 'ADMIN') return
+      throw new RealtimeServiceError('Chat inbox channel forbidden', 403, 'REALTIME_FORBIDDEN')
+    }
+
     if (channel.startsWith('chat:')) {
+      if (actor.role === 'ADMIN') throw new RealtimeServiceError('Chat channel forbidden', 403, 'REALTIME_FORBIDDEN')
       const roomId = channel.slice('chat:'.length)
       if (!roomId) throw new RealtimeServiceError('Invalid realtime channel', 400, 'REALTIME_INVALID_CHANNEL')
       const room = await this.repo.findChatRoomAccess(roomId)
@@ -114,6 +120,7 @@ export class RealtimeService {
     }
 
     if (channel.startsWith('seller:') && channel.endsWith(':chats')) {
+      if (actor.role === 'ADMIN') throw new RealtimeServiceError('Seller chat channel forbidden', 403, 'REALTIME_FORBIDDEN')
       const shopId = channel.slice('seller:'.length, -':chats'.length)
       if (!shopId) throw new RealtimeServiceError('Invalid realtime channel', 400, 'REALTIME_INVALID_CHANNEL')
       const ownerId = await this.repo.findShopOwnerId(shopId)

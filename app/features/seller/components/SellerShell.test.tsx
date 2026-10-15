@@ -113,6 +113,20 @@ describe("SellerShell", () => {
     expect(orderLinks.some((link) => link.getAttribute("href") === "/en/seller/orders?shopId=shop-2")).toBe(true);
   });
 
+  it("returns to the inbox when switching shops from a chat thread", () => {
+    pathname = "/en/seller/chat/room-1";
+    render(<SellerShell
+      activeShop={{ id: "shop-1", name: "Shop One", slug: "shop-one", status: "ACTIVE" }}
+      activeShops={[
+        { id: "shop-1", name: "Shop One", slug: "shop-one", status: "ACTIVE" },
+        { id: "shop-2", name: "Shop Two", slug: "shop-two", status: "ACTIVE" },
+      ]}
+      user={{ name: "Seller", email: "seller@example.com" }}
+    >content</SellerShell>);
+    fireEvent.change(screen.getByLabelText("Active shop"), { target: { value: "shop-2" } });
+    expect(push).toHaveBeenCalledWith("/en/seller/chat?shopId=shop-2");
+  });
+
   it("shows the selected shop in the topbar and links to its storefront", () => {
     pathname = "/en/seller/products/item-1";
     params = new URLSearchParams("shopId=shop-2");

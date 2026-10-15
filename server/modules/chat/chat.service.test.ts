@@ -38,10 +38,16 @@ function createMessage(overrides: Record<string, any> = {}) {
   return {
     id: overrides.id ?? 'message-1',
     threadId: overrides.threadId ?? 'room-1',
+    productId: overrides.productId ?? null,
+    orderId: overrides.orderId ?? null,
+    deletedAt: overrides.deletedAt ?? null,
+    product: overrides.product ?? null,
+    order: overrides.order ?? null,
     senderId: overrides.senderId ?? 'buyer-1',
     messageType: overrides.messageType ?? 'TEXT',
     body: overrides.body ?? 'Hello',
     attachments: overrides.attachments ?? [],
+    files: overrides.files ?? [],
     createdAt: overrides.createdAt ?? new Date('2026-01-01T00:00:00.000Z'),
     sender: overrides.sender ?? {
       id: overrides.senderId ?? 'buyer-1',
@@ -60,6 +66,9 @@ function createRoom(overrides: Record<string, any> = {}) {
     productId: overrides.productId ?? null,
     orderId: overrides.orderId ?? null,
     buyerReadAt: overrides.buyerReadAt ?? null,
+    buyerReadMessageId: overrides.buyerReadMessageId ?? null,
+    sellerReadMessageId: overrides.sellerReadMessageId ?? null,
+    lastMessageAt: overrides.lastMessageAt ?? null,
     sellerReadAt: overrides.sellerReadAt ?? null,
     createdAt: overrides.createdAt ?? new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: overrides.updatedAt ?? new Date('2026-01-01T00:00:00.000Z'),
@@ -75,6 +84,7 @@ function createRoom(overrides: Record<string, any> = {}) {
       slug: 'shop',
       ownerId: 'seller-1',
       status: 'ACTIVE',
+      settings: null,
     },
     product: overrides.product ?? null,
     order: overrides.order ?? null,
@@ -84,7 +94,10 @@ function createRoom(overrides: Record<string, any> = {}) {
 
 function createRepo(overrides: Partial<Record<keyof IChatRepository, any>> = {}) {
   const repo: IChatRepository = {
-    findShopById: vi.fn().mockResolvedValue({ id: 'shop-1', name: 'Shop', slug: 'shop', ownerId: 'seller-1', status: 'ACTIVE' }),
+    findReplay: vi.fn().mockResolvedValue(null),
+    findAttachment: vi.fn().mockResolvedValue(null),
+    referencedStorageKeys: vi.fn().mockResolvedValue([]),
+    findShopById: vi.fn().mockResolvedValue({ id: 'shop-1', name: 'Shop', slug: 'shop', ownerId: 'seller-1', status: 'ACTIVE', settings: null }),
     findProductById: vi.fn().mockResolvedValue(null),
     findOrderContext: vi.fn().mockResolvedValue(null),
     findRoomByBuyerAndShop: vi.fn().mockResolvedValue(null),
@@ -92,11 +105,10 @@ function createRepo(overrides: Partial<Record<keyof IChatRepository, any>> = {})
     createRoom: vi.fn().mockResolvedValue(createRoom()),
     listBuyerRooms: vi.fn().mockResolvedValue([createRoom()]),
     listSellerRooms: vi.fn().mockResolvedValue([createRoom()]),
-    createMessage: vi.fn().mockResolvedValue(createMessage()),
-    listMessages: vi.fn().mockResolvedValue({ items: [createMessage({ id: 'message-2' })], total: 2 }),
+    createMessage: vi.fn().mockResolvedValue({ message: createMessage(), created: true }),
+    listMessages: vi.fn().mockResolvedValue({ items: [createMessage({ id: 'message-2' })], total: 2, hasMore: true }),
     countUnreadMessages: vi.fn().mockResolvedValue(0),
-    markBuyerRead: vi.fn().mockResolvedValue(createRoom({ buyerReadAt: new Date('2026-01-02T00:00:00.000Z') })),
-    markSellerRead: vi.fn().mockResolvedValue(createRoom({ sellerReadAt: new Date('2026-01-02T00:00:00.000Z') })),
+    markRead: vi.fn().mockResolvedValue(createRoom({ buyerReadAt: new Date('2026-01-02T00:00:00.000Z') })),
     ...overrides,
   }
   return repo
@@ -123,7 +135,7 @@ describe('ChatService', () => {
     })
     await expect(service.markRead(user(), 'room-1')).resolves.toMatchObject({ roomId: 'room-1' })
     expect(repo.createMessage).toHaveBeenCalledOnce()
-    expect(repo.markBuyerRead).toHaveBeenCalledOnce()
+    expect(repo.markRead).toHaveBeenCalledOnce()
     expect(logger.warn).toHaveBeenCalledWith('Realtime publication failed', expect.any(Object))
   })
 
@@ -251,11 +263,11 @@ describe('ChatService', () => {
     } satisfies Partial<ChatServiceError>)
   })
 
-  it('requires attachments for image messages', async () => {
+  it('rejects unsupported image writes', async () => {
     const service = new ChatService(appContext, createRepo())
 
     await expect(service.sendMessage(user(), 'room-1', { messageType: 'image', attachments: [] })).rejects.toMatchObject({
-      code: 'ATTACHMENT_REQUIRED',
+      code: 'CHAT_ATTACHMENT_UNSUPPORTED',
       status: 400,
     } satisfies Partial<ChatServiceError>)
   })
@@ -268,7 +280,7 @@ describe('ChatService', () => {
 
     expect(repo.listMessages).toHaveBeenCalledWith('room-1', { page: 2, limit: 1 })
     expect(result.messages).toHaveLength(1)
-    expect(result.pagination).toEqual({ page: 2, limit: 1, total: 2, totalPages: 2 })
+    expect(result.pagination).toEqual({ page: 2, limit: 1, total: 2, totalPages: 2, hasMore: true, beforeCursor: 'message-2', afterCursor: 'message-2' })
   })
 
   it('marks buyer rooms as read', async () => {
@@ -277,8 +289,7 @@ describe('ChatService', () => {
 
     await service.markRead(user(), 'room-1')
 
-    expect(repo.markBuyerRead).toHaveBeenCalledWith('room-1', expect.any(Date))
-    expect(repo.markSellerRead).not.toHaveBeenCalled()
+    expect(repo.markRead).toHaveBeenCalledWith('room-1', 'buyer', undefined, expect.any(Function))
   })
 
   it('publishes chat message and read events', async () => {
@@ -309,7 +320,7 @@ describe('ChatService', () => {
         .fn()
         .mockResolvedValueOnce(createRoom({ productId: 'product-1', orderId: 'order-1' }))
         .mockResolvedValueOnce(createRoom({ productId: 'product-1', orderId: 'order-1', messages: [createMessage()] })),
-      createMessage: vi.fn().mockResolvedValue(createMessage({ senderId: 'buyer-1', body: 'Hello seller' })),
+      createMessage: vi.fn().mockResolvedValue({ message: createMessage({ senderId: 'buyer-1', body: 'Hello seller' }), created: true }),
     })
     const service = new ChatService(appContext, repo, undefined, notificationService as any)
 
@@ -343,7 +354,7 @@ describe('ChatService', () => {
         .fn()
         .mockResolvedValueOnce(createRoom())
         .mockResolvedValueOnce(createRoom({ messages: [createMessage({ senderId: 'seller-1' })] })),
-      createMessage: vi.fn().mockResolvedValue(createMessage({ senderId: 'seller-1', body: 'We are packing your order' })),
+      createMessage: vi.fn().mockResolvedValue({ message: createMessage({ senderId: 'seller-1', body: 'We are packing your order' }), created: true }),
     })
     const service = new ChatService(appContext, repo, undefined, notificationService as any)
 

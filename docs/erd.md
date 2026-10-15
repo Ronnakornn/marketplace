@@ -439,14 +439,35 @@ erDiagram
     string buyerId FK
     string shopId FK
     datetime lastMessageAt
+    datetime buyerReadAt
+    datetime sellerReadAt
+    string buyerReadMessageId
+    string sellerReadMessageId
   }
 
   CHAT_MESSAGE {
     string id PK
     string threadId FK
     string senderId FK
+    string productId FK
     string orderId FK
+    string messageType
     string body
+    datetime createdAt
+    datetime deletedAt
+  }
+
+  CHAT_ATTACHMENT {
+    string id PK
+    string messageId FK
+    int ordinal
+    string storageKey UK
+    string fileName
+    string contentType
+    int byteSize
+    string sha256
+    string kind
+    datetime createdAt
   }
 
   NOTIFICATION {
@@ -551,6 +572,7 @@ erDiagram
   USER ||--o{ CHAT_THREAD : starts
   SHOP ||--o{ CHAT_THREAD : participates
   CHAT_THREAD ||--o{ CHAT_MESSAGE : contains
+  CHAT_MESSAGE ||--o{ CHAT_ATTACHMENT : owns
   ORDER ||--o{ CHAT_MESSAGE : references
   USER ||--o{ CHAT_MESSAGE : sends
   USER ||--o{ NOTIFICATION : receives

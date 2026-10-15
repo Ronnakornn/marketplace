@@ -321,6 +321,21 @@ describe('security hardening', () => {
     await expect(response.json()).resolves.toMatchObject({ error: { code: 'PAYLOAD_TOO_LARGE' } })
   })
 
+  it('applies an injected route body limit and retains the default elsewhere', async () => {
+    const app = new Elysia()
+      .use(createSecurityPlugin(createAppContext('production'), getSecurityConfigFromEnv({ RATE_LIMIT_ENABLED: 'false', REQUEST_BODY_LIMIT_BYTES: '10' }), undefined,
+        request => new URL(request.url).pathname === '/larger' ? 20 : undefined))
+      .post('/larger', () => ({ ok: true }), { parse: 'none' })
+      .post('/default', () => ({ ok: true }), { parse: 'none' })
+    const request = (path: string) => new Request(`http://localhost${path}`, {
+      method: 'POST', headers: { 'content-length': '20' }, body: '01234567890123456789',
+    })
+    expect((await app.handle(request('/larger'))).status).toBe(200)
+    const response = await app.handle(request('/default'))
+    expect(response.status).toBe(413)
+    await expect(response.json()).resolves.toEqual({ error: { code: 'PAYLOAD_TOO_LARGE', message: 'Request payload is too large' } })
+  })
+
   it('suspicious activity is logged', () => {
     const appContext = createAppContext()
     const service = new SecurityService(appContext)

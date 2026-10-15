@@ -35,7 +35,7 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications", scope] }),
   });
   const notifications = useMemo(() => {
-    const items = (notificationsQuery.data ?? []).filter((notification) => notificationTypeGroup(notification.type) !== "chat");
+    const items = notificationsQuery.data ?? [];
     if (tab === "all") return items;
     return items.filter((notification) => notificationTypeGroup(notification.type) === tab);
   }, [notificationsQuery.data, tab]);
@@ -65,7 +65,7 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
         {notificationsQuery.isSuccess && notificationsQuery.data.length > 0 && notifications.length === 0 ? <BuyerEmptyState title={t("notification.emptyCategoryTitle")} description={t("notification.emptyCategoryDescription")} /> : null}
         {notifications.map((notification) => {
           const Icon = notificationIcon(notification.type);
-          const targetPath = notificationTargetPath(notification);
+          const targetPath = notificationTargetPath(notification, scope);
           const card = (
             <article className="rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-orange-300">
               <div className="flex gap-3">
@@ -90,44 +90,53 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
   );
 }
 
-function notificationTargetPath(notification: { type: string; data: Record<string, unknown> | null }): string | null {
+function notificationTargetPath(notification: { type: string; data: Record<string, unknown> | null }, scope: "all" | "seller"): string | null {
+  const roomId = notification.data?.roomId;
+  const shopId = notification.data?.shopId;
+  if (notificationTypeGroup(notification.type) === "chat" && typeof roomId === "string") {
+    const route = scope === "seller" ? `/seller/chat/${encodeURIComponent(roomId)}` : `/chat/${encodeURIComponent(roomId)}`;
+    return scope === "seller" && typeof shopId === "string" ? `${route}?shopId=${encodeURIComponent(shopId)}` : route;
+  }
   const targetPath = notification.data?.targetPath;
   if (typeof targetPath === "string" && targetPath.startsWith("/")) return targetPath;
   const orderId = notification.data?.orderId;
   return typeof orderId === "string" ? `/orders/${encodeURIComponent(orderId)}` : null;
 }
 
-function formatNotificationType(type: string, t: (key: never) => string, scope: "all" | "seller"): string {
+function formatNotificationType(type: string, t: ReturnType<typeof useTranslations>, scope: "all" | "seller"): string {
   const normalized = type.toLowerCase();
-  if (scope === "seller" && normalized === "order_paid") return t("notification.event.sellerOrderPaid.badge" as never);
-  if (scope === "seller" && normalized === "payout_paid") return t("notification.event.sellerPayoutPaid.badge" as never);
-  if (scope === "seller" && normalized === "payout_rejected") return t("notification.event.sellerPayoutRejected.badge" as never);
-  if (normalized === "order_paid" && scope === "all") return t("notification.event.orderPaid.badge" as never);
+  if (notificationTypeGroup(type) === "chat") return t("notification.chat");
+  if (scope === "seller" && normalized === "order_paid") return t("notification.event.sellerOrderPaid.badge");
+  if (scope === "seller" && normalized === "payout_paid") return t("notification.event.sellerPayoutPaid.badge");
+  if (scope === "seller" && normalized === "payout_rejected") return t("notification.event.sellerPayoutRejected.badge");
+  if (normalized === "order_paid" && scope === "all") return t("notification.event.orderPaid.badge");
   return type;
 }
 
-function formatNotificationTitle(notification: { type: string; title: string }, t: (key: never) => string, scope: "all" | "seller"): string {
-  if (scope === "seller" && notification.type.toLowerCase() === "order_paid") return t("notification.event.sellerOrderPaid.title" as never);
-  if (scope === "seller" && notification.type.toLowerCase() === "payout_paid") return t("notification.event.sellerPayoutPaid.title" as never);
-  if (scope === "seller" && notification.type.toLowerCase() === "payout_rejected") return t("notification.event.sellerPayoutRejected.title" as never);
-  if (notification.type.toLowerCase() === "order_paid" && scope === "all") return t("notification.event.orderPaid.title" as never);
+function formatNotificationTitle(notification: { type: string; title: string }, t: ReturnType<typeof useTranslations>, scope: "all" | "seller"): string {
+  if (notificationTypeGroup(notification.type) === "chat") return t("chat.newMessage");
+  if (scope === "seller" && notification.type.toLowerCase() === "order_paid") return t("notification.event.sellerOrderPaid.title");
+  if (scope === "seller" && notification.type.toLowerCase() === "payout_paid") return t("notification.event.sellerPayoutPaid.title");
+  if (scope === "seller" && notification.type.toLowerCase() === "payout_rejected") return t("notification.event.sellerPayoutRejected.title");
+  if (notification.type.toLowerCase() === "order_paid" && scope === "all") return t("notification.event.orderPaid.title");
   return notification.title;
 }
 
-function formatNotificationBody(notification: { type: string; body: string | null; data: Record<string, unknown> | null }, t: (key: never) => string, scope: "all" | "seller"): string | null {
-  if (scope === "seller" && notification.type.toLowerCase() === "order_paid") return t("notification.event.sellerOrderPaid.body" as never);
-  if (scope === "seller" && notification.type.toLowerCase() === "payout_paid") return t("notification.event.sellerPayoutPaid.body" as never);
+function formatNotificationBody(notification: { type: string; body: string | null; data: Record<string, unknown> | null }, t: ReturnType<typeof useTranslations>, scope: "all" | "seller"): string | null {
+  if (notificationTypeGroup(notification.type) === "chat" && !notification.body && typeof notification.data?.attachmentCount === "number" && notification.data.attachmentCount > 0) return t("chat.attachedFiles");
+  if (scope === "seller" && notification.type.toLowerCase() === "order_paid") return t("notification.event.sellerOrderPaid.body");
+  if (scope === "seller" && notification.type.toLowerCase() === "payout_paid") return t("notification.event.sellerPayoutPaid.body");
   if (scope === "seller" && notification.type.toLowerCase() === "payout_rejected") {
     const reason = notification.data?.reason;
     return typeof reason === "string" && reason
-      ? t("notification.event.sellerPayoutRejected.body" as never).replace("{reason}", reason)
-      : t("notification.event.sellerPayoutRejected.bodyWithoutReason" as never);
+      ? t("notification.event.sellerPayoutRejected.body").replace("{reason}", reason)
+      : t("notification.event.sellerPayoutRejected.bodyWithoutReason");
   }
   if (notification.type.toLowerCase() !== "order_paid" || scope === "seller") return notification.body;
   const orderNo = notification.data?.orderNo;
   return typeof orderNo === "string"
-    ? t("notification.event.orderPaid.body" as never).replace("{orderNo}", orderNo)
-    : t("notification.event.orderPaid.bodyWithoutOrder" as never);
+    ? t("notification.event.orderPaid.body").replace("{orderNo}", orderNo)
+    : t("notification.event.orderPaid.bodyWithoutOrder");
 }
 
 function notificationTypeGroup(type: string) {

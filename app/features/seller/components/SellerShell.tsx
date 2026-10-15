@@ -128,7 +128,8 @@ function SellerWorkspace({ activeShop, activeShops, children, user }: SellerShel
     }
     const query = nextParams.toString();
     closeMobileNavigation();
-    router.push(query ? `${rawPathname}?${query}` : rawPathname);
+    const nextPathname = pathname.startsWith("/seller/chat/") ? localePath("/seller/chat") : rawPathname;
+    router.push(query ? `${nextPathname}?${query}` : nextPathname);
   }
 
   async function handleSignOut() {

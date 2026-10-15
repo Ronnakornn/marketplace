@@ -53,7 +53,7 @@ export function StorefrontDetails({ shop, locale }: { shop: PublicStorefrontProf
   return <>
     {!shop.viewer.isOwner ? <section aria-label={t("storefront.buyerActions")} className="flex flex-wrap gap-3">
       <Button disabled={followMutation.isPending} onClick={() => session ? followMutation.mutate() : login()}>{followStatus.data ? t("storefront.following") : t("storefront.follow")}</Button>
-      {shop.chatEnabled ? <Button variant="outline" disabled={chatMutation.isPending} onClick={() => session ? chatMutation.mutate() : login()}>{chatMutation.isPending ? t("storefront.chatOpening") : t("storefront.chat")}</Button> : null}
+      {shop.chatEnabled && session?.user.role !== "ADMIN" ? <Button variant="outline" disabled={chatMutation.isPending} onClick={() => session ? chatMutation.mutate() : login()}>{chatMutation.isPending ? t("storefront.chatOpening") : t("storefront.chat")}</Button> : null}
       {followMutation.isError ? <p role="alert" className="w-full text-sm text-red-700">{t("storefront.followError")}</p> : null}
       {chatMutation.isError ? <p role="alert" className="w-full text-sm text-red-700">{t("storefront.chatError")}</p> : null}
     </section> : null}

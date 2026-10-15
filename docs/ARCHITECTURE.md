@@ -41,6 +41,7 @@ The marketplace schema supports:
 - Payments and payment webhook events.
 - Shipments split by shop, with shipment items allocating order item quantities.
 - Coupons, coupon redemptions, reviews, refunds, returns, chat, and notifications.
+- Chat messages own ordered verified attachment rows and immutable private objects. Participant downloads stream through the authenticated API. See [chat images and files](chat-attachments.md).
 - Original sale funding and commission snapshots, explicit refund allocations, seller wallets, and payouts.
 
 Important invariants:

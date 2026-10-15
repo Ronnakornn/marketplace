@@ -65,6 +65,15 @@ describe('RealtimeService', () => {
     await expect(service.assertCanSubscribe({ id: 'buyer-1', role: 'USER' }, 'chat:room-1')).resolves.toBeUndefined()
   })
 
+  it('authorizes only the exact buyer inbox channel and denies administrator chat channels', async () => {
+    const service = new RealtimeService(appContext, createRepo(), new InMemoryRealtimeAdapter(appContext))
+    await expect(service.assertCanSubscribe({ id: 'buyer-1', role: 'USER' }, 'user:buyer-1:chats')).resolves.toBeUndefined()
+    await expect(service.assertCanSubscribe({ id: 'buyer-1', role: 'USER' }, 'user:buyer-2:chats')).rejects.toMatchObject({ code: 'REALTIME_FORBIDDEN' })
+    await expect(service.assertCanSubscribe({ id: 'admin-1', role: 'ADMIN' }, 'user:admin-1:chats')).rejects.toMatchObject({ code: 'REALTIME_FORBIDDEN' })
+    await expect(service.assertCanSubscribe({ id: 'buyer-1', role: 'ADMIN' }, 'chat:room-1')).rejects.toMatchObject({ code: 'REALTIME_FORBIDDEN' })
+    await expect(service.assertCanSubscribe({ id: 'seller-1', role: 'ADMIN' }, 'seller:shop-1:chats')).rejects.toMatchObject({ code: 'REALTIME_FORBIDDEN' })
+  })
+
   it('allows a seller to subscribe to their shop chat room', async () => {
     const service = new RealtimeService(appContext, createRepo(), new InMemoryRealtimeAdapter(appContext))
 

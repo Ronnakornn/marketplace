@@ -101,9 +101,17 @@ export interface LocalPresignedGetResponse {
 }
 
 export interface UploadStorage {
+  chatObjects?: ChatPrivateObjectStore
   createPresignedPutUrl(input: CreatePresignedPutUrlInput): Promise<string>
   createPresignedGetUrl(input: CreatePresignedGetUrlInput): Promise<string>
   getPublicUrl(key: string): string | undefined
   writePresignedPutUrl?(input: LocalPresignedPutInput): Promise<LocalPresignedPutResponse>
   readPresignedGetUrl?(input: LocalPresignedGetInput): Promise<LocalPresignedGetResponse>
+}
+
+export interface ChatPrivateObjectStore {
+  putNew(input: { key: string; bytes: Uint8Array; contentType: string }): Promise<void>
+  read(key: string): Promise<ReadableStream<Uint8Array>>
+  remove(key: string): Promise<void>
+  list(input: { cursor?: string; limit: number }): Promise<{ items: Array<{ key: string; createdAt: Date }>; cursor?: string }>
 }
