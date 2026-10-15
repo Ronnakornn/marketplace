@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#
 import { Textarea } from "#/components/ui/textarea";
 import { SellerPageHeader } from "./SellerShell";
 import { SellerDataTable } from "./SellerDataTable";
+import { SellerFlashSaleEnrollmentForm } from "./SellerFlashSaleEnrollmentForm";
 import {
   type SellerDashboard,
   type SellerInventoryResponse,
@@ -36,7 +37,6 @@ import {
   useCreateSellerPayout,
   useDeleteSellerCoupon,
   useDeleteSellerFlashSaleItem,
-  useEnrollSellerFlashSaleItem,
   usePackShipment,
   useRejectReturn,
   useSellerCoupons,
@@ -45,7 +45,6 @@ import {
   useSellerDashboardReviews,
   useSellerInventory,
   useSellerPayouts,
-  useSellerProducts,
   useSellerReturns,
   useSellerShopList,
   useSellerShopProfile,
@@ -778,13 +777,9 @@ function SellerFlashSalePanel() {
   const t = useTranslations();
   const formatters = useFormatters();
   const campaigns = useSellerFlashSales();
-  const products = useSellerProducts({ status: "ACTIVE", limit: 100 });
-  const enroll = useEnrollSellerFlashSaleItem();
+  const shopId = useSearchParams().get("shopId") || undefined;
   const update = useUpdateSellerFlashSaleItem();
   const remove = useDeleteSellerFlashSaleItem();
-  const productOptions = (products.data?.data ?? []).flatMap((product) => product.variants
-    .filter((variant) => variant.status === "ACTIVE")
-    .map((variant) => ({ productId: product.id, variantId: variant.id, label: `${product.title} · ${variant.title} (${variant.sku})` })));
 
   return <Card className="rounded-lg border-slate-200 bg-white">
     <CardHeader><CardTitle>{t("seller.manage.pages.promotions.flashSalesTitle")}</CardTitle></CardHeader>
@@ -797,20 +792,7 @@ function SellerFlashSalePanel() {
           <div><p className="font-semibold text-slate-950">{campaign.title}</p><p className="text-xs text-slate-500">{formatters.date(campaign.startsAt)} – {formatters.date(campaign.endsAt)}</p></div>
           <StatusPill value={campaign.status} />
         </div>
-        {campaign.status === "SCHEDULED" ? <form className="grid gap-2 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_auto]" onSubmit={(event) => {
-          event.preventDefault();
-          const form = event.currentTarget;
-          const values = new FormData(form);
-          const [productId, variantId] = String(values.get("variant") ?? "").split(":");
-          if (!productId || !variantId) return;
-          enroll.mutate({ flashSaleId: campaign.id, productId, variantId, salePriceBaht: String(values.get("salePriceBaht")), stockLimit: Number(values.get("stockLimit")), perUserLimit: values.get("perUserLimit") ? Number(values.get("perUserLimit")) : null }, { onSuccess: () => form.reset() });
-        }}>
-          <Select name="variant" required><SelectTrigger><SelectValue placeholder={t("seller.manage.pages.promotions.selectProduct")} /></SelectTrigger><SelectContent>{productOptions.map((option) => <SelectItem key={option.variantId} value={`${option.productId}:${option.variantId}`}>{option.label}</SelectItem>)}</SelectContent></Select>
-          <Input name="salePriceBaht" required type="number" min="0.01" step="0.01" placeholder={t("seller.manage.pages.promotions.salePriceBaht")} />
-          <Input name="stockLimit" required type="number" min="1" placeholder={t("seller.manage.pages.promotions.stockLimit")} />
-          <Input name="perUserLimit" type="number" min="1" placeholder={t("seller.manage.pages.promotions.perUserLimit")} />
-          <Button type="submit" disabled={enroll.isPending}>{t("seller.manage.pages.promotions.enroll")}</Button>
-        </form> : null}
+        {campaign.status === "SCHEDULED" ? <SellerFlashSaleEnrollmentForm key={`${campaign.id}:${shopId ?? "active-shop"}`} flashSaleId={campaign.id} shopId={shopId} /> : null}
         <div className="space-y-2">{campaign.items.map((item) => <form key={item.id} className="grid gap-2 rounded-md bg-slate-50 p-3 md:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr_auto]" onSubmit={(event) => {
           event.preventDefault();
           const values = new FormData(event.currentTarget);
@@ -823,7 +805,7 @@ function SellerFlashSalePanel() {
           <div className="flex gap-2"><Button type="submit" size="sm" variant="outline" disabled={!canManageSellerFlashSale(campaign) || update.isPending}>{t("common.save")}</Button><Button type="button" size="sm" variant="destructive" disabled={!canManageSellerFlashSale(campaign) || remove.isPending} onClick={() => remove.mutate(item.id)}>{t("seller.manage.pages.promotions.delete")}</Button></div>
         </form>)}</div>
       </section>)}
-      {enroll.isError || update.isError || remove.isError ? <p className="text-sm text-red-700">{t("seller.manage.pages.promotions.flashSaleSaveFailed")}</p> : null}
+      {update.isError || remove.isError ? <p className="text-sm text-red-700">{t("seller.manage.pages.promotions.flashSaleSaveFailed")}</p> : null}
     </CardContent>
   </Card>;
 }

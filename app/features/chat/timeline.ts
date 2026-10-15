@@ -65,6 +65,16 @@ export function timelineFromRoom(room: ChatRoom): ChatTimeline {
   };
 }
 
+export function mergeTimelineMessages(current: ChatTimeline, messages: ChatMessage[], contentRevision: string): ChatTimeline {
+  if (!messages.length) return current;
+  const knownIds = new Set(current.messages.map((message) => message.id));
+  const hasNewMessages = messages.some((message) => !knownIds.has(message.id));
+  return { ...current,
+    reconciledRevision: hasNewMessages && current.reconciledRevision !== contentRevision ? null : current.reconciledRevision,
+    messages: mergeMessages(current.messages, messages),
+  };
+}
+
 export async function recoverChatGap({
   cursor, fetchPage, applyPage, alive = () => true,
 }: {
@@ -125,7 +135,7 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
     queryFn: async () => {
       const room = await fetchChatRoom(roomId, { scope: audience, shopId });
       const previous = client.getQueryData<ChatTimeline>(queryKey);
-      return previous ? { ...previous, room: mergeRoom(previous.room, room), messages: mergeMessages(previous.messages, room.messages ?? []) } : timelineFromRoom(room);
+      return previous ? { ...mergeTimelineMessages(previous, room.messages ?? [], room.contentRevision), room: mergeRoom(previous.room, room) } : timelineFromRoom(room);
     },
     enabled: Boolean(userId) && (audience !== "seller" || Boolean(shopId)),
     refetchOnWindowFocus: false,
@@ -147,16 +157,25 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
       if (!current || current.reconciledRevision === current.room.contentRevision) return;
       const ids = current.messages.map((message) => message.id);
       let revision: string | null = null;
+      let newestRevision = current.room.contentRevision;
       let consistent = true;
-      for (let offset = 0; offset < ids.length; offset += 50) {
-        const batch = await refreshChatMessages(roomId, ids.slice(offset, offset + 50), audience, shopId);
-        if (!alive()) return;
-        if (revision !== null && revision !== batch.contentRevision) consistent = false;
-        revision = batch.contentRevision;
-        client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? { ...previous,
-          room: { ...previous.room, contentRevision: BigInt(batch.contentRevision) > BigInt(previous.room.contentRevision) ? batch.contentRevision : previous.room.contentRevision },
-          messages: mergeMessages(previous.messages, batch.messages),
-        } : previous);
+      const refreshed: ChatMessage[] = [];
+      try {
+        for (let offset = 0; offset < ids.length; offset += 50) {
+          const batch = await refreshChatMessages(roomId, ids.slice(offset, offset + 50), audience, shopId);
+          if (!alive()) return;
+          if (revision !== null && revision !== batch.contentRevision) consistent = false;
+          revision = batch.contentRevision;
+          if (BigInt(batch.contentRevision) > BigInt(newestRevision)) newestRevision = batch.contentRevision;
+          refreshed.push(...batch.messages);
+        }
+      } finally {
+        if (alive() && refreshed.length) {
+          client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? { ...previous,
+            room: { ...previous.room, contentRevision: BigInt(newestRevision) > BigInt(previous.room.contentRevision) ? newestRevision : previous.room.contentRevision },
+            messages: mergeMessages(previous.messages, refreshed),
+          } : previous);
+        }
       }
       const latest = client.getQueryData<ChatTimeline>(queryKey);
       if (latest && consistent && latest.messages.length === ids.length && (revision === null || revision === latest.room.contentRevision)) {
@@ -184,9 +203,7 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
           alive,
           applyPage: (room, contiguousCursor) => {
             client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? {
-              ...previous, room: mergeRoom(previous.room, room), contiguousCursor,
-              reconciledRevision: (room.messages ?? []).some((message) => !previous.messages.some((existing) => existing.id === message.id)) ? null : previous.reconciledRevision,
-              messages: mergeMessages(previous.messages, room.messages ?? []),
+              ...mergeTimelineMessages(previous, room.messages ?? [], room.contentRevision), room: mergeRoom(previous.room, room), contiguousCursor,
             } : previous);
           },
         });
@@ -217,9 +234,7 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
       if (!alive()) return;
       beforeApply?.();
       client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? {
-        ...previous,
-        reconciledRevision: null,
-        messages: mergeMessages(previous.messages, refreshed.messages),
+        ...mergeTimelineMessages(previous, refreshed.messages, refreshed.contentRevision),
         room: { ...previous.room, contentRevision: BigInt(refreshed.contentRevision) > BigInt(previous.room.contentRevision) ? refreshed.contentRevision : previous.room.contentRevision },
         beforeCursor: room.pagination?.beforeCursor ?? previous.beforeCursor,
         hasOlder: room.pagination?.hasMore ?? false,
@@ -233,13 +248,20 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
 
   const sendMutation = useMutation({
     mutationFn: (input: SendChatMessageInput) => sendChatMessage(roomId, input),
-    onSuccess: (room) => {
+    onSuccess: async (room) => {
       if (!alive()) return;
-      client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? {
-        ...previous, room: mergeRoom(previous.room, room),
-        reconciledRevision: null,
-        messages: mergeMessages(previous.messages, [room.sentMessage]),
-      } : previous);
+      // Sending reads its message before the room revision, so refresh that snapshot separately.
+      let refreshed: Awaited<ReturnType<typeof refreshChatMessages>> | null = null;
+      try { refreshed = await refreshChatMessages(roomId, [room.sentMessage.id], audience, shopId); }
+      catch { /* The normal sync retries reconciliation after a refresh failure. */ }
+      if (!alive()) return;
+      client.setQueryData<ChatTimeline>(queryKey, (previous) => {
+        if (!previous) return previous;
+        const merged = mergeTimelineMessages(previous, refreshed?.messages ?? [], refreshed?.contentRevision ?? '');
+        return { ...merged, reconciledRevision: refreshed ? merged.reconciledRevision : null,
+          room: mergeRoom(previous.room, { ...room, contentRevision: refreshed?.contentRevision ?? room.contentRevision }),
+        };
+      });
       void client.invalidateQueries({ queryKey: ["chat-rooms", audience] });
       void sync();
     },

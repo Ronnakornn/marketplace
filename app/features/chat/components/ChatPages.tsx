@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownIcon, ArrowLeftIcon, CheckCheckIcon, ImageIcon, MessageCircleIcon, SearchIcon, SendIcon, StoreIcon } from "lucide-react";
@@ -91,7 +91,6 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
 }) {
   const t = useTranslations();
   const localePath = useLocalePath();
-  const formatters = useFormatters();
   const thread = useChatThread({ roomId, audience, shopId, userId });
   const status = useChatRealtime(userId ? [`chat:${roomId}`] : [], () => { void thread.sync(); });
   const [body, setBody] = useState("");
@@ -214,12 +213,13 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); void submitMessage(); }
-  function selectReply(messageId: string, attachmentId?: string) {
+  const selectReply = useCallback((messageId: string, attachmentId?: string) => {
     draftRevisionRef.current += 1;
     setReply({ messageId, attachmentId });
     document.getElementById('chat-message')?.focus();
-  }
-  const deleteContent = (messageId: string, attachmentId?: string) => thread.deleteMutation.mutateAsync({ messageId, attachmentId });
+  }, []);
+  const deleteMessage = thread.deleteMutation.mutateAsync;
+  const deleteContent = useCallback((messageId: string, attachmentId?: string) => deleteMessage({ messageId, attachmentId }), [deleteMessage]);
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
     event.preventDefault();
@@ -253,32 +253,7 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
           {data?.hasOlder ? <div className="flex justify-center"><Button variant="outline" size="sm" disabled={thread.loadingOlder} onClick={() => void loadOlder()}>{t(thread.loadingOlder ? "chat.loadingOlder" : "chat.loadOlder")}</Button></div> : null}
           {thread.olderError ? <p role="alert" className="text-center text-sm text-red-700">{t("chat.historyError")}</p> : null}
           {!messages.length ? <BuyerEmptyState title={t("chat.emptyThread")} description={t("chat.emptyThreadDescription")} /> : null}
-          {messages.map((message) => {
-            const mine = message.sender.id === userId;
-            const read = mine && room.otherReadBoundary && compareMessageBoundary(message, room.otherReadBoundary) <= 0;
-            return <div key={message.id} data-message-id={message.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
-              <div className={cn("min-w-0 max-w-[88%] rounded-2xl px-3 py-2 sm:max-w-[75%]", mine ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-900")}>
-                <div className="flex justify-end"><MessageActions message={message} mine={mine} canReply={room.canSend} onReply={selectReply} onDelete={deleteContent} onFeedback={setFeedback} /></div>
-                {message.deleted ? <p className="text-sm italic">{t('chat.messageDeleted')}</p> : null}
-                {message.reply ? <ReplyQuote quote={message.reply} scope={audience} shopId={shopId} /> : null}
-                <MessageContext message={message} audience={audience} />
-                {message.messageType === "image" && !message.files.length ? <p className="flex items-center gap-2 text-sm"><ImageIcon className="size-4" aria-hidden="true" />{t("chat.legacyImage")}</p> : null}
-                {message.files.map((file) => <div key={file.id} data-attachment-id={file.id} className="mb-2 min-w-0 space-y-1">
-                  {file.kind === 'IMAGE' ? <div className="flex justify-end"><MessageActions message={message} image={file} contentUrl={`${file.contentUrl}?scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ''}`} mine={mine} canReply={room.canSend} onReply={selectReply} onDelete={deleteContent} onFeedback={setFeedback} /></div> : null}
-                  {file.kind === "IMAGE" ? <a href={`${file.contentUrl}?scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ""}`} target="_blank" rel="noreferrer">
-                    <img src={`${file.contentUrl}?scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ""}`} alt={file.fileName} width={256} height={192} className="h-48 w-64 max-w-full rounded-lg object-contain" />
-                  </a> : null}
-                  <a className="block break-all text-sm underline underline-offset-2" href={`${file.contentUrl}?mode=download&scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ""}`} download={file.fileName}>{file.fileName} · {Math.ceil(file.byteSize / 1024)} KiB · {t("chat.download")}</a>
-                </div>)}
-                {message.body ? <p className="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">{message.body}</p> : null}
-                <p className={cn("mt-1 flex flex-wrap items-center justify-end gap-1 text-[11px]", mine ? "text-orange-100" : "text-slate-500")}>
-                  {!mine ? <span>{message.sender.name}</span> : null}
-                  <time dateTime={message.createdAt}>{formatters.date(message.createdAt, { dateStyle: "short", timeStyle: "short" })}</time>
-                  {read ? <span className="inline-flex items-center gap-1"><CheckCheckIcon className="size-3" aria-hidden="true" />{t("chat.read")}</span> : null}
-                </p>
-              </div>
-            </div>;
-          })}
+          <MessageHistory messages={messages} userId={userId} otherReadBoundary={room.otherReadBoundary} canSend={room.canSend} audience={audience} shopId={shopId} onReply={selectReply} onDelete={deleteContent} onFeedback={setFeedback} />
           </div>
         </div>
         {!atBottom && latestId ? <div className="flex justify-center border-t border-slate-100 py-2"><Button size="sm" variant="outline" onClick={scrollToBottom}><ArrowDownIcon className="size-4" />{t("chat.latestMessages")}</Button></div> : null}
@@ -304,6 +279,45 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
     </main>
   </>;
 }
+
+const MessageHistory = memo(function MessageHistory({ messages, userId, otherReadBoundary, canSend, audience, shopId, onReply, onDelete, onFeedback }: {
+  messages: ChatMessage[]; userId?: string; otherReadBoundary: ChatRoom['otherReadBoundary']; canSend: boolean;
+  audience: ChatAudience; shopId?: string;
+  onReply: (messageId: string, attachmentId?: string) => void;
+  onDelete: (messageId: string, attachmentId?: string) => Promise<unknown>;
+  onFeedback: (key: string) => void;
+}) {
+  const t = useTranslations();
+  const formatters = useFormatters();
+  return <>
+  {messages.map((message) => {
+    const mine = message.sender.id === userId;
+    const read = mine && otherReadBoundary && compareMessageBoundary(message, otherReadBoundary) <= 0;
+    return <div key={message.id} data-message-id={message.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+      <div className={cn("min-w-0 max-w-[88%] rounded-2xl px-3 py-2 sm:max-w-[75%]", mine ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-900")}>
+        <div className="flex justify-end"><MessageActions message={message} mine={mine} canReply={canSend} onReply={onReply} onDelete={onDelete} onFeedback={onFeedback} /></div>
+        {message.deleted ? <p className="text-sm italic">{t('chat.messageDeleted')}</p> : null}
+        {message.reply ? <ReplyQuote quote={message.reply} scope={audience} shopId={shopId} /> : null}
+        <MessageContext message={message} audience={audience} />
+        {message.messageType === "image" && !message.files.length ? <p className="flex items-center gap-2 text-sm"><ImageIcon className="size-4" aria-hidden="true" />{t("chat.legacyImage")}</p> : null}
+        {message.files.map((file) => <div key={file.id} data-attachment-id={file.id} className="mb-2 min-w-0 space-y-1">
+          {file.kind === 'IMAGE' ? <div className="flex justify-end"><MessageActions message={message} image={file} contentUrl={`${file.contentUrl}?scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ''}`} mine={mine} canReply={canSend} onReply={onReply} onDelete={onDelete} onFeedback={onFeedback} /></div> : null}
+          {file.kind === "IMAGE" ? <a href={`${file.contentUrl}?scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ""}`} target="_blank" rel="noreferrer">
+            <img src={`${file.contentUrl}?scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ""}`} alt={file.fileName} width={256} height={192} className="h-48 w-64 max-w-full rounded-lg object-contain" />
+          </a> : null}
+          <a className="block break-all text-sm underline underline-offset-2" href={`${file.contentUrl}?mode=download&scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ""}`} download={file.fileName}>{file.fileName} · {Math.ceil(file.byteSize / 1024)} KiB · {t("chat.download")}</a>
+        </div>)}
+        {message.body ? <p className="whitespace-pre-wrap break-words text-sm [overflow-wrap:anywhere]">{message.body}</p> : null}
+        <p className={cn("mt-1 flex flex-wrap items-center justify-end gap-1 text-[11px]", mine ? "text-orange-100" : "text-slate-500")}>
+          {!mine ? <span>{message.sender.name}</span> : null}
+          <time dateTime={message.createdAt}>{formatters.date(message.createdAt, { dateStyle: "short", timeStyle: "short" })}</time>
+          {read ? <span className="inline-flex items-center gap-1"><CheckCheckIcon className="size-3" aria-hidden="true" />{t("chat.read")}</span> : null}
+        </p>
+      </div>
+    </div>;
+  })}
+  </>;
+});
 
 function ChatRoomListItem({ room, href, audience }: { room: ChatRoom; href: string; audience: ChatAudience }) {
   const t = useTranslations();

@@ -4,7 +4,7 @@ import { Prisma, type PrismaClient } from '#generated/client/client.ts'
 import { localeSortKey } from '#server/lib/sql-locale-order.ts'
 import { localizedText } from '#server/lib/localization.ts'
 import { numericThresholdFixture, thresholdContext, thresholdDatabase, thresholdProduct, thresholdSale } from '#server/test-support/numeric-threshold.fixture.ts'
-import { PrismaSearchRepository } from './search.repository.ts'
+import { PrismaSearchRepository, type SearchPageFilters } from './search.repository.ts'
 import { SearchService, type SearchSort } from './search.service.ts'
 
 type Fixture = Awaited<ReturnType<typeof numericThresholdFixture>>
@@ -102,11 +102,49 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('ranked search pages
     expect(result.items.map((item) => item.ratingSummary)).toEqual([
       { averageRating: 2.67, totalReviewCount: 200 }, { averageRating: 1, totalReviewCount: 200 },
     ])
+    const newest = await service.searchProducts({ shopId: f.shop.id, sort: 'newest' })
+    expect(newest.items.find((item) => item.productId === f.product.id)?.ratingSummary).toEqual({ averageRating: 1, totalReviewCount: 200 })
+    expect(newest.items.find((item) => item.productId === second.product.id)?.ratingSummary).toEqual({ averageRating: 2.67, totalReviewCount: 200 })
     const filtered = await service.searchProducts({ shopId: f.shop.id, rating: 2.675, limit: 1 })
     expect(filtered.pagination).toMatchObject({ total: 0, totalPages: 0, nextCursor: null })
     expect(filtered.facets.categories[0]?.count).toBe(2)
     expect(filtered.facets.price).toEqual({ min: 100n, max: 200n, currency: 'THB' })
   })
+
+  it('keeps page-first results identical to metric-first results across filters, cursors and empty pages', async () => {
+    const f = await numericThresholdFixture(db)
+    const cutoff = new Date('2026-10-01T00:00:00.000Z')
+    await db.product.update({ where: { id: f.product.id }, data: { createdAt: new Date('2026-09-01') } })
+    const middle = await thresholdProduct(db, f, { price: 200n, createdAt: cutoff, reserved: 3 })
+    const newest = await thresholdProduct(db, f, { price: 9007199254740993n, createdAt: new Date('2026-10-02') })
+    await thresholdProduct(db, f, { price: 100n, createdAt: new Date('2026-10-03'), status: 'DRAFT' })
+    await thresholdProduct(db, f, { price: 100n, createdAt: new Date('2026-10-03'), variantStatus: 'INACTIVE' })
+    await db.productVariant.create({ data: { productId: middle.product.id, sku: randomUUID(), title: 'available expensive variant', price: 500n, inventory: { create: { quantityOnHand: 2 } } } })
+    await thresholdSale(db, f, { ...newest, quantity: 100 })
+    await addReviews(db, f, newest, [4, 5])
+    const repository = new PrismaSearchRepository(thresholdContext, db)
+    const base: SearchPageFilters = { shopId: f.shop.id, sort: 'newest', locale: 'en', badges: [], page: 1, limit: 1, newSince: cutoff }
+    const cases: Partial<SearchPageFilters>[] = [
+      {}, { page: 2 }, { page: 20 }, { cursor: newest.product.id }, { cursor: f.product.id }, { cursor: 'missing', page: 99 },
+      { badges: ['new'] }, { badges: ['in_stock'] }, { badges: ['new', 'in_stock'] }, { badges: ['unknown'] },
+      { minPrice: 200, maxPrice: 200, badges: ['in_stock'] }, { minPrice: 200, maxPrice: 200, inStock: true },
+      { categoryId: f.category.slug, brandId: f.brand.id }, { q: newest.variant.sku },
+    ]
+    for (const locale of ['en', 'th'] as const) for (const sort of ['newest', 'relevance'] as const) for (const input of cases) {
+      const filters = { ...base, ...input, locale, sort }
+      const fast = await repository.findSearchPage(filters)
+      const metricFirst = await repository.findSearchPage({ ...filters, rating: 0 })
+      expect(fast).toEqual(metricFirst)
+    }
+    const first = await repository.findSearchPage(base)
+    expect(first).toMatchObject({ total: 3, nextCursor: newest.product.id, products: [{ id: newest.product.id, metrics: { averageRating: 4.5, totalReviewCount: 2, soldCount: 103 } }] })
+    const stockBadge = await repository.findSearchPage({ ...base, minPrice: 200, maxPrice: 200, badges: ['in_stock'] })
+    expect(stockBadge.products.map((product) => product.id)).toEqual([middle.product.id])
+    const priceAndStock = await repository.findSearchPage({ ...base, minPrice: 200, maxPrice: 200, inStock: true })
+    expect(priceAndStock).toEqual({ products: [], total: 0, nextCursor: null })
+    await db.shop.update({ where: { id: f.shop.id }, data: { status: 'SUSPENDED' } })
+    expect(await repository.findSearchPage(base)).toEqual({ products: [], total: 0, nextCursor: null })
+  }, 20_000)
 
   it('retains search payment and cancellation evidence without adding shop or Payment conditions', async () => {
     const f = await numericThresholdFixture(db)

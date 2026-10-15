@@ -12,7 +12,12 @@ Each genuine deletion increments `ChatThread.contentRevision` and the message's 
 
 History retains tombstones as stable pagination and read anchors. Unread counts and inbox previews exclude deleted messages. The DTO removes deleted bodies, files, filenames, URLs, legacy arrays, product/order context, and the deleted message's own quote. Private content GET returns 404 when either the attachment or its parent is deleted.
 
-The client preserves monotonic message, quote, room-revision, and read-boundary state across every response. Revision changes trigger bounded refreshes of all loaded IDs. Concurrent changes retry for up to three scans and then wait for the next recovery attempt. Newly loaded older pages receive an authoritative refresh before display, even after the room revision was already reconciled. New-message recovery retains its separate contiguous creation cursor. Polling, focus, and reconnect repair missed reference-only `chat.message.changed` events.
+The client preserves monotonic message, quote, room-revision, and read-boundary state across every response. Revision changes trigger bounded refreshes of all loaded IDs. Concurrent changes retry for up to three scans and then wait for the next recovery attempt. Newly loaded older pages receive an authoritative refresh before display, even after the room revision was already reconciled. New-message recovery retains its separate contiguous creation cursor. Fresh
+messages at an already reconciled revision retain that proof. Older pages still
+receive their own authoritative refresh. Send responses refresh only the sent ID
+before trusting its message and live reply projection. Each full reconciliation
+merges its bounded refresh batches once. The message history has a memo boundary
+so composer keystrokes do not rebuild message rows. Polling, focus, and reconnect repair missed reference-only `chat.message.changed` events.
 
 New chat notifications use generic text. Notification API projections also hide legacy chat previews. The frontend renders localized generic chat notification text. Other notification types keep their existing content.
 

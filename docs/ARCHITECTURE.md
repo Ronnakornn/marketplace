@@ -139,12 +139,24 @@ Each logical invalidation groups its patterns into one cursor traversal and filt
 matching keys before bounded deletion. Single-pattern calls retain Redis glob
 semantics; grouped generated patterns use literal key segments and `*` wildcards.
 
+For newest/relevance search without rating or best-seller filtering, PostgreSQL
+selects the product page before computing review, sales and variant metrics.
+Metric-dependent sorts and filters retain candidate-wide evaluation. Both paths
+keep the existing repeatable-read snapshot, count and cursor semantics.
+
 ## Bounded operational reads
 
 Seller dashboard sales use exact database aggregates for lifetime and reporting
-day/month totals. Shipment statuses use grouped counts, and low-stock arithmetic
+day/month totals. Admin dashboard and reports group repeated status counts and
+money sums in PostgreSQL, preserving independent order/payment predicates and
+exact bigint results. Active-shop seller counts remain distinct users.
+Shipment statuses use grouped counts, and low-stock arithmetic
 filters in PostgreSQL before returning qualifying variants. Existing reporting
 calendar, ownership and complete low-stock response semantics remain unchanged.
+
+Seller Flash Sale enrollment searches active products in pages of at most 50,
+retains a selected variant while changing pages, and exposes product-query retry.
+Each campaign keeps its own selection, scoped to the selected shop.
 
 Guest cart login merge sends one stock-capped request per variant through
 `POST /api/cart/guest-items`. The server keeps ordinary add-item validation strict

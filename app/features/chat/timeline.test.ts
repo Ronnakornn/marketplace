@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ChatMessage, ChatRoom } from "./api";
-import { createChatMessageId, mergeMessages, mergeRoom, recoverChatGap, timelineFromRoom } from "./timeline";
+import { createChatMessageId, mergeMessages, mergeRoom, mergeTimelineMessages, recoverChatGap, timelineFromRoom } from "./timeline";
 
 function message(index: number): ChatMessage {
   return { id: `m${index.toString().padStart(3, "0")}`, sender: { id: "seller", name: "Seller", email: "seller@example.com", role: "SELLER" },
@@ -13,6 +13,12 @@ function page(items: ChatMessage[], hasMore = false): ChatRoom {
     pagination: { page: 1, limit: 30, total: 75, totalPages: 3, hasMore, beforeCursor: items[0]?.id ?? null, afterCursor: items.at(-1)?.id ?? null } };
 }
 describe("contiguous chat recovery", () => {
+  it('preserves matching revision proof and invalidates newly introduced stale snapshots', () => {
+    const current = { ...timelineFromRoom({ ...page([message(1)]), contentRevision: '2' }), reconciledRevision: '2' };
+    expect(mergeTimelineMessages(current, [message(2)], '2').reconciledRevision).toBe('2');
+    expect(mergeTimelineMessages(current, [message(2)], '1').reconciledRevision).toBeNull();
+    expect(mergeTimelineMessages(current, [message(1)], '1').reconciledRevision).toBe('2');
+  });
   it('does not restore deleted bodies or quote content from any stale message response', () => {
     const source = message(1);
     const reply = { ...message(2), reply: { messageId: source.id, attachmentId: null, contentVersion: 0, unavailable: false, sender: source.sender, body: source.body, image: null } };

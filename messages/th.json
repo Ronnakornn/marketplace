@@ -3094,6 +3094,10 @@
           "stockLimit": "โควตา",
           "perUserLimit": "สิทธิ์ต่อผู้ซื้อ",
           "enroll": "เข้าร่วม",
+          "searchProducts": "ค้นหาสินค้า",
+          "productsLoadFailed": "โหลดสินค้าไม่สำเร็จ",
+          "productsLoading": "กำลังโหลดสินค้า...",
+          "productsPage": "หน้า {page} | {count} สินค้า",
           "flashSaleSaveFailed": "บันทึกสินค้าแฟลชเซลไม่สำเร็จ"
         },
         "finance": {

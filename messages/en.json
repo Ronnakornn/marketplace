@@ -3094,6 +3094,10 @@
           "stockLimit": "Quota",
           "perUserLimit": "Per-buyer cap",
           "enroll": "Enroll",
+          "searchProducts": "Search products",
+          "productsLoadFailed": "Could not load products.",
+          "productsLoading": "Loading products...",
+          "productsPage": "Page {page} | {count} products",
           "flashSaleSaveFailed": "Flash-sale item could not be saved."
         },
         "finance": {

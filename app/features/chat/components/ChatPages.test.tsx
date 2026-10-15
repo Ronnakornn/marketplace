@@ -10,18 +10,18 @@ import { ChatInboxPage, ChatThreadPage, chatErrorKey } from "./ChatPages";
 import { ApiClientError } from "#/lib/api-client";
 
 const mocks = vi.hoisted(() => ({
-  records: new Map<string, ChatMessage>(), refresh: vi.fn(), remove: vi.fn(), fetchRooms: vi.fn(), fetchRoom: vi.fn(), send: vi.fn(), read: vi.fn(), realtime: vi.fn(),
+  date: vi.fn((date: string) => date), records: new Map<string, ChatMessage>(), refresh: vi.fn(), remove: vi.fn(), fetchRooms: vi.fn(), fetchRoom: vi.fn(), send: vi.fn(), read: vi.fn(), realtime: vi.fn(),
 }));
 vi.mock("next/link", () => ({ default: ({ children, href, ...props }: { children: ReactNode; href: string }) => <a href={href} {...props}>{children}</a> }));
 vi.mock("#/components/BuyerShell", () => ({ BuyerTopBar: ({ title }: { title: string }) => <header>{title}</header> }));
 vi.mock("#/features/chat/api", async (original) => ({
   ...await original<typeof import("../api")>(), fetchChatRooms: mocks.fetchRooms, fetchChatRoom: async (...args: unknown[]) => { const value = await mocks.fetchRoom(...args); for (const item of value.messages ?? []) mocks.records.set(item.id, item); return value; },
   refreshChatMessages: mocks.refresh, deleteChatContent: mocks.remove,
-  sendChatMessage: mocks.send, markChatRead: mocks.read,
+  sendChatMessage: async (...args: unknown[]) => { const value = await mocks.send(...args); if (value.sentMessage) mocks.records.set(value.sentMessage.id, value.sentMessage); return value; }, markChatRead: mocks.read,
 }));
 vi.mock("#/features/chat/realtime", () => ({ useChatRealtime: mocks.realtime }));
 vi.mock("#/i18n/client", () => ({
-  useFormatters: () => ({ date: (date: string) => date }), useTranslations: () => (key: string) => key,
+  useFormatters: () => ({ date: mocks.date }), useTranslations: () => (key: string) => key,
 }));
 vi.mock("#/i18n/navigation", () => ({ useLocalePath: () => (path: string) => "/th" + path }));
 vi.mock("#/lib/auth-client", () => ({ useSession: () => ({ data: { user: { id: "buyer" } } }) }));
@@ -80,6 +80,100 @@ describe("chat inbox", () => {
 });
 
 describe("chat thread", () => {
+  it('does not format or rebuild message history when typing a draft', async () => {
+    const { client } = renderPage(<ChatThreadPage audience="buyer" roomId="room" />);
+    await screen.findByText('Hello');
+    await waitFor(() => expect(client.getQueryData<{ reconciledRevision: string }>(['chat-room', 'room', 'buyer', '', 'buyer'])?.reconciledRevision).toBe('0'));
+    await waitFor(() => expect(mocks.read).toHaveBeenCalled());
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+    const formats = mocks.date.mock.calls.length;
+    fireEvent.change(screen.getByRole('textbox', { name: 'chat.typeMessage' }), { target: { value: 'A new draft' } });
+    expect(screen.getByRole('textbox', { name: 'chat.typeMessage' })).toHaveProperty('value', 'A new draft');
+    expect(mocks.date.mock.calls.length).toBe(formats);
+    expect(screen.getByText('Hello')).toBeTruthy();
+  });
+
+  it('keeps reconciled history when a fresh same-revision gap page adds messages', async () => {
+    let incoming = false;
+    mocks.fetchRoom.mockImplementation((_id: string, query: { after?: string }) => Promise.resolve(room({ messages: query.after ? incoming ? [message('m2', 'seller', 'Incoming')] : [] : [message()] })));
+    const { client } = renderPage(<ChatThreadPage audience="buyer" roomId="room" />);
+    await screen.findByText('Hello');
+    await waitFor(() => expect(client.getQueryData<{ reconciledRevision: string }>(['chat-room', 'room', 'buyer', '', 'buyer'])?.reconciledRevision).toBe('0'));
+    mocks.refresh.mockClear();
+    incoming = true;
+    const notify = mocks.realtime.mock.calls.at(-1)?.[1];
+    await act(async () => { notify?.(); });
+    await screen.findByText('Incoming');
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it('refreshes only the sent snapshot and redacts a reply captured before the proven deletion revision', async () => {
+    mocks.fetchRoom.mockImplementation((_id: string, query: { after?: string }) => Promise.resolve(room({ contentRevision: '1', messages: query.after ? [] : [message()] })));
+    mocks.refresh.mockImplementation(async (_room: string, ids: string[]) => ({ contentRevision: '1', messages: ids.flatMap((id) => {
+      const item = mocks.records.get(id);
+      return item ? [{ ...item, reply: item.reply ? { ...item.reply, unavailable: true, body: null, image: null, contentVersion: 1 } : null }] : [];
+    }) }));
+    const { client } = renderPage(<ChatThreadPage audience="buyer" roomId="room" />);
+    await screen.findByText('Hello');
+    await waitFor(() => expect(client.getQueryData<{ reconciledRevision: string }>(['chat-room', 'room', 'buyer', '', 'buyer'])?.reconciledRevision).toBe('1'));
+    const source = message('m0', 'seller', 'Deleted secret');
+    mocks.send.mockResolvedValue(room({ contentRevision: '1', sentMessage: { ...message('m2', 'buyer', 'Reply'), reply: { messageId: source.id, attachmentId: null, contentVersion: 0, unavailable: false, sender: source.sender, body: source.body, image: null } } }));
+    mocks.refresh.mockClear();
+    fireEvent.change(screen.getByRole('textbox', { name: 'chat.typeMessage' }), { target: { value: 'Reply' } });
+    fireEvent.click(screen.getByRole('button', { name: 'chat.send' }));
+    await screen.findByText('Reply', { selector: 'p' });
+    expect(screen.queryByText('Deleted secret')).toBeNull();
+    expect(mocks.refresh.mock.calls.map((call) => call[1])).toEqual([['m2']]);
+    expect(client.getQueryData<{ reconciledRevision: string }>(['chat-room', 'room', 'buyer', '', 'buyer'])?.reconciledRevision).toBe('1');
+  });
+
+  it('waits for gap recovery instead of rendering a stale send snapshot when its refresh fails', async () => {
+    const { client } = renderPage(<ChatThreadPage audience="buyer" roomId="room" />);
+    await screen.findByText('Hello');
+    await waitFor(() => expect(client.getQueryData<{ reconciledRevision: string }>(['chat-room', 'room', 'buyer', '', 'buyer'])?.reconciledRevision).toBe('0'));
+    let recover: ((value: ChatRoom) => void) | undefined;
+    mocks.fetchRoom.mockImplementation(() => new Promise<ChatRoom>((resolve) => { recover = resolve; }));
+    mocks.refresh.mockRejectedValueOnce(new Error('refresh unavailable'));
+    const sent = message('m2', 'buyer', 'Recovered send');
+    const source = message('m0', 'seller', 'Deleted secret');
+    mocks.send.mockResolvedValue(room({ sentMessage: { ...sent, reply: { messageId: source.id, attachmentId: null, contentVersion: 0, unavailable: false, sender: source.sender, body: source.body, image: null } } }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'chat.typeMessage' }), { target: { value: 'Recovered send' } });
+    fireEvent.click(screen.getByRole('button', { name: 'chat.send' }));
+    await waitFor(() => expect(recover).toBeDefined());
+    expect(screen.queryByText('Deleted secret')).toBeNull();
+    expect(screen.queryByText('Recovered send', { selector: 'p' })).toBeNull();
+    await act(async () => { recover?.(room({ messages: [sent] })); });
+    await screen.findByText('Recovered send', { selector: 'p' });
+  });
+
+  it('retains first-batch tombstones when a later reconciliation batch fails', async () => {
+    const file = { id: 'image', fileName: 'private.png', contentType: 'image/png', byteSize: 12, kind: 'IMAGE', contentUrl: '/api/private' } satisfies ChatMessage['files'][number];
+    const source = { ...message('m1', 'seller', 'Private body'), files: [file] };
+    const items = Array.from({ length: 51 }, (_, index) => index === 0 ? source : message(`m${index + 1}`, 'seller', `Loaded ${index + 1}`));
+    items[50] = { ...items[50], reply: { messageId: source.id, attachmentId: file.id, contentVersion: 0, unavailable: false, sender: source.sender, body: source.body, image: file } };
+    mocks.fetchRoom.mockImplementation((_id: string, query: { after?: string }) => Promise.resolve(room({ messages: query.after ? [] : items })));
+    const { client, container } = renderPage(<ChatThreadPage audience="buyer" roomId="room" />);
+    await waitFor(() => expect(client.getQueryData<{ reconciledRevision: string }>(['chat-room', 'room', 'buyer', '', 'buyer'])?.reconciledRevision).toBe('0'));
+    expect(container.querySelector('[data-attachment-id="image"]')).toBeTruthy();
+    mocks.fetchRoom.mockResolvedValue(room({ contentRevision: '1', messages: [] }));
+    mocks.refresh.mockReset();
+    mocks.refresh.mockImplementation(async (_room: string, ids: string[]) => {
+      if (ids.includes('m51')) throw new Error('second batch unavailable');
+      return { contentRevision: '1', messages: ids.flatMap((id) => {
+        const item = mocks.records.get(id);
+        return item ? [id === source.id ? { ...item, body: null, deleted: true, files: [], contentVersion: 1 } : item] : [];
+      }) };
+    });
+    const notify = mocks.realtime.mock.calls.at(-1)?.[1];
+    await act(async () => { notify?.(); });
+    await screen.findByText('chat.syncError');
+    expect(screen.queryByText('Private body')).toBeNull();
+    expect(container.querySelector('[data-attachment-id="image"]')).toBeNull();
+    expect(container.querySelector('a[href^="/api/private"]')).toBeNull();
+    expect(mocks.refresh.mock.calls.map((call) => call[1].length)).toEqual([50, 1]);
+    expect(client.getQueryData<{ reconciledRevision: string }>(['chat-room', 'room', 'buyer', '', 'buyer'])?.reconciledRevision).toBe('0');
+  });
+
   it('refreshes a late older page even after the deletion revision was already reconciled', async () => {
     const newest = message('m3', 'seller', 'Newest');
     const stale = message('m1', 'seller', 'Removed private history');

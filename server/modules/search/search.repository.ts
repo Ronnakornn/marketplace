@@ -379,6 +379,8 @@ export class PrismaSearchRepository implements ISearchRepository {
   }
 
   private buildSearchPageQuery(filters: SearchPageFilters): Prisma.Sql {
+    const pageBeforeMetrics = (filters.sort === 'newest' || filters.sort === 'relevance')
+      && filters.rating === undefined && !filters.badges.includes('best_seller')
     const predicates = [Prisma.sql`p.status = 'ACTIVE' AND s.status = 'ACTIVE'`]
     if (filters.categoryId) predicates.push(Prisma.sql`c.slug = ${filters.categoryId} AND c."isActive"`)
     if (filters.brandId) predicates.push(Prisma.sql`p."brandId" = ${filters.brandId}::uuid`)
@@ -416,6 +418,19 @@ export class PrismaSearchRepository implements ISearchRepository {
         default: metricPredicates.push(Prisma.sql`FALSE`)
       }
     }
+    if (pageBeforeMetrics) {
+      for (const badge of filters.badges) {
+        switch (badge) {
+          case 'new': predicates.push(Prisma.sql`p."createdAt" >= ${filters.newSince}`); break
+          case 'in_stock': predicates.push(Prisma.sql`EXISTS (
+            SELECT 1 FROM "ProductVariant" stock JOIN "Inventory" inventory ON inventory."variantId" = stock.id
+            WHERE stock."productId" = p.id AND stock.status = 'ACTIVE'
+              AND inventory."quantityOnHand" > inventory."quantityReserved"
+          )`); break
+          default: predicates.push(Prisma.sql`FALSE`)
+        }
+      }
+    }
     const stable = Prisma.sql`"createdAt" DESC, id DESC`
     const titleTie = Prisma.sql`${localeSortKey(Prisma.sql`"localizedTitle"`)} ASC, ${stable}`
     const ordering: Record<SearchSort, Prisma.Sql> = {
@@ -429,6 +444,12 @@ export class PrismaSearchRepository implements ISearchRepository {
     const start = filters.cursor
       ? Prisma.sql`COALESCE((SELECT position FROM ranked WHERE id::text = ${filters.cursor}), 0)`
       : Prisma.sql`${(filters.page - 1) * filters.limit}::bigint`
+    const rankedPage = Prisma.sql`ranked AS (
+      SELECT *, ROW_NUMBER() OVER (ORDER BY ${ordering[filters.sort]}) AS position
+      FROM ${pageBeforeMetrics ? Prisma.sql`candidates` : Prisma.sql`filtered`}
+    ), page AS MATERIALIZED (
+      SELECT * FROM ranked WHERE position > ${start} AND position <= ${start} + ${filters.limit} ORDER BY position
+    )`
     return Prisma.sql`
       WITH candidates AS (
         SELECT p.id, p."createdAt", COALESCE(
@@ -437,13 +458,14 @@ export class PrismaSearchRepository implements ISearchRepository {
           NULLIF(BTRIM(p.title, ${TEXT_TRIM_CHARACTERS}), ''), p.title) AS "localizedTitle"
         FROM "Product" p JOIN "Shop" s ON s.id = p."shopId" LEFT JOIN "Category" c ON c.id = p."categoryId"
         WHERE ${Prisma.join(predicates, ' AND ')}
-      ), variant_metrics AS (
+      ), ${pageBeforeMetrics ? Prisma.sql`${rankedPage},` : Prisma.empty}
+      metric_candidates AS (SELECT * FROM ${pageBeforeMetrics ? Prisma.sql`page` : Prisma.sql`candidates`}), variant_metrics AS (
         SELECT v."productId", MIN(v.price) AS "minPrice", BOOL_OR(COALESCE(i."quantityOnHand" > i."quantityReserved", FALSE)) AS "hasStock"
-        FROM "ProductVariant" v JOIN candidates p ON p.id = v."productId"
+        FROM "ProductVariant" v JOIN metric_candidates p ON p.id = v."productId"
         LEFT JOIN "Inventory" i ON i."variantId" = v.id WHERE v.status = 'ACTIVE' GROUP BY v."productId"
       ), review_metrics AS (
         SELECT r."productId", COUNT(*) AS "totalReviewCount", SUM(r.rating)::double precision / COUNT(*)::double precision AS average
-        FROM "Review" r JOIN candidates p ON p.id = r."productId" WHERE r.status = 'PUBLISHED' GROUP BY r."productId"
+        FROM "Review" r JOIN metric_candidates p ON p.id = r."productId" WHERE r.status = 'PUBLISHED' GROUP BY r."productId"
       ), review_binary AS (
         SELECT *, float8send(average) AS bits FROM review_metrics
       ), review_exact AS (
@@ -457,24 +479,20 @@ export class PrismaSearchRepository implements ISearchRepository {
       ), sales_metrics AS (
         SELECT v."productId", SUM(oi.quantity)::bigint AS "soldCount"
         FROM "OrderItem" oi JOIN "ProductVariant" v ON v.id = oi."variantId" AND v.status = 'ACTIVE'
-        JOIN candidates p ON p.id = v."productId" JOIN "Order" o ON o.id = oi."orderId"
+        JOIN metric_candidates p ON p.id = v."productId" JOIN "Order" o ON o.id = oi."orderId"
         WHERE o."paymentStatus" = 'SUCCEEDED' AND o.status <> 'CANCELED' AND oi."fulfillmentStatus" <> 'CANCELED'
         GROUP BY v."productId"
       ), metrics AS (
         SELECT p.*, v."minPrice", v."hasStock", COALESCE(r."totalReviewCount", 0) AS "totalReviewCount",
           COALESCE((div(r.significand * 200 + r.denominator, r.denominator * 2) / 100)::double precision, 0) AS "averageRating",
           COALESCE(s."soldCount", 0) AS "soldCount"
-        FROM candidates p JOIN variant_metrics v ON v."productId" = p.id
+        FROM metric_candidates p JOIN variant_metrics v ON v."productId" = p.id
         LEFT JOIN review_exact r ON r."productId" = p.id LEFT JOIN sales_metrics s ON s."productId" = p.id
-      ), filtered AS (
+      ), ${pageBeforeMetrics ? Prisma.empty : Prisma.sql`filtered AS (
         SELECT * FROM metrics ${metricPredicates.length ? Prisma.sql`WHERE ${Prisma.join(metricPredicates, ' AND ')}` : Prisma.empty}
-      ), ranked AS (
-        SELECT *, ROW_NUMBER() OVER (ORDER BY ${ordering[filters.sort]}) AS position FROM filtered
-      ), page AS (
-        SELECT * FROM ranked WHERE position > ${start} AND position <= ${start} + ${filters.limit} ORDER BY position
-      ), total AS (SELECT COUNT(*) AS total FROM filtered)
-      SELECT page.id, page."averageRating", page."totalReviewCount", page."soldCount", page.position, total.total
-      FROM total LEFT JOIN page ON TRUE ORDER BY page.position
+      ), ${rankedPage},`} total AS (SELECT COUNT(*) AS total FROM ${pageBeforeMetrics ? Prisma.sql`candidates` : Prisma.sql`filtered`})
+      SELECT result.id, result."averageRating", result."totalReviewCount", result."soldCount", result.position, total.total
+      FROM total LEFT JOIN ${pageBeforeMetrics ? Prisma.sql`metrics` : Prisma.sql`page`} result ON TRUE ORDER BY result.position
     `
   }
 

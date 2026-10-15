@@ -461,6 +461,14 @@ const delayedShipment = (now: Date) => PrismaSql.sql`s.status::text IN ('PENDING
 const delayedShipmentJoins = PrismaSql.sql`FROM "Shipment" s LEFT JOIN "ShopOrder" so ON so."orderId" = s."orderId" AND so."shopId" = s."shopId"
   LEFT JOIN "ShopSaleSnapshot" sale ON sale."shopOrderId" = so.id`
 
+function countGroups(rows: ReadonlyArray<{ _count: { _all: number } }>): number {
+  return rows.reduce((sum, row) => sum + row._count._all, 0)
+}
+
+function countStatuses(rows: ReadonlyArray<{ status: string; _count: { _all: number } }>, ...statuses: string[]): number {
+  return countGroups(rows.filter(row => statuses.includes(row.status)))
+}
+
 export class PrismaAdminRepository implements IAdminRepository {
   private logger: ILogger
 
@@ -474,158 +482,75 @@ export class PrismaAdminRepository implements IAdminRepository {
 
   async getDashboardCounts(): Promise<AdminDashboardCounts> {
     this.logger.debug('PrismaAdminRepository.getDashboardCounts')
-    const [
-      totalUsers,
-      buyers,
-      sellers,
-      totalShops,
-      activeShops,
-      suspendedShops,
-      totalProducts,
-      activeProducts,
-      bannedProducts,
-      totalOrders,
-      paidOrders,
-      deliveredOrders,
-      cancelledOrders,
-      pendingRefunds,
-      successRefunds,
-      failedRefunds,
-      pendingPayments,
-      failedPayments,
-      delayedShipments,
-      returnEscalations,
-      refundEscalations,
-      pendingShops,
-      pendingProducts,
-      payoutApprovals,
-      fraudOpen,
-    ] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.user.count({ where: { role: 'USER' } }),
+    const [users, sellers, shops, products, orders, refunds, delayedShipments, returns, payouts, fraud] = await Promise.all([
+      this.prisma.user.groupBy({ by: ['role'], _count: { _all: true } }),
       this.prisma.user.count({ where: { shops: { some: { status: 'ACTIVE' } } } }),
-      this.prisma.shop.count(),
-      this.prisma.shop.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.shop.count({ where: { status: 'SUSPENDED' } }),
-      this.prisma.product.count(),
-      this.prisma.product.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.product.count({ where: { status: 'ARCHIVED' } }),
-      this.prisma.order.count(),
-      this.prisma.order.count({ where: { status: 'PAID' } }),
-      this.prisma.order.count({ where: { status: 'DELIVERED' } }),
-      this.prisma.order.count({ where: { status: 'CANCELED' } }),
-      this.prisma.refund.count({ where: { status: 'PENDING' } }),
-      this.prisma.refund.count({ where: { status: 'SUCCESS' } }),
-      this.prisma.refund.count({ where: { status: 'FAILED' } }),
-      this.prisma.order.count({ where: { paymentStatus: { in: ['PENDING', 'REQUIRES_ACTION'] } } }),
-      this.prisma.order.count({ where: { paymentStatus: 'FAILED' } }),
+      this.prisma.shop.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.product.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.order.groupBy({ by: ['status', 'paymentStatus'], _count: { _all: true } }),
+      this.prisma.refund.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.$queryRaw<Array<{ count: bigint }>>(PrismaSql.sql`SELECT COUNT(*) AS count ${delayedShipmentJoins} WHERE ${delayedShipment(new Date())}`).then(rows => Number(rows[0]?.count ?? 0n)),
       this.prisma.returnRequest.count({ where: { status: { in: ['REQUESTED', 'APPROVED', 'RECEIVED'] } } }),
-      this.prisma.refund.count({ where: { status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } } }),
-      this.prisma.shop.count({ where: { status: 'PENDING' } }),
-      this.prisma.product.count({ where: { status: 'PENDING_REVIEW' } }),
       this.prisma.sellerPayout.count({ where: { status: { in: ['requested', 'approved'] } } }),
       this.prisma.fraudCase.count({ where: { status: { in: ['OPEN', 'REVIEWED'] } } }),
     ])
-
     return {
-      users: { total: totalUsers, buyers, sellers },
-      shops: { total: totalShops, active: activeShops, suspended: suspendedShops },
-      products: { total: totalProducts, active: activeProducts, banned: bannedProducts },
-      orders: { total: totalOrders, paid: paidOrders, delivered: deliveredOrders, cancelled: cancelledOrders },
-      refunds: { pending: pendingRefunds, success: successRefunds, failed: failedRefunds },
+      users: { total: countGroups(users), buyers: countGroups(users.filter(row => row.role === 'USER')), sellers },
+      shops: { total: countGroups(shops), active: countStatuses(shops, 'ACTIVE'), suspended: countStatuses(shops, 'SUSPENDED') },
+      products: { total: countGroups(products), active: countStatuses(products, 'ACTIVE'), banned: countStatuses(products, 'ARCHIVED') },
+      orders: { total: countGroups(orders), paid: countStatuses(orders, 'PAID'), delivered: countStatuses(orders, 'DELIVERED'), cancelled: countStatuses(orders, 'CANCELED') },
+      refunds: { pending: countStatuses(refunds, 'PENDING'), success: countStatuses(refunds, 'SUCCESS'), failed: countStatuses(refunds, 'FAILED') },
       exceptions: {
-        pendingPayments,
-        failedPayments,
+        pendingPayments: countGroups(orders.filter(row => row.paymentStatus === 'PENDING' || row.paymentStatus === 'REQUIRES_ACTION')),
+        failedPayments: countGroups(orders.filter(row => row.paymentStatus === 'FAILED')),
         delayedShipments,
-        returnEscalations,
-        refundEscalations,
-        pendingShops,
-        pendingProducts,
-        payoutApprovals,
-        fraudOpen,
+        returnEscalations: returns,
+        refundEscalations: countStatuses(refunds, 'PENDING', 'PROCESSING', 'FAILED'),
+        pendingShops: countStatuses(shops, 'PENDING'),
+        pendingProducts: countStatuses(products, 'PENDING_REVIEW'),
+        payoutApprovals: payouts,
+        fraudOpen: fraud,
       },
     }
   }
 
   async getReportMetrics(): Promise<AdminReportMetrics> {
     this.logger.debug('PrismaAdminRepository.getReportMetrics')
-    const [
-      paidSales,
-      paidOrderCount,
-      totalOrders,
-      pendingPaymentOrders,
-      paidOrders,
-      shippedOrders,
-      deliveredOrders,
-      cancelledOrders,
-      refundedOrders,
-      refundTotal,
-      pendingRefunds,
-      processingRefunds,
-      successRefunds,
-      failedRefunds,
-      requestedPayouts,
-      approvedPayouts,
-      paidPayouts,
-      pendingCommissions,
-      approvedCommissions,
-      voidCommissions,
-      totalUsers,
-      sellers,
-      totalShops,
-      totalProducts,
-      activeProducts,
-    ] = await Promise.all([
-      this.prisma.order.aggregate({ where: { paymentStatus: 'SUCCEEDED' }, _sum: { grandTotal: true } }),
-      this.prisma.order.count({ where: { paymentStatus: 'SUCCEEDED' } }),
-      this.prisma.order.count(),
-      this.prisma.order.count({ where: { status: 'PENDING_PAYMENT' } }),
-      this.prisma.order.count({ where: { status: 'PAID' } }),
-      this.prisma.order.count({ where: { status: 'SHIPPED' } }),
-      this.prisma.order.count({ where: { status: 'DELIVERED' } }),
-      this.prisma.order.count({ where: { status: 'CANCELED' } }),
-      this.prisma.order.count({ where: { status: 'REFUNDED' } }),
-      this.prisma.refund.aggregate({ _sum: { amount: true } }),
-      this.prisma.refund.count({ where: { status: 'PENDING' } }),
-      this.prisma.refund.count({ where: { status: 'PROCESSING' } }),
-      this.prisma.refund.count({ where: { status: 'SUCCESS' } }),
-      this.prisma.refund.count({ where: { status: 'FAILED' } }),
-      this.prisma.sellerPayout.aggregate({ where: { status: 'requested' }, _sum: { amount: true }, _count: true }),
-      this.prisma.sellerPayout.aggregate({ where: { status: 'approved' }, _sum: { amount: true }, _count: true }),
-      this.prisma.sellerPayout.aggregate({ where: { status: 'paid' }, _sum: { amount: true }, _count: true }),
-      this.prisma.affiliateCommission.aggregate({ where: { status: 'PENDING' }, _sum: { commission: true } }),
-      this.prisma.affiliateCommission.aggregate({ where: { status: 'APPROVED' }, _sum: { commission: true } }),
-      this.prisma.affiliateCommission.aggregate({ where: { status: 'VOID' }, _sum: { commission: true } }),
+    const [orders, refunds, payouts, commissions, totalUsers, sellers, totalShops, products] = await Promise.all([
+      this.prisma.order.groupBy({ by: ['status', 'paymentStatus'], _count: { _all: true }, _sum: { grandTotal: true } }),
+      this.prisma.refund.groupBy({ by: ['status'], _count: { _all: true }, _sum: { amount: true } }),
+      this.prisma.sellerPayout.groupBy({ by: ['status'], _count: { _all: true }, _sum: { amount: true } }),
+      this.prisma.affiliateCommission.groupBy({ by: ['status'], _sum: { commission: true } }),
       this.prisma.user.count(),
       this.prisma.user.count({ where: { shops: { some: { status: 'ACTIVE' } } } }),
       this.prisma.shop.count(),
-      this.prisma.product.count(),
-      this.prisma.product.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.product.groupBy({ by: ['status'], _count: { _all: true } }),
     ])
-    const grossCents = moneyInteger(paidSales._sum.grandTotal ?? 0)
+    const succeeded = orders.filter(row => row.paymentStatus === 'SUCCEEDED')
+    const grossCents = succeeded.reduce((sum, row) => sum + (row._sum.grandTotal ?? 0n), 0n)
+    const paidOrderCount = countGroups(succeeded)
     return {
       sales: {
         grossCents,
         paidOrderCount,
         averageOrderValueCents: paidOrderCount === 0 ? 0n : moneyRoundedRatio(grossCents, BigInt(paidOrderCount)),
       },
-      orders: { total: totalOrders, pendingPayment: pendingPaymentOrders, paid: paidOrders, shipped: shippedOrders, delivered: deliveredOrders, cancelled: cancelledOrders, refunded: refundedOrders },
-      refunds: { totalCents: moneyInteger(refundTotal._sum.amount ?? 0), pending: pendingRefunds, processing: processingRefunds, success: successRefunds, failed: failedRefunds },
+      orders: { total: countGroups(orders), pendingPayment: countStatuses(orders, 'PENDING_PAYMENT'), paid: countStatuses(orders, 'PAID'), shipped: countStatuses(orders, 'SHIPPED'), delivered: countStatuses(orders, 'DELIVERED'), cancelled: countStatuses(orders, 'CANCELED'), refunded: countStatuses(orders, 'REFUNDED') },
+      refunds: { totalCents: refunds.reduce((sum, row) => sum + (row._sum.amount ?? 0n), 0n), pending: countStatuses(refunds, 'PENDING'), processing: countStatuses(refunds, 'PROCESSING'), success: countStatuses(refunds, 'SUCCESS'), failed: countStatuses(refunds, 'FAILED') },
       payouts: {
-        requestedCents: moneyInteger(requestedPayouts._sum.amount ?? 0),
-        approvedCents: moneyInteger(approvedPayouts._sum.amount ?? 0),
-        paidCents: moneyInteger(paidPayouts._sum.amount ?? 0),
-        requested: requestedPayouts._count,
-        approved: approvedPayouts._count,
-        paid: paidPayouts._count,
+        requestedCents: payouts.find(row => row.status === 'requested')?._sum.amount ?? 0n,
+        approvedCents: payouts.find(row => row.status === 'approved')?._sum.amount ?? 0n,
+        paidCents: payouts.find(row => row.status === 'paid')?._sum.amount ?? 0n,
+        requested: countStatuses(payouts, 'requested'),
+        approved: countStatuses(payouts, 'approved'),
+        paid: countStatuses(payouts, 'paid'),
       },
       commissions: {
-        pendingCents: moneyInteger(pendingCommissions._sum.commission ?? 0),
-        approvedCents: moneyInteger(approvedCommissions._sum.commission ?? 0),
-        voidCents: moneyInteger(voidCommissions._sum.commission ?? 0),
+        pendingCents: commissions.find(row => row.status === 'PENDING')?._sum.commission ?? 0n,
+        approvedCents: commissions.find(row => row.status === 'APPROVED')?._sum.commission ?? 0n,
+        voidCents: commissions.find(row => row.status === 'VOID')?._sum.commission ?? 0n,
       },
-      marketplace: { users: totalUsers, sellers, shops: totalShops, products: totalProducts, activeProducts },
+      marketplace: { users: totalUsers, sellers, shops: totalShops, products: countGroups(products), activeProducts: countStatuses(products, 'ACTIVE') },
     }
   }
 
