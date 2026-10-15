@@ -14,6 +14,8 @@ export interface SendChatMessageInput {
   orderId?: string
   scope?: ChatAudience
   files?: File[]
+  replyToMessageId?: string
+  replyToAttachmentId?: string
 }
 export interface ChatPaginationInput {
   page?: number | string
@@ -28,6 +30,9 @@ export interface ChatUserSummary { id: string; name: string; email: string; role
 export interface ChatShopSummary { id: string; name: string; slug: string; ownerId: string }
 export interface ChatReadBoundary { messageId: string | null; createdAt: string }
 export interface ChatMessageResponse {
+  contentVersion: number
+  deleted: boolean
+  reply: null | { messageId: string; attachmentId: string | null; contentVersion: number; unavailable: boolean; sender: ChatUserSummary; body: string | null; image: ChatMessageResponse['files'][number] | null }
   id: string
   sender: ChatUserSummary
   messageType: ChatMessageKind
@@ -39,6 +44,7 @@ export interface ChatMessageResponse {
   order: { id: string; orderNumber: string; status: string } | null
 }
 export interface ChatRoomResponse {
+  contentRevision: string
   roomId: string
   shop: ChatShopSummary
   buyer: ChatUserSummary

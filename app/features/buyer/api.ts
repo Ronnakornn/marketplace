@@ -335,6 +335,16 @@ export async function addCartItem(variantId: string, quantity: number): Promise<
   }));
 }
 
+export type GuestCartMergeResult = NonNullable<Treaty.Data<ReturnType<typeof api.api.cart["guest-items"]["post"]>>>;
+
+export async function mergeGuestCartItem(userId: string, variantId: string, quantity: number): Promise<GuestCartMergeResult> {
+  return requestApi<GuestCartMergeResult>("/api/cart/guest-items", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ userId, variantId, quantity }),
+  });
+}
+
 export async function updateCartItem(itemId: string, quantity: number): Promise<BuyerCart> {
   return normalizeCart(await apiFetch(`/api/cart/items/${itemId}`, {
     method: "PATCH",
@@ -431,10 +441,15 @@ export async function fetchOrderTracking(orderId: string): Promise<BuyerOrderTra
   return requestApi<BuyerOrderTracking>(`/api/orders/${orderId}/tracking`);
 }
 
-export async function fetchNotifications(scope: "all" | "seller" = "all"): Promise<BuyerNotification[]> {
-  const response = await apiFetch(`/api/notifications${scope === "seller" ? "?scope=seller" : ""}`);
-  const rawItems = Array.isArray(response) ? response : readArray((response as Record<string, unknown>)?.items);
-  return rawItems.map((item) => {
+export type NotificationCategory = NonNullable<NonNullable<Parameters<typeof api.api.notifications.get>[0]>['query']>['category'];
+export async function fetchNotificationUnreadCount(scope: "all" | "seller" = "all", options: { excludeChat?: boolean } = {}) {
+  return requestApi<NonNullable<Treaty.Data<ReturnType<(typeof api.api.notifications)["unread-count"]["get"]>>>>(`/api/notifications/unread-count${toQuery({ scope, excludeChat: options.excludeChat === undefined ? undefined : String(options.excludeChat) })}`);
+}
+
+export async function fetchNotifications(scope: "all" | "seller" = "all", options: { cursor?: string; limit?: number; category?: NotificationCategory } = {}) {
+  const response = toRecord(await apiFetch(`/api/notifications${toQuery({ scope, ...options })}`));
+  const rawItems = readArray(response.items);
+  const items = rawItems.map((item) => {
     const record = toRecord(item);
     return {
       id: readString(record.id),
@@ -446,6 +461,7 @@ export async function fetchNotifications(scope: "all" | "seller" = "all"): Promi
       createdAt: readString(record.createdAt, new Date().toISOString()),
     };
   });
+  return { items, nextCursor: optionalString(response.nextCursor) };
 }
 
 export async function fetchProfile(): Promise<BuyerProfile> {

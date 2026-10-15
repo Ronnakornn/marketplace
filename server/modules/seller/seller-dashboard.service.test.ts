@@ -1,8 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   FulfillmentStatus,
-  OrderStatus,
-  PaymentStatus,
   ProductStatus,
   Role,
   ShipmentStatus,
@@ -37,8 +35,8 @@ function createAppContext(): AppContext {
 function createRepoMock(): ISellerDashboardRepository {
   return {
     findSellerShops: vi.fn(),
-    findSalesOrderItems: vi.fn(),
-    findShipments: vi.fn(),
+    aggregateSales: vi.fn(),
+    countShipmentsByStatus: vi.fn(),
     countProductsByStatus: vi.fn(),
     findLowStockVariants: vi.fn(),
     findRecentOrders: vi.fn(),
@@ -81,28 +79,6 @@ function createActor(role: Role = 'USER') {
 }
 
 const now = new Date()
-
-function createSalesItem(overrides: Partial<{
-  shopId: string
-  lineTotal: bigint
-  createdAt: Date
-  status: OrderStatus
-  paymentStatus: PaymentStatus
-}> = {}): any {
-  return {
-    id: 'item-1',
-    shopId: overrides.shopId ?? 'shop-1',
-    lineTotal: overrides.lineTotal ?? 1000n,
-    quantity: 1,
-    order: {
-      id: 'order-1',
-      orderNumber: 'ORD-1',
-      status: overrides.status ?? 'PAID',
-      paymentStatus: overrides.paymentStatus ?? 'SUCCEEDED',
-      createdAt: overrides.createdAt ?? now,
-    },
-  }
-}
 
 function createOrderItem(overrides: Partial<{
   id: string
@@ -208,12 +184,12 @@ function setup() {
   repo = createRepoMock()
   service = new SellerDashboardService(createAppContext(), repo)
   vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', name: 'Shop One', slug: 'shop-one' }])
-  vi.mocked(repo.findSalesOrderItems).mockResolvedValue([createSalesItem({ lineTotal: 1000n })])
-  vi.mocked(repo.findShipments).mockResolvedValue([
-    { id: 's1', status: 'PENDING_PACK' as ShipmentStatus },
-    { id: 's2', status: 'SHIPPED' as ShipmentStatus },
-    { id: 's3', status: 'DELIVERED' as ShipmentStatus },
-    { id: 's4', status: 'CANCELED' as ShipmentStatus },
+  vi.mocked(repo.aggregateSales).mockResolvedValue({ todaySalesCents: 1000n, thisMonthSalesCents: 1000n, totalSalesCents: 1000n })
+  vi.mocked(repo.countShipmentsByStatus).mockResolvedValue([
+    { count: 1, status: 'PENDING_PACK' as ShipmentStatus },
+    { count: 1, status: 'SHIPPED' as ShipmentStatus },
+    { count: 1, status: 'DELIVERED' as ShipmentStatus },
+    { count: 1, status: 'CANCELED' as ShipmentStatus },
   ])
   vi.mocked(repo.countProductsByStatus).mockImplementation(async (_shopIds, active) => active ? 3 : 2)
   vi.mocked(repo.findLowStockVariants).mockResolvedValue([createLowStockVariant()])
@@ -224,6 +200,7 @@ function setup() {
 }
 
 describe('SellerDashboardService', () => {
+  afterEach(() => vi.useRealTimers())
   beforeEach(() => {
     vi.clearAllMocks()
     setup()
@@ -247,13 +224,13 @@ describe('SellerDashboardService', () => {
 
     await service.getDashboard(createActor())
     await service.getDashboard(createActor())
-    expect(repo.findSalesOrderItems).toHaveBeenCalledTimes(1)
+    expect(repo.aggregateSales).toHaveBeenCalledTimes(1)
 
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-2', name: 'Shop Two', slug: 'shop-two' }])
     await service.getDashboard(createActor())
 
-    expect(repo.findSalesOrderItems).toHaveBeenCalledTimes(2)
-    expect(repo.findSalesOrderItems).toHaveBeenLastCalledWith(['shop-2'])
+    expect(repo.aggregateSales).toHaveBeenCalledTimes(2)
+    expect(repo.aggregateSales).toHaveBeenLastCalledWith(['shop-2'], expect.any(Object))
   })
 
   it('scopes dashboard reads to requested owned shop', async () => {
@@ -264,7 +241,7 @@ describe('SellerDashboardService', () => {
 
     await service.getDashboard(createActor(), 10, 'shop-2')
 
-    expect(repo.findSalesOrderItems).toHaveBeenCalledWith(['shop-2'])
+    expect(repo.aggregateSales).toHaveBeenCalledWith(['shop-2'], expect.any(Object))
     expect(repo.findRecentOrders).toHaveBeenCalledWith(['shop-2'], 10)
   })
 
@@ -283,16 +260,27 @@ describe('SellerDashboardService', () => {
     await expect(service.getDashboard(createActor())).rejects.toMatchObject({ code: 'SELLER_SHOP_NOT_ACTIVE' })
   })
 
-  it('counts sales only for seller shop items returned by repository', async () => {
-    vi.mocked(repo.findSalesOrderItems).mockResolvedValue([
-      createSalesItem({ shopId: 'shop-1', lineTotal: 1000n }),
-      createSalesItem({ shopId: 'shop-1', lineTotal: 2500n }),
-    ])
+  it('preserves exact sales totals and scopes the repository to owned shops', async () => {
+    const total = 900719925474099312345n
+    vi.mocked(repo.aggregateSales).mockResolvedValue({
+      todaySalesCents: total, thisMonthSalesCents: total + 1n, totalSalesCents: total + 2n,
+    })
+    expect(await service.getSalesSummary(createActor())).toEqual({
+      todaySalesCents: total, thisMonthSalesCents: total + 1n, totalSalesCents: total + 2n,
+    })
+    expect(repo.aggregateSales).toHaveBeenCalledWith(['shop-1'], expect.any(Object))
+  })
 
-    const result = await service.getSalesSummary(createActor())
-
-    expect(repo.findSalesOrderItems).toHaveBeenCalledWith(['shop-1'])
-    expect(result.totalSalesCents).toBe(3500n)
+  it('uses inclusive Bangkok day and month boundaries from the same captured instant', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-30T17:00:00.000Z'))
+    await service.getSalesSummary(createActor())
+    expect(repo.aggregateSales).toHaveBeenCalledWith(['shop-1'], {
+      today: { from: new Date('2026-09-30T17:00:00.000Z'), to: new Date('2026-10-01T16:59:59.999Z') },
+      month: { from: new Date('2026-09-30T17:00:00.000Z'), to: new Date('2026-10-31T16:59:59.999Z') },
+    })
+    await service.getDashboard(createActor())
+    expect(vi.mocked(repo.aggregateSales).mock.calls[1]).toEqual(vi.mocked(repo.aggregateSales).mock.calls[0])
   })
 
   it('recent orders include only seller items', async () => {
@@ -311,7 +299,6 @@ describe('SellerDashboardService', () => {
   it('low stock returns only seller variants that are at or below reorder level', async () => {
     vi.mocked(repo.findLowStockVariants).mockResolvedValue([
       createLowStockVariant({ quantityOnHand: 3, quantityReserved: 1, reorderLevel: 5 }),
-      createLowStockVariant({ quantityOnHand: 10, quantityReserved: 0, reorderLevel: 2 }),
     ])
 
     const result = await service.getLowStock(createActor())
@@ -325,9 +312,22 @@ describe('SellerDashboardService', () => {
     })
   })
 
+  it('projects grouped shipment counts and ignores statuses outside dashboard buckets', async () => {
+    vi.mocked(repo.countShipmentsByStatus).mockResolvedValue([
+      { status: 'PENDING_PACK', count: 250 },
+      { status: 'SHIPPED', count: 12 },
+      { status: 'PACKED', count: 99 },
+      { status: 'READY', count: 8 },
+      { status: 'PENDING', count: 6 },
+    ])
+    const result = await service.getDashboard(createActor())
+    expect(result.orders).toEqual({ pendingPack: 250, shipped: 12, delivered: 0, cancelled: 0 })
+    expect(repo.countShipmentsByStatus).toHaveBeenCalledWith(['shop-1'])
+  })
+
   it('dashboard works with no orders', async () => {
-    vi.mocked(repo.findSalesOrderItems).mockResolvedValue([])
-    vi.mocked(repo.findShipments).mockResolvedValue([])
+    vi.mocked(repo.aggregateSales).mockResolvedValue({ todaySalesCents: 0n, thisMonthSalesCents: 0n, totalSalesCents: 0n })
+    vi.mocked(repo.countShipmentsByStatus).mockResolvedValue([])
     vi.mocked(repo.findRecentOrders).mockResolvedValue([])
 
     const result = await service.getDashboard(createActor())

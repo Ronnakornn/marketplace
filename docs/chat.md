@@ -10,7 +10,7 @@ Sends and reads lock the thread row in a transaction. Each new message timestamp
 
 Realtime publishes room changes to `chat:<roomId>`, `seller:<shopId>:chats` and `user:<buyerId>:chats`. Each delivery revalidates session and participant access. The client treats realtime as a recovery signal, fetches ascending `after` pages from its contiguous cursor, and deduplicates by ID. A sent response can appear immediately but cannot advance that cursor before catch-up fills potential gaps. Only focused, visible bottom-of-thread viewing acknowledges the latest contiguous rendered message. Visible fallback polling and reconnect recovery cover missed events.
 
-New image messages are rejected until participant-authorized attachment storage exists. Legacy images render as placeholders, and their external URLs are never fetched.
+Verified image and document uploads use [private attachment storage](chat-attachments.md). Legacy images render as placeholders, and their external URLs are never fetched.
 
 Run the PostgreSQL contract suite with `CHAT_TEST_DATABASE_URL` pointing to an isolated local database whose name ends in `_test`. Apply migrations and generate Prisma before running `bun run test server/modules/chat server/modules/realtime`. The chat migration is additive and introduces two nullable read-message IDs and the composite message-order index.
 

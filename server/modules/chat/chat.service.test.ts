@@ -41,6 +41,7 @@ function createMessage(overrides: Record<string, any> = {}) {
     productId: overrides.productId ?? null,
     orderId: overrides.orderId ?? null,
     deletedAt: overrides.deletedAt ?? null,
+    contentVersion: overrides.contentVersion ?? 0, replyToMessageId: null, replyToAttachmentId: null, replyToMessage: null,
     product: overrides.product ?? null,
     order: overrides.order ?? null,
     senderId: overrides.senderId ?? 'buyer-1',
@@ -61,6 +62,7 @@ function createMessage(overrides: Record<string, any> = {}) {
 function createRoom(overrides: Record<string, any> = {}) {
   return {
     id: overrides.id ?? 'room-1',
+    contentRevision: overrides.contentRevision ?? 0n,
     buyerId: overrides.buyerId ?? 'buyer-1',
     shopId: overrides.shopId ?? 'shop-1',
     productId: overrides.productId ?? null,
@@ -94,6 +96,7 @@ function createRoom(overrides: Record<string, any> = {}) {
 
 function createRepo(overrides: Partial<Record<keyof IChatRepository, any>> = {}) {
   const repo: IChatRepository = {
+    refreshMessages: vi.fn(), deleteContent: vi.fn(),
     findReplay: vi.fn().mockResolvedValue(null),
     findAttachment: vi.fn().mockResolvedValue(null),
     referencedStorageKeys: vi.fn().mockResolvedValue([]),
@@ -330,7 +333,7 @@ describe('ChatService', () => {
       'seller-1',
       'chat_message',
       'New chat message',
-      'Hello seller',
+      'You received a new chat message.',
       expect.objectContaining({
         roomId: 'room-1',
         shopId: 'shop-1',
@@ -364,7 +367,7 @@ describe('ChatService', () => {
       'buyer-1',
       'chat_message',
       'New chat message',
-      'We are packing your order',
+      'You received a new chat message.',
       expect.objectContaining({
         roomId: 'room-1',
         senderId: 'seller-1',

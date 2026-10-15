@@ -9,13 +9,14 @@ export type ChatUserRecord = Pick<User, 'id' | 'name' | 'email' | 'role'>
 export type ChatShopRecord = Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'> & { settings: { chatEnabled: boolean } | null }
 export type ChatProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'shopId'>
 export type ChatOrderRecord = Pick<Order, 'id' | 'orderNumber' | 'status' | 'userId'>
-export type ChatMessageRecord = Pick<ChatMessage, 'id' | 'threadId' | 'senderId' | 'messageType' | 'body' | 'attachments' | 'createdAt' | 'productId' | 'orderId' | 'deletedAt'> & {
+export type ChatMessageRecord = Pick<ChatMessage, 'id' | 'threadId' | 'senderId' | 'messageType' | 'body' | 'attachments' | 'createdAt' | 'productId' | 'orderId' | 'deletedAt' | 'contentVersion' | 'replyToMessageId' | 'replyToAttachmentId'> & {
   sender: ChatUserRecord
   product: Pick<Product, 'id' | 'title' | 'slug'> | null
   order: Pick<Order, 'id' | 'orderNumber' | 'status'> | null
   files: ChatAttachment[]
+  replyToMessage: (ChatMessage & { sender: ChatUserRecord; files: ChatAttachment[] }) | null
 }
-export type ChatRoomRecord = Pick<ChatThread, 'id' | 'buyerId' | 'shopId' | 'lastMessageAt' | 'buyerReadAt' | 'sellerReadAt' | 'buyerReadMessageId' | 'sellerReadMessageId' | 'createdAt' | 'updatedAt'> & {
+export type ChatRoomRecord = Pick<ChatThread, 'id' | 'buyerId' | 'shopId' | 'lastMessageAt' | 'buyerReadAt' | 'sellerReadAt' | 'buyerReadMessageId' | 'sellerReadMessageId' | 'createdAt' | 'updatedAt' | 'contentRevision'> & {
   buyer: ChatUserRecord
   shop: ChatShopRecord
   messages: ChatMessageRecord[]
@@ -30,8 +31,12 @@ export interface ChatMessageWrite {
   files: StoredChatFile[]
   productId: string | null
   orderId: string | null
+  replyToMessageId?: string | null
+  replyToAttachmentId?: string | null
 }
 export interface IChatRepository {
+  refreshMessages(roomId: string, messageIds: string[], authorize: (room: ChatRoomRecord) => void): Promise<{ room: ChatRoomRecord; messages: ChatMessageRecord[] }>
+  deleteContent(input: { roomId: string; messageId: string; attachmentId?: string; senderId: string }, authorize: (room: ChatRoomRecord) => void): Promise<{ room: ChatRoomRecord; message: ChatMessageRecord; changed: boolean }>
   findReplay(input: ChatMessageWrite, authorize: (room: ChatRoomRecord) => void): Promise<ChatMessageRecord | null>
   findAttachment(roomId: string, attachmentId: string): Promise<ChatAttachment | null>
   referencedStorageKeys(keys: string[]): Promise<string[]>
@@ -52,6 +57,7 @@ export interface IChatRepository {
 const userSelect = { id: true, name: true, email: true, role: true } as const
 const shopSelect = { id: true, name: true, slug: true, ownerId: true, status: true, settings: { select: { chatEnabled: true } } } as const
 const messageInclude = {
+  replyToMessage: { include: { sender: { select: userSelect }, files: { orderBy: { ordinal: 'asc' } } } },
   files: { orderBy: { ordinal: 'asc' } },
   sender: { select: userSelect },
   product: { select: { id: true, title: true, slug: true } },
@@ -69,9 +75,10 @@ function messageConflict(): never {
   throw new ChatServiceError('Message ID was already used for a different message', 409, 'MESSAGE_ID_CONFLICT')
 }
 function sameMessage(message: ChatMessageRecord, input: ChatMessageWrite): boolean {
-  return !message.deletedAt && message.id === input.clientMessageId && message.threadId === input.roomId
+  return message.id === input.clientMessageId && message.threadId === input.roomId
     && message.senderId === input.senderId && message.messageType === input.messageType && message.body === input.body
     && message.productId === input.productId && message.orderId === input.orderId && message.attachments.length === 0
+    && message.replyToMessageId === (input.replyToMessageId ?? null) && message.replyToAttachmentId === (input.replyToAttachmentId ?? null)
     && message.files.length === input.files.length && message.files.every((file, ordinal) => {
       const incoming = input.files[ordinal]
       return incoming && file.ordinal === incoming.ordinal && file.fileName === incoming.fileName
@@ -95,7 +102,7 @@ export class PrismaChatRepository implements IChatRepository {
     })
   }
   findAttachment(roomId: string, attachmentId: string): Promise<ChatAttachment | null> {
-    return this.prisma.chatAttachment.findFirst({ where: { id: attachmentId, message: { threadId: roomId, deletedAt: null } } })
+    return this.prisma.chatAttachment.findFirst({ where: { id: attachmentId, deletedAt: null, message: { threadId: roomId, deletedAt: null } } })
   }
   async referencedStorageKeys(keys: string[]): Promise<string[]> {
     return (await this.prisma.chatAttachment.findMany({ where: { storageKey: { in: keys } }, select: { storageKey: true } })).map((file) => file.storageKey)
@@ -142,11 +149,18 @@ export class PrismaChatRepository implements IChatRepository {
           if (!sameMessage(existing, input)) messageConflict()
           return { message: existing, created: false }
         }
+        if (input.replyToMessageId) {
+          const source = await tx.chatMessage.findFirst({ where: { id: input.replyToMessageId, threadId: input.roomId, deletedAt: null }, include: { files: true } })
+          if (!source || input.replyToAttachmentId && !source.files.some((file) => file.id === input.replyToAttachmentId && file.kind === 'IMAGE' && !file.deletedAt)) {
+            throw new ChatServiceError('Reply target is unavailable', 409, 'CHAT_REPLY_UNAVAILABLE')
+          }
+        }
         const latest = await tx.chatMessage.findFirst({ where: { threadId: input.roomId }, orderBy: descending, select: { createdAt: true } })
         const createdAt = new Date(Math.max(Date.now(), (latest?.createdAt.getTime() ?? 0) + 1))
         const message = await tx.chatMessage.create({ data: {
           id: input.clientMessageId, threadId: input.roomId, senderId: input.senderId, messageType: input.messageType,
           body: input.body, attachments: [], productId: input.productId, orderId: input.orderId, createdAt,
+          replyToMessageId: input.replyToMessageId, replyToAttachmentId: input.replyToAttachmentId,
           files: { create: input.files },
         }, include: messageInclude })
         await tx.chatThread.update({ where: { id: input.roomId }, data: { lastMessageAt: createdAt, updatedAt: createdAt } })
@@ -168,12 +182,12 @@ export class PrismaChatRepository implements IChatRepository {
       const cursor = cursorId ? await tx.chatMessage.findFirst({ where: { id: cursorId, threadId: roomId }, select: { id: true, createdAt: true } }) : null
       if (cursorId && !cursor) throw new ChatServiceError('Invalid message cursor', 400, 'INVALID_MESSAGE_CURSOR')
       const where: Prisma.ChatMessageWhereInput = {
-        threadId: roomId, deletedAt: null,
+        threadId: roomId,
         ...(cursor ? tupleFilter(cursor, pagination.after ? 'gt' : 'lt') : {}),
       }
       const rows = await tx.chatMessage.findMany({ where, include: messageInclude, orderBy: pagination.after ? ascending : descending,
         skip: cursor ? 0 : (pagination.page - 1) * pagination.limit, take: pagination.limit + 1 })
-      const total = await tx.chatMessage.count({ where: { threadId: roomId, deletedAt: null } })
+      const total = await tx.chatMessage.count({ where: { threadId: roomId } })
       const items = rows.slice(0, pagination.limit)
       return { items: pagination.after ? items : items.reverse(), total, hasMore: rows.length > pagination.limit }
     }, { isolationLevel: 'RepeatableRead' })
@@ -188,7 +202,7 @@ export class PrismaChatRepository implements IChatRepository {
     return this.prisma.$transaction(async (tx) => {
       const room = await this.lockRoom(tx, roomId)
       authorize(room)
-      const requested = await tx.chatMessage.findFirst({ where: { threadId: roomId, deletedAt: null, ...(throughMessageId ? { id: throughMessageId } : {}) }, orderBy: descending, select: { id: true, createdAt: true } })
+      const requested = await tx.chatMessage.findFirst({ where: { threadId: roomId, ...(throughMessageId ? { id: throughMessageId } : {}) }, orderBy: descending, select: { id: true, createdAt: true } })
       if (!requested) {
         if (throughMessageId) throw new ChatServiceError('Invalid read boundary', 400, 'INVALID_READ_BOUNDARY')
         return room
@@ -202,6 +216,33 @@ export class PrismaChatRepository implements IChatRepository {
         ...(audience === 'seller' ? { sellerReadAt: requested.createdAt, sellerReadMessageId: requested.id } : { buyerReadAt: requested.createdAt, buyerReadMessageId: requested.id }),
         updatedAt: room.updatedAt,
       }, include: roomInclude })
+    })
+  }
+  async refreshMessages(roomId: string, messageIds: string[], authorize: (room: ChatRoomRecord) => void) {
+    return this.prisma.$transaction(async (tx) => {
+      const room = await tx.chatThread.findUnique({ where: { id: roomId }, include: roomInclude })
+      if (!room) throw new ChatServiceError('Chat room not found', 404, 'CHAT_ROOM_NOT_FOUND')
+      authorize(room)
+      const messages = await tx.chatMessage.findMany({ where: { threadId: roomId, id: { in: messageIds } }, include: messageInclude, orderBy: ascending })
+      return { room, messages }
+    }, { isolationLevel: 'RepeatableRead' })
+  }
+  async deleteContent(input: { roomId: string; messageId: string; attachmentId?: string; senderId: string }, authorize: (room: ChatRoomRecord) => void) {
+    return this.prisma.$transaction(async (tx) => {
+      const room = await this.lockRoom(tx, input.roomId)
+      authorize(room)
+      const message = await tx.chatMessage.findFirst({ where: { id: input.messageId, threadId: input.roomId }, include: messageInclude })
+      if (!message) throw new ChatServiceError('Message not found', 404, 'CHAT_MESSAGE_NOT_FOUND')
+      if (message.senderId !== input.senderId) throw new ChatServiceError('Chat access forbidden', 403, 'CHAT_FORBIDDEN')
+      const file = input.attachmentId ? message.files.find((file) => file.id === input.attachmentId && file.kind === 'IMAGE') : undefined
+      if (input.attachmentId && !file) throw new ChatServiceError('Image not found', 404, 'CHAT_ATTACHMENT_NOT_FOUND')
+      if (message.deletedAt || file?.deletedAt) return { room, message, changed: false }
+      const now = new Date()
+      if (file) await tx.chatAttachment.update({ where: { id: file.id }, data: { deletedAt: now } })
+      const tombstone = !file || !message.body && !message.files.some((other) => other.id !== file.id && !other.deletedAt)
+      const updatedMessage = await tx.chatMessage.update({ where: { id: message.id }, data: { contentVersion: { increment: 1 }, ...(tombstone ? { deletedAt: now } : {}) }, include: messageInclude })
+      const updatedRoom = await tx.chatThread.update({ where: { id: room.id }, data: { contentRevision: { increment: 1 }, updatedAt: room.updatedAt }, include: roomInclude })
+      return { room: updatedRoom, message: updatedMessage, changed: true }
     })
   }
   private async lockRoom(tx: Prisma.TransactionClient, roomId: string): Promise<ChatRoomRecord> {

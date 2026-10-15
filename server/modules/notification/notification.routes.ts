@@ -11,6 +11,15 @@ const NotificationQuerySchema = t.Object({
   scope: t.Optional(t.Union([t.Literal('all'), t.Literal('seller')])),
 })
 
+const NotificationPageQuerySchema = t.Composite([NotificationQuerySchema, t.Object({
+  cursor: t.Optional(t.String({ format: 'uuid' })),
+  limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100, multipleOf: 1 })),
+  category: t.Optional(t.Union([t.Literal('all'), t.Literal('order'), t.Literal('payment'), t.Literal('refund'), t.Literal('chat'), t.Literal('promotion')])),
+})])
+const NotificationCountQuerySchema = t.Composite([NotificationQuerySchema, t.Object({
+  excludeChat: t.Optional(t.BooleanString()),
+})])
+
 const PushSubscriptionSchema = t.Object({
   endpoint: t.String({ minLength: 1, maxLength: 4096, format: 'uri' }),
   locale: t.Union([t.Literal('th'), t.Literal('en')]),
@@ -38,14 +47,14 @@ export function createNotificationRoutes(container: ServiceContainer) {
       }
     })
     .get('/api/notifications', ({ authContext, query }: any) =>
-      container.notificationService.listNotifications(authContext!.user, query.scope ?? 'all'), {
+      container.notificationService.listNotifications(authContext!.user, query.scope ?? 'all', query), {
       withAuth: true,
-      query: NotificationQuerySchema,
+      query: NotificationPageQuerySchema,
     })
     .get('/api/notifications/unread-count', ({ authContext, query }: any) =>
-      container.notificationService.getUnreadCount(authContext!.user, query.scope ?? 'all'), {
+      container.notificationService.getUnreadCount(authContext!.user, query.scope ?? 'all', query.excludeChat ?? false), {
       withAuth: true,
-      query: NotificationQuerySchema,
+      query: NotificationCountQuerySchema,
     })
     .get('/api/notifications/push/config', () => container.pushService.getConfig(), {
       withAuth: true,

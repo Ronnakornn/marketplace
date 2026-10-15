@@ -634,7 +634,28 @@
     "download": "Download",
     "attachedFiles": "Sent attachments",
     "attachmentHelp": "Up to 5 files, 10 MiB each and 20 MiB total. JPG, PNG, WebP, PDF, TXT, CSV, DOCX, XLSX, PPTX or ZIP.",
-    "invalidAttachment": "Choose supported files within the attachment limits."
+    "invalidAttachment": "Choose supported files within the attachment limits.",
+    "messageActions": "Message actions",
+    "imageActions": "Image actions",
+    "copyText": "Copy text",
+    "copyImage": "Copy image",
+    "reply": "Reply",
+    "deleteMessage": "Delete entire message",
+    "deleteImage": "Delete this image",
+    "deleteMessageConfirm": "Delete this entire message for both participants? All its text and attachments will be removed from the chat.",
+    "deleteImageConfirm": "Delete only this image for both participants? Other images and the caption will remain.",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete",
+    "deleting": "Deleting…",
+    "deleteError": "Could not delete. Please try again.",
+    "messageDeleted": "Message deleted",
+    "replyUnavailable": "Original message or image is unavailable.",
+    "cancelReply": "Cancel reply",
+    "copied": "Copied to clipboard.",
+    "copyUnsupported": "Copy is unavailable in this browser. You can download the image instead.",
+    "copyPermission": "Clipboard permission was denied. Allow clipboard access and try again.",
+    "copyError": "Could not copy. Please try again or download the image.",
+    "notificationBody": "You received a new chat message."
   },
   "buyer": {
     "addAddress": "Add address",
@@ -795,6 +816,8 @@
     "returnDeliveryEvidenceMissing": "Delivery information is incomplete. Please contact support to request a return."
   },
   "notification": {
+    "loadMore": "Load more",
+    "loadingMore": "Loading...",
     "all": "All",
     "chat": "Chat",
     "emptyCategoryDescription": "Try another notification filter.",

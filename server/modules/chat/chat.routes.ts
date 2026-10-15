@@ -20,6 +20,7 @@ const SendMessageSchema = t.Object({
   attachments: t.Optional(t.Array(t.String(), { maxItems: 5 })), clientMessageId: t.Optional(uuid()),
   productId: t.Optional(uuid()), orderId: t.Optional(uuid()), scope: audience,
   files: t.Optional(t.Array(t.File(), { maxItems: 5 })),
+  replyToMessageId: t.Optional(uuid()), replyToAttachmentId: t.Optional(uuid()),
 })
 const ReadQuerySchema = t.Object({ scope: audience, throughMessageId: t.Optional(uuid()) })
 
@@ -76,6 +77,15 @@ export function createChatRoutes(container: Pick<ServiceContainer, 'chatService'
       } })
     }), { withAuth: true, params: t.Object({ roomId: uuid(), attachmentId: uuid() }),
       query: t.Object({ scope: audience, shopId: t.Optional(uuid()), mode: t.Optional(t.Union([t.Literal('preview'), t.Literal('download')])) }) })
+    .post('/api/chats/:roomId/messages/refresh', ({ request, params, body }) => chatResponse(async () => container.chatService.refreshMessages(await requestActor(request), params.roomId, body)), {
+      withAuth: true, params: RoomParamsSchema, body: t.Object({ messageIds: t.Array(uuid(), { minItems: 1, maxItems: 50, uniqueItems: true }), scope: audience, shopId: t.Optional(uuid()) }),
+    })
+    .delete('/api/chats/:roomId/messages/:messageId', ({ request, params, query }) => chatResponse(async () => container.chatService.deleteContent(await requestActor(request), params.roomId, params.messageId, query)), {
+      withAuth: true, params: t.Object({ roomId: uuid(), messageId: uuid() }), query: InboxQuerySchema,
+    })
+    .delete('/api/chats/:roomId/messages/:messageId/attachments/:attachmentId', ({ request, params, query }) => chatResponse(async () => container.chatService.deleteContent(await requestActor(request), params.roomId, params.messageId, { ...query, attachmentId: params.attachmentId })), {
+      withAuth: true, params: t.Object({ roomId: uuid(), messageId: uuid(), attachmentId: uuid() }), query: InboxQuerySchema,
+    })
     .patch('/api/chats/:roomId/read', ({ request, params, query }) => chatResponse(async () => container.chatService.markRead(await requestActor(request), params.roomId, query.scope, query.throughMessageId)), {
       withAuth: true, params: RoomParamsSchema, query: ReadQuerySchema,
     })

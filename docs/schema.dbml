@@ -981,6 +981,7 @@ Table return_items {
 }
 
 Table chat_threads {
+  content_revision bigint [not null, default: 0]
   id uuid [pk]
   buyer_id uuid [not null, ref: > users.id]
   shop_id uuid [not null, ref: > shops.id]
@@ -994,6 +995,9 @@ Table chat_threads {
 }
 
 Table chat_messages {
+  content_version int [not null, default: 0]
+  reply_to_message_id uuid [ref: > chat_messages.id]
+  reply_to_attachment_id uuid [ref: > chat_attachments.id]
   id uuid [pk]
   thread_id uuid [not null, ref: > chat_threads.id]
   sender_id uuid [not null, ref: > users.id]
@@ -1007,6 +1011,7 @@ Table chat_messages {
 }
 
 Table chat_attachments {
+  deleted_at timestamp
   id uuid [pk]
   message_id uuid [not null, ref: > chat_messages.id]
   ordinal int [not null]

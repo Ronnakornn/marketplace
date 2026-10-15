@@ -149,6 +149,61 @@ describe('CartService', () => {
     vi.clearAllMocks()
   })
 
+  it('rejects a guest merge from a different authenticated account before touching its cart', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart())
+    vi.mocked(repo.findVariantForCart).mockResolvedValue(createVariant())
+    const service = new CartService(createAppContext(), repo)
+    await expect(service.mergeGuestItem(createActor(), {
+      userId: 'previous-account', variantId: 'variant', quantity: 20,
+    })).rejects.toMatchObject({ code: 'CART_SESSION_CHANGED', status: 409 })
+    expect(repo.withLockedActiveCart).not.toHaveBeenCalled()
+    expect(repo.createItem).not.toHaveBeenCalled()
+  })
+
+  it('partially merges a guest quantity under the cart lock using server price and reserved stock', async () => {
+    const repo = createRepoMock()
+    const variant = createVariant({ quantityOnHand: 8, quantityReserved: 2, price: 1750n })
+    const item = createItem({ variant, quantity: 4 })
+    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart({ items: [item] }))
+    vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
+    const service = new CartService(createAppContext(), repo)
+    await expect(service.mergeGuestItem(createActor(), { userId: 'user-1', variantId: variant.id, quantity: 20 })).resolves.toEqual({ addedQuantity: 2 })
+    expect(repo.withLockedActiveCart).toHaveBeenCalledWith('user-1', expect.any(Function))
+    expect(repo.updateItem).toHaveBeenCalledWith(item.id, { quantity: 6, unitPrice: 1750n, currency: variant.currency })
+    expect(repo.createItem).not.toHaveBeenCalled()
+  })
+
+  it('leaves an existing cart quantity intact when stock is exhausted', async () => {
+    const repo = createRepoMock()
+    const variant = createVariant({ quantityOnHand: 2, quantityReserved: 2 })
+    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart({ items: [createItem({ variant, quantity: 4 })] }))
+    vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
+    await expect(new CartService(createAppContext(), repo).mergeGuestItem(createActor(), { userId: 'user-1', variantId: variant.id, quantity: 20 })).resolves.toEqual({ addedQuantity: 0 })
+    expect(repo.updateItem).not.toHaveBeenCalled()
+    expect(repo.createItem).not.toHaveBeenCalled()
+  })
+
+  it('creates a guest merge line with only the available quantity', async () => {
+    const repo = createRepoMock()
+    const variant = createVariant()
+    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart())
+    vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
+    await expect(new CartService(createAppContext(), repo).mergeGuestItem(createActor(), { userId: 'user-1', variantId: variant.id, quantity: 20 })).resolves.toEqual({ addedQuantity: 8 })
+    expect(repo.createItem).toHaveBeenCalledWith(expect.objectContaining({ quantity: 8, unitPrice: variant.price }))
+  })
+
+  it('rejects unavailable guest variants, invalid quantities and admin access without writes', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart())
+    vi.mocked(repo.findVariantForCart).mockResolvedValue(createVariant({ variantStatus: 'INACTIVE' }))
+    const service = new CartService(createAppContext(), repo)
+    await expect(service.mergeGuestItem(createActor(), { userId: 'user-1', variantId: 'variant', quantity: 1 })).rejects.toMatchObject({ code: 'VARIANT_UNAVAILABLE' })
+    await expect(service.mergeGuestItem(createActor(), { userId: 'user-1', variantId: 'variant', quantity: 0 })).rejects.toMatchObject({ code: 'CART_QUANTITY_INVALID' })
+    await expect(service.mergeGuestItem(createActor('ADMIN'), { userId: 'admin-1', variantId: 'variant', quantity: 1 })).rejects.toMatchObject({ code: 'CART_FORBIDDEN' })
+    expect(repo.createItem).not.toHaveBeenCalled()
+  })
+
   it('returns a cart grouped by shop with captured unit price and subtotal', async () => {
     const repo = createRepoMock()
     const item = createItem({ quantity: 2, unitPrice: 1490n })

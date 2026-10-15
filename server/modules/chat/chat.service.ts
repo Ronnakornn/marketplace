@@ -65,6 +65,7 @@ export class ChatService {
       roomId: room.id, senderId: actor.id, clientMessageId: input.clientMessageId?.toLowerCase() ?? crypto.randomUUID(),
       body, productId: input.productId?.toLowerCase() ?? null, orderId: input.orderId?.toLowerCase() ?? null,
       messageType: files.length ? files.every((file) => file.kind === 'IMAGE') ? 'IMAGE' : 'FILE' : 'TEXT', files,
+      replyToMessageId: input.replyToMessageId?.toLowerCase() ?? null, replyToAttachmentId: input.replyToAttachmentId?.toLowerCase() ?? null,
     }
     const authorize = (lockedRoom: ChatRoomRecord) => this.assertCanSend(actor, lockedRoom, input.scope)
     const replay = files.length ? await this.repo.findReplay(write, authorize) : null
@@ -102,6 +103,29 @@ export class ChatService {
     if (!attachment) throw new ChatServiceError('Attachment not found', 404, 'CHAT_ATTACHMENT_NOT_FOUND')
     if (!this.objects) throw new ChatServiceError('Chat attachment storage unavailable', 503, 'CHAT_STORAGE_UNAVAILABLE')
     return { attachment, stream: await this.objects.read(attachment.storageKey) }
+  }
+  async refreshMessages(actor: ChatActor, roomId: string, input: { messageIds: string[]; scope?: ChatAudience; shopId?: string }) {
+    this.assertSupportedRole(actor.role)
+    if (!input.messageIds.length || input.messageIds.length > 50 || new Set(input.messageIds.map((id) => id.toLowerCase())).size !== input.messageIds.length || input.messageIds.some((id) => !uuid.test(id))) {
+      throw new ChatServiceError('Invalid message IDs', 400, 'INVALID_MESSAGE')
+    }
+    const { room, messages } = await this.repo.refreshMessages(roomId, input.messageIds, (room) => this.assertScopedParticipant(actor, room, input))
+    return { contentRevision: room.contentRevision.toString(), messages: messages.map((message) => this.toMessageResponse(message)) }
+  }
+  async deleteContent(actor: ChatActor, roomId: string, messageId: string, input: { attachmentId?: string; scope?: ChatAudience; shopId?: string } = {}) {
+    this.assertSupportedRole(actor.role)
+    const result = await this.repo.deleteContent({ roomId, messageId, attachmentId: input.attachmentId, senderId: actor.id }, (room) => this.assertScopedParticipant(actor, room, input))
+    if (result.changed) {
+      const payload = { roomId, shopId: result.room.shopId, messageId, contentRevision: result.room.contentRevision.toString() }
+      for (const channel of [`chat:${roomId}`, `user:${result.room.buyerId}:chats`, `seller:${result.room.shopId}:chats`]) {
+        await this.realtimeService?.publish('chat.message.changed', channel, payload)
+      }
+    }
+    return { ...await this.toRoomResponse(result.room, actor), changedMessage: this.toMessageResponse(result.message) }
+  }
+  private assertScopedParticipant(actor: ChatActor, room: ChatRoomRecord, input: { scope?: ChatAudience; shopId?: string }) {
+    this.assertParticipant(actor, room, input.scope)
+    if (input.shopId && input.shopId !== room.shopId) throw new ChatServiceError('Chat access forbidden', 403, 'CHAT_FORBIDDEN')
   }
   private async cleanupUnreferenced(keys: string[]): Promise<void> {
     if (!keys.length || !this.objects) return
@@ -167,6 +191,7 @@ export class ChatService {
     if (room.shop.settings?.chatEnabled === false) throw new ChatServiceError('Shop chat is disabled', 403, 'SHOP_CHAT_DISABLED')
   }
   private normalizeMessageInput(input: SendChatMessageInput): string | null {
+    if (input.replyToAttachmentId && !input.replyToMessageId || input.replyToMessageId && !uuid.test(input.replyToMessageId) || input.replyToAttachmentId && !uuid.test(input.replyToAttachmentId)) throw new ChatServiceError('Invalid reply target', 400, 'INVALID_MESSAGE')
     if (input.messageType !== 'text' && input.messageType !== 'image') throw new ChatServiceError('Invalid message type', 400, 'INVALID_MESSAGE')
     if (input.attachments?.length || input.messageType === 'image' && !input.files?.length) throw new ChatServiceError('Legacy attachment URLs are unsupported', 400, 'CHAT_ATTACHMENT_UNSUPPORTED')
     if (input.clientMessageId && !uuid.test(input.clientMessageId)) throw new ChatServiceError('Invalid message ID', 400, 'INVALID_MESSAGE')
@@ -200,6 +225,7 @@ export class ChatService {
     const otherReadAt = seller ? room.buyerReadAt : room.sellerReadAt
     const otherReadId = seller ? room.buyerReadMessageId : room.sellerReadMessageId
     return {
+      contentRevision: room.contentRevision.toString(),
       roomId: room.id, shop: { id: room.shop.id, name: room.shop.name, slug: room.shop.slug, ownerId: room.shop.ownerId }, buyer: room.buyer,
       lastMessage: room.messages[0] ? this.toMessageResponse(room.messages[0]) : null,
       unreadCount: await this.repo.countUnreadMessages(room.id, actor.id, readAt, readId),
@@ -212,10 +238,20 @@ export class ChatService {
     }
   }
   private toMessageResponse(message: ChatMessageRecord): ChatMessageResponse {
-    return { id: message.id, sender: message.sender, messageType: message.messageType === 'IMAGE' ? 'image' : message.messageType === 'FILE' ? 'file' : 'text', body: message.body,
-      files: message.files.map(({ id, fileName, contentType, byteSize, kind }) => ({ id, fileName, contentType, byteSize, kind,
-        contentUrl: `/api/chats/${message.threadId}/attachments/${id}/content` })),
-      attachments: message.attachments, createdAt: new Date(message.createdAt).toISOString(), product: message.product, order: message.order }
+    const fileDto = ({ id, fileName, contentType, byteSize, kind }: ChatMessageRecord['files'][number]) => ({ id, fileName, contentType, byteSize, kind, contentUrl: `/api/chats/${message.threadId}/attachments/${id}/content` })
+    const files = message.deletedAt ? [] : message.files.filter((file) => !file.deletedAt).map(fileDto)
+    const source = message.replyToMessage
+    const image = source?.files.find((file) => file.id === message.replyToAttachmentId)
+    const unavailable = !source || !!source.deletedAt || !!message.replyToAttachmentId && (!image || !!image.deletedAt)
+    const reply = !message.deletedAt && source ? {
+      messageId: source.id, attachmentId: message.replyToAttachmentId, contentVersion: source.contentVersion,
+      unavailable, sender: source.sender, body: unavailable ? null : source.body,
+      image: !unavailable && image ? fileDto(image) : null,
+    } : null
+    const messageType = files.length ? files.every((file) => file.kind === 'IMAGE') ? 'image' : 'file' : !message.deletedAt && !message.files.length && message.messageType === 'IMAGE' ? 'image' : 'text'
+    return { id: message.id, sender: message.sender, contentVersion: message.contentVersion, deleted: !!message.deletedAt, reply, messageType,
+      body: message.deletedAt ? null : message.body, files, attachments: message.deletedAt ? [] : message.attachments,
+      createdAt: new Date(message.createdAt).toISOString(), product: message.deletedAt ? null : message.product, order: message.deletedAt ? null : message.order }
   }
   private async publishChatMessage(room: ChatRoomRecord, message: ChatMessageRecord): Promise<void> {
     const payload = { roomId: room.id, shopId: room.shopId, buyerId: room.buyerId, message: this.toMessageResponse(message) }
@@ -227,10 +263,8 @@ export class ChatService {
     if (!this.notificationService) return
     const recipientId = message.senderId === room.buyerId ? room.shop.ownerId : room.buyerId
     if (recipientId === message.senderId) return
-    const normalized = message.body?.replace(/\s+/g, ' ').trim() ?? ''
-    const preview = normalized.length > 120 ? `${normalized.slice(0, 117).trim()}...` : normalized
     try {
-      await this.notificationService.createNotification(recipientId, 'chat_message', 'New chat message', preview, {
+      await this.notificationService.createNotification(recipientId, 'chat_message', 'New chat message', 'You received a new chat message.', {
         roomId: room.id, shopId: room.shopId, buyerId: room.buyerId, senderId: message.senderId,
         attachmentCount: message.files.length,
       })

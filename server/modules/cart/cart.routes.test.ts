@@ -17,6 +17,7 @@ function createContainer() {
   return {
     cartService: {
       getCart: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotal: 0, currency: null }),
+      mergeGuestItem: vi.fn().mockResolvedValue({ addedQuantity: 2 }),
       addItem: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotal: 0, currency: null }),
       updateItem: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotal: 0, currency: null }),
       deleteItem: vi.fn().mockResolvedValue({ id: 'cart-1', shops: [], subtotal: 0, currency: null }),
@@ -79,6 +80,23 @@ describe('cart routes', () => {
       expect.objectContaining({ id: 'user-1' }),
       { variantId: '33333333-3333-4333-8333-333333333333', quantity: 2 },
     )
+  })
+
+  it('authenticates guest merge and forwards the entire quantity in one call', async () => {
+    const container = createContainer()
+    const request = () => new Request('http://localhost/api/cart/guest-items', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId: 'user-1', variantId: '33333333-3333-4333-8333-333333333333', quantity: 20 }),
+    })
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+    expect((await createApp(container).handle(request())).status).toBe(401)
+    expect(container.cartService.mergeGuestItem).not.toHaveBeenCalled()
+    mockAuth()
+    const response = await createApp(container).handle(request())
+    expect(await response.json()).toEqual({ addedQuantity: 2 })
+    expect(container.cartService.mergeGuestItem).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: 'user-1' }), {
+      userId: 'user-1', variantId: '33333333-3333-4333-8333-333333333333', quantity: 20,
+    })
   })
 
   it('passes authenticated users through to buyer cart APIs', async () => {

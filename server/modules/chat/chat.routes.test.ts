@@ -32,7 +32,7 @@ const headers = { 'content-type': 'application/json', 'x-request-id': 'chat-erro
 
 function createRoom(): ChatRoomRecord {
   return {
-    id: roomId, buyerId, shopId, lastMessageAt: null,
+    id: roomId, contentRevision: 0n, buyerId, shopId, lastMessageAt: null,
     buyerReadAt: null, sellerReadAt: null, buyerReadMessageId: null, sellerReadMessageId: null,
     createdAt: new Date('2026-10-13T00:00:00Z'), updatedAt: new Date('2026-10-13T00:00:00Z'),
     buyer: { id: buyerId, name: 'Buyer', email: 'buyer@example.com', role: 'USER' },
@@ -48,6 +48,7 @@ function createApp(objects?: ChatPrivateObjectStore) {
   } satisfies AppContext
   const room = createRoom()
   const repo = {
+    refreshMessages: vi.fn(), deleteContent: vi.fn(),
     findReplay: vi.fn<IChatRepository['findReplay']>().mockResolvedValue(null),
     findAttachment: vi.fn<IChatRepository['findAttachment']>().mockResolvedValue(null),
     referencedStorageKeys: vi.fn<IChatRepository['referencedStorageKeys']>().mockResolvedValue([]),
@@ -101,8 +102,8 @@ describe('chat routes with global observability and security', () => {
     repo.createMessage.mockImplementation(async (input) => ({ created: true, message: {
       id: input.clientMessageId, threadId: input.roomId, senderId: input.senderId,
       body: input.body, messageType: input.messageType, attachments: [], productId: null, orderId: null,
-      product: null, order: null, sender: room.buyer, createdAt: new Date(), deletedAt: null,
-      files: input.files.map((file) => ({ ...file, id: crypto.randomUUID(), messageId: input.clientMessageId, createdAt: new Date() })),
+      product: null, order: null, sender: room.buyer, createdAt: new Date(), deletedAt: null, contentVersion: 0, replyToMessageId: null, replyToAttachmentId: null, replyToMessage: null,
+      files: input.files.map((file) => ({ ...file, deletedAt: null, id: crypto.randomUUID(), messageId: input.clientMessageId, createdAt: new Date() })),
     } }))
     const png = await sharp(randomBytes(800 * 800 * 3), { raw: { width: 800, height: 800, channels: 3 } }).png().toBuffer()
     expect(png.length).toBeGreaterThan(1024 * 1024)

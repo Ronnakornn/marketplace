@@ -1,18 +1,32 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ChatMessage, ChatRoom } from "./api";
-import { createChatMessageId, mergeMessages, recoverChatGap, timelineFromRoom } from "./timeline";
+import { createChatMessageId, mergeMessages, mergeRoom, recoverChatGap, timelineFromRoom } from "./timeline";
 
 function message(index: number): ChatMessage {
   return { id: `m${index.toString().padStart(3, "0")}`, sender: { id: "seller", name: "Seller", email: "seller@example.com", role: "SELLER" },
-    messageType: "text", body: `Message ${index}`, attachments: [], files: [], product: null, order: null,
+    contentVersion: 0, deleted: false, reply: null, messageType: "text", body: `Message ${index}`, attachments: [], files: [], product: null, order: null,
     createdAt: new Date(Date.UTC(2026, 9, 13, 0, 0, index)).toISOString() };
 }
 function page(items: ChatMessage[], hasMore = false): ChatRoom {
-  return { roomId: "room", shop: { id: "shop", name: "Shop", slug: "shop", ownerId: "seller" }, buyer: { id: "buyer", name: "Buyer", email: "buyer@example.com", role: "USER" },
+  return { contentRevision: "0", roomId: "room", shop: { id: "shop", name: "Shop", slug: "shop", ownerId: "seller" }, buyer: { id: "buyer", name: "Buyer", email: "buyer@example.com", role: "USER" },
     lastMessage: items.at(-1) ?? null, unreadCount: items.length, chatEnabled: true, canSend: true, readBoundary: null, otherReadBoundary: null, messages: items,
     pagination: { page: 1, limit: 30, total: 75, totalPages: 3, hasMore, beforeCursor: items[0]?.id ?? null, afterCursor: items.at(-1)?.id ?? null } };
 }
 describe("contiguous chat recovery", () => {
+  it('does not restore deleted bodies or quote content from any stale message response', () => {
+    const source = message(1);
+    const reply = { ...message(2), reply: { messageId: source.id, attachmentId: null, contentVersion: 0, unavailable: false, sender: source.sender, body: source.body, image: null } };
+    const deleted = { ...source, contentVersion: 1, deleted: true, body: null };
+    const redacted = mergeMessages([source, reply], [deleted]);
+    expect(redacted[1].reply).toMatchObject({ contentVersion: 1, unavailable: true, body: null });
+    expect(mergeMessages(redacted, [source, reply])).toEqual(redacted);
+    expect(mergeMessages([redacted[1]], [reply])[0].reply).toMatchObject({ contentVersion: 1, unavailable: true, body: null });
+  });
+  it('retains a higher room revision and read boundary against a late read or send response', () => {
+    const latest = { ...page([]), contentRevision: '9007199254740993', readBoundary: { messageId: 'm003', createdAt: message(3).createdAt } };
+    const stale = { ...page([message(1)]), contentRevision: '9007199254740992', readBoundary: { messageId: 'm001', createdAt: message(1).createdAt } };
+    expect(mergeRoom(latest, stale)).toMatchObject({ contentRevision: latest.contentRevision, readBoundary: latest.readBoundary, lastMessage: null });
+  });
   it("generates a valid send UUID on the supported HTTP deployment", () => {
     const randomUUID = crypto.randomUUID;
     Object.defineProperty(crypto, "randomUUID", { configurable: true, value: undefined });

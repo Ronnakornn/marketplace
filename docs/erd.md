@@ -435,6 +435,7 @@ erDiagram
   }
 
   CHAT_THREAD {
+    bigint contentRevision
     string id PK
     string buyerId FK
     string shopId FK
@@ -446,6 +447,9 @@ erDiagram
   }
 
   CHAT_MESSAGE {
+    int contentVersion
+    string replyToMessageId FK
+    string replyToAttachmentId FK
     string id PK
     string threadId FK
     string senderId FK
@@ -458,6 +462,7 @@ erDiagram
   }
 
   CHAT_ATTACHMENT {
+    datetime deletedAt
     string id PK
     string messageId FK
     int ordinal
@@ -573,6 +578,8 @@ erDiagram
   SHOP ||--o{ CHAT_THREAD : participates
   CHAT_THREAD ||--o{ CHAT_MESSAGE : contains
   CHAT_MESSAGE ||--o{ CHAT_ATTACHMENT : owns
+  CHAT_MESSAGE o|--o{ CHAT_MESSAGE : reply_source
+  CHAT_ATTACHMENT o|--o{ CHAT_MESSAGE : image_reply_source
   ORDER ||--o{ CHAT_MESSAGE : references
   USER ||--o{ CHAT_MESSAGE : sends
   USER ||--o{ NOTIFICATION : receives

@@ -1,9 +1,32 @@
-import type { Notification, Order, Prisma, PrismaClient, Refund, ReturnRequest, Shipment } from '#generated/client/client.ts'
+import { Prisma } from '#generated/client/client.ts'
+import type { Notification, Order, PrismaClient, Refund, ReturnRequest, Shipment } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { NotificationData, NotificationType } from './notification.types.ts'
 
+export type NotificationScope = 'all' | 'seller'
+export type NotificationCategory = 'all' | 'order' | 'payment' | 'refund' | 'chat' | 'promotion'
+export interface NotificationPageInput { cursor?: string; limit?: number; category?: NotificationCategory }
 export type NotificationRecord = Notification
+
+function notificationFilter(userId: string, scope: NotificationScope, category: NotificationCategory = 'all') {
+  const seller = scope === 'seller' ? Prisma.sql`AND (
+    lower("type") = 'payout_paid' OR (
+      jsonb_typeof("data") = 'object' AND (
+        "data"->>'audience' = 'seller' OR (
+          lower("type") = 'order_paid' AND jsonb_typeof("data"->'orderNo') IS DISTINCT FROM 'string'
+        )
+      )
+    )
+  )` : Prisma.empty
+  const group = Prisma.sql`CASE
+    WHEN lower("type") LIKE '%payment%' OR lower("type") LIKE '%payout%' THEN 'payment'
+    WHEN lower("type") LIKE '%refund%' OR lower("type") LIKE '%return%' THEN 'refund'
+    WHEN lower("type") LIKE '%chat%' THEN 'chat'
+    WHEN lower("type") LIKE '%promo%' OR lower("type") LIKE '%coupon%' THEN 'promotion'
+    ELSE 'order' END`
+  return Prisma.sql`"userId" = ${userId}::uuid ${seller} ${category === 'all' ? Prisma.empty : Prisma.sql`AND (${group}) = ${category}`}`
+}
 
 export type NotificationOrder = Pick<Order, 'id' | 'orderNumber' | 'userId'>
 
@@ -31,11 +54,11 @@ export interface CreateNotificationInput {
 export interface INotificationRepository {
   findRecipientForNotification?(userId: string): Promise<{ name: string; email: string } | null>
   createNotification(input: CreateNotificationInput): Promise<NotificationRecord>
-  findNotificationsForUser(userId: string): Promise<NotificationRecord[]>
-  countUnreadForUser(userId: string): Promise<number>
+  findNotificationsForUser(userId: string, scope: NotificationScope, page: Required<Pick<NotificationPageInput, 'limit'>> & NotificationPageInput): Promise<NotificationRecord[]>
+  countUnreadForUser(userId: string, scope?: NotificationScope, excludeChat?: boolean): Promise<number>
   findNotificationById(notificationId: string): Promise<NotificationRecord | null>
   markAsRead(notificationId: string, readAt: Date): Promise<NotificationRecord>
-  markAllAsRead(userId: string, readAt: Date): Promise<number>
+  markAllAsRead(userId: string, readAt: Date, scope?: NotificationScope): Promise<number>
   findOrderForNotification(orderId: string): Promise<NotificationOrder | null>
   findSellerUserIdsForOrder(orderId: string): Promise<string[]>
   findReturnForNotification(returnId: string): Promise<NotificationReturn | null>
@@ -73,22 +96,25 @@ export class PrismaNotificationRepository implements INotificationRepository {
     })
   }
 
-  findNotificationsForUser(userId: string): Promise<NotificationRecord[]> {
-    this.logger.debug('PrismaNotificationRepository.findNotificationsForUser', { userId })
-    return this.prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    })
+  findNotificationsForUser(userId: string, scope: NotificationScope, page: Required<Pick<NotificationPageInput, 'limit'>> & NotificationPageInput): Promise<NotificationRecord[]> {
+    // Resolve the owned cursor inside PostgreSQL to preserve timestamp precision and UUID ties.
+    // A deleted or foreign cursor has no anchor and returns an empty terminal page.
+    const cursor = page.cursor ? Prisma.sql`AND ("createdAt", "id") < (
+      SELECT "createdAt", "id" FROM "Notification" WHERE "id" = ${page.cursor}::uuid AND "userId" = ${userId}::uuid
+    )` : Prisma.empty
+    return this.prisma.$queryRaw<NotificationRecord[]>(Prisma.sql`
+      SELECT * FROM "Notification" WHERE ${notificationFilter(userId, scope, page.category)} ${cursor}
+      ORDER BY "createdAt" DESC, "id" DESC LIMIT ${page.limit + 1}
+    `)
   }
 
-  countUnreadForUser(userId: string): Promise<number> {
-    this.logger.debug('PrismaNotificationRepository.countUnreadForUser', { userId })
-    return this.prisma.notification.count({
-      where: {
-        userId,
-        readAt: null,
-      },
-    })
+  async countUnreadForUser(userId: string, scope: NotificationScope = 'all', excludeChat = false): Promise<number> {
+    const result = await this.prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+      SELECT count(*) AS count FROM "Notification"
+      WHERE ${notificationFilter(userId, scope)} AND "readAt" IS NULL
+      ${excludeChat ? Prisma.sql`AND lower("type") NOT LIKE '%chat%'` : Prisma.empty}
+    `)
+    return Number(result[0]?.count ?? 0n)
   }
 
   findNotificationById(notificationId: string): Promise<NotificationRecord | null> {
@@ -106,16 +132,11 @@ export class PrismaNotificationRepository implements INotificationRepository {
     })
   }
 
-  async markAllAsRead(userId: string, readAt: Date): Promise<number> {
-    this.logger.info('PrismaNotificationRepository.markAllAsRead', { userId })
-    const result = await this.prisma.notification.updateMany({
-      where: {
-        userId,
-        readAt: null,
-      },
-      data: { readAt },
-    })
-    return result.count
+  async markAllAsRead(userId: string, readAt: Date, scope: NotificationScope = 'all'): Promise<number> {
+    return this.prisma.$executeRaw(Prisma.sql`
+      UPDATE "Notification" SET "readAt" = ${readAt}
+      WHERE ${notificationFilter(userId, scope)} AND "readAt" IS NULL
+    `)
   }
 
   findOrderForNotification(orderId: string): Promise<NotificationOrder | null> {

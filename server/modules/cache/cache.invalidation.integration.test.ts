@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createRedisCacheClient, getCacheConfigFromEnv } from './cache.client.ts'
 import { CacheService } from './cache.service.ts'
+import { CacheInvalidation } from './cache.invalidation.ts'
 
 const redisUrl = process.env.CACHE_TEST_REDIS_URL
 
@@ -37,5 +38,28 @@ describe.skipIf(!redisUrl)('incremental cache invalidation on Redis', () => {
     expect(values).toEqual(Array.from({ length: 501 }, () => null))
     await expect(cache.get(`${prefix}:keep`)).resolves.toBe('untouched')
     await expect(cache.deleteByPattern(`${prefix}:target:*`)).resolves.toBe(0)
+  })
+
+  it('deletes grouped patterns in a single cursor chain and preserves other cache entries', async () => {
+    const productKeys = Array.from({ length: 251 }, (_, index) => `${prefix}:money-v2:product:list:${index}`)
+    const searchKeys = Array.from({ length: 251 }, (_, index) => `${prefix}:money-v2:search:products:${index}`)
+    await Promise.all([...productKeys, ...searchKeys].map(key => cache.set(key, 1)))
+    await cache.set(`${prefix}:money-v2:seller:keep:dashboard`, 'untouched')
+    const scan = vi.spyOn(client, 'scan')
+
+    try {
+      const invalidation = new CacheInvalidation(cache)
+      await expect(invalidation.invalidateProductListsAndSearch()).resolves.toBe(502)
+      expect(scan.mock.calls.filter(([cursor]) => cursor === '0')).toHaveLength(1)
+      for (let index = 1; index < scan.mock.calls.length; index++) {
+        const previous = await scan.mock.results[index - 1]!.value
+        expect(scan.mock.calls[index]![0]).toBe(previous[0])
+      }
+      const values = await Promise.all([...productKeys, ...searchKeys].map(key => client.get(key)))
+      expect(values).toEqual(Array.from({ length: 502 }, () => null))
+      await expect(cache.get(`${prefix}:money-v2:seller:keep:dashboard`)).resolves.toBe('untouched')
+    } finally {
+      scan.mockRestore()
+    }
   })
 })

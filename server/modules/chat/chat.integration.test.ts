@@ -36,6 +36,89 @@ describe.skipIf(!databaseUrl)('chat persistence and participant contract on Post
     return { ...data, repo, service, publish, room }
   }
 
+  it('deletes only the selected image, revokes its URL and redacts image replies without changing caption or siblings', async () => {
+    const objects = { putNew: vi.fn().mockResolvedValue(undefined), read: vi.fn().mockResolvedValue(new ReadableStream()), remove: vi.fn(), list: vi.fn() } satisfies ChatPrivateObjectStore
+    const f = await fixture(objects)
+    const bytes = await sharp({ create: { width: 2, height: 2, channels: 3, background: 'red' } }).png().toBuffer()
+    const files = [new File([new Uint8Array(bytes)], 'one.png'), new File([new Uint8Array(bytes)], 'two.png')]
+    const input = { messageType: 'text', body: 'Caption stays', files, clientMessageId: randomUUID() } as const
+    const source = (await f.service.sendMessage(f.buyer, f.room.roomId, input)).sentMessage
+    const replyInput = { messageType: 'text', body: 'Image reply', clientMessageId: randomUUID(), replyToMessageId: source.id, replyToAttachmentId: source.files[0].id } as const
+    const reply = (await f.service.sendMessage(f.owner, f.room.roomId, replyInput)).sentMessage
+    expect(reply.reply).toMatchObject({ unavailable: false, image: { id: source.files[0].id } })
+    const activity = (await db.chatThread.findUniqueOrThrow({ where: { id: f.room.roomId } })).updatedAt
+    f.publish.mockClear()
+    const deleted = await f.service.deleteContent(f.buyer, f.room.roomId, source.id, { attachmentId: source.files[0].id })
+    expect(deleted.contentRevision).toBe('1')
+    expect(deleted.changedMessage).toMatchObject({ body: 'Caption stays', deleted: false, contentVersion: 1, files: [{ id: source.files[1].id }] })
+    expect(deleted.changedMessage.files).toHaveLength(1)
+    await expect(f.service.openAttachment(f.owner, f.room.roomId, source.files[0].id)).rejects.toMatchObject({ status: 404 })
+    await expect(f.service.openAttachment(f.owner, f.room.roomId, source.files[1].id)).resolves.toBeTruthy()
+    const refreshed = await f.service.refreshMessages(f.owner, f.room.roomId, { messageIds: [reply.id, source.id] })
+    expect(refreshed.messages.find((message) => message.id === reply.id)?.reply).toMatchObject({ unavailable: true, contentVersion: 1, body: null, image: null })
+    const replay = await f.service.sendMessage(f.owner, f.room.roomId, replyInput)
+    expect(replay.sentMessage.reply).toMatchObject({ unavailable: true, body: null, image: null })
+    const originalReplay = await f.service.sendMessage(f.buyer, f.room.roomId, input)
+    expect(originalReplay.sentMessage.files.map((file) => file.id)).toEqual([source.files[1].id])
+    expect((await f.service.deleteContent(f.buyer, f.room.roomId, source.id, { attachmentId: source.files[0].id })).contentRevision).toBe('1')
+    expect(f.publish).toHaveBeenCalledTimes(3)
+    expect(f.publish.mock.calls.every(([event, , payload]) => event === 'chat.message.changed' && payload !== null && typeof payload === 'object' && !('body' in payload) && !('message' in payload))).toBe(true)
+    expect((await db.chatThread.findUniqueOrThrow({ where: { id: f.room.roomId } })).updatedAt).toEqual(activity)
+    expect(objects.remove).not.toHaveBeenCalled()
+    await expect(f.service.sendMessage(f.owner, f.room.roomId, { ...replyInput, clientMessageId: randomUUID() })).rejects.toMatchObject({ code: 'CHAT_REPLY_UNAVAILABLE' })
+    await f.service.deleteContent(f.buyer, f.room.roomId, source.id, { attachmentId: source.files[1].id })
+    const caption = (await f.service.getRoom(f.owner, f.room.roomId)).messages?.find((message) => message.id === source.id)
+    expect(caption).toMatchObject({ messageType: 'text', body: 'Caption stays', deleted: false, files: [] })
+  })
+
+  it('tombstones the last captionless image and preserves immutable replay metadata', async () => {
+    const f = await fixture({ putNew: vi.fn(), read: vi.fn(), remove: vi.fn(), list: vi.fn() })
+    const bytes = await sharp({ create: { width: 2, height: 2, channels: 3, background: 'blue' } }).jpeg().toBuffer()
+    const input = { messageType: 'text' as const, clientMessageId: randomUUID(), files: [new File([new Uint8Array(bytes)], 'picture.jpg')] }
+    const source = (await f.service.sendMessage(f.buyer, f.room.roomId, input)).sentMessage
+    const result = await f.service.deleteContent(f.buyer, f.room.roomId, source.id, { attachmentId: source.files[0].id })
+    expect(result.changedMessage).toMatchObject({ deleted: true, body: null, files: [], reply: null, contentVersion: 1 })
+    expect((await f.service.sendMessage(f.buyer, f.room.roomId, input)).sentMessage).toEqual(result.changedMessage)
+    expect((await db.chatAttachment.findUniqueOrThrow({ where: { id: source.files[0].id } })).fileName).toBe('picture.jpg')
+  })
+
+  it('serializes repeated deletion, permits deletion with chat disabled, and retains deleted cursor anchors', async () => {
+    const f = await fixture()
+    const input = { messageType: 'text', body: 'Original private text', clientMessageId: randomUUID() } as const
+    const source = (await f.service.sendMessage(f.buyer, f.room.roomId, input)).sentMessage
+    const replyInput = { messageType: 'text', body: 'Reply text', clientMessageId: randomUUID(), replyToMessageId: source.id } as const
+    const reply = (await f.service.sendMessage(f.owner, f.room.roomId, replyInput)).sentMessage
+    await db.shopSetting.upsert({ where: { shopId: f.shop.id }, create: { shopId: f.shop.id, chatEnabled: false }, update: { chatEnabled: false } })
+    f.publish.mockClear()
+    const results = await Promise.all(Array.from({ length: 8 }, () => f.service.deleteContent(f.buyer, f.room.roomId, source.id)))
+    expect(results.every((result) => result.contentRevision === '1' && result.changedMessage.contentVersion === 1)).toBe(true)
+    expect(f.publish).toHaveBeenCalledTimes(3)
+    expect((await f.service.getRoom(f.owner, f.room.roomId, { after: source.id })).messages?.map((message) => message.id)).toEqual([reply.id])
+    expect((await f.service.markRead(f.owner, f.room.roomId, undefined, source.id)).readBoundary?.messageId).toBe(source.id)
+    await db.shopSetting.update({ where: { shopId: f.shop.id }, data: { chatEnabled: true } })
+    expect((await f.service.sendMessage(f.buyer, f.room.roomId, input)).sentMessage).toMatchObject({ deleted: true, body: null })
+    expect((await f.service.sendMessage(f.owner, f.room.roomId, replyInput)).sentMessage.reply).toMatchObject({ unavailable: true, body: null })
+    await expect(f.service.sendMessage(f.owner, f.room.roomId, { ...replyInput, replyToMessageId: undefined })).rejects.toMatchObject({ status: 409 })
+  })
+
+  it('rejects other senders, strangers, admin, selected-shop mismatches and cross-room reply/image targets', async () => {
+    const f = await fixture()
+    const other = await db.user.create({ data: { name: 'Stranger', email: `${randomUUID()}@example.test` } })
+    const otherRoom = await f.service.createRoom(other, { shopId: f.shop.id })
+    const source = (await f.service.sendMessage(f.buyer, f.room.roomId, { messageType: 'text', body: 'Private' })).sentMessage
+    for (const actor of [f.owner, other, { ...f.buyer, role: 'ADMIN' as const }]) {
+      await expect(f.service.deleteContent(actor, f.room.roomId, source.id)).rejects.toMatchObject({ status: 403 })
+    }
+    await expect(f.service.deleteContent(f.buyer, f.room.roomId, source.id, { shopId: randomUUID() })).rejects.toMatchObject({ status: 403 })
+    await expect(f.service.deleteContent(f.buyer, f.room.roomId, source.id, { attachmentId: randomUUID() })).rejects.toMatchObject({ status: 404 })
+    await expect(f.service.refreshMessages(other, f.room.roomId, { messageIds: [source.id] })).rejects.toMatchObject({ status: 403 })
+    expect((await f.service.refreshMessages(other, otherRoom.roomId, { messageIds: [source.id] })).messages).toEqual([])
+    await expect(f.service.sendMessage(other, otherRoom.roomId, { messageType: 'text', body: 'Invalid reply', replyToMessageId: source.id })).rejects.toMatchObject({ code: 'CHAT_REPLY_UNAVAILABLE' })
+    for (const messageIds of [[], Array(51).fill(source.id), [source.id, source.id]]) {
+      await expect(f.service.refreshMessages(f.buyer, f.room.roomId, { messageIds })).rejects.toMatchObject({ status: 400 })
+    }
+  })
+
   it('creates one buyer/shop room under concurrent requests without sending a message', async () => {
     const f = await fixture()
     const other = await db.user.create({ data: { name: 'Concurrent buyer', email: `${randomUUID()}@example.test` } })
@@ -193,16 +276,17 @@ describe.skipIf(!databaseUrl)('chat persistence and participant contract on Post
     await expect(f.service.sendMessage(f.buyer, f.room.roomId, { messageType: 'text', body: 'x'.repeat(4001) })).rejects.toMatchObject({ code: 'MESSAGE_TOO_LONG' })
   })
 
-  it('excludes soft-deleted messages from history, last message and unread counts', async () => {
+  it('retains redacted tombstone history while excluding deleted messages from previews and unread counts', async () => {
     const f = await fixture()
     const visible = await f.service.sendMessage(f.owner, f.room.roomId, { messageType: 'text', body: 'Visible' })
     const hidden = await f.service.sendMessage(f.owner, f.room.roomId, { messageType: 'text', body: 'Deleted' })
     await db.chatMessage.update({ where: { id: hidden.sentMessage.id }, data: { deletedAt: new Date() } })
     const room = await f.service.getRoom(f.buyer, f.room.roomId)
-    expect(room.messages?.map((message) => message.id)).toEqual([visible.sentMessage.id])
+    expect(room.messages?.map((message) => message.id)).toEqual([visible.sentMessage.id, hidden.sentMessage.id])
+    expect(room.messages?.[1]).toMatchObject({ deleted: true, body: null, files: [], attachments: [], product: null, order: null })
     expect(room.lastMessage?.id).toBe(visible.sentMessage.id)
     expect(room.unreadCount).toBe(1)
-    expect(room.pagination?.total).toBe(1)
+    expect(room.pagination?.total).toBe(2)
   })
 
   it('persists ordered files, exact bytes and immutable UUID replay with participant reads', async () => {

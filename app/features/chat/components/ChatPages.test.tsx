@@ -10,12 +10,13 @@ import { ChatInboxPage, ChatThreadPage, chatErrorKey } from "./ChatPages";
 import { ApiClientError } from "#/lib/api-client";
 
 const mocks = vi.hoisted(() => ({
-  fetchRooms: vi.fn(), fetchRoom: vi.fn(), send: vi.fn(), read: vi.fn(), realtime: vi.fn(),
+  records: new Map<string, ChatMessage>(), refresh: vi.fn(), remove: vi.fn(), fetchRooms: vi.fn(), fetchRoom: vi.fn(), send: vi.fn(), read: vi.fn(), realtime: vi.fn(),
 }));
 vi.mock("next/link", () => ({ default: ({ children, href, ...props }: { children: ReactNode; href: string }) => <a href={href} {...props}>{children}</a> }));
 vi.mock("#/components/BuyerShell", () => ({ BuyerTopBar: ({ title }: { title: string }) => <header>{title}</header> }));
 vi.mock("#/features/chat/api", async (original) => ({
-  ...await original<typeof import("../api")>(), fetchChatRooms: mocks.fetchRooms, fetchChatRoom: mocks.fetchRoom,
+  ...await original<typeof import("../api")>(), fetchChatRooms: mocks.fetchRooms, fetchChatRoom: async (...args: unknown[]) => { const value = await mocks.fetchRoom(...args); for (const item of value.messages ?? []) mocks.records.set(item.id, item); return value; },
+  refreshChatMessages: mocks.refresh, deleteChatContent: mocks.remove,
   sendChatMessage: mocks.send, markChatRead: mocks.read,
 }));
 vi.mock("#/features/chat/realtime", () => ({ useChatRealtime: mocks.realtime }));
@@ -26,11 +27,11 @@ vi.mock("#/i18n/navigation", () => ({ useLocalePath: () => (path: string) => "/t
 vi.mock("#/lib/auth-client", () => ({ useSession: () => ({ data: { user: { id: "buyer" } } }) }));
 
 export function message(id = "m1", sender = "seller", body = "Hello"): ChatMessage {
-  return { id, sender: { id: sender, name: sender, email: sender + "@example.com", role: "USER" }, messageType: "text",
+  return { id, sender: { id: sender, name: sender, email: sender + "@example.com", role: "USER" }, contentVersion: 0, deleted: false, reply: null, messageType: "text",
     body, attachments: [], files: [], createdAt: `2026-10-13T01:00:${id.replace(/\D/g, "").padStart(2, "0")}.000Z`, product: null, order: null };
 }
 export function room(overrides: Partial<ChatRoom> = {}): ChatRoom {
-  return { roomId: "room", shop: { id: "shop", name: "Shop", slug: "shop", ownerId: "seller" },
+  return { contentRevision: "0", roomId: "room", shop: { id: "shop", name: "Shop", slug: "shop", ownerId: "seller" },
     buyer: { id: "buyer", name: "Buyer", email: "buyer@example.com", role: "USER" },
     lastMessage: message(), unreadCount: 1, canSend: true, chatEnabled: true,
     readBoundary: null, otherReadBoundary: null, messages: [message()],
@@ -42,6 +43,8 @@ function renderPage(ui: ReactNode) {
 }
 
 beforeEach(() => {
+  mocks.records.clear();
+  mocks.refresh.mockImplementation(async (_room: string, ids: string[]) => ({ contentRevision: "0", messages: ids.flatMap((id) => mocks.records.has(id) ? [mocks.records.get(id)] : []) }));
   vi.spyOn(document, "hasFocus").mockReturnValue(true);
   mocks.realtime.mockReturnValue("live");
   mocks.fetchRooms.mockResolvedValue([room()]);
@@ -77,6 +80,22 @@ describe("chat inbox", () => {
 });
 
 describe("chat thread", () => {
+  it('refreshes a late older page even after the deletion revision was already reconciled', async () => {
+    const newest = message('m3', 'seller', 'Newest');
+    const stale = message('m1', 'seller', 'Removed private history');
+    let release: ((value: ChatRoom) => void) | undefined;
+    const older = new Promise<ChatRoom>((resolve) => { release = resolve; });
+    mocks.fetchRoom.mockImplementation((_id: string, query: { before?: string; after?: string }) => query.before ? older : Promise.resolve(room({ messages: query.after ? [] : [newest], contentRevision: '1', pagination: { ...room().pagination!, beforeCursor: newest.id, afterCursor: newest.id, hasMore: !query.after } })));
+    mocks.refresh.mockImplementation(async (_room: string, ids: string[]) => ({ contentRevision: '1', messages: ids.map((id) => id === stale.id ? { ...stale, contentVersion: 1, deleted: true, body: null } : newest) }));
+    const { client } = renderPage(<ChatThreadPage audience="buyer" roomId="room" />);
+    await screen.findByText('Newest');
+    await waitFor(() => expect(client.getQueryData<{ reconciledRevision: string }>(['chat-room', 'room', 'buyer', '', 'buyer'])?.reconciledRevision).toBe('1'));
+    fireEvent.click(screen.getByRole('button', { name: 'chat.loadOlder' }));
+    await act(async () => { release?.(room({ contentRevision: '0', messages: [stale] })); });
+    await screen.findByText('chat.messageDeleted');
+    expect(screen.queryByText('Removed private history')).toBeNull();
+    expect(mocks.refresh).toHaveBeenCalledWith('room', ['m1'], 'buyer', undefined);
+  });
   it("sends a file-only selection, supports removal and keeps file identity", async () => {
     renderPage(<ChatThreadPage roomId="room" audience="buyer" />);
     const picker = await screen.findByLabelText("chat.attachFiles");

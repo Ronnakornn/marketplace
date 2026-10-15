@@ -1,4 +1,5 @@
 import { moneyInteger } from '#server/lib/money.ts'
+import type { Cart } from '#generated/client/client.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -123,6 +124,31 @@ export class CartService {
     // Analytics is explicitly best-effort and must not delay the cart response.
     void this.recordAddToCartAnalytics(actor, variant, data)
     return this.toCartResponse(cart, resolveContentLocale(undefined))
+  }
+
+  async mergeGuestItem(actor: CartActor, data: AddCartItemData & Pick<Cart, 'userId'>): Promise<{ addedQuantity: number }> {
+    this.assertBuyer(actor)
+    if (actor.id !== data.userId) throw new CartServiceError(
+      'The guest cart session has changed', 409, 'CART_SESSION_CHANGED',
+    )
+    this.assertPositiveQuantity(data.quantity)
+    const { addedQuantity, variant } = await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
+      this.assertActiveCart(cart)
+      const variant = await repo.findVariantForCart(data.variantId)
+      this.assertVariantPurchasable(variant)
+      const existing = cart.items.find(item => item.variantId === data.variantId)
+      const existingQuantity = existing?.quantity ?? 0
+      const capacity = Math.min(this.getAvailableQuantity(variant), MAX_CART_QUANTITY)
+      const addedQuantity = Math.min(data.quantity, Math.max(0, capacity - existingQuantity))
+      if (addedQuantity === 0) return { addedQuantity, variant }
+      const quantity = existingQuantity + addedQuantity
+      const unitPrice = this.toMoneyInteger(this.getVariantPrice(variant))
+      if (existing) await repo.updateItem(existing.id, { quantity, unitPrice, currency: variant.currency })
+      else await repo.createItem({ cartId: cart.id, variantId: variant.id, quantity, unitPrice, currency: variant.currency })
+      return { addedQuantity, variant }
+    })
+    if (addedQuantity > 0) void this.recordAddToCartAnalytics(actor, variant, { ...data, quantity: addedQuantity })
+    return { addedQuantity }
   }
 
   async updateItem(actor: CartActor, itemId: string, data: UpdateCartItemData): Promise<CartResponse> {

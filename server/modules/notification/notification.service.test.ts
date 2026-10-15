@@ -97,7 +97,7 @@ describe('NotificationService', () => {
     service = new NotificationService(context, repo, realtime)
 
     await expect(service.createNotification('user-1', 'chat_message', 'New message', 'Hello')).resolves.toMatchObject({
-      id: '11111111-1111-4111-8111-111111111111', title: 'New message', body: 'Hello',
+      id: '11111111-1111-4111-8111-111111111111', title: 'New message', body: 'You received a new chat message.',
     })
     await expect(service.markAsRead('11111111-1111-4111-8111-111111111111', 'user-1')).resolves.toMatchObject({ readAt: expect.any(Date) })
     await expect(service.markAllAsRead('user-1')).resolves.toEqual({ updatedCount: 3 })
@@ -107,40 +107,64 @@ describe('NotificationService', () => {
     expect(context.logger.warn).toHaveBeenCalledWith('Realtime publication failed', expect.any(Object))
   })
 
+  it('redacts legacy chat previews in list and read projections without changing other notification bodies', async () => {
+    const chat = createNotification({ type: 'chat_message', body: 'Removed private message' })
+    vi.mocked(repo.findNotificationsForUser).mockResolvedValue([chat, createNotification({ id: 'order', body: 'Payment detail' })])
+    expect((await service.listNotifications(createActor())).items.map((item) => item.body)).toEqual(['You received a new chat message.', 'Payment detail'])
+    vi.mocked(repo.findNotificationById).mockResolvedValue({ ...chat, readAt: now })
+    expect((await service.markAsRead(chat.id, chat.userId)).body).toBe('You received a new chat message.')
+    expect(repo.markAsRead).not.toHaveBeenCalled()
+  })
+
   it('lists only the authenticated user notifications', async () => {
     const result = await service.listNotifications(createActor())
 
-    expect(repo.findNotificationsForUser).toHaveBeenCalledWith('user-1')
-    expect(result).toHaveLength(1)
-    expect(result[0]).toMatchObject({
+    expect(repo.findNotificationsForUser).toHaveBeenCalledWith('user-1', 'all', { limit: 30 })
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]).toMatchObject({
       id: '11111111-1111-4111-8111-111111111111',
       type: 'order_paid',
       data: { orderId: 'order-1' },
     })
   })
 
-  it('lists only seller notifications for the seller scope', async () => {
-    vi.mocked(repo.findNotificationsForUser).mockResolvedValue([
-      createNotification({ id: 'buyer-notification', data: { orderId: 'order-1', orderNo: 'ORD-1' } }),
-      createNotification({ id: 'seller-notification', title: 'New paid order', data: { orderId: 'order-2', audience: 'seller' } }),
-      createNotification({ id: 'payout-notification', type: 'payout_paid', data: { payoutId: 'payout-1' } }),
-    ])
-
-    const result = await service.listNotifications(createActor(), 'seller')
-
-    expect(result.map((notification) => notification.id)).toEqual(['seller-notification', 'payout-notification'])
+  it('delegates seller pagination to the repository', async () => {
+    vi.mocked(repo.findNotificationsForUser).mockResolvedValue([createNotification({ id: 'seller' })])
+    const result = await service.listNotifications(createActor(), 'seller', { category: 'payment', limit: 1 })
+    expect(result.items.map((item) => item.id)).toEqual(['seller'])
+    expect(repo.findNotificationsForUser).toHaveBeenCalledWith('user-1', 'seller', { category: 'payment', limit: 1 })
   })
 
-  it('marks only seller notifications as read for the seller scope', async () => {
-    vi.mocked(repo.findNotificationsForUser).mockResolvedValue([
-      createNotification({ id: 'buyer-notification', data: { orderId: 'order-1', orderNo: 'ORD-1' } }),
-      createNotification({ id: 'seller-notification', data: { orderId: 'order-2', audience: 'seller' } }),
-      createNotification({ id: 'already-read-seller', type: 'payout_paid', readAt: now, data: { payoutId: 'payout-1' } }),
-    ])
-
+  it('marks the seller scope as read with one bulk update', async () => {
+    vi.mocked(repo.markAllAsRead).mockResolvedValue(1)
     await expect(service.markAllNotificationsAsRead(createActor(), 'seller')).resolves.toEqual({ updatedCount: 1 })
-    expect(repo.markAsRead).toHaveBeenCalledTimes(1)
-    expect(repo.markAsRead).toHaveBeenCalledWith('seller-notification', expect.any(Date))
+    expect(repo.markAllAsRead).toHaveBeenCalledWith('user-1', expect.any(Date), 'seller')
+    expect(repo.markAsRead).not.toHaveBeenCalled()
+    expect(repo.findNotificationsForUser).not.toHaveBeenCalled()
+  })
+
+  it('returns a bounded page and cursor for its last emitted row', async () => {
+    vi.mocked(repo.findNotificationsForUser).mockResolvedValue([createNotification({ id: 'a' }), createNotification({ id: 'b' })])
+    const page = await service.listNotifications(createActor(), 'all', { limit: 1 })
+    expect(page.items.map((item) => item.id)).toEqual(['a'])
+    expect(page.nextCursor).toBe('a')
+  })
+
+  it.each([0, -1, 101, 1.5, NaN])('rejects invalid page size %s before accessing the repository', async (limit) => {
+    await expect(service.listNotifications(createActor(), 'all', { limit })).rejects.toMatchObject({ code: 'NOTIFICATION_INVALID_PAGE' })
+    expect(repo.findNotificationsForUser).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid cursors and unauthenticated pages', async () => {
+    await expect(service.listNotifications(createActor(), 'all', { cursor: 'invalid' })).rejects.toMatchObject({ code: 'NOTIFICATION_INVALID_PAGE' })
+    await expect(service.listNotifications({ id: '', role: 'USER' })).rejects.toMatchObject({ code: 'NOTIFICATION_FORBIDDEN' })
+    expect(repo.findNotificationsForUser).not.toHaveBeenCalled()
+  })
+
+  it('requests a scoped count with chat excluded only when requested', async () => {
+    await service.getUnreadCount(createActor(), 'seller', true)
+    expect(repo.countUnreadForUser).toHaveBeenCalledWith('user-1', 'seller', true)
+    expect(repo.findNotificationsForUser).not.toHaveBeenCalled()
   })
 
   it('does not let a user read another user notification', async () => {
@@ -153,7 +177,7 @@ describe('NotificationService', () => {
 
   it('counts only unread notifications through repository filter', async () => {
     await expect(service.getUnreadCount(createActor())).resolves.toEqual({ unreadCount: 2 })
-    expect(repo.countUnreadForUser).toHaveBeenCalledWith('user-1')
+    expect(repo.countUnreadForUser).toHaveBeenCalledWith('user-1', 'all', false)
   })
 
   it('marks an owned notification as read', async () => {
@@ -173,7 +197,7 @@ describe('NotificationService', () => {
 
   it('marks all own notifications as read', async () => {
     await expect(service.markAllNotificationsAsRead(createActor())).resolves.toEqual({ updatedCount: 3 })
-    expect(repo.markAllAsRead).toHaveBeenCalledWith('user-1', expect.any(Date))
+    expect(repo.markAllAsRead).toHaveBeenCalledWith('user-1', expect.any(Date), 'all')
   })
 
   it('creates notifications with JSON data', async () => {

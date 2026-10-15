@@ -1,5 +1,6 @@
 import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
+import { CartPlain } from '#generated/prismabox/Cart.ts'
 import { CartItemPlainInputCreate, CartItemPlainInputUpdate } from '#generated/prismabox/CartItem.ts'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { authPlugin } from '#server/modules/auth'
@@ -16,6 +17,11 @@ const AddCartItemBodySchema = t.Composite([
     sessionId: t.Optional(t.String({ maxLength: 128 })),
     source: t.Optional(t.String({ maxLength: 64 })),
   }),
+])
+
+const MergeGuestCartItemBodySchema = t.Composite([
+  AddCartItemBodySchema,
+  t.Pick(CartPlain, ['userId']),
 ])
 
 const UpdateCartItemBodySchema = t.Required(t.Pick(CartItemPlainInputUpdate, ['quantity']))
@@ -48,6 +54,10 @@ export function createCartRoutes(container: ServiceContainer) {
     .post('/api/cart/items', ({ authContext, body }: any) => moneyResponse(container.cartService.addItem(authContext!.user, body)), {
       withAuth: true,
       body: AddCartItemBodySchema,
+    })
+    .post('/api/cart/guest-items', ({ authContext, body }: any) => container.cartService.mergeGuestItem(authContext!.user, body), {
+      withAuth: true,
+      body: MergeGuestCartItemBodySchema,
     })
     .patch('/api/cart/items/:itemId', ({ authContext, params, body }: any) =>
       moneyResponse(container.cartService.updateItem(authContext!.user, params.itemId, body)), {

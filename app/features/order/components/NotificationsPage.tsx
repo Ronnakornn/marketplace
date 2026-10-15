@@ -1,16 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { BellIcon, CheckCheckIcon, CreditCardIcon, MegaphoneIcon, MessageCircleIcon, PackageIcon, RotateCcwIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { fetchNotifications } from "#/features/buyer/api";
+import { fetchNotifications, type NotificationCategory } from "#/features/buyer/api";
 import { useFormatters, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { useSession } from "#/lib/auth-client";
 import { requestApi } from "#/lib/api-client";
 import { PushNotificationManager } from "./PushNotificationManager";
 
@@ -23,22 +24,29 @@ const tabs = [
   { value: "promotion", labelKey: "notification.promos" },
 ] as const;
 
+const subscribeToHydration = () => () => undefined;
+
 export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTopBar?: boolean; scope?: "all" | "seller" }) {
   const queryClient = useQueryClient();
   const t = useTranslations();
   const formatters = useFormatters();
   const localePath = useLocalePath();
-  const [tab, setTab] = useState("all");
-  const notificationsQuery = useQuery({ queryKey: ["notifications", scope], queryFn: () => fetchNotifications(scope) });
+  const { data: currentSession } = useSession();
+  const hasHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
+  const session = hasHydrated ? currentSession : null;
+  const [tab, setTab] = useState<NonNullable<NotificationCategory>>("all");
+  const notificationsQuery = useInfiniteQuery({
+    queryKey: ["notifications", "list", session?.user.id, scope, tab],
+    enabled: Boolean(session?.user.id),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => fetchNotifications(scope, { cursor: pageParam, category: tab, limit: 30 }),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+  });
   const readAllMutation = useMutation({
     mutationFn: () => requestApi(`/api/notifications/read-all${scope === "seller" ? "?scope=seller" : ""}`, { method: "PATCH" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications", scope] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
-  const notifications = useMemo(() => {
-    const items = notificationsQuery.data ?? [];
-    if (tab === "all") return items;
-    return items.filter((notification) => notificationTypeGroup(notification.type) === tab);
-  }, [notificationsQuery.data, tab]);
+  const notifications = notificationsQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <>
@@ -61,8 +69,8 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
         </div>
         {notificationsQuery.isLoading ? <BuyerLoadingList /> : null}
         {notificationsQuery.isError ? <BuyerErrorState message={notificationsQuery.error.message} onRetry={() => void notificationsQuery.refetch()} /> : null}
-        {notificationsQuery.isSuccess && notificationsQuery.data.length === 0 ? <BuyerEmptyState title={t("notification.emptyTitle")} description={t("notification.emptyDescription")} /> : null}
-        {notificationsQuery.isSuccess && notificationsQuery.data.length > 0 && notifications.length === 0 ? <BuyerEmptyState title={t("notification.emptyCategoryTitle")} description={t("notification.emptyCategoryDescription")} /> : null}
+        {notificationsQuery.isSuccess && notifications.length === 0 && tab === "all" ? <BuyerEmptyState title={t("notification.emptyTitle")} description={t("notification.emptyDescription")} /> : null}
+        {notificationsQuery.isSuccess && tab !== "all" && notifications.length === 0 ? <BuyerEmptyState title={t("notification.emptyCategoryTitle")} description={t("notification.emptyCategoryDescription")} /> : null}
         {notifications.map((notification) => {
           const Icon = notificationIcon(notification.type);
           const targetPath = notificationTargetPath(notification, scope);
@@ -85,6 +93,7 @@ export function NotificationsPage({ showTopBar = true, scope = "all" }: { showTo
             ? <Link key={notification.id} href={localePath(targetPath)} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-600 focus-visible:ring-offset-2">{card}</Link>
             : <div key={notification.id}>{card}</div>;
         })}
+        {notificationsQuery.hasNextPage ? <Button variant="outline" disabled={notificationsQuery.isFetchingNextPage} onClick={() => void notificationsQuery.fetchNextPage()}>{t(notificationsQuery.isFetchingNextPage ? "notification.loadingMore" : "notification.loadMore")}</Button> : null}
       </div>
     </>
   );
@@ -123,7 +132,7 @@ function formatNotificationTitle(notification: { type: string; title: string }, 
 }
 
 function formatNotificationBody(notification: { type: string; body: string | null; data: Record<string, unknown> | null }, t: ReturnType<typeof useTranslations>, scope: "all" | "seller"): string | null {
-  if (notificationTypeGroup(notification.type) === "chat" && !notification.body && typeof notification.data?.attachmentCount === "number" && notification.data.attachmentCount > 0) return t("chat.attachedFiles");
+  if (notificationTypeGroup(notification.type) === "chat") return t("chat.notificationBody");
   if (scope === "seller" && notification.type.toLowerCase() === "order_paid") return t("notification.event.sellerOrderPaid.body");
   if (scope === "seller" && notification.type.toLowerCase() === "payout_paid") return t("notification.event.sellerPayoutPaid.body");
   if (scope === "seller" && notification.type.toLowerCase() === "payout_rejected") {

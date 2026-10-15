@@ -56,6 +56,67 @@ function createClient(): CacheClient {
 }
 
 describe('CacheService', () => {
+  it('invalidates overlapping pattern groups in one scan traversal and preserves unmatched keys', async () => {
+    const client = createClient()
+    const service = new CacheService(createAppContext(), createConfig(), client)
+    await service.set('namespace:product:1', 1)
+    await service.set('namespace:search:1', 2)
+    await service.set('namespace:seller:1', 3)
+    await service.set('other:product:1', 4)
+    vi.mocked(client.scan)
+      .mockResolvedValueOnce(['7', []])
+      .mockResolvedValueOnce(['0', ['namespace:product:1', 'namespace:product:1', 'namespace:search:1', 'namespace:seller:1']])
+
+    await expect(service.deleteByPatterns(['namespace:product:*', 'namespace:search:*', 'namespace:product:1'])).resolves.toBe(2)
+    expect(client.scan).toHaveBeenNthCalledWith(1, '0', 'namespace:*', 200)
+    expect(client.scan).toHaveBeenNthCalledWith(2, '7', 'namespace:*', 200)
+    expect(client.scan).toHaveBeenCalledTimes(2)
+    expect(client.del).toHaveBeenCalledWith('namespace:product:1', 'namespace:search:1')
+    await expect(service.get('namespace:seller:1')).resolves.toBe(3)
+    await expect(service.get('other:product:1')).resolves.toBe(4)
+  })
+
+  it('treats regex characters in grouped key patterns as literal text', async () => {
+    const client = createClient()
+    const service = new CacheService(createAppContext(), createConfig(), client)
+    await service.set('ns.a:product:1', 1)
+    await service.set('ns.a:search:1', 2)
+    await service.set('nsXa:product:1', 3)
+    vi.mocked(client.scan).mockResolvedValueOnce(['0', ['ns.a:product:1', 'ns.a:search:1', 'nsXa:product:1']])
+
+    await expect(service.deleteByPatterns(['ns.a:product:*', 'ns.a:search:*'])).resolves.toBe(2)
+    await expect(service.get('nsXa:product:1')).resolves.toBe(3)
+  })
+
+  it('does not scan or delete for an empty pattern group', async () => {
+    const client = createClient()
+    const service = new CacheService(createAppContext(), createConfig(), client)
+
+    await expect(service.deleteByPatterns([])).resolves.toBe(0)
+    expect(client.scan).not.toHaveBeenCalled()
+    expect(client.del).not.toHaveBeenCalled()
+  })
+
+  it('fails open when a grouped traversal fails and prevents stale reads from repopulating cache', async () => {
+    const client = createClient()
+    const service = new CacheService(createAppContext(), createConfig(), client)
+    let finish!: (value: number) => void
+    let started!: () => void
+    const ready = new Promise<void>(resolve => { started = resolve })
+    const oldRead = service.remember('namespace:product:1', () => {
+      started()
+      return new Promise<number>(resolve => { finish = resolve })
+    })
+    await ready
+    vi.mocked(client.scan).mockRejectedValueOnce(new Error('Redis unavailable'))
+
+    await expect(service.deleteByPatterns(['namespace:product:*', 'namespace:search:*'])).resolves.toBe(0)
+    finish(1)
+    await expect(oldRead).resolves.toBe(1)
+    expect(client.set).not.toHaveBeenCalled()
+    await expect(service.remember('namespace:product:1', async () => 2)).resolves.toBe(2)
+  })
+
   it('continues through empty scan pages, removes duplicate keys once and preserves unrelated entries', async () => {
     const client = createClient()
     const service = new CacheService(createAppContext(), createConfig(), client)
@@ -249,7 +310,8 @@ describe('CacheService', () => {
   })
 
   it('product update invalidates related cache keys', async () => {
-    const service = new CacheService(createAppContext(), createConfig(), createClient())
+    const client = createClient()
+    const service = new CacheService(createAppContext(), createConfig(), client)
     const invalidation = new CacheInvalidation(service)
     await service.set(service.keys.productDetail('product-1'), { id: 'product-1' })
     await service.set(service.keys.productList({ page: 1 }), { data: [] })
@@ -262,10 +324,12 @@ describe('CacheService', () => {
     await expect(service.get(service.keys.productList({ page: 1 }))).resolves.toBeNull()
     await expect(service.get(service.keys.productSearch({ q: 'tee' }))).resolves.toBeNull()
     await expect(service.get(service.keys.searchSuggestions({ q: 'tee', locale: 'th', limit: 8 }))).resolves.toBeNull()
+    expect(client.scan).toHaveBeenCalledTimes(1)
   })
 
   it('category mutation invalidates catalog discovery and search cache keys', async () => {
-    const service = new CacheService(createAppContext(), createConfig(), createClient())
+    const client = createClient()
+    const service = new CacheService(createAppContext(), createConfig(), client)
     const invalidation = new CacheInvalidation(service)
     await service.set(service.keys.categoryList('th'), { data: [] })
     await service.set(service.keys.productList({ categoryId: 'fashion' }), { data: [] })
@@ -282,6 +346,7 @@ describe('CacheService', () => {
     await expect(service.get(service.keys.searchSuggestions({ q: 'dress' }))).resolves.toBeNull()
     await expect(service.get(service.keys.aiSearch({ q: 'dress' }))).resolves.toBeNull()
     await expect(service.get(service.keys.recommendations('home', { categoryId: 'fashion' }))).resolves.toBeNull()
+    expect(client.scan).toHaveBeenCalledTimes(1)
   })
 
   it('inventory update invalidates product/search cache', async () => {
@@ -299,14 +364,14 @@ describe('CacheService', () => {
   it('batches rapid global inventory invalidations and keeps a trailing refresh', async () => {
     vi.useFakeTimers()
     try {
-      const service = new CacheService(createAppContext(), createConfig(), createClient())
-      const deleteByPattern = vi.spyOn(service, 'deleteByPattern')
-      const invalidation = new CacheInvalidation(service)
+      const client = createClient()
+      const groupedService = new CacheService(createAppContext(), createConfig(), client)
+      const invalidation = new CacheInvalidation(groupedService)
       await invalidation.invalidateInventory()
       await Promise.all(Array.from({ length: 20 }, () => invalidation.invalidateInventory()))
-      expect(deleteByPattern).toHaveBeenCalledTimes(3)
+      expect(client.scan).toHaveBeenCalledTimes(1)
       await vi.advanceTimersByTimeAsync(1_000)
-      expect(deleteByPattern).toHaveBeenCalledTimes(6)
+      expect(client.scan).toHaveBeenCalledTimes(2)
     } finally {
       vi.useRealTimers()
     }

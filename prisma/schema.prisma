@@ -2214,6 +2214,7 @@ model ReturnItem {
 }
 
 model ChatThread {
+  contentRevision BigInt @default(0)
   id            String    @id @default(uuid()) @db.Uuid
   buyerId       String    @db.Uuid
   shopId        String    @db.Uuid
@@ -2237,6 +2238,12 @@ model ChatThread {
 }
 
 model ChatMessage {
+  contentVersion Int @default(0)
+  replyToMessageId String? @db.Uuid
+  replyToAttachmentId String? @db.Uuid
+  replyToMessage ChatMessage? @relation("ChatReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies ChatMessage[] @relation("ChatReplies")
+  replyToAttachment ChatAttachment? @relation("ChatImageReplies", fields: [replyToAttachmentId], references: [id], onDelete: SetNull)
   id          String          @id @default(uuid()) @db.Uuid
   threadId    String          @db.Uuid
   senderId    String          @db.Uuid
@@ -2255,6 +2262,8 @@ model ChatMessage {
   order   Order?     @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@index([threadId, createdAt])
+  @@index([replyToMessageId])
+  @@index([replyToAttachmentId])
   @@index([threadId, createdAt, id])
   @@index([senderId])
   @@index([productId])
@@ -2263,6 +2272,8 @@ model ChatMessage {
 }
 
 model ChatAttachment {
+  deletedAt DateTime?
+  replies ChatMessage[] @relation("ChatImageReplies")
   id          String @id @default(uuid()) @db.Uuid
   messageId   String @db.Uuid
   ordinal     Int

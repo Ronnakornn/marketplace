@@ -37,7 +37,7 @@ export async function createChatRoom(input: CreateChatRoomInput) {
 export async function sendChatMessage(roomId: string, input: SendChatMessageInput) {
   if (input.files?.length) {
     const form = new FormData();
-    for (const key of ["clientMessageId", "body", "productId", "orderId", "scope"] as const) {
+    for (const key of ["clientMessageId", "body", "productId", "orderId", "scope", "replyToMessageId", "replyToAttachmentId"] as const) {
       const value = input[key];
       if (value !== undefined) form.append(key, value);
     }
@@ -54,6 +54,17 @@ export async function sendChatMessage(roomId: string, input: SendChatMessageInpu
 
 export async function markChatRead(roomId: string, scope: ChatAudience, throughMessageId: string) {
   return requireChatData(chatApi.api.chats({ roomId }).read.patch(undefined, { query: { scope, throughMessageId } }));
+}
+
+export async function refreshChatMessages(roomId: string, messageIds: string[], scope: ChatAudience, shopId?: string) {
+  return requireChatData(chatApi.api.chats({ roomId }).messages.refresh.post({ messageIds, scope, shopId }));
+}
+
+export async function deleteChatContent(roomId: string, messageId: string, scope: ChatAudience, shopId?: string, attachmentId?: string) {
+  const message = chatApi.api.chats({ roomId }).messages({ messageId });
+  return requireChatData(attachmentId
+    ? message.attachments({ attachmentId }).delete(undefined, { query: { scope, shopId } })
+    : message.delete(undefined, { query: { scope, shopId } }));
 }
 
 async function requireChatData<T>(request: Promise<{ data: T | null; error: unknown }>): Promise<NonNullable<T>> {

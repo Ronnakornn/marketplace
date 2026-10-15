@@ -8,34 +8,33 @@ export class CacheInvalidation {
 
   async invalidateProductListsAndSearch(): Promise<number> {
     const prefix = this.prefix()
-    const deleted = await Promise.all([
-      this.cache.deleteByPattern(`${prefix}:product:list:*`),
-      this.cache.deleteByPattern(`${prefix}:search:products:*`),
-      this.cache.deleteByPattern(`${prefix}:search:suggestions:*`),
+    return this.cache.deleteByPatterns([
+      `${prefix}:product:list:*`,
+      `${prefix}:search:products:*`,
+      `${prefix}:search:suggestions:*`,
     ])
-    return deleted.reduce((total, count) => total + count, 0)
   }
 
   async invalidateCatalogDiscoveryAndSearch(): Promise<number> {
     const prefix = this.prefix()
-    const deleted = await Promise.all([
-      this.cache.deleteByPattern(`${prefix}:category:list:*`),
-      this.cache.deleteByPattern(`${prefix}:product:list:*`),
-      this.cache.deleteByPattern(`${prefix}:search:products:*`),
-      this.cache.deleteByPattern(`${prefix}:search:suggestions:*`),
-      this.cache.deleteByPattern(`${prefix}:ai-search:products:*`),
-      this.cache.deleteByPattern(`${prefix}:recommendations:*`),
+    return this.cache.deleteByPatterns([
+      `${prefix}:category:list:*`,
+      `${prefix}:product:list:*`,
+      `${prefix}:search:products:*`,
+      `${prefix}:search:suggestions:*`,
+      `${prefix}:ai-search:products:*`,
+      `${prefix}:recommendations:*`,
     ])
-    return deleted.reduce((total, count) => total + count, 0)
   }
 
   async invalidateProduct(productId: string): Promise<number> {
     const prefix = this.prefix()
-    const deleted = await Promise.all([
-      this.cache.deleteByPattern(`${prefix}:product:detail:*:${productId}`),
-      this.invalidateProductListsAndSearch(),
+    return this.cache.deleteByPatterns([
+      `${prefix}:product:detail:*:${productId}`,
+      `${prefix}:product:list:*`,
+      `${prefix}:search:products:*`,
+      `${prefix}:search:suggestions:*`,
     ])
-    return deleted.reduce((total, count) => total + count, 0)
   }
 
   async invalidateVariant(productId: string): Promise<number> {
@@ -63,11 +62,10 @@ export class CacheInvalidation {
 
   async invalidateSellerDashboard(shopId: string): Promise<number> {
     const prefix = this.prefix()
-    const deleted = await Promise.all([
-      this.cache.delete(this.cache.keys.sellerDashboard(shopId)),
-      this.cache.deleteByPattern(`${prefix}:seller:${shopId}:dashboard:insights:*`),
+    return this.cache.deleteByPatterns([
+      this.cache.keys.sellerDashboard(shopId),
+      `${prefix}:seller:${shopId}:dashboard:insights:*`,
     ])
-    return deleted.reduce((total, count) => total + count, 0)
   }
 
   private prefix(): string {

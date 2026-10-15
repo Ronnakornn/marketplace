@@ -2,6 +2,7 @@ import type { Role } from '#generated/client/enums.ts'
 
 export type RealtimeEventName =
   | 'chat.message.created'
+  | 'chat.message.changed'
   | 'chat.room.read'
   | 'notification.created'
   | 'notification.read'

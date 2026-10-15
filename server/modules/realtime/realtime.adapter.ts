@@ -174,7 +174,7 @@ export class RedisRealtimeAdapter implements RealtimeAdapter {
 function isRealtimeEvent(value: unknown): value is RealtimeEvent {
   if (!value || typeof value !== 'object') return false
   const event = value as Record<string, unknown>
-  return (event.event === 'chat.message.created' || event.event === 'chat.room.read'
+  return (event.event === 'chat.message.created' || event.event === 'chat.message.changed' || event.event === 'chat.room.read'
     || event.event === 'notification.created' || event.event === 'notification.read')
     && typeof event.channel === 'string' && typeof event.createdAt === 'string'
 }

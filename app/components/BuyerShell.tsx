@@ -17,9 +17,10 @@ import {
 } from "lucide-react";
 import { LanguageSwitcher } from "#/components/LanguageSwitcher";
 import { Input } from "#/components/ui/input";
-import { addCartItem, fetchCart, fetchNotifications } from "#/features/buyer/api";
-import { clearGuestCart, readGuestCart, writeGuestCart } from "#/features/cart/guest-cart";
-import { fetchChatRooms } from "#/features/chat/api";
+import { fetchCart, fetchNotificationUnreadCount } from "#/features/buyer/api";
+import { readGuestCart } from "#/features/cart/guest-cart";
+import { mergeGuestCart } from "#/features/cart/merge-guest-cart";
+import { chatRoomsQueryOptions } from "#/features/chat/queries";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
@@ -68,32 +69,24 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
     queryFn: () => fetchCart(locale),
     enabled: canUseBuyerCart,
   });
+  const cartUserId = canUseBuyerCart ? hydratedSession?.user.id : undefined;
   useEffect(() => {
-    if (!canUseBuyerCart) return;
-    const items = readGuestCart();
-    if (!items.length) return;
-    void (async () => {
-      const remaining = [] as typeof items;
-      for (const item of items) {
-        let merged = 0;
-        for (; merged < item.quantity; merged += 1) {
-          try { await addCartItem(item.variantId, 1); } catch { break; }
-        }
-        if (merged < item.quantity) remaining.push({ ...item, quantity: item.quantity - merged });
-      }
-      if (remaining.length) writeGuestCart(remaining); else clearGuestCart();
-      void cartQuery.refetch();
-    })();
-  }, [canUseBuyerCart]);
+    if (isHydratingSession) return;
+    const hadGuestItems = readGuestCart().length > 0;
+    let active = true;
+    void mergeGuestCart(cartUserId ?? null).then(() => {
+      if (active && cartUserId && hadGuestItems) void cartQuery.refetch();
+    });
+    return () => { active = false; };
+  }, [cartUserId, isHydratingSession]);
   const chatRoomsQuery = useQuery({
-    queryKey: ["chat-rooms", "buyer", hydratedSession?.user.id],
-    queryFn: () => fetchChatRooms("buyer"),
+    ...chatRoomsQueryOptions("buyer", hydratedSession?.user.id ?? ""),
     enabled: canUseChat,
     refetchInterval: 30_000,
   });
   const notificationsQuery = useQuery({
-    queryKey: ["notifications", notificationScope],
-    queryFn: () => fetchNotifications(notificationScope),
+    queryKey: ["notifications", "unread-count", notificationScope, hydratedSession?.user.id, { excludeChat: true }],
+    queryFn: () => fetchNotificationUnreadCount(notificationScope, { excludeChat: true }),
     enabled: Boolean(hydratedSession),
     refetchInterval: 30_000,
   });
@@ -102,7 +95,7 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
     0,
   ) ?? 0;
   const chatUnreadCount = chatRoomsQuery.data?.reduce((total, room) => total + room.unreadCount, 0) ?? 0;
-  const notificationUnreadCount = notificationsQuery.data?.filter((notification) => !notification.readAt && !isChatNotification(notification.type)).length ?? 0;
+  const notificationUnreadCount = notificationsQuery.data?.unreadCount ?? 0;
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 px-3 py-3 shadow-sm backdrop-blur-xl sm:px-4">
@@ -187,10 +180,6 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
       </div>
     </header>
   );
-}
-
-function isChatNotification(type: string): boolean {
-  return type.toLowerCase().includes("chat");
 }
 
 export function MobileBottomNavigation({ prefetchLinks = true }: { prefetchLinks?: boolean } = {}) {

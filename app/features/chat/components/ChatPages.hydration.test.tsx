@@ -19,6 +19,7 @@ vi.mock("next/link", () => ({ default: ({ children, href, ...props }: { children
 vi.mock("#/components/BuyerShell", () => ({ BuyerTopBar: ({ title }: { title: string }) => <header>{title}</header> }));
 vi.mock("#/features/chat/api", async (original) => ({
   ...await original<typeof import("../api")>(), fetchChatRooms: mocks.fetchRooms, fetchChatRoom: mocks.fetchRoom,
+  refreshChatMessages: async () => ({ contentRevision: "0", messages: [message] }),
   sendChatMessage: mocks.send, markChatRead: mocks.read,
 }));
 vi.mock("#/i18n/client", () => ({
@@ -29,10 +30,10 @@ vi.mock("#/lib/auth-client", () => ({ useSession: () => mocks.session }));
 
 const message: ChatMessage = {
   id: "message", sender: { id: "buyer", name: "Buyer", email: "buyer@example.com", role: "USER" },
-  messageType: "text", body: "Private chat message", attachments: [], files: [], createdAt: "2026-10-13T01:00:00.000Z", product: null, order: null,
+  contentVersion: 0, deleted: false, reply: null, messageType: "text", body: "Private chat message", attachments: [], files: [], createdAt: "2026-10-13T01:00:00.000Z", product: null, order: null,
 };
 const room: ChatRoom = {
-  roomId: "room", shop: { id: "shop", name: "Shop", slug: "shop", ownerId: "seller" },
+  contentRevision: "0", roomId: "room", shop: { id: "shop", name: "Shop", slug: "shop", ownerId: "seller" },
   buyer: message.sender, lastMessage: message, unreadCount: 0, canSend: true, chatEnabled: true,
   readBoundary: null, otherReadBoundary: null, messages: [message],
   pagination: { page: 1, limit: 30, total: 1, totalPages: 1, hasMore: false, beforeCursor: message.id, afterCursor: message.id },

@@ -109,20 +109,35 @@ export class CacheService {
     }
   }
 
-  async deleteByPattern(pattern: string): Promise<number> {
+  deleteByPattern(pattern: string): Promise<number> {
+    return this.deleteByPatterns([pattern])
+  }
+
+  async deleteByPatterns(inputPatterns: readonly string[]): Promise<number> {
+    const patterns = [...new Set(inputPatterns)]
+    if (patterns.length === 0) return 0
     this.invalidationVersion++
     this.pending.clear()
     if (!this.isEnabled()) return 0
 
     try {
+      const matchers = patterns.length === 1 ? null : patterns.map(pattern => new RegExp(`^${pattern
+        .split('*')
+        .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('[\\s\\S]*')}$`))
+      const scanPattern = patterns.length === 1 ? patterns[0]! : `${commonPatternPrefix(patterns)
+        .replaceAll('\\', '\\\\')
+        .replaceAll('?', '\\?')
+        .replaceAll('[', '\\[')
+        .replaceAll(']', '\\]')}*`
       let cursor = '0'
       let deleted = 0
       do {
-        const page = await this.client!.scan(cursor, pattern, INVALIDATION_BATCH_SIZE)
+        const page = await this.client!.scan(cursor, scanPattern, INVALIDATION_BATCH_SIZE)
         cursor = page[0]
-        for (let offset = 0; offset < page[1].length; offset += INVALIDATION_BATCH_SIZE) {
-          const keys = [...new Set(page[1].slice(offset, offset + INVALIDATION_BATCH_SIZE))]
-          deleted += await this.client!.del(...keys)
+        const keys = [...new Set(page[1])].filter(key => !matchers || matchers.some(matcher => matcher.test(key)))
+        for (let offset = 0; offset < keys.length; offset += INVALIDATION_BATCH_SIZE) {
+          deleted += await this.client!.del(...keys.slice(offset, offset + INVALIDATION_BATCH_SIZE))
         }
       } while (cursor !== '0')
       return deleted
@@ -130,7 +145,7 @@ export class CacheService {
       this.markTemporarilyUnavailable()
       this.logger.warn('Cache invalidation failed', {
         code: 'CACHE_INVALIDATION_FAILED',
-        pattern,
+        patterns,
         message: error instanceof Error ? error.message : String(error),
       })
       return 0
@@ -140,4 +155,15 @@ export class CacheService {
   private markTemporarilyUnavailable(): void {
     this.unavailableUntilMs = Date.now() + 30_000
   }
+}
+
+function commonPatternPrefix(patterns: readonly string[]): string {
+  let prefix = patterns[0]!.split('*')[0]!
+  for (const pattern of patterns.slice(1)) {
+    const literal = pattern.split('*')[0]!
+    let length = 0
+    while (length < prefix.length && prefix[length] === literal[length]) length++
+    prefix = prefix.slice(0, length)
+  }
+  return prefix
 }

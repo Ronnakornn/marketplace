@@ -10,7 +10,8 @@ import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
-import { fetchChatRooms, type ChatAudience, type ChatMessage, type ChatRoom, type SendChatMessageInput } from "../api";
+import { type ChatAudience, type ChatMessage, type ChatRoom, type SendChatMessageInput } from "../api";
+import { chatRoomsQueryOptions } from "../queries";
 import { useChatRealtime, type ChatConnectionStatus } from "../realtime";
 import { createChatMessageId, useChatThread } from "../timeline";
 import { useFormatters, useTranslations } from "#/i18n/client";
@@ -19,6 +20,7 @@ import { useSession } from "#/lib/auth-client";
 import { ApiClientError } from "#/lib/api-client";
 import { cn } from "#/lib/utils";
 import { CHAT_ATTACHMENT_ACCEPT, CHAT_ATTACHMENT_POLICY } from "#/lib/chat-attachments";
+import { MessageActions, ReplyQuote } from './MessageActions';
 
 const subscribeToHydration = () => () => undefined;
 
@@ -34,12 +36,7 @@ export function ChatInboxPage({ audience, shopId }: { audience: ChatAudience; sh
   const { currentSession: session } = useChatViewer();
   const [search, setSearch] = useState("");
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const roomsQuery = useQuery({
-    queryKey: ["chat-rooms", audience, shopId ?? "", session?.user.id ?? ""],
-    queryFn: () => fetchChatRooms(audience, shopId),
-    enabled: Boolean(session) && (audience !== "seller" || Boolean(shopId)),
-    retry: false,
-  });
+  const roomsQuery = useQuery(chatRoomsQueryOptions(audience, session?.user.id ?? "", shopId));
   const channels = !session ? [] : audience === "seller" && shopId ? [`seller:${shopId}:chats`]
     : audience === "buyer" && session?.user.id ? [`user:${session.user.id}:chats`] : [];
   const status = useChatRealtime(channels, () => { void roomsQuery.refetch(); });
@@ -99,6 +96,8 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
   const status = useChatRealtime(userId ? [`chat:${roomId}`] : [], () => { void thread.sync(); });
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [reply, setReply] = useState<{ messageId: string; attachmentId?: string } | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [selectionError, setSelectionError] = useState(false);
   const draftRevisionRef = useRef(0);
   const sendLockRef = useRef(false);
@@ -115,10 +114,14 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
   const data = !userId || thread.isError ? undefined : thread.data;
   const room = data?.room;
   const messages = data?.messages ?? [];
+  const replySource = reply ? messages.find((message) => message.id === reply.messageId) : undefined;
+  const replyImage = replySource?.files.find((file) => file.id === reply?.attachmentId) ?? null;
+  const replyQuote = reply && replySource ? { messageId: reply.messageId, attachmentId: reply.attachmentId ?? null, contentVersion: replySource.contentVersion,
+    sender: replySource.sender, body: replySource.body, image: replyImage, unavailable: replySource.deleted || !!reply.attachmentId && !replyImage } : null;
   const latestId = messages.at(-1)?.id ?? null;
   const latestContiguous = data?.contiguousCursor ? messages.find((message) => message.id === data.contiguousCursor) : undefined;
   const readBoundary = room?.readBoundary;
-  const needsRead = latestContiguous && messages.some((message) => message.sender.id !== userId &&
+  const needsRead = latestContiguous && messages.some((message) => !message.deleted && message.sender.id !== userId &&
     compareMessageBoundary(message, latestContiguous) <= 0 && (!readBoundary || compareMessageBoundary(message, readBoundary) > 0));
 
   useEffect(() => {
@@ -168,10 +171,12 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
     if (sendLockRef.current || !room?.canSend) return;
     const trimmed = body.trim();
     const matchesDraft = (input: SendChatMessageInput) => input.body === trimmed
+      && input.replyToMessageId === reply?.messageId && input.replyToAttachmentId === reply?.attachmentId
       && input.productId === context.productId && input.orderId === context.orderId
       && (input.files ?? []).length === files.length && files.every((file, index) => input.files?.[index] === file);
     const input = retry ?? (failedRef.current && failedRevisionRef.current === draftRevisionRef.current && matchesDraft(failedRef.current) ? failedRef.current : {
       messageType: "text", body: trimmed, files: [...files], clientMessageId: createChatMessageId(), scope: audience, ...context,
+      replyToMessageId: reply?.messageId, replyToAttachmentId: reply?.attachmentId,
     } satisfies SendChatMessageInput);
     if (!input.body?.trim() && !input.files?.length) return;
     sendLockRef.current = true;
@@ -186,6 +191,7 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
         setBody("");
         setFiles([]);
         setContext({});
+        setReply(null);
       }
     } catch {
       failedRef.current = input;
@@ -208,6 +214,12 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); void submitMessage(); }
+  function selectReply(messageId: string, attachmentId?: string) {
+    draftRevisionRef.current += 1;
+    setReply({ messageId, attachmentId });
+    document.getElementById('chat-message')?.focus();
+  }
+  const deleteContent = (messageId: string, attachmentId?: string) => thread.deleteMutation.mutateAsync({ messageId, attachmentId });
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing || event.keyCode === 229) return;
     event.preventDefault();
@@ -231,6 +243,7 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
           {audience === "buyer" ? <Button variant="outline" size="sm" asChild className="ml-auto"><Link href={localePath(`/shops/${room.shop.slug}`)}>{t("chat.viewShop")}</Link></Button> : null}
         </header>
         {thread.syncError ? <p role="status" className="bg-amber-50 px-4 py-2 text-sm text-amber-900">{t("chat.syncError")} <Button size="sm" variant="ghost" onClick={() => void thread.sync()}>{t("chat.retry")}</Button></p> : null}
+        {feedback ? <p role="status" className="px-4 py-2 text-sm">{t(feedback)}</p> : null}
         <div ref={scrollRef} onScroll={(event) => {
           const element = event.currentTarget;
           const bottom = element.scrollHeight - element.scrollTop - element.clientHeight < 48;
@@ -245,9 +258,13 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
             const read = mine && room.otherReadBoundary && compareMessageBoundary(message, room.otherReadBoundary) <= 0;
             return <div key={message.id} data-message-id={message.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
               <div className={cn("min-w-0 max-w-[88%] rounded-2xl px-3 py-2 sm:max-w-[75%]", mine ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-900")}>
+                <div className="flex justify-end"><MessageActions message={message} mine={mine} canReply={room.canSend} onReply={selectReply} onDelete={deleteContent} onFeedback={setFeedback} /></div>
+                {message.deleted ? <p className="text-sm italic">{t('chat.messageDeleted')}</p> : null}
+                {message.reply ? <ReplyQuote quote={message.reply} scope={audience} shopId={shopId} /> : null}
                 <MessageContext message={message} audience={audience} />
                 {message.messageType === "image" && !message.files.length ? <p className="flex items-center gap-2 text-sm"><ImageIcon className="size-4" aria-hidden="true" />{t("chat.legacyImage")}</p> : null}
-                {message.files.map((file) => <div key={file.id} className="mb-2 min-w-0 space-y-1">
+                {message.files.map((file) => <div key={file.id} data-attachment-id={file.id} className="mb-2 min-w-0 space-y-1">
+                  {file.kind === 'IMAGE' ? <div className="flex justify-end"><MessageActions message={message} image={file} contentUrl={`${file.contentUrl}?scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ''}`} mine={mine} canReply={room.canSend} onReply={selectReply} onDelete={deleteContent} onFeedback={setFeedback} /></div> : null}
                   {file.kind === "IMAGE" ? <a href={`${file.contentUrl}?scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ""}`} target="_blank" rel="noreferrer">
                     <img src={`${file.contentUrl}?scope=${audience}${shopId ? `&shopId=${encodeURIComponent(shopId)}` : ""}`} alt={file.fileName} width={256} height={192} className="h-48 w-64 max-w-full rounded-lg object-contain" />
                   </a> : null}
@@ -267,6 +284,7 @@ function ChatThread({ roomId, audience, shopId, productId, orderId, userId }: {
         {!atBottom && latestId ? <div className="flex justify-center border-t border-slate-100 py-2"><Button size="sm" variant="outline" onClick={scrollToBottom}><ArrowDownIcon className="size-4" />{t("chat.latestMessages")}</Button></div> : null}
         <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 p-3">
           {!room.canSend ? <p role="status" className="rounded-lg bg-slate-100 p-3 text-sm text-slate-600">{t(room.chatEnabled ? "chat.sendingUnavailable" : "chat.disabled")}</p> : <>
+            {replyQuote ? <div><ReplyQuote quote={replyQuote} scope={audience} shopId={shopId} /><Button type="button" variant="ghost" size="sm" onClick={() => { draftRevisionRef.current += 1; setReply(null); document.getElementById('chat-message')?.focus(); }}>{t('chat.cancelReply')}</Button></div> : null}
             {context.productId || context.orderId ? <div className="mb-2 flex items-center gap-2 text-xs text-slate-600"><Badge variant="outline">{t(context.orderId ? "chat.aboutOrder" : "chat.aboutProduct")}</Badge><Button type="button" variant="ghost" size="sm" onClick={() => { draftRevisionRef.current += 1; setContext({}); }}>{t("chat.removeContext")}</Button></div> : null}
             <label htmlFor="chat-message" className="sr-only">{t("chat.typeMessage")}</label>
             <Textarea id="chat-message" value={body} maxLength={4000} onChange={(event) => { draftRevisionRef.current += 1; setBody(event.target.value); }} onKeyDown={handleKeyDown} placeholder={t("chat.typeMessage")} className="max-h-40 min-h-20 resize-y" />
@@ -335,6 +353,7 @@ export function chatErrorKey(error: unknown, fallback = "chat.loadError") {
   if (error.status === 401) return "chat.signInRequired";
   if (error.code === "SHOP_CHAT_DISABLED" || error.code === "CHAT_DISABLED" || error.code === "FEATURE_DISABLED") return "chat.disabled";
   if (error.code === "CHAT_ATTACHMENT_UNSUPPORTED") return "chat.attachmentUnsupported";
+  if (error.code === "CHAT_REPLY_UNAVAILABLE") return "chat.replyUnavailable";
   if (error.code === "INVALID_CHAT_ATTACHMENT" || error.status === 413) return "chat.invalidAttachment";
   if (error.status === 403 || error.code === "CHAT_FORBIDDEN") return "chat.accessDenied";
   if (error.status === 404) return "chat.notFound";

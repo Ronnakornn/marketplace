@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchChatRoom, markChatRead, sendChatMessage, type ChatAudience, type ChatMessage, type ChatRoom, type SendChatMessageInput } from "./api";
+import { deleteChatContent, refreshChatMessages, fetchChatRoom, markChatRead, sendChatMessage, type ChatAudience, type ChatMessage, type ChatRoom, type SendChatMessageInput } from "./api";
 import { ApiClientError } from "#/lib/api-client";
 
 export interface ChatTimeline {
@@ -11,6 +11,7 @@ export interface ChatTimeline {
   contiguousCursor: string | null;
   beforeCursor: string | null;
   hasOlder: boolean;
+  reconciledRevision: string | null;
 }
 
 export function createChatMessageId() {
@@ -23,14 +24,41 @@ export function createChatMessageId() {
 }
 
 export function mergeMessages(current: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
-  return [...new Map([...current, ...incoming].map((message) => [message.id, message])).values()]
+  const byId = new Map(current.map((message) => [message.id, message]));
+  for (const message of incoming) {
+    const previous = byId.get(message.id);
+    const latest = previous && previous.contentVersion > message.contentVersion ? previous : message;
+    const olderQuote = latest === previous ? message.reply : previous?.reply;
+    byId.set(message.id, !latest.deleted && latest.reply && olderQuote && olderQuote.messageId === latest.reply.messageId && olderQuote.contentVersion > latest.reply.contentVersion
+      ? { ...latest, reply: olderQuote } : latest);
+  }
+  return [...byId.values()].map((message) => {
+    const quote = message.reply;
+    const source = quote ? byId.get(quote.messageId) : undefined;
+    if (!quote || !source || source.contentVersion < quote.contentVersion) return message;
+    const image = source.files.find((file) => file.id === quote.attachmentId) ?? null;
+    const unavailable = source.deleted || !!quote.attachmentId && !image;
+    return { ...message, reply: { ...quote, contentVersion: source.contentVersion, unavailable, body: unavailable ? null : source.body, image: unavailable ? null : image } };
+  })
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+}
+
+export function mergeRoom(current: ChatRoom, incoming: ChatRoom): ChatRoom {
+  const newerBoundary = (a: ChatRoom['readBoundary'], b: ChatRoom['readBoundary']) => {
+    if (!a || !b) return a ?? b;
+    return a.createdAt > b.createdAt || a.createdAt === b.createdAt && (a.messageId ?? '') > (b.messageId ?? '') ? a : b;
+  };
+  const newest = BigInt(current.contentRevision) > BigInt(incoming.contentRevision) ? current : incoming;
+  const lastMessages = mergeMessages(current.lastMessage ? [current.lastMessage] : [], incoming.lastMessage ? [incoming.lastMessage] : []);
+  return { ...incoming, contentRevision: newest.contentRevision,
+    lastMessage: newest === current ? current.lastMessage : BigInt(incoming.contentRevision) > BigInt(current.contentRevision) ? incoming.lastMessage : lastMessages.filter((message) => !message.deleted).at(-1) ?? null,
+    readBoundary: newerBoundary(current.readBoundary, incoming.readBoundary), otherReadBoundary: newerBoundary(current.otherReadBoundary, incoming.otherReadBoundary) };
 }
 
 export function timelineFromRoom(room: ChatRoom): ChatTimeline {
   const messages = mergeMessages([], room.messages ?? []);
   return {
-    room, messages,
+    room, messages, reconciledRevision: null,
     contiguousCursor: messages.at(-1)?.id ?? null,
     beforeCursor: room.pagination?.beforeCursor ?? messages[0]?.id ?? null,
     hasOlder: room.pagination?.hasMore ?? false,
@@ -78,6 +106,8 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
   const client = useQueryClient();
   const queryKey = ["chat-room", roomId, audience, shopId ?? "", userId ?? ""];
   const identity = queryKey.join("|");
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
   const aliveRef = useRef(true);
   const syncingRef = useRef(false);
   const queuedRef = useRef(false);
@@ -92,7 +122,11 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
   const [readError, setReadError] = useState(false);
   const query = useQuery({
     queryKey,
-    queryFn: async () => timelineFromRoom(await fetchChatRoom(roomId, { scope: audience, shopId })),
+    queryFn: async () => {
+      const room = await fetchChatRoom(roomId, { scope: audience, shopId });
+      const previous = client.getQueryData<ChatTimeline>(queryKey);
+      return previous ? { ...previous, room: mergeRoom(previous.room, room), messages: mergeMessages(previous.messages, room.messages ?? []) } : timelineFromRoom(room);
+    },
     enabled: Boolean(userId) && (audience !== "seller" || Boolean(shopId)),
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -104,6 +138,35 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
     aliveRef.current = true;
     return () => { aliveRef.current = false; };
   }, [identity]);
+
+  const alive = () => aliveRef.current && identityRef.current === identity;
+
+  async function reconcileLoaded() {
+    for (let attempt = 0; attempt < 3 && alive(); attempt++) {
+      const current = client.getQueryData<ChatTimeline>(queryKey);
+      if (!current || current.reconciledRevision === current.room.contentRevision) return;
+      const ids = current.messages.map((message) => message.id);
+      let revision: string | null = null;
+      let consistent = true;
+      for (let offset = 0; offset < ids.length; offset += 50) {
+        const batch = await refreshChatMessages(roomId, ids.slice(offset, offset + 50), audience, shopId);
+        if (!alive()) return;
+        if (revision !== null && revision !== batch.contentRevision) consistent = false;
+        revision = batch.contentRevision;
+        client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? { ...previous,
+          room: { ...previous.room, contentRevision: BigInt(batch.contentRevision) > BigInt(previous.room.contentRevision) ? batch.contentRevision : previous.room.contentRevision },
+          messages: mergeMessages(previous.messages, batch.messages),
+        } : previous);
+      }
+      const latest = client.getQueryData<ChatTimeline>(queryKey);
+      if (latest && consistent && latest.messages.length === ids.length && (revision === null || revision === latest.room.contentRevision)) {
+        client.setQueryData<ChatTimeline>(queryKey, { ...latest, reconciledRevision: latest.room.contentRevision });
+        return;
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+    throw new Error('Chat content changed during refresh');
+  }
 
   const sync = useCallback(async () => {
     if (!aliveRef.current || !client.getQueryData<ChatTimeline>(queryKey)) return;
@@ -118,14 +181,16 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
         await recoverChatGap({
           cursor: current.contiguousCursor,
           fetchPage: (cursor) => fetchChatRoom(roomId, { scope: audience, shopId, ...cursor }),
-          alive: () => aliveRef.current,
+          alive,
           applyPage: (room, contiguousCursor) => {
             client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? {
-              ...previous, room, contiguousCursor,
+              ...previous, room: mergeRoom(previous.room, room), contiguousCursor,
+              reconciledRevision: (room.messages ?? []).some((message) => !previous.messages.some((existing) => existing.id === message.id)) ? null : previous.reconciledRevision,
               messages: mergeMessages(previous.messages, room.messages ?? []),
             } : previous);
           },
         });
+        await reconcileLoaded();
         if (aliveRef.current) { setSyncError(false); setAccessError(null); }
       } while (queuedRef.current && aliveRef.current);
     } catch (error) {
@@ -146,15 +211,21 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
     setLoadingOlder(true);
     try {
       const room = await fetchChatRoom(roomId, { scope: audience, shopId, before: current.beforeCursor });
-      if (!aliveRef.current) return;
+      if (!alive()) return;
+      const ids = (room.messages ?? []).map((message) => message.id);
+      const refreshed = ids.length ? await refreshChatMessages(roomId, ids, audience, shopId) : { messages: [], contentRevision: room.contentRevision };
+      if (!alive()) return;
       beforeApply?.();
       client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? {
         ...previous,
-        messages: mergeMessages(previous.messages, room.messages ?? []),
+        reconciledRevision: null,
+        messages: mergeMessages(previous.messages, refreshed.messages),
+        room: { ...previous.room, contentRevision: BigInt(refreshed.contentRevision) > BigInt(previous.room.contentRevision) ? refreshed.contentRevision : previous.room.contentRevision },
         beforeCursor: room.pagination?.beforeCursor ?? previous.beforeCursor,
         hasOlder: room.pagination?.hasMore ?? false,
       } : previous);
       setOlderError(false);
+      void sync();
       return true;
     } catch { if (aliveRef.current) setOlderError(true); return false; }
     finally { olderRef.current = false; if (aliveRef.current) setLoadingOlder(false); }
@@ -163,9 +234,10 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
   const sendMutation = useMutation({
     mutationFn: (input: SendChatMessageInput) => sendChatMessage(roomId, input),
     onSuccess: (room) => {
-      if (!aliveRef.current) return;
+      if (!alive()) return;
       client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? {
-        ...previous, room,
+        ...previous, room: mergeRoom(previous.room, room),
+        reconciledRevision: null,
         messages: mergeMessages(previous.messages, [room.sentMessage]),
       } : previous);
       void client.invalidateQueries({ queryKey: ["chat-rooms", audience] });
@@ -185,8 +257,8 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
     readLockRef.current = true;
     try {
       const room = await markChatRead(roomId, audience, throughMessageId);
-      if (!aliveRef.current) return;
-      client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? { ...previous, room } : previous);
+      if (!alive()) return;
+      client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? { ...previous, room: mergeRoom(previous.room, room) } : previous);
       void client.invalidateQueries({ queryKey: ["chat-rooms", audience] });
       void client.invalidateQueries({ queryKey: ["notifications"] });
       setReadError(false);
@@ -194,6 +266,18 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
     finally { readLockRef.current = false; }
   }
 
+  const deleteMutation = useMutation({
+    mutationFn: ({ messageId, attachmentId }: { messageId: string; attachmentId?: string }) => deleteChatContent(roomId, messageId, audience, shopId, attachmentId),
+    onSuccess: (room) => {
+      if (!alive()) return;
+      client.setQueryData<ChatTimeline>(queryKey, (previous) => previous ? { ...previous,
+        room: mergeRoom(previous.room, room), messages: mergeMessages(previous.messages, [room.changedMessage]),
+      } : previous);
+      void client.invalidateQueries({ queryKey: ["chat-rooms", audience] });
+      void sync();
+    },
+  });
+
   return { ...query, isError: query.isError || accessError !== null, error: accessError ?? query.error,
-    sync, syncError, isSyncing, loadOlder, loadingOlder, olderError, send, sendMutation, acknowledge, readError };
+    sync, syncError, isSyncing, loadOlder, loadingOlder, olderError, send, sendMutation, deleteMutation, acknowledge, readError };
 }

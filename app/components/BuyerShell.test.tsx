@@ -5,9 +5,10 @@ import { type ReactNode } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BuyerTopBar, MobileBottomNavigation } from "./BuyerShell";
+import { fetchNotificationUnreadCount } from "#/features/buyer/api";
 
 let pathname = "/en/seller/products";
 const signedInSession = {
@@ -53,7 +54,7 @@ vi.mock("#/lib/auth-client", () => ({
 
 vi.mock("#/features/buyer/api", () => ({
   fetchCart: vi.fn(async () => ({ shops: [{ items: [{ quantity: 2 }] }] })),
-  fetchNotifications: vi.fn(async () => []),
+  fetchNotificationUnreadCount: vi.fn(async () => ({ unreadCount: 2 })),
 }));
 
 vi.mock("#/components/LanguageSwitcher", () => ({
@@ -72,12 +73,20 @@ function renderWithClient(ui: ReactNode) {
 }
 
 afterEach(() => {
+  cleanup();
   pathname = "/en/seller/products";
   sessionState = signedInSession;
   vi.clearAllMocks();
 });
 
 describe("buyer shell smoke", () => {
+  it("uses the scoped unread-count endpoint for the header without loading notification history", async () => {
+    renderWithClient(<BuyerTopBar />);
+
+    await waitFor(() => expect(fetchNotificationUnreadCount).toHaveBeenCalledWith("seller", { excludeChat: true }));
+    await waitFor(() => expect(screen.getByRole("link", { name: /Notifications/ }).textContent).toContain("2"));
+  });
+
   it("hydrates browser-annotated search controls without warnings and keeps search usable", async () => {
     pathname = "/en/search";
     sessionState = { data: null, isPending: false };

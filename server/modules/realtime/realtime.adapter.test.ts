@@ -206,6 +206,13 @@ describe('RedisRealtimeAdapter remote receive', () => {
     expect(vi.mocked(receiver.send).mock.calls[0]![0]).not.toContain('private-session')
   })
 
+  it('accepts reference-only chat content changes from Redis', async () => {
+    const { receiver, receive } = await setup()
+    const changed: RealtimeEvent = { ...event(), event: 'chat.message.changed', payload: { roomId: 'room', messageId: 'message', contentRevision: '1' } }
+    await receive(changed)
+    expect(receiver.send).toHaveBeenCalledWith(JSON.stringify(changed))
+  })
+
   it('denies an already subscribed remote recipient after session revocation', async () => {
     const { repo, receiver, receive, adapter } = await setup()
     vi.mocked(repo.findLiveSession).mockResolvedValue(null)

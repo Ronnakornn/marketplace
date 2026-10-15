@@ -1,3 +1,4 @@
+import { Prisma } from '#generated/client/client.ts'
 import type {
   Inventory,
   Order,
@@ -6,30 +7,35 @@ import type {
   Product,
   ProductVariant,
   ShopRating,
-  Shipment,
   Shop,
   User,
 } from '#generated/client/client.ts'
-import type { ReviewStatus } from '#generated/client/enums.ts'
+import type { ReviewStatus, ShipmentStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
 export type SellerDashboardShop = Pick<Shop, 'id' | 'name' | 'slug'>
 
-export type SellerSalesOrderItem = Pick<OrderItem, 'id' | 'shopId' | 'lineTotal' | 'quantity'> & {
-  order: Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'createdAt'>
+export type SalesPeriod = { from: Date; to: Date }
+export type SellerSalesPeriods = { today: SalesPeriod; month: SalesPeriod }
+export type SellerSalesSummary = {
+  todaySalesCents: bigint
+  thisMonthSalesCents: bigint
+  totalSalesCents: bigint
 }
+export type SellerShipmentCount = { status: ShipmentStatus; count: number }
 
 export type SellerDashboardOrder = Pick<Order, 'id' | 'orderNumber' | 'status' | 'paymentStatus' | 'createdAt'> & {
   items: OrderItem[]
 }
 
-export type SellerLowStockVariant = Omit<ProductVariant, 'titleTh' | 'titleEn'> & {
-  titleTh?: string | null
-  titleEn?: string | null
-  inventory: Inventory | null
-  product: Pick<Product, 'id' | 'title' | 'slug' | 'shopId' | 'status'>
+export type SellerLowStockVariant = Pick<ProductVariant, 'id' | 'productId' | 'title' | 'sku'> & {
+  inventory: Pick<Inventory, 'quantityOnHand' | 'quantityReserved' | 'reorderLevel'>
+  product: Pick<Product, 'title' | 'slug'>
 }
+
+type LowStockRow = Pick<SellerLowStockVariant, 'id' | 'productId' | 'title' | 'sku'> &
+  SellerLowStockVariant['inventory'] & { productTitle: string; productSlug: string }
 
 export interface SellerShopReviewAggregateRecord {
   _avg: {
@@ -50,8 +56,8 @@ export type SellerDashboardShopReview = Pick<
 
 export interface ISellerDashboardRepository {
   findSellerShops(ownerId: string): Promise<SellerDashboardShop[]>
-  findSalesOrderItems(shopIds: string[]): Promise<SellerSalesOrderItem[]>
-  findShipments(shopIds: string[]): Promise<Pick<Shipment, 'id' | 'status'>[]>
+  aggregateSales(shopIds: string[], periods: SellerSalesPeriods): Promise<SellerSalesSummary>
+  countShipmentsByStatus(shopIds: string[]): Promise<SellerShipmentCount[]>
   countProductsByStatus(shopIds: string[], active: boolean): Promise<number>
   findLowStockVariants(shopIds: string[]): Promise<SellerLowStockVariant[]>
   findRecentOrders(shopIds: string[], limit: number): Promise<SellerDashboardOrder[]>
@@ -79,44 +85,38 @@ export class PrismaSellerDashboardRepository implements ISellerDashboardReposito
     })
   }
 
-  findSalesOrderItems(shopIds: string[]): Promise<SellerSalesOrderItem[]> {
-    this.logger.debug('PrismaSellerDashboardRepository.findSalesOrderItems', { shopIds })
-    if (shopIds.length === 0) return Promise.resolve([])
+  async aggregateSales(shopIds: string[], periods: SellerSalesPeriods): Promise<SellerSalesSummary> {
+    this.logger.debug('PrismaSellerDashboardRepository.aggregateSales', { shopIds, periods })
+    if (shopIds.length === 0) return { todaySalesCents: 0n, thisMonthSalesCents: 0n, totalSalesCents: 0n }
 
-    return this.prisma.orderItem.findMany({
+    const sum = (period?: SalesPeriod) => this.prisma.orderItem.aggregate({
       where: {
         shopId: { in: shopIds },
         order: {
           paymentStatus: 'SUCCEEDED',
           status: { in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'PARTIALLY_FULFILLED', 'FULFILLED'] },
+          ...(period ? { createdAt: { gte: period.from, lte: period.to } } : {}),
         },
       },
-      select: {
-        id: true,
-        shopId: true,
-        lineTotal: true,
-        quantity: true,
-        order: {
-          select: {
-            id: true,
-            orderNumber: true,
-            status: true,
-            paymentStatus: true,
-            createdAt: true,
-          },
-        },
-      },
+      _sum: { lineTotal: true },
     })
+    const [total, today, month] = await Promise.all([sum(), sum(periods.today), sum(periods.month)])
+    return {
+      todaySalesCents: today._sum.lineTotal ?? 0n,
+      thisMonthSalesCents: month._sum.lineTotal ?? 0n,
+      totalSalesCents: total._sum.lineTotal ?? 0n,
+    }
   }
 
-  findShipments(shopIds: string[]): Promise<Pick<Shipment, 'id' | 'status'>[]> {
-    this.logger.debug('PrismaSellerDashboardRepository.findShipments', { shopIds })
-    if (shopIds.length === 0) return Promise.resolve([])
-
-    return this.prisma.shipment.findMany({
+  async countShipmentsByStatus(shopIds: string[]): Promise<SellerShipmentCount[]> {
+    this.logger.debug('PrismaSellerDashboardRepository.countShipmentsByStatus', { shopIds })
+    if (shopIds.length === 0) return []
+    const groups = await this.prisma.shipment.groupBy({
+      by: ['status'],
       where: { shopId: { in: shopIds } },
-      select: { id: true, status: true },
+      _count: { _all: true },
     })
+    return groups.map((group) => ({ status: group.status, count: group._count._all }))
   }
 
   countProductsByStatus(shopIds: string[], active: boolean): Promise<number> {
@@ -131,33 +131,33 @@ export class PrismaSellerDashboardRepository implements ISellerDashboardReposito
     })
   }
 
-  findLowStockVariants(shopIds: string[]): Promise<SellerLowStockVariant[]> {
+  async findLowStockVariants(shopIds: string[]): Promise<SellerLowStockVariant[]> {
     this.logger.debug('PrismaSellerDashboardRepository.findLowStockVariants', { shopIds })
-    if (shopIds.length === 0) return Promise.resolve([])
+    if (shopIds.length === 0) return []
 
-    return this.prisma.productVariant.findMany({
-      where: {
-        product: {
-          shopId: { in: shopIds },
-        },
-        inventory: {
-          isNot: null,
-        },
+    const rows = await this.prisma.$queryRaw<LowStockRow[]>(Prisma.sql`
+      SELECT v."id", v."productId", v."title", v."sku",
+             i."quantityOnHand", i."quantityReserved", i."reorderLevel",
+             p."title" AS "productTitle", p."slug" AS "productSlug"
+      FROM "ProductVariant" v
+      JOIN "Product" p ON p."id" = v."productId"
+      JOIN "Inventory" i ON i."variantId" = v."id"
+      WHERE p."shopId" IN (${Prisma.join(shopIds.map((id) => Prisma.sql`${id}::uuid`))})
+        AND i."quantityOnHand"::bigint - i."quantityReserved"::bigint <= i."reorderLevel"
+      ORDER BY v."updatedAt" DESC
+    `)
+    return rows.map((row) => ({
+      id: row.id,
+      productId: row.productId,
+      title: row.title,
+      sku: row.sku,
+      inventory: {
+        quantityOnHand: row.quantityOnHand,
+        quantityReserved: row.quantityReserved,
+        reorderLevel: row.reorderLevel,
       },
-      include: {
-        inventory: true,
-        product: {
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            shopId: true,
-            status: true,
-          },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    })
+      product: { title: row.productTitle, slug: row.productSlug },
+    }))
   }
 
   findRecentOrders(shopIds: string[], limit: number): Promise<SellerDashboardOrder[]> {

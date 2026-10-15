@@ -105,6 +105,24 @@ describe.skipIf(!url)('active cart creation on PostgreSQL', () => {
     expect((await service.getCart(user)).subtotal).toBe(1000n)
   })
 
+  it('acknowledges only the stock allowance across concurrent partial guest merges', async () => {
+    const { user, variant } = await fixture()
+    const service = new CartService(context, new PrismaCartRepository(context, prisma))
+    await service.addItem(user, { variantId: variant.id, quantity: 2 })
+
+    const results = await Promise.all([
+      service.mergeGuestItem(user, { userId: user.id, variantId: variant.id, quantity: 6 }),
+      service.mergeGuestItem(user, { userId: user.id, variantId: variant.id, quantity: 6 }),
+    ])
+
+    expect(results.map(result => result.addedQuantity).sort((left, right) => left - right)).toEqual([2, 6])
+    const cart = await service.getCart(user)
+    expect(cart.shops[0]!.items).toEqual([expect.objectContaining({ quantity: 10, unitPrice: 1000n })])
+    expect(cart.subtotal).toBe(10000n)
+    expect(await prisma.inventory.findUniqueOrThrow({ where: { variantId: variant.id } }))
+      .toMatchObject({ quantityOnHand: 10, quantityReserved: 0 })
+  })
+
   it('rejects an addition when its previously active cart checks out while waiting for the lock', async () => {
     const { user, variant } = await fixture()
     const cart = await prisma.cart.create({ data: { userId: user.id, items: { create: { variantId: variant.id, quantity: 1, unitPrice: 1000n } } } })

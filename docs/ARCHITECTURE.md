@@ -42,6 +42,7 @@ The marketplace schema supports:
 - Shipments split by shop, with shipment items allocating order item quantities.
 - Coupons, coupon redemptions, reviews, refunds, returns, chat, and notifications.
 - Chat messages own ordered verified attachment rows and immutable private objects. Participant downloads stream through the authenticated API. See [chat images and files](chat-attachments.md).
+- Chat replies reference live sources. Logical deletion uses thread revisions, message versions, redacted projections, and bounded loaded-message refresh. See [chat message actions](chat-actions.md).
 - Original sale funding and commission snapshots, explicit refund allocations, seller wallets, and payouts.
 
 Important invariants:
@@ -134,6 +135,37 @@ Redis pattern invalidation iterates SCAN cursors and bounded DEL batches, includ
 empty nonterminal scan pages. A shared connection promise prevents concurrent
 cache reads from accumulating connection listeners. Existing failure cooldown,
 pending-read generation checks, and inventory invalidation batching remain in place.
+Each logical invalidation groups its patterns into one cursor traversal and filters
+matching keys before bounded deletion. Single-pattern calls retain Redis glob
+semantics; grouped generated patterns use literal key segments and `*` wildcards.
+
+## Bounded operational reads
+
+Seller dashboard sales use exact database aggregates for lifetime and reporting
+day/month totals. Shipment statuses use grouped counts, and low-stock arithmetic
+filters in PostgreSQL before returning qualifying variants. Existing reporting
+calendar, ownership and complete low-stock response semantics remain unchanged.
+
+Guest cart login merge sends one stock-capped request per variant through
+`POST /api/cart/guest-items`. The server keeps ordinary add-item validation strict
+and returns the quantity actually added under the existing cart lock. The browser
+retains unacknowledged quantities and additions made while requests are pending.
+Merge requests carry the expected user ID, which must match the authenticated
+actor before writes. One browser merge queue serializes the shared guest cart
+across session changes and cancels obsolete sessions before later requests.
+Unknown committed responses retain the existing retry ambiguity; this endpoint
+does not promise idempotent replay. Header and inbox room queries share user/shop
+scoped query options and freshness while retaining realtime recovery refreshes.
+Only the header creates the periodic room-query interval; the inbox uses its
+existing realtime recovery refreshes without adding another polling observer.
+
+Notification lists return bounded pages with a cursor and server category/scope
+filters. Unread badges use database counts; marking a scope read uses one database
+update. The same seller scope predicate retains legacy notification classification
+and constrains every operation to the authenticated user.
+Notification cursors resolve an owned row inside PostgreSQL to preserve ordering
+precision. A deleted or foreign cursor returns an empty terminal page; refreshing
+the list starts pagination again.
 
 ## Notification Delivery
 

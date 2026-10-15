@@ -11,7 +11,7 @@ import type {
   SellerDashboardOrder,
   SellerDashboardShopReview,
   SellerLowStockVariant,
-  SellerSalesOrderItem,
+  SellerSalesPeriods,
 } from './seller-dashboard.repository.ts'
 
 const DEFAULT_RECENT_ORDER_LIMIT = 10
@@ -135,9 +135,10 @@ export class SellerDashboardService {
   }
 
   private async getDashboardForShopIds(shopIds: string[], recentLimit: number): Promise<SellerDashboardResponse> {
+    const periods = this.salesPeriods()
     const [
-      salesItems,
-      shipments,
+      sales,
+      shipmentCounts,
       activeProducts,
       inactiveProducts,
       lowStockVariants,
@@ -145,8 +146,8 @@ export class SellerDashboardService {
       publishedReviewAggregate,
       pendingReviewCount,
     ] = await Promise.all([
-      this.repo.findSalesOrderItems(shopIds),
-      this.repo.findShipments(shopIds),
+      this.repo.aggregateSales(shopIds, periods),
+      this.repo.countShipmentsByStatus(shopIds),
       this.repo.countProductsByStatus(shopIds, true),
       this.repo.countProductsByStatus(shopIds, false),
       this.repo.findLowStockVariants(shopIds),
@@ -160,13 +161,15 @@ export class SellerDashboardService {
       ? 0
       : Number(publishedReviewAggregate._avg.rating.toFixed(2))
 
+    const shipments = new Map(shipmentCounts.map(({ status, count }) => [status, count]))
+
     return {
-      sales: this.toSalesSummary(salesItems),
+      sales,
       orders: {
-        pendingPack: shipments.filter((shipment) => shipment.status === 'PENDING_PACK').length,
-        shipped: shipments.filter((shipment) => shipment.status === 'SHIPPED').length,
-        delivered: shipments.filter((shipment) => shipment.status === 'DELIVERED').length,
-        cancelled: shipments.filter((shipment) => shipment.status === 'CANCELED').length,
+        pendingPack: shipments.get('PENDING_PACK') ?? 0,
+        shipped: shipments.get('SHIPPED') ?? 0,
+        delivered: shipments.get('DELIVERED') ?? 0,
+        cancelled: shipments.get('CANCELED') ?? 0,
       },
       products: {
         active: activeProducts,
@@ -185,7 +188,7 @@ export class SellerDashboardService {
 
   async getSalesSummary(actor: SellerDashboardActor, shopId?: string): Promise<SellerSalesSummaryResponse> {
     const shopIds = await this.getScopedSellerShopIds(actor, shopId)
-    return this.toSalesSummary(await this.repo.findSalesOrderItems(shopIds))
+    return this.repo.aggregateSales(shopIds, this.salesPeriods())
   }
 
   async getRecentOrders(actor: SellerDashboardActor, limit?: number, shopId?: string): Promise<SellerRecentOrderResponse[]> {
@@ -269,20 +272,9 @@ export class SellerDashboardService {
     return [status as (typeof REVIEW_STATUSES)[number]]
   }
 
-  private toSalesSummary(items: SellerSalesOrderItem[]): SellerSalesSummaryResponse {
+  private salesPeriods(): SellerSalesPeriods {
     const now = new Date()
-    const today = reportingDayRange(now)
-    const month = reportingMonthRange(now)
-
-    return {
-      todaySalesCents: this.sumSales(items.filter((item) => item.order.createdAt >= today.from && item.order.createdAt <= today.to)),
-      thisMonthSalesCents: this.sumSales(items.filter((item) => item.order.createdAt >= month.from && item.order.createdAt <= month.to)),
-      totalSalesCents: this.sumSales(items),
-    }
-  }
-
-  private sumSales(items: SellerSalesOrderItem[]): bigint {
-    return items.reduce((total, item) => total + moneyInteger(item.lineTotal), 0n)
+    return { today: reportingDayRange(now), month: reportingMonthRange(now) }
   }
 
   private toRecentOrder(order: SellerDashboardOrder): SellerRecentOrderResponse {
@@ -307,28 +299,22 @@ export class SellerDashboardService {
   }
 
   private toLowStockItems(variants: SellerLowStockVariant[]): SellerLowStockItemResponse[] {
-    return variants
-      .filter((variant) => {
-        if (!variant.inventory) return false
-        const availableQuantity = variant.inventory.quantityOnHand - variant.inventory.quantityReserved
-        return availableQuantity <= variant.inventory.reorderLevel
-      })
-      .map((variant) => {
-        const inventory = variant.inventory!
-        const availableQuantity = inventory.quantityOnHand - inventory.quantityReserved
-        return {
-          variantId: variant.id,
-          productId: variant.productId,
-          productTitle: variant.product.title,
-          productSlug: variant.product.slug,
-          variantTitle: variant.title,
-          sku: variant.sku,
-          quantityOnHand: inventory.quantityOnHand,
-          quantityReserved: inventory.quantityReserved,
-          availableQuantity,
-          reorderLevel: inventory.reorderLevel,
-        }
-      })
+    return variants.map((variant) => {
+      const inventory = variant.inventory
+      const availableQuantity = inventory.quantityOnHand - inventory.quantityReserved
+      return {
+        variantId: variant.id,
+        productId: variant.productId,
+        productTitle: variant.product.title,
+        productSlug: variant.product.slug,
+        variantTitle: variant.title,
+        sku: variant.sku,
+        quantityOnHand: inventory.quantityOnHand,
+        quantityReserved: inventory.quantityReserved,
+        availableQuantity,
+        reorderLevel: inventory.reorderLevel,
+      }
+    })
   }
 
   private toShopReview(review: SellerDashboardShopReview): SellerShopReviewResponse {

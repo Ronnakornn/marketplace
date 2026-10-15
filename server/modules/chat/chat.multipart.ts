@@ -49,7 +49,7 @@ export async function parseChatMessage(request: Request): Promise<unknown> {
         if (files.length > CHAT_ATTACHMENT_POLICY.maxFiles) throw new ChatServiceError('At most five attachments are allowed', 400, 'INVALID_CHAT_ATTACHMENT')
       }
       else {
-        if (!['clientMessageId', 'body', 'productId', 'orderId', 'scope'].includes(key) || typeof value !== 'string' || key in fields) {
+        if (!['clientMessageId', 'body', 'productId', 'orderId', 'scope', 'replyToMessageId', 'replyToAttachmentId'].includes(key) || typeof value !== 'string' || key in fields) {
           throw new ChatServiceError('Invalid multipart field', 400, 'INVALID_MESSAGE')
         }
         fields[key] = value
