@@ -208,6 +208,10 @@ export function useChatThread({ roomId, audience, shopId, userId }: {
           },
         });
         await reconcileLoaded();
+        const refreshed = client.getQueryData<ChatTimeline>(queryKey);
+        if (refreshed && (refreshed.room.lastMessage?.id !== current.room.lastMessage?.id || refreshed.room.contentRevision !== current.room.contentRevision || refreshed.room.unreadCount !== current.room.unreadCount)) {
+          void client.invalidateQueries({ queryKey: ["chat-rooms", audience] });
+        }
         if (aliveRef.current) { setSyncError(false); setAccessError(null); }
       } while (queuedRef.current && aliveRef.current);
     } catch (error) {

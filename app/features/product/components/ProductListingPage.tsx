@@ -148,7 +148,7 @@ export function ProductListingPage({
   const isNextPageError = productsQuery.isError && hasAccumulatedProducts;
   const isInitialError = productsQuery.isError && !hasAccumulatedProducts;
   const canLoadMore = Boolean(listing?.meta.hasNextPage);
-  useTrackVisibleProducts(products, mode === "search" ? "search_results" : mode === "category" ? "category_listing" : "product_listing");
+  const productImpressionsRef = useTrackVisibleProducts(products, mode === "search" ? "search_results" : mode === "category" ? "category_listing" : "product_listing");
 
   useEffect(() => {
     if (mode !== "search" || !query.trim() || !productsQuery.isSuccess) return;
@@ -276,7 +276,7 @@ export function ProductListingPage({
             </>
           ) : null}
 
-          <section className="min-w-0 space-y-3">
+          <section ref={productImpressionsRef} className="min-w-0 space-y-3">
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <h2 className="break-words text-lg font-bold leading-6 text-slate-950">{mode === "home" ? t("product.recommendedProducts") : resultTitle}</h2>

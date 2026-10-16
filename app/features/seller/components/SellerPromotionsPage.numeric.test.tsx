@@ -20,7 +20,7 @@ vi.mock('#/components/ui/select', () => ({
   SelectItem: ({ value, children }: { value: string; children: React.ReactNode }) => <option value={value}>{children}</option>,
 }))
 vi.mock('../hooks/useSellerManage', () => ({
-  useSellerCoupons: () => ({ data: [], isLoading: false }),
+  useSellerCoupons: () => ({ data: { data: [], meta: { totalCount: 0 } }, isLoading: false }),
   useCreateSellerCoupon: () => ({ mutate: createCoupon, isPending: false }),
   useUpdateSellerCoupon: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteSellerCoupon: () => ({ mutate: vi.fn(), isPending: false }),
@@ -31,7 +31,7 @@ vi.mock('../hooks/useSellerManage', () => ({
   useDeleteSellerFlashSaleItem: () => ({ mutate: vi.fn() }),
   useSellerWallet: () => ({ data: walletData }),
   useSellerTransactions: () => ({ data: { items: [] } }),
-  useSellerPayouts: () => ({ data: [] }),
+  useSellerPayouts: () => ({ data: { data: [], meta: { totalCount: 0 } } }),
   useCreateSellerPayout: () => ({ mutate: createPayout, isPending: false }),
 }))
 

@@ -249,19 +249,14 @@ export function AdminPayoutsTable() {
   const localePath = useLocalePath();
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
-  const query = useAdminPayoutsList({ status });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: PAGE_SIZE });
+  const query = useAdminPayoutsList({ page: pagination.pageIndex + 1, limit: pagination.pageSize, status: status || undefined, q: search.trim() || undefined });
   const approve = useApprovePayout();
   const reject = useRejectPayout();
   const markPaid = useMarkPayoutPaid();
   const [action, setAction] = useState<{ kind: "approve" | "paid" | "reject"; payout: AdminPayout } | null>(null);
   const actionPending = approve.isPending || reject.isPending || markPaid.isPending;
-  const rows = useMemo(
-    () =>
-      (query.data ?? []).filter((item: AdminPayout) =>
-        textMatch([item.id, item.shop.name, item.status, item.amount], search),
-      ),
-    [query.data, search],
-  );
+  const rows = query.data?.data ?? [];
 
   const columns: ColumnDef<AdminPayout>[] = [
     {
@@ -376,14 +371,14 @@ export function AdminPayoutsTable() {
       icon={BanknoteIcon}
       search={search}
       searchPlaceholder={t("admin.search.payouts")}
-      onSearchChange={setSearch}
+      onSearchChange={(value) => { setSearch(value); setPagination((page) => ({ ...page, pageIndex: 0 })); }}
       isLoading={query.isLoading}
       error={query.error}
       onRetry={() => void query.refetch()}
       filters={
         <FilterSelect
           value={status}
-          onChange={setStatus}
+          onChange={(value) => { setStatus(value); setPagination((page) => ({ ...page, pageIndex: 0 })); }}
           placeholder={t("admin.filters.statuses")}
           options={PAYOUT_STATUSES}
         />
@@ -393,6 +388,8 @@ export function AdminPayoutsTable() {
         <AdminTable
           columns={columns}
           data={rows}
+          pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }}
+          pageSizeOptions={[10, 20, 50]}
           isLoading={query.isLoading}
           emptyMessage={t("admin.ui.noRecords")}
           getRowId={(item) => item.id}

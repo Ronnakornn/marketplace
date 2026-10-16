@@ -55,7 +55,7 @@ export function StorefrontCatalog({ shopId, locale }: { shopId: string; locale: 
   const total = listing?.meta.totalCount ?? products.length;
   const initialLoading = query.isLoading && page === 1;
   const nextError = query.isError && page > 1;
-  useTrackVisibleProducts(products, "storefront");
+  const productImpressionsRef = useTrackVisibleProducts(products, "storefront");
 
   useEffect(() => {
     if (!listing) return;
@@ -63,7 +63,7 @@ export function StorefrontCatalog({ shopId, locale }: { shopId: string; locale: 
     if (category) trackDiscoveryEvent({ eventType: "filter_applied", shopId, categoryId: category, filters: { category }, resultCount: listing.meta.totalCount ?? undefined, source: "storefront" });
   }, [filterKey, listing?.meta.totalCount, shopId]);
 
-  return <section aria-labelledby="storefront-catalog-title" className="space-y-5">
+  return <section ref={productImpressionsRef} aria-labelledby="storefront-catalog-title" className="space-y-5">
     <div><h2 id="storefront-catalog-title" className="text-xl font-semibold text-slate-950">{t("storefront.catalogTitle")}</h2><p className="text-sm text-slate-500">{t("storefront.resultSummary").replace("{shown}", String(products.length)).replace("{total}", String(total))}</p></div>
     <div className="grid gap-3 md:grid-cols-[1fr_14rem_12rem]">
       <Input aria-label={t("storefront.searchLabel")} placeholder={t("storefront.searchPlaceholder")} value={search} onChange={(event) => setSearch(event.target.value)} />

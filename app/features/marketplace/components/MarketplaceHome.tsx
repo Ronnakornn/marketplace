@@ -90,7 +90,6 @@ export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomePro
   const addToCartMutation = useMutation({
     mutationFn: ({ product, variantId }: { product: MarketplaceProductCard; variantId: string }) => addCartItem(variantId, 1).then(() => product),
     onSuccess: async (product) => {
-      await queryClient.invalidateQueries({ queryKey: ["buyer-cart", locale] });
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
       showAddToCartSuccess({
         copy: {
@@ -125,7 +124,7 @@ export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomePro
       label: category.name,
       className: categoryStyles[index % categoryStyles.length] ?? categoryStyles.at(-1)!,
     }));
-  useTrackVisibleProducts(
+  const productImpressionsRef = useTrackVisibleProducts(
     [...visibleProducts, ...home.newArrivals, ...(home.flashSale?.items ?? [])].map((product) => ({ id: product.id, shop: { id: product.shop.id } })),
     "marketplace_home",
   );
@@ -166,7 +165,7 @@ export function MarketplaceHome({ initialHome, user = null }: MarketplaceHomePro
       <BuyerTopBar title={user?.name ? t("home.welcomeBack").replace("{name}", user.name) : t("common.marketplace")} prefetchLinks={false} />
 
       <FavoriteStatusesProvider productIds={[...visibleProducts, ...home.newArrivals, ...home.recentlyViewed].map((product) => product.id)}>
-      <main className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
+      <main ref={productImpressionsRef} className="mx-auto w-full max-w-6xl px-3 pb-10 pt-3 sm:px-5 lg:px-8">
         <HeroPromo banners={home.banners} />
         <VoucherStrip
           promotions={home.promotions}
@@ -318,7 +317,7 @@ function FlashSaleSection({
         {isLoading ? Array.from({ length: 5 }).map((_, index) => (
           <Skeleton key={index} className="h-52 min-w-[132px] rounded-2xl" />
         )) : products.length ? products.map((product, index) => (
-          <article key={product.id} className="min-w-[132px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <article key={product.id} data-product-id={product.id} className="min-w-[132px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
             <Link
               href={localePath(`/products/${product.id}`)}
               prefetch={false}

@@ -38,6 +38,28 @@ describe("public product server data", () => {
     await expect(getPublicProductData("canvas-bag", "th")).rejects.toMatchObject({ status: 503 });
   });
 
+  it("exposes structured backend failures as meaningful Error instances", async () => {
+    const payload = { error: { code: "SERVICE_UNAVAILABLE", message: "Catalog temporarily unavailable" } };
+    fetchMock.mockResolvedValueOnce(Response.json(payload, { status: 503 }));
+    const failure = await getPublicProductData("canvas-bag", "th").catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).toMatchObject({
+      message: "Catalog temporarily unavailable",
+      status: 503,
+      cause: { status: 503, value: payload },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [{ message: "Backend unavailable" }, "Backend unavailable"],
+    ["Upstream unavailable", "Upstream unavailable"],
+    [{ error: { message: " " } }, "Product request failed (HTTP 502)"],
+  ])("preserves readable backend messages and supplies a status fallback for %j", async (payload, message) => {
+    fetchMock.mockResolvedValueOnce(Response.json(payload, { status: 502 }));
+    await expect(getPublicProductData("canvas-bag", "en")).rejects.toMatchObject({ message, status: 502 });
+  });
+
   it.each(["http", "network"])("still renders a valid product when optional rating loading has a %s failure", async (failure) => {
     fetchMock.mockResolvedValueOnce(Response.json(product));
     if (failure === "http") fetchMock.mockResolvedValueOnce(Response.json({ message: "Rating unavailable" }, { status: 503 }));

@@ -381,6 +381,8 @@ export class PrismaSearchRepository implements ISearchRepository {
   private buildSearchPageQuery(filters: SearchPageFilters): Prisma.Sql {
     const pageBeforeMetrics = (filters.sort === 'newest' || filters.sort === 'relevance')
       && filters.rating === undefined && !filters.badges.includes('best_seller')
+    const reviewsBeforePage = pageBeforeMetrics || filters.sort === 'rating' || filters.rating !== undefined
+    const salesBeforePage = pageBeforeMetrics || filters.sort === 'top_sales' || filters.badges.includes('best_seller')
     const predicates = [Prisma.sql`p.status = 'ACTIVE' AND s.status = 'ACTIVE'`]
     if (filters.categoryId) predicates.push(Prisma.sql`c.slug = ${filters.categoryId} AND c."isActive"`)
     if (filters.brandId) predicates.push(Prisma.sql`p."brandId" = ${filters.brandId}::uuid`)
@@ -450,22 +452,9 @@ export class PrismaSearchRepository implements ISearchRepository {
     ), page AS MATERIALIZED (
       SELECT * FROM ranked WHERE position > ${start} AND position <= ${start} + ${filters.limit} ORDER BY position
     )`
-    return Prisma.sql`
-      WITH candidates AS (
-        SELECT p.id, p."createdAt", COALESCE(
-          NULLIF(BTRIM(CASE WHEN ${filters.locale} = 'th' THEN p."titleTh" ELSE p."titleEn" END, ${TEXT_TRIM_CHARACTERS}), ''),
-          NULLIF(BTRIM(CASE WHEN ${filters.locale} = 'th' THEN p."titleEn" ELSE p."titleTh" END, ${TEXT_TRIM_CHARACTERS}), ''),
-          NULLIF(BTRIM(p.title, ${TEXT_TRIM_CHARACTERS}), ''), p.title) AS "localizedTitle"
-        FROM "Product" p JOIN "Shop" s ON s.id = p."shopId" LEFT JOIN "Category" c ON c.id = p."categoryId"
-        WHERE ${Prisma.join(predicates, ' AND ')}
-      ), ${pageBeforeMetrics ? Prisma.sql`${rankedPage},` : Prisma.empty}
-      metric_candidates AS (SELECT * FROM ${pageBeforeMetrics ? Prisma.sql`page` : Prisma.sql`candidates`}), variant_metrics AS (
-        SELECT v."productId", MIN(v.price) AS "minPrice", BOOL_OR(COALESCE(i."quantityOnHand" > i."quantityReserved", FALSE)) AS "hasStock"
-        FROM "ProductVariant" v JOIN metric_candidates p ON p.id = v."productId"
-        LEFT JOIN "Inventory" i ON i."variantId" = v.id WHERE v.status = 'ACTIVE' GROUP BY v."productId"
-      ), review_metrics AS (
+    const reviewMetrics = Prisma.sql`review_metrics AS MATERIALIZED (
         SELECT r."productId", COUNT(*) AS "totalReviewCount", SUM(r.rating)::double precision / COUNT(*)::double precision AS average
-        FROM "Review" r JOIN metric_candidates p ON p.id = r."productId" WHERE r.status = 'PUBLISHED' GROUP BY r."productId"
+        FROM "Review" r JOIN ${reviewsBeforePage ? Prisma.sql`metric_candidates` : Prisma.sql`page`} p ON p.id = r."productId" WHERE r.status = 'PUBLISHED' GROUP BY r."productId"
       ), review_binary AS (
         SELECT *, float8send(average) AS bits FROM review_metrics
       ), review_exact AS (
@@ -476,23 +465,49 @@ export class PrismaSearchRepository implements ISearchRepository {
           + get_byte(bits, 6)::numeric * 256 + get_byte(bits, 7)::numeric AS significand,
           (1::bigint << (1075 - ((get_byte(bits, 0) & 127) * 16 + (get_byte(bits, 1) >> 4))))::numeric AS denominator
         FROM review_binary
-      ), sales_metrics AS (
+      )`
+    const averageRating = Prisma.sql`COALESCE((div(r.significand * 200 + r.denominator, r.denominator * 2) / 100)::double precision, 0)`
+    const salesMetrics = Prisma.sql`sales_metrics AS MATERIALIZED (
         SELECT v."productId", SUM(oi.quantity)::bigint AS "soldCount"
         FROM "OrderItem" oi JOIN "ProductVariant" v ON v.id = oi."variantId" AND v.status = 'ACTIVE'
-        JOIN metric_candidates p ON p.id = v."productId" JOIN "Order" o ON o.id = oi."orderId"
+        JOIN ${salesBeforePage ? Prisma.sql`metric_candidates` : Prisma.sql`page`} p ON p.id = v."productId" JOIN "Order" o ON o.id = oi."orderId"
         WHERE o."paymentStatus" = 'SUCCEEDED' AND o.status <> 'CANCELED' AND oi."fulfillmentStatus" <> 'CANCELED'
         GROUP BY v."productId"
-      ), metrics AS (
-        SELECT p.*, v."minPrice", v."hasStock", COALESCE(r."totalReviewCount", 0) AS "totalReviewCount",
-          COALESCE((div(r.significand * 200 + r.denominator, r.denominator * 2) / 100)::double precision, 0) AS "averageRating",
-          COALESCE(s."soldCount", 0) AS "soldCount"
+      )`
+    return Prisma.sql`
+      WITH candidates AS (
+        SELECT p.id, p."createdAt", COALESCE(
+          NULLIF(BTRIM(CASE WHEN ${filters.locale} = 'th' THEN p."titleTh" ELSE p."titleEn" END, ${TEXT_TRIM_CHARACTERS}), ''),
+          NULLIF(BTRIM(CASE WHEN ${filters.locale} = 'th' THEN p."titleEn" ELSE p."titleTh" END, ${TEXT_TRIM_CHARACTERS}), ''),
+          NULLIF(BTRIM(p.title, ${TEXT_TRIM_CHARACTERS}), ''), p.title) AS "localizedTitle"
+        FROM "Product" p JOIN "Shop" s ON s.id = p."shopId" LEFT JOIN "Category" c ON c.id = p."categoryId"
+        WHERE ${Prisma.join(predicates, ' AND ')}
+      ), ${pageBeforeMetrics ? Prisma.sql`${rankedPage},` : Prisma.empty}
+      metric_candidates AS (SELECT * FROM ${pageBeforeMetrics ? Prisma.sql`page` : Prisma.sql`candidates`}), variant_metrics AS MATERIALIZED (
+        SELECT v."productId", MIN(v.price) AS "minPrice", BOOL_OR(COALESCE(i."quantityOnHand" > i."quantityReserved", FALSE)) AS "hasStock"
+        FROM "ProductVariant" v JOIN metric_candidates p ON p.id = v."productId"
+        LEFT JOIN "Inventory" i ON i."variantId" = v.id WHERE v.status = 'ACTIVE' GROUP BY v."productId"
+      ), ${reviewsBeforePage ? Prisma.sql`${reviewMetrics},` : Prisma.empty}
+      ${salesBeforePage ? Prisma.sql`${salesMetrics},` : Prisma.empty} metrics AS (
+        SELECT p.*, v."minPrice", v."hasStock"
+          ${reviewsBeforePage ? Prisma.sql`, COALESCE(r."totalReviewCount", 0) AS "totalReviewCount", ${averageRating} AS "averageRating"` : Prisma.empty}
+          ${salesBeforePage ? Prisma.sql`, COALESCE(s."soldCount", 0) AS "soldCount"` : Prisma.empty}
         FROM metric_candidates p JOIN variant_metrics v ON v."productId" = p.id
-        LEFT JOIN review_exact r ON r."productId" = p.id LEFT JOIN sales_metrics s ON s."productId" = p.id
+        ${reviewsBeforePage ? Prisma.sql`LEFT JOIN review_exact r ON r."productId" = p.id` : Prisma.empty}
+        ${salesBeforePage ? Prisma.sql`LEFT JOIN sales_metrics s ON s."productId" = p.id` : Prisma.empty}
       ), ${pageBeforeMetrics ? Prisma.empty : Prisma.sql`filtered AS (
         SELECT * FROM metrics ${metricPredicates.length ? Prisma.sql`WHERE ${Prisma.join(metricPredicates, ' AND ')}` : Prisma.empty}
-      ), ${rankedPage},`} total AS (SELECT COUNT(*) AS total FROM ${pageBeforeMetrics ? Prisma.sql`candidates` : Prisma.sql`filtered`})
-      SELECT result.id, result."averageRating", result."totalReviewCount", result."soldCount", result.position, total.total
-      FROM total LEFT JOIN ${pageBeforeMetrics ? Prisma.sql`metrics` : Prisma.sql`page`} result ON TRUE ORDER BY result.position
+      ), ${rankedPage},`}
+      ${reviewsBeforePage ? Prisma.empty : Prisma.sql`${reviewMetrics},`}
+      ${salesBeforePage ? Prisma.empty : Prisma.sql`${salesMetrics},`}
+      total AS (SELECT COUNT(*) AS total FROM ${pageBeforeMetrics ? Prisma.sql`candidates` : Prisma.sql`filtered`})
+      SELECT result.id,
+        ${reviewsBeforePage ? Prisma.sql`result."averageRating", result."totalReviewCount"` : Prisma.sql`${averageRating} AS "averageRating", COALESCE(r."totalReviewCount", 0) AS "totalReviewCount"`},
+        ${salesBeforePage ? Prisma.sql`result."soldCount"` : Prisma.sql`COALESCE(s."soldCount", 0) AS "soldCount"`}, result.position, total.total
+      FROM total LEFT JOIN ${pageBeforeMetrics ? Prisma.sql`metrics` : Prisma.sql`page`} result ON TRUE
+      ${reviewsBeforePage ? Prisma.empty : Prisma.sql`LEFT JOIN review_exact r ON r."productId" = result.id`}
+      ${salesBeforePage ? Prisma.empty : Prisma.sql`LEFT JOIN sales_metrics s ON s."productId" = result.id`}
+      ORDER BY result.position
     `
   }
 

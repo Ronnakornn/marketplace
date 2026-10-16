@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ProductListingPage } from "#/features/product";
+import { ProductListingPage } from "#/features/product/components/ProductListingPage";
 import { createTranslator } from "#/i18n/server";
 import { publicPageMetadata, safeDescription } from "#/lib/seo";
 

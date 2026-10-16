@@ -569,7 +569,7 @@ beforeEach(() => {
     if (queryMocks.ratingSummaryError) throw queryMocks.ratingSummaryError;
     return queryMocks.ratingSummaryResponse;
   });
-  queryMocks.couponsQueryFn.mockResolvedValue([]);
+  queryMocks.couponsQueryFn.mockClear().mockResolvedValue([]);
 });
 
 describe("ProductListingPage buyer states", () => {
@@ -815,6 +815,18 @@ describe("ProductListingPage buyer states", () => {
 });
 
 describe("DealsPage buyer states", () => {
+  it.each([null, { user: { id: "seller-1", role: "SELLER" } }])("skips private coupons for a guest or non-buyer session", async (session) => {
+    queryMocks.session = session;
+    renderWithClient(<DealsPage />);
+    expect(await screen.findByText("No deals available")).toBeTruthy();
+    expect(queryMocks.couponsQueryFn).not.toHaveBeenCalled();
+  });
+
+  it("requests coupons for a signed-in buyer", async () => {
+    renderWithClient(<DealsPage />);
+    await waitFor(() => expect(queryMocks.couponsQueryFn).toHaveBeenCalledOnce());
+  });
+
   it("shows an empty deal state instead of fallback products", async () => {
     renderWithClient(<DealsPage />);
 

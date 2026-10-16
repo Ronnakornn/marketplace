@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart3Icon, CopyIcon, LinkIcon, MousePointerClickIcon, PlusIcon, SearchIcon, SparklesIcon, TargetIcon } from "lucide-react";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
@@ -37,7 +37,11 @@ export function CreatorDashboardPage() {
   const [copiedCode, setCopiedCode] = useState("");
 
   const statsQuery = useQuery({ queryKey: ["affiliate", "stats"], queryFn: fetchAffiliateStats });
-  const linksQuery = useQuery({ queryKey: ["affiliate", "links"], queryFn: fetchAffiliateLinks });
+  const linksQuery = useInfiniteQuery({
+    queryKey: ["affiliate", "links", "pages"], initialPageParam: 1,
+    queryFn: ({ pageParam }) => fetchAffiliateLinks({ page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage) => lastPage.meta.hasNextPage ? lastPage.meta.page + 1 : undefined,
+  });
   const productTargetsQuery = affiliateProductTargetsQueryOptions({ q: targetQuery, limit: 8 });
   const targetsQuery = useQuery({
     queryKey: targetType === "product" ? productTargetsQuery.queryKey : ["affiliate", "targets", targetType, targetQuery],
@@ -63,9 +67,9 @@ export function CreatorDashboardPage() {
     },
   });
 
-  const links = linksQuery.data ?? [];
+  const links = linksQuery.data?.pages.flatMap(page => page.data) ?? [];
   const targetItems = targetsQuery.data ?? [];
-  const error = statsQuery.error ?? linksQuery.error;
+  const error = statsQuery.error ?? (linksQuery.data ? null : linksQuery.error);
   const unavailable = [statsQuery.error, linksQuery.error, targetsQuery.error, createLinkMutation.error].some(isAffiliateDisabledError);
 
   if (unavailable || statsQuery.isPending || linksQuery.isPending || error) {
@@ -177,7 +181,7 @@ export function CreatorDashboardPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-950">{t("affiliate.yourLinks")}</h2>
-              <Badge variant="outline" className="rounded-full">{links.length} {t("affiliate.activeRecords")}</Badge>
+              <Badge variant="outline" className="rounded-full">{linksQuery.data?.pages[0]?.meta.totalCount ?? 0} {t("affiliate.activeRecords")}</Badge>
             </div>
             {linksQuery.isLoading ? <BuyerLoadingList /> : null}
             {linksQuery.isSuccess && links.length === 0 ? <BuyerEmptyState title={t("affiliate.noLinksTitle")} description={t("affiliate.createFirstLink")} /> : null}
@@ -202,6 +206,8 @@ export function CreatorDashboardPage() {
                 </article>
               ))}
             </div>
+            {linksQuery.isFetchNextPageError ? <BuyerErrorState message={linksQuery.error.message} onRetry={() => void linksQuery.fetchNextPage()} /> : null}
+            {linksQuery.hasNextPage ? <Button variant="outline" disabled={linksQuery.isFetchingNextPage} onClick={() => void linksQuery.fetchNextPage()}>{t("common.next")}</Button> : null}
           </div>
         </section>
       </main>

@@ -23,9 +23,10 @@ const cardMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, onClick, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; onClick?: (event: ReactMouseEvent<HTMLAnchorElement>) => void; prefetch?: boolean }) => (
+  default: ({ href, children, onClick, prefetch, ...props }: { href: string; children: ReactNode; onClick?: (event: ReactMouseEvent<HTMLAnchorElement>) => void; prefetch?: boolean }) => (
     <a
       href={href}
+      data-prefetch={String(prefetch)}
       {...props}
       onClick={(event) => {
         event.preventDefault();
@@ -209,6 +210,18 @@ describe("ProductCard", () => {
     expect(screen.getByText("21 sold")).toBeTruthy();
     expect(screen.getByText("Demo Shop")).toBeTruthy();
     expect(screen.getByText("Bangkok")).toBeTruthy();
+  });
+
+  it("leaves card destinations available without automatically prefetching every product", () => {
+    renderWithClient(createProductFixture());
+    const links = screen.getAllByRole("link");
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link.getAttribute("href")).toBe("/en/products/product-1");
+      expect(link.getAttribute("data-prefetch")).toBe("false");
+    }
+    fireEvent.click(links[0]!);
+    expect(cardMocks.trackProductClick).toHaveBeenCalledWith({ productId: "product-1", shopId: "shop-1" });
   });
 
   it("localizes system-generated product badges", () => {

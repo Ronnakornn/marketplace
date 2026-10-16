@@ -1,4 +1,3 @@
-import { moneyInteger } from '#server/lib/money.ts'
 import type { Role } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -6,21 +5,13 @@ import type { ActiveShopResolver } from '#server/modules/security'
 import { CALENDAR_DAY_MILLISECONDS, parseReportingDate, reportingDateKey, reportingDayRange, shiftCalendarDate } from '#server/lib/reporting-calendar.ts'
 import { ProductAnalyticsServiceError } from './product-analytics.errors.ts'
 import type {
-  AnalyticsAddToCartRow,
-  AnalyticsAddToCartLogRow,
   AnalyticsDateRange,
-  AnalyticsOrderItem,
-  AnalyticsProduct,
-  AnalyticsViewLogRow,
-  AnalyticsVariant,
   IProductAnalyticsRepository,
 } from './product-analytics.repository.ts'
 
 const DEFAULT_RANGE = '30d'
 const MAX_PAGE_LIMIT = 100
 const DEFAULT_PAGE_LIMIT = 20
-const LOW_PERFORMING_LIMIT = 5
-const TOP_SKU_LIMIT = 5
 const MAX_CUSTOM_RANGE_DAYS = 366
 
 const PRODUCT_SORTS = new Set(['views', 'addToCart', 'orders', 'unitsSold', 'revenue', 'conversionRate', 'title'])
@@ -122,16 +113,6 @@ export interface ProductAnalyticsPagination {
   totalPages: number
 }
 
-interface MetricBucket {
-  views: number
-  addToCart: number
-  addToCartQuantity: number
-  orderIds: Set<string>
-  unitsSold: number
-  revenue: bigint
-  currencies: Set<string>
-}
-
 export class ProductAnalyticsService {
   private logger: ILogger
 
@@ -149,26 +130,31 @@ export class ProductAnalyticsService {
     const productId = this.normalizeUuid(query.productId, 'productId')
     this.logger.info('ProductAnalyticsService.getSummary', { actorId: actor.id, shopIds, productId, range })
 
-    const [views, addToCart, orderItems] = await Promise.all([
-      this.repo.countProductViews(shopIds, range, productId),
-      this.repo.countProductAddToCart(shopIds, range, productId),
-      this.repo.findPaidOrderItems(shopIds, range, productId),
-    ])
-
-    const productIds = this.metricProductIds(views, addToCart, orderItems, productId)
-    const variantIds = this.metricVariantIds(addToCart, orderItems)
+    const metrics = await this.repo.findSummaryMetrics(shopIds, range, productId)
     const [products, variants] = await Promise.all([
-      this.repo.findProductsByIds(shopIds, productIds),
-      this.repo.findVariantsByIds(shopIds, variantIds),
+      this.repo.findProductsByIds(shopIds, metrics.lowProducts.map((item) => item.id)),
+      this.repo.findVariantsByIds(shopIds, metrics.topSkus.map((item) => item.id)),
     ])
-    const productMetrics = this.buildProductMetrics(products, views, addToCart, orderItems)
-    const skuMetrics = this.buildSkuMetrics(variants, addToCart, orderItems)
-    const summary = this.totalMetrics(views, addToCart, orderItems)
-
+    const productsById = new Map(products.map((product) => [product.id, product]))
+    const variantsById = new Map(variants.map((variant) => [variant.id, variant]))
+    const { addToCartQuantity: _quantity, ...totals } = metrics.totals
     return {
-      ...summary,
-      topSkus: this.sortSkuMetrics(skuMetrics, 'revenue').slice(0, TOP_SKU_LIMIT),
-      lowPerformingProducts: this.lowPerformingProducts(productMetrics),
+      ...totals,
+      topSkus: metrics.topSkus.flatMap(({ id, conversionRate: _conversion, currency, ...metric }) => {
+        const variant = variantsById.get(id)
+        return variant ? [{
+          productId: variant.productId, productTitle: variant.product.title, productSlug: variant.product.slug,
+          variantId: variant.id, sku: variant.sku, title: variant.title, status: variant.status,
+          ...metric, currency: currency ?? variant.currency,
+        }] : []
+      }),
+      lowPerformingProducts: metrics.lowProducts.flatMap(({ id, addToCartQuantity: _quantity, ...metric }) => {
+        const product = productsById.get(id)
+        return product ? [{
+          productId: product.id, title: product.title, slug: product.slug, status: product.status,
+          coverImage: product.images[0]?.url ?? null, shop: product.shop, ...metric,
+        }] : []
+      }),
     }
   }
 
@@ -176,26 +162,18 @@ export class ProductAnalyticsService {
     const shopIds = await this.getSellerShopIds(actor)
     const range = this.normalizeDateRange(query)
     const productId = this.normalizeUuid(query.productId, 'productId')
-    const [views, addToCart, orderItems] = await Promise.all([
-      this.repo.findProductViewLogs(shopIds, range, productId),
-      this.repo.findProductAddToCartLogs(shopIds, range, productId),
-      this.repo.findPaidOrderItems(shopIds, range, productId),
-    ])
-
-    const items = this.dateKeys(range).map((date) => ({
-      date,
-      views: 0,
-      addToCart: 0,
-      orders: 0,
-      unitsSold: 0,
-      revenue: 0n,
-      conversionRate: 0,
-    }))
-    const byDate = new Map(items.map((item) => [item.date, item]))
-
-    this.fillDailyFromRawLogs(byDate, views, addToCart, orderItems)
-    for (const item of items) item.conversionRate = this.conversionRate(item.orders, item.views)
-    return { items }
+    const metrics = await this.repo.findDailyMetrics(shopIds, range, productId)
+    const byDate = new Map(metrics.map((item) => [item.date, item]))
+    return {
+      items: this.dateKeys(range).map((date) => {
+        const metric = byDate.get(date)
+        return {
+          date, views: metric?.views ?? 0, addToCart: metric?.addToCart ?? 0,
+          orders: metric?.orders ?? 0, unitsSold: metric?.unitsSold ?? 0,
+          revenue: metric?.revenue ?? 0n, conversionRate: metric?.conversionRate ?? 0,
+        }
+      }),
+    }
   }
 
   async getProducts(actor: ProductAnalyticsActor, query: ProductAnalyticsQuery): Promise<ProductAnalyticsProductTableResponse> {
@@ -333,195 +311,6 @@ export class ProductAnalyticsService {
     return sort
   }
 
-  private buildProductMetrics(
-    products: AnalyticsProduct[],
-    views: Array<{ productId: string; count: number }>,
-    addToCart: AnalyticsAddToCartRow[],
-    orderItems: AnalyticsOrderItem[],
-  ): ProductAnalyticsProductMetric[] {
-    const buckets = this.buildProductBuckets(views, addToCart, orderItems)
-    return products.map((product) => ({
-      productId: product.id,
-      title: product.title,
-      slug: product.slug,
-      status: product.status,
-      coverImage: product.images[0]?.url ?? null,
-      shop: product.shop,
-      ...this.productMetricTotals(this.bucket(buckets, product.id)),
-    }))
-  }
-
-  private productMetricTotals(bucket: MetricBucket) {
-    return {
-      views: bucket.views,
-      addToCart: bucket.addToCart,
-      orders: bucket.orderIds.size,
-      unitsSold: bucket.unitsSold,
-      revenue: bucket.revenue,
-      conversionRate: this.conversionRate(bucket.orderIds.size, bucket.views),
-      currency: this.currency(bucket.currencies),
-    }
-  }
-
-  private buildProductBuckets(
-    views: Array<{ productId: string; count: number }>,
-    addToCart: AnalyticsAddToCartRow[],
-    orderItems: AnalyticsOrderItem[],
-  ): Map<string, MetricBucket> {
-    const buckets = new Map<string, MetricBucket>()
-    for (const row of views) this.bucket(buckets, row.productId).views += row.count
-    for (const row of addToCart) {
-      const bucket = this.bucket(buckets, row.productId)
-      bucket.addToCart += row.count
-      bucket.addToCartQuantity += row.quantity
-    }
-    for (const item of orderItems) {
-      const bucket = this.bucket(buckets, item.variant.productId)
-      bucket.orderIds.add(item.order.id)
-      bucket.unitsSold += item.quantity
-      bucket.revenue += moneyInteger(item.lineTotal)
-      bucket.currencies.add(item.currency)
-    }
-
-    return buckets
-  }
-
-  private buildSkuMetrics(
-    variants: AnalyticsVariant[],
-    addToCart: AnalyticsAddToCartRow[],
-    orderItems: AnalyticsOrderItem[],
-  ): ProductAnalyticsSkuMetric[] {
-    const buckets = this.buildSkuBuckets(addToCart, orderItems)
-
-    return variants.map((variant) => {
-      const bucket = this.bucket(buckets, variant.id)
-      return {
-        productId: variant.productId,
-        productTitle: variant.product.title,
-        productSlug: variant.product.slug,
-        variantId: variant.id,
-        sku: variant.sku,
-        title: variant.title,
-        status: variant.status,
-        views: 0,
-        addToCart: bucket.addToCart,
-        addToCartQuantity: bucket.addToCartQuantity,
-        orders: bucket.orderIds.size,
-        unitsSold: bucket.unitsSold,
-        revenue: bucket.revenue,
-        currency: this.currency(bucket.currencies) ?? variant.currency,
-      }
-    })
-  }
-
-  private buildSkuBuckets(addToCart: AnalyticsAddToCartRow[], orderItems: AnalyticsOrderItem[]): Map<string, MetricBucket> {
-    const buckets = new Map<string, MetricBucket>()
-    for (const row of addToCart) {
-      const bucket = this.bucket(buckets, row.variantId)
-      bucket.addToCart += row.count
-      bucket.addToCartQuantity += row.quantity
-    }
-    for (const item of orderItems) {
-      const bucket = this.bucket(buckets, item.variantId)
-      bucket.orderIds.add(item.order.id)
-      bucket.unitsSold += item.quantity
-      bucket.revenue += moneyInteger(item.lineTotal)
-      bucket.currencies.add(item.currency)
-    }
-    return buckets
-  }
-
-  private totalMetrics(
-    views: Array<{ productId: string; count: number }>,
-    addToCart: AnalyticsAddToCartRow[],
-    orderItems: AnalyticsOrderItem[],
-  ): Omit<ProductAnalyticsSummary, 'topSkus' | 'lowPerformingProducts'> {
-    const orderIds = new Set<string>()
-    const currencies = new Set<string>()
-    let unitsSold = 0
-    let revenue = 0n
-    for (const item of orderItems) {
-      orderIds.add(item.order.id)
-      unitsSold += item.quantity
-      revenue += moneyInteger(item.lineTotal)
-      currencies.add(item.currency)
-    }
-    const viewCount = views.reduce((total, row) => total + row.count, 0)
-    return {
-      views: viewCount,
-      addToCart: addToCart.reduce((total, row) => total + row.count, 0),
-      orders: orderIds.size,
-      unitsSold,
-      revenue,
-      conversionRate: this.conversionRate(orderIds.size, viewCount),
-      currency: this.currency(currencies),
-    }
-  }
-
-  private metricProductIds(
-    views: Array<{ productId: string; count: number }>,
-    addToCart: AnalyticsAddToCartRow[],
-    orderItems: AnalyticsOrderItem[],
-    productId?: string,
-  ): string[] {
-    const ids = new Set<string>()
-    if (productId) ids.add(productId)
-    for (const row of views) ids.add(row.productId)
-    for (const row of addToCart) ids.add(row.productId)
-    for (const item of orderItems) ids.add(item.variant.productId)
-    return [...ids]
-  }
-
-  private metricVariantIds(addToCart: AnalyticsAddToCartRow[], orderItems: AnalyticsOrderItem[]): string[] {
-    const ids = new Set<string>()
-    for (const row of addToCart) ids.add(row.variantId)
-    for (const item of orderItems) ids.add(item.variantId)
-    return [...ids]
-  }
-
-  private lowPerformingProducts(items: ProductAnalyticsProductMetric[]): ProductAnalyticsProductMetric[] {
-    return items
-      .filter((item) => item.views >= 10 && item.conversionRate < 0.01)
-      .sort((a, b) => b.views - a.views || a.conversionRate - b.conversionRate || a.title.localeCompare(b.title))
-      .slice(0, LOW_PERFORMING_LIMIT)
-  }
-
-  private sortSkuMetrics<T extends object>(items: T[], sort: string): T[] {
-    const descending = sort.startsWith('-') || sort !== 'sku'
-    const key = sort.startsWith('-') ? sort.slice(1) : sort
-    return [...items].sort((a, b) => this.compare(a, b, key, descending))
-  }
-
-  private compare(a: object, b: object, key: string, descending: boolean): number {
-    const av = (a as Record<string, unknown>)[key]
-    const bv = (b as Record<string, unknown>)[key]
-    const result = typeof av === 'bigint' && typeof bv === 'bigint' ? av < bv ? -1 : av > bv ? 1 : 0 : typeof av === 'string' && typeof bv === 'string'
-      ? av.localeCompare(bv)
-      : Number(av ?? 0) - Number(bv ?? 0)
-    if (result !== 0) return descending ? -result : result
-    const aId = 'variantId' in a ? a.variantId : 'productId' in a ? a.productId : ''
-    const bId = 'variantId' in b ? b.variantId : 'productId' in b ? b.productId : ''
-    return String(aId).localeCompare(String(bId))
-  }
-
-  private bucket(map: Map<string, MetricBucket>, key: string): MetricBucket {
-    let bucket = map.get(key)
-    if (!bucket) {
-      bucket = { views: 0, addToCart: 0, addToCartQuantity: 0, orderIds: new Set(), unitsSold: 0, revenue: 0n, currencies: new Set() }
-      map.set(key, bucket)
-    }
-    return bucket
-  }
-
-  private conversionRate(orders: number, views: number): number {
-    if (views <= 0) return 0
-    return orders / views
-  }
-
-  private currency(currencies: Set<string>): string | null {
-    return currencies.size === 1 ? [...currencies][0]! : null
-  }
-
   private toPagination(total: number, page: number, limit: number): ProductAnalyticsPagination {
     return {
       page,
@@ -542,37 +331,4 @@ export class ProductAnalyticsService {
     return keys
   }
 
-  private dateKeyFromDate(value: Date | string): string {
-    return reportingDateKey(value)
-  }
-
-  private fillDailyFromRawLogs(
-    byDate: Map<string, ProductAnalyticsDailyItem>,
-    views: AnalyticsViewLogRow[],
-    addToCart: AnalyticsAddToCartLogRow[],
-    orderItems: AnalyticsOrderItem[],
-  ): void {
-    for (const row of views) {
-      const bucket = byDate.get(this.dateKeyFromDate(row.createdAt))
-      if (bucket) bucket.views += 1
-    }
-    for (const row of addToCart) {
-      const bucket = byDate.get(this.dateKeyFromDate(row.createdAt))
-      if (bucket) bucket.addToCart += 1
-    }
-    const orderIds = new Set<string>()
-    for (const item of orderItems) {
-      const key = this.dateKeyFromDate(item.order.createdAt)
-      const bucket = byDate.get(key)
-      if (!bucket) continue
-      bucket.unitsSold += item.quantity
-      bucket.revenue += moneyInteger(item.lineTotal)
-      orderIds.add(`${key}:${item.order.id}`)
-    }
-    for (const key of orderIds) {
-      const [date] = key.split(':')
-      const bucket = byDate.get(date!)
-      if (bucket) bucket.orders += 1
-    }
-  }
 }

@@ -16,7 +16,26 @@ describe('Analytics ranking pages', () => {
     const range = { from: new Date('2026-10-03T17:00:00Z'), to: new Date('2026-10-04T16:59:59.999Z') }
     expect(await repo.findProductRankingPage([], range, { page: 1, limit: 20, sort: 'revenue' })).toEqual({ items: [], total: 0 })
     expect(await repo.findVariantRankingPage([], range, { page: 1, limit: 20, sort: 'sku' })).toEqual({ items: [], total: 0 })
+    expect(await repo.findDailyMetrics([], range)).toEqual([])
+    expect(await repo.findSummaryMetrics([], range)).toEqual({
+      totals: { views: 0, addToCart: 0, addToCartQuantity: 0, orders: 0, unitsSold: 0, revenue: 0n, conversionRate: 0, currency: null },
+      topSkus: [], lowProducts: [],
+    })
     expect(queryRaw).not.toHaveBeenCalled()
+  })
+
+  it('decodes grouped summary money exactly and routes bounded candidate rows', async () => {
+    const totals = { views: '100', addToCart: '2', addToCartQuantity: '3', orders: '1', unitsSold: '2', revenue: '18446744073709551615', conversionRate: 0.01, currency: null }
+    const queryRaw = vi.fn().mockResolvedValue([
+      { kind: 'summary', id: null, ...totals },
+      { kind: 'sku', id: 'variant-a', ...totals, views: '0', conversionRate: 0 },
+    ])
+    const repo = new PrismaProductAnalyticsRepository(context, { $queryRaw: queryRaw } as unknown as PrismaClient)
+    const range = { from: new Date('2026-10-03T17:00:00Z'), to: new Date('2026-10-04T16:59:59.999Z') }
+    const result = await repo.findSummaryMetrics(['11111111-1111-4111-8111-111111111111'], range)
+    expect(result.totals).toEqual({ views: 100, addToCart: 2, addToCartQuantity: 3, orders: 1, unitsSold: 2, revenue: 18446744073709551615n, conversionRate: 0.01, currency: null })
+    expect(result.topSkus).toEqual([{ id: 'variant-a', ...result.totals, views: 0, conversionRate: 0 }])
+    expect(result.lowProducts).toEqual([])
   })
 
   it('decodes exact numeric money beyond signed int64 without changing count types', () => {

@@ -1,3 +1,6 @@
+import { Prisma } from '#generated/client/client.ts'
+import { listPage, listPageResult, type ListPageInput } from '#server/lib/list-page.ts'
+import { escapeLikeLiteral } from '#server/lib/sql-like.ts'
 import type { BuyerCoinLedger, BuyerCoinWallet, Cart, CartItem, Coupon, CouponClaim, CouponRedemptionStatus, FlashSale, FlashSaleItem, PrismaClient, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -70,6 +73,10 @@ export type FlashSaleItemForManagement = FlashSaleItem & {
   flashSale: Pick<FlashSale, 'id' | 'shopId' | 'status' | 'startsAt' | 'endsAt'>
 }
 
+export interface CouponListInput extends ListPageInput { q?: string; isActive?: boolean; shopId?: string }
+export interface FlashSaleListInput extends ListPageInput { q?: string; status?: FlashSale['status'] }
+export type CouponPage<T> = ReturnType<typeof listPageResult<T>>
+
 export interface IPromotionValidationRepository {
   findCouponByCode(code: string): Promise<PromotionCoupon | null>
   countCouponRedemptionsForUser(couponId: string, userId: string): Promise<number>
@@ -80,17 +87,17 @@ export interface IPromotionRepository extends IPromotionValidationRepository {
   listBuyerCoinLedger(userId: string, limit: number, cursor?: string): Promise<Array<Pick<BuyerCoinLedger, 'id' | 'type' | 'status' | 'amount' | 'reason' | 'orderId' | 'createdAt'>>>
   findCartForCouponValidation(cartId: string, userId: string): Promise<PromotionCart | null>
   findSellerShops(ownerId: string): Promise<Array<Pick<Shop, 'id' | 'ownerId'>>>
-  listPublicCoupons(): Promise<PromotionCoupon[]>
-  listBuyerCoupons(userId: string): Promise<BuyerPromotionCoupon[]>
+  listPublicCoupons(input?: CouponListInput): Promise<CouponPage<PromotionCoupon>>
+  listBuyerCoupons(userId: string, input?: CouponListInput): Promise<CouponPage<BuyerPromotionCoupon>>
   findCouponForClaim(couponId: string): Promise<PromotionCoupon | null>
   createCouponClaim(couponId: string, userId: string): Promise<CouponClaim>
-  listAdminCoupons(): Promise<Coupon[]>
-  listSellerCoupons(shopIds: string[]): Promise<Coupon[]>
+  listAdminCoupons(input?: CouponListInput): Promise<CouponPage<Coupon>>
+  listSellerCoupons(shopIds: string[], input?: CouponListInput): Promise<CouponPage<Coupon>>
   findCouponById(couponId: string): Promise<Coupon | null>
   createCoupon(input: CreateCouponInput): Promise<Coupon>
   updateCoupon(couponId: string, input: UpdateCouponInput): Promise<Coupon>
   deleteCoupon(couponId: string): Promise<Coupon>
-  listAdminFlashSales(): Promise<Array<FlashSale & { items: FlashSaleItem[] }>>
+  listAdminFlashSales(input?: FlashSaleListInput): Promise<CouponPage<FlashSale & { items: FlashSaleItem[] }>>
   listSellerFlashSales(shopIds: string[]): Promise<Array<FlashSale & { items: FlashSaleItem[] }>>
   findFlashSaleById(flashSaleId: string): Promise<(FlashSale & { items: FlashSaleItem[] }) | null>
   createFlashSale(input: FlashSalePayload): Promise<FlashSale>
@@ -189,43 +196,38 @@ export class PrismaPromotionRepository implements IPromotionRepository {
     })
   }
 
-  listPublicCoupons(): Promise<PromotionCoupon[]> {
-    this.logger.debug('PrismaPromotionRepository.listPublicCoupons')
-    const now = new Date()
-    return this.prisma.coupon.findMany({
-      where: {
-        isActive: true,
-        AND: [
-          { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-          { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
-        ],
-      },
-      include: couponCountInclude,
-      orderBy: { createdAt: 'desc' },
-    })
+  async listPublicCoupons(input: CouponListInput = {}): Promise<CouponPage<PromotionCoupon>> {
+    return this.listEligibleCoupons(input)
   }
 
-  listBuyerCoupons(userId: string): Promise<BuyerPromotionCoupon[]> {
-    this.logger.debug('PrismaPromotionRepository.listBuyerCoupons', { userId })
+  async listBuyerCoupons(userId: string, input: CouponListInput = {}): Promise<CouponPage<BuyerPromotionCoupon>> {
+    return this.listEligibleCoupons(input, userId)
+  }
+
+  private async listEligibleCoupons(input: CouponListInput, userId?: string): Promise<CouponPage<BuyerPromotionCoupon>> {
+    const { skip, take } = listPage(input)
     const now = new Date()
-    return this.prisma.coupon.findMany({
-      where: {
-        isActive: true,
-        AND: [
-          { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-          { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
-        ],
-      },
-      include: {
-        ...couponCountInclude,
-        claims: {
-          where: { userId },
-          select: { id: true, claimedAt: true },
-          take: 1,
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+    const search = input.q?.trim()
+    const pattern = '%' + (search?.replace(/[\\%_]/g, '\\$&') ?? '') + '%'
+    const where = Prisma.sql`c."isActive" = true
+      AND (c."startsAt" IS NULL OR c."startsAt" <= ${now})
+      AND (c."endsAt" IS NULL OR c."endsAt" > ${now})
+      AND (c."usageLimit" IS NULL OR c."usageLimit" > (
+        SELECT COUNT(*) FROM "CouponRedemption" r WHERE r."couponId" = c.id AND r.status IN ('RESERVED', 'REDEEMED')
+      ))
+      ${search ? Prisma.sql`AND (c.code ILIKE ${pattern} OR c."titleEn" ILIKE ${pattern} OR c."titleTh" ILIKE ${pattern})` : Prisma.empty}`
+    return this.prisma.$transaction(async (tx) => {
+      const total = await tx.$queryRaw<Array<{ count: bigint }>>`SELECT COUNT(*) AS count FROM "Coupon" c WHERE ${where}`
+      const ids = await tx.$queryRaw<Array<{ id: string }>>`SELECT c.id FROM "Coupon" c WHERE ${where}
+        ORDER BY ${userId ? Prisma.sql`EXISTS (SELECT 1 FROM "CouponClaim" cc WHERE cc."couponId" = c.id AND cc."userId" = ${userId}::uuid) DESC,` : Prisma.empty}
+        c."createdAt" DESC, c.id DESC OFFSET ${skip} LIMIT ${take}`
+      const coupons = await tx.coupon.findMany({
+        where: { id: { in: ids.map(row => row.id) } },
+        include: { ...couponCountInclude, claims: { where: { userId: userId ?? '00000000-0000-0000-0000-000000000000' }, select: { id: true, claimedAt: true }, take: 1 } },
+      })
+      const byId = new Map(coupons.map(coupon => [coupon.id, coupon]))
+      return listPageResult(ids.flatMap(row => { const coupon = byId.get(row.id); return coupon ? [coupon] : [] }), Number(total[0]?.count ?? 0n), input)
+    }, { isolationLevel: 'RepeatableRead' })
   }
 
   findCouponForClaim(couponId: string): Promise<PromotionCoupon | null> {
@@ -245,20 +247,27 @@ export class PrismaPromotionRepository implements IPromotionRepository {
     })
   }
 
-  listAdminCoupons(): Promise<Coupon[]> {
-    this.logger.debug('PrismaPromotionRepository.listAdminCoupons')
-    return this.prisma.coupon.findMany({
-      orderBy: { createdAt: 'desc' },
-    })
+  listAdminCoupons(input: CouponListInput = {}): Promise<CouponPage<Coupon>> {
+    return this.listManagedCoupons(input)
   }
 
-  listSellerCoupons(shopIds: string[]): Promise<Coupon[]> {
-    this.logger.debug('PrismaPromotionRepository.listSellerCoupons', { shopIds })
-    if (shopIds.length === 0) return Promise.resolve([])
-    return this.prisma.coupon.findMany({
-      where: { shopId: { in: shopIds } },
-      orderBy: { createdAt: 'desc' },
-    })
+  listSellerCoupons(shopIds: string[], input: CouponListInput = {}): Promise<CouponPage<Coupon>> {
+    return this.listManagedCoupons(input, shopIds)
+  }
+
+  private async listManagedCoupons(input: CouponListInput, shopIds?: string[]): Promise<CouponPage<Coupon>> {
+    const q = input.q?.trim() ? escapeLikeLiteral(input.q.trim()) : undefined
+    const where: Prisma.CouponWhereInput = {
+      ...(shopIds ? { shopId: { in: input.shopId ? shopIds.filter(id => id === input.shopId) : shopIds } } : input.shopId ? { shopId: input.shopId } : {}),
+      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+      ...(q ? { OR: [{ code: { contains: q, mode: 'insensitive' } }, { titleEn: { contains: q, mode: 'insensitive' } }, { titleTh: { contains: q, mode: 'insensitive' } }] } : {}),
+    }
+    const { skip, take } = listPage(input)
+    const [data, count] = await this.prisma.$transaction([
+      this.prisma.coupon.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip, take }),
+      this.prisma.coupon.count({ where }),
+    ])
+    return listPageResult(data, count, input)
   }
 
   findCouponById(couponId: string): Promise<Coupon | null> {
@@ -288,8 +297,15 @@ export class PrismaPromotionRepository implements IPromotionRepository {
     })
   }
 
-  listAdminFlashSales(): Promise<Array<FlashSale & { items: FlashSaleItem[] }>> {
-    return this.prisma.flashSale.findMany({ include: { items: { orderBy: { createdAt: 'asc' } } }, orderBy: { startsAt: 'desc' } })
+  async listAdminFlashSales(input: FlashSaleListInput = {}): Promise<CouponPage<FlashSale & { items: FlashSaleItem[] }>> {
+    const q = input.q?.trim() ? escapeLikeLiteral(input.q.trim()) : undefined
+    const where: Prisma.FlashSaleWhereInput = { ...(q ? { title: { contains: q, mode: 'insensitive' } } : {}), ...(input.status ? { status: input.status } : {}) }
+    const { skip, take } = listPage(input)
+    const [data, count] = await this.prisma.$transaction([
+      this.prisma.flashSale.findMany({ where, include: { items: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] } }, orderBy: [{ startsAt: 'desc' }, { id: 'desc' }], skip, take }),
+      this.prisma.flashSale.count({ where }),
+    ])
+    return listPageResult(data, count, input)
   }
 
   listSellerFlashSales(shopIds: string[]): Promise<Array<FlashSale & { items: FlashSaleItem[] }>> {

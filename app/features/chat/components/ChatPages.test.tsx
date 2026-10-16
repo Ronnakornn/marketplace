@@ -16,6 +16,7 @@ vi.mock("next/link", () => ({ default: ({ children, href, ...props }: { children
 vi.mock("#/components/BuyerShell", () => ({ BuyerTopBar: ({ title }: { title: string }) => <header>{title}</header> }));
 vi.mock("#/features/chat/api", async (original) => ({
   ...await original<typeof import("../api")>(), fetchChatRooms: mocks.fetchRooms, fetchChatRoom: async (...args: unknown[]) => { const value = await mocks.fetchRoom(...args); for (const item of value.messages ?? []) mocks.records.set(item.id, item); return value; },
+  fetchChatUnreadCount: async () => ({ unreadCount: 75 }),
   refreshChatMessages: mocks.refresh, deleteChatContent: mocks.remove,
   sendChatMessage: async (...args: unknown[]) => { const value = await mocks.send(...args); if (value.sentMessage) mocks.records.set(value.sentMessage.id, value.sentMessage); return value; }, markChatRead: mocks.read,
 }));
@@ -47,7 +48,7 @@ beforeEach(() => {
   mocks.refresh.mockImplementation(async (_room: string, ids: string[]) => ({ contentRevision: "0", messages: ids.flatMap((id) => mocks.records.has(id) ? [mocks.records.get(id)] : []) }));
   vi.spyOn(document, "hasFocus").mockReturnValue(true);
   mocks.realtime.mockReturnValue("live");
-  mocks.fetchRooms.mockResolvedValue([room()]);
+  mocks.fetchRooms.mockResolvedValue({ items: [room()], pagination: { limit: 30, hasMore: false, nextCursor: null } });
   mocks.fetchRoom.mockImplementation((_id: string, query: { after?: string }) => Promise.resolve(query?.after ? room({ messages: [] }) : room()));
   mocks.read.mockImplementation((_id: string, _scope: string, id: string) => Promise.resolve(room({ readBoundary: { messageId: id, createdAt: message(id).createdAt }, unreadCount: 0 })));
   mocks.send.mockImplementation((_id: string, input: { clientMessageId: string; body: string }) =>
@@ -56,22 +57,65 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.clearAllMocks(); });
 
 describe("chat inbox", () => {
+  it("waits for the settled search text before requesting another page", async () => {
+    renderPage(<ChatInboxPage audience="buyer" />);
+    await screen.findByRole("link", { name: /Shop/ });
+    const search = screen.getByRole("textbox", { name: "chat.search" });
+    fireEvent.change(search, { target: { value: "B" } });
+    fireEvent.change(search, { target: { value: "Buy" } });
+    fireEvent.change(search, { target: { value: "Buyer" } });
+    expect(mocks.fetchRooms).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mocks.fetchRooms).toHaveBeenLastCalledWith(expect.objectContaining({ q: "Buyer", cursor: undefined })));
+    expect(mocks.fetchRooms).toHaveBeenCalledTimes(2);
+  });
+
+  it("reaches later rooms only on demand, deduplicates changing pages and resets server filters", async () => {
+    mocks.fetchRooms.mockImplementation((query: { cursor?: string; q?: string }) => Promise.resolve({
+      items: query.q ? [room({ roomId: "filtered", shop: { ...room().shop, name: "Filtered shop" } })]
+        : query.cursor ? [room(), room({ roomId: "later-room", shop: { ...room().shop, name: "Later shop" } })] : [room()],
+      pagination: { limit: 30, hasMore: !query.cursor && !query.q, nextCursor: !query.cursor && !query.q ? "next-cursor" : null },
+    }));
+    renderPage(<ChatInboxPage audience="buyer" />);
+    await screen.findByRole("link", { name: /Shop/ });
+    expect(mocks.fetchRooms).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("link", { name: /Later shop/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "common.more" }));
+    await screen.findByRole("link", { name: /Later shop/ });
+    expect(mocks.fetchRooms).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: "next-cursor" }));
+    expect(screen.getAllByRole("link")).toHaveLength(2);
+    fireEvent.change(screen.getByRole("textbox", { name: "chat.search" }), { target: { value: "Filtered" } });
+    await screen.findByRole("link", { name: /Filtered shop/ });
+    expect(mocks.fetchRooms).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: undefined, q: "Filtered" }));
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+  });
+
+  it("keeps the current page visible after loading another page fails", async () => {
+    mocks.fetchRooms.mockResolvedValueOnce({ items: [room()], pagination: { limit: 30, hasMore: true, nextCursor: "next-cursor" } })
+      .mockRejectedValueOnce(new ApiClientError("Offline"));
+    renderPage(<ChatInboxPage audience="buyer" />);
+    await screen.findByRole("link", { name: /Shop/ });
+    fireEvent.click(screen.getByRole("button", { name: "common.more" }));
+    await screen.findByText("chat.loadError");
+    expect(screen.getByRole("link", { name: /Shop/ })).toBeTruthy();
+  });
+
   it("scopes seller links and supports search and unread filters", async () => {
-    mocks.fetchRooms.mockResolvedValue([room(), room({ roomId: "elsewhere", shop: { ...room().shop, id: "other" } })]);
+    mocks.fetchRooms.mockImplementation((query: { q?: string }) => Promise.resolve({ items: query.q === "unmatched" ? [] : [room(), room({ roomId: "elsewhere", shop: { ...room().shop, id: "other" } })], pagination: { limit: 30, hasMore: false, nextCursor: null } }));
     renderPage(<ChatInboxPage audience="seller" shopId="shop" />);
     const link = await screen.findByRole("link", { name: /Buyer/ });
     expect(link.getAttribute("href")).toBe("/th/seller/chat/room?shopId=shop");
     expect(screen.queryByRole("link", { name: /elsewhere/ })).toBeNull();
     expect(mocks.realtime).toHaveBeenCalledWith(["seller:shop:chats"], expect.any(Function));
     fireEvent.change(screen.getByRole("textbox", { name: "chat.search" }), { target: { value: "unmatched" } });
-    expect(screen.getByText("chat.noResults")).toBeTruthy();
+    expect(await screen.findByText("chat.noResults")).toBeTruthy();
     fireEvent.change(screen.getByRole("textbox", { name: "chat.search" }), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "chat.unreadOnly" }));
-    expect(screen.getByRole("link", { name: /Buyer/ })).toBeTruthy();
+    expect(await screen.findByRole("link", { name: /Buyer/ })).toBeTruthy();
+    expect(mocks.fetchRooms).toHaveBeenLastCalledWith(expect.objectContaining({ scope: "seller", shopId: "shop", unreadOnly: true }));
   });
 
   it("subscribes buyer inbox and represents legacy image without fetching an attachment", async () => {
-    mocks.fetchRooms.mockResolvedValue([room({ lastMessage: { ...message(), messageType: "image", attachments: ["https://untrusted.example/image.jpg"] } })]);
+    mocks.fetchRooms.mockResolvedValue({ items: [room({ lastMessage: { ...message(), messageType: "image", attachments: ["https://untrusted.example/image.jpg"] } })], pagination: { limit: 30, hasMore: false, nextCursor: null } });
     const { container } = renderPage(<ChatInboxPage audience="buyer" />);
     expect(await screen.findByText("chat.legacyImage")).toBeTruthy();
     expect(mocks.realtime).toHaveBeenCalledWith(["user:buyer:chats"], expect.any(Function));

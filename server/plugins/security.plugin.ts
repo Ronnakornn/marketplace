@@ -12,9 +12,21 @@ type RateLimitBucket = {
 }
 
 const buckets = new Map<string, RateLimitBucket>()
+const MEMORY_SWEEP_LIMIT = 100
+let bucketSweep: MapIterator<[string, RateLimitBucket]> | undefined
 
 export function resetSecurityRateLimitBuckets(): void {
   buckets.clear()
+  bucketSweep = undefined
+}
+
+function reclaimExpiredBuckets(now: number): void {
+  bucketSweep ??= buckets.entries()
+  for (let scanned = 0; scanned < MEMORY_SWEEP_LIMIT; scanned++) {
+    const entry = bucketSweep.next()
+    if (entry.done) { bucketSweep = undefined; return }
+    if (entry.value[1].resetAt <= now) buckets.delete(entry.value[0])
+  }
 }
 
 export function createSecurityPlugin(
@@ -162,6 +174,7 @@ interface RateLimitStore {
 class MemoryRateLimitStore implements RateLimitStore {
   async increment(key: string, windowMs: number): Promise<number> {
     const now = Date.now()
+    reclaimExpiredBuckets(now)
     const existing = buckets.get(key)
     const bucket = existing && existing.resetAt > now
       ? existing
@@ -174,6 +187,7 @@ class MemoryRateLimitStore implements RateLimitStore {
 
 class RedisRateLimitStore implements RateLimitStore {
   private redis: IORedis
+  private connection: Promise<void> | null = null
   private readonly fallback = new MemoryRateLimitStore()
   private fallbackWarningLogged = false
 
@@ -182,15 +196,26 @@ class RedisRateLimitStore implements RateLimitStore {
     this.redis.on('error', () => undefined)
   }
 
-  private async ensureConnected(): Promise<void> {
-    if (this.redis.status === 'ready') return
+  private ensureConnected(): Promise<void> {
+    if (this.redis.status === 'ready') return Promise.resolve()
+    this.connection ??= this.waitForConnection().finally(() => { this.connection = null })
+    return this.connection
+  }
+
+  private async waitForConnection(): Promise<void> {
     if (this.redis.status === 'wait') {
       await this.redis.connect()
       return
     }
     await new Promise<void>((resolve, reject) => {
-      this.redis.once('ready', resolve)
-      this.redis.once('error', reject)
+      const cleanup = () => {
+        this.redis.removeListener('ready', onReady)
+        this.redis.removeListener('error', onError)
+      }
+      const onReady = () => { cleanup(); resolve() }
+      const onError = (error: Error) => { cleanup(); reject(error) }
+      this.redis.once('ready', onReady)
+      this.redis.once('error', onError)
     })
   }
 

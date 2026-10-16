@@ -1,4 +1,4 @@
-import { OrderReviewPage } from "#/features/buyer";
+import { OrderReviewPage } from "#/features/buyer/components/OrderReviewPage";
 import { requireUser } from "#/lib/auth-server";
 
 export default async function OrderReviewRoutePage({ params }: { params: Promise<{ orderId: string }> }) {

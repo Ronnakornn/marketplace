@@ -1,3 +1,6 @@
+import type { Prisma } from '#generated/client/client.ts'
+import { listPage, listPageResult, type ListPageInput } from '#server/lib/list-page.ts'
+import { escapeLikeLiteral } from '#server/lib/sql-like.ts'
 import { moneyInteger } from '#server/lib/money.ts'
 import type {
   Affiliate,
@@ -15,6 +18,10 @@ import type {
 import type { AffiliateLinkStatus, AffiliateStatus, AffiliateTargetType } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+
+export interface AffiliateListInput extends ListPageInput { q?: string; status?: AffiliateStatus }
+export type AffiliateListRecord = Affiliate & { user: { id: string; email: string; name: string }; linkCount: number }
+export type AffiliateListPage<T> = ReturnType<typeof listPageResult<T>>
 
 export type AffiliateRecord = Affiliate & {
   user: { id: string; email: string; name: string }
@@ -71,11 +78,11 @@ export interface IAffiliateRepository {
   findOrCreateAffiliate(userId: string): Promise<Affiliate>
   findAffiliateByUserId(userId: string): Promise<Affiliate | null>
   findAffiliateById(affiliateId: string): Promise<AffiliateRecord | null>
-  listAffiliates(): Promise<AffiliateRecord[]>
+  listAffiliates(input?: AffiliateListInput): Promise<AffiliateListPage<AffiliateListRecord>>
   updateAffiliateStatus(affiliateId: string, status: AffiliateStatus): Promise<Affiliate>
   findLinkByCode(code: string): Promise<AffiliateLinkRecord | null>
   findLinkById(linkId: string): Promise<AffiliateLinkRecord | null>
-  listLinksByUserId(userId: string): Promise<AffiliateLink[]>
+  listLinksByUserId(userId: string, input?: AffiliateListInput): Promise<AffiliateListPage<AffiliateLink>>
   createLink(input: CreateAffiliateLinkInput): Promise<AffiliateLink>
   updateLinkStatus(linkId: string, status: AffiliateLinkStatus): Promise<AffiliateLink>
   productExists(productId: string): Promise<Pick<Product, 'id'> | null>
@@ -142,11 +149,18 @@ export class PrismaAffiliateRepository implements IAffiliateRepository {
     return this.prisma.affiliate.findUnique({ where: { id: affiliateId }, include: affiliateInclude })
   }
 
-  listAffiliates(): Promise<AffiliateRecord[]> {
-    return this.prisma.affiliate.findMany({
-      include: affiliateInclude,
-      orderBy: { createdAt: 'desc' },
-    })
+  async listAffiliates(input: AffiliateListInput = {}): Promise<AffiliateListPage<AffiliateListRecord>> {
+    const q = input.q?.trim() ? escapeLikeLiteral(input.q.trim()) : undefined
+    const where: Prisma.AffiliateWhereInput = {
+      ...(input.status ? { status: input.status } : {}),
+      ...(q ? { OR: [{ user: { name: { contains: q, mode: 'insensitive' } } }, { user: { email: { contains: q, mode: 'insensitive' } } }, { links: { some: { code: { contains: q, mode: 'insensitive' } } } }] } : {}),
+    }
+    const { skip, take } = listPage(input)
+    const [rows, count] = await Promise.all([
+      this.prisma.affiliate.findMany({ where, include: { user: { select: { id: true, email: true, name: true } }, _count: { select: { links: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip, take }),
+      this.prisma.affiliate.count({ where }),
+    ])
+    return listPageResult(rows.map(({ _count, ...affiliate }) => ({ ...affiliate, linkCount: _count.links })), count, input)
   }
 
   updateAffiliateStatus(affiliateId: string, status: AffiliateStatus): Promise<Affiliate> {
@@ -161,12 +175,15 @@ export class PrismaAffiliateRepository implements IAffiliateRepository {
     return this.prisma.affiliateLink.findUnique({ where: { id: linkId }, include: { affiliate: true } })
   }
 
-  async listLinksByUserId(userId: string): Promise<AffiliateLink[]> {
-    const affiliate = await this.prisma.affiliate.findUnique({
-      where: { userId },
-      include: { links: { orderBy: { createdAt: 'desc' } } },
-    })
-    return affiliate?.links ?? []
+  async listLinksByUserId(userId: string, input: AffiliateListInput = {}): Promise<AffiliateListPage<AffiliateLink>> {
+    const q = input.q?.trim() ? escapeLikeLiteral(input.q.trim()) : undefined
+    const where: Prisma.AffiliateLinkWhereInput = { affiliate: { userId }, ...(input.status ? { status: input.status } : {}), ...(q ? { code: { contains: q, mode: 'insensitive' } } : {}) }
+    const { skip, take } = listPage(input)
+    const [data, count] = await Promise.all([
+      this.prisma.affiliateLink.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip, take }),
+      this.prisma.affiliateLink.count({ where }),
+    ])
+    return listPageResult(data, count, input)
   }
 
   createLink(input: CreateAffiliateLinkInput): Promise<AffiliateLink> {

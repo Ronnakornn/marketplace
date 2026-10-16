@@ -2,7 +2,7 @@
 
 import { minorUnitsText, type MinorUnitValue } from "#/lib/money";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, type RefCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
@@ -93,6 +93,7 @@ export function useDiscoveryTracking(source: string) {
 
   useEffect(() => () => {
     if (flushTimer.current) clearTimeout(flushTimer.current);
+    flushTimer.current = null;
     flushImpressions(pendingImpressions.current);
   }, []);
 
@@ -104,7 +105,7 @@ export function useDiscoveryTracking(source: string) {
       trackDiscoveryEvent({ source, ...input, eventType: "recently_viewed_update" }),
     queueProductImpression: (input: Omit<TrackDiscoveryEventInput, "eventType" | "source">) => {
       if (!input.productId) return;
-      pendingImpressions.current.set(input.productId, { source, ...input, eventType: "product_impression" });
+      pendingImpressions.current.set(`${source}:${input.productId}`, { source, ...input, eventType: "product_impression" });
       if (flushTimer.current) return;
       flushTimer.current = setTimeout(() => {
         flushTimer.current = null;
@@ -117,19 +118,62 @@ export function useDiscoveryTracking(source: string) {
 export function useTrackVisibleProducts(
   products: Array<{ id: string; shop?: { id?: string } }>,
   source: string,
-): void {
+): RefCallback<HTMLElement> {
   const tracking = useDiscoveryTracking(source);
-  const seenKey = products.map((product) => product.id).join(",");
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+  const seenBySource = useRef(new Map<string, Set<string>>());
+  const productKey = JSON.stringify(products.map((product) => [product.id, product.shop?.id]));
 
   useEffect(() => {
-    products.forEach((product, position) => {
+    if (!container) return;
+    const seen = seenBySource.current.get(source) ?? new Set<string>();
+    seenBySource.current.set(source, seen);
+    const productsById = new Map(products.map((product, position) => [product.id, { product, position }]));
+    const elements = [...container.querySelectorAll("[data-product-id]")];
+    function trackVisible(element: Element) {
+      if (document.visibilityState === "hidden") return;
+      const id = element.getAttribute("data-product-id");
+      if (!id || seen.has(id)) return;
+      const item = productsById.get(id);
+      if (!item) return;
+      seen.add(id);
       tracking.queueProductImpression({
-        productId: product.id,
-        shopId: product.shop?.id,
-        position,
+        productId: id,
+        shopId: item.product.shop?.id,
+        position: item.position,
       });
-    });
-  }, [seenKey, tracking, products]);
+    }
+    function checkViewport() {
+      for (const element of elements) {
+        const rect = element.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0) {
+          trackVisible(element);
+        }
+      }
+    }
+    document.addEventListener("visibilitychange", checkViewport);
+    if (typeof IntersectionObserver === "undefined") {
+      checkViewport();
+      window.addEventListener("scroll", checkViewport, { passive: true, capture: true });
+      window.addEventListener("resize", checkViewport);
+      return () => {
+        document.removeEventListener("visibilitychange", checkViewport);
+        window.removeEventListener("scroll", checkViewport, true);
+        window.removeEventListener("resize", checkViewport);
+      };
+    }
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && entry.intersectionRatio > 0) trackVisible(entry.target);
+      }
+    }, { threshold: 0.01 });
+    for (const element of elements) observer.observe(element);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", checkViewport);
+    };
+  }, [container, productKey, source, tracking]);
+  return setContainer;
 }
 
 export async function fetchRecentlyViewedProducts(limit = 8): Promise<RecentlyViewedProductCard[]> {

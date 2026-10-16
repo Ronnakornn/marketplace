@@ -103,7 +103,6 @@ function product(overrides: Partial<{
           quantityOnHand: 15,
           quantityReserved: 3,
         },
-        orderItems: [{ quantity: overrides.soldCount ?? 0 }],
       },
       ...(overrides.secondPrice ? [{
         id: `${id}-v2`,
@@ -116,13 +115,11 @@ function product(overrides: Partial<{
           quantityOnHand: 8,
           quantityReserved: 1,
         },
-        orderItems: [],
       }] : []),
     ],
-    reviews: overrides.rating ? [{
-      rating: overrides.rating,
-      status: 'PUBLISHED',
-    }] : [],
+    soldCount: overrides.soldCount ?? 0,
+    ratingSum: overrides.rating ?? 0,
+    reviewCount: overrides.rating ? 1 : 0,
     images: overrides.imageUrl ? [{ url: overrides.imageUrl, isPrimary: true, sortOrder: 0 }] : [],
   }
 }
@@ -185,6 +182,12 @@ describe('RecommendationService', () => {
       source,
     )
     expect(result.items.map((item) => item.productId)).toEqual(['related'])
+  })
+
+  it.each([[107, 40, 2.67], [201, 200, 1], [867, 200, 4.33]])('retains IEEE rounding for grouped rating %s/%s', async (ratingSum, reviewCount, rating) => {
+    vi.mocked(repo.findTrendingProducts).mockResolvedValue([{ ...product(), ratingSum, reviewCount }])
+    const result = await service.getTrending({})
+    expect(result.items[0]?.rating).toBe(rating)
   })
 
   it('similar products exclude inactive products through public repository constraints', async () => {

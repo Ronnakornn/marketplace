@@ -1,5 +1,6 @@
 import type { PayoutCyclePolicy } from '#server/modules/admin-operations/payout-cycle.ts'
-import type { PrismaClient, SellerPayout, Shop, ShopWallet, WalletLedgerEntry, User } from '#generated/client/client.ts'
+import { Prisma, type PrismaClient, type SellerPayout, type Shop, type ShopWallet, type WalletLedgerEntry, type User } from '#generated/client/client.ts'
+import { listPage, listPageResult, type ListPageInput } from '#server/lib/list-page.ts'
 import type { PayoutStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -10,6 +11,10 @@ export type PayoutRecord = SellerPayout & {
   wallet: ShopWallet
   shop: Pick<Shop, 'id' | 'name' | 'ownerId'>
 }
+
+export type PayoutListInput = ListPageInput & { q?: string; status?: PayoutStatus; shopId?: string }
+export type PayoutListRecord = Omit<PayoutRecord, 'wallet'>
+type PayoutListResult = ReturnType<typeof listPageResult<PayoutListRecord>>
 
 export interface IPayoutRepository {
   transaction<T>(callback: (repo: IPayoutRepository) => Promise<T>): Promise<T>
@@ -35,8 +40,8 @@ export interface IPayoutRepository {
     currency: string
     description?: string | null
   }): Promise<WalletLedgerEntry>
-  listSellerPayouts(shopIds: string[]): Promise<PayoutRecord[]>
-  listAdminPayouts(status?: PayoutStatus): Promise<PayoutRecord[]>
+  listSellerPayouts(shopIds: string[], input: PayoutListInput): Promise<PayoutListResult>
+  listAdminPayouts(input: PayoutListInput): Promise<PayoutListResult>
   lockPayout(payoutId: string): Promise<void>
   findPayoutById(payoutId: string): Promise<PayoutRecord | null>
   updatePayout(payoutId: string, data: Partial<Pick<SellerPayout, 'status' | 'approvedById' | 'rejectedById' | 'paidById' | 'externalReference' | 'rejectionReason' | 'approvedAt' | 'rejectedAt' | 'paidAt' | 'evidenceUploadId'>>): Promise<PayoutRecord>
@@ -256,21 +261,49 @@ export class PrismaPayoutRepository implements IPayoutRepository {
     })
   }
 
-  listSellerPayouts(shopIds: string[]): Promise<PayoutRecord[]> {
-    if (shopIds.length === 0) return Promise.resolve([])
-    return this.prisma.sellerPayout.findMany({
-      where: { shopId: { in: shopIds } },
-      include: payoutInclude,
-      orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }],
-    })
+  listSellerPayouts(shopIds: string[], input: PayoutListInput): Promise<PayoutListResult> {
+    if (shopIds.length === 0) return Promise.resolve(listPageResult<PayoutListRecord>([], 0, input))
+    return this.findPayoutPage(input, shopIds)
   }
 
-  listAdminPayouts(status?: PayoutStatus): Promise<PayoutRecord[]> {
-    return this.prisma.sellerPayout.findMany({
-      where: status ? { status } : undefined,
-      include: payoutInclude,
-      orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }],
-    })
+  listAdminPayouts(input: PayoutListInput): Promise<PayoutListResult> {
+    return this.findPayoutPage(input)
+  }
+
+  private async findPayoutPage(input: PayoutListInput, shopIds?: string[]): Promise<PayoutListResult> {
+    const { skip, take } = listPage(input)
+    const q = input.q?.trim()
+    if (q) return this.findSearchedPayoutPage({ ...input, q }, shopIds)
+    const where: Prisma.SellerPayoutWhereInput = { AND: [
+      ...(shopIds ? [{ shopId: { in: shopIds } }] : []),
+      ...(input.shopId ? [{ shopId: input.shopId }] : []),
+      ...(input.status ? [{ status: input.status }] : []),
+    ] }
+    const [data, totalCount] = await Promise.all([
+      this.prisma.sellerPayout.findMany({ where, include: { shop: payoutInclude.shop }, skip, take, orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }] }),
+      this.prisma.sellerPayout.count({ where }),
+    ])
+    return listPageResult(data, totalCount, input)
+  }
+
+  private async findSearchedPayoutPage(input: PayoutListInput & { q: string }, shopIds?: string[]): Promise<PayoutListResult> {
+    const { skip, take } = listPage(input)
+    const pattern = `%${input.q.replace(/[\\%_]/g, '\\$&')}%`
+    const filters = [Prisma.sql`(p."id"::text ILIKE ${pattern} OR p."amount"::text ILIKE ${pattern}
+      OR p."status"::text ILIKE ${pattern} OR s."name" ILIKE ${pattern}
+      OR p."externalReference" ILIKE ${pattern} OR p."rejectionReason" ILIKE ${pattern})`]
+    if (shopIds) filters.push(Prisma.sql`p."shopId" IN (${Prisma.join(shopIds.map((id) => Prisma.sql`${id}::uuid`))})`)
+    if (input.shopId) filters.push(Prisma.sql`p."shopId" = ${input.shopId}::uuid`)
+    if (input.status) filters.push(Prisma.sql`p."status"::text = ${input.status}`)
+    const from = Prisma.sql`FROM "SellerPayout" p JOIN "Shop" s ON s."id" = p."shopId" WHERE ${Prisma.join(filters, ' AND ')}`
+    const [ids, counts] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT p."id" ${from} ORDER BY p."requestedAt" DESC, p."id" DESC OFFSET ${skip} LIMIT ${take}`),
+      this.prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`SELECT COUNT(*)::bigint AS count ${from}`),
+    ])
+    const data = ids.length ? await this.prisma.sellerPayout.findMany({ where: { id: { in: ids.map((row) => row.id) } },
+      include: { shop: payoutInclude.shop }, orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }],
+    }) : []
+    return listPageResult(data, Number(counts[0]?.count ?? 0n), input)
   }
 
   findPayoutById(payoutId: string): Promise<PayoutRecord | null> {

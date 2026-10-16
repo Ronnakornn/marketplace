@@ -1,6 +1,4 @@
 import type {
-  Order,
-  OrderItem,
   PrismaClient,
   Product,
   ProductImage,
@@ -10,6 +8,9 @@ import type {
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { decodeRankingPage, productRankingQuery, variantRankingQuery, type RawAnalyticsRankingRow } from './product-analytics-ranking.sql.ts'
+import { moneyInteger, moneyNumber } from '#server/lib/money.ts'
+import { analyticsDailyQuery } from './product-analytics-facts.sql.ts'
+import { analyticsSummaryQuery } from './product-analytics-summary.sql.ts'
 
 export interface AnalyticsDateRange {
   from: Date
@@ -48,33 +49,38 @@ export interface AnalyticsRankingOptions {
   limit: number
 }
 
-export interface AnalyticsCountRow {
-  productId: string
-  count: number
+export type AnalyticsTotals = Omit<AnalyticsRankingMetric, 'id'>
+
+export interface AnalyticsSummaryMetrics {
+  totals: AnalyticsTotals
+  topSkus: AnalyticsRankingMetric[]
+  lowProducts: AnalyticsRankingMetric[]
 }
 
-export interface AnalyticsViewLogRow {
-  productId: string
-  createdAt: Date | string
+export type AnalyticsDailyMetric = AnalyticsTotals & { date: string }
+
+type RawAnalyticsTotals = {
+  views: string
+  addToCart: string
+  addToCartQuantity: string
+  orders: string
+  unitsSold: string
+  revenue: string
+  conversionRate: number
+  currency: string | null
 }
 
-export interface AnalyticsAddToCartRow {
-  productId: string
-  variantId: string
-  count: number
-  quantity: number
+function decodeTotals(row: RawAnalyticsTotals): AnalyticsTotals {
+  return {
+    views: moneyNumber(row.views), addToCart: moneyNumber(row.addToCart),
+    addToCartQuantity: moneyNumber(row.addToCartQuantity), orders: moneyNumber(row.orders),
+    unitsSold: moneyNumber(row.unitsSold), revenue: moneyInteger(row.revenue),
+    conversionRate: row.conversionRate, currency: row.currency,
+  }
 }
 
-export interface AnalyticsAddToCartLogRow {
-  productId: string
-  variantId: string
-  quantity: number
-  createdAt: Date | string
-}
-
-export type AnalyticsOrderItem = Pick<OrderItem, 'id' | 'shopId' | 'variantId' | 'quantity' | 'lineTotal' | 'currency'> & {
-  order: Omit<Pick<Order, 'id' | 'createdAt' | 'currency'>, 'createdAt'> & { createdAt: Date | string }
-  variant: Pick<ProductVariant, 'id' | 'productId'>
+function emptyTotals(): AnalyticsTotals {
+  return { views: 0, addToCart: 0, addToCartQuantity: 0, orders: 0, unitsSold: 0, revenue: 0n, conversionRate: 0, currency: null }
 }
 
 export interface IProductAnalyticsRepository {
@@ -82,11 +88,8 @@ export interface IProductAnalyticsRepository {
   findVariantRankingPage(shopIds: string[], range: AnalyticsDateRange, options: AnalyticsRankingOptions & { productId?: string }): Promise<AnalyticsRankingPage>
   findProductsByIds(shopIds: string[], productIds: string[]): Promise<AnalyticsProduct[]>
   findVariantsByIds(shopIds: string[], variantIds: string[]): Promise<AnalyticsVariant[]>
-  countProductViews(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsCountRow[]>
-  findProductViewLogs(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsViewLogRow[]>
-  countProductAddToCart(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsAddToCartRow[]>
-  findProductAddToCartLogs(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsAddToCartLogRow[]>
-  findPaidOrderItems(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsOrderItem[]>
+  findSummaryMetrics(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsSummaryMetrics>
+  findDailyMetrics(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsDailyMetric[]>
 }
 
 export class PrismaProductAnalyticsRepository implements IProductAnalyticsRepository {
@@ -167,113 +170,25 @@ export class PrismaProductAnalyticsRepository implements IProductAnalyticsReposi
     })
   }
 
-  async countProductViews(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsCountRow[]> {
-    this.logger.debug('PrismaProductAnalyticsRepository.countProductViews', { shopIds, productId, range })
+  async findSummaryMetrics(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsSummaryMetrics> {
+    const result: AnalyticsSummaryMetrics = { totals: emptyTotals(), topSkus: [], lowProducts: [] }
+    if (shopIds.length === 0) return result
+    const rows = await this.prisma.$queryRaw<Array<RawAnalyticsTotals & { kind: 'summary' | 'product' | 'sku'; id: string | null }>>(analyticsSummaryQuery(shopIds, range, productId))
+    for (const row of rows) {
+      const metric = decodeTotals(row)
+      if (row.kind === 'summary') result.totals = metric
+      else if (row.id !== null) {
+        const items = row.kind === 'product' ? result.lowProducts : result.topSkus
+        items.push({ id: row.id, ...metric })
+      }
+    }
+    return result
+  }
+
+  async findDailyMetrics(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsDailyMetric[]> {
     if (shopIds.length === 0) return []
-    const rows = await this.prisma.productViewLog.groupBy({
-      by: ['productId'],
-      where: {
-        shopId: { in: shopIds },
-        ...(productId ? { productId } : {}),
-        createdAt: { gte: range.from, lte: range.to },
-      },
-      _count: { _all: true },
-    })
-    return rows.map((row) => ({ productId: row.productId, count: row._count._all }))
-  }
-
-  findProductViewLogs(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsViewLogRow[]> {
-    this.logger.debug('PrismaProductAnalyticsRepository.findProductViewLogs', { shopIds, productId, range })
-    if (shopIds.length === 0) return Promise.resolve([])
-    return this.prisma.productViewLog.findMany({
-      where: {
-        shopId: { in: shopIds },
-        ...(productId ? { productId } : {}),
-        createdAt: { gte: range.from, lte: range.to },
-      },
-      select: {
-        productId: true,
-        createdAt: true,
-      },
-    })
-  }
-
-  async countProductAddToCart(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsAddToCartRow[]> {
-    this.logger.debug('PrismaProductAnalyticsRepository.countProductAddToCart', { shopIds, productId, range })
-    if (shopIds.length === 0) return []
-    const rows = await this.prisma.productAddToCartLog.groupBy({
-      by: ['productId', 'variantId'],
-      where: {
-        shopId: { in: shopIds },
-        ...(productId ? { productId } : {}),
-        createdAt: { gte: range.from, lte: range.to },
-      },
-      _count: { _all: true },
-      _sum: { quantity: true },
-    })
-    return rows.map((row) => ({
-      productId: row.productId,
-      variantId: row.variantId,
-      count: row._count._all,
-      quantity: row._sum.quantity ?? 0,
-    }))
-  }
-
-  findProductAddToCartLogs(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsAddToCartLogRow[]> {
-    this.logger.debug('PrismaProductAnalyticsRepository.findProductAddToCartLogs', { shopIds, productId, range })
-    if (shopIds.length === 0) return Promise.resolve([])
-    return this.prisma.productAddToCartLog.findMany({
-      where: {
-        shopId: { in: shopIds },
-        ...(productId ? { productId } : {}),
-        createdAt: { gte: range.from, lte: range.to },
-      },
-      select: {
-        productId: true,
-        variantId: true,
-        quantity: true,
-        createdAt: true,
-      },
-    })
-  }
-
-  findPaidOrderItems(shopIds: string[], range: AnalyticsDateRange, productId?: string): Promise<AnalyticsOrderItem[]> {
-    this.logger.debug('PrismaProductAnalyticsRepository.findPaidOrderItems', { shopIds, productId, range })
-    if (shopIds.length === 0) return Promise.resolve([])
-    return this.prisma.orderItem.findMany({
-      where: {
-        shopId: { in: shopIds },
-        fulfillmentStatus: { not: 'CANCELED' },
-        order: {
-          paymentStatus: 'SUCCEEDED',
-          status: { in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'PARTIALLY_FULFILLED', 'FULFILLED'] },
-          createdAt: { gte: range.from, lte: range.to },
-          payments: { some: { status: 'SUCCEEDED' } },
-        },
-        ...(productId ? { variant: { productId } } : {}),
-      },
-      select: {
-        id: true,
-        shopId: true,
-        variantId: true,
-        quantity: true,
-        lineTotal: true,
-        currency: true,
-        order: {
-          select: {
-            id: true,
-            createdAt: true,
-            currency: true,
-          },
-        },
-        variant: {
-          select: {
-            id: true,
-            productId: true,
-          },
-        },
-      },
-    })
+    const rows = await this.prisma.$queryRaw<Array<RawAnalyticsTotals & { date: string }>>(analyticsDailyQuery(shopIds, range, productId))
+    return rows.map((row) => ({ date: row.date, ...decodeTotals(row) }))
   }
 
   private productWhere(shopIds: string[]) {

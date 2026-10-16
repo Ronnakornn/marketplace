@@ -131,6 +131,13 @@ receives these as TanStack Query initial data, so dependent reads can start with
 the canonical product ID. The loader uses no-store fetches, and SEO does not load
 individual reviews.
 
+Route entrypoints import their feature components directly, keeping unrelated
+address-editor data out of product grids and deals. Product cards disable automatic
+route prefetch by default. Impression tracking observes cards inside the mounted
+list and records each visible product once per source during that mount. Appending
+a page observes its new cards; replacing an array with the same IDs does not
+record another impression.
+
 Redis pattern invalidation iterates SCAN cursors and bounded DEL batches, including
 empty nonterminal scan pages. A shared connection promise prevents concurrent
 cache reads from accumulating connection listeners. Existing failure cooldown,
@@ -141,10 +148,44 @@ semantics; grouped generated patterns use literal key segments and `*` wildcards
 
 For newest/relevance search without rating or best-seller filtering, PostgreSQL
 selects the product page before computing review, sales and variant metrics.
-Metric-dependent sorts and filters retain candidate-wide evaluation. Both paths
-keep the existing repeatable-read snapshot, count and cursor semantics.
+Metric-dependent sorts and filters evaluate each required aggregate across the
+candidates. Display-only review or sales metrics aggregate after page selection.
+Grouped metric CTEs are materialized to prevent repeated aggregation in nested
+loops. Both paths keep the existing repeatable-read snapshot, count and cursor
+semantics.
 
 ## Bounded operational reads
+
+Buyer and seller orders, seller inventory and shipments use database pagination.
+The query accepts `page` and `limit`, with a default page size of 20 and a maximum
+of 50. Responses contain `data` and `meta` with the page, limit, total count, total
+pages, and next/previous flags. Ownership, shop, search and status predicates apply
+before page selection and count. Order and shipment lists use compact projections;
+their detail endpoints retain snapshots and return/refund state.
+
+Returns, payouts, coupon history, admin Flash Sale history, affiliate accounts and
+affiliate links use the same page envelope. Return lists load only the latest
+linked refund and omit order/payment history. Payout lists omit wallet relations;
+financial reconciliation readers retain their full internal contracts. Public
+coupon eligibility and the buyer's claimed-first order apply in SQL before
+pagination. Affiliate admin rows return link counts instead of lifetime link arrays.
+Voucher and creator history views load additional pages on demand. Discovery and
+Deals use bounded coupon previews.
+
+Chat inboxes use an opaque cursor over descending `(updatedAt,id)` pairs and return
+`items` plus `pagination`. The repository applies participant, shop, search and
+unread filters before selecting at most 50 rooms, then groups unread counts for
+that page. `GET /api/chats/unread-count` separately counts every authorized unread
+message, so header badges remain complete across pages. Both queries exclude
+tombstones and preserve timestamp plus message-ID read boundaries. Buyer search
+matches shops and the last visible message; seller search also matches the buyer.
+
+Admin catalog tables use server search, title sorting and page metadata. Global
+status cards use a separate aggregate that excludes soft-deleted products.
+Recommendation cards aggregate qualifying sales and published reviews for the
+selected products. Analytics daily and summary queries return grouped facts
+instead of raw event or order-item histories, preserving the reporting calendar
+and exact money sums.
 
 Seller dashboard sales use exact database aggregates for lifetime and reporting
 day/month totals. Admin dashboard and reports group repeated status counts and

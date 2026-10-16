@@ -1,4 +1,4 @@
-import { VoucherWalletPage } from "#/features/buyer";
+import { VoucherWalletPage } from "#/features/buyer/components/VoucherWalletPage";
 import { requireUser } from "#/lib/auth-server";
 
 export default async function VouchersRoutePage() {

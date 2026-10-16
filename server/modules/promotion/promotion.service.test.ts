@@ -1,3 +1,4 @@
+import { listPageResult } from '#server/lib/list-page.ts'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DiscountType } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -170,37 +171,19 @@ describe('PromotionService', () => {
   })
 
   it('returns only redeemable public coupons using the API field contract', async () => {
-    vi.mocked(repo.listPublicCoupons).mockResolvedValue([
-      {
-        ...createCoupon({ usageLimit: 2, redemptions: 1 }),
-        discountValue: 500n,
-        minOrder: 1_000n,
-        maxDiscount: null,
-        titleTh: 'ลดห้าบาท',
-        titleEn: 'Five off',
-        descriptionTh: null,
-        descriptionEn: null,
-        endsAt: '2999-01-01T00:00:00.000Z',
-      },
-      {
-        ...createCoupon({ usageLimit: 1, redemptions: 1 }),
-        discountValue: 500n,
-        minOrder: null,
-        maxDiscount: null,
-        titleTh: 'เต็มแล้ว',
-        titleEn: 'Used up',
-        descriptionTh: null,
-        descriptionEn: null,
-      },
-    ] as any)
+    vi.mocked(repo.listPublicCoupons).mockResolvedValue(listPageResult([{
+      ...createCoupon(), discountValue: 500n, minOrder: 1_000n, maxDiscount: null,
+      titleTh: 'ลดห้าบาท', titleEn: 'Five off', descriptionTh: null, descriptionEn: null,
+      endsAt: '2999-01-01T00:00:00.000Z',
+    }] as any, 1, {}))
 
-    await expect(service.listPublicCoupons('en')).resolves.toEqual([expect.objectContaining({
+    await expect(service.listPublicCoupons('en')).resolves.toMatchObject({ data: [expect.objectContaining({
       code: 'SAVE',
       title: 'Five off',
       discountValueCents: 500n,
       minOrderCents: 1_000n,
       endsAt: '2999-01-01T00:00:00.000Z',
-    })])
+    })], meta: { totalCount: 1 } })
   })
 
   it('returns buyer coupon claim state and claims an active coupon', async () => {
@@ -215,13 +198,13 @@ describe('PromotionService', () => {
       descriptionEn: null,
       claims: [{ id: 'claim-1', claimedAt: new Date('2026-05-13T00:00:00.000Z') }],
     }
-    vi.mocked(repo.listBuyerCoupons).mockResolvedValue([coupon] as any)
+    vi.mocked(repo.listBuyerCoupons).mockResolvedValue(listPageResult([coupon] as any, 1, {}))
     vi.mocked(repo.findCouponForClaim).mockResolvedValue(coupon as any)
     vi.mocked(repo.createCouponClaim).mockResolvedValue(coupon.claims[0] as any)
 
-    await expect(service.listBuyerCoupons({ id: 'user-1', role: 'USER' }, 'en')).resolves.toEqual([
+    await expect(service.listBuyerCoupons({ id: 'user-1', role: 'USER' }, 'en')).resolves.toMatchObject({ data: [
       expect.objectContaining({ code: 'SAVE', claimed: true, claimedAt: '2026-05-13T00:00:00.000Z' }),
-    ])
+    ], meta: { totalCount: 1 } })
     await expect(service.claimCoupon({ id: 'user-1', role: 'USER' }, coupon.id, 'en')).resolves.toMatchObject({
       code: 'SAVE',
       claimed: true,
@@ -335,11 +318,11 @@ describe('PromotionService', () => {
 
   it('lists and creates seller coupons for owned shops', async () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', ownerId: 'seller-1' }])
-    vi.mocked(repo.listSellerCoupons).mockResolvedValue([createCoupon({ shopId: 'shop-1' }) as any])
+    vi.mocked(repo.listSellerCoupons).mockResolvedValue(listPageResult([createCoupon({ shopId: 'shop-1' }) as any], 1, {}))
     vi.mocked(repo.createCoupon).mockResolvedValue(createCoupon({ shopId: 'shop-1' }) as any)
 
-    await expect(service.listSellerCoupons({ id: 'seller-1', role: 'USER' })).resolves.toHaveLength(1)
-    expect(repo.listSellerCoupons).toHaveBeenCalledWith(['shop-1'])
+    await expect(service.listSellerCoupons({ id: 'seller-1', role: 'USER' })).resolves.toMatchObject({ data: [expect.objectContaining({ shopId: 'shop-1' })], meta: { totalCount: 1 } })
+    expect(repo.listSellerCoupons).toHaveBeenCalledWith(['shop-1'], {})
 
     await service.createSellerCoupon({ id: 'seller-1', role: 'USER' }, {
       code: 'seller10',

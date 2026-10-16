@@ -1,8 +1,16 @@
 import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
-import { authPlugin } from '#server/modules/auth'
+import { authPlugin, type AuthContext } from '#server/modules/auth'
 import { ReturnServiceError } from './return.errors.ts'
+import { ListPageQuery } from '#server/lib/list-page.ts'
+
+const ReturnListQuery = t.Object({
+  ...ListPageQuery,
+  q: t.Optional(t.String({ maxLength: 200 })),
+  status: t.Optional(t.String({ minLength: 1, maxLength: 30 })),
+  shopId: t.Optional(t.String({ format: 'uuid' })),
+})
 
 const ReturnParamsSchema = t.Object({
   returnId: t.String({ format: 'uuid' }),
@@ -37,9 +45,10 @@ export function createReturnRoutes(container: ServiceContainer) {
       withAuth: true,
       body: CreateReturnBodySchema,
     })
-    .get('/api/returns', ({ authContext }: any) =>
-      moneyResponse(container.returnService.listBuyerReturns(authContext!.user)), {
+    .get('/api/returns', ({ authContext, query }: { authContext?: AuthContext; query: typeof ReturnListQuery.static }) =>
+      moneyResponse(container.returnService.listBuyerReturns(authContext!.user, query)), {
       withAuth: true,
+      query: ReturnListQuery,
     })
     .get('/api/returns/:returnId', ({ authContext, params }: any) =>
       moneyResponse(container.returnService.getBuyerReturn(authContext!.user, params.returnId)), {
@@ -51,10 +60,11 @@ export function createReturnRoutes(container: ServiceContainer) {
       withAuth: true,
       params: ReturnParamsSchema,
     })
-    .get('/api/seller/returns', ({ authContext }: any) =>
-      moneyResponse(container.returnService.listSellerReturns(authContext!.user)), {
+    .get('/api/seller/returns', ({ authContext, query }: { authContext?: AuthContext; query: typeof ReturnListQuery.static }) =>
+      moneyResponse(container.returnService.listSellerReturns(authContext!.user, query)), {
       withAuth: true,
       withSellerOperational: true,
+      query: ReturnListQuery,
     })
     .get('/api/seller/returns/:returnId', ({ authContext, params }: any) =>
       moneyResponse(container.returnService.getSellerReturn(authContext!.user, params.returnId)), {

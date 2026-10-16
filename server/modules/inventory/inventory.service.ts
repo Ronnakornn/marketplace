@@ -16,6 +16,8 @@ import type {
   InventoryMutationContext,
   InventoryTx,
   SellerInventoryRecord,
+  SellerInventoryListRecord,
+  InventoryListInput,
 } from './inventory.repository.ts'
 
 export interface InventoryActor {
@@ -80,10 +82,11 @@ export class InventoryService {
     this.logger = appContext.logger
   }
 
-  async listSellerInventory(actor: InventoryActor): Promise<InventoryResponse[]> {
+  async listSellerInventory(actor: InventoryActor, input: InventoryListInput = {}) {
     this.logger.debug('InventoryService.listSellerInventory', { actorId: actor.id })
     const shops = await this.resolveSellerShops(actor)
-    return (await this.repo.listSellerInventory(shops.map((shop) => shop.id))).map((inventory) => this.toResponse(inventory))
+    const inventory = await this.repo.listSellerInventory(shops.map((shop) => shop.id), input)
+    return { ...inventory, data: inventory.data.map((row) => this.toResponse(row)) }
   }
 
   async getSellerInventory(actor: InventoryActor, variantId: string): Promise<InventoryResponse> {
@@ -319,7 +322,7 @@ export class InventoryService {
     }, tx)
   }
 
-  private toResponse(inventory: SellerInventoryRecord): InventoryResponse {
+  private toResponse(inventory: SellerInventoryListRecord): InventoryResponse {
     return {
       id: inventory.id,
       variantId: inventory.variantId,

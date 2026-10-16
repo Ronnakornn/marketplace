@@ -1,3 +1,4 @@
+import { listPageResult } from '#server/lib/list-page.ts'
 import { toMoneyDto } from '#server/lib/money.ts'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { IOrderRepository, OrderRecord } from './order.repository.ts'
@@ -190,17 +191,17 @@ describe('OrderService', () => {
   })
 
   it('lets buyers list only their own orders and groups items by shop', async () => {
-    vi.mocked(repo.findBuyerOrders).mockResolvedValue([createOrder()])
+    vi.mocked(repo.findBuyerOrders).mockResolvedValue(listPageResult([createOrder()], 1, {}))
 
     const result = await service.listBuyerOrders({ id: 'buyer-1', role: 'USER' })
 
-    expect(repo.findBuyerOrders).toHaveBeenCalledWith('buyer-1')
-    expect(result).toHaveLength(1)
-    expect(result[0]!.shops).toHaveLength(2)
-    expect(result[0]!.shops[0]!.items).toHaveLength(1)
-    expect(result[0]!.shipments[0]!.status).toBe('pending_pack')
-    expect(result[0]!.totals.grandTotal).toBe(5500n)
-    expect(result[0]!.items[0]!.lineTotal).toBe(2400n)
+    expect(repo.findBuyerOrders).toHaveBeenCalledWith('buyer-1', {})
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0]!.items).toHaveLength(2)
+    expect(result.data[0]).not.toHaveProperty('shipments')
+    expect(result.data[0]).not.toHaveProperty('shippingAddress')
+    expect(result.meta.totalCount).toBe(1)
+    expect(result.data[0]!.totals.grandTotal).toBe(5500n)
     expect(() => JSON.stringify(toMoneyDto(result))).not.toThrow()
   })
 
@@ -257,17 +258,15 @@ describe('OrderService', () => {
 
   it('lets sellers list own shop orders and hides other shop items in the same order', async () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1', name: 'Shop One', slug: 'shop-one' }])
-    vi.mocked(repo.findSellerOrders).mockResolvedValue([createOrder()])
+    vi.mocked(repo.findSellerOrders).mockResolvedValue(listPageResult([createOrder()], 1, {}))
 
     const result = await service.listSellerOrders({ id: 'seller-1', role: 'USER' })
 
-    expect(repo.findSellerOrders).toHaveBeenCalledWith(['shop-1'])
-    expect(result[0]!.items).toHaveLength(1)
-    expect(result[0]!.items[0]!.shopId).toBe('shop-1')
-    expect(result[0]!.shipments).toHaveLength(1)
-    expect(result[0]!.shipments[0]!.shopId).toBe('shop-1')
-    expect(result[0]!.shops).toHaveLength(1)
-    expect(result[0]!.totals).toEqual({ subtotal: 2400n, discountTotal: 0n, shippingTotal: 200n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 2600n, currency: 'USD' })
+    expect(repo.findSellerOrders).toHaveBeenCalledWith(['shop-1'], {})
+    expect(result.data[0]!.items).toHaveLength(1)
+    expect(result.data[0]!.items[0]!.shopId).toBe('shop-1')
+    expect(result.data[0]).not.toHaveProperty('shipments')
+    expect(result.data[0]!.totals).toEqual({ subtotal: 2400n, discountTotal: 0n, shippingTotal: 200n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 2600n, currency: 'USD' })
   })
 
   it('uses authorized shop snapshots for discounted seller totals while preserving buyer totals', async () => {
@@ -291,10 +290,10 @@ describe('OrderService', () => {
   it('uses the active shop resolver for staff totals and sums only its authorized shop snapshots', async () => {
     const access = { resolveActiveShops: vi.fn().mockResolvedValue([{ id: 'shop-2', name: 'Shop Two', slug: 'shop-two' }]) } as unknown as ActiveShopResolver
     const staffService = new OrderService(createAppContext(), repo, access)
-    vi.mocked(repo.findSellerOrders).mockResolvedValue([createOrder()])
+    vi.mocked(repo.findSellerOrders).mockResolvedValue(listPageResult([createOrder()], 1, {}))
     const orders = await staffService.listSellerOrders({ id: 'staff-2', role: 'USER' })
-    expect(orders[0]!.totals).toEqual({ subtotal: 2600n, discountTotal: 0n, shippingTotal: 300n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 2900n, currency: 'USD' })
-    expect(orders[0]!.items.map(item => item.shopId)).toEqual(['shop-2'])
+    expect(orders.data[0]!.totals).toEqual({ subtotal: 2600n, discountTotal: 0n, shippingTotal: 300n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 2900n, currency: 'USD' })
+    expect(orders.data[0]!.items.map(item => item.shopId)).toEqual(['shop-2'])
     expect(access.resolveActiveShops).toHaveBeenCalledWith('staff-2')
   })
 })

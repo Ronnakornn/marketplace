@@ -9,6 +9,7 @@ import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChatAudience, ChatMessage, ChatRoom } from "../api";
 import { timelineFromRoom } from "../timeline";
+import { chatRoomKeys } from "../queries";
 import { ChatInboxPage, ChatThreadPage } from "./ChatPages";
 
 const mocks = vi.hoisted(() => {
@@ -19,6 +20,7 @@ vi.mock("next/link", () => ({ default: ({ children, href, ...props }: { children
 vi.mock("#/components/BuyerShell", () => ({ BuyerTopBar: ({ title }: { title: string }) => <header>{title}</header> }));
 vi.mock("#/features/chat/api", async (original) => ({
   ...await original<typeof import("../api")>(), fetchChatRooms: mocks.fetchRooms, fetchChatRoom: mocks.fetchRoom,
+  fetchChatUnreadCount: async () => ({ unreadCount: 0 }),
   refreshChatMessages: async () => ({ contentRevision: "0", messages: [message] }),
   sendChatMessage: mocks.send, markChatRead: mocks.read,
 }));
@@ -45,7 +47,7 @@ function createClient() {
 
 beforeEach(() => {
   mocks.session.data = null;
-  mocks.fetchRooms.mockResolvedValue([room]);
+  mocks.fetchRooms.mockResolvedValue({ items: [room], pagination: { limit: 30, hasMore: false, nextCursor: null } });
   mocks.fetchRoom.mockImplementation((_id: string, query: { after?: string }) => Promise.resolve(query?.after ? { ...room, messages: [] } : room));
   vi.spyOn(document, "hasFocus").mockReturnValue(false);
   vi.stubGlobal("WebSocket", class extends EventTarget {
@@ -77,7 +79,7 @@ describe("chat hydration", () => {
     expect(mocks.fetchRooms).not.toHaveBeenCalled();
     expect(mocks.fetchRoom).not.toHaveBeenCalled();
     if (cached) {
-      if (pageType === "inbox") client.setQueryData(["chat-rooms", audience, shopId ?? "", userId], [room]);
+      if (pageType === "inbox") client.setQueryData(chatRoomKeys.list(audience, userId, shopId), { pages: [{ items: [room], pagination: { limit: 30, hasMore: false, nextCursor: null } }], pageParams: [undefined] });
       else client.setQueryData(["chat-room", "room", audience, shopId ?? "", userId], timelineFromRoom(room));
     }
     mocks.session.data = { user: { id: userId } };
@@ -96,7 +98,7 @@ describe("chat hydration", () => {
       expect(container.textContent).toContain("chat.connection.connecting");
       if (pageType === "inbox") {
         expect(container.querySelector("main")).toBe(serverMain);
-        expect(client.getQueryData(["chat-rooms", audience, shopId ?? "", userId])).toEqual([room]);
+        expect(client.getQueryData(chatRoomKeys.list(audience, userId, shopId))).toMatchObject({ pages: [{ items: [room] }] });
       } else expect(container.querySelector("textarea")).toBeTruthy();
     } finally {
       await act(async () => root?.unmount());

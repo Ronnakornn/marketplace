@@ -1,4 +1,6 @@
-import { AdminAffiliatesTable, AdminPageIntro, AdminSpaceCat } from "#/features/admin";
+import { AdminAffiliatesTable } from "#/features/admin/components/AdminOperationsTables";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminSpaceCat } from "#/features/admin/components/AdminSpaceCat";
 
 export default function AdminAffiliatesPage() {
   return (

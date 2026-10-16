@@ -13,11 +13,26 @@ export const getPublicProductData = cache(async (productId: string, locale: Loca
   const { data: product, error } = await api.api.products({ productId }).get({ query: { locale } });
   if (error) {
     if (error.status === 404) return null;
-    throw error;
+    throw Object.assign(new Error(productErrorMessage(error.value, error.status), { cause: error }), {
+      status: error.status,
+      value: error.value,
+    });
   }
   const summary = await api.api.products({ productId: product.id })["rating-summary"].get().catch(() => undefined);
   return { product, ratingSummary: summary?.error ? undefined : summary?.data };
 });
+
+function productErrorMessage(payload: unknown, status: number): string {
+  if (typeof payload === "string" && payload.trim()) return payload;
+  if (payload && typeof payload === "object") {
+    if ("error" in payload && payload.error && typeof payload.error === "object" &&
+      "message" in payload.error && typeof payload.error.message === "string" && payload.error.message.trim()) {
+      return payload.error.message;
+    }
+    if ("message" in payload && typeof payload.message === "string" && payload.message.trim()) return payload.message;
+  }
+  return `Product request failed (HTTP ${status})`;
+}
 
 export async function requirePublicProductData(productId: string, locale: Locale) {
   const data = await getPublicProductData(productId, locale);

@@ -1,4 +1,5 @@
-import { AdminPageIntro, AdminProductModerationDetail } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminProductModerationDetail } from "#/features/admin/components/AdminProductModerationDetail";
 
 interface AdminProductModerationRouteProps {
   params: Promise<{

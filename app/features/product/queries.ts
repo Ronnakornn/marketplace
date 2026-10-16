@@ -104,6 +104,7 @@ export interface SellerProductListInput {
 }
 
 export interface AdminProductListInput extends SellerProductListInput {
+  sort?: "title_asc" | "title_desc";
   page?: number;
 }
 
@@ -802,6 +803,7 @@ export function cleanSellerProductListInput(input: SellerProductListInput = {}):
 export function cleanAdminProductListInput(input: AdminProductListInput = {}): CleanQuery {
   return cleanQuery({
     q: input.q,
+    sort: input.sort,
     keyword: input.keyword,
     status: input.status,
     categoryId: input.categoryId,

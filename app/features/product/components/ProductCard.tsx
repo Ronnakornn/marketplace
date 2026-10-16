@@ -27,7 +27,7 @@ function useHasHydrated(): boolean {
   return useSyncExternalStore(subscribeToHydration, () => true, () => false);
 }
 
-export function ProductCard({ product, showShopIdentity = true, trackingSource = "product_card", prefetch = true, eagerImage = false }: { product: BuyerProduct; showShopIdentity?: boolean; trackingSource?: string; prefetch?: boolean; eagerImage?: boolean }) {
+export function ProductCard({ product, showShopIdentity = true, trackingSource = "product_card", prefetch = false, eagerImage = false }: { product: BuyerProduct; showShopIdentity?: boolean; trackingSource?: string; prefetch?: boolean; eagerImage?: boolean }) {
   const router = useRouter();
   const localePath = useLocalePath();
   const t = useTranslations();
@@ -117,7 +117,7 @@ export function ProductCard({ product, showShopIdentity = true, trackingSource =
   }
 
   return (
-    <article className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-orange-500 focus-within:ring-offset-2">
+    <article data-product-id={product.id} className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus-within:ring-2 focus-within:ring-orange-500 focus-within:ring-offset-2">
       <div className="relative aspect-square bg-gradient-to-br from-orange-100 via-rose-100 to-white">
         <Link
           href={localePath(`/products/${product.id}`)}

@@ -628,12 +628,13 @@ export class CatalogService {
     return (await this.attachPublicProductMetrics(related)).map((item) => this.preparePublicProduct(item, locale))
   }
 
-  listAdminProducts(filters: SellerListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
+  async listAdminProducts(filters: SellerListProductsData) {
     this.logger.debug('CatalogService.listAdminProducts', { filters })
-    return this.repo.findProducts({
-      ...this.normalizeListFilters(filters),
-      status: filters.status,
-    })
+    const [result, summary] = await Promise.all([
+      this.repo.findProducts({ ...this.normalizeListFilters(filters), status: filters.status, searchShops: true }),
+      this.repo.countProductStatuses(),
+    ])
+    return { ...result, summary }
   }
 
   async getAdminProductDetail(id: string): Promise<CatalogProductDetail> {

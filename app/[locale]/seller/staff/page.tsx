@@ -1,4 +1,4 @@
-import { SellerStaffPage } from "#/features/seller";
+import { SellerStaffPage } from "#/features/seller/components/SellerManagePages";
 import { enforceSellerRoute } from "#/lib/seller-route-guard";
 
 export default async function SellerStaffRoute({ params }: { params: Promise<{ locale: string }> }) {

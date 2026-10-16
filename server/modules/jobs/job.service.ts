@@ -147,6 +147,14 @@ export class JobService {
       const expired = await this.expirePayment(candidate.id)
       if (expired) {
         processedCount += 1
+        try {
+          await this.cacheInvalidation?.invalidateInventory()
+        } catch (error) {
+          this.logger.warn('Expired payment cache invalidation failed', {
+            paymentId: expired.paymentId,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
         await this.publishCancellationBestEffort(expired.orderId, expired.paymentId)
       }
     }
@@ -166,7 +174,6 @@ export class JobService {
       await txRepo.markOrderCanceled(payment.orderId)
       await txRepo.releaseCouponReservation(payment.orderId)
       await txRepo.markCheckoutExpired(payment.order.checkoutId)
-      await this.cacheInvalidation?.invalidateInventory()
       return { orderId: payment.orderId, paymentId: payment.id }
     })
   }

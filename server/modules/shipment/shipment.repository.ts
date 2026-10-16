@@ -8,7 +8,10 @@ import type {
   ShipmentStatus,
   ShipmentItem,
   Shop,
+  Prisma,
 } from '#generated/client/client.ts'
+import { listPage, listPageResult, type ListPageInput } from '#server/lib/list-page.ts'
+import { escapeLikeLiteral } from '#server/lib/sql-like.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -51,6 +54,24 @@ export interface ShipmentCreateInput {
   }>
 }
 
+export interface ShipmentListInput extends ListPageInput {
+  q?: string
+  status?: ShipmentStatus
+  shopId?: string
+}
+
+const shipmentListSelect = {
+  id: true, orderId: true, shopId: true, status: true, carrier: true, trackingNumber: true,
+  order: { select: { orderNumber: true, shippingName: true, shippingPhone: true,
+    shippingLine1: true, shippingLine2: true, shippingCity: true, shippingRegion: true,
+    shippingPostalCode: true, shippingCountry: true } },
+  items: { select: { id: true, orderItemId: true, quantity: true,
+    orderItem: { select: { productTitle: true, productSlug: true, variantTitle: true, variantSku: true, fulfillmentStatus: true } },
+  }, orderBy: { id: 'asc' } },
+} satisfies Prisma.ShipmentSelect
+
+export type SellerShipmentListRecord = Prisma.ShipmentGetPayload<{ select: typeof shipmentListSelect }>
+
 export interface IShipmentCreationRepository {
   findOrderForShipmentCreation(orderId: string): Promise<ShipmentOrderForCreation | null>
   createShipment(input: ShipmentCreateInput): Promise<ShipmentWithItems>
@@ -60,7 +81,7 @@ export interface IShipmentRepository extends IShipmentCreationRepository {
   transaction<T>(callback: (repo: IShipmentRepository) => Promise<T>): Promise<T>
   lockShipmentOrder(shipmentId: string): Promise<void>
   findSellerShops(ownerId: string): Promise<Pick<Shop, 'id'>[]>
-  findSellerShipments(shopIds: string[]): Promise<SellerShipment[]>
+  findSellerShipments(shopIds: string[], input: ShipmentListInput): Promise<ReturnType<typeof listPageResult<SellerShipmentListRecord>>>
   findSellerShipmentById(shipmentId: string, shopIds: string[]): Promise<SellerShipment | null>
   findShipmentById(shipmentId: string): Promise<SellerShipment | null>
   findBuyerShipmentById(shipmentId: string, userId: string): Promise<BuyerShipment | null>
@@ -177,17 +198,26 @@ export class PrismaShipmentRepository implements IShipmentRepository {
     })
   }
 
-  findSellerShipments(shopIds: string[]): Promise<SellerShipment[]> {
+  async findSellerShipments(shopIds: string[], input: ShipmentListInput) {
     this.logger.debug('PrismaShipmentRepository.findSellerShipments', { shopIds })
-    if (shopIds.length === 0) return Promise.resolve([])
-
-    return this.prisma.shipment.findMany({
-      where: {
-        shopId: { in: shopIds },
-      },
-      include: sellerShipmentInclude,
-      orderBy: { createdAt: 'desc' },
-    })
+    const allowed = input.shopId ? shopIds.filter((id) => id === input.shopId) : shopIds
+    const q = input.q?.trim() ? escapeLikeLiteral(input.q.trim()) : undefined
+    const where: Prisma.ShipmentWhereInput = {
+      shopId: { in: allowed },
+      ...(input.status ? { status: input.status } : {}),
+      ...(q ? { OR: [
+        { order: { orderNumber: { contains: q, mode: 'insensitive' } } },
+        { order: { shippingName: { contains: q, mode: 'insensitive' } } },
+        { items: { some: { orderItem: { productTitle: { contains: q, mode: 'insensitive' } } } } },
+      ] } : {}),
+    }
+    const { skip, take } = listPage(input)
+    const [data, totalCount] = await Promise.all([
+      this.prisma.shipment.findMany({ where, select: shipmentListSelect, skip, take,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
+      this.prisma.shipment.count({ where }),
+    ])
+    return listPageResult(data, totalCount, input)
   }
 
   findSellerShipmentById(shipmentId: string, shopIds: string[]): Promise<SellerShipment | null> {

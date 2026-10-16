@@ -20,7 +20,7 @@ import { Input } from "#/components/ui/input";
 import { fetchCart, fetchNotificationUnreadCount } from "#/features/buyer/api";
 import { readGuestCart } from "#/features/cart/guest-cart";
 import { mergeGuestCart } from "#/features/cart/merge-guest-cart";
-import { chatRoomsQueryOptions } from "#/features/chat/queries";
+import { chatUnreadQueryOptions } from "#/features/chat/queries";
 import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { useSession } from "#/lib/auth-client";
@@ -79,8 +79,8 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
     });
     return () => { active = false; };
   }, [cartUserId, isHydratingSession]);
-  const chatRoomsQuery = useQuery({
-    ...chatRoomsQueryOptions("buyer", hydratedSession?.user.id ?? ""),
+  const chatUnreadQuery = useQuery({
+    ...chatUnreadQueryOptions("buyer", hydratedSession?.user.id ?? ""),
     enabled: canUseChat,
     refetchInterval: 30_000,
   });
@@ -94,7 +94,7 @@ export function BuyerTopBar({ title, searchQuery = "", prefetchLinks = true }: {
     (total, shop) => total + shop.items.reduce((shopTotal, item) => shopTotal + item.quantity, 0),
     0,
   ) ?? 0;
-  const chatUnreadCount = chatRoomsQuery.data?.reduce((total, room) => total + room.unreadCount, 0) ?? 0;
+  const chatUnreadCount = chatUnreadQuery.data?.unreadCount ?? 0;
   const notificationUnreadCount = notificationsQuery.data?.unreadCount ?? 0;
 
   return (

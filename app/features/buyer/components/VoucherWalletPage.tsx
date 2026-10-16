@@ -3,12 +3,12 @@
 import { compareMinorUnits, type MinorUnitValue } from "#/lib/money";
 
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TicketIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
 import { Button } from "#/components/ui/button";
-import { claimCoupon, fetchCoupons, type BuyerCoupon } from "#/features/buyer/api";
+import { claimCoupon, fetchCouponPage, type BuyerCoupon } from "#/features/buyer/api";
 import { useFormatters, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 
@@ -18,8 +18,14 @@ export function VoucherWalletPage() {
   const t = useTranslations();
   const formatters = useFormatters();
   const queryClient = useQueryClient();
-  const queryKey = ["buyer-coupons", locale] as const;
-  const couponsQuery = useQuery({ queryKey, queryFn: () => fetchCoupons(locale) });
+  const queryKey = ["buyer-coupons", locale, "pages"] as const;
+  const couponsQuery = useInfiniteQuery({
+    queryKey,
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => fetchCouponPage({ locale, page: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage) => lastPage.meta.hasNextPage ? lastPage.meta.page + 1 : undefined,
+  });
+  const coupons = couponsQuery.data?.pages.flatMap(page => page.data) ?? [];
   const claimMutation = useMutation({
     mutationFn: (couponId: string) => claimCoupon(couponId, locale),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buyer-coupons"] }),
@@ -31,9 +37,9 @@ export function VoucherWalletPage() {
       <div className="mx-auto max-w-5xl space-y-3 px-3 pb-28 pt-4">
         {couponsQuery.isLoading ? <BuyerLoadingList /> : null}
         {couponsQuery.isError ? <BuyerErrorState message={couponsQuery.error.message} onRetry={() => void couponsQuery.refetch()} /> : null}
-        {couponsQuery.isSuccess && couponsQuery.data.length === 0 ? <BuyerEmptyState title={t("buyer.noVouchersTitle")} description={t("buyer.noVouchersDescription")} /> : null}
+        {couponsQuery.isSuccess && coupons.length === 0 ? <BuyerEmptyState title={t("buyer.noVouchersTitle")} description={t("buyer.noVouchersDescription")} /> : null}
         <div className="grid gap-3 sm:grid-cols-2">
-          {couponsQuery.data?.map((coupon) => (
+          {coupons.map((coupon) => (
             <article key={coupon.id} className="rounded-3xl border border-orange-100 bg-white p-4 shadow-sm">
               <div className="flex items-start gap-3">
                 <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600"><TicketIcon className="size-5" /></div>
@@ -67,6 +73,7 @@ export function VoucherWalletPage() {
             </article>
           ))}
         </div>
+        {couponsQuery.hasNextPage ? <Button variant="outline" disabled={couponsQuery.isFetchingNextPage} onClick={() => void couponsQuery.fetchNextPage()}>{t("common.next")}</Button> : null}
       </div>
     </>
   );

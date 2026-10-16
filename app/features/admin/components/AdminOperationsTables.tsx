@@ -1631,25 +1631,12 @@ export function AdminAffiliatesTable() {
   const t = useTranslations();
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
-  const query = useAdminAffiliatesList();
+  const [page, setPage] = useState(1);
+  const query = useAdminAffiliatesList({ page, limit: PAGE_SIZE, q: search.trim() || undefined, status: status === "ACTIVE" || status === "DISABLED" ? status : undefined });
+  const changeSearch = (value: string) => { setSearch(value); setPage(1); };
+  const changeStatus = (value: string) => { setStatus(value); setPage(1); };
   const updateStatus = useUpdateAffiliateStatus();
-  const rows = useMemo(
-    () =>
-      (query.data ?? []).filter(
-        (affiliate: AdminAffiliate) =>
-          (!status || affiliate.status === status) &&
-          textMatch(
-            [
-              affiliate.user.name,
-              affiliate.user.email,
-              affiliate.status,
-              affiliate.links.map((link) => link.code).join(" "),
-            ],
-            search,
-          ),
-      ),
-    [query.data, search, status],
-  );
+  const rows = query.data?.data ?? [];
 
   const columns: ColumnDef<AdminAffiliate>[] = [
     {
@@ -1671,17 +1658,14 @@ export function AdminAffiliatesTable() {
     {
       id: "links",
       header: t("admin.ui.links"),
-      accessorFn: (item) => item.links.length,
+      accessorFn: (item) => item.linkCount,
       enableSorting: true,
       cell: ({ row }) => {
         const affiliate = row.original;
 
         return (
           <div>
-            <p className="text-sm font-semibold text-foreground">{affiliate.links.length} links</p>
-            <p className="max-w-64 truncate text-xs text-muted-foreground">
-              {affiliate.links.map((link) => link.code).join(", ") || t("admin.ui.noLinks")}
-            </p>
+            <p className="text-sm font-semibold text-foreground">{affiliate.linkCount} {t("admin.ui.links")}</p>
           </div>
         );
       },
@@ -1749,19 +1733,19 @@ export function AdminAffiliatesTable() {
       icon={LinkIcon}
       search={search}
       searchPlaceholder={t("admin.search.affiliates")}
-      onSearchChange={setSearch}
+      onSearchChange={changeSearch}
       searchHint={t("admin.table.searchAllDescription")}
       activeFilters={[
         {
           id: "status",
           label: t("admin.filters.statusLabel"),
           value: filterValueLabel(t, status),
-          onRemove: () => setStatus(""),
+          onRemove: () => changeStatus(""),
         },
       ]}
       onResetFilters={() => {
-        setSearch("");
-        setStatus("");
+        changeSearch("");
+        changeStatus("");
       }}
       isLoading={query.isLoading}
       isFetching={query.isFetching}
@@ -1771,7 +1755,7 @@ export function AdminAffiliatesTable() {
       filters={
         <FilterSelect
           value={status}
-          onChange={setStatus}
+          onChange={changeStatus}
           placeholder={t("admin.filters.statuses")}
           label={t("admin.filters.statusLabel")}
           options={AFFILIATE_STATUSES}
@@ -1785,6 +1769,11 @@ export function AdminAffiliatesTable() {
           isLoading={query.isLoading}
           emptyMessage={t("admin.ui.noRecords")}
           getRowId={(item) => item.id}
+          pagination={{ pageIndex: page - 1, pageSize: PAGE_SIZE, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: updater => {
+            const current = { pageIndex: page - 1, pageSize: PAGE_SIZE };
+            const next = typeof updater === "function" ? updater(current) : updater;
+            setPage(next.pageIndex + 1);
+          } }}
         />
       </CardContent>
     </AdminDataShell>

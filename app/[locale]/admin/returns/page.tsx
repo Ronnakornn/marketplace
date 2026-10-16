@@ -1,4 +1,5 @@
-import { AdminPageIntro, AdminReturnsTable } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminReturnsTable } from "#/features/admin/components/AdminBackofficeTables";
 
 export default function AdminReturnsPage() {
   return (

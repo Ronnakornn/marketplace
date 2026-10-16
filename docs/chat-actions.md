@@ -12,6 +12,14 @@ Each genuine deletion increments `ChatThread.contentRevision` and the message's 
 
 History retains tombstones as stable pagination and read anchors. Unread counts and inbox previews exclude deleted messages. The DTO removes deleted bodies, files, filenames, URLs, legacy arrays, product/order context, and the deleted message's own quote. Private content GET returns 404 when either the attachment or its parent is deleted.
 
+`GET /api/chats` accepts optional `scope`, `shopId`, `q`, `unreadOnly`, `limit`,
+and opaque `cursor` query parameters. It returns `items` and `pagination` with
+`limit`, `hasMore`, and `nextCursor`. Room order is descending `(updatedAt,id)`.
+Search and unread filtering apply before pagination within the participant scope.
+`GET /api/chats/unread-count` accepts `scope` and `shopId` and returns
+`{ unreadCount }` for the whole authorized inbox. The header and inbox share this
+summary query; loading more rooms does not determine the badge count.
+
 The client preserves monotonic message, quote, room-revision, and read-boundary state across every response. Revision changes trigger bounded refreshes of all loaded IDs. Concurrent changes retry for up to three scans and then wait for the next recovery attempt. Newly loaded older pages receive an authoritative refresh before display, even after the room revision was already reconciled. New-message recovery retains its separate contiguous creation cursor. Fresh
 messages at an already reconciled revision retain that proof. Older pages still
 receive their own authoritative refresh. Send responses refresh only the sent ID

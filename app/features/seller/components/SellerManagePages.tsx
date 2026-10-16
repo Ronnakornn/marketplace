@@ -5,7 +5,7 @@ import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/l
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { AlertTriangleIcon, ArrowUpRightIcon, BanknoteIcon, PackageCheckIcon, TruckIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useFormatters, useTranslations } from "#/i18n/client";
@@ -30,6 +30,7 @@ import {
   type SellerPayout,
   type SellerReturn,
   type SellerShipment,
+  type SellerShipmentFilters,
   type SellerShopStaff,
   type SellerTransactions,
   useApproveReturn,
@@ -118,6 +119,7 @@ function StatusPill({ value }: { value: string }) {
     REQUESTED: t("seller.manage.status.requested"),
     APPROVED: t("seller.manage.status.approved"),
     REJECTED: t("seller.manage.status.rejected"),
+    RECEIVED: t("admin.statuses.RECEIVED"),
     COMPLETED: t("seller.manage.status.completed"),
     CANCELLED: t("seller.manage.status.cancelled"),
   };
@@ -447,21 +449,14 @@ export function SellerDashboardPage() {
 
 export function SellerInventoryPage() {
   const t = useTranslations();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
-  const query = useSellerInventory();
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
+  const query = useSellerInventory({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: search.trim() || undefined, status: stockFilter === "all" ? undefined : stockFilter, shopId: searchParams.get("shopId") || undefined });
   const updateInventory = useUpdateSellerInventory();
-  const variants = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    return (query.data ?? []).filter((row) => {
-      const matchesSearch = !normalizedSearch || `${row.productTitle} ${row.variantTitle} ${row.sku}`.toLowerCase().includes(normalizedSearch);
-      const matchesStock = stockFilter === "all"
-        || (stockFilter === "out" && row.availableStock <= 0)
-        || (stockFilter === "low" && row.availableStock > 0 && row.availableStock <= row.reorderLevel);
-      return matchesSearch && matchesStock;
-    });
-  }, [query.data, search, stockFilter]);
-  const columns = useMemo<ColumnDef<NonNullable<SellerInventoryResponse>[number]>[]>(() => [
+  const variants = query.data?.data ?? [];
+  const columns = useMemo<ColumnDef<NonNullable<SellerInventoryResponse>["data"][number]>[]>(() => [
     {
       id: "variant",
       accessorFn: (row) => `${row.productTitle} ${row.variantTitle} ${row.sku}`,
@@ -498,7 +493,7 @@ export function SellerInventoryPage() {
     <>
       <SellerPageHeader title={t("seller.manage.pages.inventory.title")} description={t("seller.manage.pages.inventory.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6">{updateInventory.isPending ? <p className="mb-3 text-sm text-slate-500">{t("seller.manage.pages.inventory.saving")}</p> : null}<SellerDataTable columns={columns} data={variants} getRowId={(row) => row.variantId} searchable={false} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.inventory.loading")} emptyMessage={t("seller.manage.pages.inventory.empty")} pageSize={10} className="overflow-x-auto" renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("seller.manage.pages.inventory.search")} aria-label={t("seller.manage.pages.inventory.search")} className="sm:max-w-sm" /><Select value={stockFilter} onValueChange={(value) => setStockFilter(value as "all" | "low" | "out")}><SelectTrigger className="sm:w-56" aria-label={t("seller.manage.pages.inventory.filterStock")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.inventory.allStock")}</SelectItem><SelectItem value="low">{t("seller.manage.pages.inventory.lowStockOnly")}</SelectItem><SelectItem value="out">{t("seller.manage.pages.inventory.outOfStock")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6">{updateInventory.isPending ? <p className="mb-3 text-sm text-slate-500">{t("seller.manage.pages.inventory.saving")}</p> : null}<SellerDataTable columns={columns} data={variants} getRowId={(row) => row.variantId} searchable={false} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.inventory.loading")} emptyMessage={t("seller.manage.pages.inventory.empty")} pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }} className="overflow-x-auto" renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => { setSearch(event.target.value); setPagination((current) => ({ ...current, pageIndex: 0 })); }} placeholder={t("seller.manage.pages.inventory.search")} aria-label={t("seller.manage.pages.inventory.search")} className="sm:max-w-sm" /><Select value={stockFilter} onValueChange={(value) => { if (value === "all" || value === "low" || value === "out") { setStockFilter(value); setPagination((current) => ({ ...current, pageIndex: 0 })); } }}><SelectTrigger className="sm:w-56" aria-label={t("seller.manage.pages.inventory.filterStock")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.inventory.allStock")}</SelectItem><SelectItem value="low">{t("seller.manage.pages.inventory.lowStockOnly")}</SelectItem><SelectItem value="out">{t("seller.manage.pages.inventory.outOfStock")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
     </>
   );
 }
@@ -512,6 +507,7 @@ export function SellerOrdersPage() {
     const status = searchParams.get("status");
     return status && ["pending_pack", "packed", "shipped", "delivered"].includes(status) ? status : "all";
   });
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const [shipping, setShipping] = useState<{
     shipment: SellerShipment;
     carrier: string;
@@ -519,18 +515,13 @@ export function SellerOrdersPage() {
     open: boolean;
     error: string;
   } | null>(null);
-  const query = useSellerShipments();
+  const status: SellerShipmentFilters["status"] = statusFilter === "pending_pack" ? "PENDING_PACK"
+    : statusFilter === "packed" ? "PACKED" : statusFilter === "shipped" ? "SHIPPED"
+    : statusFilter === "delivered" ? "DELIVERED" : undefined;
+  const query = useSellerShipments({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: search.trim() || undefined, status, shopId: searchParams.get("shopId") || undefined });
   const pack = usePackShipment();
   const ship = useShipShipment();
-  const rows = query.data ?? [];
-  const filteredRows = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    return rows.filter((shipment) => {
-      const haystack = `${shipment.orderNo} ${shipment.shippingAddress.name} ${shipment.items.map((item) => item.productTitle).join(" ")}`.toLowerCase();
-      return (!normalizedSearch || haystack.includes(normalizedSearch)) &&
-        (statusFilter === "all" || shipment.status.toLowerCase() === statusFilter);
-    });
-  }, [rows, search, statusFilter]);
+  const rows = query.data?.data ?? [];
   const columns = useMemo<ColumnDef<SellerShipment>[]>(() => [
     {
       accessorKey: "orderNo",
@@ -591,7 +582,8 @@ export function SellerOrdersPage() {
         <CardContent className="p-4 sm:p-6">
           <SellerDataTable
             columns={columns}
-            data={filteredRows}
+            data={rows}
+            pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }}
             getRowId={(row) => row.id}
             searchable={false}
             isLoading={query.isLoading}
@@ -601,8 +593,8 @@ export function SellerOrdersPage() {
             className="overflow-x-auto"
             renderToolbar={() => (
               <div className="flex w-full flex-col gap-3 sm:flex-row">
-                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("seller.manage.pages.orders.search")} aria-label={t("seller.manage.pages.orders.search")} className="sm:max-w-sm" />
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Input value={search} onChange={(event) => { setSearch(event.target.value); setPagination((current) => ({ ...current, pageIndex: 0 })); }} placeholder={t("seller.manage.pages.orders.search")} aria-label={t("seller.manage.pages.orders.search")} className="sm:max-w-sm" />
+                <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPagination((current) => ({ ...current, pageIndex: 0 })); }}>
                   <SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.orders.filterStatus")}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{t("seller.manage.pages.orders.allStatuses")}</SelectItem>
@@ -652,17 +644,10 @@ export function SellerReturnsPage() {
   const t = useTranslations();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const query = useSellerReturns();
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
+  const query = useSellerReturns({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: search.trim() || undefined, status: statusFilter === "all" ? undefined : statusFilter });
   const approve = useApproveReturn();
   const reject = useRejectReturn();
-  const rows = query.data ?? [];
-  const filteredRows = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    return rows.filter((item) => {
-      const haystack = `${item.reason ?? ""} ${item.items.map((entry) => entry.productTitle).join(" ")}`.toLowerCase();
-      return (!normalizedSearch || haystack.includes(normalizedSearch)) && (statusFilter === "all" || item.status.toLowerCase() === statusFilter);
-    });
-  }, [rows, search, statusFilter]);
   const columns = useMemo<ColumnDef<SellerReturn>[]>(() => [
     {
       id: "return",
@@ -693,7 +678,23 @@ export function SellerReturnsPage() {
     <>
       <SellerPageHeader title={t("seller.manage.pages.returns.title")} description={t("seller.manage.pages.returns.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-4 sm:p-6"><SellerDataTable columns={columns} data={filteredRows} getRowId={(row) => row.id} searchable={false} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.returns.loading")} emptyMessage={t("seller.manage.pages.returns.empty")} pageSize={10} className="overflow-x-auto" renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("seller.manage.pages.returns.search")} aria-label={t("seller.manage.pages.returns.search")} className="sm:max-w-sm" /><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.returns.filterStatus")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.returns.allStatuses")}</SelectItem><SelectItem value="requested">{t("seller.manage.status.requested")}</SelectItem><SelectItem value="approved">{t("seller.manage.status.approved")}</SelectItem><SelectItem value="rejected">{t("seller.manage.status.rejected")}</SelectItem><SelectItem value="completed">{t("seller.manage.status.completed")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-4 sm:p-6">
+        <SellerDataTable columns={columns} data={query.data?.data ?? []} getRowId={(row) => row.id}
+          pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }}
+          isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.returns.loading")} emptyMessage={t("seller.manage.pages.returns.empty")} className="overflow-x-auto"
+          renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row">
+            <Input value={search} onChange={(event) => { setSearch(event.target.value); setPagination((page) => ({ ...page, pageIndex: 0 })); }} placeholder={t("seller.manage.pages.returns.search")} aria-label={t("seller.manage.pages.returns.search")} className="sm:max-w-sm" />
+            <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPagination((page) => ({ ...page, pageIndex: 0 })); }}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.returns.filterStatus")}><SelectValue /></SelectTrigger><SelectContent>
+              <SelectItem value="all">{t("seller.manage.pages.returns.allStatuses")}</SelectItem>
+              <SelectItem value="requested">{t("seller.manage.status.requested")}</SelectItem>
+              <SelectItem value="approved">{t("seller.manage.status.approved")}</SelectItem>
+              <SelectItem value="rejected">{t("seller.manage.status.rejected")}</SelectItem>
+              <SelectItem value="received">{t("admin.statuses.RECEIVED")}</SelectItem>
+              <SelectItem value="completed">{t("seller.manage.status.completed")}</SelectItem>
+              <SelectItem value="cancelled">{t("seller.manage.status.cancelled")}</SelectItem>
+            </SelectContent></Select>
+          </div>} />
+      </CardContent></Card>
     </>
   );
 }
@@ -703,19 +704,12 @@ export function SellerPromotionsPage() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [discountType, setDiscountType] = useState("fixed");
-  const query = useSellerCoupons();
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const query = useSellerCoupons({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: search.trim() || undefined, isActive: activeFilter === "all" ? undefined : activeFilter === "active" });
   const createCoupon = useCreateSellerCoupon();
   const updateCoupon = useUpdateSellerCoupon();
   const deleteCoupon = useDeleteSellerCoupon();
-  const rows = query.data ?? [];
-  const filteredRows = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    return rows.filter((coupon) => {
-      const haystack = `${coupon.code} ${coupon.titleEn ?? ""} ${coupon.titleTh ?? ""}`.toLowerCase();
-      return (!normalizedSearch || haystack.includes(normalizedSearch))
-        && (activeFilter === "all" || (activeFilter === "active" ? coupon.isActive : !coupon.isActive));
-    });
-  }, [activeFilter, rows, search]);
+  const rows = query.data?.data ?? [];
   const columns = useMemo<ColumnDef<SellerCoupon>[]>(() => [
     {
       id: "coupon",
@@ -768,7 +762,7 @@ export function SellerPromotionsPage() {
         </form>
       </CardContent></Card>
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-4 sm:p-6"><SellerDataTable columns={columns} data={filteredRows} getRowId={(row) => row.id} searchable={false} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.promotions.loading")} emptyMessage={t("seller.manage.pages.promotions.empty")} pageSize={10} className="overflow-x-auto" renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("seller.manage.pages.promotions.search")} aria-label={t("seller.manage.pages.promotions.search")} className="sm:max-w-sm" /><Select value={activeFilter} onValueChange={setActiveFilter}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.promotions.filterStatus")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.promotions.allStatuses")}</SelectItem><SelectItem value="active">{t("seller.manage.status.active")}</SelectItem><SelectItem value="inactive">{t("seller.manage.status.inactive")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-4 sm:p-6"><SellerDataTable columns={columns} data={rows} pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }} getRowId={(row) => row.id} searchable={false} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.promotions.loading")} emptyMessage={t("seller.manage.pages.promotions.empty")} pageSize={10} className="overflow-x-auto" renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => { setSearch(event.target.value); setPagination(current => ({ ...current, pageIndex: 0 })); }} placeholder={t("seller.manage.pages.promotions.search")} aria-label={t("seller.manage.pages.promotions.search")} className="sm:max-w-sm" /><Select value={activeFilter} onValueChange={(value) => { setActiveFilter(value); setPagination(current => ({ ...current, pageIndex: 0 })); }}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.promotions.filterStatus")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.promotions.allStatuses")}</SelectItem><SelectItem value="active">{t("seller.manage.status.active")}</SelectItem><SelectItem value="inactive">{t("seller.manage.status.inactive")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
     </>
   );
 }
@@ -821,7 +815,10 @@ export function SellerFinancePage() {
   const transactionLimit = 20;
   const wallet = useSellerWallet();
   const transactions = useSellerTransactions(transactionPage, transactionLimit);
-  const payouts = useSellerPayouts();
+  const [payoutPagination, setPayoutPagination] = useState({ pageIndex: 0, pageSize: 20 });
+  const [payoutSearch, setPayoutSearch] = useState("");
+  const [payoutStatus, setPayoutStatus] = useState("all");
+  const payouts = useSellerPayouts({ page: payoutPagination.pageIndex + 1, limit: payoutPagination.pageSize, q: payoutSearch.trim() || undefined, status: payoutStatus === "all" ? undefined : payoutStatus });
   const createPayout = useCreateSellerPayout();
   const transactionColumns: ColumnDef<NonNullable<SellerTransactions>["items"][number]>[] = [
     { accessorKey: "type", header: t("seller.operationsUi.transaction"), enableSorting: false, cell: ({ row }) => <div className="min-w-44"><p className="font-medium">{formatTransactionType(row.original.type, t)}</p><p className="mt-1 text-xs text-slate-500">{formatTransactionDescription(row.original.type, row.original.description, t)}</p></div> },
@@ -851,7 +848,19 @@ export function SellerFinancePage() {
           <SellerDataTable key={transactionPage} columns={transactionColumns} data={transactions.data?.items ?? []} getRowId={(row) => row.id} searchable={false} hidePagination pageSize={transactionLimit} isLoading={transactions.isLoading} loadingMessage={t("seller.manage.pages.finance.loadingTransactions")} emptyMessage={t("seller.manage.pages.finance.emptyTransactions")} />
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4"><p className="text-xs text-slate-500" aria-live="polite">{t("seller.operationsUi.transactionPage").replace("{page}", String(transactionPage)).replace("{count}", String(transactions.data?.items.length ?? 0))}</p><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={transactionPage === 1 || transactions.isLoading} onClick={() => setTransactionPage((page) => page - 1)}>{t("common.previous")}</Button><Button type="button" variant="outline" size="sm" disabled={transactions.isLoading || Boolean(transactions.error) || (transactions.data?.items.length ?? 0) < transactionLimit} onClick={() => setTransactionPage((page) => page + 1)}>{t("common.next")}</Button></div></div>
         </CardContent></Card>
-        <Card className="min-w-0 rounded-xl border-slate-200 bg-white shadow-none"><CardHeader><CardTitle className="text-base">{t("seller.manage.pages.finance.payoutHistory")}</CardTitle></CardHeader><CardContent>{payouts.error ? <ErrorState error={payouts.error} retry={() => void payouts.refetch()} /> : null}<SellerDataTable columns={payoutColumns} data={payouts.data ?? []} getRowId={(row) => row.id} isLoading={payouts.isLoading} loadingMessage={t("seller.manage.pages.finance.loadingPayouts")} emptyMessage={t("seller.manage.pages.finance.emptyPayouts")} /></CardContent></Card>
+        <Card className="min-w-0 rounded-xl border-slate-200 bg-white shadow-none"><CardHeader><CardTitle className="text-base">{t("seller.manage.pages.finance.payoutHistory")}</CardTitle></CardHeader><CardContent>
+          {payouts.error ? <ErrorState error={payouts.error} retry={() => void payouts.refetch()} /> : null}
+          <SellerDataTable columns={payoutColumns} data={payouts.data?.data ?? []} getRowId={(row) => row.id}
+            pagination={{ ...payoutPagination, totalRows: payouts.data?.meta.totalCount ?? 0, onPaginationChange: setPayoutPagination }}
+            isLoading={payouts.isLoading} loadingMessage={t("seller.manage.pages.finance.loadingPayouts")} emptyMessage={t("seller.manage.pages.finance.emptyPayouts")}
+            renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row">
+              <Input value={payoutSearch} onChange={(event) => { setPayoutSearch(event.target.value); setPayoutPagination((page) => ({ ...page, pageIndex: 0 })); }} placeholder={t("seller.ui.table.searchPlaceholder")} aria-label={t("seller.ui.table.search")} className="sm:max-w-sm" />
+              <Select value={payoutStatus} onValueChange={(value) => { setPayoutStatus(value); setPayoutPagination((page) => ({ ...page, pageIndex: 0 })); }}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.returns.filterStatus")}><SelectValue /></SelectTrigger><SelectContent>
+                <SelectItem value="all">{t("seller.manage.pages.returns.allStatuses")}</SelectItem>
+                {(["requested", "approved", "rejected", "paid", "cancelled"] as const).map((status) => <SelectItem key={status} value={status}>{t(`seller.manage.status.${status}`)}</SelectItem>)}
+              </SelectContent></Select>
+            </div>} />
+        </CardContent></Card>
       </section>
     </>
   );

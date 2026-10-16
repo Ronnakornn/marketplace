@@ -1,4 +1,6 @@
-import { AdminContentModerationQueues, AdminPageIntro, AdminSpaceCat } from "#/features/admin";
+import { AdminContentModerationQueues } from "#/features/admin/components/AdminContentModerationQueues";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminSpaceCat } from "#/features/admin/components/AdminSpaceCat";
 
 export default function AdminContentModerationPage() {
   return (

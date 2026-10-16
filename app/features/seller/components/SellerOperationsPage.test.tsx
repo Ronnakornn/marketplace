@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { SellerFinancePage, SellerOrdersPage } from "./SellerManagePages";
 import type { SellerShipment, SellerTransactions } from "../hooks/useSellerManage";
 
-const { pack, ship, transactionsHook } = vi.hoisted(() => ({ pack: vi.fn(), ship: vi.fn(), transactionsHook: vi.fn() }));
+const { pack, ship, transactionsHook, shipmentsHook } = vi.hoisted(() => ({ pack: vi.fn(), ship: vi.fn(), transactionsHook: vi.fn(), shipmentsHook: vi.fn() }));
 let shipments: SellerShipment[] = [];
 let transactionItems: NonNullable<SellerTransactions>["items"] = [];
 let searchParams = new URLSearchParams();
@@ -19,11 +19,15 @@ vi.mock("#/i18n/client", () => ({
 vi.mock("#/i18n/navigation", () => ({ useLocalePath: () => (path: string) => path }));
 vi.mock("./SellerShell", () => ({ SellerPageHeader: ({ title }: { title: string }) => <h1>{title}</h1> }));
 vi.mock("../hooks/useSellerManage", () => ({
-  useSellerShipments: () => ({ data: shipments, isLoading: false, error: null }),
+  useSellerShipments: (filters: { status?: string; q?: string; page: number; limit: number }) => {
+    shipmentsHook(filters);
+    const filtered = shipments.filter((row) => (!filters.status || row.status.toUpperCase() === filters.status) && (!filters.q || row.orderNo.toLowerCase().includes(filters.q.toLowerCase())));
+    return { data: { data: filtered.slice((filters.page - 1) * filters.limit, filters.page * filters.limit), meta: { totalCount: filtered.length } }, isLoading: false, error: null };
+  },
   usePackShipment: () => ({ mutate: pack, isPending: false }),
   useShipShipment: () => ({ mutate: ship, isPending: false }),
   useSellerWallet: () => ({ data: null }),
-  useSellerPayouts: () => ({ data: [], isLoading: false }),
+  useSellerPayouts: () => ({ data: { data: [], meta: { totalCount: 0 } }, isLoading: false }),
   useCreateSellerPayout: () => ({ mutate: vi.fn(), isPending: false }),
   useSellerTransactions: (page: number, limit: number) => {
     transactionsHook(page, limit);
@@ -44,6 +48,7 @@ beforeEach(() => {
   pack.mockReset();
   ship.mockReset();
   transactionsHook.mockReset();
+  shipmentsHook.mockReset();
   searchParams = new URLSearchParams();
   shipments = [shipment("pending", "pending_pack"), shipment("packed", "packed"), shipment("shipped", "shipped")];
   transactionItems = Array.from({ length: 20 }, (_, index) => ({
@@ -113,6 +118,22 @@ describe("seller shipment actions", () => {
     render(<SellerOrdersPage />);
     expect(screen.getByText("ORD-pending")).toBeTruthy();
     expect(screen.queryByText("ORD-packed")).toBeNull();
+    expect(shipmentsHook).toHaveBeenLastCalledWith({ page: 1, limit: 20, q: undefined, status: "PENDING_PACK", shopId: "shop-1" });
+  });
+
+  it("requests later shipment pages and resets to the first page when search changes", () => {
+    shipments = Array.from({ length: 65 }, (_, index) => shipment(String(index), "shipped"));
+    render(<SellerOrdersPage />);
+    expect(screen.queryByText("ORD-60")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "seller.ui.table.nextPage" }));
+    fireEvent.click(screen.getByRole("button", { name: "seller.ui.table.nextPage" }));
+    fireEvent.click(screen.getByRole("button", { name: "seller.ui.table.nextPage" }));
+    expect(shipmentsHook).toHaveBeenLastCalledWith(expect.objectContaining({ page: 4, limit: 20 }));
+    expect(screen.getByText("ORD-60")).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "seller.manage.pages.orders.search" }), { target: { value: "ORD-64" } });
+    expect(shipmentsHook).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, q: "ORD-64" }));
+    expect(screen.getByText("ORD-64")).toBeTruthy();
+    expect(screen.queryByText("ORD-60")).toBeNull();
   });
 });
 

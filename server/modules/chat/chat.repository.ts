@@ -3,7 +3,7 @@ import type { StoredChatFile } from './chat.attachments.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { ChatServiceError } from './chat.errors.ts'
-import type { ChatAudience, NormalizedChatPagination } from './chat.types.ts'
+import type { ChatAudience, ChatInboxInput, NormalizedChatInbox, NormalizedChatPagination } from './chat.types.ts'
 
 export type ChatUserRecord = Pick<User, 'id' | 'name' | 'email' | 'role'>
 export type ChatShopRecord = Pick<Shop, 'id' | 'name' | 'slug' | 'ownerId' | 'status'> & { settings: { chatEnabled: boolean } | null }
@@ -22,6 +22,7 @@ export type ChatRoomRecord = Pick<ChatThread, 'id' | 'buyerId' | 'shopId' | 'las
   messages: ChatMessageRecord[]
 }
 export interface ChatMessagePage { items: ChatMessageRecord[]; total: number; hasMore: boolean }
+export interface ChatInboxPage { items: Array<{ room: ChatRoomRecord; unreadCount: number }>; hasMore: boolean }
 export interface ChatMessageWrite {
   roomId: string
   senderId: string
@@ -46,8 +47,8 @@ export interface IChatRepository {
   findRoomByBuyerAndShop(buyerId: string, shopId: string): Promise<ChatRoomRecord | null>
   findRoomById(roomId: string): Promise<ChatRoomRecord | null>
   createRoom(input: { buyerId: string; shopId: string }): Promise<ChatRoomRecord>
-  listBuyerRooms(buyerId: string): Promise<ChatRoomRecord[]>
-  listSellerRooms(ownerId: string): Promise<ChatRoomRecord[]>
+  listRooms(userId: string, input: NormalizedChatInbox): Promise<ChatInboxPage>
+  countUnread(userId: string, input: Pick<ChatInboxInput, 'scope' | 'shopId'>): Promise<number>
   createMessage(input: ChatMessageWrite, authorize: (room: ChatRoomRecord) => void): Promise<{ message: ChatMessageRecord; created: boolean }>
   listMessages(roomId: string, pagination: NormalizedChatPagination): Promise<ChatMessagePage>
   countUnreadMessages(roomId: string, userId: string, readAt: Date | null, readMessageId: string | null): Promise<number>
@@ -88,6 +89,21 @@ function sameMessage(message: ChatMessageRecord, input: ChatMessageWrite): boole
 }
 function tupleFilter(boundary: { createdAt: Date; id: string }, direction: 'gt' | 'lt'): Prisma.ChatMessageWhereInput {
   return { OR: [{ createdAt: { [direction]: boundary.createdAt } }, { createdAt: boundary.createdAt, id: { [direction]: boundary.id } }] }
+}
+
+function roomScope(userId: string, input: Pick<ChatInboxInput, 'scope' | 'shopId'>) {
+  const buyer = Prisma.sql`t."buyerId" = ${userId}::uuid`
+  const seller = Prisma.sql`s."ownerId" = ${userId}::uuid AND s."status" = 'ACTIVE'`
+  const participant = input.scope === 'buyer' ? buyer : input.scope === 'seller' ? seller : Prisma.sql`(${buyer} OR (${seller}))`
+  return Prisma.sql`(${participant}) ${input.shopId ? Prisma.sql`AND t."shopId" = ${input.shopId}::uuid` : Prisma.empty}`
+}
+
+function unreadPredicate(userId: string) {
+  const seller = Prisma.sql`s."ownerId" = ${userId}::uuid AND s."status" = 'ACTIVE'`
+  const readAt = Prisma.sql`CASE WHEN ${seller} THEN t."sellerReadAt" ELSE t."buyerReadAt" END`
+  const readId = Prisma.sql`CASE WHEN ${seller} THEN t."sellerReadMessageId" ELSE t."buyerReadMessageId" END`
+  return Prisma.sql`m."senderId" <> ${userId}::uuid AND m."deletedAt" IS NULL AND
+    (${readAt} IS NULL OR m."createdAt" > ${readAt} OR (m."createdAt" = ${readAt} AND ${readId} IS NOT NULL AND m."id" > ${readId}))`
 }
 
 export class PrismaChatRepository implements IChatRepository {
@@ -132,11 +148,39 @@ export class PrismaChatRepository implements IChatRepository {
       return existing
     }
   }
-  listBuyerRooms(buyerId: string): Promise<ChatRoomRecord[]> {
-    return this.prisma.chatThread.findMany({ where: { buyerId }, include: roomInclude, orderBy: { updatedAt: 'desc' } })
+  async listRooms(userId: string, input: NormalizedChatInbox): Promise<ChatInboxPage> {
+    return this.prisma.$transaction(async (tx) => {
+      const needle = input.q ? `%${input.q.replace(/[\\%_]/g, '\\$&')}%` : null
+      const participantName = input.scope === 'buyer'
+        ? Prisma.sql`FALSE`
+        : Prisma.sql`s."ownerId" = ${userId}::uuid AND s."status" = 'ACTIVE' AND b."name" ILIKE ${needle}`
+      const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT t."id" FROM "ChatThread" t JOIN "Shop" s ON s."id" = t."shopId" JOIN "User" b ON b."id" = t."buyerId"
+        WHERE ${roomScope(userId, input)}
+        ${input.cursor ? Prisma.sql`AND (t."updatedAt", t."id") < (${input.cursor.updatedAt}, ${input.cursor.id}::uuid)` : Prisma.empty}
+        ${needle ? Prisma.sql`AND (s."name" ILIKE ${needle} OR (${participantName}) OR
+          (SELECT m."body" FROM "ChatMessage" m WHERE m."threadId" = t."id" AND m."deletedAt" IS NULL ORDER BY m."createdAt" DESC, m."id" DESC LIMIT 1) ILIKE ${needle})` : Prisma.empty}
+        ${input.unreadOnly ? Prisma.sql`AND EXISTS (SELECT 1 FROM "ChatMessage" m WHERE m."threadId" = t."id" AND ${unreadPredicate(userId)})` : Prisma.empty}
+        ORDER BY t."updatedAt" DESC, t."id" DESC LIMIT ${input.limit + 1}`)
+      const ids = rows.slice(0, input.limit).map((row) => row.id)
+      if (!ids.length) return { items: [], hasMore: false }
+      const [rooms, counts] = await Promise.all([
+        tx.chatThread.findMany({ where: { id: { in: ids } }, include: roomInclude }),
+        tx.$queryRaw<Array<{ id: string; unreadCount: number }>>(Prisma.sql`
+          SELECT t."id", COUNT(m."id")::int AS "unreadCount" FROM "ChatThread" t JOIN "Shop" s ON s."id" = t."shopId"
+          JOIN "ChatMessage" m ON m."threadId" = t."id" AND ${unreadPredicate(userId)}
+          WHERE t."id" IN (${Prisma.join(ids.map((id) => Prisma.sql`${id}::uuid`))}) GROUP BY t."id"`),
+      ])
+      const byId = new Map(rooms.map((room) => [room.id, room]))
+      const unreadById = new Map(counts.map((row) => [row.id, row.unreadCount]))
+      return { items: ids.flatMap((id) => { const room = byId.get(id); return room ? [{ room, unreadCount: unreadById.get(id) ?? 0 }] : [] }), hasMore: rows.length > input.limit }
+    }, { isolationLevel: 'RepeatableRead' })
   }
-  listSellerRooms(ownerId: string): Promise<ChatRoomRecord[]> {
-    return this.prisma.chatThread.findMany({ where: { shop: { ownerId, status: 'ACTIVE' } }, include: roomInclude, orderBy: { updatedAt: 'desc' } })
+  async countUnread(userId: string, input: Pick<ChatInboxInput, 'scope' | 'shopId'>): Promise<number> {
+    const rows = await this.prisma.$queryRaw<Array<{ unreadCount: number }>>(Prisma.sql`
+      SELECT COUNT(m."id")::int AS "unreadCount" FROM "ChatThread" t JOIN "Shop" s ON s."id" = t."shopId"
+      JOIN "ChatMessage" m ON m."threadId" = t."id" AND ${unreadPredicate(userId)} WHERE ${roomScope(userId, input)}`)
+    return rows[0]?.unreadCount ?? 0
   }
   async createMessage(input: ChatMessageWrite, authorize: (room: ChatRoomRecord) => void): Promise<{ message: ChatMessageRecord; created: boolean }> {
     this.logger.info('PrismaChatRepository.createMessage', { roomId: input.roomId, senderId: input.senderId })

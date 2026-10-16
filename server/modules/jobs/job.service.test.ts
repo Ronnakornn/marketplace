@@ -4,6 +4,7 @@ import type { PaymentStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { QueueProducer } from '#server/modules/queue'
 import type { WalletService } from '#server/modules/wallet'
+import { CacheInvalidation, CacheService, getCacheConfigFromEnv } from '#server/modules/cache'
 import type { IJobRepository } from './job.repository.ts'
 import { JobService } from './job.service.ts'
 
@@ -154,6 +155,39 @@ describe('JobService', () => {
       userId: 'user-1',
       type: 'order_paid',
     }))
+  })
+
+  it.each(['commit', 'rollback', 'cache failure'])('invalidates expired stock only after a successful commit: %s', async (outcome) => {
+    const context = createAppContext()
+    const cache = new CacheService(context, getCacheConfigFromEnv({ CACHE_ENABLED: 'false' }), null)
+    const invalidation = new CacheInvalidation(cache)
+    let transactionOpen = false
+    const invalidate = vi.spyOn(invalidation, 'invalidateInventory').mockImplementation(async () => {
+      expect(transactionOpen).toBe(false)
+      if (outcome === 'cache failure') throw new Error('Redis unavailable')
+      return 0
+    })
+    vi.mocked(repo.transaction).mockImplementation(async (callback) => {
+      transactionOpen = true
+      try {
+        const result = await callback(repo)
+        if (outcome === 'rollback') throw new Error('Commit failed')
+        return result
+      } finally { transactionOpen = false }
+    })
+    const payment = createExpiredPayment()
+    vi.mocked(repo.findExpiredPendingPayments).mockResolvedValue([payment])
+    vi.mocked(repo.findPaymentForExpiry).mockResolvedValue(payment)
+    const operation = new JobService(context, repo, queueProducer, invalidation)
+      .process('release_expired_payment_stock', { now: now.toISOString() })
+    if (outcome === 'rollback') {
+      await expect(operation).rejects.toMatchObject({ code: 'JOB_FAILED' })
+      expect(invalidate).not.toHaveBeenCalled()
+    } else {
+      await expect(operation).resolves.toMatchObject({ processedCount: 1 })
+      expect(invalidate).toHaveBeenCalledOnce()
+      if (outcome === 'cache failure') expect(context.logger.warn).toHaveBeenCalledWith('Expired payment cache invalidation failed', expect.objectContaining({ paymentId: payment.id }))
+    }
   })
 
   it('processes notification jobs', async () => {

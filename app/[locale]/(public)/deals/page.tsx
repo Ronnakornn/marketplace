@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DealsPage } from "#/features/buyer";
+import { DealsPage } from "#/features/buyer/components/DealsPage";
 import { createTranslator } from "#/i18n/server";
 import { publicPageMetadata } from "#/lib/seo";
 

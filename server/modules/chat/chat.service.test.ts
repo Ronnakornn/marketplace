@@ -106,8 +106,8 @@ function createRepo(overrides: Partial<Record<keyof IChatRepository, any>> = {})
     findRoomByBuyerAndShop: vi.fn().mockResolvedValue(null),
     findRoomById: vi.fn().mockResolvedValue(createRoom()),
     createRoom: vi.fn().mockResolvedValue(createRoom()),
-    listBuyerRooms: vi.fn().mockResolvedValue([createRoom()]),
-    listSellerRooms: vi.fn().mockResolvedValue([createRoom()]),
+    listRooms: vi.fn().mockResolvedValue({ items: [{ room: createRoom(), unreadCount: 3 }], hasMore: false }),
+    countUnread: vi.fn().mockResolvedValue(75),
     createMessage: vi.fn().mockResolvedValue({ message: createMessage(), created: true }),
     listMessages: vi.fn().mockResolvedValue({ items: [createMessage({ id: 'message-2' })], total: 2, hasMore: true }),
     countUnreadMessages: vi.fn().mockResolvedValue(0),
@@ -153,40 +153,30 @@ describe('ChatService', () => {
     expect(result.shop.id).toBe('shop-1')
   })
 
-  it('sorts rooms when Prisma returns serialized date strings', async () => {
-    const olderRoom = createRoom({
-      id: 'older-room',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    })
-    const newerRoom = createRoom({
-      id: 'newer-room',
-      updatedAt: '2026-01-02T00:00:00.000Z',
-    })
-    const repo = createRepo({
-      listBuyerRooms: vi.fn().mockResolvedValue([olderRoom]),
-      listSellerRooms: vi.fn().mockResolvedValue([newerRoom]),
-    })
+  it('returns bounded rooms with grouped unread counts and a stable date and ID cursor', async () => {
+    const id = '11111111-1111-4111-8111-111111111111'
+    const repo = createRepo({ listRooms: vi.fn().mockResolvedValue({ items: [{ room: createRoom({ id, updatedAt: '2026-01-02T00:00:00.000Z' }), unreadCount: 7 }], hasMore: true }) })
     const service = new ChatService(appContext, repo)
-
-    const result = await service.listRooms(user())
-
-    expect(result.map((room) => room.roomId)).toEqual(['newer-room', 'older-room'])
+    const result = await service.listRooms(user(), { limit: 1 })
+    expect(result.items.map((room) => [room.roomId, room.unreadCount])).toEqual([[id, 7]])
+    expect(repo.countUnreadMessages).not.toHaveBeenCalled()
+    expect(result.pagination).toEqual({ limit: 1, hasMore: true, nextCursor: Buffer.from(`2026-01-02T00:00:00.000Z|${id}`).toString('base64url') })
+    await service.listRooms(user(), { cursor: result.pagination.nextCursor ?? undefined })
+    expect(repo.listRooms).toHaveBeenLastCalledWith('buyer-1', expect.objectContaining({ cursor: { updatedAt: new Date('2026-01-02T00:00:00.000Z'), id } }))
   })
 
-  it('deduplicates buyer and seller rooms before sorting', async () => {
-    const sharedRoom = createRoom({
-      id: 'shared-room',
-      updatedAt: '2026-01-02T00:00:00.000Z',
-    })
-    const repo = createRepo({
-      listBuyerRooms: vi.fn().mockResolvedValue([sharedRoom]),
-      listSellerRooms: vi.fn().mockResolvedValue([sharedRoom]),
-    })
+  it('returns whole-scope unread totals independently from the current page', async () => {
+    const repo = createRepo()
     const service = new ChatService(appContext, repo)
+    expect(await service.unreadCount(user(), { scope: 'buyer' })).toEqual({ unreadCount: 75 })
+    expect(repo.countUnread).toHaveBeenCalledWith('buyer-1', { scope: 'buyer' })
+    expect(repo.listRooms).not.toHaveBeenCalled()
+  })
 
-    const result = await service.listRooms(user())
-
-    expect(result.map((room) => room.roomId)).toEqual(['shared-room'])
+  it.each(['not a cursor', '', 'a'.repeat(201), Buffer.from('2026-01-01|not-a-uuid').toString('base64url')])('rejects invalid inbox cursor %s', async (cursor) => {
+    const repo = createRepo()
+    await expect(new ChatService(appContext, repo).listRooms(user(), { cursor })).rejects.toMatchObject({ code: 'INVALID_MESSAGE_CURSOR', status: 400 })
+    expect(repo.listRooms).not.toHaveBeenCalled()
   })
 
   it('returns an existing room for duplicate buyer and shop', async () => {
@@ -206,8 +196,7 @@ describe('ChatService', () => {
 
     await service.listRooms(user('buyer-2'))
 
-    expect(repo.listBuyerRooms).toHaveBeenCalledWith('buyer-2')
-    expect(repo.listSellerRooms).toHaveBeenCalledWith('buyer-2')
+    expect(repo.listRooms).toHaveBeenCalledWith('buyer-2', expect.objectContaining({ limit: 30 }))
   })
 
   it('lets sellers list only rooms from their shops', async () => {
@@ -216,25 +205,17 @@ describe('ChatService', () => {
 
     await service.listRooms(seller('seller-2'))
 
-    expect(repo.listSellerRooms).toHaveBeenCalledWith('seller-2')
-    expect(repo.listBuyerRooms).toHaveBeenCalledWith('seller-2')
+    expect(repo.listRooms).toHaveBeenCalledWith('seller-2', expect.objectContaining({ limit: 30 }))
   })
 
   it('keeps seller-scoped inboxes separate from buyer rooms', async () => {
-    const repo = createRepo({
-      listBuyerRooms: vi.fn().mockResolvedValue([createRoom({ id: 'buyer-room' })]),
-      listSellerRooms: vi.fn().mockResolvedValue([
-        createRoom({ id: 'seller-room', shopId: 'shop-1' }),
-        createRoom({ id: 'other-shop-room', shopId: 'shop-2' }),
-      ]),
-    })
+    const repo = createRepo({ listRooms: vi.fn().mockResolvedValue({ items: [{ room: createRoom({ id: 'seller-room' }), unreadCount: 0 }], hasMore: false }) })
     const service = new ChatService(appContext, repo)
 
-    const result = await service.listRooms(seller('seller-1'), 'seller', 'shop-1')
+    const result = await service.listRooms(seller('seller-1'), { scope: 'seller', shopId: 'shop-1', q: ' Buyer ', unreadOnly: true })
 
-    expect(repo.listBuyerRooms).not.toHaveBeenCalled()
-    expect(repo.listSellerRooms).toHaveBeenCalledWith('seller-1')
-    expect(result.map((room) => room.roomId)).toEqual(['seller-room'])
+    expect(repo.listRooms).toHaveBeenCalledWith('seller-1', expect.objectContaining({ scope: 'seller', shopId: 'shop-1', q: 'Buyer', unreadOnly: true }))
+    expect(result.items.map((room) => room.roomId)).toEqual(['seller-room'])
   })
 
   it('blocks a buyer from reading another buyer room', async () => {

@@ -1,4 +1,4 @@
-import { FollowedShopsPage } from "#/features/buyer";
+import { FollowedShopsPage } from "#/features/buyer/components/FollowedShopsPage";
 import { requireUser } from "#/lib/auth-server";
 
 export default async function FollowedShopsRoutePage() {

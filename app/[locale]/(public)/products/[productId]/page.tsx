@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "#/components/JsonLd";
-import { ProductDetailPage } from "#/features/product";
+import { ProductDetailPage } from "#/features/product/components/ProductDetailPage";
 import { breadcrumbJsonLd, productJsonLd, publicPageMetadata, publicProductSeo } from "#/lib/seo";
 import { requirePublicProductData } from "#/features/product/product-data.server";
 import { resolveLocale } from "#/i18n/config";

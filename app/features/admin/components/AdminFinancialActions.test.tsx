@@ -19,6 +19,9 @@ vi.mock("#/i18n/client", () => ({
 vi.mock("#/i18n/navigation", () => ({ useLocalePath: () => (path: string) => `/en${path}` }));
 
 const clients: QueryClient[] = [];
+function payoutPage(data: unknown[], page = 1, totalCount = data.length) {
+  return { data, meta: { page, limit: 10, totalCount, totalPages: Math.ceil(totalCount / 10), hasNextPage: page * 10 < totalCount, hasPreviousPage: page > 1 } };
+}
 function renderTable(component: React.ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false } } });
   clients.push(client);
@@ -33,14 +36,29 @@ beforeEach(() => {
   transport.reject.mockResolvedValue({ data: {}, error: null });
   transport.paid.mockResolvedValue({ data: {}, error: null });
   transport.commissionStatus.mockResolvedValue({ data: {}, error: null });
-  transport.payoutList.mockResolvedValue({ data: [{ id: "payout-42", shop: { id: "shop-42", name: "Bangkok shop" }, status: "approved", amount: "9007199254740991", currency: "THB", requestedAt: "2026-10-13T00:00:00.000Z" }], error: null });
+  transport.payoutList.mockResolvedValue({ data: payoutPage([{ id: "payout-42", shop: { id: "shop-42", name: "Bangkok shop" }, status: "approved", amount: "9007199254740991", currency: "THB", requestedAt: "2026-10-13T00:00:00.000Z" }]), error: null });
   transport.commissionList.mockResolvedValue({ data: { items: [{ id: "commission-42", affiliateName: "Affiliate Alice", affiliateEmail: "alice@example.com", linkCode: "LINK-42", orderNumber: "ORD-42", status: "PENDING", eligibleSubtotalCents: "123400", commissionCents: "12340", currency: "THB", commissionBps: 1000, createdAt: "2026-10-13T00:00:00.000Z" }], pagination: { page: 1, limit: 10, total: 1, totalPages: 1 } }, error: null });
 });
 afterEach(() => { cleanup(); for (const client of clients.splice(0)) client.clear(); });
 
 describe("financial table confirmations", () => {
+  it("requests payout pages past fifty and resets the server page when searching", async () => {
+    transport.payoutList.mockImplementation(async ({ query }: { query: { page: number; q?: string } }) => ({ data: payoutPage([
+      { id: `payout-${query.page}`, shop: { id: "shop-42", name: query.q || `Shop page ${query.page}` }, status: "requested", amount: "9007199254740993", currency: "THB", requestedAt: "2026-10-13T00:00:00.000Z" },
+    ], query.page, query.q ? 1 : 61), error: null }));
+    renderTable(<AdminPayoutsTable />);
+    await screen.findByRole("link", { name: "Shop page 1" });
+    fireEvent.click(screen.getByRole("button", { name: "admin.table.lastPage" }));
+    await screen.findByRole("link", { name: "Shop page 7" });
+    expect(transport.payoutList).toHaveBeenLastCalledWith({ query: { page: 7, limit: 10, q: undefined, status: undefined } });
+    fireEvent.change(screen.getByPlaceholderText("admin.search.payouts"), { target: { value: "Needle" } });
+    await screen.findByRole("link", { name: "Needle" });
+    expect(transport.payoutList).toHaveBeenLastCalledWith({ query: { page: 1, limit: 10, q: "Needle", status: undefined } });
+    expect(screen.queryByRole("button", { name: /admin.table.sortBy/ })).toBeNull();
+  });
+
   it("waits for confirmation before approving the exact payout", async () => {
-    transport.payoutList.mockResolvedValue({ data: [{ id: "payout-42", shop: { id: "shop-42", name: "Bangkok shop" }, status: "requested", amount: "123400", currency: "THB", requestedAt: "2026-10-13T00:00:00.000Z" }], error: null });
+    transport.payoutList.mockResolvedValue({ data: payoutPage([{ id: "payout-42", shop: { id: "shop-42", name: "Bangkok shop" }, status: "requested", amount: "123400", currency: "THB", requestedAt: "2026-10-13T00:00:00.000Z" }]), error: null });
     renderTable(<AdminPayoutsTable />);
     await screen.findByRole("link", { name: "Bangkok shop" });
     fireEvent.click(screen.getByRole("button", { name: "admin.ui.approve" }));

@@ -1,3 +1,4 @@
+import { listPageResult } from '#server/lib/list-page.ts'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { CatalogService } from '#server/modules/catalog/catalog.service.ts'
@@ -86,7 +87,7 @@ describe('DiscoveryService', () => {
       },
       pagination: { page: 1, limit: 4 },
     })
-    vi.mocked(promotionService.listPublicCoupons).mockResolvedValue([])
+    vi.mocked(promotionService.listPublicCoupons).mockResolvedValue(listPageResult([], 0, { limit: 8 }))
     vi.mocked(trackingService.getRecentlyViewedProducts).mockResolvedValue([])
 
     const service = new DiscoveryService(createAppContext(), repo, catalogService, recommendationService, promotionService, trackingService)
@@ -164,7 +165,7 @@ describe('DiscoveryService', () => {
     vi.mocked(catalogService.getPublicProductMetrics).mockResolvedValue([{ productId: 'p1', rating: 4.5, ratingCount: 2, soldCount: 7 }])
     vi.mocked(recommendationService.getTrending).mockResolvedValue({ items: [], pagination: { page: 1, limit: 12, hasNextPage: false } })
     vi.mocked(recommendationService.getHomeFeed).mockResolvedValue({ sections: { trending: [], newest: [], recommendedCategories: [] }, pagination: { page: 1, limit: 12 } })
-    vi.mocked(promotionService.listPublicCoupons).mockResolvedValue([{ id: 'coupon-1', code: 'SAVE', title: 'SAVE', description: null } as any])
+    vi.mocked(promotionService.listPublicCoupons).mockResolvedValue(listPageResult([{ id: 'coupon-1', code: 'SAVE', title: 'SAVE', description: null } as any], 1, { limit: 8 }))
     vi.mocked(trackingService.getRecentlyViewedProducts).mockResolvedValue([])
 
     const service = new DiscoveryService(createAppContext(), repo, catalogService, recommendationService, promotionService, trackingService)

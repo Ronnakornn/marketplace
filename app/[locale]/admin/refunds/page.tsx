@@ -1,4 +1,6 @@
-import { AdminPageIntro, AdminRefundsTable, AdminSpaceCat } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminRefundsTable } from "#/features/admin/components/AdminOperationsTables";
+import { AdminSpaceCat } from "#/features/admin/components/AdminSpaceCat";
 
 export default function AdminRefundsPage() {
   return (

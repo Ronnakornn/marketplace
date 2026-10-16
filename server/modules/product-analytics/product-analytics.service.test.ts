@@ -29,11 +29,8 @@ function createRepo(): IProductAnalyticsRepository {
     findVariantRankingPage: vi.fn(),
     findProductsByIds: vi.fn(),
     findVariantsByIds: vi.fn(),
-    countProductViews: vi.fn(),
-    findProductViewLogs: vi.fn(),
-    countProductAddToCart: vi.fn(),
-    findProductAddToCartLogs: vi.fn(),
-    findPaidOrderItems: vi.fn(),
+    findSummaryMetrics: vi.fn(),
+    findDailyMetrics: vi.fn(),
   }
 }
 
@@ -69,20 +66,6 @@ function createVariant(overrides: Record<string, unknown> = {}) {
   } as any
 }
 
-function createOrderItem(overrides: Record<string, unknown> = {}) {
-  return {
-    id: 'item-1',
-    shopId: SHOP_ID,
-    variantId: VARIANT_ID,
-    quantity: 2,
-    lineTotal: 2400n,
-    currency: 'THB',
-    order: { id: 'order-1', createdAt: new Date('2026-06-03T10:00:00.000Z'), currency: 'THB' },
-    variant: { id: VARIANT_ID, productId: PRODUCT_ID },
-    ...overrides,
-  } as any
-}
-
 function createActor() {
   return { id: 'seller-1', role: 'USER' as const }
 }
@@ -105,16 +88,16 @@ describe('ProductAnalyticsService', () => {
     vi.mocked(repo.findVariantRankingPage).mockResolvedValue({ items: [createRankingMetric(VARIANT_ID, { views: 0, conversionRate: 0 })], total: 1 })
     vi.mocked(repo.findProductsByIds).mockResolvedValue([createProduct()])
     vi.mocked(repo.findVariantsByIds).mockResolvedValue([createVariant()])
-    vi.mocked(repo.countProductViews).mockResolvedValue([{ productId: PRODUCT_ID, count: 10 }])
-    vi.mocked(repo.findProductViewLogs).mockResolvedValue([
-      { productId: PRODUCT_ID, createdAt: new Date('2026-06-02T10:00:00.000Z') },
-      { productId: PRODUCT_ID, createdAt: new Date('2026-06-03T10:00:00.000Z') },
+    const { id: _id, ...summary } = createRankingMetric('summary')
+    vi.mocked(repo.findSummaryMetrics).mockResolvedValue({
+      totals: summary,
+      topSkus: [createRankingMetric(VARIANT_ID, { views: 0, conversionRate: 0 })],
+      lowProducts: [],
+    })
+    vi.mocked(repo.findDailyMetrics).mockResolvedValue([
+      { ...createRankingMetric('day1', { views: 1, addToCart: 0, orders: 0, unitsSold: 0, revenue: 0n, conversionRate: 0 }), date: '2026-06-02' },
+      { ...createRankingMetric('day2', { views: 1, addToCart: 1, conversionRate: 1 }), date: '2026-06-03' },
     ])
-    vi.mocked(repo.countProductAddToCart).mockResolvedValue([{ productId: PRODUCT_ID, variantId: VARIANT_ID, count: 3, quantity: 4 }])
-    vi.mocked(repo.findProductAddToCartLogs).mockResolvedValue([
-      { productId: PRODUCT_ID, variantId: VARIANT_ID, quantity: 1, createdAt: new Date('2026-06-03T11:00:00.000Z') },
-    ])
-    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([createOrderItem()])
   })
 
   it('returns own active shop analytics from trusted order items', async () => {
@@ -125,7 +108,7 @@ describe('ProductAnalyticsService', () => {
     })
 
     expect(activeShopResolver.resolveActiveShops).toHaveBeenCalledWith('seller-1')
-    expect(repo.findPaidOrderItems).toHaveBeenCalledWith([SHOP_ID], expect.any(Object), undefined)
+    expect(repo.findSummaryMetrics).toHaveBeenCalledWith([SHOP_ID], expect.any(Object), undefined)
     expect(result).toMatchObject({
       views: 10,
       addToCart: 3,
@@ -162,14 +145,15 @@ describe('ProductAnalyticsService', () => {
       from: new Date('2026-05-31T17:00:00.000Z'),
       to: new Date('2026-06-07T16:59:59.999Z'),
     }), { productId: PRODUCT_ID, page: 2, limit: 10, sort: 'unitsSold' })
-    expect(repo.countProductAddToCart).not.toHaveBeenCalled()
-    expect(repo.findPaidOrderItems).not.toHaveBeenCalled()
+    expect(repo.findSummaryMetrics).not.toHaveBeenCalled()
   })
 
   it('returns zero summary values for empty analytics', async () => {
-    vi.mocked(repo.countProductViews).mockResolvedValue([])
-    vi.mocked(repo.countProductAddToCart).mockResolvedValue([])
-    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([])
+    const { id: _id, ...summary } = createRankingMetric('summary', { views: 0, addToCart: 0, addToCartQuantity: 0, orders: 0, unitsSold: 0, revenue: 0n, conversionRate: 0, currency: null })
+    vi.mocked(repo.findSummaryMetrics).mockResolvedValue({
+      totals: summary,
+      topSkus: [], lowProducts: [],
+    })
     vi.mocked(repo.findProductsByIds).mockResolvedValue([])
     vi.mocked(repo.findVariantsByIds).mockResolvedValue([])
 
@@ -203,9 +187,7 @@ describe('ProductAnalyticsService', () => {
     expect(result.items.map((item) => [item.productId, item.revenue])).toEqual([[PRODUCT_2_ID, 18446744073709551615n], [PRODUCT_ID, 2400n]])
     expect(result.pagination).toEqual({ page: 2, limit: 2, total: 501, totalPages: 251 })
     expect(result.items[0]).not.toHaveProperty('addToCartQuantity')
-    expect(repo.countProductViews).not.toHaveBeenCalled()
-    expect(repo.countProductAddToCart).not.toHaveBeenCalled()
-    expect(repo.findPaidOrderItems).not.toHaveBeenCalled()
+    expect(repo.findSummaryMetrics).not.toHaveBeenCalled()
   })
 
   it('returns an empty out-of-range page with the database total', async () => {
@@ -225,7 +207,7 @@ describe('ProductAnalyticsService', () => {
     expect(repo.findVariantsByIds).toHaveBeenCalledWith([SHOP_ID], [VARIANT_2_ID, VARIANT_ID])
     expect(result.items.map((item) => [item.variantId, item.currency])).toEqual([[VARIANT_2_ID, 'JPY'], [VARIANT_ID, 'USD']])
     expect(result.items[0]).not.toHaveProperty('conversionRate')
-    expect(repo.findPaidOrderItems).not.toHaveBeenCalled()
+    expect(repo.findSummaryMetrics).not.toHaveBeenCalled()
   })
   it('builds daily series from event and order timestamps', async () => {
     const result = await service.getDaily(createActor(), {
@@ -240,22 +222,17 @@ describe('ProductAnalyticsService', () => {
     ])
   })
 
-  it('accepts serialized timestamp strings from the Prisma response adapter', async () => {
-    vi.mocked(repo.findProductViewLogs).mockResolvedValue([
-      { productId: PRODUCT_ID, createdAt: '2026-06-02T10:00:00.000Z' },
-    ])
-    vi.mocked(repo.findProductAddToCartLogs).mockResolvedValue([])
-    vi.mocked(repo.findPaidOrderItems).mockResolvedValue([])
-
+  it('fills missing calendar days without requesting raw histories', async () => {
+    vi.mocked(repo.findDailyMetrics).mockResolvedValue([])
     const result = await service.getDaily(createActor(), {
-      range: 'custom',
-      from: '2026-06-02',
-      to: '2026-06-02',
+      range: 'custom', from: '2026-06-02', to: '2026-06-02', productId: PRODUCT_ID,
     })
-
-    expect(result.items).toEqual([
-      expect.objectContaining({ date: '2026-06-02', views: 1 }),
-    ])
+    expect(result.items).toEqual([{
+      date: '2026-06-02', views: 0, addToCart: 0, orders: 0, unitsSold: 0, revenue: 0n, conversionRate: 0,
+    }])
+    expect(repo.findDailyMetrics).toHaveBeenCalledWith([SHOP_ID], {
+      from: new Date('2026-06-01T17:00:00.000Z'), to: new Date('2026-06-02T16:59:59.999Z'),
+    }, PRODUCT_ID)
   })
 
   it('keeps another seller product data out through active shop scoping', async () => {
@@ -263,7 +240,6 @@ describe('ProductAnalyticsService', () => {
 
     await service.getSummary({ id: 'seller-2', role: 'USER' }, { range: '7d' })
 
-    expect(repo.countProductViews).toHaveBeenCalledWith([OTHER_SHOP_ID], expect.any(Object), undefined)
-    expect(repo.findPaidOrderItems).toHaveBeenCalledWith([OTHER_SHOP_ID], expect.any(Object), undefined)
+    expect(repo.findSummaryMetrics).toHaveBeenCalledWith([OTHER_SHOP_ID], expect.any(Object), undefined)
   })
 })

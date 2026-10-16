@@ -1,4 +1,7 @@
-import { AdminPageIntro, AdminSellerApplicationsTable, AdminShopsTable, AdminSpaceCat } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminSellerApplicationsTable } from "#/features/admin/components/AdminSellerApplicationsTable";
+import { AdminShopsTable } from "#/features/admin/components/AdminOperationsTables";
+import { AdminSpaceCat } from "#/features/admin/components/AdminSpaceCat";
 
 export default function AdminShopsPage() {
   return (

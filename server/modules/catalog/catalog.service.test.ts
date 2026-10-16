@@ -52,6 +52,7 @@ function createRepoMock(): ICatalogRepository {
     }))),
     findRelatedProducts: vi.fn(),
     findProducts: vi.fn(),
+    countProductStatuses: vi.fn(async () => ({ active: 0, draft: 0, archived: 0 })),
     findProductFacets: vi.fn(async () => ({
       categories: [],
       brands: [],

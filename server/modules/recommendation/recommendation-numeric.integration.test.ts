@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Elysia } from 'elysia'
 import { randomUUID } from 'node:crypto'
 import type { PrismaClient } from '#generated/client/client.ts'
@@ -7,6 +7,7 @@ import { numericThresholdFixture, thresholdContext, thresholdDatabase, threshold
 import { PrismaRecommendationRepository } from './recommendation.repository.ts'
 import { RecommendationService } from './recommendation.service.ts'
 import { createRecommendationRoutes } from './recommendation.routes.ts'
+import { PgVectorSearchAdapter } from '#server/modules/ai-search/vector-search.adapter.ts'
 
 describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('recommendation numeric thresholds on PostgreSQL', () => {
   let db: PrismaClient
@@ -65,5 +66,43 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('recommendation nume
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ items: [{ productId: valid.product.id, minPrice: '1000', soldCount: 9, stock: 1 }], pagination: { hasNextPage: false } })
     expect(await db.orderItem.aggregate({ where: { variantId: valid.variant.id, fulfillmentStatus: { not: 'CANCELED' }, order: { paymentStatus: 'SUCCEEDED', status: { not: 'CANCELED' } } }, _sum: { quantity: true } })).toEqual({ _sum: { quantity: 9 } })
+  })
+
+  it('aggregates only published reviews and active-variant sales while keeping IEEE rating rounding', async () => {
+    const f = await numericThresholdFixture(db)
+    const target = await thresholdProduct(db, f, { price: 9223372036854775807n })
+    const sale = await thresholdSale(db, f, target)
+    const itemIds = [sale.item.id, ...Array.from({ length: 40 }, () => randomUUID())]
+    await db.orderItem.createMany({ data: itemIds.slice(1).map((id) => ({ ...sale.item, id })) })
+    await db.review.createMany({ data: itemIds.map((orderItemId, index) => ({
+      orderItemId, productId: target.product.id, userId: f.buyer.id,
+      rating: index < 13 ? 2 : index < 40 ? 3 : 5,
+      status: index < 40 ? 'PUBLISHED' : 'PENDING',
+    })) })
+    const inactive = await db.productVariant.create({ data: { productId: target.product.id, sku: randomUUID(), title: 'Inactive', status: 'INACTIVE', price: 1n } })
+    await thresholdSale(db, f, { product: target.product, variant: inactive, quantity: 100, amount: 10000n })
+    const related = await service.getRelated(f.product.id, { limit: 20 })
+    expect(related.items).toEqual([expect.objectContaining({ productId: target.product.id, minPrice: 9223372036854775807n, rating: 2.67, soldCount: 41 })])
+    const repo = new PrismaRecommendationRepository(thresholdContext, db)
+    expect(await repo.findPublicProductById(f.product.id)).toEqual({
+      id: f.product.id, categoryId: f.category.id, shopId: f.shop.id, variants: [{ price: 100n }],
+    })
+    const records = await repo.findRelatedProducts({ productId: f.product.id, limit: 20, offset: 0 }, {
+      id: f.product.id, categoryId: f.category.id, shopId: f.shop.id, variants: [{ price: 100n }],
+    })
+    expect(records[0]).toMatchObject({ ratingSum: 107, reviewCount: 40, soldCount: 41 })
+    expect(records[0]).not.toHaveProperty('reviews')
+    expect(records[0]?.variants[0]).not.toHaveProperty('orderItems')
+
+    const nearest = vi.spyOn(db, '$queryRawUnsafe').mockResolvedValue([{ productId: target.product.id, score: 0.875 }])
+    try {
+      const adapter = new PgVectorSearchAdapter(thresholdContext, db)
+      const matches = await adapter.searchProducts({ embedding: [0.1, 0.2], limit: 1, locale: 'en', model: 'fixture' })
+      expect(matches).toEqual([expect.objectContaining({ score: 0.875, product: expect.objectContaining({ id: target.product.id, ratingSum: 107, reviewCount: 40 }) })])
+      expect(matches[0]?.product).not.toHaveProperty('reviews')
+      expect(matches[0]?.product.variants[0]).not.toHaveProperty('orderItems')
+    } finally {
+      nearest.mockRestore()
+    }
   })
 })

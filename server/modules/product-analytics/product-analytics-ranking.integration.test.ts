@@ -4,7 +4,7 @@ import type { PrismaClient } from '#generated/client/client.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
 import { numericThresholdFixture, thresholdContext, thresholdDatabase, thresholdProduct, thresholdSale } from '#server/test-support/numeric-threshold.fixture.ts'
 import { PrismaProductAnalyticsRepository, type AnalyticsRankingMetric } from './product-analytics.repository.ts'
-import { ProductAnalyticsService, type ProductAnalyticsProductMetric, type ProductAnalyticsSkuMetric } from './product-analytics.service.ts'
+import { ProductAnalyticsService, type ProductAnalyticsProductMetric, type ProductAnalyticsSkuMetric, type ProductAnalyticsSummary } from './product-analytics.service.ts'
 
 const range = { from: new Date('2026-10-03T17:00:00.000Z'), to: new Date('2026-10-04T16:59:59.999Z') }
 const query = { range: 'custom', from: '2026-10-04', to: '2026-10-04' } as const
@@ -27,6 +27,7 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('bounded analytics r
   let fixture: Awaited<ReturnType<typeof numericThresholdFixture>>
   let expectedProducts: ProductAnalyticsProductMetric[]
   let expectedSkus: ProductAnalyticsSkuMetric[]
+  let expectedSummary: ProductAnalyticsSummary
 
   beforeAll(async () => {
     db = thresholdDatabase()
@@ -76,7 +77,9 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('bounded analytics r
     const products = await db.product.findMany({ where: { shopId: fixture.shop.id, deletedAt: null }, select: { id: true } })
     const variants = await db.productVariant.findMany({ where: { product: { shopId: fixture.shop.id, deletedAt: null } }, select: { id: true } })
     const [views, carts, sales, details, variantDetails] = await Promise.all([
-      repo.countProductViews([fixture.shop.id], range), repo.countProductAddToCart([fixture.shop.id], range), repo.findPaidOrderItems([fixture.shop.id], range),
+      db.productViewLog.groupBy({ by: ['productId'], where: { shopId: fixture.shop.id, createdAt: { gte: range.from, lte: range.to } }, _count: { _all: true } }).then((rows) => rows.map((row) => ({ productId: row.productId, count: row._count._all }))),
+      db.productAddToCartLog.groupBy({ by: ['productId', 'variantId'], where: { shopId: fixture.shop.id, createdAt: { gte: range.from, lte: range.to } }, _count: { _all: true }, _sum: { quantity: true } }).then((rows) => rows.map((row) => ({ productId: row.productId, variantId: row.variantId, count: row._count._all, quantity: row._sum.quantity ?? 0 }))),
+      db.orderItem.findMany({ where: { shopId: fixture.shop.id, fulfillmentStatus: { not: 'CANCELED' }, order: { paymentStatus: 'SUCCEEDED', status: { in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'PARTIALLY_FULFILLED', 'FULFILLED'] }, createdAt: { gte: range.from, lte: range.to }, payments: { some: { status: 'SUCCEEDED' } } } }, include: { order: true, variant: true } }),
       repo.findProductsByIds([fixture.shop.id], products.map((product) => product.id)), repo.findVariantsByIds([fixture.shop.id], variants.map((variant) => variant.id)),
     ])
     function totals(id: string, sku: boolean): Omit<AnalyticsRankingMetric, 'id'> {
@@ -95,6 +98,19 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('bounded analytics r
       const { conversionRate: _conversion, currency, ...metrics } = totals(variant.id, true)
       return { variantId: variant.id, productId: variant.productId, productTitle: variant.product.title, productSlug: variant.product.slug, sku: variant.sku, title: variant.title, status: variant.status, ...metrics, currency: currency ?? variant.currency }
     })
+    const activeVariantIds = new Set([...carts.map((item) => item.variantId), ...sales.map((item) => item.variantId)])
+    const viewsTotal = views.reduce((sum, row) => sum + row.count, 0)
+    const ordersTotal = new Set(sales.map((item) => item.order.id)).size
+    const currencies = new Set(sales.map((item) => item.currency))
+    expectedSummary = {
+      views: viewsTotal, addToCart: carts.reduce((sum, row) => sum + row.count, 0),
+      orders: ordersTotal, unitsSold: sales.reduce((sum, row) => sum + row.quantity, 0),
+      revenue: sales.reduce((sum, row) => sum + row.lineTotal, 0n),
+      conversionRate: viewsTotal ? ordersTotal / viewsTotal : 0,
+      currency: currencies.size === 1 ? [...currencies][0]! : null,
+      topSkus: expectedSkus.filter((item) => activeVariantIds.has(item.variantId)).sort((a, b) => compare(a as unknown as Record<string, unknown>, b as unknown as Record<string, unknown>, 'revenue', 'sku', 'variantId')).slice(0, 5),
+      lowPerformingProducts: expectedProducts.filter((item) => item.views >= 10 && item.conversionRate < 0.01).sort((a, b) => b.views - a.views || a.conversionRate - b.conversionRate || a.title.localeCompare(b.title)).slice(0, 5),
+    }
   }, 30_000)
   afterAll(async () => { await db?.$disconnect() })
 
@@ -123,6 +139,44 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('bounded analytics r
     expect(products.items.find((item) => item.title === 'Z')).toMatchObject({ orders: 1, unitsSold: 1, revenue: 100n, views: 10 })
     expect(products.items.find((item) => item.title === 'No activity')).toMatchObject({ status: 'DRAFT', orders: 0, revenue: 0n, currency: null })
     expect(products.pagination.total).toBe(10)
+  })
+
+  it('matches legacy summary/daily totals including deleted histories and only hydrates selected top/low IDs', async () => {
+    const productsSpy = vi.spyOn(repo, 'findProductsByIds')
+    const variantsSpy = vi.spyOn(repo, 'findVariantsByIds')
+    const querySpy = vi.spyOn(db, '$queryRaw')
+    try {
+      expect(await service.getSummary(fixture.owner, query)).toEqual(expectedSummary)
+      expect(productsSpy).toHaveBeenCalledWith([fixture.shop.id], expectedSummary.lowPerformingProducts.map((item) => item.productId))
+      expect(variantsSpy).toHaveBeenCalledWith([fixture.shop.id], expectedSummary.topSkus.map((item) => item.variantId))
+      expect(await querySpy.mock.results[0]!.value).toHaveLength(1 + expectedSummary.topSkus.length + expectedSummary.lowPerformingProducts.length)
+      const { topSkus: _skus, lowPerformingProducts: _low, currency: _currency, ...daily } = expectedSummary
+      expect(await service.getDaily(fixture.owner, query)).toEqual({ items: [{ date: '2026-10-04', ...daily }] })
+    } finally {
+      productsSpy.mockRestore()
+      variantsSpy.mockRestore()
+      querySpy.mockRestore()
+    }
+  })
+
+  it('includes zero-revenue cart SKUs, excludes no-activity SKUs, and limits top candidates before hydration', async () => {
+    const f = await numericThresholdFixture(db)
+    const rows = []
+    for (let index = 0; index < 7; index += 1) {
+      const row = await thresholdProduct(db, f, { price: 1n, variantStatus: index % 2 ? 'INACTIVE' : 'ACTIVE' })
+      rows.push(row)
+      await db.productAddToCartLog.create({ data: { shopId: f.shop.id, productId: row.product.id, variantId: row.variant.id, quantity: 2, createdAt: range.from } })
+    }
+    const scoped = new ProductAnalyticsService(thresholdContext, repo, { resolveActiveShops: async () => [f.shop] } as unknown as ActiveShopResolver)
+    const result = await scoped.getSummary(f.owner, query)
+    const expectedIds = rows.map((row) => row.variant.id).sort((a, b) => a.localeCompare(b)).slice(0, 5)
+    expect(result).toMatchObject({ views: 0, addToCart: 7, orders: 0, unitsSold: 0, revenue: 0n, conversionRate: 0, currency: null, lowPerformingProducts: [] })
+    expect(result.topSkus.map((item) => item.variantId)).toEqual(expectedIds)
+    expect(result.topSkus.every((item) => item.revenue === 0n && item.currency === 'THB' && item.addToCartQuantity === 2)).toBe(true)
+    expect(result.topSkus.some((item) => item.variantId === f.variant.id)).toBe(false)
+    const filtered = await scoped.getSummary(f.owner, { ...query, productId: rows[0]!.product.id })
+    expect(filtered.topSkus.map((item) => item.variantId)).toEqual([rows[0]!.variant.id])
+    expect(filtered).toMatchObject({ addToCart: 1, orders: 0, revenue: 0n })
   })
 
   it('applies title/slug and product scopes without admitting another seller', async () => {

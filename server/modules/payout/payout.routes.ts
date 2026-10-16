@@ -1,8 +1,16 @@
 import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
-import { authPlugin } from '#server/modules/auth'
+import { authPlugin, type AuthContext } from '#server/modules/auth'
 import { WalletServiceError } from '#server/modules/wallet'
+import { ListPageQuery } from '#server/lib/list-page.ts'
+
+const PayoutListQuery = t.Object({
+  ...ListPageQuery,
+  q: t.Optional(t.String({ maxLength: 200 })),
+  status: t.Optional(t.String({ minLength: 1, maxLength: 30 })),
+  shopId: t.Optional(t.String({ format: 'uuid' })),
+})
 
 const PayoutRequestBody = t.Object({
   amount: t.Integer({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER }),
@@ -38,15 +46,16 @@ export function createPayoutRoutes(container: ServiceContainer) {
       withSellerOperational: true,
       body: PayoutRequestBody,
     })
-    .get('/api/seller/payouts', ({ authContext }: any) =>
-      moneyResponse(container.payoutService.listSellerPayouts(actor(authContext))), {
+    .get('/api/seller/payouts', ({ authContext, query }: { authContext?: AuthContext; query: typeof PayoutListQuery.static }) =>
+      moneyResponse(container.payoutService.listSellerPayouts(actor(authContext), query)), {
       withAuth: true,
       withSellerOperational: true,
+      query: PayoutListQuery,
     })
-    .get('/api/admin/payouts', ({ authContext, query }: any) =>
+    .get('/api/admin/payouts', ({ authContext, query }: { authContext?: AuthContext; query: typeof PayoutListQuery.static }) =>
       moneyResponse(container.payoutService.listAdminPayouts(actor(authContext), query)), {
       withRole: 'ADMIN',
-      query: t.Object({ status: t.Optional(t.String()) }),
+      query: PayoutListQuery,
     })
     .get('/api/admin/payouts/:payoutId', ({ authContext, params }: any) =>
       moneyResponse(container.payoutService.getAdminPayout(actor(authContext), params.payoutId)), {

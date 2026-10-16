@@ -22,6 +22,22 @@ function createContainer() {
 describe('order routes', () => {
   beforeEach(() => vi.clearAllMocks())
 
+  it('passes bounded buyer order filters to the list service', async () => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue({ user: { id: 'buyer-1', role: 'USER', status: 'ACTIVE' } } as any)
+    const response = await new Elysia().use(createOrderRoutes(container)).handle(new Request('http://localhost/api/orders?page=3&limit=20&q=needle&status=PAID'))
+    expect(response.status).toBe(200)
+    expect(container.orderService.listBuyerOrders).toHaveBeenCalledWith(expect.objectContaining({ id: 'buyer-1' }), { page: 3, limit: 20, q: 'needle', status: 'PAID' })
+  })
+
+  it.each(['page=0', 'limit=51', 'limit=1.5', 'page=-1', 'status=INVALID'])('rejects invalid buyer order list query %s', async (query) => {
+    const container = createContainer()
+    vi.mocked(getAuthContext).mockResolvedValue({ user: { id: 'buyer-1', role: 'USER', status: 'ACTIVE' } } as any)
+    const response = await new Elysia().use(createOrderRoutes(container)).handle(new Request(`http://localhost/api/orders?${query}`))
+    expect(response.status).toBe(422)
+    expect(container.orderService.listBuyerOrders).not.toHaveBeenCalled()
+  })
+
   it('requires authentication to cancel an order', async () => {
     vi.mocked(getAuthContext).mockResolvedValue(null)
     const response = await new Elysia().use(createOrderRoutes(createContainer())).handle(new Request(`http://localhost/api/orders/${orderId}/cancel`, { method: 'POST' }))

@@ -165,3 +165,23 @@ it("does not request private exports for a report reader", async () => {
     }),
   ).toBeNull();
 });
+
+it("keeps the daily chart cached while paging the table and refreshes it for a date filter", async () => {
+  transport.get.mockResolvedValue({
+    data: { totals: [], items: [], total: "51", searchQueries: [] }, error: null,
+  });
+  await openReport();
+  const chartRequests = () => transport.get.mock.calls.filter(([input]) => input.query.limit === 100);
+  expect(chartRequests()).toHaveLength(1);
+
+  await waitFor(() => expect(screen.getByRole("button", { name: messages.admin.reporting.next })).toHaveProperty("disabled", false));
+  fireEvent.click(screen.getByRole("button", { name: messages.admin.reporting.next }));
+  await waitFor(() => expect(transport.get).toHaveBeenCalledWith({ query: { group: "day", timeZone: "Asia/Bangkok", page: 2, limit: 25 } }));
+  expect(transport.get).toHaveBeenCalledTimes(3);
+  expect(chartRequests()).toHaveLength(1);
+
+  fireEvent.change(screen.getByLabelText(messages.admin.reporting.from), { target: { value: "2026-10-01" } });
+  fireEvent.click(screen.getByRole("button", { name: messages.admin.reporting.applyFilters }));
+  await waitFor(() => expect(chartRequests()).toHaveLength(2));
+  expect(chartRequests()[1]?.[0]).toMatchObject({ query: { from: "2026-10-01", group: "day", page: 1, limit: 100 } });
+});

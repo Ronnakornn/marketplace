@@ -21,6 +21,8 @@ import type {
   SellerShipment,
   ShipmentOrderForCreation,
   ShipmentWithItems,
+  ShipmentListInput,
+  SellerShipmentListRecord,
 } from './shipment.repository.ts'
 
 export interface ShipmentActor {
@@ -152,10 +154,10 @@ export class ShipmentService {
     return [...order.shipments, ...created]
   }
 
-  async listSellerShipments(actor: ShipmentActor): Promise<ShipmentResponse[]> {
+  async listSellerShipments(actor: ShipmentActor, input: ShipmentListInput = {}) {
     const shopIds = await this.getSellerShopIds(actor.id)
-    const shipments = await this.repo.findSellerShipments(shopIds)
-    return shipments.map((shipment) => this.toSellerShipmentResponse(shipment))
+    const shipments = await this.repo.findSellerShipments(shopIds, input)
+    return { ...shipments, data: shipments.data.map((shipment) => this.toSellerShipmentResponse(shipment)) }
   }
 
   async getSellerShipment(actor: ShipmentActor, shipmentId: string): Promise<ShipmentResponse> {
@@ -331,7 +333,7 @@ export class ShipmentService {
     return 'PARTIALLY_FULFILLED'
   }
 
-  private toSellerShipmentResponse(shipment: SellerShipment): ShipmentResponse {
+  private toSellerShipmentResponse(shipment: SellerShipmentListRecord): ShipmentResponse {
     return {
       id: shipment.id,
       orderId: shipment.orderId,

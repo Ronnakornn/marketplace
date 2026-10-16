@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { IPayoutRepository, PayoutRecord } from './payout.repository.ts'
 import { PayoutService } from './payout.service.ts'
+import { listPageResult } from '#server/lib/list-page.ts'
 
 function appContext(): AppContext {
   return {
@@ -285,5 +286,26 @@ describe('PayoutService', () => {
 
     await expect(service.approveAdminPayout({ id: 'admin-1', role: 'ADMIN' }, 'payout-1'))
       .rejects.toMatchObject({ code: 'INVALID_PAYOUT_STATE' })
+  })
+
+  it('preserves exact admin payout amounts and full counts after the first fifty records', async () => {
+    vi.mocked(repo.listAdminPayouts).mockResolvedValue(listPageResult([{ ...payout(), amount: 9007199254740993n }], 61, { page: 4, limit: 20 }))
+    const result = await service.listAdminPayouts({ id: 'admin-1', role: 'ADMIN' }, { page: 4, limit: 20, status: 'APPROVED', q: ' Bank ' })
+    expect(repo.listAdminPayouts).toHaveBeenCalledWith({ page: 4, limit: 20, status: 'approved', q: 'Bank' })
+    expect(result.data[0]?.amount).toBe(9007199254740993n)
+    expect(result.meta).toEqual({ page: 4, limit: 20, totalCount: 61, totalPages: 4, hasNextPage: false, hasPreviousPage: true })
+  })
+
+  it('scopes seller payout pages to authorized shops before applying a requested shop', async () => {
+    vi.mocked(repo.listSellerPayouts).mockResolvedValue(listPageResult([], 0, {}))
+    await service.listSellerPayouts({ id: 'seller-1', role: 'USER' }, { shopId: 'foreign-shop', status: 'paid' })
+    expect(repo.listSellerPayouts).toHaveBeenCalledWith([], { shopId: 'foreign-shop', status: 'paid', q: undefined })
+  })
+
+  it('rejects seller access to administrative payout pages and unknown statuses', async () => {
+    await expect(service.listAdminPayouts({ id: 'seller-1', role: 'USER' })).rejects.toMatchObject({ code: 'PAYOUT_FORBIDDEN' })
+    await expect(service.listSellerPayouts({ id: 'seller-1', role: 'USER' }, { status: 'invalid' })).rejects.toMatchObject({ code: 'INVALID_PAYOUT_STATE' })
+    expect(repo.listAdminPayouts).not.toHaveBeenCalled()
+    expect(repo.listSellerPayouts).not.toHaveBeenCalled()
   })
 })

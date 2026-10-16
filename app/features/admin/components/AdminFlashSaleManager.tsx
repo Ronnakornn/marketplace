@@ -31,10 +31,11 @@ export function AdminFlashSaleManager() {
   const formatters = useFormatters();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const query = useQuery({
-    queryKey: ["admin", "flash-sales"],
+    queryKey: ["admin", "flash-sales", { page, q: search }],
     queryFn: async () => {
-      const { data, error } = await api.api.admin["flash-sales"].get();
+      const { data, error } = await api.api.admin["flash-sales"].get({ query: { page, limit: 10, q: search.trim() || undefined } });
       if (error) throw error;
       return data;
     },
@@ -82,7 +83,7 @@ export function AdminFlashSaleManager() {
     },
     onSuccess: invalidate,
   });
-  const rows = (query.data ?? []).filter((sale) => sale.title.toLowerCase().includes(search.toLowerCase()));
+  const rows = query.data?.data ?? [];
   const productOptions = (productsQuery.data?.items ?? []).flatMap((product) => product.variants
     .filter((variant) => variant.status === "ACTIVE")
     .map((variant) => ({ productId: product.id, variantId: variant.id, label: `${product.title} · ${variant.title} (${variant.sku})` })));
@@ -100,7 +101,7 @@ export function AdminFlashSaleManager() {
     }, { onSuccess: () => form.reset() });
   }
 
-  return <AdminDataShell title={t("admin.flashSales.title")} description={t("admin.flashSales.description")} icon={BoltIcon} search={search} searchPlaceholder={t("admin.flashSales.search")} onSearchChange={setSearch} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()}>
+  return <AdminDataShell title={t("admin.flashSales.title")} description={t("admin.flashSales.description")} icon={BoltIcon} search={search} searchPlaceholder={t("admin.flashSales.search")} onSearchChange={(value) => { setSearch(value); setPage(1); }} isLoading={query.isLoading} error={query.error} onRetry={() => void query.refetch()}>
     <CardContent className="space-y-5 p-5">
       <form className="grid gap-3 rounded-xl border border-cyan-300/15 bg-slate-950/40 p-4 md:grid-cols-2 xl:grid-cols-4" onSubmit={handleCreate}>
         <Input name="title" required placeholder={t("admin.flashSales.name")} className="border-white/10 bg-slate-950 text-white" />
@@ -128,6 +129,7 @@ export function AdminFlashSaleManager() {
           <div className="flex gap-2"><Button type="submit" variant="outline" disabled={!canManageFlashSaleItems(sale) || updateItem.isPending}>{t("common.save")}</Button><Button type="button" size="icon" variant="destructive" disabled={!canManageFlashSaleItems(sale) || deleteItem.isPending} onClick={() => deleteItem.mutate(item.id)} aria-label={t("admin.flashSales.removeItem")}><Trash2Icon className="size-4" /></Button></div>
         </form>)}</div>
       </article>) : <p className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-slate-400">{t("admin.flashSales.empty")}</p>}</div>
+      <div className="flex justify-end gap-2"><Button variant="outline" disabled={page <= 1 || query.isFetching} onClick={() => setPage(current => current - 1)}>{t("common.previous")}</Button><Button variant="outline" disabled={!query.data?.meta.hasNextPage || query.isFetching} onClick={() => setPage(current => current + 1)}>{t("common.next")}</Button></div>
     </CardContent>
   </AdminDataShell>;
 }

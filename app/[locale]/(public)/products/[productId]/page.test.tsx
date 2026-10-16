@@ -4,7 +4,7 @@ import ProductPage, { generateMetadata } from "./page";
 
 const { load } = vi.hoisted(() => ({ load: vi.fn() }));
 vi.mock("#/features/product/product-data.server", () => ({ requirePublicProductData: load }));
-vi.mock("#/features/product", () => ({
+vi.mock("#/features/product/components/ProductDetailPage", () => ({
   ProductDetailPage: ({ productId, initialData, initialRatingSummary }: {
     productId: string;
     initialData: { id: string; title: string; variants: Array<{ price: string }> };

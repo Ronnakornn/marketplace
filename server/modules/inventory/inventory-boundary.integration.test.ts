@@ -188,7 +188,7 @@ describe.skipIf(!databaseUrl)('composed inventory boundary on PostgreSQL', () =>
       }])
       const list = await target.app.handle(new Request('http://localhost/api/seller/inventory'))
       expect(list.status).toBe(200)
-      expect(await list.json()).toMatchObject([{ variantId: target.variant.id, quantityOnHand: 12 }])
+      expect(await list.json()).toMatchObject({ data: [{ variantId: target.variant.id, quantityOnHand: 12 }], meta: { totalCount: 1 } })
     }
   })
 

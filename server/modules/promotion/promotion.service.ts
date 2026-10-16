@@ -15,6 +15,8 @@ import type {
   BuyerPromotionCoupon,
   UpdateCouponInput,
   FlashSalePayload,
+  CouponListInput,
+  FlashSaleListInput,
 } from './promotion.repository.ts'
 
 export interface PromotionActor {
@@ -111,22 +113,17 @@ export class PromotionService {
     this.logger = appContext.logger
   }
 
-  async listPublicCoupons(localeInput?: string): Promise<PublicCoupon[]> {
+  async listPublicCoupons(localeInput?: string, input: CouponListInput = {}) {
     const locale = resolveContentLocale(localeInput)
-    const coupons = await this.repo.listPublicCoupons()
-    return coupons
-      .filter((coupon) => coupon.usageLimit === null || coupon._count.redemptions < coupon.usageLimit)
-      .map((coupon) => this.toPublicCoupon(coupon, locale))
+    const page = await this.repo.listPublicCoupons(input)
+    return { ...page, data: page.data.map(coupon => this.toPublicCoupon(coupon, locale)) }
   }
 
-  async listBuyerCoupons(actor: PromotionActor, localeInput?: string): Promise<PublicCoupon[]> {
+  async listBuyerCoupons(actor: PromotionActor, localeInput?: string, input: CouponListInput = {}) {
     this.assertBuyer(actor)
     const locale = resolveContentLocale(localeInput)
-    const coupons = await this.repo.listBuyerCoupons(actor.id)
-    return coupons
-      .filter((coupon) => coupon.usageLimit === null || coupon._count.redemptions < coupon.usageLimit)
-      .sort((left, right) => Number(Boolean(right.claims[0])) - Number(Boolean(left.claims[0])))
-      .map((coupon) => this.toPublicCoupon(coupon, locale, coupon.claims[0]))
+    const page = await this.repo.listBuyerCoupons(actor.id, input)
+    return { ...page, data: page.data.map(coupon => this.toPublicCoupon(coupon, locale, coupon.claims[0])) }
   }
 
   async getBuyerCoins(actor: PromotionActor, limitInput = 20, cursor?: string) {
@@ -158,14 +155,14 @@ export class PromotionService {
     return this.toPublicCoupon(coupon, resolveContentLocale(localeInput), claim)
   }
 
-  listAdminCoupons(actor: PromotionActor): Promise<Coupon[]> {
+  listAdminCoupons(actor: PromotionActor, input: CouponListInput = {}) {
     this.assertAdmin(actor)
-    return this.repo.listAdminCoupons()
+    return this.repo.listAdminCoupons(input)
   }
 
-  async listSellerCoupons(actor: PromotionActor): Promise<Coupon[]> {
+  async listSellerCoupons(actor: PromotionActor, input: CouponListInput = {}) {
     const shopIds = await this.getSellerShopIds(actor)
-    return this.repo.listSellerCoupons(shopIds)
+    return this.repo.listSellerCoupons(shopIds, input)
   }
 
   async validateCoupon(actor: PromotionActor, input: ValidateCouponInput): Promise<CouponValidationResult> {
@@ -247,9 +244,9 @@ export class PromotionService {
     return { ok: true }
   }
 
-  async listAdminFlashSales(actor: PromotionActor) {
+  async listAdminFlashSales(actor: PromotionActor, input: FlashSaleListInput = {}) {
     this.assertAdmin(actor)
-    return this.repo.listAdminFlashSales()
+    return this.repo.listAdminFlashSales(input)
   }
 
   async listSellerFlashSales(actor: PromotionActor) {

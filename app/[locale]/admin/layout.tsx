@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { AdminSidebarNav } from "#/features/admin";
+import { AdminSidebarNav } from "#/features/admin/components/AdminSidebarNav";
 import { requireAdmin } from "#/lib/auth-server";
 import { privatePageMetadata } from "#/lib/seo";
 import { Providers } from "#/providers";

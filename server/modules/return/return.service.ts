@@ -1,5 +1,6 @@
 import { moneyInteger } from '#server/lib/money.ts'
-import type { Role } from '#generated/client/enums.ts'
+import { ReturnStatus, type Role } from '#generated/client/enums.ts'
+import { type ListPageInput } from '#server/lib/list-page.ts'
 import type { Refund } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
@@ -8,7 +9,7 @@ import type { EventPublisherService } from '#server/modules/event-bus'
 import { RefundServiceError } from '#server/modules/refund/refund.errors.ts'
 import type { ReturnOrderItem } from './return.repository.ts'
 import { ReturnServiceError } from './return.errors.ts'
-import type { IReturnRepository, ReturnRecord, ReturnUpload } from './return.repository.ts'
+import type { IReturnRepository, ReturnRecord, ReturnListRecord, ReturnUpload } from './return.repository.ts'
 import { getReturnConfigFromEnv, type ReturnConfig } from './return.config.ts'
 
 const MAX_RETURN_IMAGE_COUNT = 5
@@ -57,6 +58,13 @@ export interface ReturnResponse {
 }
 
 const ACTIVE_RETURN_STATUSES = new Set(['REQUESTED', 'APPROVED', 'RECEIVED'])
+export type ReturnListFilters = ListPageInput & { q?: string; status?: string; shopId?: string }
+
+function returnListFilters(input: ReturnListFilters) {
+  const status = input.status ? Object.values(ReturnStatus).find((value) => value === input.status?.trim().toUpperCase()) : undefined
+  if (input.status && !status) throw new ReturnServiceError('Invalid return status', 400, 'INVALID_RETURN_STATE')
+  return { ...input, q: input.q?.trim() || undefined, status }
+}
 
 export class ReturnService {
   private logger: ILogger
@@ -112,10 +120,10 @@ export class ReturnService {
     return created
   }
 
-  async listBuyerReturns(actor: ReturnActor): Promise<ReturnResponse[]> {
+  async listBuyerReturns(actor: ReturnActor, input: ReturnListFilters = {}) {
     this.assertBuyer(actor)
-    const returns = await this.repo.findBuyerReturns(actor.id)
-    return returns.map((returnRecord) => this.toResponse(returnRecord))
+    const page = await this.repo.findBuyerReturns(actor.id, returnListFilters(input))
+    return { ...page, data: page.data.map((returnRecord) => this.toResponse(returnRecord)) }
   }
 
   async getBuyerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
@@ -138,10 +146,11 @@ export class ReturnService {
     })
   }
 
-  async listSellerReturns(actor: ReturnActor): Promise<ReturnResponse[]> {
-    const shopIds = await this.getSellerShopIds(actor.id)
-    const returns = await this.repo.findSellerReturns(shopIds)
-    return returns.map((returnRecord) => this.toResponse(this.filterReturnItems(returnRecord, shopIds)))
+  async listSellerReturns(actor: ReturnActor, input: ReturnListFilters = {}) {
+    const shops = await this.getSellerShopIds(actor.id)
+    const shopIds = input.shopId ? shops.filter((id) => id === input.shopId) : shops
+    const page = await this.repo.findSellerReturns(shopIds, returnListFilters(input))
+    return { ...page, data: page.data.map((returnRecord) => this.toResponse(this.filterReturnItems(returnRecord, shopIds))) }
   }
 
   async getSellerReturn(actor: ReturnActor, returnId: string): Promise<ReturnResponse> {
@@ -298,7 +307,7 @@ export class ReturnService {
     return this.filterReturnItems(returnRecord, shopIds)
   }
 
-  private filterReturnItems(returnRecord: ReturnRecord, shopIds: string[]): ReturnRecord {
+  private filterReturnItems<T extends ReturnListRecord>(returnRecord: T, shopIds: string[]): T {
     const allowed = new Set(shopIds)
     return {
       ...returnRecord,
@@ -344,7 +353,7 @@ export class ReturnService {
     }
   }
 
-  private toResponse(returnRecord: ReturnRecord): ReturnResponse {
+  private toResponse(returnRecord: ReturnListRecord): ReturnResponse {
     const refund = returnRecord.refunds[0] ?? null
     return {
       id: returnRecord.id,

@@ -31,7 +31,7 @@ export interface DiscoveryHomeResponse {
     newArrivals?: Awaited<ReturnType<RecommendationService['getHomeFeed']>>['sections']['newest']
     featuredShops?: ReturnType<DiscoveryService['toFeaturedShop']>[]
     recentlyViewed?: Awaited<ReturnType<TrackingService['getRecentlyViewedProducts']>>
-    promotions?: Awaited<ReturnType<PromotionService['listPublicCoupons']>>
+    promotions?: Awaited<ReturnType<PromotionService['listPublicCoupons']>>['data']
   }
   meta: {
     limit: number
@@ -75,7 +75,7 @@ export class DiscoveryService {
       this.recommendationService.getTrending({ limit, locale }),
       this.recommendationService.getHomeFeed({ limit, locale }),
       this.repo.findFeaturedShops(SHOP_LIMIT),
-      this.promotionService.listPublicCoupons(locale),
+      this.promotionService.listPublicCoupons(locale, { page: 1, limit: 8 }).then(page => page.data),
       this.trackingService.getRecentlyViewedProducts({
         userId: input.userId,
         sessionId: input.sessionId,

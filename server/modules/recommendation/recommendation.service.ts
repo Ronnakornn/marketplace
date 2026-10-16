@@ -5,7 +5,7 @@ import type { CacheService } from '#server/modules/cache'
 import { localizedText, resolveContentLocale, type ContentLocale } from '#server/lib/localization.ts'
 import { publicAssetUrl } from '#server/lib/public-assets.ts'
 import { RecommendationServiceError } from './recommendation.errors.ts'
-import type { IRecommendationRepository, RecommendationProductRecord, RecommendedCategory } from './recommendation.repository.ts'
+import type { IRecommendationRepository, RecommendationProductRecord, RecommendationSourceProduct, RecommendedCategory } from './recommendation.repository.ts'
 
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
@@ -148,7 +148,7 @@ export class RecommendationService {
     }
   }
 
-  private async getSourceProduct(productId: string): Promise<RecommendationProductRecord> {
+  private async getSourceProduct(productId: string): Promise<RecommendationSourceProduct> {
     const product = await this.repo.findPublicProductById(productId)
     if (!product) throw new RecommendationServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     return product
@@ -181,13 +181,10 @@ export class RecommendationService {
     const price = product.variants.map((variant) => moneyInteger(variant.price))
     const minPrice = moneyMin(price)
     const maxPrice = moneyMax(price)
-    const soldCount = product.variants.reduce(
-      (sum, variant) => sum + variant.orderItems.reduce((variantSum, item) => variantSum + item.quantity, 0),
-      0,
-    )
-    const rating = product.reviews.length === 0
+    const soldCount = product.soldCount
+    const rating = product.reviewCount === 0
       ? undefined
-      : Number((product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length).toFixed(2))
+      : Number((product.ratingSum / product.reviewCount).toFixed(2))
 
     const singleVariant = product.variants.length === 1 ? product.variants[0] : null
     const singleVariantStock = singleVariant?.inventory

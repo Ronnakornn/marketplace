@@ -1,4 +1,5 @@
-import { AdminCommissionsTable, AdminPageIntro } from "#/features/admin";
+import { AdminCommissionsTable } from "#/features/admin/components/AdminConfigurationTables";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
 
 export default function AdminCommissionsPage() {
   return (

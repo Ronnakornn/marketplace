@@ -169,8 +169,8 @@ export class AiSearchService {
     const minPrice = moneyMin(price.map(moneyInteger));
     const maxPrice = moneyMax(price.map(moneyInteger));
     const currency = product.variants[0]?.currency ?? 'USD'
-    const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0)
-    const totalReviewCount = product.reviews.length
+    const totalRating = product.ratingSum
+    const totalReviewCount = product.reviewCount
     const averageRating = totalReviewCount === 0 ? 0 : Number((totalRating / totalReviewCount).toFixed(2))
 
     return {

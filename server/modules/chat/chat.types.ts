@@ -26,6 +26,9 @@ export interface ChatPaginationInput {
   shopId?: string
 }
 export interface NormalizedChatPagination { page: number; limit: number; before?: string; after?: string }
+export interface ChatInboxInput { scope?: ChatAudience; shopId?: string; q?: string; unreadOnly?: boolean; limit?: number; cursor?: string }
+export interface NormalizedChatInbox extends Omit<ChatInboxInput, 'cursor' | 'limit'> { limit: number; cursor?: { updatedAt: Date; id: string } }
+export interface ChatInboxResponse { items: ChatRoomResponse[]; pagination: { limit: number; hasMore: boolean; nextCursor: string | null } }
 export interface ChatUserSummary { id: string; name: string; email: string; role: string }
 export interface ChatShopSummary { id: string; name: string; slug: string; ownerId: string }
 export interface ChatReadBoundary { messageId: string | null; createdAt: string }

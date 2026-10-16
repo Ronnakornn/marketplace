@@ -4,7 +4,7 @@ import type { Affiliate, AffiliateCommission, AffiliateLink } from '#generated/c
 import type { AffiliateStatus, AffiliateTargetType } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import { AffiliateServiceError } from './affiliate.errors.ts'
-import type { AffiliateOrderRecord, IAffiliateCommissionRepository, IAffiliateRepository } from './affiliate.repository.ts'
+import type { AffiliateListInput, AffiliateOrderRecord, IAffiliateCommissionRepository, IAffiliateRepository } from './affiliate.repository.ts'
 import { allocateRefundAmount } from '#server/modules/refund/refund-amount.service.ts'
 
 const DEFAULT_ATTRIBUTION_WINDOW_DAYS = 30
@@ -90,9 +90,9 @@ export class AffiliateService {
     })
   }
 
-  listLinks(user: { id: string }): Promise<AffiliateLink[]> {
+  listLinks(user: { id: string }, input: AffiliateListInput = {}) {
     this.assertEnabled()
-    return this.repo.listLinksByUserId(user.id)
+    return this.repo.listLinksByUserId(user.id, input)
   }
 
   async getLink(user: { id: string }, linkId: string): Promise<AffiliateLink> {
@@ -154,9 +154,9 @@ export class AffiliateService {
     return this.repo.getStats(user.id)
   }
 
-  listAdminAffiliates(): Promise<Awaited<ReturnType<IAffiliateRepository['listAffiliates']>>> {
+  listAdminAffiliates(input: AffiliateListInput = {}) {
     this.assertEnabled()
-    return this.repo.listAffiliates()
+    return this.repo.listAffiliates(input)
   }
 
   async updateAffiliateStatus(affiliateId: string, status: AffiliateStatus): Promise<Affiliate> {

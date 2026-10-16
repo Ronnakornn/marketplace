@@ -1,4 +1,5 @@
-import { AdminPageIntro, AdminSpaceCat } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminSpaceCat } from "#/features/admin/components/AdminSpaceCat";
 import { AdminCatalogManager } from "#/features/catalog";
 
 export default function AdminCatalogPage() {

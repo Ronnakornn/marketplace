@@ -1,4 +1,4 @@
-import { ReturnRequestPage } from "#/features/buyer";
+import { ReturnRequestPage } from "#/features/buyer/components/ReturnRequestPage";
 import { requireUser } from "#/lib/auth-server";
 
 export default async function ReturnRequestRoutePage({ params }: { params: Promise<{ orderId: string }> }) {

@@ -1,4 +1,4 @@
-import { AddressBookPage } from "#/features/buyer";
+import { AddressBookPage } from "#/features/buyer/components/AddressBookPage";
 import { requireUser } from "#/lib/auth-server";
 
 export default async function AddressBookRoutePage() {

@@ -4,7 +4,7 @@
 import { type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import th from "../../../../messages/th.json" with { type: "json" };
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { MarketplaceHome } from "./MarketplaceHome";
@@ -12,6 +12,8 @@ import { MarketplaceHome } from "./MarketplaceHome";
 const i18nMocks = vi.hoisted(() => ({ locale: "en" as "en" | "th" }));
 
 const queryMocks = vi.hoisted(() => ({
+  addCartItem: vi.fn(async () => ({})),
+  showAddToCartSuccess: vi.fn(),
   defaultHomeResponse: {
     sections: {
       banners: [{
@@ -141,7 +143,7 @@ vi.mock("#/components/ui/skeleton", () => ({
 }));
 
 vi.mock("#/features/buyer/api", () => ({
-  addCartItem: vi.fn(),
+  addCartItem: queryMocks.addCartItem,
   addFavoriteProduct: vi.fn(async () => ({})),
   fetchFavoriteStatus: queryMocks.favoriteStatus,
   fetchFavoriteStatuses: queryMocks.favoriteStatuses,
@@ -151,7 +153,7 @@ vi.mock("#/features/buyer/api", () => ({
 
 vi.mock("#/features/product/cart-handoff", () => ({
   showAddToCartError: vi.fn(),
-  showAddToCartSuccess: vi.fn(),
+  showAddToCartSuccess: queryMocks.showAddToCartSuccess,
 }));
 
 vi.mock("#/features/marketplace/queries", async () => {
@@ -282,6 +284,8 @@ afterEach(() => cleanup());
 
 describe("MarketplaceHome", () => {
   beforeEach(() => {
+    queryMocks.addCartItem.mockReset().mockResolvedValue({});
+    queryMocks.showAddToCartSuccess.mockClear();
     queryMocks.favoriteStatuses.mockClear();
     queryMocks.favoriteStatus.mockClear();
     i18nMocks.locale = "en";
@@ -316,6 +320,25 @@ describe("MarketplaceHome", () => {
     expect(screen.getByText("Recently viewed bottle")).toBeTruthy();
     await waitFor(() => expect(queryMocks.favoriteStatuses).toHaveBeenCalledExactlyOnceWith(["product-1", "product-2", "product-3"]));
     expect(queryMocks.favoriteStatus).not.toHaveBeenCalled();
+  });
+
+  it("refreshes an active cart once after adding a flash sale item", async () => {
+    let quantity = 0;
+    const fetchCart = vi.fn(async () => quantity);
+    queryMocks.addCartItem.mockImplementationOnce(async () => { quantity = 1; return {}; });
+    function CartCount() {
+      const cart = useQuery({ queryKey: ["buyer-cart", "en"], queryFn: fetchCart });
+      return <p data-testid="cart-count">{cart.data ?? 0}</p>;
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(<QueryClientProvider client={client}><CartCount /><MarketplaceHome user={{ role: "USER" }} /></QueryClientProvider>);
+    await screen.findByText("Flash marketplace tote");
+    await waitFor(() => expect(fetchCart).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(queryMocks.showAddToCartSuccess).toHaveBeenCalledOnce());
+    expect(fetchCart).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("cart-count").textContent).toBe("1");
+    expect(queryMocks.addCartItem).toHaveBeenCalledWith("variant-flash", 1);
   });
 
   it("renders partial and empty section states when optional API data is missing", async () => {

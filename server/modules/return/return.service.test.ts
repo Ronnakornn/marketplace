@@ -3,6 +3,7 @@ import type { FulfillmentStatus, PaymentStatus, ReturnStatus, Role } from '#gene
 import type { AppContext } from '#server/context/app-context.ts'
 import type { IReturnRepository, ReturnRecord } from './return.repository.ts'
 import { ReturnService } from './return.service.ts'
+import { listPageResult } from '#server/lib/list-page.ts'
 
 function createLogger() {
   return {
@@ -192,7 +193,7 @@ function setup() {
   vi.mocked(repo.findUploadsByIds).mockResolvedValue([])
   vi.mocked(repo.createReturn).mockResolvedValue(createReturnRecord())
   vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
-  vi.mocked(repo.findSellerReturns).mockResolvedValue([createReturnRecord()])
+  vi.mocked(repo.findSellerReturns).mockResolvedValue(listPageResult([createReturnRecord()], 1, {}))
   vi.mocked(repo.findSellerReturnById).mockResolvedValue(createReturnRecord())
   vi.mocked(repo.updateReturnStatus).mockImplementation(async (_id, status) => createReturnRecord({ status }))
   vi.mocked(repo.createPendingRefundForReturn).mockImplementation(async (returnRecord) =>
@@ -363,17 +364,37 @@ describe('ReturnService', () => {
   })
 
   it('lets sellers view only own shop returns', async () => {
-    vi.mocked(repo.findSellerReturns).mockResolvedValue([
+    vi.mocked(repo.findSellerReturns).mockResolvedValue(listPageResult([
       createReturnRecord({ shopId: 'shop-1' }),
       createReturnRecord({ shopId: 'shop-2' }),
-    ])
+    ], 2, {}))
 
     const results = await service.listSellerReturns(sellerActor())
 
-    expect(repo.findSellerReturns).toHaveBeenCalledWith(['shop-1'])
-    expect(results).toHaveLength(2)
-    expect(results[0]!.items).toHaveLength(1)
-    expect(results[1]!.items).toHaveLength(0)
+    expect(repo.findSellerReturns).toHaveBeenCalledWith(['shop-1'], { q: undefined, status: undefined })
+    expect(results.data).toHaveLength(2)
+    expect(results.data[0]!.items).toHaveLength(1)
+    expect(results.data[1]!.items).toHaveLength(0)
+  })
+
+  it('preserves exact return amounts and whole-scope counts on a later buyer page', async () => {
+    vi.mocked(repo.findBuyerReturns).mockResolvedValue(listPageResult([createReturnRecord({ lineTotal: 9007199254740993n })], 61, { page: 4, limit: 20 }))
+    const result = await service.listBuyerReturns(createActor(), { page: 4, limit: 20, q: '  cotton  ', status: 'completed' })
+    expect(repo.findBuyerReturns).toHaveBeenCalledWith('user-1', { page: 4, limit: 20, q: 'cotton', status: 'COMPLETED' })
+    expect(result.meta).toEqual({ page: 4, limit: 20, totalCount: 61, totalPages: 4, hasNextPage: false, hasPreviousPage: true })
+    expect(result.data[0]?.items[0]?.lineTotal).toBe(9007199254740993n)
+  })
+
+  it('does not broaden the authorized seller shops when a foreign shop filter is supplied', async () => {
+    vi.mocked(repo.findSellerReturns).mockResolvedValue(listPageResult([], 0, {}))
+    const result = await service.listSellerReturns(sellerActor(), { shopId: 'foreign-shop' })
+    expect(repo.findSellerReturns).toHaveBeenCalledWith([], { shopId: 'foreign-shop', q: undefined, status: undefined })
+    expect(result.data).toEqual([])
+  })
+
+  it('rejects invalid return list status before reading records', async () => {
+    await expect(service.listBuyerReturns(createActor(), { status: 'invalid' })).rejects.toMatchObject({ code: 'INVALID_RETURN_STATE' })
+    expect(repo.findBuyerReturns).not.toHaveBeenCalled()
   })
 
   it('returns not found when seller cannot access another shop return', async () => {

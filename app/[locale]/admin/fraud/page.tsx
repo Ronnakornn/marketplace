@@ -1,4 +1,5 @@
-import { AdminFraudCasesTable, AdminPageIntro } from "#/features/admin";
+import { AdminFraudCasesTable } from "#/features/admin/components/AdminBackofficeTables";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
 
 export default function AdminFraudPage() {
   return (

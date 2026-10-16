@@ -9,6 +9,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BuyerTopBar, MobileBottomNavigation } from "./BuyerShell";
 import { fetchNotificationUnreadCount } from "#/features/buyer/api";
+import { fetchChatUnreadCount } from "#/features/chat/api";
 
 let pathname = "/en/seller/products";
 const signedInSession = {
@@ -57,6 +58,8 @@ vi.mock("#/features/buyer/api", () => ({
   fetchNotificationUnreadCount: vi.fn(async () => ({ unreadCount: 2 })),
 }));
 
+vi.mock("#/features/chat/api", () => ({ fetchChatUnreadCount: vi.fn(async () => ({ unreadCount: 75 })) }));
+
 vi.mock("#/components/LanguageSwitcher", () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher" />,
 }));
@@ -80,6 +83,11 @@ afterEach(() => {
 });
 
 describe("buyer shell smoke", () => {
+  it("uses the complete chat unread summary without loading room history", async () => {
+    renderWithClient(<BuyerTopBar />);
+    await waitFor(() => expect(fetchChatUnreadCount).toHaveBeenCalledWith("buyer", undefined));
+    await waitFor(() => expect(screen.getByRole("link", { name: /chat.messages/ }).textContent).toContain("75"));
+  });
   it("uses the scoped unread-count endpoint for the header without loading notification history", async () => {
     renderWithClient(<BuyerTopBar />);
 

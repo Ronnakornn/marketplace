@@ -1,5 +1,6 @@
 import { touchProductContent } from './catalog-publication.service.ts'
 import { moneyInteger } from '#server/lib/money.ts'
+import { escapeLikeLiteral } from '#server/lib/sql-like.ts'
 import { Prisma, type Brand, type Category, type CategoryAttributeDefinition, type ModerationAction, type ModerationCase, type PrismaClient, type Product, type ProductAttribute, type ProductHighlight, type ProductImage, type ProductOption, type ProductOptionValue, type ProductVariant, type ProductVariantOptionValue, type ProductVideo, type Shop, type ShopAddress, type Upload } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -18,6 +19,7 @@ export interface ProductListFilters {
   maxPrice?: number
   sort?: string
   attributeFilters?: ProductAttributeFilter[]
+  searchShops?: boolean
   publicOnly?: boolean
   excludeProductId?: string
   cursor?: string
@@ -398,6 +400,7 @@ export interface ICatalogRepository {
   resolvePublicProductId(idOrSlug: string): Promise<string | null>
   findProductMetrics(productIds: string[]): Promise<CatalogProductMetric[]>
   findRelatedProducts(product: Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'>, limit: number): Promise<CatalogProductListItem[]>
+  countProductStatuses(): Promise<{ active: number; draft: number; archived: number }>
   findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>>
   findProductFacets(filters: ProductListFilters): Promise<ProductListingFacets>
   findUploadById(id: string): Promise<CatalogUploadRecord | null>
@@ -849,6 +852,15 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     })
   }
 
+  async countProductStatuses() {
+    const rows = await this.prisma.product.groupBy({ by: ['status'], where: { deletedAt: null }, _count: { _all: true } })
+    return {
+      active: rows.find(row => row.status === 'ACTIVE')?._count._all ?? 0,
+      draft: rows.find(row => row.status === 'DRAFT')?._count._all ?? 0,
+      archived: rows.find(row => row.status === 'ARCHIVED')?._count._all ?? 0,
+    }
+  }
+
   async findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>> {
     this.logger.debug('PrismaCatalogRepository.findProducts', { filters })
     const where = this.buildProductWhere(filters)
@@ -865,7 +877,10 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       this.prisma.product.findMany({
         where,
         include: productInclude,
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy: [
+          ...(filters.sort === 'title_asc' || filters.sort === 'title_desc' ? [{ title: filters.sort === 'title_asc' ? 'asc' as const : 'desc' as const }] : []),
+          { createdAt: 'desc' }, { id: 'desc' },
+        ],
         cursor,
         skip,
         take: take + (filters.cursor ? 0 : 1),
@@ -1325,11 +1340,12 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       )`)
     }
     if (filters.keyword) {
-      const pattern = `%${filters.keyword}%`
+      const pattern = `%${filters.searchShops ? escapeLikeLiteral(filters.keyword) : filters.keyword}%`
       predicates.push(Prisma.sql`(
         p.title ILIKE ${pattern} OR p."titleTh" ILIKE ${pattern} OR p."titleEn" ILIKE ${pattern}
         OR p.description ILIKE ${pattern} OR p."descriptionTh" ILIKE ${pattern} OR p."descriptionEn" ILIKE ${pattern}
         OR p.slug ILIKE ${pattern} OR c.name ILIKE ${pattern} OR c."nameTh" ILIKE ${pattern} OR c."nameEn" ILIKE ${pattern}
+        ${filters.searchShops ? Prisma.sql`OR EXISTS (SELECT 1 FROM "Shop" shop WHERE shop.id = p."shopId" AND (shop.name ILIKE ${pattern} OR shop.slug ILIKE ${pattern}))` : Prisma.empty}
       )`)
     }
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
@@ -1354,6 +1370,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   }
 
   private buildProductWhere(filters: ProductListFilters): Prisma.ProductWhereInput {
+    const keyword = filters.searchShops && filters.keyword ? escapeLikeLiteral(filters.keyword) : filters.keyword
     return {
       deletedAt: null,
       ...(filters.categoryId ? { category: { slug: filters.categoryId, isActive: true } } : {}),
@@ -1375,19 +1392,23 @@ export class PrismaCatalogRepository implements ICatalogRepository {
             })),
           }
         : {}),
-      ...(filters.keyword
+      ...(keyword
         ? {
             OR: [
-              { title: { contains: filters.keyword, mode: 'insensitive' } },
-              { titleTh: { contains: filters.keyword, mode: 'insensitive' } },
-              { titleEn: { contains: filters.keyword, mode: 'insensitive' } },
-              { description: { contains: filters.keyword, mode: 'insensitive' } },
-              { descriptionTh: { contains: filters.keyword, mode: 'insensitive' } },
-              { descriptionEn: { contains: filters.keyword, mode: 'insensitive' } },
-              { slug: { contains: filters.keyword, mode: 'insensitive' } },
-              { category: { name: { contains: filters.keyword, mode: 'insensitive' } } },
-              { category: { nameTh: { contains: filters.keyword, mode: 'insensitive' } } },
-              { category: { nameEn: { contains: filters.keyword, mode: 'insensitive' } } },
+              { title: { contains: keyword, mode: 'insensitive' } },
+              { titleTh: { contains: keyword, mode: 'insensitive' } },
+              { titleEn: { contains: keyword, mode: 'insensitive' } },
+              { description: { contains: keyword, mode: 'insensitive' } },
+              { descriptionTh: { contains: keyword, mode: 'insensitive' } },
+              { descriptionEn: { contains: keyword, mode: 'insensitive' } },
+              { slug: { contains: keyword, mode: 'insensitive' } },
+              ...(filters.searchShops ? [
+                { shop: { name: { contains: keyword, mode: 'insensitive' as const } } },
+                { shop: { slug: { contains: keyword, mode: 'insensitive' as const } } },
+              ] : []),
+              { category: { name: { contains: keyword, mode: 'insensitive' } } },
+              { category: { nameTh: { contains: keyword, mode: 'insensitive' } } },
+              { category: { nameEn: { contains: keyword, mode: 'insensitive' } } },
             ],
           }
         : {}),

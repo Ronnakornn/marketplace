@@ -1,6 +1,7 @@
 import { Prisma } from '#generated/client/client.ts'
 import { moneyInteger, moneyNumber } from '#server/lib/money.ts'
 import { localeSortKey } from '#server/lib/sql-locale-order.ts'
+import { paidAnalyticsItems } from './product-analytics-facts.sql.ts'
 import type { AnalyticsDateRange, AnalyticsRankingOptions, AnalyticsRankingPage } from './product-analytics.repository.ts'
 
 export interface RawAnalyticsRankingRow {
@@ -68,7 +69,7 @@ function rankingOrder(sort: string, dimension: 'product' | 'sku'): Prisma.Sql {
 function rankingQuery(dimension: 'product' | 'sku', candidates: Prisma.Sql, shopIds: string[], range: AnalyticsDateRange, options: AnalyticsRankingOptions & { productId?: string }): Prisma.Sql {
   const shops = Prisma.join(shopIds.map((id) => Prisma.sql`${id}::uuid`))
   const cartId = dimension === 'product' ? Prisma.sql`l."productId"` : Prisma.sql`l."variantId"`
-  const paidId = dimension === 'product' ? Prisma.sql`v."productId"` : Prisma.sql`i."variantId"`
+  const paidId = dimension === 'product' ? Prisma.sql`i."productId"` : Prisma.sql`i."variantId"`
   const views = dimension === 'product' ? Prisma.sql`
     UNION ALL
     SELECT l."productId", NULL, 1, 0, 0, NULL, 0, 0, NULL FROM "ProductViewLog" l
@@ -87,14 +88,7 @@ function rankingQuery(dimension: 'product' | 'sku', candidates: Prisma.Sql, shop
         ${options.productId ? Prisma.sql`AND l."productId" = ${options.productId}::uuid` : Prisma.empty}
       UNION ALL
       SELECT ${paidId}, NULL, 0, 0, 0, i."orderId", i.quantity, i."lineTotal"::numeric, i.currency
-      FROM "OrderItem" i
-      ${dimension === 'product' ? Prisma.sql`JOIN "ProductVariant" v ON v.id = i."variantId"` : Prisma.empty}
-      JOIN "Order" o ON o.id = i."orderId"
-      WHERE i."shopId" IN (${shops}) AND i."fulfillmentStatus" <> 'CANCELED'
-        AND o."paymentStatus" = 'SUCCEEDED'
-        AND o.status IN ('PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'PARTIALLY_FULFILLED', 'FULFILLED')
-        AND o."createdAt" BETWEEN ${range.from} AND ${range.to}
-        AND EXISTS (SELECT 1 FROM "Payment" payment WHERE payment."orderId" = o.id AND payment.status = 'SUCCEEDED')
+      FROM (${paidAnalyticsItems(shopIds, range, options.productId)}) i
     ), aggregated AS (
       SELECT id, MAX(label) AS label, SUM(views) AS views, SUM("addToCart") AS "addToCart",
         SUM("addToCartQuantity") AS "addToCartQuantity", COUNT(DISTINCT "orderId") AS orders,

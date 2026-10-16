@@ -5,6 +5,7 @@ import type { Treaty } from "@elysiajs/eden";
 import type { ProductStatus } from "#generated/client/enums";
 import { api } from "#/lib/eden";
 import {
+  type AdminProductListInput,
   adminCatalogProductDetailQueryOptions,
   adminCatalogProductsQueryOptions,
   invalidateProductMutationQueries,
@@ -140,10 +141,9 @@ export function useCatalogProducts() {
   });
 }
 
-export function useAdminCatalogProducts() {
+export function useAdminCatalogProducts(input: AdminProductListInput = {}) {
   return useQuery({
-    ...adminCatalogProductsQueryOptions({ limit: 50 }),
-    select: (data) => data?.data ?? [],
+    ...adminCatalogProductsQueryOptions(input),
   });
 }
 

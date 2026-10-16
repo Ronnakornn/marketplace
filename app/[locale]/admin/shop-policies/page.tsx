@@ -1,4 +1,4 @@
-import { AdminShopPolicies } from "#/features/admin/operations";
+import { AdminShopPolicies } from "#/features/admin/operations/ShopPolicies";
 
 export default function Page() {
   return <AdminShopPolicies />;

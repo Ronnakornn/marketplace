@@ -54,6 +54,22 @@ describe('inventory routes', () => {
     vi.clearAllMocks()
   })
 
+  it('passes page, search and stock filters together to the service', async () => {
+    mockAuth()
+    const container = createContainer()
+    const response = await createApp(container).handle(new Request('http://localhost/api/seller/inventory?page=4&limit=20&q=needle&status=low'))
+    expect(response.status).toBe(200)
+    expect(container.inventoryService.listSellerInventory).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }), { page: 4, limit: 20, q: 'needle', status: 'low' })
+  })
+
+  it.each(['page=0', 'limit=51', 'limit=1.5', 'status=invalid'])('rejects invalid inventory list query %s', async (query) => {
+    mockAuth()
+    const container = createContainer()
+    const response = await createApp(container).handle(new Request(`http://localhost/api/seller/inventory?${query}`))
+    expect(response.status).toBe(422)
+    expect(container.inventoryService.listSellerInventory).not.toHaveBeenCalled()
+  })
+
   it('rejects unauthenticated seller inventory access', async () => {
     vi.mocked(getAuthContext).mockResolvedValue(null)
     const response = await createApp().handle(new Request('http://localhost/api/seller/inventory'))
@@ -67,7 +83,7 @@ describe('inventory routes', () => {
     const response = await createApp(container).handle(new Request('http://localhost/api/seller/inventory'))
 
     expect(response.status).toBe(200)
-    expect(container.inventoryService.listSellerInventory).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }))
+    expect(container.inventoryService.listSellerInventory).toHaveBeenCalledWith(expect.objectContaining({ id: 'seller-1' }), {})
   })
 
   it('passes seller inventory adjustment body without reserved quantity', async () => {

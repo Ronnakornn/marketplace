@@ -1,8 +1,8 @@
 "use client";
 
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDownIcon, ArrowLeftIcon, CheckCheckIcon, ImageIcon, MessageCircleIcon, SearchIcon, SendIcon, StoreIcon } from "lucide-react";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingList } from "#/components/BuyerState";
 import { BuyerTopBar } from "#/components/BuyerShell";
@@ -11,7 +11,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Textarea } from "#/components/ui/textarea";
 import { type ChatAudience, type ChatMessage, type ChatRoom, type SendChatMessageInput } from "../api";
-import { chatRoomsQueryOptions } from "../queries";
+import { chatRoomKeys, chatRoomsQueryOptions, chatUnreadQueryOptions } from "../queries";
 import { useChatRealtime, type ChatConnectionStatus } from "../realtime";
 import { createChatMessageId, useChatThread } from "../timeline";
 import { useFormatters, useTranslations } from "#/i18n/client";
@@ -23,6 +23,7 @@ import { CHAT_ATTACHMENT_ACCEPT, CHAT_ATTACHMENT_POLICY } from "#/lib/chat-attac
 import { MessageActions, ReplyQuote } from './MessageActions';
 
 const subscribeToHydration = () => () => undefined;
+const INBOX_SEARCH_DELAY_MS = 250;
 
 function useChatViewer() {
   const { data: session } = useSession();
@@ -35,19 +36,26 @@ export function ChatInboxPage({ audience, shopId }: { audience: ChatAudience; sh
   const localePath = useLocalePath();
   const { currentSession: session } = useChatViewer();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const roomsQuery = useQuery(chatRoomsQueryOptions(audience, session?.user.id ?? "", shopId));
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), INBOX_SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const client = useQueryClient();
+  const roomsQuery = useInfiniteQuery(chatRoomsQueryOptions(audience, session?.user.id ?? "", shopId, { q: debouncedSearch, unreadOnly }));
+  useQuery(chatUnreadQueryOptions(audience, session?.user.id ?? "", shopId));
   const channels = !session ? [] : audience === "seller" && shopId ? [`seller:${shopId}:chats`]
     : audience === "buyer" && session?.user.id ? [`user:${session.user.id}:chats`] : [];
-  const status = useChatRealtime(channels, () => { void roomsQuery.refetch(); });
-  const scopedRooms = !session || roomsQuery.isError ? [] : (roomsQuery.data ?? [])
-    .filter((room) => audience !== "seller" || room.shop.id === shopId);
-  const rooms = useMemo(() => {
-    const needle = search.trim().toLocaleLowerCase();
-    return scopedRooms.filter((room) => (!unreadOnly || room.unreadCount > 0) &&
-      (!needle || [getRoomTitle(room, audience), room.shop.name, room.lastMessage?.body ?? ""]
-        .some((value) => value.toLocaleLowerCase().includes(needle))));
-  }, [scopedRooms, audience, search, unreadOnly]);
+  const status = useChatRealtime(channels, () => { void client.invalidateQueries({ queryKey: chatRoomKeys.scope(audience, session?.user.id ?? "", shopId) }); });
+  const seenRooms = new Set<string>();
+  const rooms = !session || roomsQuery.isError && !roomsQuery.data ? [] :
+    (roomsQuery.data?.pages.flatMap((page) => page.items) ?? [])
+      .filter((room) => {
+        if (audience === "seller" && room.shop.id !== shopId || seenRooms.has(room.roomId)) return false;
+        seenRooms.add(room.roomId);
+        return true;
+      });
   const inboxTitle = t(audience === "seller" ? "chat.sellerInbox" : "chat.inbox");
 
   return <>
@@ -63,18 +71,18 @@ export function ChatInboxPage({ audience, shopId }: { audience: ChatAudience; sh
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <div className="relative min-w-0 flex-1"><SearchIcon className="absolute top-3 left-3 size-4 text-slate-400" aria-hidden="true" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} aria-label={t("chat.search")} placeholder={t("chat.search")} className="pl-9" />
+            <Input value={search} maxLength={200} onChange={(event) => setSearch(event.target.value)} aria-label={t("chat.search")} placeholder={t("chat.search")} className="pl-9" />
           </div>
           <Button variant={unreadOnly ? "default" : "outline"} aria-pressed={unreadOnly} onClick={() => setUnreadOnly((value) => !value)}>{t("chat.unreadOnly")}</Button>
         </div>
       </section>
       {session && roomsQuery.isLoading ? <BuyerLoadingList /> : null}
       {session && roomsQuery.isError ? <BuyerErrorState message={t(chatErrorKey(roomsQuery.error))} onRetry={() => void roomsQuery.refetch()} /> : null}
-      {session && roomsQuery.isSuccess && !scopedRooms.length ? <BuyerEmptyState title={t("chat.emptyInbox")} description={t("chat.emptyInboxDescription")} /> : null}
-      {scopedRooms.length > 0 && !rooms.length ? <BuyerEmptyState title={t("chat.noResults")} description={t("chat.noResultsDescription")} /> : null}
+      {session && roomsQuery.isSuccess && !rooms.length ? <BuyerEmptyState title={t(debouncedSearch || unreadOnly ? "chat.noResults" : "chat.emptyInbox")} description={t(debouncedSearch || unreadOnly ? "chat.noResultsDescription" : "chat.emptyInboxDescription")} /> : null}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white empty:hidden">
         {rooms.map((room) => <ChatRoomListItem key={room.roomId} room={room} audience={audience} href={chatHref(localePath, audience, room.roomId, shopId)} />)}
       </div>
+      {roomsQuery.hasNextPage ? <Button variant="outline" disabled={roomsQuery.isFetchingNextPage} onClick={() => void roomsQuery.fetchNextPage()}>{t(roomsQuery.isFetchingNextPage ? "common.loading" : "common.more")}</Button> : null}
     </main>
   </>;
 }

@@ -37,7 +37,7 @@ export type AdminRefund = AdminRefundsResponse extends { items: Array<infer T> }
 export type AdminReturnsResponse = Treaty.Data<ReturnType<typeof api.api.admin.returns.get>>;
 export type AdminReturn = AdminReturnsResponse extends { items: Array<infer T> } ? T : never;
 export type AdminPayoutsResponse = Treaty.Data<ReturnType<typeof api.api.admin.payouts.get>>;
-export type AdminPayout = AdminPayoutsResponse extends Array<infer T> ? T : never;
+export type AdminPayout = AdminPayoutsResponse extends { data: Array<infer T> } ? T : never;
 export type AdminFraudCasesResponse = Treaty.Data<ReturnType<typeof api.api.admin.fraud.cases.get>>;
 export type AdminFraudCase = AdminFraudCasesResponse extends { items: Array<infer T> } ? T : never;
 export type AdminSellerApplicationsResponse = Treaty.Data<ReturnType<(typeof api.api.admin)["seller-applications"]["get"]>>;
@@ -287,11 +287,11 @@ export function useAdminReturnsList(filters: AdminListFilters) {
   });
 }
 
-export function useAdminPayoutsList(filters: { status?: string } = {}) {
+export function useAdminPayoutsList(filters: NonNullable<NonNullable<Parameters<typeof api.api.admin.payouts.get>[0]>["query"]> = {}) {
   return useQuery({
-    queryKey: ["admin", "payouts", filters.status || "ALL"],
+    queryKey: ["admin", "payouts", filters],
     queryFn: async () => {
-      const { data, error } = await api.api.admin.payouts.get({ query: { status: filters.status || undefined } });
+      const { data, error } = await api.api.admin.payouts.get({ query: filters });
       if (error) throw error;
       return data;
     },
@@ -346,10 +346,10 @@ export function useAdminBrandsList(filters: { page: number; limit?: number; q?: 
   });
 }
 
-export function useAdminAffiliatesList() {
+export function useAdminAffiliatesList(input: Parameters<typeof fetchAdminAffiliates>[0] = {}) {
   return useQuery({
-    queryKey: ["admin", "affiliates"],
-    queryFn: fetchAdminAffiliates,
+    queryKey: ["admin", "affiliates", input],
+    queryFn: () => fetchAdminAffiliates(input),
   });
 }
 

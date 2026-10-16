@@ -10,6 +10,7 @@ import type {
 } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { listPage, listPageResult, type ListPageInput } from '#server/lib/list-page.ts'
 
 export type InventoryTx = Prisma.TransactionClient
 
@@ -39,6 +40,19 @@ export type SellerInventoryRecord = Inventory & {
   }
 }
 
+export interface InventoryListInput extends ListPageInput {
+  q?: string
+  status?: 'low' | 'out'
+  shopId?: string
+}
+
+const inventoryListSelect = {
+  id: true, variantId: true, quantityOnHand: true, quantityReserved: true, reorderLevel: true, updatedAt: true,
+  variant: { select: { sku: true, title: true, product: { select: { id: true, shopId: true, title: true } } } },
+} satisfies Prisma.InventorySelect
+
+export type SellerInventoryListRecord = Prisma.InventoryGetPayload<{ select: typeof inventoryListSelect }>
+
 export interface CreateReservationInput {
   checkoutId: string
   orderId?: string | null
@@ -49,7 +63,7 @@ export interface CreateReservationInput {
 
 export interface IInventoryRepository {
   transaction<T>(fn: (tx: InventoryTx) => Promise<T>): Promise<T>
-  listSellerInventory(shopIds: string[]): Promise<SellerInventoryRecord[]>
+  listSellerInventory(shopIds: string[], input: InventoryListInput): Promise<ReturnType<typeof listPageResult<SellerInventoryListRecord>>>
   findVariantForSeller(variantId: string): Promise<InventoryVariantRecord | null>
   findInventoryByVariantId(variantId: string, tx?: InventoryTx): Promise<SellerInventoryRecord | null>
   findInventoryById(inventoryId: string, tx?: InventoryTx): Promise<SellerInventoryRecord | null>
@@ -97,20 +111,35 @@ export class PrismaInventoryRepository implements IInventoryRepository {
     return this.prisma.$transaction(fn)
   }
 
-  listSellerInventory(shopIds: string[]): Promise<SellerInventoryRecord[]> {
+  async listSellerInventory(shopIds: string[], input: InventoryListInput) {
     this.logger.debug('PrismaInventoryRepository.listSellerInventory', { shopIds })
-    if (shopIds.length === 0) return Promise.resolve([])
-    return this.prisma.inventory.findMany({
-      where: {
-        variant: {
-          product: {
-            shopId: { in: shopIds },
-          },
-        },
-      },
-      include: sellerInventoryInclude,
-      orderBy: { updatedAt: 'desc' },
-    })
+    const allowed = input.shopId ? shopIds.filter((id) => id === input.shopId) : shopIds
+    if (allowed.length === 0) return listPageResult<SellerInventoryListRecord>([], 0, input)
+    const { skip, take } = listPage(input)
+    const q = input.q?.trim()
+    const pattern = `%${q?.replace(/[\\%_]/g, '\\$&') ?? ''}%`
+    const status = input.status === 'out' ? Prisma.sql`AND i."quantityOnHand" <= i."quantityReserved"`
+      : input.status === 'low' ? Prisma.sql`AND i."quantityOnHand" > i."quantityReserved" AND i."quantityOnHand"::bigint - i."quantityReserved"::bigint <= i."reorderLevel"::bigint`
+      : Prisma.empty
+    return this.prisma.$transaction(async (tx) => {
+      const [page] = await tx.$queryRaw<Array<{ ids: string[] | null; totalCount: number }>>(Prisma.sql`
+        WITH filtered AS (
+          SELECT i."id", i."updatedAt" FROM "Inventory" i
+          JOIN "ProductVariant" v ON v."id" = i."variantId"
+          JOIN "Product" p ON p."id" = v."productId"
+          WHERE p."shopId" IN (${Prisma.join(allowed)}) ${status}
+          ${q ? Prisma.sql`AND (p."title" ILIKE ${pattern} OR v."title" ILIKE ${pattern} OR v."sku" ILIKE ${pattern})` : Prisma.empty}
+        ), paged AS (
+          SELECT "id" FROM filtered ORDER BY "updatedAt" DESC, "id" DESC LIMIT ${take} OFFSET ${skip}
+        )
+        SELECT (SELECT array_agg("id") FROM paged) AS ids, (SELECT count(*)::int FROM filtered) AS "totalCount"
+      `)
+      const data = await tx.inventory.findMany({
+        where: { id: { in: page?.ids ?? [] } }, select: inventoryListSelect,
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      })
+      return listPageResult(data, page?.totalCount ?? 0, input)
+    }, { isolationLevel: 'RepeatableRead' })
   }
 
   findVariantForSeller(variantId: string): Promise<InventoryVariantRecord | null> {

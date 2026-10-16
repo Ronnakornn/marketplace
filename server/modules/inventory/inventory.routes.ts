@@ -1,8 +1,16 @@
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
-import { authPlugin } from '#server/modules/auth'
+import { authPlugin, type AuthContext } from '#server/modules/auth'
 import { InventoryServiceError } from './inventory.errors.ts'
 import { MAX_INVENTORY_QUANTITY } from './inventory.service.ts'
+import { ListPageQuery } from '#server/lib/list-page.ts'
+
+const InventoryListQuerySchema = t.Object({
+  ...ListPageQuery,
+  q: t.Optional(t.String({ maxLength: 200 })),
+  status: t.Optional(t.Union([t.Literal('low'), t.Literal('out')])),
+  shopId: t.Optional(t.String({ format: 'uuid' })),
+})
 
 const VariantParamsSchema = t.Object({
   variantId: t.String({ format: 'uuid' }),
@@ -32,10 +40,11 @@ export function createInventoryRoutes(container: ServiceContainer) {
         })
       }
     })
-    .get('/api/seller/inventory', ({ authContext }: any) =>
-      container.inventoryService.listSellerInventory(authContext!.user), {
+    .get('/api/seller/inventory', ({ authContext, query }: { authContext?: AuthContext; query: typeof InventoryListQuerySchema.static }) =>
+      container.inventoryService.listSellerInventory(authContext!.user, query), {
       withAuth: true,
       withSellerOperational: true,
+      query: InventoryListQuerySchema,
     })
     .get('/api/seller/variants/:variantId/inventory', ({ authContext, params }: any) =>
       container.inventoryService.getSellerInventory(authContext!.user, params.variantId), {

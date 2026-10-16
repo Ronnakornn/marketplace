@@ -148,12 +148,13 @@ export function AdminAnalytics({ compact = false }: { compact?: boolean }) {
     queryFn: () =>
       requireData(reportingApi.api.admin.analytics.get({ query: filters })),
   });
+  const chartFilters = { ...filters, group: "day", page: 1, limit: 100 } satisfies AnalyticsFilters;
   const charts = useQuery({
-    queryKey: ["admin", "analytics-chart", filters],
+    queryKey: ["admin", "analytics-chart", chartFilters],
     queryFn: () =>
       requireData(
         reportingApi.api.admin.analytics.get({
-          query: { ...filters, group: "day", page: 1, limit: 100 },
+          query: chartFilters,
         }),
       ),
   });

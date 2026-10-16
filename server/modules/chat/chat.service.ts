@@ -7,7 +7,7 @@ import { ChatServiceError } from './chat.errors.ts'
 import { validateChatFiles, type StoredChatFile } from './chat.attachments.ts'
 import type { ChatPrivateObjectStore } from '#server/modules/upload/upload.types.ts'
 import type { ChatMessageRecord, ChatMessageWrite, ChatRoomRecord, IChatRepository } from './chat.repository.ts'
-import type { ChatActor, ChatAudience, ChatMessageResponse, ChatPaginationInput, ChatRoomResponse, CreateChatRoomInput, NormalizedChatPagination, SendChatMessageInput } from './chat.types.ts'
+import type { ChatActor, ChatAudience, ChatInboxInput, ChatInboxResponse, ChatMessageResponse, ChatPaginationInput, ChatRoomResponse, CreateChatRoomInput, NormalizedChatInbox, NormalizedChatPagination, SendChatMessageInput } from './chat.types.ts'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -16,16 +16,20 @@ export class ChatService {
   constructor(appContext: AppContext, private repo: IChatRepository, private realtimeService?: RealtimeService, private notificationService?: NotificationService, private objects?: ChatPrivateObjectStore) {
     this.logger = appContext.logger
   }
-  async listRooms(actor: ChatActor, scope?: ChatAudience, shopId?: string): Promise<ChatRoomResponse[]> {
+  async listRooms(actor: ChatActor, input: ChatInboxInput = {}): Promise<ChatInboxResponse> {
     this.assertSupportedRole(actor.role)
-    const [buyerRooms, sellerRooms] = await Promise.all([
-      scope === 'seller' ? Promise.resolve([]) : this.repo.listBuyerRooms(actor.id),
-      scope === 'buyer' ? Promise.resolve([]) : this.repo.listSellerRooms(actor.id),
-    ])
-    const rooms = [...new Map([...buyerRooms, ...sellerRooms].map((room) => [room.id, room])).values()]
-      .filter((room) => !shopId || room.shopId === shopId)
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    return Promise.all(rooms.map((room) => this.toRoomResponse(room, actor)))
+    const pagination = this.normalizeInbox(input)
+    const page = await this.repo.listRooms(actor.id, pagination)
+    const last = page.items.at(-1)?.room
+    return {
+      items: await Promise.all(page.items.map(({ room, unreadCount }) => this.toRoomResponse(room, actor, undefined, undefined, unreadCount))),
+      pagination: { limit: pagination.limit, hasMore: page.hasMore,
+        nextCursor: page.hasMore && last ? Buffer.from(`${new Date(last.updatedAt).toISOString()}|${last.id}`).toString('base64url') : null },
+    }
+  }
+  async unreadCount(actor: ChatActor, input: Pick<ChatInboxInput, 'scope' | 'shopId'> = {}) {
+    this.assertSupportedRole(actor.role)
+    return { unreadCount: await this.repo.countUnread(actor.id, input) }
   }
   async getRoom(actor: ChatActor, roomId: string, input: ChatPaginationInput = {}): Promise<ChatRoomResponse> {
     this.assertSupportedRole(actor.role)
@@ -212,13 +216,30 @@ export class ChatService {
     }
     return { page, limit: Math.min(requestedLimit, 50), ...(input.before ? { before: input.before } : {}), ...(input.after ? { after: input.after } : {}) }
   }
+  private normalizeInbox(input: ChatInboxInput): NormalizedChatInbox {
+    const limit = input.limit ?? 30
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50 || (input.q?.length ?? 0) > 200) {
+      throw new ChatServiceError('Invalid inbox pagination', 400, 'INVALID_MESSAGE_CURSOR')
+    }
+    let cursor: NormalizedChatInbox['cursor']
+    if (input.cursor !== undefined) {
+      if (!input.cursor || input.cursor.length > 200 || !/^[A-Za-z0-9_-]+$/.test(input.cursor)) throw new ChatServiceError('Invalid inbox cursor', 400, 'INVALID_MESSAGE_CURSOR')
+      const [date, id, extra] = Buffer.from(input.cursor, 'base64url').toString('utf8').split('|')
+      const updatedAt = new Date(date ?? '')
+      if (!id || !uuid.test(id) || extra !== undefined || Number.isNaN(updatedAt.getTime()) || updatedAt.toISOString() !== date) {
+        throw new ChatServiceError('Invalid inbox cursor', 400, 'INVALID_MESSAGE_CURSOR')
+      }
+      cursor = { updatedAt, id }
+    }
+    return { scope: input.scope, shopId: input.shopId, q: input.q?.trim() || undefined, unreadOnly: input.unreadOnly, limit, cursor }
+  }
   private assertSupportedRole(role: Role): void {
     if (role === 'ADMIN') throw new ChatServiceError('Chat access forbidden', 403, 'CHAT_FORBIDDEN')
   }
   private isSellerParticipant(actor: ChatActor, room: ChatRoomRecord): boolean {
     return room.shop.ownerId === actor.id && room.shop.status === 'ACTIVE'
   }
-  private async toRoomResponse(room: ChatRoomRecord, actor: ChatActor, messages?: ChatMessageRecord[], pagination?: ChatRoomResponse['pagination']): Promise<ChatRoomResponse> {
+  private async toRoomResponse(room: ChatRoomRecord, actor: ChatActor, messages?: ChatMessageRecord[], pagination?: ChatRoomResponse['pagination'], unreadCount?: number): Promise<ChatRoomResponse> {
     const seller = this.isSellerParticipant(actor, room)
     const readAt = seller ? room.sellerReadAt : room.buyerReadAt
     const readId = seller ? room.sellerReadMessageId : room.buyerReadMessageId
@@ -228,7 +249,7 @@ export class ChatService {
       contentRevision: room.contentRevision.toString(),
       roomId: room.id, shop: { id: room.shop.id, name: room.shop.name, slug: room.shop.slug, ownerId: room.shop.ownerId }, buyer: room.buyer,
       lastMessage: room.messages[0] ? this.toMessageResponse(room.messages[0]) : null,
-      unreadCount: await this.repo.countUnreadMessages(room.id, actor.id, readAt, readId),
+      unreadCount: unreadCount ?? await this.repo.countUnreadMessages(room.id, actor.id, readAt, readId),
       chatEnabled: room.shop.settings?.chatEnabled !== false,
       canSend: room.shop.status === 'ACTIVE' && room.shop.settings?.chatEnabled !== false,
       readBoundary: readAt ? { messageId: readId, createdAt: new Date(readAt).toISOString() } : null,

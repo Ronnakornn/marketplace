@@ -3,15 +3,11 @@
 import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/lib/money";
 
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   flexRender,
-  getPaginationRowModel,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
   useReactTable,
-  type ColumnFiltersState,
   type ColumnDef,
   type VisibilityState,
   type SortingState,
@@ -122,15 +118,21 @@ function SummaryCard(props: {
 export function AdminCatalogManager() {
   const t = useTranslations();
   const localePath = useLocalePath();
-  const { data: products = [], isLoading, error, refetch } = useAdminCatalogProducts();
+  const [filters, setFilters] = useState<{ page: number; q: string; sort?: "title_asc" | "title_desc" }>({ page: 1, q: "" });
+  const { data: result, isLoading, isFetching, error, refetch } = useAdminCatalogProducts({ ...filters, limit: 10 });
+  const products = result?.data ?? [];
+  const totalCount = result?.meta.totalCount ?? 0;
   const [query, setQuery] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  useEffect(() => {
+    const timer = setTimeout(() => setFilters(current => current.q === query.trim() ? current : { ...current, q: query.trim(), page: 1 }), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  const activeCount = products.filter((product) => product.status === "ACTIVE").length;
-  const draftCount = products.filter((product) => product.status === "DRAFT").length;
-  const archivedCount = products.filter((product) => product.status === "ARCHIVED").length;
+  const activeCount = result?.summary.active ?? 0;
+  const draftCount = result?.summary.draft ?? 0;
+  const archivedCount = result?.summary.archived ?? 0;
   const columns = useMemo<ColumnDef<CatalogProduct>[]>(() => [
     {
       accessorKey: "title",
@@ -149,14 +151,7 @@ export function AdminCatalogManager() {
           <p className="mt-1 truncate text-xs text-slate-500">{row.original.slug}</p>
         </div>
       ),
-      filterFn: (row, _columnId, filterValue) => {
-        const value = String(filterValue ?? "").toLowerCase();
-        if (!value) return true;
-        const product = row.original;
-        return [product.title, product.slug, product.shop.name, product.shop.slug].some((item) =>
-          item.toLowerCase().includes(value),
-        );
-      },
+
     },
     {
       accessorFn: (row) => row.shop.name,
@@ -224,17 +219,25 @@ export function AdminCatalogManager() {
     state: {
       globalFilter: query,
       sorting,
-      columnFilters,
+      pagination: { pageIndex: filters.page - 1, pageSize: 10 },
       columnVisibility,
     },
     onGlobalFilterChange: setQuery,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onSortingChange: (updater) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      setSorting(next);
+      setFilters(current => ({ ...current, page: 1, sort: next[0]?.id === "title" ? next[0].desc ? "title_desc" : "title_asc" : undefined }));
+    },
+    onPaginationChange: (updater) => setFilters(current => {
+      const next = typeof updater === "function" ? updater({ pageIndex: current.page - 1, pageSize: 10 }) : updater;
+      return { ...current, page: next.pageIndex + 1 };
+    }),
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    manualFiltering: true,
+    manualSorting: true,
+    pageCount: Math.max(1, Math.ceil(totalCount / 10)),
     initialState: {
       pagination: {
         pageSize: 10,
@@ -358,7 +361,7 @@ export function AdminCatalogManager() {
       </Card>
       <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-400">
-          {t("admin.common.showingRecords").replace("{visible}", String(table.getRowModel().rows.length)).replace("{total}", String(table.getFilteredRowModel().rows.length))}
+          {t("admin.common.showingRecords").replace("{visible}", String(table.getRowModel().rows.length)).replace("{total}", String(totalCount))}
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -366,7 +369,7 @@ export function AdminCatalogManager() {
             size="sm"
             className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={isFetching || !table.getCanPreviousPage()}
           >
             {t("admin.common.previous")}
           </Button>
@@ -378,7 +381,7 @@ export function AdminCatalogManager() {
             size="sm"
             className="border-white/12 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={isFetching || !table.getCanNextPage()}
           >
             {t("admin.common.next")}
           </Button>

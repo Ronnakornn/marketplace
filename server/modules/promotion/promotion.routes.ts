@@ -1,10 +1,15 @@
+import { ListPageQuery } from '#server/lib/list-page.ts'
 import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
-import { authPlugin } from '#server/modules/auth'
+import { authPlugin, type AuthContext } from '#server/modules/auth'
 import { PromotionServiceError } from './promotion.errors.ts'
 import { FlashSalePlainInputCreate } from '#generated/prismabox/FlashSale.ts'
 import { FlashSaleItemPlainInputCreate } from '#generated/prismabox/FlashSaleItem.ts'
+
+const CouponBrowseQuerySchema = t.Object({ ...ListPageQuery, q: t.Optional(t.String({ maxLength: 200 })), locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) })
+const CouponListQuerySchema = t.Object({ ...CouponBrowseQuerySchema.properties, isActive: t.Optional(t.Boolean()), shopId: t.Optional(t.String({ format: 'uuid' })) })
+const FlashSaleListQuerySchema = t.Object({ ...ListPageQuery, q: t.Optional(t.String({ maxLength: 200 })), status: t.Optional(FlashSalePlainInputCreate.properties.status) })
 
 const CouponParamsSchema = t.Object({
   couponId: t.String({ format: 'uuid' }),
@@ -71,13 +76,13 @@ export function createPromotionRoutes(container: ServiceContainer) {
         }))
       }
     })
-    .get('/api/coupons', ({ query }: any) => moneyResponse(container.promotionService.listPublicCoupons(query.locale)), {
-      query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
+    .get('/api/coupons', ({ query }) => moneyResponse(container.promotionService.listPublicCoupons(query.locale, query)), {
+      query: CouponBrowseQuerySchema,
     })
-    .get('/api/me/coupons', ({ authContext, query }: any) =>
-      moneyResponse(container.promotionService.listBuyerCoupons(authContext!.user, query.locale)), {
+    .get('/api/me/coupons', ({ authContext, query }: { authContext?: AuthContext; query: typeof CouponBrowseQuerySchema.static }) =>
+      moneyResponse(container.promotionService.listBuyerCoupons(authContext!.user, query.locale, query)), {
       withAuth: true,
-      query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
+      query: CouponBrowseQuerySchema,
     })
     .get('/api/me/coins', ({ authContext, query }: any) =>
       moneyResponse(container.promotionService.getBuyerCoins(authContext!.user, query.limit, query.cursor)), {
@@ -98,11 +103,11 @@ export function createPromotionRoutes(container: ServiceContainer) {
       withAuth: true,
       body: ValidateCouponBodySchema,
     })
-    .get('/api/admin/coupons', ({ authContext }: any) =>
-      moneyResponse(container.promotionService.listAdminCoupons(authContext!.user)), {
-      withRole: 'ADMIN',
+    .get('/api/admin/coupons', ({ authContext, query }: { authContext?: AuthContext; query: typeof CouponListQuerySchema.static }) =>
+      moneyResponse(container.promotionService.listAdminCoupons(authContext!.user, query)), {
+      withRole: 'ADMIN', query: CouponListQuerySchema,
     })
-    .get('/api/admin/flash-sales', ({ authContext }: any) => moneyResponse(container.promotionService.listAdminFlashSales(authContext!.user)), { withRole: 'ADMIN' })
+    .get('/api/admin/flash-sales', ({ authContext, query }: { authContext?: AuthContext; query: typeof FlashSaleListQuerySchema.static }) => moneyResponse(container.promotionService.listAdminFlashSales(authContext!.user, query)), { withRole: 'ADMIN', query: FlashSaleListQuerySchema })
     .post('/api/admin/flash-sales', ({ authContext, body }: any) => moneyResponse(container.promotionService.createFlashSale(authContext!.user, body)), { withRole: 'ADMIN', body: FlashSaleBodySchema })
     .patch('/api/admin/flash-sales/:flashSaleId', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.updateFlashSale(authContext!.user, params.flashSaleId, body)), { withRole: 'ADMIN', params: FlashSaleParamsSchema, body: t.Partial(FlashSaleBodySchema) })
     .post('/api/admin/flash-sales/:flashSaleId/items', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.addFlashSaleItem(authContext!.user, params.flashSaleId, body)), { withRole: 'ADMIN', params: FlashSaleParamsSchema, body: FlashSaleItemBodySchema })
@@ -112,10 +117,10 @@ export function createPromotionRoutes(container: ServiceContainer) {
     .post('/api/seller/flash-sales/:flashSaleId/items', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.addSellerFlashSaleItem(authContext!.user, params.flashSaleId, body)), { withAuth: true, withSellerOperational: true, params: FlashSaleParamsSchema, body: FlashSaleItemBodySchema })
     .patch('/api/seller/flash-sale-items/:itemId', ({ authContext, params, body }: any) => moneyResponse(container.promotionService.updateSellerFlashSaleItem(authContext!.user, params.itemId, body)), { withAuth: true, withSellerOperational: true, params: FlashSaleItemParamsSchema, body: FlashSaleItemUpdateBodySchema })
     .delete('/api/seller/flash-sale-items/:itemId', ({ authContext, params }: any) => moneyResponse(container.promotionService.deleteSellerFlashSaleItem(authContext!.user, params.itemId)), { withAuth: true, withSellerOperational: true, params: FlashSaleItemParamsSchema })
-    .get('/api/seller/coupons', ({ authContext }: any) =>
-      moneyResponse(container.promotionService.listSellerCoupons(authContext!.user)), {
+    .get('/api/seller/coupons', ({ authContext, query }: { authContext?: AuthContext; query: typeof CouponListQuerySchema.static }) =>
+      moneyResponse(container.promotionService.listSellerCoupons(authContext!.user, query)), {
       withAuth: true,
-      withSellerOperational: true,
+      withSellerOperational: true, query: CouponListQuerySchema,
     })
     .post('/api/seller/coupons', ({ authContext, body }: any) =>
       moneyResponse(container.promotionService.createSellerCoupon(authContext!.user, body)), {

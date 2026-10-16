@@ -1,3 +1,4 @@
+import { listPageResult } from '#server/lib/list-page.ts'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   BuyerShipment,
@@ -288,11 +289,11 @@ describe('ShipmentService', () => {
 
   it('lets sellers view own shipments and rejects another shop shipment', async () => {
     vi.mocked(repo.findSellerShops).mockResolvedValue([{ id: 'shop-1' }])
-    vi.mocked(repo.findSellerShipments).mockResolvedValue([createSellerShipment()])
+    vi.mocked(repo.findSellerShipments).mockResolvedValue(listPageResult([createSellerShipment()], 1, {}))
 
     const list = await service.listSellerShipments({ id: 'seller-1', role: 'USER' })
-    expect(list).toHaveLength(1)
-    expect(list[0]!.shopId).toBe('shop-1')
+    expect(list.data).toHaveLength(1)
+    expect(list.data[0]!.shopId).toBe('shop-1')
 
     vi.mocked(repo.findSellerShipmentById).mockResolvedValue(null)
     await expect(service.getSellerShipment({ id: 'seller-1', role: 'USER' }, 'shipment-2')).rejects.toMatchObject({

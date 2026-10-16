@@ -23,6 +23,7 @@ export type SellerProductsResponse = Treaty.Data<ReturnType<typeof api.api.selle
 export type SellerProduct = SellerProductsResponse extends { data: Array<infer T> } ? T : never;
 export type SellerProductDetail = Treaty.Data<ReturnType<ReturnType<typeof api.api.seller.products>["get"]>>;
 export type SellerInventoryResponse = Treaty.Data<ReturnType<typeof api.api.seller.inventory.get>>;
+export type SellerInventoryFilters = NonNullable<NonNullable<Parameters<typeof api.api.seller.inventory.get>[0]>["query"]>;
 export type SellerCategory = Treaty.Data<ReturnType<typeof api.api.categories.get>> extends Array<infer T> ? T : never;
 export type SellerCategorySpecsResponse = Treaty.Data<ReturnType<ReturnType<typeof api.api.categories>["specs"]["get"]>>;
 export type SellerCategorySpec = SellerCategorySpecsResponse extends Array<infer T> ? T : never;
@@ -30,14 +31,21 @@ export type SellerBrand = Treaty.Data<ReturnType<typeof api.api.seller.brands.ge
 export type SellerProductImage = SellerProduct extends { images: Array<infer T> } ? T : never;
 export type SellerProductVideo = SellerProduct extends { video: infer T } ? NonNullable<T> : never;
 export type SellerUpload = SellerCompletedUpload;
-export type SellerShipment = Treaty.Data<ReturnType<typeof api.api.seller.shipments.get>> extends Array<infer T> ? T : never;
-export type SellerReturn = Treaty.Data<ReturnType<typeof api.api.seller.returns.get>> extends Array<infer T> ? T : never;
-export type SellerCoupon = Treaty.Data<ReturnType<typeof api.api.seller.coupons.get>> extends Array<infer T> ? T : never;
+export type SellerShipmentsResponse = Treaty.Data<ReturnType<typeof api.api.seller.shipments.get>>;
+export type SellerShipment = SellerShipmentsResponse extends { data: Array<infer T> } ? T : never;
+export type SellerShipmentFilters = NonNullable<NonNullable<Parameters<typeof api.api.seller.shipments.get>[0]>["query"]>;
+export type SellerReturnsResponse = Treaty.Data<ReturnType<typeof api.api.seller.returns.get>>;
+export type SellerReturn = SellerReturnsResponse extends { data: Array<infer T> } ? T : never;
+type SellerReturnFilters = NonNullable<NonNullable<Parameters<typeof api.api.seller.returns.get>[0]>["query"]>;
+export type SellerCoupon = NonNullable<Treaty.Data<ReturnType<typeof api.api.seller.coupons.get>>>["data"][number];
+export type SellerCouponListInput = NonNullable<NonNullable<Parameters<typeof api.api.seller.coupons.get>[0]>["query"]>;
 export type SellerFlashSales = Treaty.Data<ReturnType<(typeof api.api.seller)["flash-sales"]["get"]>>;
 export type SellerFlashSale = SellerFlashSales extends Array<infer T> ? T : never;
 export type SellerWallet = Treaty.Data<ReturnType<typeof api.api.seller.wallet.get>>;
 export type SellerTransactions = Treaty.Data<ReturnType<typeof api.api.seller.wallet.transactions.get>>;
-export type SellerPayout = Treaty.Data<ReturnType<typeof api.api.seller.payouts.get>> extends Array<infer T> ? T : never;
+export type SellerPayoutsResponse = Treaty.Data<ReturnType<typeof api.api.seller.payouts.get>>;
+export type SellerPayout = SellerPayoutsResponse extends { data: Array<infer T> } ? T : never;
+type SellerPayoutFilters = NonNullable<NonNullable<Parameters<typeof api.api.seller.payouts.get>[0]>["query"]>;
 export type SellerShopStaff = Treaty.Data<ReturnType<ReturnType<typeof api.api.seller.shops>['staff']['get']>> extends Array<infer T> ? T : never;
 
 export interface ProductFilters {
@@ -381,11 +389,12 @@ export function useSellerProductQuestions(productId?: string) {
   });
 }
 
-export function useSellerInventory() {
+export function useSellerInventory(filters: SellerInventoryFilters = {}) {
+  const query = { page: 1, limit: SELLER_PAGE_SIZE, ...filters };
   return useQuery({
-    queryKey: sellerKey("inventory"),
+    queryKey: [...sellerKey("inventory"), query],
     queryFn: async (): Promise<SellerInventoryResponse> => {
-      const { data, error } = await api.api.seller.inventory.get();
+      const { data, error } = await api.api.seller.inventory.get({ query });
       if (error) throw error;
       return data;
     },
@@ -427,33 +436,34 @@ export function useSellerBrands() {
   });
 }
 
-export function useSellerShipments() {
+export function useSellerShipments(filters: SellerShipmentFilters = {}) {
+  const query = { page: 1, limit: SELLER_PAGE_SIZE, ...filters };
   return useQuery({
-    queryKey: sellerKey("shipments"),
+    queryKey: [...sellerKey("shipments"), query],
     queryFn: async () => {
-      const { data, error } = await api.api.seller.shipments.get();
+      const { data, error } = await api.api.seller.shipments.get({ query });
       if (error) throw error;
       return data;
     },
   });
 }
 
-export function useSellerReturns() {
+export function useSellerReturns(filters: SellerReturnFilters = {}) {
   return useQuery({
-    queryKey: sellerKey("returns"),
+    queryKey: [...sellerKey("returns"), filters],
     queryFn: async () => {
-      const { data, error } = await api.api.seller.returns.get();
+      const { data, error } = await api.api.seller.returns.get({ query: filters });
       if (error) throw error;
       return data;
     },
   });
 }
 
-export function useSellerCoupons() {
+export function useSellerCoupons(input: SellerCouponListInput = {}) {
   return useQuery({
-    queryKey: sellerKey("coupons"),
+    queryKey: [...sellerKey("coupons"), input],
     queryFn: async () => {
-      const { data, error } = await api.api.seller.coupons.get();
+      const { data, error } = await api.api.seller.coupons.get({ query: input });
       if (error) throw error;
       return data;
     },
@@ -482,11 +492,11 @@ export function useSellerTransactions(page = 1, limit = SELLER_PAGE_SIZE) {
   });
 }
 
-export function useSellerPayouts() {
+export function useSellerPayouts(filters: SellerPayoutFilters = {}) {
   return useQuery({
-    queryKey: sellerKey("payouts"),
+    queryKey: [...sellerKey("payouts"), filters],
     queryFn: async () => {
-      const { data, error } = await api.api.seller.payouts.get();
+      const { data, error } = await api.api.seller.payouts.get({ query: filters });
       if (error) throw error;
       return data;
     },

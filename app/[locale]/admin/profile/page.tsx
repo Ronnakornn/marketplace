@@ -1,6 +1,7 @@
 import { Badge } from "#/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { AdminPageIntro, AdminSpaceCat } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminSpaceCat } from "#/features/admin/components/AdminSpaceCat";
 import { requireAdmin } from "#/lib/auth-server";
 import { createTranslator } from "#/i18n/server";
 

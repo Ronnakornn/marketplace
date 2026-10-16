@@ -10,7 +10,7 @@ import { adaptOrderShipmentProgress } from './buyer-shipment.adapter.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { ActiveShopResolver } from '#server/modules/security'
 import { OrderServiceError } from './order.errors.ts'
-import type { IOrderRepository, OrderRecord, OrderShipment } from './order.repository.ts'
+import type { IOrderRepository, OrderRecord, OrderShipment, OrderListRecord, OrderListInput } from './order.repository.ts'
 
 export interface OrderActor {
   id: string
@@ -123,11 +123,11 @@ export class OrderService {
     this.logger = appContext.logger
   }
 
-  async listBuyerOrders(actor: OrderActor): Promise<OrderDetailResponse[]> {
+  async listBuyerOrders(actor: OrderActor, input: OrderListInput = {}) {
     this.assertBuyer(actor)
     this.logger.info('OrderService.listBuyerOrders', { actorId: actor.id })
-    const orders = await this.repo.findBuyerOrders(actor.id)
-    return orders.map((order) => this.toBuyerOrderResponse(order))
+    const orders = await this.repo.findBuyerOrders(actor.id, input)
+    return { ...orders, data: orders.data.map((order) => this.toListResponse(order)) }
   }
 
   async getBuyerOrder(actor: OrderActor, orderId: string): Promise<OrderDetailResponse> {
@@ -152,11 +152,33 @@ export class OrderService {
     }
   }
 
-  async listSellerOrders(actor: OrderActor): Promise<OrderDetailResponse[]> {
+  async listSellerOrders(actor: OrderActor, input: OrderListInput = {}) {
     this.logger.info('OrderService.listSellerOrders', { actorId: actor.id })
     const shopIds = await this.getSellerShopIds(actor.id)
-    const orders = await this.repo.findSellerOrders(shopIds)
-    return orders.map((order) => this.toSellerOrderResponse(order, shopIds))
+    const allowed = input.shopId ? shopIds.filter((id) => id === input.shopId) : shopIds
+    const orders = await this.repo.findSellerOrders(allowed, input)
+    return { ...orders, data: orders.data.map((order) => this.toListResponse(order, allowed)) }
+  }
+
+  private toListResponse(order: OrderListRecord, shopIds?: string[]) {
+    const allowed = shopIds ? new Set(shopIds) : undefined
+    const totals = allowed ? order.shopOrders.filter((shop) => allowed.has(shop.shopId)).reduce(
+      (total, shop) => ({
+        subtotal: total.subtotal + shop.subtotal, discountTotal: total.discountTotal + shop.discountTotal,
+        shippingTotal: total.shippingTotal + shop.shippingTotal, taxTotal: total.taxTotal + shop.taxTotal,
+        includedTaxTotal: total.includedTaxTotal + shop.includedTaxTotal,
+        reportedTaxTotal: total.reportedTaxTotal + shop.reportedTaxTotal,
+        grandTotal: total.grandTotal + shop.grandTotal, currency: shop.currency,
+      }),
+      { subtotal: 0n, discountTotal: 0n, shippingTotal: 0n, taxTotal: 0n, includedTaxTotal: 0n, reportedTaxTotal: 0n, grandTotal: 0n, currency: order.currency },
+    ) : { subtotal: order.subtotal, discountTotal: order.discountTotal, shippingTotal: order.shippingTotal,
+      taxTotal: order.taxTotal, includedTaxTotal: order.includedTaxTotal, reportedTaxTotal: order.reportedTaxTotal,
+      grandTotal: order.grandTotal, currency: order.currency }
+    return {
+      id: order.id, orderNo: order.orderNumber, status: order.status, paymentStatus: order.paymentStatus,
+      createdAt: order.createdAt, totals,
+      items: order.items.filter((item) => !allowed || allowed.has(item.shopId)),
+    }
   }
 
   async getSellerOrder(actor: OrderActor, orderId: string): Promise<OrderDetailResponse> {

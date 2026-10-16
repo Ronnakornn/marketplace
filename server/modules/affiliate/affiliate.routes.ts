@@ -1,9 +1,11 @@
+import { ListPageQuery } from '#server/lib/list-page.ts'
 import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
-import { authPlugin } from '#server/modules/auth'
+import { authPlugin, type AuthContext } from '#server/modules/auth'
 import { AffiliateServiceError } from './affiliate.errors.ts'
 
+const AffiliateListQuerySchema = t.Object({ ...ListPageQuery, q: t.Optional(t.String({ maxLength: 200 })), status: t.Optional(t.Union([t.Literal('ACTIVE'), t.Literal('DISABLED')])) })
 const TargetTypeSchema = t.Union([t.Literal('product'), t.Literal('shop'), t.Literal('campaign')])
 const TargetSearchQuerySchema = t.Object({
   targetType: TargetTypeSchema,
@@ -48,9 +50,9 @@ export function createAffiliateRoutes(container: ServiceContainer) {
       withAuth: true,
       body: CreateLinkBodySchema,
     })
-    .get('/api/affiliate/links', ({ authContext }: any) =>
-      moneyResponse(container.affiliateService.listLinks(authContext.user)), {
-      withAuth: true,
+    .get('/api/affiliate/links', ({ authContext, query }: { authContext?: AuthContext; query: typeof AffiliateListQuerySchema.static }) =>
+      moneyResponse(container.affiliateService.listLinks(authContext!.user, query)), {
+      withAuth: true, query: AffiliateListQuerySchema,
     })
     .get('/api/affiliate/links/:linkId', ({ authContext, params }: any) =>
       moneyResponse(container.affiliateService.getLink(authContext.user, params.linkId)), {
@@ -93,8 +95,8 @@ export function createAffiliateRoutes(container: ServiceContainer) {
       })), {
       body: ClickBodySchema,
     })
-    .get('/api/admin/affiliates', () => moneyResponse(container.affiliateService.listAdminAffiliates()), {
-      withRole: 'ADMIN',
+    .get('/api/admin/affiliates', ({ query }) => moneyResponse(container.affiliateService.listAdminAffiliates(query)), {
+      withRole: 'ADMIN', query: AffiliateListQuerySchema,
     })
     .patch('/api/admin/affiliates/:affiliateId/status', ({ params, body }: any) =>
       moneyResponse(container.affiliateService.updateAffiliateStatus(params.affiliateId, body.status)), {

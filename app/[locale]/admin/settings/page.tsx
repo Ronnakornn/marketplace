@@ -1,5 +1,7 @@
 import { AdminTaxPolicyEditor } from "#/features/admin/components/AdminTaxPolicyEditor";
-import { AdminPageIntro, AdminSettingsManager, AdminSpaceCat } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminSettingsManager } from "#/features/admin/components/AdminConfigurationTables";
+import { AdminSpaceCat } from "#/features/admin/components/AdminSpaceCat";
 
 export default function AdminSettingsPage() {
   return (

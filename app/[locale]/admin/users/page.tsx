@@ -1,4 +1,6 @@
-import { AdminPageIntro, AdminSpaceCat, AdminUsersTable } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminSpaceCat } from "#/features/admin/components/AdminSpaceCat";
+import { AdminUsersTable } from "#/features/admin/components/AdminOperationsTables";
 
 export default function AdminUsersPage() {
   return (

@@ -7,6 +7,10 @@ import type {
   Shop,
   ShopOrder,
 } from '#generated/client/client.ts'
+import { OrderStatus, PaymentStatus } from '#generated/client/enums.ts'
+import type { Prisma } from '#generated/client/client.ts'
+import { listPage, listPageResult, type ListPageInput } from '#server/lib/list-page.ts'
+import { escapeLikeLiteral } from '#server/lib/sql-like.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 
@@ -23,11 +27,47 @@ export type OrderRecord = Order & {
 }
 
 export interface IOrderRepository {
-  findBuyerOrders(userId: string): Promise<OrderRecord[]>
+  findBuyerOrders(userId: string, input: OrderListInput): Promise<ReturnType<typeof listPageResult<OrderListRecord>>>
   findBuyerOrderById(orderId: string, userId: string): Promise<OrderRecord | null>
   findSellerShops(ownerId: string): Promise<Pick<Shop, 'id' | 'name' | 'slug'>[]>
-  findSellerOrders(shopIds: string[]): Promise<OrderRecord[]>
+  findSellerOrders(shopIds: string[], input: OrderListInput): Promise<ReturnType<typeof listPageResult<OrderListRecord>>>
   findSellerOrderById(orderId: string, shopIds: string[]): Promise<OrderRecord | null>
+}
+
+export interface OrderListInput extends ListPageInput {
+  q?: string
+  status?: OrderStatus | PaymentStatus
+  shopId?: string
+}
+
+const orderListSelect = {
+  id: true, orderNumber: true, status: true, paymentStatus: true, createdAt: true,
+  subtotal: true, discountTotal: true, shippingTotal: true, taxTotal: true,
+  includedTaxTotal: true, reportedTaxTotal: true, grandTotal: true, currency: true,
+  items: { select: { id: true, shopId: true, productTitle: true, quantity: true }, orderBy: { id: 'asc' } },
+  shopOrders: { select: { shopId: true, subtotal: true, discountTotal: true, shippingTotal: true, taxTotal: true, includedTaxTotal: true, reportedTaxTotal: true, grandTotal: true, currency: true } },
+} satisfies Prisma.OrderSelect
+
+export type OrderListRecord = Prisma.OrderGetPayload<{ select: typeof orderListSelect }>
+
+function orderListWhere(input: OrderListInput, shopIds?: string[]): Prisma.OrderWhereInput {
+  const q = input.q?.trim() ? escapeLikeLiteral(input.q.trim()) : undefined
+  const itemScope: Prisma.OrderItemWhereInput = shopIds ? { shopId: { in: shopIds } } : input.shopId ? { shopId: input.shopId } : {}
+  const statuses: Prisma.OrderWhereInput[] = []
+  const orderStatus = Object.values(OrderStatus).find((status) => status === input.status)
+  const paymentStatus = Object.values(PaymentStatus).find((status) => status === input.status)
+  if (orderStatus) statuses.push({ status: orderStatus })
+  if (paymentStatus) statuses.push({ paymentStatus })
+  return {
+    ...(shopIds || input.shopId ? { items: { some: itemScope } } : {}),
+    AND: [
+      ...(statuses.length ? [{ OR: statuses }] : []),
+      ...(q ? [{ OR: [
+        { orderNumber: { contains: q, mode: 'insensitive' as const } },
+        { items: { some: { ...itemScope, productTitle: { contains: q, mode: 'insensitive' as const } } } },
+      ] }] : []),
+    ],
+  }
 }
 
 const orderInclude = {
@@ -87,13 +127,9 @@ export class PrismaOrderRepository implements IOrderRepository {
     this.logger = appContext.logger
   }
 
-  findBuyerOrders(userId: string): Promise<OrderRecord[]> {
+  async findBuyerOrders(userId: string, input: OrderListInput) {
     this.logger.debug('PrismaOrderRepository.findBuyerOrders', { userId })
-    return this.prisma.order.findMany({
-      where: { userId },
-      include: orderInclude,
-      orderBy: { createdAt: 'desc' },
-    }).then((orders) => orders.map(withReturnCapacity))
+    return this.findOrderPage({ ...orderListWhere(input), userId }, input)
   }
 
   findBuyerOrderById(orderId: string, userId: string): Promise<OrderRecord | null> {
@@ -113,21 +149,26 @@ export class PrismaOrderRepository implements IOrderRepository {
     })
   }
 
-  findSellerOrders(shopIds: string[]): Promise<OrderRecord[]> {
+  async findSellerOrders(shopIds: string[], input: OrderListInput) {
     this.logger.debug('PrismaOrderRepository.findSellerOrders', { shopIds })
-    if (shopIds.length === 0) return Promise.resolve([])
+    const allowed = input.shopId ? shopIds.filter((id) => id === input.shopId) : shopIds
+    return this.findOrderPage(orderListWhere(input, allowed), input, allowed)
+  }
 
-    return this.prisma.order.findMany({
-      where: {
-        items: {
-          some: {
-            shopId: { in: shopIds },
-          },
+  private async findOrderPage(where: Prisma.OrderWhereInput, input: OrderListInput, shopIds?: string[]) {
+    const { skip, take } = listPage(input)
+    const [orders, totalCount] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        where, select: {
+          ...orderListSelect,
+          items: { ...orderListSelect.items, ...(shopIds ? { where: { shopId: { in: shopIds } } } : {}) },
+          shopOrders: { ...orderListSelect.shopOrders, ...(shopIds ? { where: { shopId: { in: shopIds } } } : {}) },
         },
-      },
-      include: orderInclude,
-      orderBy: { createdAt: 'desc' },
-    })
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip, take,
+      }),
+      this.prisma.order.count({ where }),
+    ], { isolationLevel: 'RepeatableRead' })
+    return listPageResult(orders, totalCount, input)
   }
 
   findSellerOrderById(orderId: string, shopIds: string[]): Promise<OrderRecord | null> {

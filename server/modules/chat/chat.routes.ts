@@ -9,6 +9,10 @@ const uuid = () => t.String({ format: 'uuid' })
 const audience = t.Optional(t.Union([t.Literal('buyer'), t.Literal('seller')]))
 const RoomParamsSchema = t.Object({ roomId: uuid() })
 const InboxQuerySchema = t.Object({ scope: audience, shopId: t.Optional(uuid()) })
+const InboxPaginationSchema = t.Object({ ...InboxQuerySchema.properties,
+  limit: t.Optional(t.Numeric({ minimum: 1, maximum: 50 })), cursor: t.Optional(t.String({ minLength: 1, maxLength: 200 })),
+  q: t.Optional(t.String({ maxLength: 200 })), unreadOnly: t.Optional(t.Boolean()),
+})
 const PaginationQuerySchema = t.Object({
   page: t.Optional(t.Numeric({ minimum: 1, maximum: 2_147_483_647 })),
   limit: t.Optional(t.Numeric({ minimum: 1, maximum: 50 })),
@@ -56,8 +60,11 @@ export function createChatRoutes(container: Pick<ServiceContainer, 'chatService'
       const cause = error instanceof ParseError ? error.cause : error
       if (cause instanceof ChatServiceError) return chatResponse(async () => { throw cause })
     })
-    .get('/api/chats', ({ request, query }) => chatResponse(async () => container.chatService.listRooms(await requestActor(request), query.scope, query.shopId)), {
+    .get('/api/chats/unread-count', ({ request, query }) => chatResponse(async () => container.chatService.unreadCount(await requestActor(request), query)), {
       withAuth: true, query: InboxQuerySchema,
+    })
+    .get('/api/chats', ({ request, query }) => chatResponse(async () => container.chatService.listRooms(await requestActor(request), query)), {
+      withAuth: true, query: InboxPaginationSchema,
     })
     .get('/api/chats/:roomId', ({ request, params, query }) => chatResponse(async () => container.chatService.getRoom(await requestActor(request), params.roomId, query)), {
       withAuth: true, params: RoomParamsSchema, query: PaginationQuerySchema,

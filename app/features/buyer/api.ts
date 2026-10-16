@@ -78,20 +78,7 @@ export interface BuyerAddress {
   isDefault: boolean;
 }
 
-export interface BuyerCoupon {
-  id: string;
-  code: string;
-  title: string;
-  description: string | null;
-  discountType: string;
-  discountValueCents: MinorUnitValue | null;
-  discountPercentBps: number | null;
-  minOrderCents: MinorUnitValue | null;
-  maxDiscountCents: MinorUnitValue | null;
-  endsAt: string | null;
-  claimed: boolean;
-  claimedAt: string | null;
-}
+export type BuyerCoupon = NonNullable<Treaty.Data<ReturnType<typeof api.api.me.coupons.get>>>["data"][number];
 
 export interface BuyerNotification {
   id: string;
@@ -191,45 +178,22 @@ export type CheckoutResult = NonNullable<Treaty.Data<ReturnType<typeof api.api.c
 export type CheckoutQuoteInput = Parameters<typeof api.api.checkout.quote.post>[0];
 export type CheckoutQuote = NonNullable<Treaty.Data<ReturnType<typeof api.api.checkout.quote.post>>>;
 
+export type BuyerCouponListInput = NonNullable<NonNullable<Parameters<typeof api.api.me.coupons.get>[0]>["query"]>;
+
+export async function fetchCouponPage(input: BuyerCouponListInput = {}) {
+  const { data, error } = await api.api.me.coupons.get({ query: input });
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchCoupons(locale?: string): Promise<BuyerCoupon[]> {
-  const response = await apiFetch(`/api/me/coupons${toQuery({ locale })}`);
-  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
-  return rawItems.map((item) => {
-    const record = toRecord(item);
-    return {
-      id: readString(record.id, readString(record.code)),
-      code: readString(record.code, "DEAL"),
-      title: readString(record.title, readString(record.code, "Deal")),
-      description: optionalString(record.description),
-      discountType: readString(record.discountType, "fixed"),
-      discountValueCents: optionalMoney(record.discountValueCents),
-      discountPercentBps: optionalNumber(record.discountPercentBps),
-      minOrderCents: optionalMoney(record.minOrderCents),
-      maxDiscountCents: optionalMoney(record.maxDiscountCents),
-      endsAt: optionalString(record.endsAt),
-      claimed: Boolean(record.claimed),
-      claimedAt: optionalString(record.claimedAt),
-    };
-  });
+  return (await fetchCouponPage({ locale: locale === "en" ? "en" : "th", page: 1, limit: 8 })).data;
 }
 
 export async function claimCoupon(couponId: string, locale?: string): Promise<BuyerCoupon> {
-  const response = await apiFetch(`/api/coupons/${couponId}/claim${toQuery({ locale })}`, { method: "POST" });
-  const record = toRecord(response);
-  return {
-    id: readString(record.id),
-    code: readString(record.code),
-    title: readString(record.title, readString(record.code)),
-    description: optionalString(record.description),
-    discountType: readString(record.discountType),
-    discountValueCents: optionalMoney(record.discountValueCents),
-    discountPercentBps: optionalNumber(record.discountPercentBps),
-    minOrderCents: optionalMoney(record.minOrderCents),
-    maxDiscountCents: optionalMoney(record.maxDiscountCents),
-    endsAt: optionalString(record.endsAt),
-    claimed: Boolean(record.claimed),
-    claimedAt: optionalString(record.claimedAt),
-  };
+  const { data, error } = await api.api.coupons({ couponId }).claim.post(undefined, { query: { locale: locale === "en" ? "en" : "th" } });
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchFavoriteProducts(): Promise<BuyerFavoriteProduct[]> {
@@ -421,12 +385,6 @@ export async function createReturnRequest(input: ReturnRequestInput): Promise<un
     method: "POST",
     body: JSON.stringify(input),
   });
-}
-
-export async function fetchOrders(): Promise<BuyerOrder[]> {
-  const response = await apiFetch("/api/orders");
-  const rawItems = Array.isArray(response) ? response : readArray((response as Record<string, unknown>)?.items);
-  return rawItems.map(normalizeOrder);
 }
 
 export async function fetchOrder(orderId: string): Promise<BuyerOrder> {
@@ -677,14 +635,6 @@ function readString(value: unknown, fallback = ""): string {
 
 function optionalString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
-}
-
-function optionalMoney(value: unknown): string | null {
-  return value === undefined || value === null ? null : minorUnitsText(value);
-}
-
-function optionalNumber(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function readNumber(value: unknown, fallback = 0): number {

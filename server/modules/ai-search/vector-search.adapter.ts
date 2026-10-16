@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient, Product, ProductVariant, Review, Shop } from '#generated/client/client.ts'
+import type { Prisma, PrismaClient, Product, ProductVariant, Shop } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import { AiSearchServiceError } from './ai-search.errors.ts'
@@ -22,7 +22,6 @@ export type AiSearchProductVariant = Pick<ProductVariant, 'id' | 'sku' | 'title'
     quantityOnHand: number
     quantityReserved: number
   } | null
-  orderItems: Array<{ quantity: number }>
 }
 
 export type AiSearchProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'description' | 'createdAt' | 'status'> & {
@@ -39,7 +38,8 @@ export type AiSearchProductRecord = Pick<Product, 'id' | 'title' | 'slug' | 'des
   } | null
   shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
   variants: AiSearchProductVariant[]
-  reviews: Array<Pick<Review, 'rating' | 'status'>>
+  ratingSum: number
+  reviewCount: number
 }
 
 export interface IVectorSearchAdapter {
@@ -97,23 +97,9 @@ const aiSearchProductSelect = {
           quantityReserved: true,
         },
       },
-      orderItems: {
-        select: {
-          quantity: true,
-        },
-      },
     },
   },
-  reviews: {
-    where: {
-      status: 'PUBLISHED',
-    },
-    select: {
-      rating: true,
-      status: true,
-    },
-  },
-} as const
+} satisfies Prisma.ProductSelect
 
 export class PgVectorSearchAdapter implements IVectorSearchAdapter {
   private logger: ILogger
@@ -139,10 +125,21 @@ export class PgVectorSearchAdapter implements IVectorSearchAdapter {
         },
         select: aiSearchProductSelect,
       })
+      const reviews = products.length === 0 ? [] : await this.prisma.review.groupBy({
+        by: ['productId'],
+        where: { productId: { in: products.map((product) => product.id) }, status: 'PUBLISHED' },
+        _sum: { rating: true },
+        _count: { _all: true },
+      })
+      const reviewsById = new Map(reviews.map((review) => [review.productId, review]))
 
       return products
         .map((product) => ({
-          product,
+          product: {
+            ...product,
+            ratingSum: reviewsById.get(product.id)?._sum.rating ?? 0,
+            reviewCount: reviewsById.get(product.id)?._count._all ?? 0,
+          },
           score: scoreByProductId.get(product.id) ?? 0,
         }))
         .sort((a, b) => b.score - a.score)

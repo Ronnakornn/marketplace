@@ -1,9 +1,12 @@
 import { moneyInteger } from '#server/lib/money.ts'
+import { listPage, listPageResult, type ListPageInput } from '#server/lib/list-page.ts'
+import { escapeLikeLiteral } from '#server/lib/sql-like.ts'
 import type {
   Order,
   OrderItem,
   Payment,
   PrismaClient,
+  Prisma,
   Refund,
   ReturnItem,
   ReturnRequest,
@@ -49,6 +52,10 @@ export type ReturnRecord = ReturnRequest & {
 
 export type ReturnUpload = Pick<Upload, 'id' | 'userId' | 'usage' | 'status' | 'contentType' | 'publicUrl'>
 
+export type ReturnListInput = ListPageInput & { q?: string; status?: ReturnStatus; shopId?: string }
+export type ReturnListRecord = Omit<ReturnRecord, 'order'>
+type ReturnListResult = ReturnType<typeof listPageResult<ReturnListRecord>>
+
 export interface CreateReturnInput {
   orderId: string
   userId: string
@@ -68,10 +75,10 @@ export interface IReturnRepository {
   findOrderItemForReturn(orderItemId: string): Promise<ReturnOrderItem | null>
   findUploadsByIds(uploadIds: string[]): Promise<ReturnUpload[]>
   createReturn(input: CreateReturnInput): Promise<ReturnRecord>
-  findBuyerReturns(userId: string): Promise<ReturnRecord[]>
+  findBuyerReturns(userId: string, input: ReturnListInput): Promise<ReturnListResult>
   findBuyerReturnById(returnId: string, userId: string): Promise<ReturnRecord | null>
   findSellerShops(ownerId: string): Promise<Pick<Shop, 'id'>[]>
-  findSellerReturns(shopIds: string[]): Promise<ReturnRecord[]>
+  findSellerReturns(shopIds: string[], input: ReturnListInput): Promise<ReturnListResult>
   findSellerReturnById(returnId: string, shopIds: string[]): Promise<ReturnRecord | null>
   updateReturnStatus(returnId: string, status: ReturnStatus): Promise<ReturnRecord>
   createPendingRefundForReturn(returnRecord: ReturnRecord): Promise<Refund>
@@ -95,6 +102,28 @@ const returnInclude = {
     orderBy: { createdAt: 'desc' },
   },
 } as const
+
+const returnListInclude = {
+  items: returnInclude.items,
+  refunds: { orderBy: { createdAt: 'desc' }, take: 1 },
+} satisfies Prisma.ReturnRequestInclude
+
+function returnListWhere(input: ReturnListInput, shopIds?: string[]): Prisma.ReturnRequestWhereInput {
+  const q = input.q?.trim() ? escapeLikeLiteral(input.q.trim()) : undefined
+  return {
+    ...(input.status ? { status: input.status } : {}),
+    ...(input.shopId ? { shopId: input.shopId } : {}),
+    ...(q ? { OR: [
+      { reason: { contains: q, mode: 'insensitive' } },
+      { description: { contains: q, mode: 'insensitive' } },
+      { order: { orderNumber: { contains: q, mode: 'insensitive' } } },
+      { items: { some: { orderItem: {
+        ...(shopIds ? { shopId: { in: shopIds } } : {}),
+        OR: [{ productTitle: { contains: q, mode: 'insensitive' } }, { variantTitle: { contains: q, mode: 'insensitive' } }],
+      } } } },
+    ] } : {}),
+  }
+}
 
 export class PrismaReturnRepository implements IReturnRepository {
   private logger: ILogger
@@ -200,13 +229,9 @@ export class PrismaReturnRepository implements IReturnRepository {
     })
   }
 
-  findBuyerReturns(userId: string): Promise<ReturnRecord[]> {
+  findBuyerReturns(userId: string, input: ReturnListInput): Promise<ReturnListResult> {
     this.logger.debug('PrismaReturnRepository.findBuyerReturns', { userId })
-    return this.prisma.returnRequest.findMany({
-      where: { userId },
-      include: returnInclude,
-      orderBy: { createdAt: 'desc' },
-    })
+    return this.findReturnPage({ userId, ...returnListWhere(input) }, input)
   }
 
   findBuyerReturnById(returnId: string, userId: string): Promise<ReturnRecord | null> {
@@ -225,23 +250,29 @@ export class PrismaReturnRepository implements IReturnRepository {
     })
   }
 
-  findSellerReturns(shopIds: string[]): Promise<ReturnRecord[]> {
+  findSellerReturns(shopIds: string[], input: ReturnListInput): Promise<ReturnListResult> {
     this.logger.debug('PrismaReturnRepository.findSellerReturns', { shopIds })
-    if (shopIds.length === 0) return Promise.resolve([])
+    if (shopIds.length === 0) return Promise.resolve(listPageResult<ReturnListRecord>([], 0, input))
 
-    return this.prisma.returnRequest.findMany({
-      where: {
-        items: {
-          some: {
-            orderItem: {
-              shopId: { in: shopIds },
-            },
+    return this.findReturnPage({
+      ...returnListWhere(input, shopIds),
+      items: {
+        some: {
+          orderItem: {
+            shopId: { in: shopIds },
           },
         },
       },
-      include: returnInclude,
-      orderBy: { createdAt: 'desc' },
-    })
+    }, input)
+  }
+
+  private async findReturnPage(where: Prisma.ReturnRequestWhereInput, input: ReturnListInput): Promise<ReturnListResult> {
+    const { skip, take } = listPage(input)
+    const [data, totalCount] = await Promise.all([
+      this.prisma.returnRequest.findMany({ where, include: returnListInclude, skip, take, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
+      this.prisma.returnRequest.count({ where }),
+    ])
+    return listPageResult(data, totalCount, input)
   }
 
   findSellerReturnById(returnId: string, shopIds: string[]): Promise<ReturnRecord | null> {

@@ -1,4 +1,5 @@
-import { AdminPageIntro, AdminPayoutsTable } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminPayoutsTable } from "#/features/admin/components/AdminBackofficeTables";
 
 export default function AdminPayoutsPage() {
   return (

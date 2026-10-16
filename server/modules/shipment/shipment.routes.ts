@@ -1,8 +1,17 @@
 import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
-import { authPlugin } from '#server/modules/auth'
+import { authPlugin, type AuthContext } from '#server/modules/auth'
 import { ShipmentServiceError } from './shipment.errors.ts'
+import { ShipmentStatus } from '#generated/client/enums.ts'
+import { ListPageQuery } from '#server/lib/list-page.ts'
+
+const ShipmentListQuerySchema = t.Object({
+  ...ListPageQuery,
+  q: t.Optional(t.String({ maxLength: 200 })),
+  status: t.Optional(t.Enum(ShipmentStatus)),
+  shopId: t.Optional(t.String({ format: 'uuid' })),
+})
 
 const ShipmentParamsSchema = t.Object({
   shipmentId: t.String({ format: 'uuid' }),
@@ -33,10 +42,11 @@ export function createShipmentRoutes(container: ServiceContainer) {
         }))
       }
     })
-    .get('/api/seller/shipments', ({ authContext }: any) =>
-      moneyResponse(container.shipmentService.listSellerShipments(authContext!.user)), {
+    .get('/api/seller/shipments', ({ authContext, query }: { authContext?: AuthContext; query: typeof ShipmentListQuerySchema.static }) =>
+      moneyResponse(container.shipmentService.listSellerShipments(authContext!.user, query)), {
       withAuth: true,
       withSellerOperational: true,
+      query: ShipmentListQuerySchema,
     })
     .get('/api/seller/shipments/:shipmentId', ({ authContext, params }: any) =>
       moneyResponse(container.shipmentService.getSellerShipment(authContext!.user, params.shipmentId)), {

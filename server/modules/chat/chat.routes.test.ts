@@ -58,8 +58,8 @@ function createApp(objects?: ChatPrivateObjectStore) {
     findRoomByBuyerAndShop: vi.fn<IChatRepository['findRoomByBuyerAndShop']>().mockResolvedValue(room),
     findRoomById: vi.fn<IChatRepository['findRoomById']>().mockResolvedValue(room),
     createRoom: vi.fn<IChatRepository['createRoom']>().mockResolvedValue(room),
-    listBuyerRooms: vi.fn<IChatRepository['listBuyerRooms']>().mockResolvedValue([room]),
-    listSellerRooms: vi.fn<IChatRepository['listSellerRooms']>().mockResolvedValue([]),
+    listRooms: vi.fn<IChatRepository['listRooms']>().mockResolvedValue({ items: [{ room, unreadCount: 2 }], hasMore: false }),
+    countUnread: vi.fn<IChatRepository['countUnread']>().mockResolvedValue(75),
     createMessage: vi.fn<IChatRepository['createMessage']>(),
     listMessages: vi.fn<IChatRepository['listMessages']>().mockResolvedValue({ items: [], total: 0, hasMore: false }),
     countUnreadMessages: vi.fn<IChatRepository['countUnreadMessages']>().mockResolvedValue(0),
@@ -80,6 +80,35 @@ function request(path: string, method = 'GET', body?: unknown) {
 }
 
 describe('chat routes with global observability and security', () => {
+  it('serves a compact whole-inbox unread count through the fixed authenticated route', async () => {
+    const { app, repo } = createApp()
+    const response = await app.handle(request('/api/chats/unread-count?scope=buyer'))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ unreadCount: 75 })
+    expect(repo.countUnread).toHaveBeenCalledWith(buyerId, { scope: 'buyer' })
+    expect(repo.findRoomById).not.toHaveBeenCalled()
+    expect(repo.listRooms).not.toHaveBeenCalled()
+  })
+
+  it('filters before bounded inbox pagination and rejects excessive pages', async () => {
+    const { app, repo } = createApp()
+    const response = await app.handle(request(`/api/chats?scope=seller&shopId=${shopId}&q=Buyer&unreadOnly=true&limit=50`))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ items: [{ roomId, unreadCount: 2 }], pagination: { limit: 50, hasMore: false, nextCursor: null } })
+    expect(repo.listRooms).toHaveBeenCalledWith(buyerId, expect.objectContaining({ scope: 'seller', shopId, q: 'Buyer', unreadOnly: true, limit: 50 }))
+    expect(repo.countUnreadMessages).not.toHaveBeenCalled()
+    expect((await app.handle(request('/api/chats?limit=51'))).status).toBe(422)
+  })
+
+  it('blocks administrators and anonymous users from the global unread count', async () => {
+    const { app, repo } = createApp()
+    vi.mocked(getAuthContext).mockResolvedValue(null)
+    expect((await app.handle(request('/api/chats/unread-count'))).status).toBe(401)
+    vi.mocked(getAuthContext).mockResolvedValue({ user: { id: buyerId, role: 'ADMIN', name: 'Admin', email: 'admin@example.com', status: 'ACTIVE', emailVerified: true }, session: { id: 'session' } })
+    expect((await app.handle(request('/api/chats/unread-count'))).status).toBe(403)
+    expect(repo.countUnread).not.toHaveBeenCalled()
+  })
+
   it('defers only framework-wrapped chat parser errors', () => {
     const chatError = new ChatServiceError('Invalid message body', 400, 'INVALID_MESSAGE')
     expect(isChatParserError(new ParseError(chatError))).toBe(true)
@@ -184,12 +213,12 @@ describe('chat routes with global observability and security', () => {
 
     expect(response.status).toBe(401)
     expect(await response.json()).toEqual({ error: { code: 'AUTH_REQUIRED', message: 'Authentication required' } })
-    expect(repo.listBuyerRooms).not.toHaveBeenCalled()
+    expect(repo.listRooms).not.toHaveBeenCalled()
   })
 
   it('leaves unknown exceptions to the redacted global production fallback', async () => {
     const { app, repo, context } = createApp()
-    repo.listBuyerRooms.mockRejectedValue(new Error('database password=private-secret'))
+    repo.listRooms.mockRejectedValue(new Error('database password=private-secret'))
 
     const response = await app.handle(request('/api/chats'))
 

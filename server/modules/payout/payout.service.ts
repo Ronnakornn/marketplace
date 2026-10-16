@@ -1,14 +1,17 @@
 import type { AdminAuthorizer, AdminPermission } from '#server/modules/admin-access/admin-access.contract.ts'
 import { payoutCycleKey } from '#server/modules/admin-operations/payout-cycle.ts'
 import { moneyInteger } from '#server/lib/money.ts'
-import type { Role } from '#generated/client/enums.ts'
+import { PayoutStatus, type Role } from '#generated/client/enums.ts'
+import type { ListPageInput } from '#server/lib/list-page.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { EventPublisherService } from '#server/modules/event-bus'
 import type { ActiveShopResolver } from '#server/modules/security'
 import type { AuditLogService } from '#server/modules/audit-log'
 import { WalletServiceError } from '#server/modules/wallet'
-import type { IPayoutRepository, PayoutRecord } from './payout.repository.ts'
+import type { IPayoutRepository, PayoutRecord, PayoutListRecord } from './payout.repository.ts'
+
+export type PayoutListFilters = ListPageInput & { q?: string; status?: string; shopId?: string }
 
 export interface PayoutActor {
   id: string
@@ -107,18 +110,20 @@ export class PayoutService {
     })
   }
 
-  async listSellerPayouts(actor: PayoutActor): Promise<PayoutResponse[]> {
-    const shopIds = this.activeShopResolver
+  async listSellerPayouts(actor: PayoutActor, input: PayoutListFilters = {}) {
+    const shops = this.activeShopResolver
       ? (await this.activeShopResolver.resolveActiveShops(actor.id)).map((shop) => shop.id)
       : (await this.repo.findSellerShops(actor.id)).map((shop) => shop.id)
-    if (shopIds.length === 0) throw new WalletServiceError('Active seller shop not found', 403, 'PAYOUT_FORBIDDEN')
-    return (await this.repo.listSellerPayouts(shopIds)).map((payout) => this.toResponse(payout))
+    if (shops.length === 0) throw new WalletServiceError('Active seller shop not found', 403, 'PAYOUT_FORBIDDEN')
+    const shopIds = input.shopId ? shops.filter((id) => id === input.shopId) : shops
+    const page = await this.repo.listSellerPayouts(shopIds, this.listFilters(input))
+    return { ...page, data: page.data.map((payout) => this.toResponse(payout)) }
   }
 
-  async listAdminPayouts(actor: PayoutActor, input: { status?: string }): Promise<PayoutResponse[]> {
+  async listAdminPayouts(actor: PayoutActor, input: PayoutListFilters = {}) {
     this.assertAdmin(actor)
-    const status = input.status ? this.normalizeStatus(input.status) : undefined
-    return (await this.repo.listAdminPayouts(status)).map((payout) => this.toResponse(payout))
+    const page = await this.repo.listAdminPayouts(this.listFilters(input))
+    return { ...page, data: page.data.map((payout) => this.toResponse(payout)) }
   }
 
   async getAdminPayout(actor: PayoutActor, payoutId: string): Promise<PayoutResponse> {
@@ -517,13 +522,18 @@ export class PayoutService {
 
   private normalizeStatus(status: string) {
     const normalized = status.trim().toLowerCase()
-    if (!['requested', 'approved', 'rejected', 'paid', 'cancelled'].includes(normalized)) {
+    const value = Object.values(PayoutStatus).find((value) => value === normalized)
+    if (!value) {
       throw new WalletServiceError('Invalid payout status', 400, 'INVALID_PAYOUT_STATE')
     }
-    return normalized as 'requested' | 'approved' | 'rejected' | 'paid' | 'cancelled'
+    return value
   }
 
-  private toResponse(payout: PayoutRecord): PayoutResponse {
+  private listFilters(input: PayoutListFilters) {
+    return { ...input, q: input.q?.trim() || undefined, status: input.status ? this.normalizeStatus(input.status) : undefined }
+  }
+
+  private toResponse(payout: PayoutListRecord): PayoutResponse {
     return {
       id: payout.id,
       walletId: payout.walletId,

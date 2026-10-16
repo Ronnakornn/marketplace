@@ -1,4 +1,5 @@
-import { AdminPageIntro, AdminSpaceCat } from "#/features/admin";
+import { AdminPageIntro } from "#/features/admin/components/AdminPageIntro";
+import { AdminSpaceCat } from "#/features/admin/components/AdminSpaceCat";
 import { AuditLogsTable } from "#/features/audit-log";
 
 export default function AdminAuditLogsPage() {

@@ -14,16 +14,22 @@ import { ProductCard } from "#/features/product/components/ProductCard";
 import { FavoriteStatusesProvider } from "#/features/buyer/favorites";
 import { formatDate, useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
+import { useSession } from "#/lib/auth-client";
 
 export function DealsPage() {
   const localePath = useLocalePath();
   const locale = useLocale();
   const t = useTranslations();
+  const { data: session } = useSession();
   const dealsQuery = useQuery({
     ...marketplaceHomeQueryOptions({ limit: 24, locale }),
     select: normalizeMarketplaceHome,
   });
-  const couponsQuery = useQuery({ queryKey: ["buyer-coupons", locale], queryFn: () => fetchCoupons(locale) });
+  const couponsQuery = useQuery({
+    queryKey: ["buyer-coupons", locale, session?.user.id],
+    queryFn: () => fetchCoupons(locale),
+    enabled: session?.user.role === "USER",
+  });
   const flashSale = dealsQuery.data?.flashSale;
   const products = flashSale?.items ?? [];
   return (
@@ -42,7 +48,7 @@ export function DealsPage() {
           </div>
           <div className="grid gap-3 p-4 sm:grid-cols-3">
             {products.slice(0, 3).map((product) => (
-              <Link key={product.id} href={localePath(`/products/${product.id}`)} className="rounded-2xl border border-orange-100 bg-orange-50 p-3 transition hover:bg-orange-100">
+              <Link key={product.id} href={localePath(`/products/${product.id}`)} prefetch={false} className="rounded-2xl border border-orange-100 bg-orange-50 p-3 transition hover:bg-orange-100">
                 <p className="line-clamp-2 min-h-10 text-sm font-bold text-slate-950">{product.title}</p>
                 <p className="mt-2 text-lg font-extrabold text-orange-600">{formatMoney(product.price, product.currency)}</p>
                 <p className="mt-2 text-xs font-semibold text-slate-500">{t("product.soldCount").replace("{count}", String(product.soldCount))}</p>

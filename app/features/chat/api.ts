@@ -21,9 +21,14 @@ export type CreateChatRoomInput = Parameters<typeof chatApi.api.chats.post>[0];
 type SendChatMessageWireInput = Parameters<RoomEndpoint["messages"]["post"]>[0];
 export type SendChatMessageInput = Omit<SendChatMessageWireInput, "files"> & { files?: Extract<NonNullable<SendChatMessageWireInput["files"]>, File[]> };
 export type ChatRoomQuery = NonNullable<Parameters<RoomEndpoint["get"]>[0]>["query"];
+export type ChatInboxQuery = NonNullable<NonNullable<Parameters<typeof chatApi.api.chats.get>[0]>["query"]>;
 
-export async function fetchChatRooms(scope?: ChatAudience, shopId?: string) {
-  return requireChatData(chatApi.api.chats.get({ query: { scope, shopId } }));
+export async function fetchChatRooms(query: ChatInboxQuery = {}) {
+  return requireChatData(chatApi.api.chats.get({ query }));
+}
+
+export async function fetchChatUnreadCount(scope: ChatAudience, shopId?: string) {
+  return requireChatData(chatApi.api.chats["unread-count"].get({ query: { scope, shopId } }));
 }
 
 export async function fetchChatRoom(roomId: string, query: ChatRoomQuery = {}) {

@@ -111,7 +111,7 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('ranked search pages
     expect(filtered.facets.price).toEqual({ min: 100n, max: 200n, currency: 'THB' })
   })
 
-  it('keeps page-first results identical to metric-first results across filters, cursors and empty pages', async () => {
+  it('keeps deferred display metrics identical to early metrics across every sort, filters, cursors and empty pages', async () => {
     const f = await numericThresholdFixture(db)
     const cutoff = new Date('2026-10-01T00:00:00.000Z')
     await db.product.update({ where: { id: f.product.id }, data: { createdAt: new Date('2026-09-01') } })
@@ -127,10 +127,11 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('ranked search pages
     const cases: Partial<SearchPageFilters>[] = [
       {}, { page: 2 }, { page: 20 }, { cursor: newest.product.id }, { cursor: f.product.id }, { cursor: 'missing', page: 99 },
       { badges: ['new'] }, { badges: ['in_stock'] }, { badges: ['new', 'in_stock'] }, { badges: ['unknown'] },
+      { badges: ['best_seller'] }, { badges: ['best_seller'], page: 2 },
       { minPrice: 200, maxPrice: 200, badges: ['in_stock'] }, { minPrice: 200, maxPrice: 200, inStock: true },
       { categoryId: f.category.slug, brandId: f.brand.id }, { q: newest.variant.sku },
     ]
-    for (const locale of ['en', 'th'] as const) for (const sort of ['newest', 'relevance'] as const) for (const input of cases) {
+    for (const locale of ['en', 'th'] as const) for (const sort of ['newest', 'relevance', 'price_asc', 'price_desc', 'rating', 'top_sales'] as const) for (const input of cases) {
       const filters = { ...base, ...input, locale, sort }
       const fast = await repository.findSearchPage(filters)
       const metricFirst = await repository.findSearchPage({ ...filters, rating: 0 })
@@ -144,7 +145,7 @@ describe.skipIf(!process.env['COMMERCE_TEST_DATABASE_URL'])('ranked search pages
     expect(priceAndStock).toEqual({ products: [], total: 0, nextCursor: null })
     await db.shop.update({ where: { id: f.shop.id }, data: { status: 'SUSPENDED' } })
     expect(await repository.findSearchPage(base)).toEqual({ products: [], total: 0, nextCursor: null })
-  }, 20_000)
+  }, 30_000)
 
   it('retains search payment and cancellation evidence without adding shop or Payment conditions', async () => {
     const f = await numericThresholdFixture(db)

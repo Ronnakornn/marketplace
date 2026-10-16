@@ -82,12 +82,9 @@ function product(overrides: Partial<{
         quantityOnHand: overrides.quantityOnHand ?? 5,
         quantityReserved: overrides.quantityReserved ?? 1,
       },
-      orderItems: [],
     }],
-    reviews: [{
-      rating: 5,
-      status: 'PUBLISHED',
-    }],
+    ratingSum: 5,
+    reviewCount: 1,
   }
 }
 
@@ -175,6 +172,12 @@ describe('AiSearchService', () => {
       description: 'เสื้อนุ่มใส่ทุกวัน',
       category: expect.objectContaining({ name: 'แฟชั่น' }),
     })
+  })
+
+  it.each([[107, 40, 2.67], [201, 200, 1], [0, 0, 0]])('preserves rating average/count from grouped %s/%s', async (ratingSum, reviewCount, averageRating) => {
+    vi.mocked(vectorSearch.searchProducts).mockResolvedValue([{ product: { ...product(), ratingSum, reviewCount }, score: 0.91 }])
+    const result = await service.search({ query: 'cotton' })
+    expect(result.items[0]?.rating).toEqual({ averageRating, totalReviewCount: reviewCount })
   })
 
   it.each([[0.123444, 0.1234], [0.123456, 0.1235]])('rounds supplied semantic score %s to %s in service and actual API', async (score, expected) => {

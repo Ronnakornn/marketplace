@@ -6,6 +6,15 @@ import type { AuthContext } from '#server/modules/auth'
 import { OrderServiceError } from './order.errors.ts'
 import { PaymentServiceError } from '#server/modules/payment/payment.errors.ts'
 import { CartServiceError } from '#server/modules/cart/cart.errors.ts'
+import { ListPageQuery } from '#server/lib/list-page.ts'
+import { OrderStatus, PaymentStatus } from '#generated/client/enums.ts'
+
+const OrderListQuerySchema = t.Object({
+  ...ListPageQuery,
+  q: t.Optional(t.String({ maxLength: 200 })),
+  shopId: t.Optional(t.String({ format: 'uuid' })),
+  status: t.Optional(t.Enum({ ...OrderStatus, ...PaymentStatus })),
+})
 
 const OrderParamsSchema = t.Object({
   orderId: t.String({ format: 'uuid' }),
@@ -28,8 +37,9 @@ export function createOrderRoutes(container: ServiceContainer) {
         }))
       }
     })
-    .get('/api/orders', ({ authContext }: any) => moneyResponse(container.orderService.listBuyerOrders(authContext!.user)), {
+    .get('/api/orders', ({ authContext, query }: { authContext?: AuthContext; query: typeof OrderListQuerySchema.static }) => moneyResponse(container.orderService.listBuyerOrders(authContext!.user, query)), {
       withAuth: true,
+      query: OrderListQuerySchema,
     })
     .get('/api/orders/:orderId', ({ authContext, params }: any) =>
       moneyResponse(container.orderService.getBuyerOrder(authContext!.user, params.orderId)), {
@@ -52,9 +62,10 @@ export function createOrderRoutes(container: ServiceContainer) {
       withAuth: true,
       params: OrderParamsSchema,
     })
-    .get('/api/seller/orders', ({ authContext }: any) => moneyResponse(container.orderService.listSellerOrders(authContext!.user)), {
+    .get('/api/seller/orders', ({ authContext, query }: { authContext?: AuthContext; query: typeof OrderListQuerySchema.static }) => moneyResponse(container.orderService.listSellerOrders(authContext!.user, query)), {
       withAuth: true,
       withSellerOperational: true,
+      query: OrderListQuerySchema,
     })
     .get('/api/seller/orders/:orderId', ({ authContext, params }: any) =>
       moneyResponse(container.orderService.getSellerOrder(authContext!.user, params.orderId)), {
