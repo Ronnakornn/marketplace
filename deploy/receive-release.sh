@@ -16,7 +16,7 @@ stage=$(mktemp -d "$base/.incoming/stage.XXXXXX")
 activated=false
 previous=$shared
 [[ ! -L $current ]] || previous=$(readlink -f "$current")
-rollback_config="$stage/previous.cjs"
+rollback_config="$stage/previous.config.cjs"
 cleanup() {
   code=$?
   trap - EXIT
@@ -24,7 +24,8 @@ cleanup() {
     echo 'Activation failed; restoring previous application processes. Database migrations are retained.' >&2
     ln -sfn "$previous" "$current.rollback"
     mv -Tf "$current.rollback" "$current"
-    pm2 startOrRestart "$rollback_config" --update-env || echo 'PM2 rollback failed; operator intervention required' >&2
+    pm2 delete marketplace-web marketplace-api >/dev/null 2>&1 || true
+    pm2 start "$rollback_config" --update-env || echo 'PM2 rollback failed; operator intervention required' >&2
     pm2 save || true
   fi
   rm -f "$incoming"
@@ -53,7 +54,7 @@ with tarfile.open(sys.argv[1], 'r:gz') as archive:
     archive.extractall(sys.argv[2], filter='data')
 PY
 cd "$stage"
-for required in .next/BUILD_ID node_modules/.bin/prisma node_modules/.bin/next generated/client/client.ts server/index.ts scripts/db-backup.ts deploy/ecosystem.release.cjs prisma/schema.prisma; do
+for required in .next/BUILD_ID node_modules/.bin/prisma node_modules/.bin/next generated/client/client.ts server/index.ts scripts/db-backup.ts deploy/ecosystem.release.config.cjs prisma/schema.prisma; do
   test -s "$required" || { echo "Incomplete artifact: $required" >&2; exit 1; }
 done
 [[ $(bun --version) == 1.3.14 && $(uname -sm) == 'Linux x86_64' ]] || exit 1
@@ -94,14 +95,15 @@ if [[ ! -e $destination ]]; then
   printf '%s\n' "$digest" > .release-sha256
   mv "$stage" "$destination"
   stage=$(mktemp -d "$base/.incoming/rollback.XXXXXX")
-  cp "$destination/previous.cjs" "$stage/previous.cjs"
-  rollback_config="$stage/previous.cjs"
-  rm "$destination/previous.cjs"
+  cp "$destination/previous.config.cjs" "$stage/previous.config.cjs"
+  rollback_config="$stage/previous.config.cjs"
+  rm "$destination/previous.config.cjs"
 fi
 ln -sfn "$destination" "$current.next"
 mv -Tf "$current.next" "$current"
 activated=true
-MARKETPLACE_RELEASE_DIR="$destination" pm2 startOrRestart "$destination/deploy/ecosystem.release.cjs" --update-env
+pm2 delete marketplace-web marketplace-api
+MARKETPLACE_RELEASE_DIR="$destination" pm2 start "$destination/deploy/ecosystem.release.config.cjs" --update-env
 ready=false
 for attempt in $(seq 1 45); do
   if curl --silent --fail --max-time 5 http://127.0.0.1:3000/api/health/ready > "$stage/ready.json" &&

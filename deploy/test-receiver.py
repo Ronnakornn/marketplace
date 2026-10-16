@@ -28,7 +28,7 @@ def run_case(case, extra_path=None):
         (fixture / 'public').mkdir()
         required = ['.next/BUILD_ID', 'node_modules/.bin/prisma', 'node_modules/.bin/next',
                     'generated/client/client.ts', 'server/index.ts', 'scripts/db-backup.ts',
-                    'deploy/ecosystem.release.cjs', 'prisma/schema.prisma']
+                    'deploy/ecosystem.release.config.cjs', 'prisma/schema.prisma']
         for name in required:
             target = fixture / name
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -66,8 +66,8 @@ with log.open('a') as f: f.write(' '.join(sys.argv[1:])+'\\n')
 if sys.argv[1]=='jlist':
  cwd=state.read_text() if state.exists() else str(root/'shared')
  print(json.dumps([{'name':n,'pm2_env':{'status':'online','pm_cwd':cwd,'pm_exec_path':'/bin/bash','args':['-c','true'],'exec_interpreter':'none','env':{}}} for n in ['marketplace-web','marketplace-api']]))
-elif sys.argv[1]=='startOrRestart':
- if 'previous.cjs' in sys.argv[2]: state.write_text(str(root/'shared'))
+elif sys.argv[1]=='start':
+ if 'previous.config.cjs' in sys.argv[2]: state.write_text(str(root/'shared'))
  elif os.environ['CASE']=='activation': sys.exit(1)
  else: state.write_text(os.environ['MARKETPLACE_RELEASE_DIR'])
 ''',
@@ -99,7 +99,7 @@ elif sys.argv[1]=='startOrRestart':
             assert result.returncode != 0 and not activated, (case, result.stdout, result.stderr)
             if case in ['activation', 'readiness']:
                 assert current.resolve() == shared
-                assert 'previous.cjs' in (root / 'pm2.log').read_text()
+                assert 'previous.config.cjs' in (root / 'pm2.log').read_text()
                 assert list((root / 'releases/backups').glob('*.dump'))
             if case in ['checksum', 'traversal', 'secret']:
                 assert not (root / 'pm2.log').exists()
