@@ -6,6 +6,7 @@ function environment(): NodeJS.ProcessEnv {
   return { NODE_ENV: 'test', CHECKOUT_V2_SETTLEMENT_ENABLED: 'true', QUEUE_TEST_ALLOW_OLD_REDIS: 'false',
     DATABASE_URL: 'postgresql://postgres:postgres@localhost:55439/marketplace_test',
     COMMERCE_TEST_DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_completion',
+    CHAT_TEST_DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_chat_test',
     QUEUE_TEST_DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_queue',
     TAX_TEST_DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_tax',
     ROLLOUT_TEST_DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_rollout',
@@ -34,7 +35,7 @@ describe('mandatory CI integration environment', () => {
     expect(() => assertCiIntegrationEnvironment(environment())).not.toThrow()
   })
 
-  it.each(['DATABASE_URL', 'COMMERCE_TEST_DATABASE_URL', 'QUEUE_TEST_DATABASE_URL', 'TAX_TEST_DATABASE_URL', 'ROLLOUT_TEST_DATABASE_URL', 'AUDIT_TEST_DATABASE_URL', 'REPORTING_TEST_DATABASE_URL', 'ADMIN_DIRECTORY_TEST_DATABASE_URL', 'ADMIN_OPERATIONS_TEST_DATABASE_URL', 'FULL_ADMIN_BOUNDARIES_TEST_DATABASE_URL', 'CACHE_TEST_REDIS_URL', 'QUEUE_TEST_REDIS_URL'])('rejects missing %s instead of allowing suite skips', key => {
+  it.each(['DATABASE_URL', 'COMMERCE_TEST_DATABASE_URL', 'CHAT_TEST_DATABASE_URL', 'QUEUE_TEST_DATABASE_URL', 'TAX_TEST_DATABASE_URL', 'ROLLOUT_TEST_DATABASE_URL', 'AUDIT_TEST_DATABASE_URL', 'REPORTING_TEST_DATABASE_URL', 'ADMIN_DIRECTORY_TEST_DATABASE_URL', 'ADMIN_OPERATIONS_TEST_DATABASE_URL', 'FULL_ADMIN_BOUNDARIES_TEST_DATABASE_URL', 'CACHE_TEST_REDIS_URL', 'QUEUE_TEST_REDIS_URL'])('rejects missing %s instead of allowing suite skips', key => {
     const env = environment()
     delete env[key]
     expect(() => assertCiIntegrationEnvironment(env)).toThrow(key)
@@ -53,6 +54,7 @@ describe('mandatory CI integration environment', () => {
   it.each([
     { NODE_ENV: 'production' }, { CHECKOUT_V2_SETTLEMENT_ENABLED: 'false' }, { QUEUE_TEST_ALLOW_OLD_REDIS: 'true' },
     { COMMERCE_TEST_DATABASE_URL: 'postgresql://postgres@127.0.0.1:5432/marketplace_test_completion' },
+    { CHAT_TEST_DATABASE_URL: 'postgresql://postgres@127.0.0.1:55439/marketplace_test_chat' },
     { TAX_TEST_DATABASE_URL: 'postgresql://postgres@127.0.0.1:55439/marketplace_test_commerce' },
     { AUDIT_TEST_DATABASE_URL: 'postgresql://postgres@127.0.0.1:55439/marketplace_test_other' },
     { ROLLOUT_TEST_DATABASE_URL: 'postgresql://postgres@localhost:55439/marketplace_test_completion' },
