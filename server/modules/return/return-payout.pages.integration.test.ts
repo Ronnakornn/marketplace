@@ -18,8 +18,8 @@ describe.skipIf(!databaseUrl)('bounded return and payout lists on PostgreSQL', (
 
   beforeAll(async () => {
     const url = new URL(databaseUrl!)
-    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.port !== '55439' || !/^\/marketplace_test_.*_test$/.test(url.pathname)) {
-      throw new Error('Use a disposable local marketplace_test_*_test database on port 55439')
+    if (!['localhost', '127.0.0.1'].includes(url.hostname) || url.port !== '55439' || !/^\/marketplace_test_(completion|.*_test)$/.test(url.pathname)) {
+      throw new Error('Use the local marketplace_test_completion or marketplace_test_*_test database on port 55439')
     }
     db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url.toString() }) })
     returns = new ReturnService(context, new PrismaReturnRepository(context, db))

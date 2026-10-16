@@ -85,7 +85,7 @@ jobs:
       - run: bunx --bun prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - run: bunx tsc --noEmit
       - name: Run unit and actual integration tests
-        run: bun run test --reporter=json --outputFile=artifacts/quality-tests.json
+        run: bun run test --no-file-parallelism --reporter=default --reporter=json --outputFile=artifacts/quality-tests.json
       - name: Reject skipped or omitted integration suites
         run: bun run scripts/assert-ci-integration.ts report artifacts/quality-tests.json
       - uses: actions/upload-artifact@v4
