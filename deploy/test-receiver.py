@@ -19,6 +19,9 @@ def run_case(case, extra_path=None):
         root = Path(temporary)
         shared = root / 'shared'
         shared.mkdir()
+        if case != 'rollback-build':
+            (shared / '.next').mkdir()
+            (shared / '.next/BUILD_ID').write_text('previous-build')
         (shared / '.env').write_text('NEXT_PUBLIC_APP_URL=https://example.test\nAPI_BASE_URL=http://127.0.0.1:3001\n')
         current = root / 'current'
         commands = root / 'commands'
@@ -33,6 +36,9 @@ def run_case(case, extra_path=None):
             target = fixture / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text('fixture')
+        validator = fixture / 'server/config/production-env.ts'
+        validator.parent.mkdir(parents=True, exist_ok=True)
+        validator.write_text('export function validateProductionRuntimeEnv() {' + ('throw new Error("Invalid runtime environment")' if case == 'runtime-env' else '') + '}')
         dotenv = fixture / 'node_modules/dotenv'
         dotenv.mkdir()
         (dotenv / 'index.js').write_text('exports.parse=b=>Object.fromEntries(b.toString().trim().split("\\n").map(l=>l.split(/=(.*)/s).slice(0,2)))')
@@ -106,6 +112,6 @@ elif sys.argv[1]=='start':
         print(f'{case} passed')
 
 
-for scenario, unsafe in [('checksum', None), ('traversal', '../escape'), ('secret', 'app/.env.local'),
+for scenario, unsafe in [('checksum', None), ('traversal', '../escape'), ('secret', 'app/.env.local'), ('runtime-env', None), ('rollback-build', None),
                          ('migration', None), ('activation', None), ('readiness', None), ('success', None)]:
     run_case(scenario, unsafe)

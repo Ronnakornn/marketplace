@@ -71,6 +71,7 @@ if(!build || !build.NEXT_PUBLIC_APP_URL || !build.API_BASE_URL) throw Error("Mis
 const keys=new Set([...Object.keys(build),...Object.keys(env).filter(k=>k.startsWith("NEXT_PUBLIC_") || ["API_BASE_URL","ALLOW_INSECURE_HTTP","S3_PUBLIC_BASE_URL"].includes(k))]);
 for(const key of keys) if(!/^(NEXT_PUBLIC_[A-Z0-9_]+|API_BASE_URL|ALLOW_INSECURE_HTTP|S3_PUBLIC_BASE_URL)$/.test(key) || (build[key]??"")!==(env[key]??"")) throw Error(`Public build environment mismatch: ${key}`);
 '
+[[ -s "$previous/.next/BUILD_ID" ]] || { echo 'Previous production build is missing; restore a valid rollback release first' >&2; exit 1; }
 pm2 jlist | ROLLBACK_CONFIG="$rollback_config" bun -e '
 const rows=JSON.parse(await Bun.stdin.text());
 const apps=["marketplace-web","marketplace-api"].map(name=>{
@@ -84,6 +85,7 @@ ln -s "$shared/.env" .env
 [[ ! -f "$shared/.env.local" ]] || ln -s "$shared/.env.local" .env.local
 ln -s "$shared/public/uploads" public/uploads
 ln -s "$shared/.data" .data
+NODE_ENV=production bun -e 'import { validateProductionRuntimeEnv } from "./server/config/production-env.ts"; validateProductionRuntimeEnv()'
 destination="$base/$revision"
 if [[ -e $destination ]]; then
   [[ -d $destination && ! -L $destination && $(cat "$destination/.release-sha256") == "$digest" ]] || { echo 'Existing release checksum differs' >&2; exit 1; }
