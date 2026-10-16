@@ -2,20 +2,8 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PublicContentBody } from "./PublicContent";
 import { dateInput, toDateInput } from "./shared";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-const en: unknown = JSON.parse(
-  readFileSync(
-    resolve(process.cwd(), ".audit/translations-operations.en.json"),
-    "utf8",
-  ),
-);
-const th: unknown = JSON.parse(
-  readFileSync(
-    resolve(process.cwd(), ".audit/translations-operations.th.json"),
-    "utf8",
-  ),
-);
+import en from "../../../../messages/en.json";
+import th from "../../../../messages/th.json";
 
 it("renders published content and titles as safe plain text", () => {
   const html = renderToStaticMarkup(
@@ -43,6 +31,6 @@ function keys(value: unknown, prefix = ""): string[] {
 }
 describe("operations locales", () => {
   it("covers the same keys in Thai and English", () => {
-    expect(keys(th)).toEqual(keys(en));
+    expect(keys(th.admin.operations)).toEqual(keys(en.admin.operations));
   });
 });

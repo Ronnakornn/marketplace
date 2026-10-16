@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { StorefrontDetails } from './StorefrontDetails'
 
 const mocks = vi.hoisted(() => ({ session: null as any, push: vi.fn(), refresh: vi.fn(), follow: vi.fn(), chat: vi.fn(), track: vi.fn() }))
@@ -15,13 +15,29 @@ vi.mock('#/features/tracking', () => ({ trackDiscoveryEvent: mocks.track }))
 
 const shop = { id: 'shop-1', name: 'Shop', slug: 'demo-shop', description: null, logoUrl: null, coverUrl: null, ratingAverage: 5, ratingCount: 4, followerCount: 2, productCount: 1, chatEnabled: true, shippingPolicy: '<b>Plain shipping</b>', returnPolicy: null, updatedAt: new Date(), viewer: { isOwner: false } }
 
+let queryClient: QueryClient
+
 function renderDetails(value = shop) {
-  return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}><StorefrontDetails shop={value} locale="en" /></QueryClientProvider>)
+  return render(<QueryClientProvider client={queryClient}><StorefrontDetails shop={value} locale="en" /></QueryClientProvider>)
 }
 
 beforeEach(() => {
-  cleanup(); vi.clearAllMocks(); mocks.session = null; mocks.follow.mockResolvedValue(undefined); mocks.chat.mockResolvedValue({ roomId: 'room-1' })
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  vi.clearAllMocks(); mocks.session = null; mocks.follow.mockResolvedValue(undefined); mocks.chat.mockResolvedValue({ roomId: 'room-1' })
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ items: [{ id: 'r1', userName: 'Buyer', rating: 5, comment: 'Great', createdAt: '2026-08-08T00:00:00.000Z' }], meta: { page: 1, pageSize: 10, totalCount: 1, hasNextPage: false } }), { status: 200 })))
+})
+
+afterEach(async () => {
+  await waitFor(() => {
+    expect(queryClient.isFetching()).toBe(0)
+    expect(queryClient.isMutating()).toBe(0)
+  })
+  await act(async () => {
+    cleanup()
+    await queryClient.cancelQueries()
+    queryClient.clear()
+  })
+  vi.unstubAllGlobals()
 })
 
 describe('StorefrontDetails', () => {
