@@ -285,9 +285,22 @@ Prepare the environment and TLS files as described in [deployment instructions](
 
 ### Production Environment
 
+To test the production build on this computer with the local database, start
+Redis, then run `bun run build:local` followed by `bun run start:local`.
+Open `http://localhost:3000`. This profile uses `NODE_ENV=production`, binds
+the frontend and API to `127.0.0.1`, and requires local database and Redis URLs.
+It preserves existing local secrets and disables payments, email, phone OTP,
+push notifications, and worker metrics. It is for local testing only.
+
+`bun run start` enforces production environment validation. For local development
+with the demo database in `.env.example`, use `bun run dev`.
+For production, configure the complete environment using
+[deploy/production.env.example](deploy/production.env.example) and follow the
+[deployment instructions](deploy/README.md). The example below is only a subset:
+
 ```env
 NODE_ENV="production"
-DATABASE_URL="postgresql://postgres:password@localhost:5432/sming?schema=public"
+DATABASE_URL="postgresql://marketplace:REPLACE_WITH_DATABASE_PASSWORD@db:5432/marketplace?schema=public"
 BETTER_AUTH_SECRET="secure-production-secret-at-least-32-chars"
 BETTER_AUTH_URL="https://yourdomain.com"
 BETTER_AUTH_TRUSTED_ORIGINS="https://yourdomain.com"

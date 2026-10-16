@@ -242,7 +242,11 @@ const baseApp = new Elysia()
   // --- Fraud detection admin review queue routes ---
   .use(createFraudRoutes(container));
 
-const app = baseApp.listen({ port, maxRequestBodySize: 21 * 1024 * 1024 });
+const app = baseApp.listen({
+  port,
+  ...(process.env['LOCAL_PRODUCTION'] === 'true' ? { hostname: '127.0.0.1' } : {}),
+  maxRequestBodySize: 21 * 1024 * 1024,
+});
 
 log.info("API server running", { port: app.server?.port });
 

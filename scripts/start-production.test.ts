@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { startProduction } from './start-production.ts'
+import { localProductionEnv } from './local-production.ts'
 
 const { spawn } = vi.hoisted(() => ({ spawn: vi.fn() }))
 vi.mock('node:child_process', () => ({ spawn }))
@@ -17,7 +18,28 @@ describe('production process supervision', () => {
     for (const child of children) spawn.mockReturnValueOnce(child)
     vi.spyOn(process.stderr, 'write').mockReturnValue(true)
   })
-  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers() })
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); vi.unstubAllEnvs() })
+
+  it('binds the local production frontend to loopback', async () => {
+    const env = localProductionEnv({
+      DATABASE_URL: 'postgresql://postgres:password@localhost:5432/sming',
+      BETTER_AUTH_SECRET: 'your-secret-here-change-in-production',
+      PAYMENT_WEBHOOK_SECRET: 'local-webhook-secret-at-least-32-characters',
+    })
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value)
+    const running = startProduction()
+    expect(spawn.mock.calls[0]?.[1]).toEqual(['run', 'start:frontend', '--hostname', '127.0.0.1'])
+    for (const child of children) child.emit('exit', 0)
+    await expect(running).resolves.toBe(1)
+  })
+
+  it('refuses local production with a public binding before starting children', async () => {
+    vi.stubEnv('LOCAL_PRODUCTION', 'true')
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('HOST', '0.0.0.0')
+    await expect(startProduction()).rejects.toThrow(/HOST=127.0.0.1/)
+    expect(spawn).not.toHaveBeenCalled()
+  })
 
   it('waits for every child during requested shutdown and returns success', async () => {
     const running = startProduction()

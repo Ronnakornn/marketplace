@@ -17,6 +17,8 @@
     "dev:frontend": "cross-env NODE_ENV=development next dev --port 3000",
     "dev:server": "cross-env NODE_ENV=development bun run --watch server/index.ts",
     "start": "bun run scripts/start-production.ts",
+    "start:local": "bun run scripts/local-production.ts",
+    "build:local": "bun run scripts/local-production.ts --build",
     "start:frontend": "cross-env NODE_ENV=production next start --port 3000",
     "start:server": "cross-env NODE_ENV=production bun run server/index.ts",
     "jobs:worker": "bun run server/modules/jobs/worker.ts",

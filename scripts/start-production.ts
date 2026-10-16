@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
+import { validateProductionRuntimeEnv } from '../server/config/production-env.ts'
 
 type ManagedProcess = {
   name: string
@@ -13,8 +14,12 @@ const commands = [
 ] as const
 
 export async function startProduction(shutdownTimeoutMs = 30_000): Promise<number> {
+  const localProduction = process.env['LOCAL_PRODUCTION'] === 'true'
+  if (localProduction) validateProductionRuntimeEnv()
   const children: ManagedProcess[] = commands.map((command) => {
-    const child = spawn('bun', ['run', command.script], {
+    const args = ['run', command.script]
+    if (localProduction && command.name === 'frontend') args.push('--hostname', '127.0.0.1')
+    const child = spawn('bun', args, {
       cwd: process.cwd(),
       env: process.env,
       stdio: 'inherit',

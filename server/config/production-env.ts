@@ -9,7 +9,8 @@ export interface RequiredProductionEnvOptions {
 }
 
 export function isProductionRuntime(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env['NODE_ENV'] === 'production' && env['NEXT_PHASE'] !== productionBuildPhase
+  return env['NODE_ENV'] === 'production'
+    && (env['LOCAL_PRODUCTION'] === 'true' || env['NEXT_PHASE'] !== productionBuildPhase)
 }
 
 export function requireProductionEnv(
@@ -52,17 +53,49 @@ export function requireProductionEnv(
   return normalized
 }
 
+export function validateLocalProductionEnv(env: NodeJS.ProcessEnv = process.env): void {
+  if (env['NODE_ENV'] !== 'production') {
+    throw new Error('LOCAL_PRODUCTION requires NODE_ENV=production')
+  }
+  if (env['HOST'] !== '127.0.0.1') {
+    throw new Error('LOCAL_PRODUCTION requires HOST=127.0.0.1')
+  }
+
+  const urls: Record<string, string[]> = {
+    NEXT_PUBLIC_APP_URL: ['http:', 'https:'],
+    BETTER_AUTH_URL: ['http:', 'https:'],
+    API_BASE_URL: ['http:', 'https:'],
+    DATABASE_URL: ['postgres:', 'postgresql:'],
+    REDIS_URL: ['redis:', 'rediss:'],
+  }
+  for (const [name, protocols] of Object.entries(urls)) {
+    let url: URL
+    try {
+      url = new URL(env[name] ?? '')
+    } catch {
+      throw new Error(`LOCAL_PRODUCTION requires a valid loopback ${name}`)
+    }
+    if (!protocols.includes(url.protocol) || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+      throw new Error(`LOCAL_PRODUCTION requires a loopback ${name} with an allowed protocol`)
+    }
+  }
+}
+
 export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.env): void {
-  if (!isProductionRuntime(env)) return
+  const localProduction = env['LOCAL_PRODUCTION'] === 'true'
+  if (localProduction) {
+    validateLocalProductionEnv(env)
+  }
+  if (!localProduction && !isProductionRuntime(env)) return
 
   const allowInsecureHttp = env['ALLOW_INSECURE_HTTP'] === 'true'
 
   requireProductionEnv('DATABASE_URL', env['DATABASE_URL'], {
-    forbiddenSubstrings: ['postgres:password@localhost', 'localhost:5432/sming'],
+    forbiddenSubstrings: localProduction ? [] : ['postgres:password@localhost', 'localhost:5432/sming'],
   }, env)
   requireProductionEnv('BETTER_AUTH_SECRET', env['BETTER_AUTH_SECRET'], {
     minLength: 32,
-    forbiddenValues: ['dev-secret-change-in-production', 'your-secret-here-change-in-production'],
+    forbiddenValues: localProduction ? [] : ['dev-secret-change-in-production', 'your-secret-here-change-in-production'],
   }, env)
   requireProductionEnv('BETTER_AUTH_URL', env['BETTER_AUTH_URL'], {
     requireHttpsUrl: true,
@@ -74,12 +107,12 @@ export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.en
   }, env)
   requireProductionEnv('API_BASE_URL', env['API_BASE_URL'], {}, env)
   requireProductionEnv('REDIS_URL', env['REDIS_URL'], {
-    forbiddenSubstrings: ['localhost'],
+    forbiddenSubstrings: localProduction ? [] : ['localhost'],
   }, env)
   if (env['RATE_LIMIT_ENABLED'] === 'false') {
     throw new Error('RATE_LIMIT_ENABLED must not be false in production')
   }
-  if (env['TRUST_PROXY'] !== 'true') {
+  if (!localProduction && env['TRUST_PROXY'] !== 'true') {
     throw new Error('TRUST_PROXY must be true in production behind the required reverse proxy')
   }
   if (env['QUEUE_SKIP_REDIS_VERSION_CHECK'] === 'true') {
@@ -126,7 +159,7 @@ export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.en
   requireProductionEnv('KYC_ENCRYPTION_KEY', env['KYC_ENCRYPTION_KEY'], {
     minLength: 32,
     forbiddenValues: ['change-me', 'your-kyc-encryption-key'],
-    forbiddenSubstrings: ['your-kyc-encryption-key', 'development-kyc-encryption-key'],
+    forbiddenSubstrings: localProduction ? [] : ['your-kyc-encryption-key', 'development-kyc-encryption-key'],
   }, env)
   const uploadStorage = env['UPLOAD_STORAGE']?.trim().toLowerCase() || 'local'
   if (uploadStorage !== 'local' && uploadStorage !== 's3') {
@@ -143,7 +176,7 @@ export function validateProductionRuntimeEnv(env: NodeJS.ProcessEnv = process.en
       allowInsecureHttp,
     }, env)
   }
-  if (env['MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED'] !== 'true') {
+  if (env['MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED'] !== 'true' && !(localProduction && paymentProvider === 'disabled')) {
     throw new Error('MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED must be true in production')
   }
   if (env['AFFILIATE_ENABLED'] !== 'false') {

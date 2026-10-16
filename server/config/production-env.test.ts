@@ -40,6 +40,94 @@ function productionEnv(overrides: Record<string, string | undefined> = {}): Node
 }
 
 describe('production environment', () => {
+  const localProductionEnv: NodeJS.ProcessEnv = {
+    ...productionEnv(),
+    NODE_ENV: 'production',
+    LOCAL_PRODUCTION: 'true',
+    HOST: '127.0.0.1',
+    NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
+    BETTER_AUTH_URL: 'http://localhost:3000',
+    API_BASE_URL: 'http://127.0.0.1:3001',
+    DATABASE_URL: 'postgresql://postgres:password@localhost:5432/sming',
+    REDIS_URL: 'redis://localhost:6379',
+    ALLOW_INSECURE_HTTP: 'true',
+    TRUST_PROXY: 'false',
+    PAYMENT_PROVIDER: 'disabled',
+    MANUAL_FINANCE_OPERATIONS_ACKNOWLEDGED: undefined,
+  }
+
+  it('accepts an explicit production preview restricted to this machine', () => {
+    expect(() => validateProductionRuntimeEnv(localProductionEnv)).not.toThrow()
+    expect(() => validateProductionRuntimeEnv({
+      ...localProductionEnv,
+      DATABASE_URL: 'postgres://postgres:password@[::1]:5432/sming',
+      REDIS_URL: 'rediss://127.0.0.1:6379',
+    })).not.toThrow()
+  })
+
+  it.each([
+    ['HOST', '0.0.0.0'],
+    ['NODE_ENV', 'development'],
+    ['DATABASE_URL', 'postgresql://app:secret@db.example.com/marketplace'],
+    ['REDIS_URL', 'redis://redis.example.com:6379'],
+    ['NEXT_PUBLIC_APP_URL', 'https://marketplace.example.com'],
+    ['BETTER_AUTH_URL', 'https://marketplace.example.com'],
+    ['API_BASE_URL', 'https://api.example.com'],
+    ['DATABASE_URL', 'https://localhost/database'],
+    ['REDIS_URL', 'http://localhost:6379'],
+    ['BETTER_AUTH_URL', undefined],
+  ])('rejects unsafe local preview %s even during a build phase', (name, value) => {
+    expect(() => validateProductionRuntimeEnv({
+      ...localProductionEnv,
+      NEXT_PHASE: 'phase-production-build',
+      [name]: value,
+    })).toThrow(new RegExp(name))
+  })
+
+  it('keeps rejecting demo database credentials without the local preview flag', () => {
+    expect(() => validateProductionRuntimeEnv({
+      ...localProductionEnv,
+      LOCAL_PRODUCTION: undefined,
+    })).toThrow(/DATABASE_URL/)
+  })
+
+  it.each([
+    ['BETTER_AUTH_SECRET', 'short'],
+    ['QUEUE_SKIP_REDIS_VERSION_CHECK', 'true'],
+    ['PAYMENT_PROVIDER', 'mock'],
+    ['RATE_LIMIT_ENABLED', 'false'],
+    ['PAYMENT_MOCK_ENABLED', 'true'],
+  ])('retains production guardrails for local preview %s', (name, value) => {
+    expect(() => validateProductionRuntimeEnv({ ...localProductionEnv, [name]: value })).toThrow(new RegExp(name))
+  })
+
+  it('still requires manual finance acknowledgement when local payments are enabled', () => {
+    expect(() => validateProductionRuntimeEnv({ ...localProductionEnv, PAYMENT_PROVIDER: 'gateway' })).toThrow(/MANUAL_FINANCE/)
+  })
+
+  it('preserves existing local session and encryption keys for the explicit loopback preview', () => {
+    expect(() => validateProductionRuntimeEnv({
+      ...localProductionEnv,
+      BETTER_AUTH_SECRET: 'your-secret-here-change-in-production',
+      KYC_ENCRYPTION_KEY: 'development-kyc-encryption-key-change-before-production',
+    })).not.toThrow()
+  })
+
+  it('does not let the Next build phase bypass local preview secret checks', () => {
+    expect(() => validateProductionRuntimeEnv({
+      ...localProductionEnv,
+      NEXT_PHASE: 'phase-production-build',
+      BETTER_AUTH_SECRET: undefined,
+    })).toThrow(/BETTER_AUTH_SECRET/)
+  })
+
+  it.each([
+    ['BETTER_AUTH_SECRET', 'your-secret-here-change-in-production'],
+    ['KYC_ENCRYPTION_KEY', 'development-kyc-encryption-key-change-before-production'],
+  ])('still rejects development %s for deployed production', (name, value) => {
+    expect(() => validateProductionRuntimeEnv(productionEnv({ [name]: value }))).toThrow(new RegExp(name))
+  })
+
   it('does not enforce production-only contracts during local development', () => {
     expect(() => validateProductionRuntimeEnv({
       NODE_ENV: 'development',

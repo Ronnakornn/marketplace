@@ -20,7 +20,10 @@ if (!config) {
 const worker = createJobWorker(container, config)
 const events = createJobQueueEvents(container, config)
 const schedulerQueue = await ensureRecurringJobSchedulers(config)
-const metricsServer = metricsPort === null ? null : new Elysia().use(createObservabilityRoutes(container)).listen(metricsPort)
+const metricsServer = metricsPort === null ? null : new Elysia().use(createObservabilityRoutes(container)).listen({
+  port: metricsPort,
+  ...(process.env['LOCAL_PRODUCTION'] === 'true' ? { hostname: '127.0.0.1' } : {}),
+})
 if (metricsServer) {
   logger.info('Job worker metrics listening', { port: metricsPort })
 }
