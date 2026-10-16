@@ -101,6 +101,7 @@ vi.mock("#/i18n/client", () => ({
     "cart.viewCart": "View cart",
     "common.add": "Add",
     "common.loading": "Loading",
+    "common.loadMore": "Load more",
     "product.adding": "Adding",
     "product.chooseOptions": "Choose options",
     "product.outOfStock": "Out of stock",
@@ -127,7 +128,7 @@ function renderWithClient(ui: ReactNode) {
 
 beforeEach(() => {
   wishlistMocks.addCartItem.mockResolvedValue({ id: "cart-1", shops: [], subtotal: 0, currency: "THB" } satisfies BuyerCart);
-  wishlistMocks.fetchFavoriteProducts.mockResolvedValue([createFavorite()]);
+  wishlistMocks.fetchFavoriteProducts.mockResolvedValue(page([createFavorite()]));
   wishlistMocks.removeFavoriteProduct.mockResolvedValue(undefined);
   wishlistMocks.routerPush.mockClear();
   wishlistMocks.showAddToCartError.mockClear();
@@ -142,6 +143,30 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("WishlistPage", () => {
+  it("appends another bounded page from an accessible load more control", async () => {
+    wishlistMocks.fetchFavoriteProducts.mockResolvedValueOnce(page([createFavorite()], 1, true))
+      .mockResolvedValueOnce(page([createFavorite({ id: "favorite-2", productId: "product-2", title: "Second product" })], 2));
+    renderWithClient(<WishlistPage />);
+    await screen.findByText("Canvas Weekender Bag");
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    await screen.findByText("Second product");
+    expect(screen.getByText("Canvas Weekender Bag")).toBeTruthy();
+    expect(wishlistMocks.fetchFavoriteProducts.mock.calls.map(([page]) => page)).toEqual([1, 2]);
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("restores and reconciles a failed removal exactly once", async () => {
+    wishlistMocks.removeFavoriteProduct.mockRejectedValueOnce(new Error("Uncertain response"));
+    const { client } = renderWithClient(<WishlistPage />);
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    await screen.findByText("Canvas Weekender Bag");
+    fireEvent.click(screen.getByRole("button", { name: "Remove Canvas Weekender Bag from wishlist" }));
+    await waitFor(() => expect(wishlistMocks.toastError).toHaveBeenCalled());
+    expect(screen.getByText("Canvas Weekender Bag")).toBeTruthy();
+    expect(invalidate.mock.calls.filter(([input]) => input?.queryKey?.[0] === "buyer-favorites")).toHaveLength(1);
+  });
+
+
   it("renders loading and populated wishlist product details", async () => {
     renderWithClient(<WishlistPage />);
 
@@ -155,7 +180,7 @@ describe("WishlistPage", () => {
   });
 
   it("renders an empty wishlist state with a shopping handoff", async () => {
-    wishlistMocks.fetchFavoriteProducts.mockResolvedValueOnce([]);
+    wishlistMocks.fetchFavoriteProducts.mockResolvedValueOnce(page([]));
 
     renderWithClient(<WishlistPage />);
 
@@ -167,7 +192,7 @@ describe("WishlistPage", () => {
   it("renders an error state and retries loading favorites", async () => {
     wishlistMocks.fetchFavoriteProducts
       .mockRejectedValueOnce(new Error("Favorites unavailable"))
-      .mockResolvedValueOnce([createFavorite()]);
+      .mockResolvedValueOnce(page([createFavorite()]));
 
     renderWithClient(<WishlistPage />);
 
@@ -181,7 +206,7 @@ describe("WishlistPage", () => {
 
   it("removes a wishlist item with optimistic UI feedback", async () => {
     let favorites = [createFavorite()];
-    wishlistMocks.fetchFavoriteProducts.mockImplementation(async () => favorites);
+    wishlistMocks.fetchFavoriteProducts.mockImplementation(async () => page(favorites));
     wishlistMocks.removeFavoriteProduct.mockImplementation(async (productId: string) => {
       favorites = favorites.filter((favorite) => favorite.productId !== productId);
     });
@@ -208,7 +233,7 @@ describe("WishlistPage", () => {
 
     await waitFor(() => expect(wishlistMocks.addCartItem).toHaveBeenCalledWith("variant-1", 1));
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["buyer-cart"] }));
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["buyer-cart", "en"] });
+    expect(invalidateSpy).toHaveBeenCalledTimes(1);
     expect(wishlistMocks.showAddToCartSuccess).toHaveBeenCalledWith({
       copy: {
         successTitle: "Added to cart",
@@ -229,16 +254,16 @@ describe("WishlistPage", () => {
   });
 
   it("keeps add-to-cart disabled for unavailable products and products without a purchase variant", async () => {
-    wishlistMocks.fetchFavoriteProducts.mockResolvedValueOnce([
+    wishlistMocks.fetchFavoriteProducts.mockResolvedValueOnce(page([
       createFavorite({ id: "favorite-inactive", productId: "product-inactive", title: "Inactive Hoodie", status: "DRAFT" }),
       createFavorite({ id: "favorite-no-variant", productId: "product-no-variant", title: "Configurable Sneakers", purchaseVariant: null }),
       createFavorite({
         id: "favorite-out-of-stock",
         productId: "product-out-of-stock",
         title: "Sold Out Cap",
-        purchaseVariant: { id: "variant-empty", title: "Default", stock: 0, currency: "THB", price: 1200 },
+        purchaseVariant: { id: "variant-empty", title: "Default", stock: 0, currency: "THB", price: "1200" },
       }),
-    ]);
+    ]));
 
     renderWithClient(<WishlistPage />);
 
@@ -265,13 +290,15 @@ function createFavorite(overrides: Partial<BuyerFavoriteProduct> = {}): BuyerFav
     id: "favorite-1",
     productId: "product-1",
     title: "Canvas Weekender Bag",
-    price: 1200,
+    price: "1200",
     currency: "THB",
     status: "ACTIVE",
     imageUrls: ["/uploads/product_image/product-1/main.avif"],
     shop: { id: "shop-1", name: "Demo Shop", slug: "demo-shop", status: "ACTIVE" },
-    purchaseVariant: { id: "variant-1", title: "Default", stock: 6, currency: "THB", price: 1200 },
-    createdAt: "2026-06-01T00:00:00.000Z",
+    purchaseVariant: { id: "variant-1", title: "Default", stock: 6, currency: "THB", price: "1200" },
+    createdAt: new Date("2026-06-01T00:00:00.000Z"),
     ...overrides,
   };
 }
+
+function page(items: BuyerFavoriteProduct[], page = 1, hasMore = false) { return { items, page, hasMore }; }

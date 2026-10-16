@@ -29,6 +29,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
 import { Textarea } from "#/components/ui/textarea";
+import { ProductQuestionAnswers } from "#/features/product/components/ProductQuestionAnswers";
 import type { BuyerProductQuestion } from "#/features/product/queries";
 import { SellerPageHeader } from "./SellerShell";
 import { SellerDataTable } from "./SellerDataTable";
@@ -1131,6 +1132,7 @@ function SellerProductQuestionAnswerForm({ productId, question }: { productId: s
         <p className="text-xs font-semibold uppercase tracking-normal text-slate-500">{t("seller.products.buyerQuestion")}</p>
         <p className="mt-1 text-sm text-slate-900">{question.question}</p>
       </div>
+      {question.answerCount > 0 ? <ProductQuestionAnswers question={question} /> : null}
       <Field label={`${t("seller.products.answerFrom")} ${question.user.name}`} htmlFor={`answer-${question.id}`}>
         <Textarea
           id={`answer-${question.id}`}

@@ -111,37 +111,37 @@ describe("AdminUsersTable server pagination", () => {
       </QueryClientProvider>,
     );
 
-    expect((await screen.findByRole("link", { name: "Buyer 01" })).textContent).toBe("Buyer 01");
-    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
-    expect((await screen.findByRole("link", { name: "Buyer 11" })).textContent).toBe("Buyer 11");
+    expect((await screen.findByText("Buyer 01", { selector: "a" })).textContent).toBe("Buyer 01");
+    fireEvent.click(screen.getByLabelText("Next page"));
+    expect((await screen.findByText("Buyer 11", { selector: "a" })).textContent).toBe("Buyer 11");
 
-    fireEvent.keyDown(screen.getByRole("combobox", { name: "Role" }), { key: "Enter" });
+    fireEvent.keyDown(screen.getByLabelText("Role"), { key: "Enter" });
     fireEvent.click(await screen.findByRole("option", { name: "Administrator" }));
-    expect((await screen.findByRole("link", { name: "Buyer 21" })).textContent).toBe("Buyer 21");
+    expect((await screen.findByText("Buyer 21", { selector: "a" })).textContent).toBe("Buyer 21");
     expect(screen.getByText("Role: Administrator").textContent).toBe("Role: Administrator");
-    fireEvent.keyDown(screen.getByRole("combobox", { name: "Status" }), { key: "Enter" });
+    fireEvent.keyDown(screen.getByLabelText("Status"), { key: "Enter" });
     fireEvent.click(await screen.findByRole("option", { name: "Suspended" }));
     await waitFor(() =>
       expect(screen.getByText("Status: Suspended").textContent).toBe("Status: Suspended"),
     );
-    expect((await screen.findByRole("link", { name: "Buyer 21" })).textContent).toBe("Buyer 21");
-    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
-    expect((await screen.findByRole("link", { name: "Buyer 31" })).textContent).toBe("Buyer 31");
-    fireEvent.change(screen.getByRole("textbox", { name: "Search this page" }), {
+    expect((await screen.findByText("Buyer 21", { selector: "a" })).textContent).toBe("Buyer 21");
+    fireEvent.click(screen.getByLabelText("Next page"));
+    expect((await screen.findByText("Buyer 31", { selector: "a" })).textContent).toBe("Buyer 31");
+    fireEvent.change(screen.getByLabelText("Search this page"), {
       target: { value: "Buyer 40" },
     });
     expect(
-      screen.getAllByRole("link", { name: /^Buyer \d{2}$/ }).map((link) => link.textContent),
+      screen.getAllByText(/^Buyer \d{2}$/, { selector: "a" }).map((link) => link.textContent),
     ).toEqual(["Buyer 40"]);
 
     fireEvent.click(screen.getByRole("button", { name: "Clear all filters" }));
-    expect((await screen.findByRole("link", { name: "Buyer 01" })).textContent).toBe("Buyer 01");
-    expect(screen.getByRole("textbox", { name: "Search this page" })).toHaveProperty("value", "");
-    expect(screen.getByRole("combobox", { name: "Role" }).textContent).toBe("All roles");
-    expect(screen.getByRole("combobox", { name: "Status" }).textContent).toBe("All statuses");
+    expect((await screen.findByText("Buyer 01", { selector: "a" })).textContent).toBe("Buyer 01");
+    expect(screen.getByLabelText("Search this page")).toHaveProperty("value", "");
+    expect(screen.getByLabelText("Role").textContent).toBe("All roles");
+    expect(screen.getByLabelText("Status").textContent).toBe("All statuses");
     expect(screen.queryByRole("button", { name: "Clear all filters" })).toBeNull();
     expect(
-      screen.getAllByRole("link", { name: /^Buyer \d{2}$/ }).map((link) => link.textContent),
+      screen.getAllByText(/^Buyer \d{2}$/, { selector: "a" }).map((link) => link.textContent),
     ).toEqual([
       "Buyer 01",
       "Buyer 02",

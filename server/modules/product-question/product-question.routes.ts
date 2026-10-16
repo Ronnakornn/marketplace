@@ -61,6 +61,11 @@ export function createProductQuestionRoutes(container: ServiceContainer) {
       params: ProductParamsSchema,
       query: ListProductQuestionsQuerySchema,
     })
+    .get('/api/products/questions/:questionId/answers', ({ params, query }) =>
+      container.productQuestionService.listQuestionAnswers(params.questionId, query), {
+      params: QuestionParamsSchema,
+      query: t.Object({ cursor: t.Optional(t.String({ maxLength: 500 })), limit: t.Optional(t.Numeric({ minimum: 1, maximum: 20 })) }),
+    })
     .post('/api/products/:productId/questions', ({ authContext, params, body }: any) =>
       container.productQuestionService.createQuestion(productQuestionActor(authContext), params.productId, body), {
       withAuth: true,

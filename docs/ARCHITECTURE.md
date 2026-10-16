@@ -222,6 +222,10 @@ the list starts pagination again.
 
 ## Notification Delivery
 
+Collection pagination, payment cache ordering, event replay/admission limits,
+WebSocket budgets and enabled Push transport bounds are specified in
+[read and delivery bounds](read-and-delivery-bounds.md).
+
 `Notification` rows remain the source of truth. Foreground clients receive realtime events; opted-in devices may also receive best-effort Web Push for payment, shipping, and refund updates. Push subscription endpoints and keys are encrypted at rest, push failure never rolls back notification creation, and expired provider subscriptions are removed after `404` or `410` responses. The push-only service worker does not cache application or API responses.
 
 ## Commerce Workflow Modules

@@ -103,6 +103,12 @@ export class RecommendationService {
     })
   }
 
+  getNewest(input: RecommendationQueryInput): Promise<RecommendationListResponse> {
+    const query = this.normalizeQuery(input)
+    return this.remember('newest', query, () => this.listWithPagination(query, (fetchQuery) =>
+      this.repo.findNewestProducts(fetchQuery)))
+  }
+
   getHomeFeed(input: RecommendationQueryInput): Promise<HomeFeedResponse> {
     const query = this.normalizeQuery(input)
     this.logger.debug('RecommendationService.getHomeFeed', { query })

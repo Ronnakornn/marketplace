@@ -117,8 +117,13 @@ export function createAdminRoutes(container: ServiceContainer) {
         body: CommissionStatusBody,
       },
     )
-    .get('/api/admin/settings', ({ authContext }: any) => moneyResponse(container.adminService.listSystemSettings(adminActor(authContext))), {
+    .get('/api/admin/settings', ({ authContext, query }: any) => moneyResponse(container.adminService.listSystemSettings(adminActor(authContext), query)), {
       withRole: 'ADMIN',
+      query: t.Composite([PaginationQuery, t.Object({ q: t.Optional(t.String({ maxLength: 200 })) })]),
+    })
+    .get('/api/admin/settings/:key', ({ authContext, params }: any) => moneyResponse(container.adminService.getSystemSetting(adminActor(authContext), params.key)), {
+      withRole: 'ADMIN',
+      params: t.Object({ key: t.String({ minLength: 2, maxLength: 120 }) }),
     })
     .put(
       '/api/admin/settings/:key',

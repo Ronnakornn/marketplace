@@ -1,6 +1,6 @@
 import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#server/lib/money.ts'
 import { Elysia, status as httpStatus, t } from 'elysia'
-import { authPlugin } from '#server/modules/auth'
+import { authPlugin, type AuthContext } from '#server/modules/auth'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { UserPlain, UserPlainInputUpdate } from '#generated/prismabox/User.ts'
 import { UserServiceError } from './user.errors.ts'
@@ -52,6 +52,10 @@ const AddressParams = t.Object({
 })
 const ProductFavoriteParams = t.Object({
   productId: t.String({ format: 'uuid' }),
+})
+const BuyerCollectionQuery = t.Object({
+  page: t.Optional(t.Integer({ minimum: 1, maximum: 100000, default: 1 })),
+  limit: t.Optional(t.Integer({ minimum: 1, maximum: 50, default: 20 })),
 })
 const MAX_FAVORITE_STATUS_IDS = 100
 const FavoriteStatusesBody = t.Object({
@@ -141,9 +145,10 @@ export function createUserRoutes(container: ServiceContainer) {
       withAuth: true,
       params: AddressParams,
     })
-    .get('/api/me/favorites', ({ authContext }: any) =>
-      moneyResponse(container.userService.listFavoriteProducts(authContext!.user.id)), {
+    .get('/api/me/favorites', ({ authContext, query }: { authContext?: AuthContext; query: typeof BuyerCollectionQuery.static }) =>
+      moneyResponse(container.userService.listFavoriteProducts(authContext!.user.id, query)), {
       withAuth: true,
+      query: BuyerCollectionQuery,
     })
     .get('/api/me/favorites/:productId', ({ authContext, params }: any) =>
       moneyResponse(container.userService.getFavoriteStatus(authContext!.user.id, params.productId)), {
@@ -166,9 +171,10 @@ export function createUserRoutes(container: ServiceContainer) {
       withAuth: true,
       params: ProductFavoriteParams,
     })
-    .get('/api/me/followed-shops', ({ authContext }: any) =>
-      moneyResponse(container.userService.listFollowedShops(authContext!.user.id)), {
+    .get('/api/me/followed-shops', ({ authContext, query }: { authContext?: AuthContext; query: typeof BuyerCollectionQuery.static }) =>
+      moneyResponse(container.userService.listFollowedShops(authContext!.user.id, query)), {
       withAuth: true,
+      query: BuyerCollectionQuery,
     })
     .get('/api/shops/:shopId/follow', ({ authContext, params }: any) =>
       moneyResponse(container.userService.getShopFollowStatus(authContext!.user.id, params.shopId)), {

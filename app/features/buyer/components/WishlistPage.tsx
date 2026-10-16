@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useInfiniteQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { HeartIcon, ImageIcon, ShoppingCartIcon, StoreIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { BuyerEmptyState, BuyerErrorState, BuyerLoadingGrid } from "#/components/BuyerState";
@@ -10,7 +10,7 @@ import { BuyerTopBar } from "#/components/BuyerShell";
 import { Button } from "#/components/ui/button";
 import { addCartItem, fetchFavoriteProducts, formatMoney, removeFavoriteProduct, type BuyerFavoriteProduct } from "#/features/buyer/api";
 import { showAddToCartError, showAddToCartSuccess } from "#/features/product/cart-handoff";
-import { useLocale, useTranslations } from "#/i18n/client";
+import { useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
@@ -20,20 +20,24 @@ export function WishlistPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const localePath = useLocalePath();
-  const locale = useLocale();
   const t = useTranslations();
   const { data: session } = useSession();
   const buyerId = session?.user.role === "USER" ? session.user.id : "";
   const favoriteQueryKey = favoriteQueryKeys.list(buyerId);
-  const favoritesQuery = useQuery({ queryKey: favoriteQueryKey, queryFn: fetchFavoriteProducts, enabled: Boolean(buyerId) });
+  const favoritesQuery = useInfiniteQuery({
+    queryKey: favoriteQueryKey, initialPageParam: 1,
+    queryFn: ({ pageParam }) => fetchFavoriteProducts(pageParam),
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.page + 1 : undefined,
+    enabled: Boolean(buyerId),
+  });
   const removeMutation = useMutation({
     mutationFn: removeFavoriteProduct,
     onMutate: async (productId) => {
       await queryClient.cancelQueries({ queryKey: favoriteQueryKey });
-      const previousFavorites = queryClient.getQueryData<BuyerFavoriteProduct[]>(favoriteQueryKey);
+      const previousFavorites = queryClient.getQueryData<InfiniteData<Awaited<ReturnType<typeof fetchFavoriteProducts>>>>(favoriteQueryKey);
 
-      queryClient.setQueryData<BuyerFavoriteProduct[]>(favoriteQueryKey, (current) =>
-        current?.filter((favorite) => favorite.productId !== productId) ?? current,
+      queryClient.setQueryData<InfiniteData<Awaited<ReturnType<typeof fetchFavoriteProducts>>>>(favoriteQueryKey, (current) =>
+        current ? { ...current, pages: current.pages.map((page) => ({ ...page, items: page.items.filter((favorite) => favorite.productId !== productId) })) } : current,
       );
 
       return { previousFavorites, buyerId, favoriteQueryKey };
@@ -44,22 +48,22 @@ export function WishlistPage() {
         description: t("buyer.removedFromWishlistDescription"),
       });
     },
-    onError: (error, _productId, context) => {
+    onError: async (error, _productId, context) => {
       if (context?.previousFavorites) {
         queryClient.setQueryData(context.favoriteQueryKey, context.previousFavorites);
       }
 
+      await queryClient.invalidateQueries({ queryKey: context?.favoriteQueryKey ?? favoriteQueryKey });
+      await queryClient.invalidateQueries({ queryKey: favoriteQueryKeys.all(context?.buyerId ?? buyerId) });
       toast.error(t("buyer.wishlistRemoveErrorTitle"), {
         description: error instanceof Error ? error.message : t("buyer.wishlistRemoveErrorDescription"),
       });
     },
-    onSettled: (_result, _error, _productId, context) => queryClient.invalidateQueries({ queryKey: context?.favoriteQueryKey ?? favoriteQueryKey }),
   });
   const addToCartMutation = useMutation({
     mutationFn: ({ variantId }: { product: BuyerFavoriteProduct; variantId: string }) => addCartItem(variantId, 1),
     onSuccess: async (_cart, { product }) => {
       await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
-      await queryClient.invalidateQueries({ queryKey: ["buyer-cart", locale] });
       showAddToCartSuccess({
         copy: {
           successTitle: t("cart.handoffAddedTitle"),
@@ -74,16 +78,19 @@ export function WishlistPage() {
         onViewCart: () => router.push(localePath("/cart")),
       });
     },
-    onError: (error) => showAddToCartError({
-      error,
-      copy: {
-        errorTitle: t("cart.handoffErrorTitle"),
-        errorDescription: t("cart.handoffErrorDescription"),
-      },
-    }),
+    onError: async (error) => {
+      await queryClient.invalidateQueries({ queryKey: ["buyer-cart"] });
+      showAddToCartError({
+        error,
+        copy: {
+          errorTitle: t("cart.handoffErrorTitle"),
+          errorDescription: t("cart.handoffErrorDescription"),
+        },
+      });
+    },
   });
 
-  const favorites = favoritesQuery.data ?? [];
+  const favorites = favoritesQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <>
@@ -189,6 +196,7 @@ export function WishlistPage() {
             {removeMutation.error instanceof Error ? removeMutation.error.message : t("buyer.wishlistRemoveFallback")}
           </div>
         ) : null}
+        {favoritesQuery.hasNextPage ? <div className="flex justify-center"><Button type="button" onClick={() => void favoritesQuery.fetchNextPage()} disabled={favoritesQuery.isFetchingNextPage} aria-busy={favoritesQuery.isFetchingNextPage}>{t(favoritesQuery.isFetchingNextPage ? "common.loading" : "common.loadMore")}</Button></div> : null}
         {favoritesQuery.isFetching && !favoritesQuery.isLoading ? (
           <div className="text-center text-sm text-slate-500">{t("common.loading")}</div>
         ) : null}

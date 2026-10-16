@@ -26,6 +26,7 @@ function createQuestion(overrides: Record<string, unknown> = {}) {
     createdAt: now,
     updatedAt: now,
     user: { id: 'buyer-1', name: 'Buyer' },
+    _count: { answers: 0 },
     answers: [],
     ...overrides,
   } as any
@@ -64,6 +65,7 @@ function createRepo(overrides: Partial<IProductQuestionRepository> = {}) {
   return {
     findActiveProductWithActiveShop: vi.fn().mockResolvedValue(createProduct()),
     listPublishedQuestions: vi.fn().mockResolvedValue({ items: [createQuestion()], totalCount: 1 }),
+    listPublishedAnswers: vi.fn().mockResolvedValue([]),
     createPublishedQuestion: vi.fn(async (input: any) => createQuestion(input)),
     findPublishedQuestionWithContext: vi.fn().mockResolvedValue(createQuestionContext()),
     createPublishedAnswer: vi.fn(async (input: any) => ({
@@ -93,6 +95,50 @@ function createService(repo = createRepo(), ownershipGuards = createOwnershipGua
 describe('ProductQuestionService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('returns a bounded preview and walks every published answer across equal timestamps', async () => {
+    const answers = Array.from({ length: 27 }, (_, index) => ({
+      id: `44444444-4444-4444-8444-${String(index).padStart(12, '0')}`,
+      answer: `Answer ${index}`, status: 'PUBLISHED', user: { id: 'seller', name: 'Seller' },
+      createdAt: new Date('2026-01-02T00:00:00.000Z'),
+    }))
+    const repo = createRepo({
+      listPublishedQuestions: vi.fn().mockResolvedValue({ items: [createQuestion({ answers: answers.slice(0, 3), _count: { answers: 27 } })], totalCount: 1 }),
+      listPublishedAnswers: vi.fn(async (_questionId, input) => answers.filter(answer => !input.cursor || answer.id > input.cursor.id).slice(0, input.limit)) as never,
+    })
+    const service = createService(repo)
+    const first = (await service.listProductQuestions('22222222-2222-4222-8222-222222222222')).items[0]
+    expect(first.answerCount).toBe(27)
+    expect(first.answers).toHaveLength(3)
+    const seen = first.answers.map(answer => answer.id)
+    let cursor = first.answersCursor
+    while (cursor) {
+      const page = await service.listQuestionAnswers(first.id, { cursor, limit: 5 })
+      expect(page.items.length).toBeLessThanOrEqual(5)
+      seen.push(...page.items.map(answer => answer.id))
+      cursor = page.nextCursor
+    }
+    expect(seen).toEqual(answers.map(answer => answer.id))
+    await expect(service.listQuestionAnswers(first.id, { cursor: 'invalid' })).rejects.toMatchObject({ code: 'INVALID_PAGINATION' })
+  })
+
+  it('rejects malformed cursor UUIDs before any repository read', async () => {
+    const repo = createRepo()
+    const cursor = Buffer.from(JSON.stringify(['------------------------------------', '2026-01-01T00:00:00.000Z'])).toString('base64url')
+    await expect(createService(repo).listQuestionAnswers('question', { cursor })).rejects.toMatchObject({ code: 'INVALID_PAGINATION', status: 400 })
+    expect(repo.findPublishedQuestionWithContext).not.toHaveBeenCalled()
+    expect(repo.listPublishedAnswers).not.toHaveBeenCalled()
+  })
+
+  it('rejects answer reads for hidden questions and inactive products', async () => {
+    const repo = createRepo({ findPublishedQuestionWithContext: vi.fn().mockResolvedValue(null) })
+    await expect(createService(repo).listQuestionAnswers('hidden')).rejects.toMatchObject({ code: 'QUESTION_NOT_FOUND' })
+    expect(repo.listPublishedAnswers).not.toHaveBeenCalled()
+    vi.mocked(repo.findPublishedQuestionWithContext).mockResolvedValue(createQuestionContext())
+    vi.mocked(repo.findActiveProductWithActiveShop).mockResolvedValue(null)
+    await expect(createService(repo).listQuestionAnswers('inactive')).rejects.toMatchObject({ code: 'PRODUCT_NOT_FOUND' })
+    expect(repo.listPublishedAnswers).not.toHaveBeenCalled()
   })
 
   it('lists published questions only after active product and active shop validation', async () => {

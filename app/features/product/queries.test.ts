@@ -365,6 +365,8 @@ describe("public product question normalization", () => {
       status: "PUBLISHED",
       createdAt: "2026-01-01T00:00:00.000Z",
       user: { id: "buyer-1", name: "Buyer" },
+      answerCount: 1,
+      answersCursor: null,
       answers: [{
         id: "answer-1",
         answer: "Yes",

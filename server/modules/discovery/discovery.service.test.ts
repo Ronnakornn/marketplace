@@ -43,7 +43,7 @@ function createServiceMocks() {
     } as unknown as CatalogService,
     recommendationService: {
       getTrending: vi.fn(),
-      getHomeFeed: vi.fn(),
+      getNewest: vi.fn(),
     } as unknown as RecommendationService,
     promotionService: {
       listPublicCoupons: vi.fn(),
@@ -79,13 +79,9 @@ describe('DiscoveryService', () => {
       items: [{ productId: 'p1', title: 'Tee', minPrice: 1000n }],
       pagination: { page: 1, limit: 4, hasNextPage: false },
     })
-    vi.mocked(recommendationService.getHomeFeed).mockResolvedValue({
-      sections: {
-        trending: [],
-        newest: [{ productId: 'p2', title: 'New Tee', minPrice: 1200n }],
-        recommendedCategories: [],
-      },
-      pagination: { page: 1, limit: 4 },
+    vi.mocked(recommendationService.getNewest).mockResolvedValue({
+      items: [{ productId: 'p2', title: 'New Tee', minPrice: 1200n }],
+      pagination: { page: 1, limit: 4, hasNextPage: false },
     })
     vi.mocked(promotionService.listPublicCoupons).mockResolvedValue(listPageResult([], 0, { limit: 8 }))
     vi.mocked(trackingService.getRecentlyViewedProducts).mockResolvedValue([])
@@ -102,6 +98,8 @@ describe('DiscoveryService', () => {
       recentlyViewed: [],
     })
     expect(result.meta).toMatchObject({ limit: 4 })
+    expect(recommendationService.getTrending).toHaveBeenCalledExactlyOnceWith({ limit: 4, locale: 'en' })
+    expect(recommendationService.getNewest).toHaveBeenCalledExactlyOnceWith({ limit: 4, locale: 'en' })
   })
 
   it('includes real optional merchandising sections when records exist', async () => {
@@ -164,7 +162,7 @@ describe('DiscoveryService', () => {
     vi.mocked(catalogService.listCategories).mockResolvedValue([])
     vi.mocked(catalogService.getPublicProductMetrics).mockResolvedValue([{ productId: 'p1', rating: 4.5, ratingCount: 2, soldCount: 7 }])
     vi.mocked(recommendationService.getTrending).mockResolvedValue({ items: [], pagination: { page: 1, limit: 12, hasNextPage: false } })
-    vi.mocked(recommendationService.getHomeFeed).mockResolvedValue({ sections: { trending: [], newest: [], recommendedCategories: [] }, pagination: { page: 1, limit: 12 } })
+    vi.mocked(recommendationService.getNewest).mockResolvedValue({ items: [], pagination: { page: 1, limit: 12, hasNextPage: false } })
     vi.mocked(promotionService.listPublicCoupons).mockResolvedValue(listPageResult([{ id: 'coupon-1', code: 'SAVE', title: 'SAVE', description: null } as any], 1, { limit: 8 }))
     vi.mocked(trackingService.getRecentlyViewedProducts).mockResolvedValue([])
 

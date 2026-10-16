@@ -3,7 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { AdminTable } from "./AdminTable";
 
-import { useDeferredValue, useState, type FormEvent } from "react";
+import { useDeferredValue, useEffect, useRef, useState, type FormEvent } from "react";
 import { BadgePercentIcon, PencilIcon, PlusIcon, SettingsIcon } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
@@ -22,6 +22,8 @@ import {
   PAGE_SIZE,
   type AdminCommission,
   type AdminSystemSetting,
+  type AdminSystemSettingSummary,
+  fetchAdminSystemSetting,
   type AdminSystemSettingMutationInput,
   useAdminCommissionsList,
   useAdminSystemSettings,
@@ -70,11 +72,6 @@ function parseSettingValue(value: string, valueType: SettingValueType): unknown 
     throw new Error("invalid-boolean");
   }
   return JSON.parse(value) as unknown;
-}
-
-function settingValuePreview(setting: AdminSystemSetting): string {
-  const value = setting.valueType === "STRING" ? String(setting.value) : JSON.stringify(setting.value);
-  return value.length > 90 ? `${value.slice(0, 87)}...` : value;
 }
 
 export function AdminCommissionsTable() {
@@ -284,35 +281,61 @@ export function AdminCommissionsTable() {
 export function AdminSettingsManager() {
   const t = useTranslations();
   const formatters = useFormatters();
-  const query = useAdminSystemSettings();
+  const [settingsPage, setSettingsPage] = useState(1);
+  const [settingsSearch, setSettingsSearch] = useState("");
+  const [committedSearch, setCommittedSearch] = useState("");
+  useEffect(() => {
+    const nextSearch = settingsSearch.trim();
+    if (nextSearch === committedSearch) return;
+    const timer = setTimeout(() => {
+      setCommittedSearch(nextSearch);
+      setSettingsPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [settingsSearch, committedSearch]);
+  const query = useAdminSystemSettings({ page: settingsPage, q: committedSearch });
   const upsert = useUpsertSystemSetting();
   const [form, setForm] = useState<SettingFormState>(emptySettingForm);
   const [validationError, setValidationError] = useState("");
-  const [settingsSearch, setSettingsSearch] = useState("");
-  const settingsRows = (query.data ?? []).filter((setting) => {
-    const needle = settingsSearch.trim().toLowerCase();
-    return !needle || `${setting.key} ${setting.description ?? ""}`.toLowerCase().includes(needle);
-  });
+  const settingsRows = query.data?.items ?? [];
+  const [detailPending, setDetailPending] = useState(false);
+  const [failedDetail, setFailedDetail] = useState<AdminSystemSettingSummary | null>(null);
+  const detailRequest = useRef(0);
 
   const reset = () => {
+    detailRequest.current += 1;
+    setDetailPending(false);
+    setFailedDetail(null);
     setForm(emptySettingForm);
     setValidationError("");
   };
 
-  const edit = (setting: AdminSystemSetting) => {
-    setForm({
-      key: setting.key,
-      value: settingValueForEditor(setting),
-      valueType: setting.valueType,
-      description: setting.description ?? "",
-      isPublic: setting.isPublic,
-      editing: true,
-    });
-    setValidationError("");
+  const edit = async (summary: AdminSystemSettingSummary) => {
+    const request = ++detailRequest.current;
+    setDetailPending(true);
+    setFailedDetail(null);
+    try {
+      const setting = await fetchAdminSystemSetting(summary.key);
+      if (request !== detailRequest.current) return;
+      setForm({
+        key: setting.key,
+        value: settingValueForEditor(setting),
+        valueType: setting.valueType,
+        description: setting.description ?? "",
+        isPublic: setting.isPublic,
+        editing: true,
+      });
+      setValidationError("");
+    } catch {
+      if (request === detailRequest.current) setFailedDetail(summary);
+    } finally {
+      if (request === detailRequest.current) setDetailPending(false);
+    }
   };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (detailPending || failedDetail) return;
     try {
       const input: AdminSystemSettingMutationInput = {
         key: form.key,
@@ -328,7 +351,7 @@ export function AdminSettingsManager() {
     }
   };
 
-  const columns: ColumnDef<AdminSystemSetting>[] = [
+  const columns: ColumnDef<AdminSystemSettingSummary>[] = [
     {
       id: "key",
       header: t("admin.settingsEditor.key"),
@@ -343,24 +366,6 @@ export function AdminSettingsManager() {
             <p className="mt-1 max-w-sm text-xs text-muted-foreground">
               {setting.description ?? t("admin.settingsEditor.noDescription")}
             </p>
-          </div>
-        );
-      },
-    },
-    {
-      id: "value",
-      header: t("admin.settingsEditor.value"),
-      accessorFn: (item) => settingValuePreview(item),
-      enableSorting: true,
-      cell: ({ row }) => {
-        const setting = row.original;
-
-        return (
-          <div
-            className="max-w-sm truncate font-mono text-xs text-muted-foreground"
-            title={settingValuePreview(setting)}
-          >
-            {settingValuePreview(setting)}
           </div>
         );
       },
@@ -412,7 +417,8 @@ export function AdminSettingsManager() {
               size="sm"
               variant="outline"
               className="border-border bg-background text-foreground"
-              onClick={() => edit(setting)}
+              disabled={detailPending}
+              onClick={() => void edit(setting)}
             >
               <PencilIcon className="size-4" />
               {t("admin.common.edit")}
@@ -434,7 +440,12 @@ export function AdminSettingsManager() {
           <p className="text-sm text-muted-foreground">{t("admin.settingsEditor.description")}</p>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={submit}>
+          {failedDetail ? <div role="alert" className="space-y-2 text-sm text-destructive">
+            <p>{t("admin.settingsEditor.loadFailed")} ({failedDetail.key})</p>
+            <Button type="button" variant="outline" onClick={() => void edit(failedDetail)}>{t("admin.workspace.refresh")}</Button>
+          </div> : null}
+          <form onSubmit={submit}>
+          <fieldset className="space-y-4" disabled={detailPending}>
             <div className="space-y-2">
               <Label htmlFor="setting-key" className="text-foreground">
                 {t("admin.settingsEditor.key")}
@@ -513,7 +524,7 @@ export function AdminSettingsManager() {
               <p className="text-sm text-destructive">{t("admin.settingsEditor.saveFailed")}</p>
             ) : null}
             <div className="flex gap-2">
-              <Button type="submit" disabled={upsert.isPending}>
+              <Button type="submit" disabled={upsert.isPending || detailPending || !!failedDetail}>
                 {t("admin.common.save")}
               </Button>
               {form.editing ? (
@@ -527,6 +538,7 @@ export function AdminSettingsManager() {
                 </Button>
               ) : null}
             </div>
+          </fieldset>
           </form>
         </CardContent>
       </Card>
@@ -560,6 +572,12 @@ export function AdminSettingsManager() {
             isLoading={query.isLoading}
             emptyMessage={t("admin.settingsEditor.empty")}
             getRowId={(item) => item.id}
+            pagination={{ pageIndex: settingsPage - 1, pageSize: PAGE_SIZE, totalRows: query.data?.pagination.total ?? 0,
+              onPaginationChange: (updater) => {
+                const current = { pageIndex: settingsPage - 1, pageSize: PAGE_SIZE };
+                setSettingsPage((typeof updater === "function" ? updater(current) : updater).pageIndex + 1);
+              },
+            }}
           />
         </CardContent>
       </AdminDataShell>

@@ -59,6 +59,7 @@ import { useLocale, useTranslations } from "#/i18n/client";
 import { useLocalePath } from "#/i18n/navigation";
 import { resolveUploadedImageUrl } from "#/lib/assets";
 import { useSession } from "#/lib/auth-client";
+import { ProductQuestionAnswers } from "./ProductQuestionAnswers";
 import { ReviewReportButton } from './ReviewReportButton';
 
 type OptionValueState = "selected" | "available" | "unavailable" | "out-of-stock";
@@ -1080,7 +1081,7 @@ function ProductQuestionsSection({
         </div>
       ) : questions.length ? (
         <div className="grid gap-3">
-          {questions.map((question) => <QuestionCard key={question.id} question={question} />)}
+          {questions.map((question) => <QuestionCard key={`${question.productId}:${question.id}:${answerStatus}:${sort}`} question={question} />)}
           {questionsPage?.meta.hasNextPage ? (
             <Button type="button" variant="outline" className="justify-self-center rounded-full" disabled={questionsFetchingMore} onClick={onLoadMore}>
               {questionsFetchingMore ? t("common.loading") : t("product.loadMoreQuestions")}
@@ -1149,21 +1150,7 @@ function QuestionCard({ question }: { question: BuyerProductQuestion }) {
         {question.createdAt ? <time dateTime={question.createdAt} className="text-sm text-slate-500">{formatReviewDate(question.createdAt, locale)}</time> : null}
       </div>
       <p className="mt-3 whitespace-pre-line break-words text-sm leading-6 text-slate-700">{question.question}</p>
-      {question.answers.length ? (
-        <div className="mt-4 space-y-3 border-l-2 border-orange-200 pl-3">
-          {question.answers.map((answer) => (
-            <div key={answer.id} className="rounded-lg bg-orange-50 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="break-words text-sm font-semibold text-orange-900">{t("product.sellerAnswerFrom").replace("{name}", answer.user.name)}</p>
-                {answer.createdAt ? <time dateTime={answer.createdAt} className="text-xs text-orange-700">{formatReviewDate(answer.createdAt, locale)}</time> : null}
-              </div>
-              <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">{answer.answer}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-slate-500">{t("product.sellerNotAnswered")}</p>
-      )}
+      <ProductQuestionAnswers question={question} />
     </article>
   );
 }

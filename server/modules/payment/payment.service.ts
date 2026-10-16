@@ -77,12 +77,12 @@ export class PaymentService {
       eventType: input.eventType,
     })
 
-    const response = await this.repo.transaction(async (context) => {
+    const { response, affectedPayment } = await this.repo.transaction(async (context) => {
       const txRepo = context.payment
       await txRepo.lockWebhookEvent(input.providerRef)
       const existingEvent = await txRepo.findWebhookEvent(input.providerRef)
       if (existingEvent) {
-        return { ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' }
+        return { response: { ok: true, code: 'WEBHOOK_ALREADY_PROCESSED' }, affectedPayment: null }
       }
 
       await txRepo.lockPayment(input.paymentId)
@@ -104,7 +104,7 @@ export class PaymentService {
       const idempotentResult = this.getIdempotentResult(payment.status, input.eventType)
       if (idempotentResult) {
         await txRepo.createWebhookEvent(input)
-        return idempotentResult
+        return { response: idempotentResult, affectedPayment: null }
       }
 
       this.assertAllowedTransition(payment.status, input.eventType)
@@ -114,9 +114,10 @@ export class PaymentService {
         eventType: input.eventType,
         occurredAt: new Date(),
       })
-      await this.invalidateOrderAffectedCaches(payment)
-      return result
+      return { response: result, affectedPayment: payment }
     })
+
+    if (affectedPayment) await this.invalidateOrderAffectedCaches(affectedPayment)
 
     if (response.code === 'PAYMENT_PAID') {
       await this.publishBestEffort('order.paid', input.orderId, {

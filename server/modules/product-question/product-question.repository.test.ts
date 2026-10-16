@@ -52,6 +52,7 @@ describe('PrismaProductQuestionRepository public visibility filters', () => {
         },
       },
       include: expect.objectContaining({
+        _count: { select: { answers: { where: { status: 'PUBLISHED' } } } },
         user: expect.any(Object),
         answers: expect.objectContaining({
           where: {
@@ -60,9 +61,8 @@ describe('PrismaProductQuestionRepository public visibility filters', () => {
           include: expect.objectContaining({
             user: expect.any(Object),
           }),
-          orderBy: {
-            createdAt: 'asc',
-          },
+          take: 3,
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         }),
       }),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -74,6 +74,18 @@ describe('PrismaProductQuestionRepository public visibility filters', () => {
         productId: 'product-1',
         status: 'PUBLISHED',
       }),
+    }))
+  })
+
+  it('bounds answer continuation and excludes hidden parents with stable tie ordering', async () => {
+    const prisma = { productAnswer: { findMany: vi.fn().mockResolvedValue([]) } }
+    const cursor = { id: 'answer-1', createdAt: new Date('2026-01-01') }
+    await createRepository(prisma).listPublishedAnswers('question-1', { cursor, limit: 11 })
+    expect(prisma.productAnswer.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { questionId: 'question-1', status: 'PUBLISHED',
+        question: { status: 'PUBLISHED', product: { status: 'ACTIVE', shop: { status: 'ACTIVE' } } },
+        OR: [{ createdAt: { gt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { gt: cursor.id } }],
+      }, take: 11, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     }))
   })
 

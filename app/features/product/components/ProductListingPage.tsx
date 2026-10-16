@@ -1,8 +1,8 @@
 "use client";
 
-import type { FormEvent, ReactNode } from "react";
+import type { ComponentProps, FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { SlidersHorizontalIcon, StarIcon, XIcon } from "lucide-react";
@@ -839,4 +839,10 @@ function buildSearchHref(params: Record<string, string | undefined>, basePath = 
   }
   const serialized = query.toString();
   return serialized ? `${basePath}?${serialized}` : basePath;
+}
+
+function Link({ href, ...props }: ComponentProps<typeof NextLink>) {
+  const localePath = useLocalePath();
+  const localizedHref = typeof href === "string" && href.startsWith("/") ? localePath(href) : href;
+  return <NextLink {...props} href={localizedHref} />;
 }

@@ -185,6 +185,37 @@ describe('PaymentService', () => {
     vi.clearAllMocks()
   })
 
+  it('commits settlement before waiting for cache and skips invalidation on commit failure', async () => {
+    await setup()
+    let committed = false
+    let releaseCache!: () => void
+    const cacheGate = new Promise<void>(resolve => { releaseCache = resolve })
+    const cache = {
+      invalidateInventory: vi.fn(async () => { expect(committed).toBe(true); await cacheGate }),
+      invalidateSellerDashboard: vi.fn(),
+    }
+    vi.mocked(repo.transaction).mockImplementation(async callback => {
+      const value = await callback(transactionContext)
+      committed = true
+      return value
+    })
+    const settlement = { settle: vi.fn().mockResolvedValue({ ok: true, code: 'PAYMENT_PAID' }) }
+    const service = new PaymentService(createAppContext(), repo, settlement as never, cache as never)
+    const pending = service.handleWebhook(baseBody)
+    await vi.waitFor(() => expect(cache.invalidateInventory).toHaveBeenCalledOnce())
+    expect(committed).toBe(true)
+    releaseCache()
+    await expect(pending).resolves.toMatchObject({ code: 'PAYMENT_PAID' })
+
+    cache.invalidateInventory.mockClear()
+    vi.mocked(repo.transaction).mockImplementation(async callback => {
+      await callback(transactionContext)
+      throw new Error('commit failed')
+    })
+    await expect(service.handleWebhook(baseBody)).rejects.toThrow('commit failed')
+    expect(cache.invalidateInventory).not.toHaveBeenCalled()
+  })
+
   it('handles payment paid success and commits reserved stock', async () => {
     const service = await setup()
 

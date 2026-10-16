@@ -18,6 +18,7 @@ vi.mock('#server/modules/auth/auth.context.ts', () => ({
 function createContainer() {
   return {
     productQuestionService: {
+      listQuestionAnswers: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
       listProductQuestions: vi.fn().mockResolvedValue({ items: [] }),
       createQuestion: vi.fn().mockResolvedValue({ id: 'question-1' }),
       createAnswer: vi.fn().mockResolvedValue({ id: 'answer-1' }),
@@ -44,6 +45,16 @@ function mockAuth() {
 describe('product question routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('exposes public bounded answer continuation and rejects oversized limits', async () => {
+    const container = createContainer()
+    const app = createApp(container)
+    const url = 'http://localhost/api/products/questions/11111111-1111-4111-8111-111111111111/answers'
+    const response = await app.handle(new Request(`${url}?cursor=opaque&limit=10`))
+    expect(response.status).toBe(200)
+    expect(container.productQuestionService.listQuestionAnswers).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111', { cursor: 'opaque', limit: 10 })
+    expect((await app.handle(new Request(`${url}?limit=1000`))).status).toBe(422)
   })
 
   it('allows public product question listing', async () => {

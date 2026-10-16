@@ -49,12 +49,12 @@ export type FavoriteProductRecord = FavoriteProduct & {
   product: Product & {
     shop: Pick<Shop, 'id' | 'name' | 'slug' | 'status'>
     images: Pick<ProductImage, 'url' | 'sortOrder' | 'isPrimary'>[]
-    variants: Array<ProductVariant & { inventory: Inventory | null }>
+    variants: Array<Pick<ProductVariant, 'id' | 'title' | 'price' | 'currency'> & { inventory: Pick<Inventory, 'quantityOnHand' | 'quantityReserved'> | null }>
   }
 }
 export type ShopFollowRecord = ShopFollow & {
   shop: Shop & {
-    products: Array<Product & { variants: ProductVariant[] }>
+    products: Array<Product & { variants: Pick<ProductVariant, 'price' | 'currency'>[] }>
     _count: { followers: number; products: number }
   }
 }
@@ -95,12 +95,12 @@ export interface IUserRepository {
   updateAddress(userId: string, addressId: string, data: Partial<AddressData>): Promise<BuyerAddress>
   deleteAddress(userId: string, addressId: string): Promise<BuyerAddress>
   setDefaultAddress(userId: string, addressId: string): Promise<BuyerAddress>
-  listFavoriteProducts(userId: string): Promise<FavoriteProductRecord[]>
+  listFavoriteProducts(userId: string, page: number, limit: number): Promise<FavoriteProductRecord[]>
   findFavoriteProduct(userId: string, productId: string): Promise<FavoriteProduct | null>
   findFavoriteProductIds(userId: string, productIds: string[]): Promise<Array<Pick<FavoriteProduct, 'productId'>>>
   addFavoriteProduct(userId: string, productId: string): Promise<FavoriteProduct>
   removeFavoriteProduct(userId: string, productId: string): Promise<void>
-  listFollowedShops(userId: string): Promise<ShopFollowRecord[]>
+  listFollowedShops(userId: string, page: number, limit: number): Promise<ShopFollowRecord[]>
   findShopFollow(userId: string, shopId: string): Promise<ShopFollow | null>
   findShopOwner(shopId: string): Promise<Pick<Shop, 'ownerId'> | null>
   followShop(userId: string, shopId: string): Promise<ShopFollow>
@@ -334,20 +334,36 @@ export class PrismaUserRepository implements IUserRepository {
     })
   }
 
-  listFavoriteProducts(userId: string): Promise<FavoriteProductRecord[]> {
+  async listFavoriteProducts(userId: string, page: number, limit: number): Promise<FavoriteProductRecord[]> {
     this.logger.debug('PrismaUserRepository.listFavoriteProducts', { userId })
-    return this.prisma.favoriteProduct.findMany({
+    const favorites = await this.prisma.favoriteProduct.findMany({
       where: { userId },
+      take: limit + 1, skip: (page - 1) * limit,
       include: {
         product: {
           include: {
             shop: { select: { id: true, name: true, slug: true, status: true } },
             images: { select: { url: true, sortOrder: true, isPrimary: true }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }], take: 3 },
-            variants: { where: { status: 'ACTIVE' }, include: { inventory: true }, orderBy: { createdAt: 'asc' } },
+            variants: { where: { status: 'ACTIVE' }, select: { id: true, title: true, price: true, currency: true, inventory: { select: { quantityOnHand: true, quantityReserved: true } } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 1 },
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    })
+    if (!favorites.length) return favorites
+    const available = await this.prisma.product.findMany({
+      where: { id: { in: favorites.map((favorite) => favorite.productId) } },
+      select: { id: true, variants: {
+        where: { status: 'ACTIVE', inventory: { quantityOnHand: { gt: this.prisma.inventory.fields.quantityReserved } } },
+        select: { id: true, title: true, price: true, currency: true, inventory: { select: { quantityOnHand: true, quantityReserved: true } } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 1,
+      } },
+    })
+    const byProduct = new Map(available.map((product) => [product.id, product.variants]))
+    return favorites.map((favorite) => {
+      const availableVariants = byProduct.get(favorite.productId)
+      return { ...favorite, product: {
+        ...favorite.product, variants: availableVariants?.length ? availableVariants : favorite.product.variants,
+      } }
     })
   }
 
@@ -378,24 +394,25 @@ export class PrismaUserRepository implements IUserRepository {
     await this.prisma.favoriteProduct.deleteMany({ where: { userId, productId } })
   }
 
-  listFollowedShops(userId: string): Promise<ShopFollowRecord[]> {
+  listFollowedShops(userId: string, page: number, limit: number): Promise<ShopFollowRecord[]> {
     this.logger.debug('PrismaUserRepository.listFollowedShops', { userId })
     return this.prisma.shopFollow.findMany({
       where: { userId },
+      take: limit + 1, skip: (page - 1) * limit,
       include: {
         shop: {
           include: {
             _count: { select: { followers: true, products: true } },
             products: {
               where: { status: 'ACTIVE' },
-              include: { variants: { where: { status: 'ACTIVE' }, orderBy: { createdAt: 'asc' } } },
-              orderBy: { createdAt: 'desc' },
+              include: { variants: { where: { status: 'ACTIVE' }, select: { price: true, currency: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 1 } },
+              orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
               take: 4,
             },
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     })
   }
 

@@ -16,7 +16,7 @@ vi.mock('#server/modules/auth/auth.context.ts', () => ({
 function createContainer() {
   return {
     adminService: {
-      listSystemSettings: vi.fn().mockResolvedValue([]),
+      getSystemSetting: vi.fn().mockResolvedValue(null),
       upsertSystemSetting: vi.fn().mockImplementation(async (_actor, _key, input) => ({ value: { ...input.value, revision: 'saved-revision' } })),
     },
     checkoutService: {
@@ -150,7 +150,7 @@ describe('checkout routes', () => {
     const write = await app.handle(new Request('http://localhost/api/admin/checkout/tax-policy', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ratePpm: 0 }) }))
     expect(read.status).toBe(403)
     expect(write.status).toBe(403)
-    expect(container.adminService.listSystemSettings).not.toHaveBeenCalled()
+    expect(container.adminService.getSystemSetting).not.toHaveBeenCalled()
     expect(container.adminService.upsertSystemSetting).not.toHaveBeenCalled()
   })
 

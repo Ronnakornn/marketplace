@@ -45,6 +45,8 @@ export interface ProductQuestionResponse {
     id: string
     name: string
   }
+  answerCount: number
+  answersCursor: string | null
   answers: ProductQuestionAnswerResponse[]
 }
 
@@ -95,6 +97,31 @@ export class ProductQuestionService {
         hasNextPage: page * limit < result.totalCount,
       },
     }
+  }
+
+  async listQuestionAnswers(questionId: string, input: { cursor?: string; limit?: number } = {}) {
+    const limit = this.normalizeLimit(input.limit)
+    let cursor: { id: string; createdAt: Date } | undefined
+    if (input.cursor) {
+      try {
+        const decoded: unknown = JSON.parse(Buffer.from(input.cursor, 'base64url').toString())
+        if (!Array.isArray(decoded) || decoded.length !== 2 || typeof decoded[0] !== 'string' || typeof decoded[1] !== 'string'
+          || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decoded[0]) || !Number.isFinite(Date.parse(decoded[1]))) throw new Error('Invalid cursor')
+        cursor = { id: decoded[0], createdAt: new Date(decoded[1]) }
+      } catch {
+        throw new ProductQuestionServiceError('Invalid answer cursor', 400, 'INVALID_PAGINATION')
+      }
+    }
+    const question = await this.repo.findPublishedQuestionWithContext(questionId)
+    if (!question) throw new ProductQuestionServiceError('Question not found', 404, 'QUESTION_NOT_FOUND')
+    await this.requireActiveProduct(question.productId)
+    const rows = await this.repo.listPublishedAnswers(questionId, { cursor, limit: limit + 1 })
+    const items = rows.slice(0, limit)
+    return { items: items.map(answer => this.toAnswerResponse(answer)), nextCursor: rows.length > limit ? this.answerCursor(items.at(-1)) : null }
+  }
+
+  private answerCursor(answer: ProductQuestionRecord['answers'][number] | undefined): string | null {
+    return answer ? Buffer.from(JSON.stringify([answer.id, answer.createdAt.toISOString()])).toString('base64url') : null
   }
 
   async createQuestion(
@@ -178,6 +205,8 @@ export class ProductQuestionService {
         id: question.user.id,
         name: question.user.name,
       },
+      answerCount: question._count.answers,
+      answersCursor: question._count.answers > question.answers.length ? this.answerCursor(question.answers.at(-1)) : null,
       answers: question.answers.map((answer) => this.toAnswerResponse(answer)),
     }
   }

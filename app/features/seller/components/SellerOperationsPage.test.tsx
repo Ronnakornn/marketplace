@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { SellerFinancePage, SellerOrdersPage } from "./SellerManagePages";
 import type { SellerShipment, SellerTransactions } from "../hooks/useSellerManage";
 
@@ -121,7 +121,7 @@ describe("seller shipment actions", () => {
     expect(shipmentsHook).toHaveBeenLastCalledWith({ page: 1, limit: 20, q: undefined, status: "PENDING_PACK", shopId: "shop-1" });
   });
 
-  it("requests later shipment pages and resets to the first page when search changes", () => {
+  it("keeps the current shipment page while typing and resets after search commits", async () => {
     shipments = Array.from({ length: 65 }, (_, index) => shipment(String(index), "shipped"));
     render(<SellerOrdersPage />);
     expect(screen.queryByText("ORD-60")).toBeNull();
@@ -130,8 +130,14 @@ describe("seller shipment actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "seller.ui.table.nextPage" }));
     expect(shipmentsHook).toHaveBeenLastCalledWith(expect.objectContaining({ page: 4, limit: 20 }));
     expect(screen.getByText("ORD-60")).toBeTruthy();
-    fireEvent.change(screen.getByRole("textbox", { name: "seller.manage.pages.orders.search" }), { target: { value: "ORD-64" } });
-    expect(shipmentsHook).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, q: "ORD-64" }));
+    const search = screen.getByRole("textbox", { name: "seller.manage.pages.orders.search" });
+    fireEvent.change(search, { target: { value: "ORD-64" } });
+    expect(search).toHaveProperty("value", "ORD-64");
+    expect(shipmentsHook).toHaveBeenLastCalledWith(expect.objectContaining({ page: 4, q: undefined }));
+    expect(screen.getByText("ORD-60")).toBeTruthy();
+    await waitFor(() =>
+      expect(shipmentsHook).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, q: "ORD-64" })),
+    );
     expect(screen.getByText("ORD-64")).toBeTruthy();
     expect(screen.queryByText("ORD-60")).toBeNull();
   });

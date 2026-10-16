@@ -1,11 +1,14 @@
 import type { PrismaClient, PushSubscription } from '#generated/client/client.ts'
 import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
+import { NotificationServiceError } from './notification.errors.ts'
 import {
   decryptPushSubscriptionValue,
   encryptPushSubscriptionValue,
   hashPushEndpoint,
 } from './push-subscription.crypto.ts'
+
+export const maxPushSubscriptionsPerUser = 10
 
 export interface PushSubscriptionInput {
   endpoint: string
@@ -45,10 +48,19 @@ export class PrismaPushRepository implements IPushRepository {
       locale: input.locale,
       expirationTime: input.expirationTime ? new Date(input.expirationTime) : null,
     }
-    await this.prisma.pushSubscription.upsert({
-      where: { endpointHash },
-      create: { endpointHash, ...encrypted },
-      update: encrypted,
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId}::uuid FOR UPDATE`
+      await tx.pushSubscription.deleteMany({ where: { userId, expirationTime: { lte: new Date() } } })
+      const existing = await tx.pushSubscription.findUnique({ where: { endpointHash }, select: { userId: true } })
+      const count = await tx.pushSubscription.count({ where: { userId } })
+      if (existing?.userId !== userId && count >= maxPushSubscriptionsPerUser) {
+        throw new NotificationServiceError('Push subscription device limit reached; remove an existing device first', 409, 'PUSH_SUBSCRIPTION_LIMIT_REACHED')
+      }
+      await tx.pushSubscription.upsert({
+        where: { endpointHash },
+        create: { endpointHash, ...encrypted },
+        update: encrypted,
+      })
     })
     this.logger.info('PrismaPushRepository.upsert', { userId })
   }
@@ -61,7 +73,11 @@ export class PrismaPushRepository implements IPushRepository {
   }
 
   async findForUser(userId: string): Promise<StoredPushSubscription[]> {
-    const rows = await this.prisma.pushSubscription.findMany({ where: { userId } })
+    const rows = await this.prisma.pushSubscription.findMany({
+      where: { userId },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+      take: maxPushSubscriptionsPerUser,
+    })
     return rows.map((row) => this.toSubscription(row))
   }
 

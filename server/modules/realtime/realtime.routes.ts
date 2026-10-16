@@ -5,7 +5,7 @@ import { RealtimeServiceError } from './realtime.errors.ts'
 
 const RealtimeMessageSchema = t.Object({
   action: t.Union([t.Literal('subscribe'), t.Literal('unsubscribe')]),
-  channel: t.String({ minLength: 1 }),
+  channel: t.String({ minLength: 1, maxLength: 256 }),
 })
 
 function realtimeActor(authContext: any) {

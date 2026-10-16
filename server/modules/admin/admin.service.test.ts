@@ -276,8 +276,8 @@ describe('AdminService', () => {
   })
 
   it('rejects buyer and seller actors', async () => {
-    expect(() => service.getDashboard(actor('USER'))).toThrow(AdminServiceError)
-    expect(() => service.getDashboard(actor('USER'))).toThrow(AdminServiceError)
+    expect(() => service.getDashboard({ id: 'buyer', role: 'USER' })).toThrow(AdminServiceError)
+    expect(() => service.getDashboard({ id: 'buyer', role: 'USER' })).toThrow(AdminServiceError)
   })
 
   it('returns dashboard counts including archived products as banned', async () => {
@@ -328,11 +328,11 @@ describe('AdminService', () => {
   })
 
   it('reads and upserts typed system settings', async () => {
-    vi.mocked(repo.listSystemSettings).mockResolvedValue([setting()])
+    vi.mocked(repo.listSystemSettings).mockResolvedValue({ items: [setting()], total: 1 })
     vi.mocked(repo.findSystemSettingByKey).mockResolvedValue(null)
     vi.mocked(repo.upsertSystemSetting).mockResolvedValue(setting())
 
-    await expect(service.listSystemSettings(actor())).resolves.toHaveLength(1)
+    await expect(service.listSystemSettings(actor())).resolves.toMatchObject({ items: [setting()], pagination: { total: 1 } })
     await expect(service.upsertSystemSetting(actor(), ' Checkout.Max_Items ', {
       value: 50,
       valueType: 'NUMBER',
@@ -346,6 +346,18 @@ describe('AdminService', () => {
       description: 'Maximum checkout items',
       updatedById: 'admin-1',
     }))
+  })
+
+  it('searches and pages setting metadata and reads the full value only by key', async () => {
+    vi.mocked(repo.listSystemSettings).mockResolvedValue({ items: [], total: 50 })
+    await expect(service.listSystemSettings(actor(), { page: 2, limit: 10, q: ' coupon.targets ' })).resolves.toMatchObject({ pagination: { page: 2, total: 50 } })
+    expect(repo.listSystemSettings).toHaveBeenCalledWith('coupon.targets', { page: 2, limit: 10 })
+    const value = setting({ value: { productIds: Array.from({ length: 1000 }, (_, index) => `product-${index}`) } })
+    vi.mocked(repo.findSystemSettingByKey).mockResolvedValue(value)
+    await expect(service.getSystemSetting(actor(), value.key)).resolves.toEqual(value)
+    await expect(service.getSystemSetting({ id: 'buyer', role: 'USER' }, value.key)).rejects.toMatchObject({ status: 403 })
+    vi.mocked(repo.findSystemSettingByKey).mockResolvedValue(null)
+    await expect(service.getSystemSetting(actor(), 'missing')).rejects.toMatchObject({ code: 'SETTING_NOT_FOUND' })
   })
 
   it('rejects invalid system setting values', async () => {
@@ -519,8 +531,8 @@ describe('AdminService', () => {
 
   it('rejects buyer creation and revision of financial allocation plans', async () => {
     const intent = { items: [{ orderItemId: 'item-1', quantity: 1 }], shipping: [] }
-    await expect(service.createSettlementRefund(actor('USER'), 'order-1', intent)).rejects.toMatchObject({ status: 403 })
-    await expect(service.prepareSettlementRefund(actor('USER'), 'refund-1', intent)).rejects.toMatchObject({ status: 403 })
+    await expect(service.createSettlementRefund({ id: 'buyer', role: 'USER' }, 'order-1', intent)).rejects.toMatchObject({ status: 403 })
+    await expect(service.prepareSettlementRefund({ id: 'buyer', role: 'USER' }, 'refund-1', intent)).rejects.toMatchObject({ status: 403 })
     expect(refundRepo.createPlannedRefund).not.toHaveBeenCalled()
     expect(refundRepo.prepareRefundPlan).not.toHaveBeenCalled()
   })

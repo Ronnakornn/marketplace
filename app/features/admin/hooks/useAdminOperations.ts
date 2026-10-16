@@ -13,7 +13,8 @@ export type AdminReports = Treaty.Data<ReturnType<typeof api.api.admin.reports.g
 export type AdminCommissionsResponse = Treaty.Data<ReturnType<typeof api.api.admin.commissions.get>>;
 export type AdminCommission = AdminCommissionsResponse extends { items: Array<infer T> } ? T : never;
 export type AdminSettingsResponse = Treaty.Data<ReturnType<typeof api.api.admin.settings.get>>;
-export type AdminSystemSetting = AdminSettingsResponse extends Array<infer T> ? T : never;
+export type AdminSystemSettingSummary = AdminSettingsResponse extends { items: Array<infer T> } ? T : never;
+export type AdminSystemSetting = Treaty.Data<ReturnType<ReturnType<typeof api.api.admin.settings>["get"]>>;
 export type AdminUsersResponse = Treaty.Data<ReturnType<typeof api.api.admin.users.get>>;
 export type AdminUser = AdminUsersResponse extends { items: Array<infer T> } ? T : never;
 export type AdminShopsResponse = Treaty.Data<ReturnType<typeof api.api.admin.shops.get>>;
@@ -254,11 +255,17 @@ export function useAdminCommissionsList(filters: AdminListFilters) {
   });
 }
 
-export function useAdminSystemSettings() {
+export async function fetchAdminSystemSetting(key: string) {
+  const { data, error } = await api.api.admin.settings({ key }).get();
+  if (error) throw error;
+  return data;
+}
+
+export function useAdminSystemSettings(filters: AdminListFilters = { page: 1 }) {
   return useQuery({
-    queryKey: ["admin", "settings"],
+    queryKey: ["admin", "settings", filters],
     queryFn: async () => {
-      const { data, error } = await api.api.admin.settings.get();
+      const { data, error } = await api.api.admin.settings.get({ query: cleanQuery(filters) });
       if (error) throw error;
       return data;
     },

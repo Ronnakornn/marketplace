@@ -14,7 +14,10 @@ export type ProductQuestionProduct = Pick<Product, 'id' | 'shopId' | 'status'> &
   shop: Pick<Shop, 'id' | 'ownerId' | 'status'>
 }
 
+export const ANSWER_PREVIEW_LIMIT = 3
+
 export type ProductQuestionRecord = ProductQuestion & {
+  _count: { answers: number }
   user: Pick<User, 'id' | 'name'>
   answers: Array<ProductAnswer & {
     user: Pick<User, 'id' | 'name'>
@@ -58,12 +61,14 @@ export interface PaginatedProductQuestions {
 export interface IProductQuestionRepository {
   findActiveProductWithActiveShop(productId: string): Promise<ProductQuestionProduct | null>
   listPublishedQuestions(productId: string, input: ListProductQuestionsInput): Promise<PaginatedProductQuestions>
+  listPublishedAnswers(questionId: string, input: { cursor?: { id: string; createdAt: Date }; limit: number }): Promise<ProductQuestionRecord['answers']>
   createPublishedQuestion(input: CreateProductQuestionRecord): Promise<ProductQuestionRecord>
   findPublishedQuestionWithContext(questionId: string): Promise<ProductQuestionWithContext | null>
   createPublishedAnswer(input: CreateProductAnswerRecord): Promise<ProductAnswer & { user: Pick<User, 'id' | 'name'> }>
 }
 
 const productQuestionInclude = {
+  _count: { select: { answers: { where: { status: 'PUBLISHED' } } } },
   user: {
     select: {
       id: true,
@@ -71,6 +76,7 @@ const productQuestionInclude = {
     },
   },
   answers: {
+    take: ANSWER_PREVIEW_LIMIT,
     where: {
       status: 'PUBLISHED',
     },
@@ -82,11 +88,9 @@ const productQuestionInclude = {
         },
       },
     },
-    orderBy: {
-      createdAt: 'asc',
-    },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
   },
-} as const
+} satisfies Prisma.ProductQuestionInclude
 
 export class PrismaProductQuestionRepository implements IProductQuestionRepository {
   private logger: ILogger
@@ -158,6 +162,24 @@ export class PrismaProductQuestionRepository implements IProductQuestionReposito
       this.prisma.productQuestion.count({ where }),
     ])
     return { items, totalCount }
+  }
+
+  listPublishedAnswers(questionId: string, input: { cursor?: { id: string; createdAt: Date }; limit: number }) {
+    const cursor = input.cursor
+    return this.prisma.productAnswer.findMany({
+      where: {
+        questionId,
+        status: 'PUBLISHED',
+        question: { status: 'PUBLISHED', product: { status: 'ACTIVE', shop: { status: 'ACTIVE' } } },
+        ...(cursor ? { OR: [
+          { createdAt: { gt: cursor.createdAt } },
+          { createdAt: cursor.createdAt, id: { gt: cursor.id } },
+        ] } : {}),
+      },
+      include: { user: { select: { id: true, name: true } } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: input.limit,
+    })
   }
 
   createPublishedQuestion(input: CreateProductQuestionRecord): Promise<ProductQuestionRecord> {

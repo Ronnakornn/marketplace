@@ -28,7 +28,7 @@ export interface DiscoveryHomeResponse {
     categories?: Awaited<ReturnType<CatalogService['listCategories']>>
     flashSale?: Awaited<ReturnType<DiscoveryService['toFlashSale']>>
     recommendedProducts?: Awaited<ReturnType<RecommendationService['getTrending']>>['items']
-    newArrivals?: Awaited<ReturnType<RecommendationService['getHomeFeed']>>['sections']['newest']
+    newArrivals?: Awaited<ReturnType<RecommendationService['getNewest']>>['items']
     featuredShops?: ReturnType<DiscoveryService['toFeaturedShop']>[]
     recentlyViewed?: Awaited<ReturnType<TrackingService['getRecentlyViewedProducts']>>
     promotions?: Awaited<ReturnType<PromotionService['listPublicCoupons']>>['data']
@@ -64,7 +64,7 @@ export class DiscoveryService {
       categories,
       flashSale,
       recommended,
-      homeFeed,
+      newest,
       featuredShops,
       promotions,
       recentlyViewed,
@@ -73,7 +73,7 @@ export class DiscoveryService {
       this.catalogService.listCategories(locale),
       this.repo.findActiveFlashSale(limit, now),
       this.recommendationService.getTrending({ limit, locale }),
-      this.recommendationService.getHomeFeed({ limit, locale }),
+      this.recommendationService.getNewest({ limit, locale }),
       this.repo.findFeaturedShops(SHOP_LIMIT),
       this.promotionService.listPublicCoupons(locale, { page: 1, limit: 8 }).then(page => page.data),
       this.trackingService.getRecentlyViewedProducts({
@@ -96,7 +96,7 @@ export class DiscoveryService {
         categories,
         ...(normalizedFlashSale ? { flashSale: normalizedFlashSale } : {}),
         recommendedProducts: recommended.items,
-        newArrivals: homeFeed.sections.newest,
+        newArrivals: newest.items,
         ...(featuredShops.length > 0 ? { featuredShops: featuredShops.map((shop) => this.toFeaturedShop(shop)) } : {}),
         recentlyViewed,
         ...(promotions.length > 0 ? { promotions } : {}),

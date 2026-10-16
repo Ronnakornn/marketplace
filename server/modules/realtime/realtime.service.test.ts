@@ -3,7 +3,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import { InMemoryRealtimeAdapter } from './realtime.adapter.ts'
 import { RealtimeServiceError } from './realtime.errors.ts'
 import type { IRealtimeRepository } from './realtime.repository.ts'
-import { RealtimeService } from './realtime.service.ts'
+import { RealtimeService, realtimeCommandLimits } from './realtime.service.ts'
 import type { RealtimeConnection } from './realtime.types.ts'
 
 function connection(id = 'a', userId = 'buyer-1'): RealtimeConnection {
@@ -42,6 +42,95 @@ function createRepo(overrides: Partial<IRealtimeRepository> = {}): IRealtimeRepo
 describe('RealtimeService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('admits at most two pending commands per connection before starting session queries', async () => {
+    const repo = createRepo()
+    let release!: () => void
+    const gate = new Promise<void>(resolve => { release = resolve })
+    vi.mocked(repo.findLiveSession).mockImplementation(async () => {
+      await gate
+      return { userId: 'buyer-1', user: { id: 'buyer-1', role: 'USER' }, expiresAt: new Date(Date.now() + 60_000) }
+    })
+    const service = new RealtimeService(appContext, repo, new InMemoryRealtimeAdapter(appContext))
+    service.addConnection(connection())
+    const commands = Array.from({ length: 250 }, () => service.subscribe('a', 'chat:room-1'))
+    const results = Promise.allSettled(commands)
+    expect(repo.findLiveSession).toHaveBeenCalledTimes(2)
+    release()
+    const settled = await results
+    expect(settled.filter(result => result.status === 'fulfilled')).toHaveLength(1)
+    expect(settled.filter(result => result.status === 'rejected' && result.reason.code === 'REALTIME_RATE_LIMITED')).toHaveLength(248)
+  })
+
+  it('shares the in-flight quota across sockets and retains it while disconnected work settles', async () => {
+    const repo = createRepo()
+    let release!: () => void
+    const gate = new Promise<void>(resolve => { release = resolve })
+    vi.mocked(repo.findLiveSession).mockImplementation(async () => {
+      await gate
+      return { userId: 'buyer-1', user: { id: 'buyer-1', role: 'USER' }, expiresAt: new Date(Date.now() + 60_000) }
+    })
+    const service = new RealtimeService(appContext, repo, new InMemoryRealtimeAdapter(appContext))
+    const commands: ReturnType<RealtimeService['subscribe']>[] = []
+    for (let i = 0; i < 20; i++) {
+      service.addConnection(connection(String(i)))
+      commands.push(service.subscribe(String(i), 'chat:room-1'))
+      service.removeConnection(String(i))
+    }
+    const results = Promise.allSettled(commands)
+    expect(repo.findLiveSession).toHaveBeenCalledTimes(realtimeCommandLimits.inFlightPerUser)
+    release()
+    await results
+    service.addConnection(connection('recovered'))
+    await expect(service.subscribe('recovered', 'chat:room-1')).resolves.toMatchObject({ ok: true })
+  })
+
+  it('counts malformed authenticated commands before rejecting them without any database work', async () => {
+    let now = 0
+    const repo = createRepo()
+    const service = new RealtimeService(appContext, repo, new InMemoryRealtimeAdapter(appContext), () => now)
+    service.addConnection(connection())
+    for (let i = 0; i < realtimeCommandLimits.perConnection; i++) {
+      await expect(service.subscribe('a', 'chat:')).rejects.toMatchObject({ code: 'REALTIME_INVALID_CHANNEL' })
+    }
+    await expect(service.subscribe('a', 'chat:room-1')).rejects.toMatchObject({ code: 'REALTIME_RATE_LIMITED' })
+    expect(repo.findLiveSession).not.toHaveBeenCalled()
+    expect(repo.findChatRoomAccess).not.toHaveBeenCalled()
+    now = realtimeCommandLimits.windowMs
+    await expect(service.subscribe('a', 'chat:room-1')).resolves.toMatchObject({ ok: true })
+    expect(repo.findLiveSession).toHaveBeenCalledOnce()
+  })
+
+  it('keeps user frequency limits across reconnects and expires idle identities', async () => {
+    let now = 0
+    const repo = createRepo()
+    const service = new RealtimeService(appContext, repo, new InMemoryRealtimeAdapter(appContext), () => now)
+    for (let i = 0; i < realtimeCommandLimits.perUser; i++) {
+      service.addConnection(connection())
+      await service.unsubscribe('a', 'chat:room-1')
+      service.removeConnection('a')
+    }
+    service.addConnection(connection())
+    await expect(service.subscribe('a', 'chat:room-1')).rejects.toMatchObject({ code: 'REALTIME_RATE_LIMITED' })
+    expect(repo.findLiveSession).not.toHaveBeenCalled()
+    now = realtimeCommandLimits.windowMs
+    await expect(service.subscribe('a', 'chat:room-1')).resolves.toMatchObject({ ok: true })
+  })
+
+  it('bounds subscriptions including simultaneously authorized pending channels', async () => {
+    let now = 0
+    const repo = createRepo()
+    const service = new RealtimeService(appContext, repo, new InMemoryRealtimeAdapter(appContext), () => now)
+    service.addConnection(connection())
+    for (let i = 0; i < realtimeCommandLimits.subscriptionsPerConnection; i++) {
+      now += realtimeCommandLimits.windowMs
+      await service.subscribe('a', `chat:room-${i}`)
+    }
+    await expect(service.subscribe('a', 'chat:extra')).rejects.toMatchObject({ code: 'REALTIME_RATE_LIMITED' })
+    expect(repo.findLiveSession).toHaveBeenCalledTimes(realtimeCommandLimits.subscriptionsPerConnection)
+    await service.unsubscribe('a', 'chat:room-0')
+    await expect(service.subscribe('a', 'chat:extra')).resolves.toMatchObject({ ok: true })
   })
 
   it('allows users to subscribe to their own notification channel', async () => {

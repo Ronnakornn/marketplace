@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { useQueries, useQuery, type QueryClient } from "@tanstack/react-query";
 import { fetchFavoriteStatus, fetchFavoriteStatuses } from "#/features/buyer/api";
 import { useSession } from "#/lib/auth-client";
@@ -25,13 +25,19 @@ export function FavoriteStatusesProvider({ productIds, children }: { productIds:
   const { data: session } = useSession();
   const userId = session?.user.role === "USER" ? session.user.id : "";
   const ids = [...new Set(productIds)].sort();
-  const batches = Array.from({ length: Math.ceil(ids.length / FAVORITE_STATUS_BATCH_SIZE) }, (_, index) =>
-    ids.slice(index * FAVORITE_STATUS_BATCH_SIZE, (index + 1) * FAVORITE_STATUS_BATCH_SIZE));
+  const [batchState, setBatchState] = useState<{ userId: string; batches: string[][] }>({ userId, batches: [] });
+  const visible = new Set(ids);
+  const retained = batchState.userId === userId ? batchState.batches.filter((batch) => batch.some((id) => visible.has(id))) : [];
+  const requested = new Set(retained.flat());
+  const missing = ids.filter((id) => !requested.has(id));
+  const batches = [...retained, ...Array.from({ length: Math.ceil(missing.length / FAVORITE_STATUS_BATCH_SIZE) }, (_, index) =>
+    missing.slice(index * FAVORITE_STATUS_BATCH_SIZE, (index + 1) * FAVORITE_STATUS_BATCH_SIZE))];
+  if (missing.length || batchState.userId !== userId || retained.length !== batchState.batches.length) setBatchState({ userId, batches });
   const queries = useQueries({
     queries: batches.map((batch) => ({
       queryKey: favoriteQueryKeys.batch(userId, batch),
       queryFn: () => fetchFavoriteStatuses(batch),
-      enabled: Boolean(userId),
+      enabled: Boolean(userId) && batch.some((id) => visible.has(id)),
       staleTime: 60_000,
     })),
   });

@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
-import { InMemoryRealtimeAdapter, RedisRealtimeAdapter } from './realtime.adapter.ts'
+import { InMemoryRealtimeAdapter, RedisRealtimeAdapter, maxPendingRealtimeDeliveries } from './realtime.adapter.ts'
 import type { IRealtimeRepository } from './realtime.repository.ts'
 import { RealtimeService } from './realtime.service.ts'
 import type { RealtimeConnection, RealtimeDeliveryDecision, RealtimeEvent } from './realtime.types.ts'
@@ -59,6 +59,24 @@ function repository(): IRealtimeRepository {
 
 describe('InMemoryRealtimeAdapter delivery boundary', () => {
   beforeEach(() => vi.clearAllMocks())
+
+  it('closes slow consumers at the bounded outbound backlog without leaking queued private payloads', async () => {
+    const adapter = new InMemoryRealtimeAdapter(context)
+    const pending = deferred<RealtimeDeliveryDecision>()
+    const authorizer = vi.fn(() => pending.promise)
+    adapter.setDeliveryAuthorizer(authorizer)
+    const receiver = connection()
+    adapter.addConnection(receiver)
+    adapter.subscribe(receiver.id, 'chat:room')
+    const deliveries = Array.from({ length: maxPendingRealtimeDeliveries + 1 }, (_, i) => adapter.publish(event(i)))
+    await drain()
+    expect(receiver.close).toHaveBeenCalledOnce()
+    expect(adapter.getConnection(receiver.id)).toBeUndefined()
+    pending.resolve(allowed())
+    expect((await Promise.all(deliveries)).every(count => count === 0)).toBe(true)
+    expect(receiver.send).not.toHaveBeenCalled()
+    expect(authorizer.mock.calls.length).toBeLessThanOrEqual(1)
+  })
 
   it('cannot deliver before the service installs an authorizer', async () => {
     const adapter = new InMemoryRealtimeAdapter(context)

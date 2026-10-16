@@ -4,6 +4,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { RealtimeConnection, RealtimeDeliveryAuthorizer, RealtimeEvent } from './realtime.types.ts'
 
 const redisRealtimeChannel = 'marketplace:realtime'
+export const maxPendingRealtimeDeliveries = 64
 
 export interface RealtimeAdapter {
   setDeliveryAuthorizer(authorize: RealtimeDeliveryAuthorizer): void
@@ -19,6 +20,7 @@ export class InMemoryRealtimeAdapter implements RealtimeAdapter {
   private connections = new Map<string, RealtimeConnection>()
   private channelSubscribers = new Map<string, Map<string, symbol>>()
   private deliveryQueues = new Map<RealtimeConnection, Promise<void>>()
+  private pendingDeliveries = new WeakMap<RealtimeConnection, number>()
   private authorize?: RealtimeDeliveryAuthorizer
 
   constructor(private appContext: AppContext) {}
@@ -38,6 +40,8 @@ export class InMemoryRealtimeAdapter implements RealtimeAdapter {
   }
 
   removeConnection(connectionId: string): void {
+    const connection = this.connections.get(connectionId)
+    if (connection) this.deliveryQueues.delete(connection)
     this.connections.delete(connectionId)
     for (const [channel, subscribers] of this.channelSubscribers) {
       subscribers.delete(connectionId)
@@ -66,11 +70,21 @@ export class InMemoryRealtimeAdapter implements RealtimeAdapter {
     for (const [connectionId, subscription] of subscribers) {
       const connection = this.connections.get(connectionId)
       if (!connection) continue
+      const pending = this.pendingDeliveries.get(connection) ?? 0
+      if (pending >= maxPendingRealtimeDeliveries) {
+        this.removeConnection(connectionId)
+        connection.close()
+        continue
+      }
+      this.pendingDeliveries.set(connection, pending + 1)
       const previous = this.deliveryQueues.get(connection) ?? Promise.resolve()
       const delivery = previous.then(() => this.deliver(connection, subscription, event.channel, data))
       const tail = delivery.then(() => undefined, () => undefined)
       this.deliveryQueues.set(connection, tail)
       void tail.then(() => {
+        const remaining = (this.pendingDeliveries.get(connection) ?? 1) - 1
+        if (remaining) this.pendingDeliveries.set(connection, remaining)
+        else this.pendingDeliveries.delete(connection)
         if (this.deliveryQueues.get(connection) === tail) this.deliveryQueues.delete(connection)
       })
       deliveries.push(delivery)

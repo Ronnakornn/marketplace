@@ -472,9 +472,10 @@ vi.mock("#/i18n/client", () => ({
   })[key] ?? key,
 }));
 
-vi.mock("#/i18n/navigation", () => ({
-  useLocalePath: () => (path: string) => `/en${path}`,
-}));
+vi.mock("#/i18n/navigation", async () => {
+  const { withLocale } = await import("#/i18n/config");
+  return { useLocalePath: () => (path: string) => withLocale(path, "en") };
+});
 
 function renderWithClient(ui: ReactNode) {
   const client = new QueryClient({
@@ -692,6 +693,16 @@ describe("ProductListingPage buyer states", () => {
     expect(screen.getAllByPlaceholderText("9").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Sort by").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Price low" }).length).toBeGreaterThan(0);
+    const priceSort = screen.getAllByRole("link", { name: "Price low" })[0]!;
+    expect(priceSort.getAttribute("href")).toBe("/en/search?q=bag&sort=price_asc");
+    const categoryLink = screen.getAllByRole("link", { name: /Fashion\s*3/ })[0]!;
+    const categoryHref = new URL(categoryLink.getAttribute("href")!, "http://localhost");
+    expect(categoryHref.pathname).toBe("/en/search");
+    expect(categoryHref.searchParams.get("q")).toBe("bag");
+    expect(categoryHref.searchParams.get("categoryId")).toBe("fashion");
+    priceSort.focus();
+    expect(document.activeElement).toBe(priceSort);
+    expect(screen.getAllByRole("link").every((link) => !link.getAttribute("href")?.includes("/en/en/"))).toBe(true);
 
     const unavailableCategory = screen.getAllByText("Electronics")[0]?.closest("[aria-disabled='true']");
     const unavailableBrand = screen.getAllByText("Dormant")[0]?.closest("[aria-disabled='true']");
@@ -719,7 +730,7 @@ describe("ProductListingPage buyer states", () => {
     expect(categoryChip?.getAttribute("href")).toContain("brandId=brand-1");
     expect(brandChip?.getAttribute("href")).toContain("categoryId=fashion");
     expect(priceChip?.getAttribute("href")).not.toContain("maxPrice=900");
-    expect(screen.getAllByRole("link", { name: "Clear filters" })[0]?.getAttribute("href")).toBe("/search?q=bag");
+    expect(screen.getAllByRole("link", { name: "Clear filters" })[0]?.getAttribute("href")).toBe("/en/search?q=bag");
   });
 
   it("edits major-unit prices while preserving minor-unit URL filters and other selected filters", async () => {
@@ -1345,14 +1356,18 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     renderWithClient(<ProductDetailPage productId="product-1" />);
 
-    expect(await screen.findByText("All ratings")).toBeTruthy();
-    fireEvent.click(await screen.findByRole("button", { name: "Load more reviews" }));
+    const allRatings = await screen.findByText("All ratings", { selector: "button" });
+    expect(allRatings).toBeTruthy();
+    const reviewsSection = allRatings.closest("section");
+    if (!reviewsSection) throw new Error("Review controls must belong to a section");
+    const reviews = within(reviewsSection);
+    fireEvent.click(await reviews.findByRole("button", { name: "Load more reviews" }));
 
-    expect(await screen.findByText("Second Buyer")).toBeTruthy();
-    expect(screen.getByText("First Buyer")).toBeTruthy();
+    expect(await reviews.findByText("Second Buyer")).toBeTruthy();
+    expect(reviews.getByText("First Buyer")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "With media" }));
-    fireEvent.click(screen.getByRole("button", { name: "Rating high" }));
+    fireEvent.click(within(reviews.getByLabelText("Review content filter")).getByRole("button", { name: "With media" }));
+    fireEvent.click(within(reviews.getByLabelText("Review sort")).getByRole("button", { name: "Rating high" }));
 
     await waitFor(() => expect(queryMocks.reviewsQueryFn).toHaveBeenCalledWith(expect.objectContaining({
       hasMedia: true,
@@ -1472,14 +1487,18 @@ describe("ProductDetailPage buyer transaction states", () => {
 
     renderWithClient(<ProductDetailPage productId="product-1" />);
 
-    expect(await screen.findByText("All questions")).toBeTruthy();
-    fireEvent.click(await screen.findByRole("button", { name: "Load more questions" }));
+    const allQuestions = await screen.findByText("All questions", { selector: "button" });
+    expect(allQuestions).toBeTruthy();
+    const questionsSection = allQuestions.closest("section");
+    if (!questionsSection) throw new Error("Question controls must belong to a section");
+    const questions = within(questionsSection);
+    fireEvent.click(await questions.findByRole("button", { name: "Load more questions" }));
 
-    expect(await screen.findByText("Second question?")).toBeTruthy();
-    expect(screen.getByText("First question?")).toBeTruthy();
+    expect(await questions.findByText("Second question?")).toBeTruthy();
+    expect(questions.getByText("First question?")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Answered" }));
-    fireEvent.click(screen.getByRole("button", { name: "Oldest" }));
+    fireEvent.click(within(questions.getByLabelText("Question answer filter")).getByRole("button", { name: "Answered" }));
+    fireEvent.click(within(questions.getByLabelText("Question sort")).getByRole("button", { name: "Oldest" }));
 
     await waitFor(() => expect(queryMocks.questionsQueryFn).toHaveBeenCalledWith(expect.objectContaining({
       answerStatus: "answered",

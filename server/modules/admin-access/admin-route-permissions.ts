@@ -16,6 +16,7 @@ export const legacyAdminRoutePermissions: AdminRoutePermission[] = [
     permission: 'finance.reconcile',
   },
   { method: 'GET', path: '/api/admin/settings', permission: 'settings.read' },
+  { method: 'GET', path: '/api/admin/settings/:key', permission: 'settings.read' },
   {
     method: 'PUT',
     path: '/api/admin/settings/:key',

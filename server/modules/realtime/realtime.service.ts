@@ -5,14 +5,33 @@ import { RealtimeServiceError } from './realtime.errors.ts'
 import type { IRealtimeRepository } from './realtime.repository.ts'
 import type { RealtimeActor, RealtimeConnection, RealtimeDeliveryDecision, RealtimeEvent, RealtimeEventName } from './realtime.types.ts'
 
+export const realtimeCommandLimits = {
+  windowMs: 10_000,
+  perConnection: 20,
+  perUser: 60,
+  inFlightPerConnection: 2,
+  inFlightPerUser: 8,
+  inFlightTotal: 256,
+  retainedUsers: 10_000,
+  subscriptionsPerConnection: 32,
+} as const
+
+type CommandBudget = { used: number; resetsAt: number; inFlight: number }
+
 export class RealtimeService {
   private logger: ILogger
   private pendingSubscriptions = new Map<RealtimeConnection, Map<string, symbol>>()
+  private connectionBudgets = new WeakMap<RealtimeConnection, CommandBudget>()
+  private userBudgets = new Map<string, CommandBudget>()
+  private subscriptions = new WeakMap<RealtimeConnection, Set<string>>()
+  private commandsInFlight = 0
+  private nextBudgetSweep = 0
 
   constructor(
     appContext: AppContext,
     private repo: IRealtimeRepository,
     private adapter: RealtimeAdapter,
+    private now: () => number = () => performance.now(),
   ) {
     this.logger = appContext.logger
     this.adapter.setDeliveryAuthorizer((connection, channel) => this.authorizeDelivery(connection, channel))
@@ -25,18 +44,28 @@ export class RealtimeService {
 
   removeConnection(connectionId: string): void {
     const connection = this.adapter.getConnection(connectionId)
-    if (connection) this.pendingSubscriptions.delete(connection)
+    if (connection) {
+      this.pendingSubscriptions.delete(connection)
+      this.connectionBudgets.delete(connection)
+      this.subscriptions.delete(connection)
+    }
     this.adapter.removeConnection(connectionId)
   }
 
   async subscribe(connectionId: string, channel: string): Promise<{ ok: true; channel: string }> {
     const connection = this.adapter.getConnection(connectionId)
     if (!connection) throw new RealtimeServiceError('Authentication required', 401, 'REALTIME_UNAUTHENTICATED')
+    const release = this.admitCommand(connection)
     const requests = this.pendingSubscriptions.get(connection) ?? new Map<string, symbol>()
     const request = Symbol()
     requests.set(channel, request)
     this.pendingSubscriptions.set(connection, requests)
     try {
+      this.validateChannel(channel)
+      const subscriptions = this.subscriptions.get(connection) ?? new Set<string>()
+      if (new Set([...subscriptions, ...requests.keys()]).size > realtimeCommandLimits.subscriptionsPerConnection) {
+        throw new RealtimeServiceError('Subscription limit reached', 429, 'REALTIME_RATE_LIMITED')
+      }
       const decision = await this.authorizeDelivery(connection, channel)
       if (this.adapter.getConnection(connectionId) !== connection || requests.get(channel) !== request) {
         throw new RealtimeServiceError('Subscription is no longer active', 401, 'REALTIME_UNAUTHENTICATED')
@@ -52,8 +81,11 @@ export class RealtimeService {
       }
       if (decision.status !== 'allowed') throw new RealtimeServiceError('Realtime channel forbidden', 403, 'REALTIME_FORBIDDEN')
       this.adapter.subscribe(connectionId, channel)
+      subscriptions.add(channel)
+      this.subscriptions.set(connection, subscriptions)
       return { ok: true, channel }
     } finally {
+      release()
       if (requests.get(channel) === request) requests.delete(channel)
       if (!requests.size && this.pendingSubscriptions.get(connection) === requests) this.pendingSubscriptions.delete(connection)
     }
@@ -61,9 +93,62 @@ export class RealtimeService {
 
   async unsubscribe(connectionId: string, channel: string): Promise<{ ok: true; channel: string }> {
     const connection = this.adapter.getConnection(connectionId)
-    if (connection) this.pendingSubscriptions.get(connection)?.delete(channel)
-    this.adapter.unsubscribe(connectionId, channel)
-    return { ok: true, channel }
+    if (!connection) throw new RealtimeServiceError('Authentication required', 401, 'REALTIME_UNAUTHENTICATED')
+    const release = this.admitCommand(connection)
+    try {
+      this.validateChannel(channel)
+      this.pendingSubscriptions.get(connection)?.delete(channel)
+      this.subscriptions.get(connection)?.delete(channel)
+      this.adapter.unsubscribe(connectionId, channel)
+      return { ok: true, channel }
+    } finally { release() }
+  }
+
+  private validateChannel(channel: string): void {
+    if (channel.length > 256 || !/^(?:chat:[\w-]+|user:[\w-]+:(?:notifications|chats)|seller:[\w-]+:chats)$/.test(channel)) {
+      throw new RealtimeServiceError('Invalid realtime channel', 400, 'REALTIME_INVALID_CHANNEL')
+    }
+  }
+
+  private admitCommand(connection: RealtimeConnection): () => void {
+    const now = this.now()
+    if (now >= this.nextBudgetSweep) {
+      for (const [userId, budget] of this.userBudgets) {
+        if (budget.resetsAt <= now && budget.inFlight === 0) this.userBudgets.delete(userId)
+      }
+      this.nextBudgetSweep = now + realtimeCommandLimits.windowMs
+    }
+    let user = this.userBudgets.get(connection.userId)
+    if (!user) {
+      if (this.userBudgets.size >= realtimeCommandLimits.retainedUsers) this.rejectCommand()
+      user = { used: 0, resetsAt: now + realtimeCommandLimits.windowMs, inFlight: 0 }
+      this.userBudgets.set(connection.userId, user)
+    }
+    let socket = this.connectionBudgets.get(connection)
+    if (!socket) {
+      socket = { used: 0, resetsAt: now + realtimeCommandLimits.windowMs, inFlight: 0 }
+      this.connectionBudgets.set(connection, socket)
+    }
+    for (const budget of [socket, user]) {
+      if (budget.resetsAt <= now) {
+        budget.used = 0
+        budget.resetsAt = now + realtimeCommandLimits.windowMs
+      }
+    }
+    if (socket.used >= realtimeCommandLimits.perConnection || user.used >= realtimeCommandLimits.perUser
+      || socket.inFlight >= realtimeCommandLimits.inFlightPerConnection
+      || user.inFlight >= realtimeCommandLimits.inFlightPerUser
+      || this.commandsInFlight >= realtimeCommandLimits.inFlightTotal) this.rejectCommand()
+    socket.used++
+    user.used++
+    socket.inFlight++
+    user.inFlight++
+    this.commandsInFlight++
+    return () => { socket.inFlight--; user.inFlight--; this.commandsInFlight-- }
+  }
+
+  private rejectCommand(): never {
+    throw new RealtimeServiceError('Realtime command limit reached', 429, 'REALTIME_RATE_LIMITED')
   }
 
   async publish<TPayload>(event: RealtimeEventName, channel: string, payload: TPayload): Promise<number> {
@@ -88,7 +173,10 @@ export class RealtimeService {
       await this.assertCanSubscribe(session.user, channel)
       return { status: 'allowed', expiresAt: session.expiresAt }
     } catch (error) {
-      if (error instanceof RealtimeServiceError) return { status: 'drop-channel' }
+      if (error instanceof RealtimeServiceError) {
+        this.subscriptions.get(connection)?.delete(channel)
+        return { status: 'drop-channel' }
+      }
       this.logger.warn('Realtime authorization failed', { userId: connection.userId, channel })
       return { status: 'deny' }
     }

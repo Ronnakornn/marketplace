@@ -303,6 +303,8 @@ export interface BuyerProductQuestion {
     id: string;
     name: string;
   };
+  answerCount: number;
+  answersCursor: string | null;
   answers: BuyerProductQuestionAnswer[];
 }
 
@@ -457,6 +459,12 @@ export function publicProductRatingSummaryQueryOptions(productId: string) {
     },
     staleTime: PRODUCT_QUERY_STALE_TIME_MS,
   });
+}
+
+export async function fetchProductQuestionAnswers(questionId: string, cursor: string) {
+  const { data, error } = await api.api.products.questions({ questionId }).answers.get({ query: { cursor, limit: 10 } });
+  if (error) throw error;
+  return { items: data.items.map(answer => ({ ...answer, createdAt: readDateString(answer.createdAt) })), nextCursor: data.nextCursor };
 }
 
 export function publicProductQuestionsQueryOptions(input: string | PublicProductQuestionsInput) {
@@ -1321,6 +1329,8 @@ export function normalizePublicProductQuestionsPage(response: PublicProductQuest
       status,
       createdAt: readDateString(record.createdAt),
       user: normalizeQuestionUser(record.user),
+      answerCount: readNumber(record.answerCount, readArray(record.answers).length),
+      answersCursor: readString(record.answersCursor) || null,
       answers: readArray(record.answers).map((answerInput) => {
         const answer = toRecord(answerInput);
         const id = readString(answer.id);

@@ -204,6 +204,74 @@ describe('EventBus', () => {
       code: 'INVALID_EVENT_PAYLOAD',
     } satisfies Partial<DomainEventError>)
   })
+
+  it('retains successful keys until the monotonic replay horizon and never evicts them at capacity', async () => {
+    let now = 0
+    const handler = vi.fn()
+    registry.register('order.created', { name: 'bounded', handle: handler })
+    const bus = new EventBus(createAppContext(), registry, { maxLedgerEntries: 2, replayHorizonMs: 100, now: () => now })
+    const a = buildEvent('a', 'order.created', 'order', '1')
+    const b = buildEvent('b', 'order.created', 'order', '1')
+    const c = buildEvent('c', 'order.created', 'order', '1')
+    await bus.publish(a)
+    await bus.publish(b)
+    expect((await bus.publish(c)).handlerResults[0]).toMatchObject({ ok: false, errorMessage: expect.stringContaining('capacity') })
+    await bus.publish(a)
+    expect(handler).toHaveBeenCalledTimes(2)
+    now = 99
+    await bus.publish(a)
+    expect(handler).toHaveBeenCalledTimes(2)
+    now = 100
+    await bus.publish(c)
+    await bus.publish(a)
+    expect(handler).toHaveBeenCalledTimes(4)
+  })
+
+  it('coalesces concurrent duplicate handlers while accounting pending work against ledger capacity', async () => {
+    let finish!: () => void
+    const handler = vi.fn(() => new Promise<void>(resolve => { finish = resolve }))
+    registry.register('order.created', { name: 'bounded', handle: handler })
+    const bus = new EventBus(createAppContext(), registry, { maxLedgerEntries: 1 })
+    const event = buildEvent('same', 'order.created', 'order', '1')
+    const first = bus.publish(event)
+    const duplicate = bus.publish(event)
+    await Promise.resolve()
+    const rejected = await bus.publish({ ...event, eventId: 'other' })
+    expect(rejected.handlerResults[0]?.ok).toBe(false)
+    expect(handler).toHaveBeenCalledOnce()
+    finish()
+    await Promise.all([first, duplicate])
+    await bus.publish(event)
+    expect(handler).toHaveBeenCalledOnce()
+  })
+
+  it('retries failures without rerunning successful handlers and preserves critical overload rejection', async () => {
+    const success = vi.fn()
+    const retry = vi.fn().mockRejectedValueOnce(new Error('retry')).mockResolvedValue(undefined)
+    registry.register('order.created', { name: 'success', handle: success })
+    registry.register('order.created', { name: 'retry', critical: true, handle: retry })
+    const bus = new EventBus(createAppContext(), registry, { maxLedgerEntries: 2 })
+    const event = buildEvent('same', 'order.created', 'order', '1')
+    await expect(bus.publish(event)).rejects.toMatchObject({ code: 'EVENT_HANDLER_FAILED' })
+    await bus.publish(event)
+    expect(success).toHaveBeenCalledOnce()
+    expect(retry).toHaveBeenCalledTimes(2)
+    await expect(bus.publish({ ...event, eventId: 'other' })).rejects.toMatchObject({ code: 'EVENT_HANDLER_FAILED' })
+    expect(retry).toHaveBeenCalledTimes(2)
+  })
+
+  it('bounds even duplicate publication waiters in asynchronous mode', async () => {
+    let finish!: () => void
+    registry.register('order.created', { name: 'slow', handle: () => new Promise<void>(resolve => { finish = resolve }) })
+    const bus = new EventBus(createAppContext(), registry, { async: true, maxInFlight: 2 })
+    const event = buildEvent('same', 'order.created', 'order', '1')
+    await bus.publish(event)
+    await bus.publish(event)
+    await expect(bus.publish(event)).rejects.toMatchObject({ code: 'EVENT_PUBLISH_FAILED' })
+    finish()
+    await new Promise<void>(resolve => setImmediate(resolve))
+    await expect(bus.publish(event)).resolves.toBeDefined()
+  })
 })
 
 function buildEvent(

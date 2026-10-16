@@ -10,6 +10,7 @@ export async function ensureRecurringJobSchedulers(config: QueueConfig): Promise
   const queue = new Queue(queueName, {
     connection: createRedisConnection(config),
     skipVersionCheck: config.skipRedisVersionCheck,
+    defaultJobOptions: { removeOnComplete: 1000 },
   })
   await Promise.all([
     queue.upsertJobScheduler('release-expired-payment-stock', { every: 60_000 }, {

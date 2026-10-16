@@ -249,8 +249,9 @@ export class UserService {
     return this.repo.setDefaultAddress(userId, addressId)
   }
 
-  async listFavoriteProducts(userId: string): Promise<FavoriteProductResponse[]> {
-    return (await this.repo.listFavoriteProducts(userId)).map((favorite) => this.toFavoriteProduct(favorite))
+  async listFavoriteProducts(userId: string, { page = 1, limit = 20 }: { page?: number; limit?: number } = {}) {
+    const rows = await this.repo.listFavoriteProducts(userId, page, limit)
+    return { items: rows.slice(0, limit).map((favorite) => this.toFavoriteProduct(favorite)), page, hasMore: rows.length > limit }
   }
 
   async getFavoriteStatus(userId: string, productId: string): Promise<{ favorited: boolean }> {
@@ -274,8 +275,9 @@ export class UserService {
     return { favorited: false }
   }
 
-  async listFollowedShops(userId: string): Promise<ShopFollowResponse[]> {
-    return (await this.repo.listFollowedShops(userId)).map((follow) => this.toShopFollow(follow))
+  async listFollowedShops(userId: string, { page = 1, limit = 20 }: { page?: number; limit?: number } = {}) {
+    const rows = await this.repo.listFollowedShops(userId, page, limit)
+    return { items: rows.slice(0, limit).map((follow) => this.toShopFollow(follow)), page, hasMore: rows.length > limit }
   }
 
   async getShopFollowStatus(userId: string, shopId: string): Promise<{ following: boolean }> {

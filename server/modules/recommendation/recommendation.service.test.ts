@@ -139,6 +139,16 @@ describe('RecommendationService', () => {
     expect(repo.findTrendingProducts).not.toHaveBeenCalled()
   })
 
+  it('fetches newest once with public card metrics and no unused categories', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findNewestProducts).mockResolvedValue([product({ soldCount: 7, rating: 4 })])
+    const result = await new RecommendationService(createAppContext(), repo).getNewest({ limit: 12 })
+    expect(repo.findNewestProducts).toHaveBeenCalledExactlyOnceWith({ limit: 13, offset: 0 })
+    expect(repo.findTrendingProducts).not.toHaveBeenCalled()
+    expect(repo.findRecommendedCategories).not.toHaveBeenCalled()
+    expect(result.items[0]).toMatchObject({ soldCount: 7 })
+  })
+
   it('accepts the largest supported recommendation offset exactly', async () => {
     vi.mocked(repo.findTrendingProducts).mockResolvedValue([])
     const result = await service.getTrending({ page: 2_147_483_647, limit: 1 })

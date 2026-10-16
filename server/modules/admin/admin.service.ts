@@ -246,9 +246,17 @@ export class AdminService {
     return updated
   }
 
-  listSystemSettings(actor: AdminActor): Promise<AdminSystemSettingRecord[]> {
+  async listSystemSettings(actor: AdminActor, input: { page?: number; limit?: number; q?: string } = {}) {
     this.assertAdmin(actor)
-    return this.repository.listSystemSettings()
+    const pagination = this.normalizePagination(input)
+    return this.toListResponse(await this.repository.listSystemSettings(input.q?.trim() || undefined, pagination), pagination)
+  }
+
+  async getSystemSetting(actor: AdminActor, key: string): Promise<AdminSystemSettingRecord> {
+    this.assertAdmin(actor)
+    const setting = await this.repository.findSystemSettingByKey(key)
+    if (!setting) throw new AdminServiceError('Setting not found', 404, 'SETTING_NOT_FOUND')
+    return setting
   }
 
   async upsertSystemSetting(

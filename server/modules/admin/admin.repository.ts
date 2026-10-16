@@ -1,3 +1,4 @@
+import { escapeLikeLiteral } from '#server/lib/sql-like.ts'
 import type { AdminActor, AdminAuthorizer } from '#server/modules/admin-access/admin-access.contract.ts'
 import { moneyInteger, moneyRoundedRatio } from '#server/lib/money.ts'
 import { Prisma as PrismaSql } from '#generated/client/client.ts'
@@ -188,6 +189,7 @@ export interface AdminCommissionRecord {
 }
 
 export type AdminSystemSettingRecord = SystemSetting
+export type AdminSystemSettingSummary = Omit<SystemSetting, 'value'>
 
 export interface AdminSystemSettingWriteInput {
   key: string
@@ -211,7 +213,7 @@ export interface IAdminRepository {
     expectedStatus: AffiliateCommissionStatus,
     status: AffiliateCommissionStatus,
   ): Promise<AdminCommissionRecord | null>
-  listSystemSettings(): Promise<AdminSystemSettingRecord[]>
+  listSystemSettings(q: string | undefined, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminSystemSettingSummary>>
   findSystemSettingByKey(key: string): Promise<AdminSystemSettingRecord | null>
   upsertSystemSetting(input: AdminSystemSettingWriteInput): Promise<AdminSystemSettingRecord>
   listUsers(filters: { role?: Role; status?: UserStatus }, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminUserRecord>>
@@ -601,8 +603,20 @@ export class PrismaAdminRepository implements IAdminRepository {
     return this.findCommissionById(commissionId)
   }
 
-  listSystemSettings(): Promise<AdminSystemSettingRecord[]> {
-    return this.prisma.systemSetting.findMany({ orderBy: { key: 'asc' } })
+  async listSystemSettings(q: string | undefined, pagination: AdminPaginationInput): Promise<AdminPaginatedResult<AdminSystemSettingSummary>> {
+    const needle = q ? escapeLikeLiteral(q) : undefined
+    const where: Prisma.SystemSettingWhereInput = needle ? { OR: [
+      { key: { contains: needle, mode: 'insensitive' } },
+      { description: { contains: needle, mode: 'insensitive' } },
+    ] } : {}
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.systemSetting.findMany({
+        where, orderBy: { key: 'asc' }, skip: (pagination.page - 1) * pagination.limit, take: pagination.limit,
+        omit: { value: true },
+      }),
+      this.prisma.systemSetting.count({ where }),
+    ])
+    return { items, total }
   }
 
   findSystemSettingByKey(key: string): Promise<AdminSystemSettingRecord | null> {

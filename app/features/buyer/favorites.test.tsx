@@ -32,6 +32,32 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("favorite status batches", () => {
+  it("releases observers for disjoint filtered results", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(tree(client, ["result-0"]));
+    for (let index = 0; index < 8; index++) {
+      view.rerender(tree(client, [`result-${index}`]));
+      await waitFor(() => expect(screen.getByTestId(`result-${index}`).textContent).toBe("unsaved"));
+      const observed = client.getQueryCache().findAll({ queryKey: favoriteQueryKeys.batches("buyer-1") }).filter((query) => query.getObserversCount() > 0);
+      expect(observed).toHaveLength(1);
+    }
+  });
+
+  it("requests only new IDs across ten appended pages", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const ids = Array.from({ length: 400 }, (_, index) => `product-${(index * 137) % 400}`);
+    const view = render(tree(client, ids.slice(0, 40)));
+    for (let count = 40; count <= 400; count += 40) {
+      view.rerender(tree(client, ids.slice(0, count)));
+      await waitFor(() => expect(screen.getByTestId(ids[count - 1]!).textContent).not.toBe("unknown"));
+    }
+    const submitted = mocks.batch.mock.calls.flatMap(([ids]) => ids);
+    expect(submitted).toHaveLength(400);
+    expect(new Set(submitted).size).toBe(400);
+    expect(mocks.batch.mock.calls).toHaveLength(10);
+    expect(mocks.batch.mock.calls.every(([ids]) => ids.length <= 100)).toBe(true);
+  });
+
   it("reads standalone cards without a provider and safely handles an unavailable buyer ID", async () => {
     function Standalone({ missingId }: { missingId: boolean }) {
       const result = useFavoriteStatus("product-1", missingId ? undefined! : "buyer-1", true);

@@ -121,35 +121,10 @@ export interface SellerApplicationSummary {
   } | null;
 }
 
-export interface BuyerFavoriteProduct {
-  id: string;
-  productId: string;
-  title: string;
-  price: MinorUnitValue;
-  currency: string;
-  status: string;
-  imageUrls: string[];
-  shop: { id: string; name: string; slug: string; status: string };
-  purchaseVariant: {
-    id: string;
-    title: string;
-    stock: number;
-    currency: string;
-    price: MinorUnitValue;
-  } | null;
-  createdAt: string;
-}
-
-export interface BuyerFollowedShop {
-  id: string;
-  shopId: string;
-  name: string;
-  slug: string;
-  followerCount: number;
-  productCount: number;
-  products: Array<{ id: string; title: string; price: MinorUnitValue; currency: string }>;
-  createdAt: string;
-}
+export type BuyerFavoritePage = NonNullable<Treaty.Data<ReturnType<typeof api.api.me.favorites.get>>>;
+export type BuyerFavoriteProduct = BuyerFavoritePage["items"][number];
+export type BuyerFollowedShopPage = NonNullable<Treaty.Data<ReturnType<typeof api.api.me["followed-shops"]["get"]>>>;
+export type BuyerFollowedShop = BuyerFollowedShopPage["items"][number];
 
 export type CheckoutInput = Parameters<typeof api.api.checkout.post>[0];
 
@@ -196,38 +171,10 @@ export async function claimCoupon(couponId: string, locale?: string): Promise<Bu
   return data;
 }
 
-export async function fetchFavoriteProducts(): Promise<BuyerFavoriteProduct[]> {
-  const response = await apiFetch("/api/me/favorites");
-  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
-  return rawItems.map((item) => {
-    const record = toRecord(item);
-    const shop = toRecord(record.shop);
-    const purchaseVariant = toRecord(record.purchaseVariant);
-    const purchaseVariantId = readString(purchaseVariant.id);
-    return {
-      id: readString(record.id),
-      productId: readString(record.productId),
-      title: readString(record.title, "Product"),
-      price: minorUnitsText(record.price),
-      currency: readString(record.currency, defaultCurrency),
-      status: readString(record.status, "ACTIVE"),
-      imageUrls: readArray(record.imageUrls).map((image) => readString(image)).filter(Boolean),
-      shop: {
-        id: readString(shop.id),
-        name: readString(shop.name, "Shop"),
-        slug: readString(shop.slug),
-        status: readString(shop.status, "ACTIVE"),
-      },
-      purchaseVariant: purchaseVariantId ? {
-        id: purchaseVariantId,
-        title: readString(purchaseVariant.title, "Default"),
-        stock: readNumber(purchaseVariant.stock),
-        currency: readString(purchaseVariant.currency, readString(record.currency, defaultCurrency)),
-        price: minorUnitsText(purchaseVariant.price ?? record.price),
-      } : null,
-      createdAt: readString(record.createdAt, new Date().toISOString()),
-    };
-  });
+export async function fetchFavoriteProducts(page = 1) {
+  const { data, error } = await api.api.me.favorites.get({ query: { page, limit: 20 } });
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchFavoriteStatus(productId: string): Promise<boolean> {
@@ -249,30 +196,10 @@ export async function removeFavoriteProduct(productId: string): Promise<void> {
   await apiFetch(`/api/me/favorites/${productId}`, { method: "DELETE" });
 }
 
-export async function fetchFollowedShops(): Promise<BuyerFollowedShop[]> {
-  const response = await apiFetch("/api/me/followed-shops");
-  const rawItems = Array.isArray(response) ? response : readArray(toRecord(response).items);
-  return rawItems.map((item) => {
-    const record = toRecord(item);
-    return {
-      id: readString(record.id),
-      shopId: readString(record.shopId),
-      name: readString(record.name, "Shop"),
-      slug: readString(record.slug),
-      followerCount: readNumber(record.followerCount),
-      productCount: readNumber(record.productCount),
-      products: readArray(record.products).map((productInput) => {
-        const product = toRecord(productInput);
-        return {
-          id: readString(product.id),
-          title: readString(product.title, "Product"),
-          price: minorUnitsText(product.price),
-          currency: readString(product.currency, defaultCurrency),
-        };
-      }),
-      createdAt: readString(record.createdAt, new Date().toISOString()),
-    };
-  });
+export async function fetchFollowedShops(page = 1) {
+  const { data, error } = await api.api.me["followed-shops"].get({ query: { page, limit: 20 } });
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchShopFollowStatus(shopId: string): Promise<boolean> {

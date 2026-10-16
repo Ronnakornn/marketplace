@@ -3,6 +3,12 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { ILogger } from '#server/infrastructure/logging/index.ts'
 import type { NotificationActor, NotificationResponse } from './notification.service.ts'
 import type { IPushRepository, PushSubscriptionInput } from './push.repository.ts'
+import { maxPushSubscriptionsPerUser } from './push.repository.ts'
+import { sendWebPush } from './push.transport.ts'
+
+export const maxConcurrentPushSends = 4
+export const pushWorkersPerSend = 2
+export const maxConcurrentPushTransports = maxConcurrentPushSends * pushWorkersPerSend
 
 const pushedTypes = new Set(['order_paid', 'payment_failed', 'payment_expired', 'shipment_shipped', 'shipment_delivered', 'return_approved', 'return_rejected', 'refund_processing', 'refund_success'])
 
@@ -15,6 +21,7 @@ export interface PushConfig {
 
 export class PushService {
   private logger: ILogger
+  private activeSends = 0
 
   constructor(appContext: AppContext, private repo: IPushRepository, private config: PushConfig) {
     this.logger = appContext.logger
@@ -64,34 +71,44 @@ export class PushService {
     createPayload: (locale: 'th' | 'en') => { title: string; body: string; url: string },
   ): Promise<number> {
     if (!this.config.enabled) return 0
-    const subscriptions = await this.repo.findForUser(userId)
-    const staleIds: string[] = []
-    let deliveredCount = 0
-    await Promise.all(subscriptions.map(async ({ id, locale, ...subscription }) => {
-      if (subscription.expirationTime && subscription.expirationTime < Date.now()) {
-        staleIds.push(id)
-        return
-      }
-      try {
-        const payload = createPayload(locale)
-        await webpush.sendNotification(subscription, JSON.stringify({
-          ...payload,
-          icon: '/icons/icon-192.png',
-          badge: '/icons/icon-192.png',
-        }))
-        deliveredCount += 1
-      } catch (error) {
-        const statusCode = (error as WebPushError).statusCode
-        if (statusCode === 404 || statusCode === 410) staleIds.push(id)
-        this.logger.warn('PushService delivery failed', {
-          userId,
-          statusCode,
-          error: error instanceof Error ? error.message : String(error),
-        })
-      }
-    }))
-    await this.repo.deleteByIds(staleIds)
-    return deliveredCount
+    if (this.activeSends >= maxConcurrentPushSends) {
+      this.logger.warn('PushService delivery capacity reached', { userId })
+      return 0
+    }
+    this.activeSends++
+    try {
+      const subscriptions = (await this.repo.findForUser(userId)).slice(0, maxPushSubscriptionsPerUser)
+      const pending = subscriptions.values()
+      const staleIds: string[] = []
+      let deliveredCount = 0
+      await Promise.all(Array.from({ length: pushWorkersPerSend }, async () => {
+        for (const { id, locale, ...subscription } of pending) {
+          if (subscription.expirationTime && subscription.expirationTime <= Date.now()) {
+            staleIds.push(id)
+            continue
+          }
+          try {
+            const payload = createPayload(locale)
+            await sendWebPush(subscription, JSON.stringify({
+              ...payload,
+              icon: '/icons/icon-192.png',
+              badge: '/icons/icon-192.png',
+            }))
+            deliveredCount += 1
+          } catch (error) {
+            const statusCode = (error as WebPushError).statusCode
+            if (statusCode === 404 || statusCode === 410) staleIds.push(id)
+            this.logger.warn('PushService delivery failed', {
+              userId,
+              statusCode,
+              error: error instanceof Error ? error.message : String(error),
+            })
+          }
+        }
+      }))
+      await this.repo.deleteByIds(staleIds)
+      return deliveredCount
+    } finally { this.activeSends-- }
   }
 }
 

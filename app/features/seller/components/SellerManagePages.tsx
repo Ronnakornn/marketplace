@@ -4,6 +4,7 @@ import { formatMinorCurrency, compareMinorUnits, type MinorUnitValue } from "#/l
 
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useDebouncedSearch } from "../hooks/useDebouncedSearch";
 import { useSearchParams } from "next/navigation";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { AlertTriangleIcon, ArrowUpRightIcon, BanknoteIcon, PackageCheckIcon, TruckIcon } from "lucide-react";
@@ -453,7 +454,8 @@ export function SellerInventoryPage() {
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
-  const query = useSellerInventory({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: search.trim() || undefined, status: stockFilter === "all" ? undefined : stockFilter, shopId: searchParams.get("shopId") || undefined });
+  const debouncedSearch = useDebouncedSearch(search, setPagination);
+  const query = useSellerInventory({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: debouncedSearch || undefined, status: stockFilter === "all" ? undefined : stockFilter, shopId: searchParams.get("shopId") || undefined });
   const updateInventory = useUpdateSellerInventory();
   const variants = query.data?.data ?? [];
   const columns = useMemo<ColumnDef<NonNullable<SellerInventoryResponse>["data"][number]>[]>(() => [
@@ -493,7 +495,7 @@ export function SellerInventoryPage() {
     <>
       <SellerPageHeader title={t("seller.manage.pages.inventory.title")} description={t("seller.manage.pages.inventory.description")} />
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6">{updateInventory.isPending ? <p className="mb-3 text-sm text-slate-500">{t("seller.manage.pages.inventory.saving")}</p> : null}<SellerDataTable columns={columns} data={variants} getRowId={(row) => row.variantId} searchable={false} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.inventory.loading")} emptyMessage={t("seller.manage.pages.inventory.empty")} pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }} className="overflow-x-auto" renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => { setSearch(event.target.value); setPagination((current) => ({ ...current, pageIndex: 0 })); }} placeholder={t("seller.manage.pages.inventory.search")} aria-label={t("seller.manage.pages.inventory.search")} className="sm:max-w-sm" /><Select value={stockFilter} onValueChange={(value) => { if (value === "all" || value === "low" || value === "out") { setStockFilter(value); setPagination((current) => ({ ...current, pageIndex: 0 })); } }}><SelectTrigger className="sm:w-56" aria-label={t("seller.manage.pages.inventory.filterStock")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.inventory.allStock")}</SelectItem><SelectItem value="low">{t("seller.manage.pages.inventory.lowStockOnly")}</SelectItem><SelectItem value="out">{t("seller.manage.pages.inventory.outOfStock")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="pt-6">{updateInventory.isPending ? <p className="mb-3 text-sm text-slate-500">{t("seller.manage.pages.inventory.saving")}</p> : null}<SellerDataTable columns={columns} data={variants} getRowId={(row) => row.variantId} searchable={false} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.inventory.loading")} emptyMessage={t("seller.manage.pages.inventory.empty")} pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }} className="overflow-x-auto" renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => { setSearch(event.target.value); }} placeholder={t("seller.manage.pages.inventory.search")} aria-label={t("seller.manage.pages.inventory.search")} className="sm:max-w-sm" /><Select value={stockFilter} onValueChange={(value) => { if (value === "all" || value === "low" || value === "out") { setStockFilter(value); setPagination((current) => ({ ...current, pageIndex: 0 })); } }}><SelectTrigger className="sm:w-56" aria-label={t("seller.manage.pages.inventory.filterStock")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.inventory.allStock")}</SelectItem><SelectItem value="low">{t("seller.manage.pages.inventory.lowStockOnly")}</SelectItem><SelectItem value="out">{t("seller.manage.pages.inventory.outOfStock")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
     </>
   );
 }
@@ -518,7 +520,8 @@ export function SellerOrdersPage() {
   const status: SellerShipmentFilters["status"] = statusFilter === "pending_pack" ? "PENDING_PACK"
     : statusFilter === "packed" ? "PACKED" : statusFilter === "shipped" ? "SHIPPED"
     : statusFilter === "delivered" ? "DELIVERED" : undefined;
-  const query = useSellerShipments({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: search.trim() || undefined, status, shopId: searchParams.get("shopId") || undefined });
+  const debouncedSearch = useDebouncedSearch(search, setPagination);
+  const query = useSellerShipments({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: debouncedSearch || undefined, status, shopId: searchParams.get("shopId") || undefined });
   const pack = usePackShipment();
   const ship = useShipShipment();
   const rows = query.data?.data ?? [];
@@ -593,7 +596,7 @@ export function SellerOrdersPage() {
             className="overflow-x-auto"
             renderToolbar={() => (
               <div className="flex w-full flex-col gap-3 sm:flex-row">
-                <Input value={search} onChange={(event) => { setSearch(event.target.value); setPagination((current) => ({ ...current, pageIndex: 0 })); }} placeholder={t("seller.manage.pages.orders.search")} aria-label={t("seller.manage.pages.orders.search")} className="sm:max-w-sm" />
+                <Input value={search} onChange={(event) => { setSearch(event.target.value); }} placeholder={t("seller.manage.pages.orders.search")} aria-label={t("seller.manage.pages.orders.search")} className="sm:max-w-sm" />
                 <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPagination((current) => ({ ...current, pageIndex: 0 })); }}>
                   <SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.orders.filterStatus")}><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -645,7 +648,8 @@ export function SellerReturnsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
-  const query = useSellerReturns({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: search.trim() || undefined, status: statusFilter === "all" ? undefined : statusFilter });
+  const debouncedSearch = useDebouncedSearch(search, setPagination);
+  const query = useSellerReturns({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: debouncedSearch || undefined, status: statusFilter === "all" ? undefined : statusFilter });
   const approve = useApproveReturn();
   const reject = useRejectReturn();
   const columns = useMemo<ColumnDef<SellerReturn>[]>(() => [
@@ -683,7 +687,7 @@ export function SellerReturnsPage() {
           pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }}
           isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.returns.loading")} emptyMessage={t("seller.manage.pages.returns.empty")} className="overflow-x-auto"
           renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row">
-            <Input value={search} onChange={(event) => { setSearch(event.target.value); setPagination((page) => ({ ...page, pageIndex: 0 })); }} placeholder={t("seller.manage.pages.returns.search")} aria-label={t("seller.manage.pages.returns.search")} className="sm:max-w-sm" />
+            <Input value={search} onChange={(event) => { setSearch(event.target.value); }} placeholder={t("seller.manage.pages.returns.search")} aria-label={t("seller.manage.pages.returns.search")} className="sm:max-w-sm" />
             <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPagination((page) => ({ ...page, pageIndex: 0 })); }}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.returns.filterStatus")}><SelectValue /></SelectTrigger><SelectContent>
               <SelectItem value="all">{t("seller.manage.pages.returns.allStatuses")}</SelectItem>
               <SelectItem value="requested">{t("seller.manage.status.requested")}</SelectItem>
@@ -705,7 +709,8 @@ export function SellerPromotionsPage() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [discountType, setDiscountType] = useState("fixed");
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
-  const query = useSellerCoupons({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: search.trim() || undefined, isActive: activeFilter === "all" ? undefined : activeFilter === "active" });
+  const debouncedSearch = useDebouncedSearch(search, setPagination);
+  const query = useSellerCoupons({ page: pagination.pageIndex + 1, limit: pagination.pageSize, q: debouncedSearch || undefined, isActive: activeFilter === "all" ? undefined : activeFilter === "active" });
   const createCoupon = useCreateSellerCoupon();
   const updateCoupon = useUpdateSellerCoupon();
   const deleteCoupon = useDeleteSellerCoupon();
@@ -762,7 +767,7 @@ export function SellerPromotionsPage() {
         </form>
       </CardContent></Card>
       {query.error ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : null}
-      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-4 sm:p-6"><SellerDataTable columns={columns} data={rows} pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }} getRowId={(row) => row.id} searchable={false} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.promotions.loading")} emptyMessage={t("seller.manage.pages.promotions.empty")} pageSize={10} className="overflow-x-auto" renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => { setSearch(event.target.value); setPagination(current => ({ ...current, pageIndex: 0 })); }} placeholder={t("seller.manage.pages.promotions.search")} aria-label={t("seller.manage.pages.promotions.search")} className="sm:max-w-sm" /><Select value={activeFilter} onValueChange={(value) => { setActiveFilter(value); setPagination(current => ({ ...current, pageIndex: 0 })); }}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.promotions.filterStatus")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.promotions.allStatuses")}</SelectItem><SelectItem value="active">{t("seller.manage.status.active")}</SelectItem><SelectItem value="inactive">{t("seller.manage.status.inactive")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
+      <Card className="rounded-lg border-slate-200 bg-white"><CardContent className="p-4 sm:p-6"><SellerDataTable columns={columns} data={rows} pagination={{ ...pagination, totalRows: query.data?.meta.totalCount ?? 0, onPaginationChange: setPagination }} getRowId={(row) => row.id} searchable={false} isLoading={query.isLoading} loadingMessage={t("seller.manage.pages.promotions.loading")} emptyMessage={t("seller.manage.pages.promotions.empty")} pageSize={10} className="overflow-x-auto" renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row"><Input value={search} onChange={(event) => { setSearch(event.target.value); }} placeholder={t("seller.manage.pages.promotions.search")} aria-label={t("seller.manage.pages.promotions.search")} className="sm:max-w-sm" /><Select value={activeFilter} onValueChange={(value) => { setActiveFilter(value); setPagination(current => ({ ...current, pageIndex: 0 })); }}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.promotions.filterStatus")}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("seller.manage.pages.promotions.allStatuses")}</SelectItem><SelectItem value="active">{t("seller.manage.status.active")}</SelectItem><SelectItem value="inactive">{t("seller.manage.status.inactive")}</SelectItem></SelectContent></Select></div>} /></CardContent></Card>
     </>
   );
 }
@@ -818,7 +823,8 @@ export function SellerFinancePage() {
   const [payoutPagination, setPayoutPagination] = useState({ pageIndex: 0, pageSize: 20 });
   const [payoutSearch, setPayoutSearch] = useState("");
   const [payoutStatus, setPayoutStatus] = useState("all");
-  const payouts = useSellerPayouts({ page: payoutPagination.pageIndex + 1, limit: payoutPagination.pageSize, q: payoutSearch.trim() || undefined, status: payoutStatus === "all" ? undefined : payoutStatus });
+  const debouncedPayoutSearch = useDebouncedSearch(payoutSearch, setPayoutPagination);
+  const payouts = useSellerPayouts({ page: payoutPagination.pageIndex + 1, limit: payoutPagination.pageSize, q: debouncedPayoutSearch || undefined, status: payoutStatus === "all" ? undefined : payoutStatus });
   const createPayout = useCreateSellerPayout();
   const transactionColumns: ColumnDef<NonNullable<SellerTransactions>["items"][number]>[] = [
     { accessorKey: "type", header: t("seller.operationsUi.transaction"), enableSorting: false, cell: ({ row }) => <div className="min-w-44"><p className="font-medium">{formatTransactionType(row.original.type, t)}</p><p className="mt-1 text-xs text-slate-500">{formatTransactionDescription(row.original.type, row.original.description, t)}</p></div> },
@@ -854,7 +860,7 @@ export function SellerFinancePage() {
             pagination={{ ...payoutPagination, totalRows: payouts.data?.meta.totalCount ?? 0, onPaginationChange: setPayoutPagination }}
             isLoading={payouts.isLoading} loadingMessage={t("seller.manage.pages.finance.loadingPayouts")} emptyMessage={t("seller.manage.pages.finance.emptyPayouts")}
             renderToolbar={() => <div className="flex w-full flex-col gap-3 sm:flex-row">
-              <Input value={payoutSearch} onChange={(event) => { setPayoutSearch(event.target.value); setPayoutPagination((page) => ({ ...page, pageIndex: 0 })); }} placeholder={t("seller.ui.table.searchPlaceholder")} aria-label={t("seller.ui.table.search")} className="sm:max-w-sm" />
+              <Input value={payoutSearch} onChange={(event) => { setPayoutSearch(event.target.value); }} placeholder={t("seller.ui.table.searchPlaceholder")} aria-label={t("seller.ui.table.search")} className="sm:max-w-sm" />
               <Select value={payoutStatus} onValueChange={(value) => { setPayoutStatus(value); setPayoutPagination((page) => ({ ...page, pageIndex: 0 })); }}><SelectTrigger className="sm:w-52" aria-label={t("seller.manage.pages.returns.filterStatus")}><SelectValue /></SelectTrigger><SelectContent>
                 <SelectItem value="all">{t("seller.manage.pages.returns.allStatuses")}</SelectItem>
                 {(["requested", "approved", "rejected", "paid", "cancelled"] as const).map((status) => <SelectItem key={status} value={status}>{t(`seller.manage.status.${status}`)}</SelectItem>)}
