@@ -136,7 +136,7 @@ vi.mock("#/features/marketplace/queries", () => ({
 }));
 
 vi.mock("#/features/product/components/ProductCard", () => ({
-  ProductCard: ({ product }: { product: { title: string } }) => <article>{product.title}</article>,
+  ProductCard: ({ product, eagerImage = false }: { product: { title: string }; eagerImage?: boolean }) => <article data-eager-image={eagerImage}>{product.title}</article>,
 }));
 
 vi.mock("#/features/product/queries", () => ({
@@ -172,8 +172,8 @@ vi.mock("#/features/product/queries", () => ({
       queryFn: () => queryMocks.questionsQueryFn(normalized),
     };
   },
-  publicProductSearchQueryOptions: (input: { page?: number } = {}) => ({
-    queryKey: ["product", "public", "searches", { locale: "en", limit: 40, page: input.page ?? 1 }],
+  publicProductSearchQueryOptions: (input: { page?: number; categoryId?: string } = {}) => ({
+    queryKey: ["product", "public", "searches", { locale: "en", limit: 40, page: input.page ?? 1, categoryId: input.categoryId }],
     queryFn: () => queryMocks.productsQueryFn(input.page ?? 1),
   }),
   publicSearchSuggestionsQueryOptions: () => ({
@@ -574,6 +574,41 @@ beforeEach(() => {
 });
 
 describe("ProductListingPage buyer states", () => {
+  it.each(["home", "search", "category"] as const)("eager-loads only the first current product image in %s listings", async (mode) => {
+    queryMocks.productsResponse = {
+      items: [
+        createProductCardFixture({ id: "product-1", title: "First image product" }),
+        createProductCardFixture({ id: "product-2", title: "Second image product" }),
+      ],
+    };
+    renderWithClient(<ProductListingPage mode={mode} categoryId="fashion" />);
+
+    expect((await screen.findByText("First image product")).getAttribute("data-eager-image")).toBe("true");
+    expect(screen.getByText("Second image product").getAttribute("data-eager-image")).toBe("false");
+  });
+
+  it("eager-loads the new first product after a category filter changes", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const listing = (categoryId: string) => <QueryClientProvider client={client}>
+      <ProductListingPage mode="category" categoryId={categoryId} />
+    </QueryClientProvider>;
+    queryMocks.productsResponse = { items: [createProductCardFixture({ id: "old-product", title: "Old category product" })] };
+    const view = render(listing("fashion"));
+    expect((await screen.findByText("Old category product")).getAttribute("data-eager-image")).toBe("true");
+
+    queryMocks.productsResponse = {
+      items: [
+        createProductCardFixture({ id: "new-first", title: "New first product" }),
+        createProductCardFixture({ id: "new-second", title: "New second product" }),
+      ],
+    };
+    view.rerender(listing("electronics"));
+
+    expect((await screen.findByText("New first product")).getAttribute("data-eager-image")).toBe("true");
+    expect(screen.getByText("New second product").getAttribute("data-eager-image")).toBe("false");
+    expect(screen.queryByText("Old category product")).toBeNull();
+  });
+
   it("shows an empty state instead of fallback products", async () => {
     renderWithClient(<ProductListingPage mode="home" />);
 
@@ -629,11 +664,16 @@ describe("ProductListingPage buyer states", () => {
 
     expect(await screen.findByText("First product")).toBeTruthy();
     expect(screen.getByText("Second product")).toBeTruthy();
+    expect(screen.getByText("First product").getAttribute("data-eager-image")).toBe("true");
+    expect(screen.getByText("Second product").getAttribute("data-eager-image")).toBe("false");
     expect(screen.getByText("Showing 2 of 4 items")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
 
     expect(await screen.findByText("Third product")).toBeTruthy();
+    expect(screen.getByText("First product").getAttribute("data-eager-image")).toBe("true");
+    expect(screen.getByText("Second product").getAttribute("data-eager-image")).toBe("false");
+    expect(screen.getByText("Third product").getAttribute("data-eager-image")).toBe("false");
     expect(screen.queryByText("Second product duplicate")).toBeNull();
     expect(screen.getByText("Showing 3 of 4 items")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();

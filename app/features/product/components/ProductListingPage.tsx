@@ -334,7 +334,7 @@ export function ProductListingPage({
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                   <FavoriteStatusesProvider productIds={products.map((product) => product.id)}>
-                    {products.map((product) => <ProductCard key={product.id} product={product} />)}
+                    {products.map((product, index) => <ProductCard key={product.id} product={product} eagerImage={index === 0} />)}
                   </FavoriteStatusesProvider>
                 </div>
                 <div className="flex flex-col items-center gap-2 py-3">
