@@ -244,7 +244,7 @@ export async function updateCartItem(itemId: string, quantity: number): Promise<
 }
 
 export async function removeCartItem(itemId: string): Promise<void> {
-  await apiFetch(`/api/cart/items/${itemId}`, { method: "DELETE" });
+  await apiFetch(`/api/cart/items/${itemId}`, { method: "DELETE", body: JSON.stringify({}) });
 }
 
 export async function createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
@@ -430,7 +430,7 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<unknown> 
 }
 
 export async function clearCart(): Promise<void> {
-  await apiFetch("/api/cart", { method: "DELETE" });
+  await apiFetch("/api/cart", { method: "DELETE", body: JSON.stringify({}) });
 }
 
 function normalizeCart(input: unknown): BuyerCart {

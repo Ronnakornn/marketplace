@@ -24,17 +24,19 @@ describe("cart HTTP requests", () => {
   it.each([
     ["/api/cart/items/item-1", () => removeCartItem("item-1")],
     ["/api/cart", () => clearCart()],
-  ] as const)("deletes %s without advertising an absent JSON body", async (path, remove) => {
+  ] as const)("deletes %s with a body accepted by production request-size enforcement", async (path, remove) => {
     fetchMock.mockImplementation(async (_url, init) => {
-      const invalidEmptyJson = init?.body == null && new Headers(init?.headers).has("content-type");
-      return new Response(JSON.stringify(invalidEmptyJson
-        ? { error: { code: "INVALID_REQUEST", message: "Request failed" } }
-        : { success: true }), { status: invalidEmptyJson ? 400 : 200 });
+      const missingBodyLength = init?.body == null;
+      return new Response(JSON.stringify(missingBodyLength
+        ? { error: { code: "CONTENT_LENGTH_REQUIRED", message: "Content-Length is required" } }
+        : { success: true }), { status: missingBodyLength ? 411 : 200 });
     });
 
     await expect(remove()).resolves.toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledWith(path, expect.objectContaining({ method: "DELETE", credentials: "include" }));
-    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has("content-type")).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith(path, expect.objectContaining({ method: "DELETE", body: "{}", credentials: "include" }));
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("content-type")).toBe("application/json");
+    expect(headers.has("content-length")).toBe(false);
   });
 
   it("reads the cart without a content type", async () => {
