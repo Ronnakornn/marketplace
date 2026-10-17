@@ -422,7 +422,11 @@ export async function fetchSellerApplicationSummary(): Promise<SellerApplication
 }
 
 async function apiFetch(path: string, init: RequestInit = {}): Promise<unknown> {
-  return requestApi(path, { ...init, headers: { "content-type": "application/json", ...init.headers } });
+  const headers = new Headers(init.headers);
+  if (init.body != null && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
+  return requestApi(path, { ...init, headers });
 }
 
 export async function clearCart(): Promise<void> {
