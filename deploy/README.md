@@ -1,5 +1,23 @@
 # Deploy without payment
 
+## CI archives on the existing two-process PM2 host
+
+`.github/workflows/deploy-production.yml` builds on Ubuntu 24.04 x86_64 with Bun 1.3.14 and Node 24. It runs Prisma generation, the full TypeScript check, unit tests and the Next.js build with a 6 GiB Node heap. The server receives the finished runtime tree, including Linux native dependencies and the Prisma migration CLI. It never builds, installs dependencies or generates code during deployment.
+
+Set repository variable `PUBLIC_BUILD_ENV_JSON` to a JSON object containing the production `NEXT_PUBLIC_*` values and build settings `API_BASE_URL`, `ALLOW_INSECURE_HTTP` and `S3_PUBLIC_BASE_URL` when configured. These values are public and are recorded in the release manifest. Do not put secrets in this variable. The receiver compares them with the shared environment before applying migrations. Environment files, uploaded files and Next.js cache are excluded from the archive.
+
+Set repository variables `DEPLOY_HOST`, `DEPLOY_USER` and `DEPLOY_PORT`, and secrets `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS`. Pin the independently verified SSH host key. Configure the dedicated deploy public key in the host's `authorized_keys` with `restrict,command="/usr/local/sbin/marketplace-ci-deploy"`. Install the reviewed receiver as that root-owned executable with mode 700. The key can invoke only `deploy <commit> <sha256>` and streams the archive through SSH stdin.
+
+The receiver requires Bash, Python 3.12, `flock`, `curl`, PostgreSQL client tools, Bun 1.3.14, Node 24 and PM2. Existing online processes must be named `marketplace-web` and `marketplace-api`. Their snapshot is captured before changes. The release keeps exactly those two processes on ports 3000 and 3001. It does not add a worker.
+
+Shared runtime files remain under `/var/www/marketplace`. Releases link its `.env`, optional `.env.local`, `public/uploads` and `.data`. Keep `LOCAL_UPLOAD_DIR=/var/www/marketplace/public`. Release directories live under `/var/www/marketplace-releases/<commit>` and `/var/www/marketplace-current` points to the active release. Existing Nginx upload aliases can continue using the shared upload path.
+
+Before activation, the receiver verifies the archive checksum, paths, platform, required runtime files and public build environment. It requires a valid previous production build and validates the shared production environment before any migration or process replacement. Follow the deployment runbook, including `AFFILIATE_ENABLED=false` and `AI_SEARCH_ENABLED=false`. It writes a custom-format database backup under `/var/www/marketplace-releases/backups`, then runs `prisma migrate deploy`. A migration failure leaves the active application untouched. Existing failed or baseline-only migrations must be recovered using the deployment runbook before retrying.
+
+Activation changes the current symlink and recreates the same two PM2 processes using the release directory, with a brief restart window. PM2 restart alone retains the old working directory on this host. Success requires frontend readiness with every reported service `ok`, a successful `/th` request and both PM2 processes online with the new working directory. Activation failures restore the previous symlink and process configurations. Applied database migrations remain in place. Use backward-compatible schema changes; application rollback does not roll back the database. Previous releases and backups are retained for operator review and cleanup.
+
+Pushes to `develop` and `codex/ci-artifact-deploy` trigger this workflow. The deploy job uses the `production` GitHub environment and deployment concurrency prevents overlapping runs. Retrying the same commit and identical archive reuses its immutable release directory. A different archive for an existing commit is rejected. CI artifacts expire after seven days.
+
 This Compose deployment runs Next.js, Elysia, and the queue worker under the existing process supervisor. Nginx terminates TLS. PostgreSQL 17 and Redis 7 have persistent volumes and no published ports. The app starts after successful migrations and Redis readiness. Nginx starts after the app's frontend readiness check passes.
 
 ## Prepare the host

@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
-import { render, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, cleanup, render, within } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 import { StorefrontIdentity } from './StorefrontIdentity'
 
 const base = {
@@ -9,6 +9,10 @@ const base = {
   shippingPolicy: null, returnPolicy: null, updatedAt: new Date(), viewer: { isOwner: false },
 }
 const labels = { products: 'products', reviews: 'reviews', followers: 'followers', chat: 'Chat available', manage: 'Manage shop', logoAlt: 'Shop logo' }
+
+afterEach(async () => {
+  await act(async () => { cleanup() })
+})
 
 describe('StorefrontIdentity', () => {
   it.each([

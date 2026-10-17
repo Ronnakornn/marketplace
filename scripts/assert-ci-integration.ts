@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { z } from 'zod'
 
-const databaseKeys = ['DATABASE_URL', 'COMMERCE_TEST_DATABASE_URL', 'QUEUE_TEST_DATABASE_URL', 'TAX_TEST_DATABASE_URL', 'ROLLOUT_TEST_DATABASE_URL', 'AUDIT_TEST_DATABASE_URL', 'REPORTING_TEST_DATABASE_URL', 'ADMIN_DIRECTORY_TEST_DATABASE_URL', 'ADMIN_OPERATIONS_TEST_DATABASE_URL', 'FULL_ADMIN_BOUNDARIES_TEST_DATABASE_URL'] as const
+const databaseKeys = ['DATABASE_URL', 'COMMERCE_TEST_DATABASE_URL', 'CHAT_TEST_DATABASE_URL', 'QUEUE_TEST_DATABASE_URL', 'TAX_TEST_DATABASE_URL', 'ROLLOUT_TEST_DATABASE_URL', 'AUDIT_TEST_DATABASE_URL', 'REPORTING_TEST_DATABASE_URL', 'ADMIN_DIRECTORY_TEST_DATABASE_URL', 'ADMIN_OPERATIONS_TEST_DATABASE_URL', 'FULL_ADMIN_BOUNDARIES_TEST_DATABASE_URL'] as const
 const redisKeys = ['CACHE_TEST_REDIS_URL', 'QUEUE_TEST_REDIS_URL'] as const
 
 export function assertCiIntegrationEnvironment(env: NodeJS.ProcessEnv): void {
@@ -20,6 +20,7 @@ export function assertCiIntegrationEnvironment(env: NodeJS.ProcessEnv): void {
     }
     if (key === 'COMMERCE_TEST_DATABASE_URL' && url.port !== '55439') throw new Error('COMMERCE_TEST_DATABASE_URL must use port55439 required by numeric fixtures')
     if (key === 'COMMERCE_TEST_DATABASE_URL' && url.pathname !== '/marketplace_test_completion') throw new Error('COMMERCE_TEST_DATABASE_URL must select the dedicated marketplace_test_completion database required by W7 integration fixtures')
+    if (key === 'CHAT_TEST_DATABASE_URL' && !url.pathname.endsWith('_test')) throw new Error('CHAT_TEST_DATABASE_URL must select an isolated *_test database')
     if (key === 'TAX_TEST_DATABASE_URL' && url.pathname !== '/marketplace_test_tax') throw new Error('TAX_TEST_DATABASE_URL must select the dedicated marketplace_test_tax database')
     if (key === 'AUDIT_TEST_DATABASE_URL' && url.pathname !== '/marketplace_test_readiness_audit') throw new Error('AUDIT_TEST_DATABASE_URL must select the dedicated marketplace_test_readiness_audit database')
     const database = `${url.port || '5432'}${url.pathname}`

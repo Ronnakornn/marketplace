@@ -1,10 +1,63 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const apiMocks = vi.hoisted(() => ({ requestApi: vi.fn() }));
 
 vi.mock("#/lib/api-client", () => ({ requestApi: apiMocks.requestApi }));
 
-import { fetchCart, fetchOrder, fetchOrderTracking } from "./api";
+import { addCartItem, clearCart, fetchCart, fetchOrder, fetchOrderTracking, removeCartItem, updateCartItem } from "./api";
+
+describe("cart HTTP requests", () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(async () => {
+    const actual = await vi.importActual<typeof import("#/lib/api-client")>("#/lib/api-client");
+    apiMocks.requestApi.mockImplementation(actual.requestApi);
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    apiMocks.requestApi.mockReset();
+  });
+
+  it.each([
+    ["/api/cart/items/item-1", () => removeCartItem("item-1")],
+    ["/api/cart", () => clearCart()],
+  ] as const)("deletes %s with a body accepted by production request-size enforcement", async (path, remove) => {
+    fetchMock.mockImplementation(async (_url, init) => {
+      const missingBodyLength = init?.body == null;
+      return new Response(JSON.stringify(missingBodyLength
+        ? { error: { code: "CONTENT_LENGTH_REQUIRED", message: "Content-Length is required" } }
+        : { success: true }), { status: missingBodyLength ? 411 : 200 });
+    });
+
+    await expect(remove()).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(path, expect.objectContaining({ method: "DELETE", body: "{}", credentials: "include" }));
+    const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("content-type")).toBe("application/json");
+    expect(headers.has("content-length")).toBe(false);
+  });
+
+  it("reads the cart without a content type", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "cart-1", shops: [], subtotal: "0", currency: "THB" })));
+
+    expect(await fetchCart("th")).toEqual({ id: "cart-1", shops: [], subtotal: "0", currency: "THB" });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/cart?locale=th");
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).has("content-type")).toBe(false);
+  });
+
+  it.each([
+    ["POST", "/api/cart/items", () => addCartItem("variant-1", 2), '{"variantId":"variant-1","quantity":2}'],
+    ["PATCH", "/api/cart/items/item-1", () => updateCartItem("item-1", 3), '{"quantity":3}'],
+  ] as const)("keeps JSON serialization for %s cart mutations", async (method, path, mutate, body) => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "cart-1", shops: [], subtotal: "0", currency: "THB" })));
+
+    expect(await mutate()).toEqual({ id: "cart-1", shops: [], subtotal: "0", currency: "THB" });
+    expect(fetchMock).toHaveBeenCalledWith(path, expect.objectContaining({ method, body, credentials: "include" }));
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("content-type")).toBe("application/json");
+  });
+});
 
 describe("fetchCart", () => {
   beforeEach(() => {

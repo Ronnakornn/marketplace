@@ -36,10 +36,11 @@ jobs:
       NODE_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:55439/marketplace_test
       COMMERCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_completion
+      CHAT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_chat_test
       QUEUE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_queue
       TAX_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_tax
       ROLLOUT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_rollout
-      AUDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_readiness_audit
+      AUDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/marketplace_test_readiness_audit
       REPORTING_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_reporting
       ADMIN_DIRECTORY_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_directory
       ADMIN_OPERATIONS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55439/marketplace_test_admin_operations
@@ -60,14 +61,20 @@ jobs:
       - name: Require isolated integration opt-ins
         run: bun run scripts/assert-ci-integration.ts environment
       - run: bunx --bun prisma migrate deploy
+      - name: Prepare native loopback PostgreSQL for the identity audit
+        run: |
+          sudo systemctl start postgresql
+          sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres'"
+          sudo -u postgres createdb marketplace_test_readiness_audit
       - name: Prepare isolated integration databases
         run: |
           docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_completion
+          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_chat_test
           docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_queue
           docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_tax
           docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_rollout
-          docker exec ${{ job.services.postgres.id }} createdb -U postgres marketplace_test_readiness_audit
           DATABASE_URL="$COMMERCE_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
+          DATABASE_URL="$CHAT_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
           DATABASE_URL="$QUEUE_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
           DATABASE_URL="$TAX_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
           DATABASE_URL="$ROLLOUT_TEST_DATABASE_URL" bunx --bun prisma migrate deploy
@@ -85,7 +92,7 @@ jobs:
       - run: bunx --bun prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - run: bunx tsc --noEmit
       - name: Run unit and actual integration tests
-        run: bun run test --reporter=json --outputFile=artifacts/quality-tests.json
+        run: bun run test --no-file-parallelism --reporter=default --reporter=json --outputFile=artifacts/quality-tests.json
       - name: Reject skipped or omitted integration suites
         run: bun run scripts/assert-ci-integration.ts report artifacts/quality-tests.json
       - uses: actions/upload-artifact@v4
