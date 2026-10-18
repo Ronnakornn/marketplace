@@ -6,12 +6,11 @@ import type { CatalogService } from '#server/modules/catalog/catalog.service.ts'
 import { publicAssetUrl } from '#server/lib/public-assets.ts'
 import { TrackingServiceError } from './tracking.errors.ts'
 import type { ITrackingRepository, TrackingProductRecord } from './tracking.repository.ts'
+import { MAX_IMPRESSION_BATCH_BYTES, MAX_IMPRESSION_BATCH_EVENTS, MAX_TRACKING_REFERRER_LENGTH, MAX_TRACKING_SESSION_ID_LENGTH, MAX_TRACKING_SOURCE_LENGTH } from './tracking.limits.ts'
 
 const MAX_RECENTLY_VIEWED_LIMIT = 24
 const DEFAULT_RECENTLY_VIEWED_LIMIT = 12
 const MAX_QUERY_LENGTH = 100
-const MAX_SOURCE_LENGTH = 64
-const MAX_SESSION_ID_LENGTH = 128
 const PRODUCT_LOG_EVENTS = new Set<TrackingEventType>([
   'product_viewed',
   'product_impression',
@@ -54,6 +53,15 @@ export interface TrackingEventInput {
 
 export interface TrackingActor {
   userId?: string
+}
+
+export type ProductImpressionInput = Omit<TrackingEventInput, 'eventType' | 'productId'> & {
+  eventType: 'product_impression'
+  productId: string
+}
+
+export interface ProductImpressionBatchInput {
+  events: ProductImpressionInput[]
 }
 
 export interface ProductAddToCartTrackingInput {
@@ -136,9 +144,51 @@ export class TrackingService {
     return { ok: true }
   }
 
+  async trackProductImpressions(actor: TrackingActor, input: ProductImpressionBatchInput): Promise<{ ok: true }> {
+    if (!input || !Array.isArray(input.events) || input.events.length < 1 || input.events.length > MAX_IMPRESSION_BATCH_EVENTS) {
+      throw new TrackingServiceError('Invalid impression batch size', 400, 'TRACKING_PAYLOAD_INVALID')
+    }
+    if (new TextEncoder().encode(JSON.stringify(input)).byteLength > MAX_IMPRESSION_BATCH_BYTES) {
+      throw new TrackingServiceError('Impression batch is too large', 413, 'TRACKING_PAYLOAD_TOO_LARGE')
+    }
+    const events = input.events.map(inputEvent => {
+      const event = this.normalizeEvent(inputEvent)
+      if (event.eventType !== 'product_impression') {
+        throw new TrackingServiceError('Only product impressions can be batched', 400, 'TRACKING_PAYLOAD_INVALID')
+      }
+      return {
+        ...event,
+        productId: this.requireUuid(event.productId, 'productId').toLowerCase(),
+        shopId: event.shopId?.toLowerCase(),
+      }
+    })
+    const products = await this.repo.findActiveProducts([...new Set(events.map(event => event.productId))])
+    const productsById = new Map(products.map(product => [product.id, product]))
+    const logs = events.map(event => {
+      const product = productsById.get(event.productId)
+      if (!product) {
+        throw new TrackingServiceError('Product is not available for tracking', 404, 'TRACKING_PRODUCT_NOT_FOUND')
+      }
+      if (event.shopId && event.shopId !== product.shopId) {
+        throw new TrackingServiceError('Product and shop do not match', 400, 'TRACKING_PAYLOAD_INVALID')
+      }
+      return {
+        productId: product.id,
+        shopId: product.shopId,
+        userId: actor.userId,
+        sessionId: event.sessionId,
+        source: event.source,
+        referrer: event.referrer,
+        metadata: this.eventMetadata(event),
+      }
+    })
+    await this.repo.createProductViewLogs(logs)
+    return { ok: true }
+  }
+
   async getRecentlyViewedProducts(input: RecentlyViewedProductsInput): Promise<RecentlyViewedProduct[]> {
     const limit = this.normalizeLimit(input.limit)
-    const sessionId = this.normalizeOptionalString(input.sessionId, 'sessionId', MAX_SESSION_ID_LENGTH)
+    const sessionId = this.normalizeOptionalString(input.sessionId, 'sessionId', MAX_TRACKING_SESSION_ID_LENGTH)
     if (!input.userId && !sessionId) return []
 
     const products = await this.repo.findRecentlyViewedProducts({
@@ -156,8 +206,8 @@ export class TrackingService {
     const variantId = this.requireUuid(input.variantId, 'variantId')
     const shopId = this.requireUuid(input.shopId, 'shopId')
     const userId = this.normalizeOptionalUuid(input.userId, 'userId')
-    const sessionId = this.normalizeOptionalString(input.sessionId, 'sessionId', MAX_SESSION_ID_LENGTH)
-    const source = this.normalizeOptionalString(input.source, 'source', MAX_SOURCE_LENGTH)
+    const sessionId = this.normalizeOptionalString(input.sessionId, 'sessionId', MAX_TRACKING_SESSION_ID_LENGTH)
+    const source = this.normalizeOptionalString(input.source, 'source', MAX_TRACKING_SOURCE_LENGTH)
     if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
       throw new TrackingServiceError('Quantity must be a positive integer', 400, 'TRACKING_PAYLOAD_INVALID')
     }
@@ -246,9 +296,9 @@ export class TrackingService {
 
     return {
       ...input,
-      sessionId: this.normalizeOptionalString(input.sessionId, 'sessionId', MAX_SESSION_ID_LENGTH),
-      source: this.normalizeOptionalString(input.source, 'source', MAX_SOURCE_LENGTH),
-      referrer: this.normalizeOptionalString(input.referrer, 'referrer', 256),
+      sessionId: this.normalizeOptionalString(input.sessionId, 'sessionId', MAX_TRACKING_SESSION_ID_LENGTH),
+      source: this.normalizeOptionalString(input.source, 'source', MAX_TRACKING_SOURCE_LENGTH),
+      referrer: this.normalizeOptionalString(input.referrer, 'referrer', MAX_TRACKING_REFERRER_LENGTH),
       query: this.normalizeQuery(input.query),
       categoryId: this.normalizeOptionalString(input.categoryId, 'categoryId', 64),
       bannerId: this.normalizeOptionalString(input.bannerId, 'bannerId', 64),

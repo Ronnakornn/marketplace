@@ -72,6 +72,7 @@ type ReviewContentFilter = "all" | "media" | "comment";
 
 const PRODUCT_DETAIL_REVIEW_PAGE_LIMIT = 5;
 const PRODUCT_DETAIL_QUESTION_PAGE_LIMIT = 5;
+const PRODUCT_DETAIL_RELATED_LIMIT = 4;
 
 export function ProductDetailPage({ productId, initialData, initialRatingSummary }: {
   productId: string;
@@ -107,7 +108,7 @@ export function ProductDetailPage({ productId, initialData, initialRatingSummary
   });
   const resolvedProductId = productQuery.data?.id ?? initialData?.id ?? "";
   const relatedQuery = useQuery({
-    ...publicRelatedProductsQueryOptions({ productId, limit: 8, locale }),
+    ...publicRelatedProductsQueryOptions({ productId, limit: PRODUCT_DETAIL_RELATED_LIMIT, locale }),
     select: normalizePublicProducts,
   });
   const recentlyViewedQuery = useQuery({
@@ -227,7 +228,7 @@ export function ProductDetailPage({ productId, initialData, initialRatingSummary
   }, [questionsQuery.data, questionPage]);
 
   const product = productQuery.data;
-  const relatedProducts = (relatedQuery.data ?? []).filter((item) => item.id !== product?.id).slice(0, 4);
+  const relatedProducts = (relatedQuery.data ?? []).filter((item) => item.id !== product?.id).slice(0, PRODUCT_DETAIL_RELATED_LIMIT);
   const recentlyViewedProducts = (recentlyViewedQuery.data ?? []).filter((item) => item.productId !== product?.id).slice(0, 4);
   const requiredOptions = product?.options.slice(0, 2) ?? [];
   const selectedVariant = useMemo(() => {

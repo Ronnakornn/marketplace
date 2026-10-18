@@ -1,6 +1,7 @@
 import { touchProductContent } from './catalog-publication.service.ts'
 import { moneyInteger } from '#server/lib/money.ts'
 import { escapeLikeLiteral } from '#server/lib/sql-like.ts'
+import { isPublicAssetUrl } from '#server/lib/public-assets.ts'
 import { Prisma, type Brand, type Category, type CategoryAttributeDefinition, type ModerationAction, type ModerationCase, type PrismaClient, type Product, type ProductAttribute, type ProductHighlight, type ProductImage, type ProductOption, type ProductOptionValue, type ProductVariant, type ProductVariantOptionValue, type ProductVideo, type Shop, type ShopAddress, type Upload } from '#generated/client/client.ts'
 import type { ProductStatus } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
@@ -399,9 +400,11 @@ export interface ICatalogRepository {
   findProductById(id: string): Promise<CatalogProductDetail | null>
   resolvePublicProductId(idOrSlug: string): Promise<string | null>
   findProductMetrics(productIds: string[]): Promise<CatalogProductMetric[]>
-  findRelatedProducts(product: Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'>, limit: number): Promise<CatalogProductListItem[]>
+  findPublicRelatedSource(idOrSlug: string): Promise<Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'> | null>
+  findRelatedProducts(product: Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'>, limit: number): Promise<CatalogPublicCard[]>
   countProductStatuses(): Promise<{ active: number; draft: number; archived: number }>
   findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>>
+  findPublicProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogPublicCard>>
   findProductFacets(filters: ProductListFilters): Promise<ProductListingFacets>
   findUploadById(id: string): Promise<CatalogUploadRecord | null>
   createProduct(data: CreateProductRecord): Promise<CatalogProductDetail>
@@ -533,6 +536,62 @@ const productInclude = {
     },
   },
 } satisfies Prisma.ProductInclude
+
+export const publicCardSelect = {
+  id: true,
+  title: true,
+  titleTh: true,
+  titleEn: true,
+  slug: true,
+  category: productInclude.category,
+  brand: { select: { id: true, name: true, nameTh: true, nameEn: true, slug: true } },
+  images: {
+    select: { url: true },
+    orderBy: productInclude.images.orderBy,
+  },
+  shop: {
+    select: {
+      id: true, name: true, slug: true,
+      addresses: productInclude.shop.select.addresses,
+    },
+  },
+  options: {
+    select: {
+      id: true, name: true, nameTh: true, nameEn: true,
+      values: {
+        select: { id: true, value: true, valueTh: true, valueEn: true, colorHex: true },
+        orderBy: productInclude.options.include.values.orderBy,
+      },
+    },
+    orderBy: productInclude.options.orderBy,
+  },
+  variants: {
+    select: {
+      id: true, sku: true, title: true, titleTh: true, titleEn: true,
+      price: true, currency: true, status: true,
+      inventory: { select: { quantityOnHand: true, quantityReserved: true } },
+      optionValues: {
+        select: {
+          optionValue: {
+            select: {
+              id: true, value: true, valueTh: true, valueEn: true, colorHex: true,
+              option: { select: { id: true, name: true, nameTh: true, nameEn: true } },
+            },
+          },
+        },
+        orderBy: productInclude.variants.include.optionValues.orderBy,
+      },
+    },
+    orderBy: productInclude.variants.orderBy,
+  },
+} satisfies Prisma.ProductSelect
+
+export type CatalogPublicCard = Prisma.ProductGetPayload<{ select: typeof publicCardSelect }> &
+  Pick<CatalogProductListItem, 'rating' | 'ratingSummary' | 'soldCount'>
+
+function publicCardImages<T extends CatalogPublicCard>(product: T): T {
+  return { ...product, images: product.images.filter((image) => isPublicAssetUrl(image.url)).slice(0, 1) }
+}
 
 export class PrismaCatalogRepository implements ICatalogRepository {
   private logger: ILogger
@@ -789,6 +848,16 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     return product?.id ?? null
   }
 
+  findPublicRelatedSource(idOrSlug: string): Promise<Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'> | null> {
+    return this.prisma.product.findFirst({
+      where: {
+        OR: [...(UUID_PATTERN.test(idOrSlug) ? [{ id: idOrSlug }] : []), { slug: idOrSlug }],
+        status: 'ACTIVE', deletedAt: null, shop: { status: 'ACTIVE' },
+      },
+      select: { id: true, categoryId: true, shopId: true, brandId: true },
+    })
+  }
+
   findProductById(id: string): Promise<CatalogProductDetail | null> {
     this.logger.debug('PrismaCatalogRepository.findProductById', { id })
     return this.prisma.product.findFirst({
@@ -861,6 +930,39 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     }
   }
 
+  async findPublicProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogPublicCard>> {
+    const publicFilters = { ...filters, status: 'ACTIVE', publicOnly: true } satisfies ProductListFilters
+    const where = this.buildProductWhere(publicFilters)
+    const page = filters.page ?? 1
+    const skip = filters.cursor ? 1 : (page - 1) * filters.limit
+    if (filters.sort === 'price_asc' || filters.sort === 'price_desc') {
+      return this.findPricePage(publicFilters, skip, page, (tx, ids) => tx.product.findMany({
+        where: { id: { in: ids } }, select: publicCardSelect,
+      }).then((products) => products.map(publicCardImages)))
+    }
+    const [rows, totalCount] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        select: publicCardSelect,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        cursor: filters.cursor ? { id: filters.cursor } : undefined,
+        skip,
+        take: filters.limit + 1,
+      }),
+      this.prisma.product.count({ where }),
+    ])
+    const hasNextPage = rows.length > filters.limit
+    const data = (hasNextPage ? rows.slice(0, filters.limit) : rows).map(publicCardImages)
+    return {
+      data, items: data,
+      meta: {
+        nextCursor: hasNextPage ? data.at(-1)?.id ?? null : null,
+        totalCount, page, pageSize: filters.limit, hasNextPage,
+        query: this.buildResultQuery(filters),
+      },
+    }
+  }
+
   async findProducts(filters: ProductListFilters): Promise<PaginatedResult<CatalogProductListItem>> {
     this.logger.debug('PrismaCatalogRepository.findProducts', { filters })
     const where = this.buildProductWhere(filters)
@@ -869,7 +971,9 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     const cursor = filters.cursor ? { id: filters.cursor } : undefined
     const take = filters.cursor ? filters.limit + 1 : filters.limit
     if (filters.sort === 'price_asc' || filters.sort === 'price_desc') {
-      return this.findPricePage(filters, skip, page)
+      return this.findPricePage(filters, skip, page, (tx, ids) => tx.product.findMany({
+        where: { id: { in: ids } }, include: productInclude,
+      }))
     }
     // These read-committed listing queries never shared a stable snapshot.
     // Avoid holding a transaction connection across relation loading.
@@ -986,10 +1090,10 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     }
   }
 
-  async findRelatedProducts(product: Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'>, limit: number): Promise<CatalogProductListItem[]> {
+  async findRelatedProducts(product: Pick<Product, 'id' | 'categoryId' | 'shopId' | 'brandId'>, limit: number): Promise<CatalogPublicCard[]> {
     this.logger.debug('PrismaCatalogRepository.findRelatedProducts', { productId: product.id, limit })
     const seen = new Set<string>([product.id])
-    const rows: CatalogProductListItem[] = []
+    const rows: CatalogPublicCard[] = []
 
     const addRows = async (where: Prisma.ProductWhereInput) => {
       if (rows.length >= limit) return
@@ -999,7 +1103,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
           id: { notIn: [...seen] },
           ...where,
         },
-        include: productInclude,
+        select: publicCardSelect,
         orderBy: [
           { variants: { _count: 'desc' } },
           { createdAt: 'desc' },
@@ -1009,7 +1113,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       })
       for (const row of batch) {
         seen.add(row.id)
-        rows.push(row)
+        rows.push(publicCardImages(row))
       }
     }
 
@@ -1303,12 +1407,17 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     })
   }
 
-  private async findPricePage(filters: ProductListFilters, skip: number, page: number): Promise<PaginatedResult<CatalogProductListItem>> {
+  private async findPricePage<T extends { id: string }>(
+    filters: ProductListFilters,
+    skip: number,
+    page: number,
+    loadProducts: (tx: Prisma.TransactionClient, ids: string[]) => Promise<T[]>,
+  ): Promise<PaginatedResult<T>> {
     return this.prisma.$transaction(async (tx) => {
       const rows = await tx.$queryRaw<Array<{ id: string | null; total: bigint }>>(this.buildPricePageQuery(filters, skip))
       const ids = rows.flatMap((row) => row.id ? [row.id] : [])
       const totalCount = Number(rows[0]?.total ?? 0n)
-      const products = ids.length ? await tx.product.findMany({ where: { id: { in: ids } }, include: productInclude }) : []
+      const products = ids.length ? await loadProducts(tx, ids) : []
       const byId = new Map(products.map((product) => [product.id, product]))
       const data = ids.flatMap((id) => {
         const product = byId.get(id)

@@ -5,6 +5,7 @@ import { SecurityError } from '#server/modules/security/security.errors.ts'
 import { SecurityService } from '#server/modules/security/security.service.ts'
 import type { SecurityConfig } from '#server/modules/security/security.config.ts'
 import { getAuthContext } from '#server/modules/auth/auth.context.ts'
+import { MAX_IMPRESSION_BATCH_BYTES } from '#server/modules/tracking/tracking.limits.ts'
 
 type RateLimitBucket = {
   count: number
@@ -52,6 +53,14 @@ export function createSecurityPlugin(
       enforceRequestSize(request, config, securityService, remoteAddress, requestBodyLimit)
       await enforceRateLimit(request, config, securityService, rateLimitStore, remoteAddress)
     })
+    .onBeforeHandle(async ({ request, body, server }) => {
+      if (!isImpressionBatchRequest(request)) return
+      if (!body || typeof body !== 'object' || !('events' in body) || !Array.isArray(body.events)) return
+      const additionalEvents = body.events.length - 1
+      if (additionalEvents > 0) {
+        await enforceRateLimit(request, config, securityService, rateLimitStore, server?.requestIP(request)?.address, additionalEvents)
+      }
+    })
     .onError(({ error, set }) => {
       if (deferError?.(error)) return
       const formatted = securityService.formatError(error, appContext.config.environment)
@@ -77,7 +86,8 @@ function enforceRequestSize(
   }
 
   const size = Number(contentLength)
-  const limit = requestBodyLimit?.(request) ?? config.requestBodyLimitBytes
+  const limit = requestBodyLimit?.(request)
+    ?? (isImpressionBatchRequest(request) ? MAX_IMPRESSION_BATCH_BYTES : config.requestBodyLimitBytes)
   if (Number.isFinite(size) && size > limit) {
     securityService.logSuspiciousActivity({
       type: 'REQUEST_BODY_TOO_LARGE',
@@ -91,12 +101,17 @@ function enforceRequestSize(
   }
 }
 
+function isImpressionBatchRequest(request: Request): boolean {
+  return request.method === 'POST' && new URL(request.url).pathname.replace(/\/+$/, '') === '/api/discovery/impressions'
+}
+
 async function enforceRateLimit(
   request: Request,
   config: SecurityConfig,
   securityService: SecurityService,
   store: RateLimitStore,
   remoteAddress?: string,
+  cost = 1,
 ): Promise<void> {
   if (!config.rateLimitEnabled) return
 
@@ -105,7 +120,7 @@ async function enforceRateLimit(
   const limit = getLimitForCategory(category, config)
   const subject = await getRateLimitSubject(request, category, config, remoteAddress)
   const key = `${category}:${subject}`
-  const count = await store.increment(key, config.rateLimitWindowSeconds * 1000)
+  const count = await store.increment(key, config.rateLimitWindowSeconds * 1000, cost)
 
   if (count > limit) {
     securityService.logSuspiciousActivity({
@@ -168,18 +183,18 @@ function getClientIp(request: Request, config: SecurityConfig, remoteAddress?: s
 }
 
 interface RateLimitStore {
-  increment(key: string, windowMs: number): Promise<number>
+  increment(key: string, windowMs: number, cost: number): Promise<number>
 }
 
 class MemoryRateLimitStore implements RateLimitStore {
-  async increment(key: string, windowMs: number): Promise<number> {
+  async increment(key: string, windowMs: number, cost: number): Promise<number> {
     const now = Date.now()
     reclaimExpiredBuckets(now)
     const existing = buckets.get(key)
     const bucket = existing && existing.resetAt > now
       ? existing
       : { count: 0, resetAt: now + windowMs }
-    bucket.count += 1
+    bucket.count += cost
     buckets.set(key, bucket)
     return bucket.count
   }
@@ -219,14 +234,15 @@ class RedisRateLimitStore implements RateLimitStore {
     })
   }
 
-  async increment(key: string, windowMs: number): Promise<number> {
+  async increment(key: string, windowMs: number, cost: number): Promise<number> {
     try {
       await this.ensureConnected()
       return Number(await this.redis.eval(
-        "local current = redis.call('INCR', KEYS[1]); if current == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return current",
+        "local current = redis.call('INCRBY', KEYS[1], ARGV[2]); if current == tonumber(ARGV[2]) then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; return current",
         1,
         `rate-limit:${key}`,
         windowMs,
+        cost,
       ))
     } catch (error) {
       if (this.appContext.config.environment !== 'production') {
@@ -236,7 +252,7 @@ class RedisRateLimitStore implements RateLimitStore {
           })
           this.fallbackWarningLogged = true
         }
-        return this.fallback.increment(key, windowMs)
+        return this.fallback.increment(key, windowMs, cost)
       }
       this.appContext.logger.error('Redis rate limit failed', {
         error: error instanceof Error ? error.message : String(error),

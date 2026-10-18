@@ -6,10 +6,14 @@ import { useEffect, useMemo, useRef, useState, type RefCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { Treaty } from "@elysiajs/eden";
 import { api } from "#/lib/eden";
+import { IMPRESSION_KEEPALIVE_BUDGET_BYTES, MAX_IMPRESSION_BATCH_BYTES, MAX_IMPRESSION_BATCH_EVENTS, MAX_TRACKING_REFERRER_LENGTH, MAX_TRACKING_SESSION_ID_LENGTH, MAX_TRACKING_SOURCE_LENGTH } from "#server/modules/tracking/tracking.limits";
 
 const SESSION_STORAGE_KEY = "marketplace-anonymous-session-id";
 const IMPRESSION_DEBOUNCE_MS = 10_000;
 type RecentlyViewedResponse = Treaty.Data<ReturnType<(typeof api.api.discovery)["recently-viewed"]["get"]>>;
+type ProductImpressionPayload = Parameters<typeof api.api.discovery.impressions.post>[0]["events"][number];
+const encoder = new TextEncoder();
+const IMPRESSION_ENVELOPE_BYTES = encoder.encode('{"events":[]}').byteLength;
 
 export type DiscoveryTrackingEvent =
   | "product_impression"
@@ -66,29 +70,35 @@ export function getAnonymousSessionId(): string {
 
 export function trackDiscoveryEvent(input: TrackDiscoveryEventInput): void {
   if (typeof window === "undefined") return;
-  const payload = {
+  const body = JSON.stringify(trackingPayload(input));
+  sendTrackingBody("/api/discovery/track", body);
+}
+
+function trackingPayload(input: TrackDiscoveryEventInput) {
+  return {
     ...input,
     sessionId: getAnonymousSessionId(),
     referrer: input.referrer ?? (document.referrer || undefined),
     timestamp: new Date().toISOString(),
   };
-  const body = JSON.stringify(payload);
+}
 
-  if (navigator.sendBeacon) {
-    const sent = navigator.sendBeacon("/api/discovery/track", new Blob([body], { type: "application/json" }));
+function sendTrackingBody(url: string, body: string, keepalive = true): void {
+  if (keepalive && navigator.sendBeacon) {
+    const sent = navigator.sendBeacon(url, new Blob([body], { type: "application/json" }));
     if (sent) return;
   }
 
-  void fetch("/api/discovery/track", {
+  void fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body,
-    keepalive: true,
+    keepalive,
   }).catch(() => undefined);
 }
 
 export function useDiscoveryTracking(source: string) {
-  const pendingImpressions = useRef<Map<string, TrackDiscoveryEventInput>>(new Map());
+  const pendingImpressions = useRef<Map<string, ProductImpressionPayload>>(new Map());
   const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
@@ -105,7 +115,16 @@ export function useDiscoveryTracking(source: string) {
       trackDiscoveryEvent({ source, ...input, eventType: "recently_viewed_update" }),
     queueProductImpression: (input: Omit<TrackDiscoveryEventInput, "eventType" | "source">) => {
       if (!input.productId) return;
-      pendingImpressions.current.set(`${source}:${input.productId}`, { source, ...input, eventType: "product_impression" });
+      const payload = {
+        ...trackingPayload({ source, ...input, eventType: "product_impression" }),
+        eventType: "product_impression" as const,
+        productId: input.productId,
+      };
+      if ((payload.source?.trim().length ?? 0) > MAX_TRACKING_SOURCE_LENGTH
+        || payload.sessionId.trim().length > MAX_TRACKING_SESSION_ID_LENGTH
+        || (payload.referrer?.trim().length ?? 0) > MAX_TRACKING_REFERRER_LENGTH
+        || IMPRESSION_ENVELOPE_BYTES + encoder.encode(JSON.stringify(payload)).byteLength > MAX_IMPRESSION_BATCH_BYTES) return;
+      pendingImpressions.current.set(`${source}:${input.productId}`, payload);
       if (flushTimer.current) return;
       flushTimer.current = setTimeout(() => {
         flushTimer.current = null;
@@ -215,11 +234,30 @@ export function normalizeRecentlyViewedProducts(input: RecentlyViewedResponse): 
   });
 }
 
-function flushImpressions(events: Map<string, TrackDiscoveryEventInput>): void {
+function flushImpressions(events: Map<string, ProductImpressionPayload>): void {
   if (events.size === 0) return;
   const queued = [...events.values()];
   events.clear();
-  queued.forEach(trackDiscoveryEvent);
+  let batch: ProductImpressionPayload[] = [];
+  let batchBytes = IMPRESSION_ENVELOPE_BYTES;
+  let keepaliveBytes = 0;
+  function sendBatch() {
+    if (batch.length === 0) return;
+    const body = JSON.stringify({ events: batch });
+    const bytes = encoder.encode(body).byteLength;
+    const keepalive = keepaliveBytes + bytes <= IMPRESSION_KEEPALIVE_BUDGET_BYTES;
+    if (keepalive) keepaliveBytes += bytes;
+    sendTrackingBody("/api/discovery/impressions", body, keepalive);
+    batch = [];
+    batchBytes = IMPRESSION_ENVELOPE_BYTES;
+  }
+  for (const event of queued) {
+    const eventBytes = encoder.encode(JSON.stringify(event)).byteLength;
+    if (batch.length >= MAX_IMPRESSION_BATCH_EVENTS || batchBytes + eventBytes + (batch.length ? 1 : 0) > MAX_IMPRESSION_BATCH_BYTES) sendBatch();
+    batchBytes += eventBytes + (batch.length ? 1 : 0);
+    batch.push(event);
+  }
+  sendBatch();
 }
 
 function toRecord(value: unknown): Record<string, unknown> {

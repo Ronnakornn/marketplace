@@ -15,6 +15,24 @@ function createLogger() {
 }
 
 describe('PrismaCheckoutRepository', () => {
+  it('selects earliest active promotions per requested variant without hiding exhausted quotas', async () => {
+    const rows = [{ id: 'sale', variantId: 'variant', salePrice: 900n, stockLimit: 1, soldCount: 1, perUserLimit: 1 }]
+    const prisma = { flashSaleItem: { findMany: vi.fn().mockResolvedValue(rows) } }
+    const repository = new PrismaCheckoutRepository({ logger: createLogger(), config: { environment: 'test' } }, prisma as unknown as PrismaClient)
+    const now = new Date('2026-10-18T00:00:00Z')
+    expect(await repository.findActiveFlashSaleItemsForCheckout(['variant', 'variant'], now)).toEqual(rows)
+    expect(prisma.flashSaleItem.findMany).toHaveBeenCalledExactlyOnceWith({
+      where: { variantId: { in: ['variant'] }, isActive: true, flashSale: { status: 'ACTIVE', startsAt: { lte: now }, endsAt: { gt: now } } },
+      select: { id: true, variantId: true, salePrice: true, stockLimit: true, soldCount: true, perUserLimit: true },
+      distinct: ['variantId'], orderBy: { flashSale: { endsAt: 'asc' } },
+    })
+    await repository.findActiveFlashSaleItemsForCheckout(['variant'], now, ['held-sale'])
+    expect(prisma.flashSaleItem.findMany).toHaveBeenLastCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: ['held-sale'] } }) }))
+    await repository.findActiveFlashSaleItemsForCheckout([], now)
+    await repository.findActiveFlashSaleItemsForCheckout(['variant'], now, [])
+    expect(prisma.flashSaleItem.findMany).toHaveBeenCalledTimes(2)
+  })
+
   it('rejects an invalid commission rate before writing checkout money', async () => {
     const prisma = { checkout: { create: vi.fn() } }
     vi.stubEnv('PLATFORM_COMMISSION_BPS', '10001')
@@ -203,6 +221,19 @@ describe('PrismaCheckoutRepository', () => {
         status: { in: ['COMMITTED', 'ACTIVE'] },
       },
     }))
+
+    prisma.$executeRaw.mockResolvedValue(1)
+    prisma.flashSaleItem.findUnique.mockResolvedValue({ stockLimit: 1, soldCount: 1, perUserLimit: 3 })
+    prisma.flashSaleReservation.create.mockClear()
+    await expect(repository.commitCheckout(input)).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', message: 'Flash sale quota is no longer available' })
+    expect(prisma.order.create).not.toHaveBeenCalled()
+    expect(prisma.flashSaleReservation.create).not.toHaveBeenCalled()
+
+    prisma.flashSaleItem.findUnique.mockResolvedValue({ stockLimit: 10, soldCount: 0, perUserLimit: 1 })
+    await expect(repository.commitCheckout(input)).rejects.toMatchObject({ code: 'CHECKOUT_FAILED', message: 'Flash sale quota is no longer available' })
+    expect(prisma.order.create).not.toHaveBeenCalled()
+    expect(prisma.flashSaleReservation.create).not.toHaveBeenCalled()
+
   })
 
   it.each([

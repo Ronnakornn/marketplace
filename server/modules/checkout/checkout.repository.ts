@@ -59,7 +59,7 @@ export type CheckoutPricedItem = Omit<CheckoutCartItem, 'unitPrice'> & {
   flashSaleItemId?: string
 }
 
-export type CheckoutFlashSaleItem = Pick<FlashSaleItem, 'id' | 'salePrice' | 'stockLimit' | 'soldCount' | 'perUserLimit'>
+export type CheckoutFlashSaleItem = Pick<FlashSaleItem, 'id' | 'variantId' | 'salePrice' | 'stockLimit' | 'soldCount' | 'perUserLimit'>
 
 export type CheckoutCart = Cart & {
   items: CheckoutCartItem[]
@@ -121,7 +121,7 @@ export interface ICheckoutRepository extends IPromotionValidationRepository {
   findAddressForUser(addressId: string, userId: string): Promise<CheckoutAddress | null>
   lockCouponForCheckout(couponId: string): Promise<void>
   lockFlashSaleItemForCheckout(flashSaleItemId: string): Promise<void>
-  findActiveFlashSaleItemForCheckout(variantId: string, now: Date): Promise<CheckoutFlashSaleItem | null>
+  findActiveFlashSaleItemsForCheckout(variantIds: string[], now: Date, candidateIds?: string[]): Promise<CheckoutFlashSaleItem[]>
   findBuyerCoinBalance(userId: string): Promise<bigint>
   lockBuyerCoinWallet(userId: string): Promise<void>
   commitCheckout(input: CheckoutCommitmentInput): Promise<CreatedCheckoutOrder>
@@ -234,14 +234,17 @@ export class PrismaCheckoutRepository implements ICheckoutRepository {
     await this.prisma.$queryRaw`SELECT "id" FROM "Coupon" WHERE "id" = ${couponId}::uuid FOR UPDATE`
   }
 
-  async findActiveFlashSaleItemForCheckout(variantId: string, now: Date): Promise<CheckoutFlashSaleItem | null> {
-    return this.prisma.flashSaleItem.findFirst({
+  async findActiveFlashSaleItemsForCheckout(variantIds: string[], now: Date, candidateIds?: string[]): Promise<CheckoutFlashSaleItem[]> {
+    if (!variantIds.length || candidateIds?.length === 0) return []
+    return this.prisma.flashSaleItem.findMany({
       where: {
-        variantId,
+        variantId: { in: [...new Set(variantIds)] },
+        ...(candidateIds ? { id: { in: candidateIds } } : {}),
         isActive: true,
         flashSale: { status: 'ACTIVE', startsAt: { lte: now }, endsAt: { gt: now } },
       },
-      select: { id: true, salePrice: true, stockLimit: true, soldCount: true, perUserLimit: true },
+      select: { id: true, variantId: true, salePrice: true, stockLimit: true, soldCount: true, perUserLimit: true },
+      distinct: ['variantId'],
       orderBy: { flashSale: { endsAt: 'asc' } },
     })
   }

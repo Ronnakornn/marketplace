@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { PrismaCatalogRepository } from './catalog.repository.ts'
+import { PrismaCatalogRepository, publicCardSelect, type CatalogPublicCard } from './catalog.repository.ts'
 
 function createLogger() {
   return {
@@ -21,6 +21,64 @@ function createAppContext() {
 }
 
 describe('PrismaCatalogRepository', () => {
+  it('returns only the first public card image while preserving a safe fallback after a private primary', async () => {
+    const card = {
+      id: 'card-one', title: 'Bag', titleTh: null, titleEn: null, slug: 'bag',
+      category: null, brand: null, shop: { id: 'shop-one', name: 'Shop', slug: 'shop', addresses: [] },
+      options: [], variants: [],
+      images: [{ url: '/private.jpg?X-Amz-Signature=secret' }, { url: '/public.jpg' }, { url: '/extra.jpg' }],
+    } satisfies CatalogPublicCard
+    const findMany = vi.fn().mockResolvedValue([card])
+    const count = vi.fn().mockResolvedValue(1)
+    const repo = new PrismaCatalogRepository(createAppContext() as any, { product: { findMany, count } } as any)
+    const result = await repo.findPublicProducts({ status: 'DRAFT', publicOnly: false, limit: 20 })
+    expect(result.data[0]?.images).toEqual([{ url: '/public.jpg' }])
+    expect(result.items).toEqual(result.data)
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      select: publicCardSelect,
+      where: expect.objectContaining({ status: 'ACTIVE', deletedAt: null, shop: { status: 'ACTIVE' } }),
+    }))
+    expect(publicCardSelect).not.toHaveProperty('description')
+    expect(publicCardSelect).not.toHaveProperty('attributes')
+    expect(publicCardSelect).not.toHaveProperty('video')
+    expect(publicCardSelect.brand.select).not.toHaveProperty('description')
+  })
+
+  it.each(['canvas-bag', '22222222-2222-4222-8222-222222222222'])(
+    'uses a visible identity projection for related source %s', async (id) => {
+      const source = { id: 'source', categoryId: null, brandId: null, shopId: 'shop-one' }
+      const findFirst = vi.fn().mockResolvedValue(source)
+      const repo = new PrismaCatalogRepository(createAppContext() as any, { product: { findFirst } } as any)
+      expect(await repo.findPublicRelatedSource(id)).toEqual(source)
+      expect(findFirst).toHaveBeenCalledWith({
+        where: {
+          OR: id === 'canvas-bag' ? [{ slug: id }] : [{ id }, { slug: id }],
+          status: 'ACTIVE', deletedAt: null, shop: { status: 'ACTIVE' },
+        },
+        select: { id: true, categoryId: true, shopId: true, brandId: true },
+      })
+    },
+  )
+
+  it('hydrates public price pages with compact cards in the SQL price order', async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      { id: 'expensive', images: [{ url: '/expensive.jpg' }] },
+      { id: 'cheap', images: [{ url: '/private.jpg?token=secret' }, { url: '/cheap.jpg' }] },
+    ])
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'cheap', total: 3n }, { id: 'expensive', total: 3n }]),
+      product: { findMany },
+    }
+    const repo = new PrismaCatalogRepository(createAppContext() as any, { $transaction: vi.fn(async (fn) => fn(tx)) } as any)
+    const result = await repo.findPublicProducts({ sort: 'price_asc', page: 1, limit: 2 })
+    expect(result.data.map(({ id, images }) => ({ id, images }))).toEqual([
+      { id: 'cheap', images: [{ url: '/cheap.jpg' }] },
+      { id: 'expensive', images: [{ url: '/expensive.jpg' }] },
+    ])
+    expect(result.meta).toMatchObject({ totalCount: 3, hasNextPage: true })
+    expect(findMany).toHaveBeenCalledWith({ where: { id: { in: ['cheap', 'expensive'] } }, select: publicCardSelect })
+  })
+
   it.each([
     ['price_asc', ['cheap', 'tie-a', 'tie-b', 'expensive']],
     ['price_desc', ['expensive', 'tie-a', 'tie-b', 'cheap']],
@@ -159,8 +217,8 @@ describe('PrismaCatalogRepository', () => {
   it('finds related products with public active filters and excludes the current product', async () => {
     const findMany = vi
       .fn()
-      .mockResolvedValueOnce([{ id: 'related-category' }])
-      .mockResolvedValueOnce([{ id: 'related-shop' }])
+      .mockResolvedValueOnce([{ id: 'related-category', images: [] }])
+      .mockResolvedValueOnce([{ id: 'related-shop', images: [] }])
     const repo = new PrismaCatalogRepository(createAppContext() as any, {
       product: { findMany },
     } as any)

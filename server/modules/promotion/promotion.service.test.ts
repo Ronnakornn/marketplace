@@ -2,7 +2,7 @@ import { listPageResult } from '#server/lib/list-page.ts'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DiscountType } from '#generated/client/enums.ts'
 import type { AppContext } from '#server/context/app-context.ts'
-import type { IPromotionRepository } from './promotion.repository.ts'
+import type { IPromotionRepository, PromotionCoupon } from './promotion.repository.ts'
 import { PromotionService, type CouponPayload } from './promotion.service.ts'
 
 function createLogger() {
@@ -71,17 +71,20 @@ function createCoupon(overrides: Partial<{
   perUserLimit: number | null
   isActive: boolean
   redemptions: number
-}> = {}): any {
+}> = {}): PromotionCoupon {
   const now = new Date('2026-05-13T00:00:00.000Z')
   return {
     id: '99999999-9999-4999-8999-999999999999',
     shopId: overrides.shopId ?? null,
     code: 'SAVE',
     discountType: overrides.discountType ?? 'FIXED_AMOUNT',
+    discountValue: null,
     discountValueCents: overrides.discountValueCents ?? 500,
     discountPercentBps: overrides.discountPercentBps ?? null,
     minOrderCents: overrides.minOrderCents ?? null,
+    minOrder: null,
     maxDiscountCents: overrides.maxDiscountCents ?? null,
+    maxDiscount: null,
     startsAt: overrides.startsAt ?? null,
     endsAt: overrides.endsAt ?? null,
     usageLimit: overrides.usageLimit ?? null,
@@ -168,6 +171,42 @@ describe('PromotionService', () => {
       subtotal: 2_000,
     })
     expect(repo.findCouponByCode).toHaveBeenCalledWith('SAVE')
+  })
+
+  it.each([
+    { discountValueCents: 700 },
+    { discountType: 'PERCENT', discountPercentBps: 1500, maxDiscountCents: 250 },
+    { discountType: 'FREE_SHIPPING', shopId: 'shop-1' },
+  ] satisfies Parameters<typeof createCoupon>[0][])('validates a loaded coupon with the same rules as code lookup %j', async overrides => {
+    const coupon = createCoupon(overrides)
+    vi.mocked(repo.findCouponByCode).mockResolvedValue(coupon)
+    const expected = await validate()
+    expect(repo.findCouponByCode).toHaveBeenCalledExactlyOnceWith('SAVE')
+    vi.mocked(repo.findCouponByCode).mockClear()
+
+    await expect(service.validateLoadedCouponForSubtotal(repo, coupon, {
+      userId: 'user-1', couponCode: ' save ', subtotal: 2000, shopSubtotals: [{ shopId: 'shop-1', subtotal: 2000 }],
+    })).resolves.toEqual(expected)
+    expect(repo.findCouponByCode).not.toHaveBeenCalled()
+  })
+
+  it('normalizes and rejects an empty code on both coupon validation entry points', async () => {
+    const context = { userId: 'user-1', couponCode: '  ', subtotal: 2000, shopSubtotals: [{ shopId: 'shop-1', subtotal: 2000 }] }
+
+    await expect(service.validateCouponForsubtotal(repo, context)).rejects.toMatchObject({ code: 'INVALID_COUPON' })
+    await expect(service.validateLoadedCouponForSubtotal(repo, createCoupon(), context)).rejects.toMatchObject({ code: 'INVALID_COUPON' })
+    expect(repo.findCouponByCode).not.toHaveBeenCalled()
+  })
+
+  it('rechecks per-user redemption counts for each loaded coupon validation', async () => {
+    const coupon = createCoupon({ perUserLimit: 1 })
+    const context = { userId: 'user-1', couponCode: 'SAVE', subtotal: 2000, shopSubtotals: [{ shopId: 'shop-1', subtotal: 2000 }] }
+    vi.mocked(repo.countCouponRedemptionsForUser).mockResolvedValueOnce(0).mockResolvedValueOnce(1)
+
+    await expect(service.validateLoadedCouponForSubtotal(repo, coupon, context)).resolves.toMatchObject({ discount: 500 })
+    await expect(service.validateLoadedCouponForSubtotal(repo, coupon, context)).rejects.toMatchObject({ code: 'COUPON_USER_LIMIT_REACHED' })
+    expect(repo.countCouponRedemptionsForUser).toHaveBeenCalledTimes(2)
+    expect(repo.findCouponByCode).not.toHaveBeenCalled()
   })
 
   it('returns only redeemable public coupons using the API field contract', async () => {

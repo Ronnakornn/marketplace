@@ -125,11 +125,55 @@ Visible product cards share authenticated favorite-status batches of at most
 include the user ID and mutations update/invalidate the user's batch/detail keys.
 Public product data does not contain favorite status.
 
+Public catalog listings and related-product cards use a separate Prisma-derived
+projection. It retains localized labels, all variant/options and stock facts
+needed for quick-add, while omitting detail-only content. Ordered image URLs are
+filtered for public assets before keeping the first valid image. Admin, seller
+and product-detail readers retain their full projections. Public card caches use
+a shape discriminator in the existing product-list invalidation namespace.
+
+The product server loader uses `GET /api/products/:productId/boot` to receive the
+canonical visible product and optional rating summary in one HTTP request. The
+controller composes Catalog and Review readers; summary failure is logged and
+does not replace a successful detail response. Existing detail and rating APIs
+remain available. Request-scoped React.cache still shares the loader between
+metadata and page rendering.
+
+Client translation messages are selected structurally. The locale layout sends
+public/shared messages with English fallback resolved on the server. Seller and
+admin layouts add scoped messages through nested providers. Shared seller
+dashboard and admin status labels remain available outside role layouts. A
+same-locale nested provider merges messages; another locale does not inherit
+the previous locale's values. Server translators retain the full dictionaries.
+
+Cart mutations select only the active cart ID before locking, then hydrate the
+cart after its Cart and CartItem locks. Update, delete and clear responses reuse
+that locked snapshot and saved rows. First-cart creation retains its User-row
+lock and recheck; an already consumed cart still rejects the mutation.
+Cart reads share a Prisma-derived variant selection containing only consumed
+product, variant and inventory fields. All cart/item scalars and ordered image
+rows remain available to the existing locale, stock and buy-again logic.
+
+Search and catalog facet caches omit pagination and sorting inputs. Search uses
+the exact facet repository predicates; catalog retains all other listing
+predicates. Both keep their existing search/product invalidation namespaces and
+lossless money codec. A failed facet query returns its existing empty fallback
+without storing that fallback in the shared facet cache.
+
 Product metadata and page rendering share a request-scoped React.cache loader
 of the Eden-inferred public detail and aggregate rating summary. The detail page
 receives these as TanStack Query initial data, so dependent reads can start with
 the canonical product ID. The loader uses no-store fetches, and SEO does not load
 individual reviews.
+
+Search and category routes fetch their first product page through typed Eden
+with no-store and pass matching initial data to TanStack Query. Server and client
+share request normalization, including locale and URL filters. A keyed listing
+resets pagination when that identity changes; later pages cannot reuse page-one
+initial data. A failed server fetch leaves the existing client query to recover.
+Category and brand fallback queries are enabled independently only when the
+displayed listing has no corresponding facet options. Populated listing facets
+therefore supply filters without loading duplicate category/brand responses.
 
 Route entrypoints import their feature components directly, keeping unrelated
 address-editor data out of product grids and deals. Product cards disable automatic

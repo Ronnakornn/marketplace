@@ -156,43 +156,46 @@ export class CartService {
     this.assertPositiveQuantity(data.quantity)
     this.logger.info('CartService.updateItem', { actorId: actor.id, itemId })
 
-    await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
+    const cart = await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
       this.assertActiveCart(cart)
-      const item = await repo.findItemByIdForUser(itemId, actor.id)
+      const item = cart.items.find(item => item.id === itemId)
       if (!item) throw new CartServiceError('Cart item not found', 404, 'CART_ITEM_NOT_FOUND')
       this.assertVariantPurchasable(item.variant)
       this.assertStockAvailable(item.variant, data.quantity)
-      await repo.updateItem(item.id, {
+      const savedItem = await repo.updateItem(item.id, {
         quantity: data.quantity,
         unitPrice: this.toMoneyInteger(this.getVariantPrice(item.variant)),
         currency: item.variant.currency,
       })
+      return { ...cart, items: cart.items.map(current => current.id === item.id ? savedItem : current) }
     })
-    return this.getCart(actor)
+    return this.toCartResponse(cart, resolveContentLocale(undefined))
   }
 
   async deleteItem(actor: CartActor, itemId: string): Promise<CartResponse> {
     this.assertBuyer(actor)
     this.logger.info('CartService.deleteItem', { actorId: actor.id, itemId })
 
-    await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
+    const cart = await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
       this.assertActiveCart(cart)
-      const item = await repo.findItemByIdForUser(itemId, actor.id)
+      const item = cart.items.find(item => item.id === itemId)
       if (!item) throw new CartServiceError('Cart item not found', 404, 'CART_ITEM_NOT_FOUND')
       await repo.deleteItem(item.id)
+      return { ...cart, items: cart.items.filter(current => current.id !== item.id) }
     })
-    return this.getCart(actor)
+    return this.toCartResponse(cart, resolveContentLocale(undefined))
   }
 
   async clearCart(actor: CartActor): Promise<CartResponse> {
     this.assertBuyer(actor)
     this.logger.info('CartService.clearCart', { actorId: actor.id })
 
-    await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
+    const cart = await this.repo.withLockedActiveCart(actor.id, async (cart, repo) => {
       this.assertActiveCart(cart)
       await repo.clearActiveCart(actor.id)
+      return { ...cart, items: [] }
     })
-    return this.getCart(actor)
+    return this.toCartResponse(cart, resolveContentLocale(undefined))
   }
 
   async buyAgain(actor: CartActor, orderId: string): Promise<BuyAgainResult> {

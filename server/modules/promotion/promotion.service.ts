@@ -180,13 +180,22 @@ export class PromotionService {
     context: CouponValidationContext,
   ): Promise<CouponValidationResult> {
     const code = this.normalizeCode(context.couponCode)
+    const coupon = await repo.findCouponByCode(code)
+    if (!coupon) throw new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND')
+    return this.validateLoadedCouponForSubtotal(repo, coupon, context)
+  }
+
+  async validateLoadedCouponForSubtotal(
+    repo: IPromotionValidationRepository,
+    coupon: PromotionCoupon,
+    context: CouponValidationContext,
+  ): Promise<CouponValidationResult> {
+    const code = this.normalizeCode(context.couponCode)
     this.logger.debug('PromotionService.validateCouponForsubtotal', {
       userId: context.userId,
       couponCode: code,
       subtotal: context.subtotal,
     })
-    const coupon = await repo.findCouponByCode(code)
-    if (!coupon) throw new PromotionServiceError('Coupon not found', 404, 'COUPON_NOT_FOUND')
     const eligibleSubtotal = this.resolveCouponEligibleSubtotal(coupon, context)
     await this.assertCouponUsable(repo, coupon, context.userId, eligibleSubtotal)
     const discount = this.calculateDiscount(coupon, eligibleSubtotal)

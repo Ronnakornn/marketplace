@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Role } from '#generated/client/enums.ts'
 import { PromotionServiceError } from '#server/modules/promotion/promotion.errors.ts'
 import type { CacheInvalidation } from '#server/modules/cache'
-import type { PromotionService } from '#server/modules/promotion/promotion.service.ts'
+import { PromotionService } from '#server/modules/promotion/promotion.service.ts'
+import type { PromotionCoupon } from '#server/modules/promotion/promotion.repository.ts'
 import type {
   CheckoutAddress,
   CheckoutCart,
   CheckoutCartItem,
   CheckoutCommitmentInput,
+  CheckoutFlashSaleItem,
   ICheckoutRepository,
 } from './checkout.repository.ts'
 import { CheckoutService } from './checkout.service.ts'
@@ -45,7 +47,7 @@ function createRepoMock(): ICheckoutRepository {
     countCouponRedemptionsForUser: vi.fn(),
     lockCouponForCheckout: vi.fn(),
     lockFlashSaleItemForCheckout: vi.fn(),
-    findActiveFlashSaleItemForCheckout: vi.fn().mockResolvedValue(null),
+    findActiveFlashSaleItemsForCheckout: vi.fn().mockResolvedValue([]),
     findBuyerCoinBalance: vi.fn().mockResolvedValue(0),
     lockBuyerCoinWallet: vi.fn(),
     commitCheckout: vi.fn(),
@@ -53,7 +55,31 @@ function createRepoMock(): ICheckoutRepository {
 }
 
 let repo: ICheckoutRepository
-let promotionService: Pick<PromotionService, 'validateCouponForsubtotal'>
+let promotionService: Pick<PromotionService, 'validateLoadedCouponForSubtotal'>
+
+function createCoupon(overrides: Partial<PromotionCoupon> = {}): PromotionCoupon {
+  return {
+    id: '99999999-9999-4999-8999-999999999999', code: 'SAVE10', shopId: null,
+    discountType: 'FIXED_AMOUNT', discountValue: 240n, discountPercentBps: null, minOrder: null, maxDiscount: null,
+    startsAt: null, endsAt: null, usageLimit: null, perUserLimit: null, isActive: true, createdAt: new Date(), updatedAt: new Date(),
+    _count: { redemptions: 0 }, ...overrides,
+  }
+}
+
+function createRealCouponEvaluator(v2Supported = false) {
+  const service = new PromotionService(createAppContext(), {
+    ...repo,
+    findBuyerCoinWallet: vi.fn(), listBuyerCoinLedger: vi.fn(), findCartForCouponValidation: vi.fn(),
+    findSellerShops: vi.fn(), listPublicCoupons: vi.fn(), listBuyerCoupons: vi.fn(), findCouponForClaim: vi.fn(),
+    createCouponClaim: vi.fn(), listAdminCoupons: vi.fn(), listSellerCoupons: vi.fn(), findCouponById: vi.fn(),
+    createCoupon: vi.fn(), updateCoupon: vi.fn(), deleteCoupon: vi.fn(), listAdminFlashSales: vi.fn(),
+    listSellerFlashSales: vi.fn(), findFlashSaleById: vi.fn(), createFlashSale: vi.fn(), updateFlashSale: vi.fn(),
+    updateFlashSaleSafely: vi.fn(), findActiveProductVariant: vi.fn(), createFlashSaleItem: vi.fn(),
+    findFlashSaleItemById: vi.fn(), findOverlappingFlashSaleItem: vi.fn(), sumActiveFlashSaleReservations: vi.fn(),
+    updateFlashSaleItem: vi.fn(), deleteFlashSaleItem: vi.fn(),
+  })
+  return new CheckoutQuoteEvaluator(service, v2Supported)
+}
 
 function createActor(role: Role = 'USER') {
   return {
@@ -217,7 +243,7 @@ async function setupSuccess(overrides: {
 } = {}) {
   repo = createRepoMock()
   promotionService = {
-    validateCouponForsubtotal: vi.fn(),
+    validateLoadedCouponForSubtotal: vi.fn(),
   }
   vi.mocked(repo.findCartForCheckout).mockResolvedValue(overrides.cart ?? createCart())
   vi.mocked(repo.findAddressForUser).mockResolvedValue(overrides.address === undefined ? createAddress() : overrides.address)
@@ -230,9 +256,9 @@ async function setupSuccess(overrides: {
   vi.mocked(repo.countCouponRedemptionsForUser).mockResolvedValue(0)
   vi.mocked(repo.commitCheckout).mockImplementation(async (input) => createCreatedOrder(input))
   if (overrides.couponError) {
-    vi.mocked(promotionService.validateCouponForsubtotal).mockRejectedValue(overrides.couponError)
+    vi.mocked(promotionService.validateLoadedCouponForSubtotal).mockRejectedValue(overrides.couponError)
   } else {
-    vi.mocked(promotionService.validateCouponForsubtotal).mockResolvedValue({
+    vi.mocked(promotionService.validateLoadedCouponForSubtotal).mockResolvedValue({
       couponId: '99999999-9999-4999-8999-999999999999',
       couponCode: 'SAVE10',
       discount: overrides.couponDiscountCents ?? 0,
@@ -275,7 +301,7 @@ describe('CheckoutService', () => {
       totalCents: 2660,
     })
     expect(repo.transaction).toHaveBeenCalledOnce()
-    expect(promotionService.validateCouponForsubtotal).toHaveBeenCalledWith(repo, {
+    expect(promotionService.validateLoadedCouponForSubtotal).toHaveBeenCalledWith(repo, expect.objectContaining({ code: 'SAVE10' }), {
       userId: 'user-1',
       couponCode: ' save10 ',
       subtotal: 2400,
@@ -510,7 +536,7 @@ describe('CheckoutService', () => {
 
   it('ignores a zero-priced legacy flash-sale row', async () => {
     const service = await setupSuccess()
-    vi.mocked(repo.findActiveFlashSaleItemForCheckout).mockResolvedValue({ id: 'flash-item-1', salePrice: 0 } as never)
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue([{ id: 'flash-item-1', variantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', salePrice: 0 } as never])
 
     const quote = await service.quoteCheckout(createActor(), {
       cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -521,10 +547,11 @@ describe('CheckoutService', () => {
 
   it('keeps flash-sale estimates read-only and locks the row only for commitment', async () => {
     const quoteService = await setupSuccess()
-    vi.mocked(repo.findActiveFlashSaleItemForCheckout).mockResolvedValue({
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue([{
       id: 'flash-item-1',
+      variantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       salePrice: 900,
-    } as never)
+    } as never])
 
     const quote = await quoteService.quoteCheckout(createActor(), {
       cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -534,10 +561,11 @@ describe('CheckoutService', () => {
     expect(repo.lockFlashSaleItemForCheckout).not.toHaveBeenCalled()
 
     const checkoutService = await setupSuccess()
-    vi.mocked(repo.findActiveFlashSaleItemForCheckout).mockResolvedValue({
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue([{
       id: 'flash-item-1',
+      variantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       salePrice: 900,
-    } as never)
+    } as never])
     await checkoutService.createCheckout(createActor(), {
       cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -545,7 +573,7 @@ describe('CheckoutService', () => {
     })
 
     expect(repo.lockFlashSaleItemForCheckout).toHaveBeenCalledWith('flash-item-1')
-    expect(repo.findActiveFlashSaleItemForCheckout).toHaveBeenCalledTimes(2)
+    expect(repo.findActiveFlashSaleItemsForCheckout).toHaveBeenCalledTimes(2)
   })
 
   it('waives shipping only when an applied coupon grants free shipping', async () => {
@@ -706,13 +734,275 @@ describe('CheckoutService', () => {
 })
 
 describe('CheckoutQuoteEvaluator', () => {
+  function flashSale(variantId: string, id: string, salePrice = 900n): CheckoutFlashSaleItem {
+    return { id, variantId, salePrice, stockLimit: 10, soldCount: 0, perUserLimit: 3 }
+  }
+
+  it('reads a coupon once for estimates and once in each committed validation round', async () => {
+    await setupSuccess()
+    const coupon = createCoupon({ perUserLimit: 3 })
+    vi.mocked(repo.findCouponByCode).mockResolvedValue(coupon)
+    const evaluator = createRealCouponEvaluator()
+    const input = { userId: 'user-1', items: [createItem()], couponCode: ' save10 ' }
+    const estimate = await evaluator.evaluate(repo, { ...input, policy: 'estimate' })
+
+    expect(estimate.quote).toMatchObject({ subtotal: 2400, discountTotal: 240, grandTotal: 2660, coupon: { code: 'SAVE10', applied: true } })
+    expect(repo.findCouponByCode).toHaveBeenCalledExactlyOnceWith('SAVE10')
+    expect(repo.countCouponRedemptionsForUser).toHaveBeenCalledExactlyOnceWith(coupon.id, input.userId)
+    expect(repo.lockCouponForCheckout).not.toHaveBeenCalled()
+    vi.clearAllMocks()
+
+    const events: string[] = []
+    vi.mocked(repo.findCouponByCode).mockImplementation(async () => { events.push('coupon'); return coupon })
+    vi.mocked(repo.readCouponTargets).mockImplementation(async () => { events.push('targets'); return { productIds: [], categoryIds: [] } })
+    vi.mocked(repo.countCouponRedemptionsForUser).mockImplementation(async () => { events.push('user-limit'); return 0 })
+    vi.mocked(repo.lockCouponForCheckout).mockImplementation(async () => { events.push('lock') })
+    const committed = await evaluator.evaluate(repo, { ...input, policy: 'commit' })
+
+    expect(committed.quote).toEqual(estimate.quote)
+    expect(events).toEqual(['coupon', 'targets', 'user-limit', 'lock', 'coupon', 'targets', 'user-limit'])
+    expect(repo.findCouponByCode).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([
+    { name: 'inactive status', change: { isActive: false }, reason: 'COUPON_INACTIVE' },
+    { name: 'expiry', change: { endsAt: new Date('2000-01-01') }, reason: 'COUPON_EXPIRED' },
+    { name: 'future start', change: { startsAt: new Date('2999-01-01') }, reason: 'COUPON_NOT_STARTED' },
+    { name: 'minimum amount', change: { minOrder: 5000n }, reason: 'COUPON_MIN_ORDER_NOT_MET' },
+    { name: 'global redemption count', change: { usageLimit: 1, _count: { redemptions: 1 } }, reason: 'COUPON_USAGE_LIMIT_REACHED' },
+  ])('revalidates changed coupon $name after locking', async ({ change, reason }) => {
+    await setupSuccess()
+    let coupon = createCoupon()
+    vi.mocked(repo.findCouponByCode).mockImplementation(async () => coupon)
+    vi.mocked(repo.lockCouponForCheckout).mockImplementation(async () => { coupon = { ...coupon, ...change } })
+
+    await expect(createRealCouponEvaluator().evaluate(repo, {
+      userId: 'user-1', items: [createItem()], couponCode: 'SAVE10', policy: 'commit',
+    })).rejects.toMatchObject({ code: 'INVALID_COUPON', details: { reason } })
+    expect(repo.findCouponByCode).toHaveBeenCalledTimes(2)
+    expect(repo.readCouponTargets).toHaveBeenCalledTimes(2)
+  })
+
+  it('rechecks per-user coupon redemptions after locking', async () => {
+    await setupSuccess()
+    vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon({ perUserLimit: 1 }))
+    vi.mocked(repo.countCouponRedemptionsForUser).mockResolvedValueOnce(0).mockResolvedValueOnce(1)
+
+    await expect(createRealCouponEvaluator().evaluate(repo, {
+      userId: 'user-1', items: [createItem()], couponCode: 'SAVE10', policy: 'commit',
+    })).rejects.toMatchObject({ code: 'INVALID_COUPON', details: { reason: 'COUPON_USER_LIMIT_REACHED' } })
+    expect(repo.findCouponByCode).toHaveBeenCalledTimes(2)
+    expect(repo.countCouponRedemptionsForUser).toHaveBeenCalledTimes(2)
+  })
+
+  it('rechecks coupon targets after locking and rejects a newly excluded product', async () => {
+    await setupSuccess()
+    vi.mocked(repo.findCouponByCode).mockResolvedValue(createCoupon())
+    vi.mocked(repo.readCouponTargets).mockResolvedValueOnce({ productIds: [], categoryIds: [] })
+      .mockResolvedValueOnce({ productIds: ['another-product'], categoryIds: [] })
+
+    await expect(createRealCouponEvaluator().evaluate(repo, {
+      userId: 'user-1', items: [createItem()], couponCode: 'SAVE10', policy: 'commit',
+    })).rejects.toMatchObject({ code: 'INVALID_COUPON', details: { reason: 'COUPON_SCOPE_MISMATCH' } })
+    expect(repo.findCouponByCode).toHaveBeenCalledTimes(2)
+    expect(repo.readCouponTargets).toHaveBeenCalledTimes(2)
+  })
+
+  it('rechecks named coupon funding after locking', async () => {
+    await setupSuccess()
+    vi.mocked(repo.findCouponByCode).mockResolvedValueOnce(createCoupon({ shopId: '11111111-1111-4111-8111-111111111111' }))
+      .mockResolvedValueOnce(createCoupon())
+
+    await expect(createRealCouponEvaluator(true).evaluate(repo, {
+      userId: 'user-1', items: [createItem()], shopCouponCode: 'SAVE10', policy: 'commit',
+    })).rejects.toMatchObject({ code: 'INVALID_COUPON' })
+    expect(repo.findCouponByCode).toHaveBeenCalledTimes(2)
+  })
+
+  it('applies named targeted coupons in shop then platform order with exact funding', async () => {
+    await setupSuccess()
+    const shopId = '11111111-1111-4111-8111-111111111111'
+    const shopCoupon = createCoupon({ id: 'seller-coupon', code: 'SHOP', shopId, discountValue: 200n })
+    const platformCoupon = createCoupon({ id: 'platform-coupon', code: 'PLATFORM', discountType: 'PERCENT', discountValue: null, discountPercentBps: 1000 })
+    vi.mocked(repo.findCouponByCode).mockImplementation(async code => code === 'SHOP' ? shopCoupon : platformCoupon)
+    vi.mocked(repo.readCouponTargets).mockResolvedValue({ productIds: ['eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'], categoryIds: [] })
+    const evaluator = createRealCouponEvaluator(true)
+    const input = { userId: 'user-1', items: [createItem()], shopCouponCode: ' shop ', platformCouponCode: 'platform' }
+    const estimated = await evaluator.evaluate(repo, { ...input, policy: 'estimate' })
+
+    expect(estimated.quote).toMatchObject({ subtotal: 2400, discountTotal: 420, shippingTotal: 500, grandTotal: 2480 })
+    expect(estimated.acceptedQuote.funding).toMatchObject({ sellerCouponDiscount: 200, sellerCouponShopId: shopId, platformCouponDiscount: 220 })
+    expect(repo.findCouponByCode).toHaveBeenCalledTimes(2)
+    vi.mocked(repo.findCouponByCode).mockClear()
+    const committed = await evaluator.evaluate(repo, { ...input, policy: 'commit' })
+
+    expect(committed.quote).toEqual(estimated.quote)
+    expect(repo.findCouponByCode).toHaveBeenCalledTimes(4)
+    expect(repo.lockCouponForCheckout).toHaveBeenNthCalledWith(1, shopCoupon.id)
+    expect(repo.lockCouponForCheckout).toHaveBeenNthCalledWith(2, platformCoupon.id)
+  })
+
+  it('rejects an accepted quote when the coupon amount changes in the committed round', async () => {
+    await setupSuccess()
+    let coupon = createCoupon()
+    vi.mocked(repo.findCouponByCode).mockImplementation(async () => coupon)
+    const service = new CheckoutService(createAppContext(), repo, createRealCouponEvaluator())
+    const quote = await service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', couponCode: 'SAVE10' })
+    vi.mocked(repo.lockCouponForCheckout).mockImplementation(async () => { coupon = { ...coupon, discountValue: 500n } })
+
+    await expect(service.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      paymentMethod: 'stripe', couponCode: 'SAVE10', acceptedQuoteFingerprint: quote.quoteFingerprint,
+    })).rejects.toMatchObject({ code: 'QUOTE_CHANGED' })
+    expect(repo.findCouponByCode).toHaveBeenCalledTimes(3)
+    expect(repo.commitCheckout).not.toHaveBeenCalled()
+  })
+
+  it('prices mixed carts in one batch and preserves promotion admission', async () => {
+    await setupSuccess()
+    const items = Array.from({ length: 20 }, (_, index) => createItem({ id: `item-${index}`, variantId: `variant-${index}` }))
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue([
+      flashSale('variant-2', 'sale-2'), flashSale('variant-15', 'sale-15'),
+    ])
+    const admission = vi.fn().mockResolvedValue(undefined)
+    const evaluator = new CheckoutQuoteEvaluator(promotionService as PromotionService, false, admission)
+    const result = await evaluator.evaluate(repo, { userId: 'user-1', items, policy: 'estimate' })
+    expect(result.quote.subtotal).toBe(46800)
+    expect(repo.findActiveFlashSaleItemsForCheckout).toHaveBeenCalledExactlyOnceWith(items.map(item => item.variantId), expect.any(Date))
+    expect(repo.lockFlashSaleItemForCheckout).not.toHaveBeenCalled()
+    expect(admission).toHaveBeenCalledExactlyOnceWith({ userId: 'user-1', shopIds: ['11111111-1111-4111-8111-111111111111'] })
+    expect(result.acceptedQuote.items.filter(item => item.flashSaleItemId).map(item => item.flashSaleItemId).sort()).toEqual(['sale-15', 'sale-2'])
+  })
+
+  it('admits all candidate shops once, excluding ordinary shops and duplicate lines', async () => {
+    await setupSuccess()
+    const items = Array.from({ length: 20 }, (_, index) => createItem({
+      id: `item-${index}`, variantId: `variant-${index}`, shopId: `shop-${index % 3}`,
+    }))
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue(
+      items.filter((_, index) => index % 3 !== 2).map(item => flashSale(item.variantId, `sale-${item.id}`)),
+    )
+    const admission = vi.fn().mockResolvedValue(undefined)
+    const evaluator = new CheckoutQuoteEvaluator(promotionService as PromotionService, false, admission)
+    const result = await evaluator.evaluate(repo, { userId: 'user-1', items, policy: 'estimate' })
+
+    expect(admission).toHaveBeenCalledExactlyOnceWith({ userId: 'user-1', shopIds: ['shop-0', 'shop-1'] })
+    expect(result.quote.subtotal).toBe(39600)
+  })
+
+  it('fails the whole evaluation when admission denies one candidate shop', async () => {
+    await setupSuccess()
+    const items = [createItem({ variantId: 'one', shopId: 'allowed' }), createItem({ id: 'two', variantId: 'two', shopId: 'blocked' })]
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue(items.map(item => flashSale(item.variantId, `sale-${item.variantId}`)))
+    const admission = vi.fn(async ({ shopIds }: { shopIds: string[] }) => {
+      if (shopIds.includes('blocked')) throw new Error('FEATURE_DISABLED')
+    })
+    const evaluator = new CheckoutQuoteEvaluator(promotionService as PromotionService, false, admission)
+
+    await expect(evaluator.evaluate(repo, { userId: 'user-1', items, policy: 'estimate' })).rejects.toThrow('FEATURE_DISABLED')
+    expect(admission).toHaveBeenCalledExactlyOnceWith({ userId: 'user-1', shopIds: ['allowed', 'blocked'] })
+  })
+
+  it.each([0n, 1200n, 1300n, -1n, 9007199254740992n])('requires admission even for an unusable flash price %s', async salePrice => {
+    await setupSuccess()
+    const item = createItem()
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue([flashSale(item.variantId, 'sale', salePrice)])
+    const admission = vi.fn().mockRejectedValue(new Error('FEATURE_DISABLED'))
+    const evaluator = new CheckoutQuoteEvaluator(promotionService as PromotionService, false, admission)
+
+    await expect(evaluator.evaluate(repo, { userId: 'user-1', items: [item], policy: 'estimate' })).rejects.toThrow('FEATURE_DISABLED')
+    expect(admission).toHaveBeenCalledOnce()
+  })
+
+  it('validates the regular price before promotion admission', async () => {
+    await setupSuccess()
+    const item = createItem({ price: 0 })
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue([flashSale(item.variantId, 'sale')])
+    const admission = vi.fn().mockResolvedValue(undefined)
+    const evaluator = new CheckoutQuoteEvaluator(promotionService as PromotionService, false, admission)
+
+    await expect(evaluator.evaluate(repo, { userId: 'user-1', items: [item], policy: 'estimate' })).rejects.toMatchObject({ code: 'CHECKOUT_FAILED' })
+    expect(admission).not.toHaveBeenCalled()
+  })
+
+  it('does not require Flash Sale admission when the locked reread has no candidates', async () => {
+    await setupSuccess()
+    const item = createItem()
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout)
+      .mockResolvedValueOnce([flashSale(item.variantId, 'sale')]).mockResolvedValueOnce([])
+    const admission = vi.fn().mockResolvedValue(undefined)
+    const evaluator = new CheckoutQuoteEvaluator(promotionService as PromotionService, false, admission)
+    const result = await evaluator.evaluate(repo, { userId: 'user-1', items: [item], policy: 'commit' })
+
+    expect(result.quote.subtotal).toBe(2400)
+    expect(admission).not.toHaveBeenCalled()
+    expect(repo.lockFlashSaleItemForCheckout).toHaveBeenCalledExactlyOnceWith('sale')
+  })
+
+  it('keeps coupon admission separate from the batched Flash Sale admission', async () => {
+    await setupSuccess({ couponDiscountCents: 240 })
+    const items = Array.from({ length: 20 }, (_, index) => createItem({ id: `item-${index}`, variantId: `variant-${index}` }))
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue(items.map(item => flashSale(item.variantId, `sale-${item.variantId}`)))
+    const admission = vi.fn().mockResolvedValue(undefined)
+    const evaluator = new CheckoutQuoteEvaluator(promotionService as PromotionService, false, admission)
+    const result = await evaluator.evaluate(repo, { userId: 'user-1', items, couponCode: 'SAVE10', policy: 'estimate' })
+
+    expect(result.quote.subtotal).toBe(36000)
+    expect(result.quote.discountTotal).toBe(240)
+    expect(admission).toHaveBeenCalledTimes(2)
+  })
+
+  it('locks unique candidates in sorted order before one constrained re-read', async () => {
+    await setupSuccess()
+    const items = [createItem({ id: 'one', variantId: 'variant-1' }), createItem({ id: 'two', variantId: 'variant-2' }), createItem({ id: 'three', variantId: 'variant-1' })]
+    const first = flashSale('variant-1', 'sale-z')
+    const second = flashSale('variant-2', 'sale-a')
+    const events: string[] = []
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout)
+      .mockImplementationOnce(async () => { events.push('select'); return [first, second] })
+      .mockImplementationOnce(async (_variants, _now, candidateIds) => {
+        events.push('reread')
+        expect(candidateIds).toEqual(['sale-a', 'sale-z'])
+        return [{ ...first, salePrice: 800n }, second]
+      })
+    vi.mocked(repo.lockFlashSaleItemForCheckout).mockImplementation(async id => { events.push(id) })
+    const evaluator = new CheckoutQuoteEvaluator(promotionService as PromotionService)
+    const result = await evaluator.evaluate(repo, { userId: 'user-1', items, policy: 'commit' })
+    expect(events).toEqual(['select', 'sale-a', 'sale-z', 'reread'])
+    expect(result.quote.subtotal).toBe(5000)
+    expect(repo.findActiveFlashSaleItemsForCheckout).toHaveBeenCalledTimes(2)
+    expect(result.acceptedQuote.items.filter(item => item.variantId === 'variant-1').every(item => item.unitPrice === 800)).toBe(true)
+  })
+
+  it('falls back after deactivation and makes an accepted promotional quote stale', async () => {
+    const service = await setupSuccess()
+    const candidate = flashSale('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'sale-held')
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValueOnce([candidate])
+    const quote = await service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' })
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValueOnce([candidate]).mockResolvedValueOnce([])
+    await expect(service.createCheckout(createActor(), {
+      cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', addressId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      paymentMethod: 'stripe', acceptedQuoteFingerprint: quote.quoteFingerprint,
+    })).rejects.toMatchObject({ code: 'QUOTE_CHANGED' })
+    expect(repo.findActiveFlashSaleItemsForCheckout).toHaveBeenLastCalledWith([candidate.variantId], expect.any(Date), ['sale-held'])
+    expect(repo.commitCheckout).not.toHaveBeenCalled()
+  })
+
+  it('uses one flash lookup for twenty ordinary items', async () => {
+    const items = Array.from({ length: 20 }, (_, index) => createItem({ id: `item-${index}`, variantId: `variant-${index}` }))
+    const service = await setupSuccess({ cart: createCart({ items }) })
+    const quote = await service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' })
+    expect(quote.subtotal).toBe(48000)
+    expect(repo.findActiveFlashSaleItemsForCheckout).toHaveBeenCalledTimes(1)
+  })
+
   it.each([
     { name: 'current variant price', salePrice: null, unitPrice: 1200, lineTotal: 2400, grandTotal: 2900 },
     { name: 'active flash price', salePrice: 900, unitPrice: 900, lineTotal: 1800, grandTotal: 2300 },
   ])('returns authoritative line and shop amounts for $name', async ({ salePrice, unitPrice, lineTotal, grandTotal }) => {
     const service = await setupSuccess()
     if (salePrice !== null) {
-      vi.mocked(repo.findActiveFlashSaleItemForCheckout).mockResolvedValue({ id: 'flash-item-1', salePrice } as never)
+      vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue([{ id: 'flash-item-1', variantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', salePrice } as never])
     }
     const quote = await service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' })
     expect(quote).toMatchObject({
@@ -809,7 +1099,7 @@ describe('CheckoutQuoteEvaluator', () => {
 
   it.each([-1, 1.5, Infinity, 9007199254740992])('rejects malformed active flash price %s', async (salePrice) => {
     const service = await setupSuccess()
-    vi.mocked(repo.findActiveFlashSaleItemForCheckout).mockResolvedValue({ id: 'flash-item-1', salePrice } as never)
+    vi.mocked(repo.findActiveFlashSaleItemsForCheckout).mockResolvedValue([{ id: 'flash-item-1', variantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', salePrice } as never])
     await expect(service.quoteCheckout(createActor(), { cartId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }))
       .rejects.toMatchObject({ code: 'CHECKOUT_FAILED' })
   })

@@ -32,6 +32,21 @@ key directly and defaults only when that setting is absent.
 
 ## Avoiding repeated work
 
+Visible product impressions are sent to `POST /api/discovery/impressions` in
+batches of at most 50 events and 24 KiB of UTF-8 JSON, including the wrapper.
+Each event retains its observed timestamp, source, position, session and
+referrer. The server normalizes every event, bulk-loads unique active products,
+validates each shop association and inserts all event facts together. Invalid
+batches write nothing; UUID matching is case-insensitive. Other tracking event
+types retain the single-event endpoint.
+
+The shared public rate bucket charges each impression rather than only each
+batch request. Client chunks share a 48 KiB keepalive budget per flush; later
+chunks use ordinary fetch. Individually oversized or invalid observations are
+dropped. Beacon/fetch and unmount delivery remain best effort, with no durable
+replay or exactly-once guarantee. Existing per-mount visible-product deduplication
+and debounce remain.
+
 Discovery loads trending and newest products once each. The independent public
 home-feed contract retains its other sections. Favorite-status batches retain
 membership while product pages append and request only new IDs. Account changes

@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from "r
 import type enMessages from "../../messages/en.json";
 import type { Locale } from "./config";
 import { defaultCurrency, defaultTimeZone, fallbackLocale, resolveLocale } from "./config";
+import { mergeMessages, type MessageDictionary } from "./messages";
 
 type Messages = typeof enMessages;
 type TranslationKey = Leaves<Messages>;
@@ -18,11 +19,12 @@ type Leaves<T, Prefix extends string = ""> = {
 
 interface I18nContextValue {
   locale: Locale;
-  messages: Messages;
-  fallbackMessages: Messages;
+  messages: MessageDictionary;
+  fallbackMessages: MessageDictionary;
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
+const EMPTY_MESSAGES: MessageDictionary = {};
 
 function readPath(source: unknown, key: string): string | undefined {
   return key.split(".").reduce<unknown>((current, part) => {
@@ -34,12 +36,19 @@ function readPath(source: unknown, key: string): string | undefined {
 export function I18nProvider({
   locale,
   messages,
-  fallbackMessages,
+  fallbackMessages = EMPTY_MESSAGES,
   children,
-}: I18nContextValue & { children: ReactNode }) {
+}: Omit<I18nContextValue, "fallbackMessages"> & { fallbackMessages?: MessageDictionary; children: ReactNode }) {
+  const parent = useContext(I18nContext);
+  const resolvedLocale = resolveLocale(locale);
+  const inherited = parent?.locale === resolvedLocale ? parent : null;
   const value = useMemo(
-    () => ({ locale: resolveLocale(locale), messages, fallbackMessages }),
-    [fallbackMessages, locale, messages],
+    () => ({
+      locale: resolvedLocale,
+      messages: inherited ? mergeMessages(inherited.messages, messages) : messages,
+      fallbackMessages: inherited ? mergeMessages(inherited.fallbackMessages, fallbackMessages) : fallbackMessages,
+    }),
+    [fallbackMessages, inherited, messages, resolvedLocale],
   );
 
   useEffect(() => {

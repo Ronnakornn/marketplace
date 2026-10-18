@@ -29,7 +29,6 @@ function createRepoMock(): ICartRepository {
     withLockedActiveCart: vi.fn(async (userId, callback) => callback(await repo.findOrCreateActiveCart(userId), repo)),
     findActiveCartByUserId: vi.fn(),
     findOrCreateActiveCart: vi.fn(),
-    findItemByIdForUser: vi.fn(),
     findVariantForCart: vi.fn(),
     findVariantsForCart: vi.fn(),
     findOwnedOrderItems: vi.fn(),
@@ -414,16 +413,15 @@ describe('CartService', () => {
   it('updates and deletes only items in the buyer active cart', async () => {
     const repo = createRepoMock()
     const item = createItem()
-    vi.mocked(repo.findItemByIdForUser).mockResolvedValue(item)
     vi.mocked(repo.updateItem).mockResolvedValue(createItem({ quantity: 3 }))
     vi.mocked(repo.deleteItem).mockResolvedValue(item)
-    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart())
+    vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart({ items: [item] }))
     const service = new CartService(createAppContext(), repo)
 
     await service.updateItem(createActor(), item.id, { quantity: 3 })
     await service.deleteItem(createActor(), item.id)
 
-    expect(repo.findItemByIdForUser).toHaveBeenCalledWith(item.id, 'user-1')
+    expect(repo.withLockedActiveCart).toHaveBeenCalledWith('user-1', expect.any(Function))
     expect(repo.updateItem).toHaveBeenCalledWith(item.id, { quantity: 3, unitPrice: 1590n, currency: 'USD' })
     expect(repo.deleteItem).toHaveBeenCalledWith(item.id)
   })
@@ -434,10 +432,77 @@ describe('CartService', () => {
     const item = createItem({ variant })
     vi.mocked(repo.findOrCreateActiveCart).mockResolvedValue(createCart({ items: [item] }))
     vi.mocked(repo.findVariantForCart).mockResolvedValue(variant)
-    vi.mocked(repo.findItemByIdForUser).mockResolvedValue(item)
     const service = new CartService(createAppContext(), repo)
     await expect(service.addItem(createActor(), { variantId: variant.id, quantity: 1 })).rejects.toMatchObject({ code: 'VARIANT_UNAVAILABLE' })
     await expect(service.updateItem(createActor(), item.id, { quantity: 3 })).rejects.toMatchObject({ code: 'VARIANT_UNAVAILABLE' })
+  })
+
+  it('returns the saved exact price and preserves other line ordering without rereading the cart', async () => {
+    const repo = createRepoMock()
+    const before = createItem({ id: 'before', quantity: 1 })
+    const item = createItem({ id: 'changed', quantity: 1 })
+    const after = createItem({ id: 'after', quantity: 1 })
+    const saved = createItem({ id: item.id, quantity: 3, unitPrice: 9007199254740993123n })
+    vi.mocked(repo.withLockedActiveCart).mockImplementation(async (_userId, callback) => callback(createCart({ items: [before, item, after] }), repo))
+    vi.mocked(repo.updateItem).mockResolvedValue(saved)
+
+    const result = await new CartService(createAppContext(), repo).updateItem(createActor(), item.id, { quantity: 3 })
+
+    expect(result.shops[0].items.map(item => item.id)).toEqual(['before', 'changed', 'after'])
+    expect(result.shops[0].items[1]).toMatchObject({ quantity: 3, unitPrice: 9007199254740993123n, lineTotal: 27021597764222979369n })
+    expect(result.subtotal).toBe(27021597764222982349n)
+    expect(repo.findOrCreateActiveCart).not.toHaveBeenCalled()
+  })
+
+  it.each(['update', 'delete'] as const)('rejects %s of an item outside the locked buyer cart', async operation => {
+    const repo = createRepoMock()
+    vi.mocked(repo.withLockedActiveCart).mockImplementation(async (_userId, callback) => callback(createCart({ items: [createItem({ id: 'owned-item' })] }), repo))
+    const service = new CartService(createAppContext(), repo)
+    const request = operation === 'update'
+      ? service.updateItem(createActor(), 'foreign-item', { quantity: 1 })
+      : service.deleteItem(createActor(), 'foreign-item')
+    await expect(request).rejects.toMatchObject({ status: 404, code: 'CART_ITEM_NOT_FOUND' })
+    expect(repo.updateItem).not.toHaveBeenCalled()
+    expect(repo.deleteItem).not.toHaveBeenCalled()
+  })
+
+  it.each(['delete', 'clear'] as const)('returns %s from the locked snapshot without a later cart read', async operation => {
+    const repo = createRepoMock()
+    const item = createItem({ id: 'deleted' })
+    const remaining = createItem({ id: 'remaining', unitPrice: 2000n, quantity: 3 })
+    vi.mocked(repo.withLockedActiveCart).mockImplementation(async (_userId, callback) => callback(createCart({ items: [item, remaining] }), repo))
+    vi.mocked(repo.deleteItem).mockResolvedValue(item)
+    vi.mocked(repo.clearActiveCart).mockResolvedValue(2)
+    const service = new CartService(createAppContext(), repo)
+    const result = operation === 'delete' ? await service.deleteItem(createActor(), item.id) : await service.clearCart(createActor())
+    expect(result).toMatchObject(operation === 'delete'
+      ? { subtotal: 6000n, shops: [{ items: [{ id: 'remaining' }] }] }
+      : { subtotal: 0n, shops: [], currency: null })
+    expect(repo.findOrCreateActiveCart).not.toHaveBeenCalled()
+  })
+
+  it('validates reserved stock before a quantity update', async () => {
+    const repo = createRepoMock()
+    const item = createItem({ variant: createVariant({ quantityOnHand: 5, quantityReserved: 4 }) })
+    vi.mocked(repo.withLockedActiveCart).mockImplementation(async (_userId, callback) => callback(createCart({ items: [item] }), repo))
+    await expect(new CartService(createAppContext(), repo).updateItem(createActor(), item.id, { quantity: 2 }))
+      .rejects.toMatchObject({ code: 'CART_STOCK_UNAVAILABLE', details: { availableQuantity: 1 } })
+    expect(repo.updateItem).not.toHaveBeenCalled()
+  })
+
+  it.each(['update', 'delete', 'clear'] as const)('rejects %s if checkout consumed the selected cart before its lock was acquired', async operation => {
+    const repo = createRepoMock()
+    const item = createItem()
+    vi.mocked(repo.withLockedActiveCart).mockImplementation(async (_userId, callback) => callback({
+      ...createCart({ items: [item] }), status: 'CHECKED_OUT',
+    }, repo))
+    const service = new CartService(createAppContext(), repo)
+    const mutation = operation === 'update' ? service.updateItem(createActor(), item.id, { quantity: 2 })
+      : operation === 'delete' ? service.deleteItem(createActor(), item.id) : service.clearCart(createActor())
+    await expect(mutation).rejects.toMatchObject({ status: 409, code: 'CART_STATE_CONFLICT' })
+    expect(repo.updateItem).not.toHaveBeenCalled()
+    expect(repo.deleteItem).not.toHaveBeenCalled()
+    expect(repo.clearActiveCart).not.toHaveBeenCalled()
   })
 })
 

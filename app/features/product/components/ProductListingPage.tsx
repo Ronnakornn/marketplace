@@ -14,6 +14,8 @@ import { Input } from "#/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "#/components/ui/sheet";
 import { ProductCard } from "#/features/product/components/ProductCard";
 import { FavoriteStatusesProvider } from "#/features/buyer/favorites";
+import type { InitialProductListing } from "#/features/product/listing-data.server";
+import { cleanSearchProductInput, productListingInput } from "#/features/product/listing-input";
 import {
   normalizePublicCategories,
   normalizePublicBrands,
@@ -29,6 +31,7 @@ import {
 } from "#/features/product/queries";
 import { trackDiscoveryEvent, useTrackVisibleProducts } from "#/features/tracking";
 import { useLocale, useTranslations } from "#/i18n/client";
+import type { Locale } from "#/i18n/config";
 import { useLocalePath } from "#/i18n/navigation";
 import { decimalInputToMinorUnits, minorUnitsToDecimalInput } from "#/lib/input-decimal";
 import { minorToDecimalText } from "#/lib/money";
@@ -45,9 +48,16 @@ interface ProductListingPageProps {
   sort?: string;
   rating?: string;
   inStock?: string;
+  initialListing?: InitialProductListing;
 }
 
-export function ProductListingPage({
+export function ProductListingPage(props: ProductListingPageProps) {
+  const locale = useLocale();
+  const identity = JSON.stringify(cleanSearchProductInput(productListingInput(props, locale)));
+  return <ProductListingContent key={`${props.mode}:${identity}`} {...props} locale={locale} />;
+}
+
+function ProductListingContent({
   mode,
   query = "",
   categoryId,
@@ -59,48 +69,28 @@ export function ProductListingPage({
   sort = "relevance",
   rating,
   inStock,
-}: ProductListingPageProps) {
-  const locale = useLocale();
+  initialListing,
+  locale,
+}: ProductListingPageProps & { locale: Locale }) {
   const t = useTranslations();
   const localePath = useLocalePath();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [accumulatedListing, setAccumulatedListing] = useState<BuyerProductListing | null>(null);
-  const minRating = toNumber(rating);
-  const currentCategory = mode === "category" ? categoryId : undefined;
   const basePath = mode === "category" && categoryId ? `/categories/${categoryId}` : "/search";
-  const listingResetKey = [
-    mode,
-    query,
-    currentCategory ?? categoryId ?? "",
-    brandId ?? "",
-    attributeFilters ?? "",
-    minPrice ?? "",
-    maxPrice ?? "",
-    sort,
-    rating ?? "",
-    inStock ?? "",
-    locale,
-  ].join("|");
-  const productListInput = {
-    q: query,
-    categoryId: currentCategory ?? categoryId,
-    brandId,
-    attributeFilters,
-    minPrice,
-    maxPrice,
-    sort,
-    rating: minRating,
-    inStock: inStock === "true" ? true : undefined,
-    limit: 40,
-    page,
-    locale,
-  };
+  const productListInput = productListingInput({
+    query, categoryId, brandId, attributeFilters, minPrice, maxPrice, sort, rating, inStock,
+  }, locale, page);
+  const initialData = initialListing && JSON.stringify(initialListing.query) === JSON.stringify(cleanSearchProductInput(productListInput))
+    ? initialListing.data
+    : undefined;
   const searchProductsQuery = useQuery({
     ...publicProductSearchQueryOptions(productListInput),
+    initialData,
     select: normalizePublicProductListing,
   });
   const productsQuery = searchProductsQuery;
+  const listing = accumulatedListing ?? productsQuery.data ?? null;
   const suggestionsQuery = useQuery({
     ...publicSearchSuggestionsQueryOptions({ q: query, limit: 8, locale }),
     enabled: mode === "search" && query.trim().length > 0,
@@ -108,10 +98,12 @@ export function ProductListingPage({
   });
   const categoriesQuery = useQuery({
     ...publicCategoriesQueryOptions({ locale }),
+    enabled: !listing?.facets.categories.length,
     select: normalizePublicCategories,
   });
   const brandsQuery = useQuery({
     ...publicBrandsQueryOptions(),
+    enabled: !listing?.facets.brands.length,
     select: normalizePublicBrands,
   });
 
@@ -129,18 +121,12 @@ export function ProductListingPage({
   }, [mode, query]);
 
   useEffect(() => {
-    setPage(1);
-    setAccumulatedListing(null);
-  }, [listingResetKey]);
-
-  useEffect(() => {
     if (!productsQuery.data) return;
     setAccumulatedListing((current) => mergeListingPages(current, productsQuery.data, page));
   }, [productsQuery.data, page]);
 
   const displayCategoryName = categoryName ?? categoryId ?? t("product.category");
   const title = mode === "home" ? t("product.discover") : mode === "category" ? displayCategoryName : t("common.search");
-  const listing = accumulatedListing ?? productsQuery.data ?? null;
   const products = listing?.products ?? [];
   const hasAccumulatedProducts = (accumulatedListing?.products.length ?? 0) > 0;
   const isInitialLoading = productsQuery.isLoading && !hasAccumulatedProducts;
@@ -692,12 +678,6 @@ function getSortOptions(t: ReturnType<typeof useTranslations>) {
     ["price_desc", t("product.priceHigh")],
     ["rating", t("product.rating")],
   ] as const;
-}
-
-function toNumber(value?: string): number | undefined {
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function mergeListingPages(current: BuyerProductListing | null, next: BuyerProductListing, page: number): BuyerProductListing {

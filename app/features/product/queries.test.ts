@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
+import type { CatalogPublicCard } from "#server/modules/catalog/catalog.repository";
 import {
   cleanAdminProductListInput,
   cleanPublicProductListApiInput,
@@ -23,6 +24,55 @@ import {
   normalizeAffiliateProductTargets,
   productQueryKeys,
 } from "./queries";
+
+describe("compact public card normalization", () => {
+  it("keeps exact price ranges, reserved stock and every multi-SKU quick-add option", () => {
+    const colors = [
+      { id: "red", value: "Red", valueTh: "แดง", valueEn: "Red", colorHex: "#ff0000" },
+      { id: "blue", value: "Blue", valueTh: "น้ำเงิน", valueEn: "Blue", colorHex: "#0000ff" },
+    ];
+    const sizes = [
+      { id: "small", value: "S", valueTh: null, valueEn: null, colorHex: null },
+      { id: "large", value: "L", valueTh: null, valueEn: null, colorHex: null },
+    ];
+    const colorOption = { id: "color", name: "Color", nameTh: "สี", nameEn: "Color" };
+    const sizeOption = { id: "size", name: "Size", nameTh: "ขนาด", nameEn: "Size" };
+    const card = {
+      id: "multi-sku", title: "Bag", titleTh: "กระเป๋า", titleEn: "Bag", slug: "bag",
+      category: null, brand: { id: "brand", name: "Acme", nameTh: null, nameEn: null, slug: "acme" },
+      shop: { id: "shop", name: "Shop", slug: "shop", addresses: [{ city: "Bangkok", region: "Bangkok", country: "TH" }] },
+      images: [{ url: "/bag.jpg" }],
+      rating: 4.5, ratingSummary: { averageRating: 4.5, totalReviewCount: 2 }, soldCount: 8,
+      options: [{ ...colorOption, values: colors }, { ...sizeOption, values: sizes }],
+      variants: colors.flatMap((color, colorIndex) => sizes.map((size, sizeIndex) => ({
+        id: `${color.id}-${size.id}`, sku: `${color.id}-${size.id}`, title: `${color.value} ${size.value}`,
+        titleTh: null, titleEn: null, status: "ACTIVE",
+        price: 9007199254740993n + BigInt(colorIndex * 10 + sizeIndex), currency: "THB",
+        inventory: { quantityOnHand: colorIndex ? 4 : 2, quantityReserved: sizeIndex ? 2 : 1 },
+        optionValues: [{ optionValue: { ...color, option: colorOption } }, { optionValue: { ...size, option: sizeOption } }],
+      } satisfies CatalogPublicCard["variants"][number]))),
+    } satisfies CatalogPublicCard;
+    const compact = normalizePublicProduct(card);
+    const detail = normalizePublicProduct({
+      ...card, description: "Detail content", highlights: [{ text: "Handmade" }],
+      images: [...card.images, { url: "/bag-side.jpg" }],
+      attributes: [{ attributeKey: "fabric", displayName: "Fabric", value: "Cotton", isFilterable: true }],
+    });
+    const cardFields = (product: ReturnType<typeof normalizePublicProduct>) => ({
+      id: product.id, title: product.title, price: product.price, minPrice: product.minPrice, maxPrice: product.maxPrice,
+      currency: product.currency, stock: product.stock, rating: product.rating, soldCount: product.soldCount,
+      badges: product.badges, shop: product.shop, brand: product.brand, options: product.options, variants: product.variants,
+      image: product.images[0],
+    });
+    expect(cardFields(compact)).toEqual(cardFields(detail));
+    expect(compact).toMatchObject({ minPrice: "9007199254740993", maxPrice: "9007199254741004", stock: 6 });
+    expect(compact.variants.map(({ id, stock }) => ({ id, stock }))).toEqual([
+      { id: "red-small", stock: 1 }, { id: "red-large", stock: 0 },
+      { id: "blue-small", stock: 3 }, { id: "blue-large", stock: 2 },
+    ]);
+    expect(compact.variants.find((variant) => variant.optionValues.every((value) => ["blue", "large"].includes(value.valueId)))?.id).toBe("blue-large");
+  });
+});
 
 describe("product query keys", () => {
   it("includes public product discovery inputs that change results", () => {

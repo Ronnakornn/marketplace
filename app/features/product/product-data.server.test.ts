@@ -18,15 +18,14 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("public product server data", () => {
-  it("fetches the localized public DTO and aggregate rating using its canonical UUID", async () => {
+  it("fetches the localized public DTO and aggregate rating with one boot request", async () => {
     const summary = { averageRating: 4.5, totalReviewCount: 2, distribution: { 1: 0, 2: 0, 3: 0, 4: 1, 5: 1 } };
-    fetchMock.mockResolvedValueOnce(Response.json(product)).mockResolvedValueOnce(Response.json(summary));
+    fetchMock.mockResolvedValueOnce(Response.json({ product, ratingSummary: summary }));
     const result = await getPublicProductData("canvas-bag", "en");
     expect(result?.product).toMatchObject({ id: canonicalId, title: "English Bag", variants: [{ price: "9007199254740993" }] });
     expect(result?.ratingSummary).toEqual(summary);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
-      "http://127.0.0.1:3009/api/products/canvas-bag?locale=en",
-      `http://127.0.0.1:3009/api/products/${canonicalId}/rating-summary`,
+      "http://127.0.0.1:3009/api/products/canvas-bag/boot?locale=en",
     ]);
     expect(fetchMock.mock.calls.every(([, options]) => options?.cache === "no-store")).toBe(true);
   });
@@ -60,12 +59,11 @@ describe("public product server data", () => {
     await expect(getPublicProductData("canvas-bag", "en")).rejects.toMatchObject({ message, status: 502 });
   });
 
-  it.each(["http", "network"])("still renders a valid product when optional rating loading has a %s failure", async (failure) => {
-    fetchMock.mockResolvedValueOnce(Response.json(product));
-    if (failure === "http") fetchMock.mockResolvedValueOnce(Response.json({ message: "Rating unavailable" }, { status: 503 }));
-    else fetchMock.mockRejectedValueOnce(new Error("connection lost"));
+  it("still renders a valid product when boot omits the optional rating summary", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ product }));
     const result = await getPublicProductData("canvas-bag", "en");
     expect(result?.product.id).toBe(canonicalId);
     expect(result?.ratingSummary).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

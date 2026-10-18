@@ -59,17 +59,18 @@ afterEach(() => {
 });
 
 describe("visible product impressions", () => {
-  it("keeps 40 impressions at 40 when identical IDs rerender with new objects", () => {
+  it("sends 40 visible impressions in one request and does not recount identical IDs on rerender", () => {
     const ids = Array.from({ length: 40 }, (_, i) => `product-${i}`);
     const view = render(<ProductList ids={ids} />);
     act(() => latestObserver().emit(true));
     act(() => vi.advanceTimersByTime(10_000));
-    expect(window.fetch).toHaveBeenCalledTimes(40);
+    expect(window.fetch).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(vi.mocked(window.fetch).mock.calls[0]?.[1]?.body)).events).toHaveLength(40);
 
     view.rerender(<ProductList ids={[...ids]} />);
     act(() => latestObserver().emit(true));
     act(() => vi.advanceTimersByTime(10_000));
-    expect(window.fetch).toHaveBeenCalledTimes(40);
+    expect(window.fetch).toHaveBeenCalledTimes(1);
     expect(VisibilityObserver.instances).toHaveLength(1);
   });
 
@@ -83,7 +84,7 @@ describe("visible product impressions", () => {
     act(() => vi.advanceTimersByTime(10_000));
     expect(window.fetch).toHaveBeenCalledOnce();
     const body = vi.mocked(window.fetch).mock.calls[0]?.[1]?.body;
-    expect(JSON.parse(String(body))).toMatchObject({
+    expect(JSON.parse(String(body)).events[0]).toMatchObject({
       eventType: "product_impression", source: "search_results", productId: "offscreen-product", shopId: "shop-1", position: 0,
     });
   });
@@ -98,7 +99,7 @@ describe("visible product impressions", () => {
     act(() => latestObserver().emit(true));
     act(() => vi.advanceTimersByTime(10_000));
     expect(window.fetch).toHaveBeenCalledTimes(2);
-    expect(JSON.parse(String(vi.mocked(window.fetch).mock.calls[1]?.[1]?.body))).toMatchObject({ productId: "next-page", position: 1 });
+    expect(JSON.parse(String(vi.mocked(window.fetch).mock.calls[1]?.[1]?.body)).events[0]).toMatchObject({ productId: "next-page", position: 1 });
   });
 
   it("keeps source lifetimes independent and flushes pending impressions on unmount", () => {
@@ -109,9 +110,9 @@ describe("visible product impressions", () => {
     const observer = latestObserver();
     view.unmount();
     expect(observer.elements.size).toBe(0);
-    expect(vi.mocked(window.fetch).mock.calls.map((call) => JSON.parse(String(call[1]?.body)).source)).toEqual(["search_results", "category_listing"]);
+    expect(vi.mocked(window.fetch).mock.calls.flatMap((call) => JSON.parse(String(call[1]?.body)).events.map((event: { source: string }) => event.source))).toEqual(["search_results", "category_listing"]);
     act(() => vi.advanceTimersByTime(10_000));
-    expect(window.fetch).toHaveBeenCalledTimes(2);
+    expect(window.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("does not observe another mounted list with a different source", () => {

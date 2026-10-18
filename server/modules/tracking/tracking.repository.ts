@@ -57,7 +57,9 @@ export interface ShopEventLogInput {
 
 export interface ITrackingRepository {
   findActiveProduct(productId: string): Promise<Pick<Product, 'id' | 'shopId'> | null>
+  findActiveProducts(productIds: string[]): Promise<Array<Pick<Product, 'id' | 'shopId'>>>
   createProductViewLog(input: ProductViewLogInput): Promise<void>
+  createProductViewLogs(inputs: ProductViewLogInput[]): Promise<void>
   createProductAddToCartLog(input: ProductAddToCartLogInput): Promise<void>
   createSearchQueryLog(input: SearchQueryLogInput): Promise<void>
   findRecentlyViewedProducts(input: RecentlyViewedInput): Promise<TrackingProductRecord[]>
@@ -110,6 +112,17 @@ export class PrismaTrackingRepository implements ITrackingRepository {
         metadata: input.metadata,
       },
     })
+  }
+
+  async findActiveProducts(productIds: string[]): Promise<Array<Pick<Product, 'id' | 'shopId'>>> {
+    return this.prisma.product.findMany({
+      where: { id: { in: productIds }, status: 'ACTIVE', deletedAt: null, shop: { status: 'ACTIVE' } },
+      select: { id: true, shopId: true },
+    })
+  }
+
+  async createProductViewLogs(inputs: ProductViewLogInput[]): Promise<void> {
+    await this.prisma.productViewLog.createMany({ data: inputs })
   }
 
   async createProductAddToCartLog(input: ProductAddToCartLogInput): Promise<void> {

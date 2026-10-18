@@ -1,0 +1,3 @@
+# Task 13: loaded coupon validation
+
+Owner: checkout/promotion builder, after task 12 passes. Reuse the coupon candidate already loaded by CheckoutQuoteEvaluator when invoking PromotionService rules. Keep one fresh read in each validation round; commitment must still lock then reread/revalidate all fields and per-user/global redemption limits. The ordinary promotion API retains its code lookup entry point. Preserve normalization/errors, target eligibility, named slot funding, exact amounts and quote acceptance. Demonstrate estimate reads 2 to 1 and commitment reads 4 to 2 per coupon, including changed post-lock coupon rejection. No caching across rounds.

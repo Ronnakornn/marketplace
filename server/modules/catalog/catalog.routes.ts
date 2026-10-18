@@ -468,6 +468,17 @@ export function createCatalogRoutes(container: ServiceContainer) {
       params: IdParamsSchema,
       query: RelatedProductsQuerySchema,
     })
+    .get('/api/products/:productId/boot', async ({ params, query }) => {
+      const product = await container.catalogService.getPublicProductDetail(params.productId, query.locale)
+      const ratingSummary = await container.reviewService.getRatingSummary(product.id).catch((error: unknown) => {
+        container.appContext.logger.warn('Product boot rating summary failed', { productId: product.id, error })
+        return undefined
+      })
+      return moneyResponse({ product, ratingSummary })
+    }, {
+      params: IdParamsSchema,
+      query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),
+    })
     .get('/api/products/:productId', getPublicProductDetail, {
       params: IdParamsSchema,
       query: t.Object({ locale: t.Optional(t.Union([t.Literal('th'), t.Literal('en')])) }),

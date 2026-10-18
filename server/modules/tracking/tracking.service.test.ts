@@ -3,6 +3,7 @@ import type { AppContext } from '#server/context/app-context.ts'
 import type { CatalogService } from '#server/modules/catalog/catalog.service.ts'
 import type { ITrackingRepository, TrackingProductRecord } from './tracking.repository.ts'
 import { TrackingService } from './tracking.service.ts'
+import { MAX_IMPRESSION_BATCH_BYTES, MAX_IMPRESSION_BATCH_EVENTS } from './tracking.limits.ts'
 
 const productId = '11111111-1111-4111-8111-111111111111'
 const shopId = '22222222-2222-4222-8222-222222222222'
@@ -29,7 +30,9 @@ function createAppContext(): AppContext {
 function createRepoMock(): ITrackingRepository {
   return {
     findActiveProduct: vi.fn(),
+    findActiveProducts: vi.fn(),
     createProductViewLog: vi.fn(),
+    createProductViewLogs: vi.fn(),
     createProductAddToCartLog: vi.fn(),
     createSearchQueryLog: vi.fn(),
     findRecentlyViewedProducts: vi.fn(),
@@ -63,6 +66,7 @@ describe('TrackingService', () => {
     } as unknown as CatalogService
     service = new TrackingService(createAppContext(), repo, catalogService)
     vi.mocked(repo.findActiveProduct).mockResolvedValue({ id: productId, shopId })
+    vi.mocked(repo.findActiveProducts).mockResolvedValue([{ id: productId, shopId }])
   })
 
   it('rejects malformed product events before writing', async () => {
@@ -108,6 +112,133 @@ describe('TrackingService', () => {
       sessionId: 'anon-session',
       metadata: expect.objectContaining({ eventType: 'product_viewed' }),
     }))
+  })
+
+  it('bulk reads unique products and preserves every impression with independent metadata', async () => {
+    const events = [0, 1].map(position => ({
+      eventType: 'product_impression' as const,
+      productId,
+      shopId,
+      sessionId: `session-${position}`,
+      source: `source-${position}`,
+      referrer: `https://example.test/${position}`,
+      position,
+      timestamp: `2026-10-19T00:00:0${position}.000Z`,
+      filters: { brand: 'ผ้าฝ้าย' },
+    }))
+    await expect(service.trackProductImpressions({ userId: 'buyer' }, { events })).resolves.toEqual({ ok: true })
+    expect(repo.findActiveProducts).toHaveBeenCalledExactlyOnceWith([productId])
+    expect(repo.findActiveProduct).not.toHaveBeenCalled()
+    expect(repo.createProductViewLog).not.toHaveBeenCalled()
+    expect(repo.createProductViewLogs).toHaveBeenCalledExactlyOnceWith(events.map(event => ({
+      productId,
+      shopId,
+      userId: 'buyer',
+      sessionId: event.sessionId,
+      source: event.source,
+      referrer: event.referrer,
+      metadata: { eventType: event.eventType, position: event.position, timestamp: event.timestamp, filters: event.filters },
+    })))
+  })
+
+  it.each([
+    { productId: 'ABCDEF12-ABCD-4ABC-8ABC-ABCDEF123456', shopId: 'fedcba98-fedc-4fed-8fed-fedcba987654' },
+    { productId: 'abcdef12-abcd-4abc-8abc-abcdef123456', shopId: 'FEDCBA98-FEDC-4FED-8FED-FEDCBA987654' },
+    { productId: 'aBcDeF12-AbCd-4aBc-8AbC-aBcDeF123456', shopId: 'FeDcBa98-fEdC-4fEd-8FeD-fEdCbA987654' },
+  ])('matches batch product and shop UUIDs irrespective of case while retaining every event %j', async inputIds => {
+    const canonicalProductId = 'abcdef12-abcd-4abc-8abc-abcdef123456'
+    const canonicalShopId = 'fedcba98-fedc-4fed-8fed-fedcba987654'
+    vi.mocked(repo.findActiveProducts).mockResolvedValue([{ id: canonicalProductId, shopId: canonicalShopId }])
+    const events = [
+      { productId: canonicalProductId, shopId: canonicalShopId },
+      inputIds,
+    ].map((ids, position) => ({
+      ...ids,
+      eventType: 'product_impression' as const,
+      sessionId: `session-${position}`,
+      source: `source-${position}`,
+      referrer: `https://example.test/${position}`,
+      position,
+      timestamp: `2026-10-19T00:00:0${position}.000Z`,
+      categoryId: 'ABCDEFAB-ABCD-4ABC-8ABC-ABCDEF123456',
+      filters: { label: `Case-${position}` },
+    }))
+
+    await expect(service.trackProductImpressions({ userId: 'buyer' }, { events })).resolves.toEqual({ ok: true })
+
+    expect(repo.findActiveProducts).toHaveBeenCalledExactlyOnceWith([canonicalProductId])
+    expect(repo.createProductViewLogs).toHaveBeenCalledExactlyOnceWith(events.map(event => ({
+      productId: canonicalProductId,
+      shopId: canonicalShopId,
+      userId: 'buyer',
+      sessionId: event.sessionId,
+      source: event.source,
+      referrer: event.referrer,
+      metadata: {
+        eventType: event.eventType,
+        categoryId: event.categoryId,
+        position: event.position,
+        timestamp: event.timestamp,
+        filters: event.filters,
+      },
+    })))
+  })
+
+  it('rejects a foreign mixed-case shop UUID without writing a valid mixed-case prefix', async () => {
+    vi.mocked(repo.findActiveProducts).mockResolvedValue([{
+      id: 'abcdef12-abcd-4abc-8abc-abcdef123456',
+      shopId: 'fedcba98-fedc-4fed-8fed-fedcba987654',
+    }])
+
+    await expect(service.trackProductImpressions({}, { events: [
+      { eventType: 'product_impression', productId: 'ABCDEF12-ABCD-4ABC-8ABC-ABCDEF123456', shopId: 'FEDCBA98-FEDC-4FED-8FED-FEDCBA987654' },
+      { eventType: 'product_impression', productId: 'abcdef12-abcd-4abc-8abc-abcdef123456', shopId: 'ABCDEFAB-ABCD-4ABC-8ABC-ABCDEF123456' },
+    ] })).rejects.toMatchObject({ code: 'TRACKING_PAYLOAD_INVALID' })
+
+    expect(repo.createProductViewLogs).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { productId: 'malformed' },
+    { source: 'x'.repeat(65) },
+    { sessionId: 'x'.repeat(129) },
+    { timestamp: 'invalid' },
+    { position: 1.5 },
+    { eventType: 'product_click' as never },
+  ])('rejects an invalid later impression before any product read or insert %j', async invalid => {
+    await expect(service.trackProductImpressions({}, { events: [
+      { eventType: 'product_impression', productId },
+      { eventType: 'product_impression', productId, ...invalid },
+    ] })).rejects.toMatchObject({ code: 'TRACKING_PAYLOAD_INVALID' })
+    expect(repo.findActiveProducts).not.toHaveBeenCalled()
+    expect(repo.createProductViewLogs).not.toHaveBeenCalled()
+  })
+
+  it('rejects the entire mixed-shop batch and does not write the valid prefix', async () => {
+    await expect(service.trackProductImpressions({}, { events: [
+      { eventType: 'product_impression', productId, shopId },
+      { eventType: 'product_impression', productId, shopId: '33333333-3333-4333-8333-333333333333' },
+    ] })).rejects.toMatchObject({ code: 'TRACKING_PAYLOAD_INVALID' })
+    expect(repo.createProductViewLogs).not.toHaveBeenCalled()
+  })
+
+  it('rejects all impressions when one product is inactive or missing', async () => {
+    await expect(service.trackProductImpressions({}, { events: [
+      { eventType: 'product_impression', productId },
+      { eventType: 'product_impression', productId: '33333333-3333-4333-8333-333333333333' },
+    ] })).rejects.toMatchObject({ code: 'TRACKING_PRODUCT_NOT_FOUND' })
+    expect(repo.createProductViewLogs).not.toHaveBeenCalled()
+  })
+
+  it('bounds batch count and UTF8 encoded bytes before reading products', async () => {
+    for (const events of [[], Array.from({ length: MAX_IMPRESSION_BATCH_EVENTS + 1 }, () => ({ eventType: 'product_impression' as const, productId }))]) {
+      await expect(service.trackProductImpressions({}, { events })).rejects.toMatchObject({ code: 'TRACKING_PAYLOAD_INVALID' })
+    }
+    const events = [{ eventType: 'product_impression' as const, productId, filters: { label: 'ก'.repeat(MAX_IMPRESSION_BATCH_BYTES / 2) } }]
+    expect(JSON.stringify({ events }).length).toBeLessThan(MAX_IMPRESSION_BATCH_BYTES)
+    await expect(service.trackProductImpressions({}, { events })).rejects.toMatchObject({ code: 'TRACKING_PAYLOAD_TOO_LARGE' })
+    expect(repo.findActiveProducts).not.toHaveBeenCalled()
+    expect(repo.createProductViewLogs).not.toHaveBeenCalled()
   })
 
   it('accepts featured-shop recommendation clicks without requiring a product id', async () => {

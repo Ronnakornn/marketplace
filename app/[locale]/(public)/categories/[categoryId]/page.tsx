@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { JsonLd } from "#/components/JsonLd";
 import { ProductListingPage } from "#/features/product/components/ProductListingPage";
+import { getInitialProductListing } from "#/features/product/listing-data.server";
+import { resolveLocale } from "#/i18n/config";
 import { createTranslator } from "#/i18n/server";
 import { breadcrumbJsonLd, collectionPageJsonLd, getSiteName, publicPageMetadata, requirePublicCategorySeo } from "#/lib/seo";
 
@@ -49,6 +51,8 @@ export default async function CategoryPage({
   const t = createTranslator(locale);
   const categoryName = localizedCategoryName(category.slug, category.name, t);
 
+  const initialListing = await getInitialProductListing({ ...query, categoryId: category.slug }, resolveLocale(locale));
+
   return (
     <>
       <JsonLd data={collectionPageJsonLd(category)} />
@@ -58,6 +62,7 @@ export default async function CategoryPage({
       ])} />
       <ProductListingPage
         mode="category"
+        initialListing={initialListing}
         categoryId={category.slug}
         categoryName={categoryName}
         brandId={query.brandId}

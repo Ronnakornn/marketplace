@@ -1,0 +1,3 @@
+# Task 11: cart scalar projection
+
+Owner: cart projection builder. Narrow Product, ProductVariant and Inventory reads to fields consumed by CartService. Share one Prisma-derived variant select across cart/item hydration and variant lookup. Keep Cart/CartItem scalar contracts, image collection/order, shop fields, locks, ownership, stock, locale and response semantics. Do not add image filtering or truncation. Compare saved before/current repository hydration and both-language CartService response on the retained 12-line PostgreSQL fixture. Baseline hydrated JSON is 92,793 bytes; this is an internal record measurement, not HTTP/database wire bytes.

@@ -2,6 +2,7 @@ import { moneyHttpError, moneyResponse, toMoneyDto, MoneyAmountError } from '#se
 import { Elysia, status as httpStatus, t } from 'elysia'
 import type { ServiceContainer } from '#server/context/app-context.ts'
 import { TrackingServiceError } from './tracking.errors.ts'
+import { MAX_IMPRESSION_BATCH_EVENTS } from './tracking.limits.ts'
 
 const TrackingEventSchema = t.Object({
   eventType: t.Union([
@@ -33,6 +34,15 @@ const TrackingEventSchema = t.Object({
   timestamp: t.Optional(t.String()),
 }, { additionalProperties: false })
 
+const ProductImpressionSchema = t.Composite([
+  t.Omit(TrackingEventSchema, ['eventType', 'productId']),
+  t.Object({ eventType: t.Literal('product_impression'), productId: t.String() }),
+], { additionalProperties: false })
+
+const ProductImpressionBatchSchema = t.Object({
+  events: t.Array(ProductImpressionSchema, { minItems: 1, maxItems: MAX_IMPRESSION_BATCH_EVENTS }),
+}, { additionalProperties: false })
+
 const RecentlyViewedQuerySchema = t.Object({
   sessionId: t.Optional(t.String()),
   limit: t.Optional(t.Number({ minimum: 1, maximum: 24 })),
@@ -43,6 +53,7 @@ export function createTrackingRoutes(container: ServiceContainer) {
     .onError(({ error }) => {
       if (error instanceof MoneyAmountError) return httpStatus(409, { error: { code: 'INVALID_MONEY_AMOUNT', message: error.message } })
       if (error instanceof TrackingServiceError) {
+        if (error.status === 413) return httpStatus(413, { error: { code: error.code, message: error.message, details: error.details ?? {} } })
         return moneyHttpError(error.status, toMoneyDto({
           error: {
             code: error.code,
@@ -55,6 +66,10 @@ export function createTrackingRoutes(container: ServiceContainer) {
     .post('/api/discovery/track', ({ body, authContext }: any) =>
       moneyResponse(container.trackingService.trackEvent({ userId: authContext?.user?.id }, body)), {
       body: TrackingEventSchema,
+    })
+    .post('/api/discovery/impressions', ({ body, authContext }: any) =>
+      moneyResponse(container.trackingService.trackProductImpressions({ userId: authContext?.user?.id }, body)), {
+      body: ProductImpressionBatchSchema,
     })
     .get('/api/discovery/recently-viewed', ({ query, authContext }: any) =>
       moneyResponse(container.trackingService.getRecentlyViewedProducts({

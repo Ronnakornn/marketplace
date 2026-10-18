@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProductStatus, Role } from '#generated/client/enums.ts'
-import { CacheService, type CacheClient } from '#server/modules/cache'
+import { CacheInvalidation, CacheService, type CacheClient } from '#server/modules/cache'
 import type { ICatalogRepository } from './catalog.repository.ts'
 import { CatalogService } from './catalog.service.ts'
 
@@ -50,7 +50,9 @@ function createRepoMock(): ICatalogRepository {
       ratingCount: 0,
       soldCount: 0,
     }))),
+    findPublicRelatedSource: vi.fn(),
     findRelatedProducts: vi.fn(),
+    findPublicProducts: vi.fn(),
     findProducts: vi.fn(),
     countProductStatuses: vi.fn(async () => ({ active: 0, draft: 0, archived: 0 })),
     findProductFacets: vi.fn(async () => ({
@@ -89,7 +91,7 @@ function createCacheService() {
       keys.forEach((key) => store.delete(key))
       return keys.length
     }),
-    scan: vi.fn(async (): Promise<[string, string[]]> => ['0', []]),
+    scan: vi.fn(async (): Promise<[string, string[]]> => ['0', [...store.keys()]]),
   }
   return new CacheService(createAppContext(), {
     enabled: true,
@@ -298,23 +300,23 @@ describe('CatalogService', () => {
     const repo = createRepoMock()
     const service = new CatalogService(createAppContext(), repo)
     await expect(service.listPublicProducts({ page, limit: 50 })).rejects.toMatchObject({ status: 400, code: 'CATALOG_QUERY_INVALID' })
-    expect(repo.findProducts).not.toHaveBeenCalled()
+    expect(repo.findPublicProducts).not.toHaveBeenCalled()
   })
 
   it('preserves a valid large catalog offset and cursor pagination', async () => {
     const repo = createRepoMock()
-    vi.mocked(repo.findProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, totalCount: 0, hasNextPage: false } })
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, totalCount: 0, hasNextPage: false } })
     const service = new CatalogService(createAppContext(), repo)
     await service.listPublicProducts({ page: 2_147_483_647, limit: 1 })
-    expect(repo.findProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 2_147_483_647, limit: 1 }))
+    expect(repo.findPublicProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 2_147_483_647, limit: 1 }))
     const cursor = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
     await service.listPublicProducts({ page: 2_147_483_647, limit: 50, cursor })
-    expect(repo.findProducts).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2_147_483_647, limit: 50, cursor }))
+    expect(repo.findPublicProducts).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2_147_483_647, limit: 50, cursor }))
   })
 
   it('lists public products as ACTIVE only with pagination and filters', async () => {
     const repo = createRepoMock()
-    vi.mocked(repo.findProducts).mockResolvedValue({
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({
       data: [createProduct({ status: 'ACTIVE' })],
       meta: {
         nextCursor: '22222222-2222-4222-8222-222222222222',
@@ -362,7 +364,7 @@ describe('CatalogService', () => {
       },
     })
 
-    expect(repo.findProducts).toHaveBeenCalledWith({
+    expect(repo.findPublicProducts).toHaveBeenCalledWith({
       keyword: 'bag',
       shopId: '11111111-1111-4111-8111-111111111111',
       minPrice: 100,
@@ -390,7 +392,7 @@ describe('CatalogService', () => {
 
   it('adds real review and paid-order metrics to public products', async () => {
     const repo = createRepoMock()
-    vi.mocked(repo.findProducts).mockResolvedValue({
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({
       data: [createProduct({ id: '22222222-2222-4222-8222-222222222222', status: 'ACTIVE' })],
       meta: { nextCursor: null, hasNextPage: false },
     })
@@ -413,10 +415,10 @@ describe('CatalogService', () => {
 
   it('uses storefront paging defaults and falls back from invalid sort values', async () => {
     const repo = createRepoMock()
-    vi.mocked(repo.findProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, totalCount: 0, page: 1, pageSize: 12, hasNextPage: false, query: {} } })
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, totalCount: 0, page: 1, pageSize: 12, hasNextPage: false, query: {} } })
     const service = new CatalogService(createAppContext(), repo)
     await service.listPublicShopProducts('shop-1', { keyword: ' bag ', categoryId: 'fashion', sort: 'invalid' })
-    expect(repo.findProducts).toHaveBeenCalledWith(expect.objectContaining({
+    expect(repo.findPublicProducts).toHaveBeenCalledWith(expect.objectContaining({
       shopId: 'shop-1', keyword: 'bag', categoryId: 'fashion', sort: 'newest', page: 1, limit: 12,
       status: 'ACTIVE', publicOnly: true,
     }))
@@ -425,7 +427,7 @@ describe('CatalogService', () => {
 
   it('returns empty facet metadata when public listing facets cannot be calculated', async () => {
     const repo = createRepoMock()
-    vi.mocked(repo.findProducts).mockResolvedValue({
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({
       data: [],
       meta: { nextCursor: null, totalCount: 0, page: 1, pageSize: 20, hasNextPage: false, query: {} },
     })
@@ -453,7 +455,7 @@ describe('CatalogService', () => {
         createCategorySpec({ id: '66666666-6666-4666-8666-666666666667', categoryId, attributeKey: 'screen_size', isActive: true, isFilterable: true }),
       ],
     })
-    vi.mocked(repo.findProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
     const service = new CatalogService(createAppContext(), repo)
 
     await service.listPublicProducts({
@@ -462,7 +464,7 @@ describe('CatalogService', () => {
       attributes: { Color: 'Red', 'Screen Size': '6.1 inch' },
     })
 
-    expect(repo.findProducts).toHaveBeenCalledWith(expect.objectContaining({
+    expect(repo.findPublicProducts).toHaveBeenCalledWith(expect.objectContaining({
       categoryId,
       brandId: '44444444-4444-4444-8444-444444444444',
       attributeFilters: [
@@ -486,7 +488,7 @@ describe('CatalogService', () => {
     })
 
     expect(repo.findCategoryWithSpecs).not.toHaveBeenCalled()
-    expect(repo.findProducts).not.toHaveBeenCalled()
+    expect(repo.findPublicProducts).not.toHaveBeenCalled()
   })
 
   it('rejects unknown and non-filterable public attribute filters for scoped category', async () => {
@@ -520,19 +522,67 @@ describe('CatalogService', () => {
       details: { attributeKey: 'internal_code' },
     })
 
-    expect(repo.findProducts).not.toHaveBeenCalled()
+    expect(repo.findPublicProducts).not.toHaveBeenCalled()
   })
 
   it('product list uses cache after first database fallback', async () => {
     const repo = createRepoMock()
-    vi.mocked(repo.findProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
     const service = new CatalogService(createAppContext(), repo, createCacheService())
 
     await service.listPublicProducts({ keyword: 'tee' })
     await service.listPublicProducts({ keyword: 'tee' })
 
-    expect(repo.findProducts).toHaveBeenCalledTimes(1)
+    expect(repo.findPublicProducts).toHaveBeenCalledTimes(1)
     expect(repo.findProductFacets).toHaveBeenCalledTimes(1)
+  })
+
+  it('shares exact facets across pages, page sizes, cursors, sorts and locales', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
+    const facets = { categories: [], brands: [], price: { min: 1000n, max: 9007199254740993n, currency: 'THB' } }
+    vi.mocked(repo.findProductFacets).mockResolvedValue(facets)
+    const service = new CatalogService(createAppContext(), repo, createCacheService())
+
+    const first = await service.listPublicProducts({ keyword: 'tee', page: 1, limit: 1, locale: 'th' })
+    const next = await service.listPublicProducts({ keyword: 'tee', page: 2, limit: 2, sort: 'price_asc', locale: 'en' })
+    const cursor = await service.listPublicProducts({ keyword: 'tee', cursor: 'product-two', sort: 'newest' })
+
+    expect([first.facets, next.facets, cursor.facets]).toEqual([facets, facets, facets])
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(1)
+    expect(repo.findPublicProducts).toHaveBeenCalledTimes(3)
+  })
+
+  it('keeps facets separate for changed catalog predicates and refreshes on invalidation', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
+    const cache = createCacheService()
+    const service = new CatalogService(createAppContext(), repo, cache)
+    for (const filter of [
+      {}, { keyword: 'tee' }, { categoryId: 'fashion' }, { brandId: 'brand-one' },
+      { shopId: 'shop-one' }, { minPrice: 100 }, { maxPrice: 2000 },
+    ]) await service.listPublicProducts(filter)
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(7)
+
+    const updated = { categories: [], brands: [], price: { min: 2000n, max: 3000n, currency: 'THB' } }
+    vi.mocked(repo.findProductFacets).mockResolvedValue(updated)
+    await new CacheInvalidation(cache).invalidateProductListsAndSearch()
+
+    expect((await service.listPublicProducts({ keyword: 'tee' })).facets).toEqual(updated)
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(8)
+  })
+
+  it('retries failed catalog facet loads on another page', async () => {
+    const repo = createRepoMock()
+    vi.mocked(repo.findPublicProducts).mockResolvedValue({ data: [], meta: { nextCursor: null, hasNextPage: false } })
+    vi.mocked(repo.findProductFacets).mockRejectedValueOnce(new Error('temporary failure'))
+    const service = new CatalogService(createAppContext(), repo, createCacheService())
+    await service.listPublicProducts({ keyword: 'tee' })
+    const facets = { categories: [], brands: [], price: { min: 1000n, max: 2000n, currency: 'THB' } }
+    vi.mocked(repo.findProductFacets).mockResolvedValue(facets)
+
+    expect((await service.listPublicProducts({ keyword: 'tee', page: 2 })).facets).toEqual(facets)
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(2)
   })
 
   it('shares overlapping metrics queries but refreshes after they complete', async () => {
@@ -672,7 +722,7 @@ describe('CatalogService', () => {
       status: 'ACTIVE',
       categoryId: source.categoryId,
     })
-    vi.mocked(repo.findProductById).mockResolvedValue(source)
+    vi.mocked(repo.findPublicRelatedSource).mockResolvedValue(source)
     vi.mocked(repo.findRelatedProducts).mockResolvedValue([related])
     const service = new CatalogService(createAppContext(), repo)
 

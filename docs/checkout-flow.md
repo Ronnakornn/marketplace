@@ -27,6 +27,20 @@ flowchart TD
 revalidates inside the cart transaction; preview does not guarantee the same price
 later. Failed commitment rolls back its writes.
 
+Flash Sale selection reads all selected variants in one batch and preserves the
+earliest-ending active sale per variant. Commitment locks unique candidate rows
+in ID order, then batch-reads only those held candidates again. A deactivated
+candidate falls back to regular price rather than selecting an unlocked
+replacement. Existing quote-acceptance checks still reject changed accepted
+prices, and reservation validates quotas inside the same transaction.
+
+Promotion admission checks the unique candidate shop set once per evaluation,
+including candidates that later fall back to regular price. User overrides,
+shop policies and maintenance checks retain their existing precedence. Coupon
+validation reuses its loaded candidate within each validation round. Commitment
+still locks and freshly reads the coupon, its targets and redemption counts;
+no candidate is reused across that lock boundary.
+
 Rules:
 
 - Checkout locks the cart and its current item rows before reading the purchase snapshot. Concurrent submissions reread after the prior commit, so consumed items cannot create another Order. Unselected items and later additions remain usable.

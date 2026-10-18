@@ -187,23 +187,30 @@ export class CheckoutQuoteEvaluator {
     userId: string,
   ): Promise<CheckoutPricedItem[]> {
     const now = new Date()
-    return Promise.all(items.map(async (item) => {
-      let flashSaleItem = await repo.findActiveFlashSaleItemForCheckout(item.variantId, now)
-      if (policy === 'commit' && flashSaleItem) {
-        await repo.lockFlashSaleItemForCheckout(flashSaleItem.id)
-        flashSaleItem = await repo.findActiveFlashSaleItemForCheckout(item.variantId, now)
-      }
+    const variantIds = [...new Set(items.map((item) => item.variantId))]
+    let candidates = await repo.findActiveFlashSaleItemsForCheckout(variantIds, now)
+    if (policy === 'commit' && candidates.length) {
+      const lockedCandidateIds = [...new Set(candidates.map((candidate) => candidate.id))].sort()
+      for (const candidateId of lockedCandidateIds) await repo.lockFlashSaleItemForCheckout(candidateId)
+      candidates = await repo.findActiveFlashSaleItemsForCheckout(variantIds, now, lockedCandidateIds)
+    }
+    const flashSaleByVariant = new Map(candidates.map((candidate) => [candidate.variantId, candidate]))
+    const pricedItems = items.map((item) => {
       const regularPrice = this.toBoundedAmount(item.variant.price)
       this.assertAmount(regularPrice, 'Variant price', 1)
-      if (!flashSaleItem) {
-        return { ...item, unitPrice: regularPrice }
-      }
-      await this.requirePromotionAdmission?.({ userId, shopIds: [item.variant.product.shop.id] })
+      return { ...item, unitPrice: regularPrice }
+    })
+    const shopIds = [...new Set(pricedItems.filter((item) => flashSaleByVariant.has(item.variantId))
+      .map((item) => item.variant.product.shop.id))]
+    if (shopIds.length) await this.requirePromotionAdmission?.({ userId, shopIds })
+    return pricedItems.map((item) => {
+      const flashSaleItem = flashSaleByVariant.get(item.variantId)
+      if (!flashSaleItem) return item
       const salePrice = this.toBoundedAmount(flashSaleItem.salePrice)
       this.assertAmount(salePrice, 'Flash sale price')
-      if (salePrice === 0 || salePrice >= regularPrice) return { ...item, unitPrice: regularPrice }
+      if (salePrice === 0 || salePrice >= item.unitPrice) return item
       return { ...item, unitPrice: salePrice, flashSaleItemId: flashSaleItem.id }
-    }))
+    })
   }
 
   private async validateCoupon(
@@ -225,7 +232,7 @@ export class CheckoutQuoteEvaluator {
     }
     const shopSubtotals = [...subtotals].map(([shopId, subtotal]) => ({ shopId, subtotal }))
     try {
-      const result = await this.promotionService.validateCouponForsubtotal(repo, {
+      const result = await this.promotionService.validateLoadedCouponForSubtotal(repo, candidate, {
         userId,
         couponCode,
         subtotal: shopSubtotals.reduce((total, shop) => total + shop.subtotal, 0),

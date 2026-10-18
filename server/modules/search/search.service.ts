@@ -389,17 +389,24 @@ export class SearchService {
   }
 
   private async loadProductFacets(filters: ReturnType<SearchService['normalizeInput']>): Promise<SearchProductFacets> {
+    const facetFilters = {
+      q: filters.q,
+      categoryId: filters.categoryId,
+      brandId: filters.brandId,
+      shopId: filters.shopId,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      attributeFilters: filters.attributeFilters,
+      inStock: filters.inStock,
+    }
     try {
-      return await this.repo.findProductFacets({
-        q: filters.q,
-        categoryId: filters.categoryId,
-        brandId: filters.brandId,
-        shopId: filters.shopId,
-        minPrice: filters.minPrice,
-        maxPrice: filters.maxPrice,
-        attributeFilters: filters.attributeFilters,
-        inStock: filters.inStock,
-      })
+      return this.cache
+        ? await this.cache.remember(
+          this.cache.keys.productSearch({ ...facetFilters, view: 'facets' }),
+          () => this.repo.findProductFacets(facetFilters),
+          { ttlSeconds: this.cache.ttl().search },
+        )
+        : await this.repo.findProductFacets(facetFilters)
     } catch (error) {
       this.logger.warn('SearchService.loadProductFacets failed', { error })
       return this.emptyProductFacets()

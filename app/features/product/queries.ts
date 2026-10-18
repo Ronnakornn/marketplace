@@ -6,9 +6,11 @@ import { queryOptions, useQuery, type QueryClient } from "@tanstack/react-query"
 import type { Treaty } from "@elysiajs/eden";
 import { isSecretStorageUrl } from "#/lib/assets";
 import { api } from "#/lib/eden";
+import { cleanSearchProductInput, PUBLIC_PRODUCT_PAGE_SIZE } from "./listing-input";
+
+export { PUBLIC_PRODUCT_PAGE_SIZE } from "./listing-input";
 
 export const PRODUCT_QUERY_STALE_TIME_MS = 60_000;
-export const PUBLIC_PRODUCT_PAGE_SIZE = 40;
 export const SELLER_PRODUCT_PAGE_SIZE = 20;
 export const ADMIN_PRODUCT_PAGE_SIZE = 50;
 export const AFFILIATE_TARGET_PAGE_SIZE = 10;
@@ -892,24 +894,6 @@ function cleanPublicProductQuestionsApiInput(input: PublicProductQuestionsInput)
 
 function cleanCategoryInput(input: PublicCategoryListInput = {}): CleanQuery {
   return cleanQuery({ locale: input.locale });
-}
-
-function cleanSearchProductInput(input: PublicProductListInput = {}): CleanQuery {
-  return cleanQuery({
-    locale: input.locale,
-    q: input.q,
-    categoryId: input.categoryId,
-    shopId: input.shopId,
-    brandId: input.brandId,
-    attributeFilters: input.attributeFilters,
-    minPrice: input.minPrice,
-    maxPrice: input.maxPrice,
-    rating: input.rating,
-    inStock: input.inStock,
-    sort: input.sort === "relevance" ? "newest" : input.sort,
-    page: input.page,
-    limit: input.limit ?? PUBLIC_PRODUCT_PAGE_SIZE,
-  });
 }
 
 function cleanSearchSuggestionInput(input: Pick<PublicProductListInput, "locale" | "q" | "limit"> = {}): CleanQuery {

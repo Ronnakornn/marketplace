@@ -2,6 +2,10 @@
  * @vitest-environment jsdom
  */
 import { type ReactNode } from "react";
+import { renderToString } from "react-dom/server";
+import { cleanSearchProductInput, productListingInput, type ProductListingFilters } from "../listing-input";
+import type { InitialProductListing } from "../listing-data.server";
+import type { BuyerBrand, BuyerCategory, BuyerListingFacets } from "../queries";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,6 +21,10 @@ const queryMocks = vi.hoisted(() => ({
   productsErrorPages: new Set<number>(),
   productDetailError: null as unknown,
   productsQueryFn: vi.fn(),
+  categoriesResponse: { items: [] } as { items: BuyerCategory[] },
+  brandsResponse: [] as BuyerBrand[],
+  categoriesQueryFn: vi.fn(),
+  brandsQueryFn: vi.fn(),
   dealsResponse: { flashSale: null } as { flashSale: null | { id: string; title: string; description: string | null; endsAt: string | null; items: unknown[] } },
   dealsError: null as unknown,
   dealsQueryFn: vi.fn(),
@@ -149,9 +157,9 @@ vi.mock("#/features/product/queries", () => ({
     queryFn: queryMocks.productDetailQueryFn,
     staleTime: 60_000,
   }),
-  publicRelatedProductsQueryOptions: () => ({
-    queryKey: ["product", "public", "related", { locale: "en", productId: "product-1", limit: 8 }],
-    queryFn: queryMocks.relatedQueryFn,
+  publicRelatedProductsQueryOptions: (input: { productId: string; locale: string; limit: number }) => ({
+    queryKey: ["product", "public", "related", input],
+    queryFn: () => queryMocks.relatedQueryFn(input),
   }),
   publicProductReviewsQueryOptions: (input: { productId?: string; page?: number; rating?: number; hasMedia?: boolean; hasComment?: boolean; sort?: string } | string = "product-1") => {
     const normalized = typeof input === "string" ? { productId: input, page: 1 } : input;
@@ -172,8 +180,9 @@ vi.mock("#/features/product/queries", () => ({
       queryFn: () => queryMocks.questionsQueryFn(normalized),
     };
   },
-  publicProductSearchQueryOptions: (input: { page?: number; categoryId?: string } = {}) => ({
-    queryKey: ["product", "public", "searches", { locale: "en", limit: 40, page: input.page ?? 1, categoryId: input.categoryId }],
+  publicProductSearchQueryOptions: (input: { page?: number; categoryId?: string; q?: string; sort?: string; locale?: "en" | "th" } = {}) => ({
+    queryKey: ["product", "public", "searches", cleanSearchProductInput(input)],
+    staleTime: 60_000,
     queryFn: () => queryMocks.productsQueryFn(input.page ?? 1),
   }),
   publicSearchSuggestionsQueryOptions: () => ({
@@ -182,11 +191,11 @@ vi.mock("#/features/product/queries", () => ({
   }),
   publicCategoriesQueryOptions: () => ({
     queryKey: ["product", "public", "categories", { locale: "en" }],
-    queryFn: async () => ({ items: [] }),
+    queryFn: queryMocks.categoriesQueryFn,
   }),
   publicBrandsQueryOptions: () => ({
     queryKey: ["product", "public", "brands"],
-    queryFn: async () => [],
+    queryFn: queryMocks.brandsQueryFn,
   }),
   normalizePublicProducts: (response: { items?: unknown[] }) => response.items ?? [],
   normalizePublicProductListing: (response: { items?: unknown[]; meta?: Record<string, unknown>; facets?: Record<string, unknown> }) => {
@@ -234,8 +243,8 @@ vi.mock("#/features/product/queries", () => ({
       questions: (productId: string) => ["product", "public", "questions", productId],
     },
   },
-  normalizePublicCategories: () => [],
-  normalizePublicBrands: () => [],
+  normalizePublicCategories: (response: { items: BuyerCategory[] }) => response.items,
+  normalizePublicBrands: (response: BuyerBrand[]) => response,
   normalizePublicSearchSuggestions: () => [],
 }));
 
@@ -508,6 +517,11 @@ afterAll(() => vi.unstubAllGlobals());
 beforeEach(() => {
   cleanup();
   queryMocks.productsResponse = { items: [] };
+  queryMocks.productsQueryFn.mockClear();
+  queryMocks.categoriesResponse = { items: [] };
+  queryMocks.brandsResponse = [];
+  queryMocks.categoriesQueryFn.mockReset().mockImplementation(async () => queryMocks.categoriesResponse);
+  queryMocks.brandsQueryFn.mockReset().mockImplementation(async () => queryMocks.brandsResponse);
   queryMocks.productsResponsesByPage.clear();
   queryMocks.productDetailResponse = createProductDetailFixture();
   queryMocks.productsError = null;
@@ -574,6 +588,218 @@ beforeEach(() => {
 });
 
 describe("ProductListingPage buyer states", () => {
+  function initialListing(filters: ProductListingFilters = {}, facets?: BuyerListingFacets): InitialProductListing {
+    return {
+      query: cleanSearchProductInput(productListingInput(filters, "en")),
+      data: {
+        items: [createProductCardFixture({ id: "server-product", title: "Server listing product" })],
+        meta: { totalCount: 2, page: 1, pageSize: 40, hasNextPage: true },
+        facets,
+      } as unknown as InitialProductListing["data"],
+    };
+  }
+
+  const categoryFacet = { id: "cat-1", slug: "fashion", name: "Facet fashion", count: 2, active: false };
+  const brandFacet = { id: "brand-1", slug: "acme", name: "Facet Acme", count: 2, active: false };
+
+  function listingFacets(categories = true, brands = true): BuyerListingFacets {
+    return {
+      categories: categories ? [categoryFacet] : [],
+      brands: brands ? [brandFacet] : [],
+      price: { min: null, max: null, currency: "THB" },
+    };
+  }
+
+  function fallbackFilters() {
+    queryMocks.categoriesResponse = { items: [{ id: "fallback-cat", slug: "fallback-fashion", name: "Fallback fashion", sortOrder: 0 }] };
+    queryMocks.brandsResponse = [{ id: "fallback-brand", slug: "fallback-acme", name: "Fallback Acme" }];
+  }
+
+  it.each([
+    { categories: true, brands: true, categoryRequests: 0, brandRequests: 0 },
+    { categories: false, brands: true, categoryRequests: 1, brandRequests: 0 },
+    { categories: true, brands: false, categoryRequests: 0, brandRequests: 1 },
+    { categories: false, brands: false, categoryRequests: 1, brandRequests: 1 },
+  ])("fetches only fallback filters missing from server facets %j", async ({ categories, brands, categoryRequests, brandRequests }) => {
+    fallbackFilters();
+    const seed = initialListing({ query: "bag" }, listingFacets(categories, brands));
+    renderWithClient(<ProductListingPage mode="search" query="bag" initialListing={seed} />);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("link", { name: categories ? /Facet fashion/ : "Fallback fashion" }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole("link", { name: brands ? /Facet Acme/ : "Fallback Acme" }).length).toBeGreaterThan(0);
+    });
+    expect(queryMocks.categoriesQueryFn).toHaveBeenCalledTimes(categoryRequests);
+    expect(queryMocks.brandsQueryFn).toHaveBeenCalledTimes(brandRequests);
+    expect(queryMocks.productsQueryFn).not.toHaveBeenCalled();
+  });
+
+  it("recovers fallback filters when server metadata is missing", async () => {
+    fallbackFilters();
+    renderWithClient(<ProductListingPage mode="search" query="bag" initialListing={initialListing({ query: "bag" })} />);
+
+    await waitFor(() => expect(screen.getAllByRole("link", { name: "Fallback fashion" }).length).toBeGreaterThan(0));
+    expect(screen.getAllByRole("link", { name: "Fallback Acme" }).length).toBeGreaterThan(0);
+    expect(queryMocks.categoriesQueryFn).toHaveBeenCalledOnce();
+    expect(queryMocks.brandsQueryFn).toHaveBeenCalledOnce();
+    expect(queryMocks.productsQueryFn).not.toHaveBeenCalled();
+  });
+
+  it("uses cached fallback filters after navigation without retaining the previous listing facets", async () => {
+    fallbackFilters();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 60_000 } } });
+    client.setQueryData(["product", "public", "categories", { locale: "en" }], queryMocks.categoriesResponse);
+    client.setQueryData(["product", "public", "brands"], queryMocks.brandsResponse);
+    const component = (query: string, facets?: BuyerListingFacets) => <QueryClientProvider client={client}>
+      <ProductListingPage mode="search" query={query} initialListing={initialListing({ query }, facets)} />
+    </QueryClientProvider>;
+    const view = render(component("bag", listingFacets()));
+
+    expect(screen.getAllByRole("link", { name: /Facet fashion/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Facet Acme/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "Fallback fashion" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Fallback Acme" })).toBeNull();
+    expect(queryMocks.categoriesQueryFn).not.toHaveBeenCalled();
+    expect(queryMocks.brandsQueryFn).not.toHaveBeenCalled();
+
+    view.rerender(component("shirt"));
+
+    await waitFor(() => expect(screen.getAllByRole("link", { name: "Fallback fashion" }).length).toBeGreaterThan(0));
+    expect(screen.getAllByRole("link", { name: "Fallback Acme" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: /Facet fashion/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Facet Acme/ })).toBeNull();
+    expect(queryMocks.categoriesQueryFn).not.toHaveBeenCalled();
+    expect(queryMocks.brandsQueryFn).not.toHaveBeenCalled();
+    expect(queryMocks.productsQueryFn).not.toHaveBeenCalled();
+  });
+
+  it("shows fallback filters while the listing is pending", async () => {
+    fallbackFilters();
+    queryMocks.productsQueryFn.mockReturnValue(new Promise(() => {}));
+    renderWithClient(<ProductListingPage mode="search" query="bag" />);
+
+    await waitFor(() => expect(screen.getAllByRole("link", { name: "Fallback fashion" }).length).toBeGreaterThan(0));
+    expect(screen.getAllByRole("link", { name: "Fallback Acme" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("skeleton").length).toBeGreaterThan(0);
+    expect(queryMocks.categoriesQueryFn).toHaveBeenCalledOnce();
+    expect(queryMocks.brandsQueryFn).toHaveBeenCalledOnce();
+  });
+
+  it("keeps fallback filters on a failed listing and replaces them after retry", async () => {
+    fallbackFilters();
+    queryMocks.productsError = new Error("Listing unavailable");
+    renderWithClient(<ProductListingPage mode="search" query="bag" />);
+
+    expect(await screen.findByText("Listing unavailable")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Fallback fashion" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Fallback Acme" }).length).toBeGreaterThan(0);
+    queryMocks.productsError = null;
+    queryMocks.productsResponse = { items: [createProductCardFixture({ title: "Recovered listing" })], facets: { ...listingFacets() } };
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByText("Recovered listing")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: /Facet fashion/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "Fallback fashion" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Fallback Acme" })).toBeNull();
+    expect(queryMocks.categoriesQueryFn).toHaveBeenCalledOnce();
+    expect(queryMocks.brandsQueryFn).toHaveBeenCalledOnce();
+  });
+
+  it("retains populated displayed facets without fallback reads when page two omits metadata", async () => {
+    fallbackFilters();
+    queryMocks.productsResponsesByPage.set(2, {
+      items: [createProductCardFixture({ id: "page-two", title: "Second page without facets" })],
+      meta: { totalCount: 2, page: 2, pageSize: 40, hasNextPage: false },
+    });
+    renderWithClient(<ProductListingPage mode="search" query="bag" initialListing={initialListing({ query: "bag" }, listingFacets())} />);
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+
+    expect(await screen.findByText("Second page without facets")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: /Facet fashion/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Facet Acme/ }).length).toBeGreaterThan(0);
+    expect(queryMocks.categoriesQueryFn).not.toHaveBeenCalled();
+    expect(queryMocks.brandsQueryFn).not.toHaveBeenCalled();
+  });
+
+  it("enables a newly missing facet fallback when the displayed page metadata changes", async () => {
+    fallbackFilters();
+    queryMocks.productsResponsesByPage.set(2, {
+      items: [createProductCardFixture({ id: "page-two", title: "Second page with brand facet" })],
+      meta: { totalCount: 2, page: 2, pageSize: 40, hasNextPage: false },
+      facets: { ...listingFacets(false, true) },
+    });
+    renderWithClient(<ProductListingPage mode="search" query="bag" initialListing={initialListing({ query: "bag" }, listingFacets())} />);
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+
+    expect(await screen.findByText("Second page with brand facet")).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByRole("link", { name: "Fallback fashion" }).length).toBeGreaterThan(0));
+    expect(screen.getAllByRole("link", { name: /Facet Acme/ }).length).toBeGreaterThan(0);
+    expect(queryMocks.categoriesQueryFn).toHaveBeenCalledOnce();
+    expect(queryMocks.brandsQueryFn).not.toHaveBeenCalled();
+  });
+
+  it("includes first-page products in server HTML and avoids a duplicate request on mount", async () => {
+    const seed = initialListing({ query: "bag" });
+    const serverClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const html = renderToString(<QueryClientProvider client={serverClient}>
+      <ProductListingPage mode="search" query="bag" initialListing={seed} />
+    </QueryClientProvider>);
+    expect(html).toContain("Server listing product");
+    expect(queryMocks.productsQueryFn).not.toHaveBeenCalled();
+    renderWithClient(<ProductListingPage mode="search" query="bag" initialListing={seed} />);
+    expect(screen.getByText("Server listing product")).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Load more" })).toBeTruthy());
+    expect(queryMocks.productsQueryFn).not.toHaveBeenCalled();
+  });
+
+  it("fetches and appends page two without reusing the server first page", async () => {
+    queryMocks.productsResponsesByPage.set(2, {
+      items: [createProductCardFixture({ id: "page-two", title: "Second page product" })],
+      meta: { totalCount: 2, page: 2, pageSize: 40, hasNextPage: false },
+    });
+    renderWithClient(<ProductListingPage mode="search" query="bag" initialListing={initialListing({ query: "bag" })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(await screen.findByText("Second page product")).toBeTruthy();
+    expect(screen.getByText("Server listing product")).toBeTruthy();
+    expect(queryMocks.productsQueryFn).toHaveBeenCalledExactlyOnceWith(2);
+  });
+
+  it.each([
+    { query: "different" }, { categoryId: "electronics" }, { brandId: "brand-2" },
+    { attributeFilters: "color:blue" }, { minPrice: "200" }, { maxPrice: "900" },
+    { sort: "price_asc" }, { rating: "4" }, { inStock: "true" },
+  ])("rejects stale server data after navigation to %j and resets pagination", async (filters) => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const seed = initialListing({ query: "bag" });
+    const component = (next: ProductListingFilters) => <QueryClientProvider client={client}>
+      <ProductListingPage mode="search" query="bag" {...next} initialListing={seed} />
+    </QueryClientProvider>;
+    const view = render(component({}));
+    queryMocks.productsResponsesByPage.set(2, {
+      items: [createProductCardFixture({ id: "page-two", title: "Old second page" })],
+      meta: { hasNextPage: false, page: 2 },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    expect(await screen.findByText("Old second page")).toBeTruthy();
+    queryMocks.productsQueryFn.mockClear();
+    queryMocks.productsResponse = { items: [createProductCardFixture({ id: "new-product", title: "New filtered product" })] };
+    view.rerender(component(filters));
+    expect(screen.queryByText("Server listing product")).toBeNull();
+    expect(screen.queryByText("Old second page")).toBeNull();
+    expect(await screen.findByText("New filtered product")).toBeTruthy();
+    expect(queryMocks.productsQueryFn).toHaveBeenCalledExactlyOnceWith(1);
+  });
+
+  it("rejects a server seed for another locale", async () => {
+    const seed = initialListing({ query: "bag" });
+    seed.query.locale = "th";
+    queryMocks.productsResponse = { items: [createProductCardFixture({ id: "english", title: "English client result" })] };
+    renderWithClient(<ProductListingPage mode="search" query="bag" initialListing={seed} />);
+    expect(screen.queryByText("Server listing product")).toBeNull();
+    expect(await screen.findByText("English client result")).toBeTruthy();
+    expect(queryMocks.productsQueryFn).toHaveBeenCalledExactlyOnceWith(1);
+  });
+
   it.each(["home", "search", "category"] as const)("eager-loads only the first current product image in %s listings", async (mode) => {
     queryMocks.productsResponse = {
       items: [
@@ -1545,6 +1771,15 @@ describe("ProductDetailPage buyer transaction states", () => {
       sort: "oldest",
       page: 1,
     })));
+  });
+
+  it("requests exactly the four related cards it displays", async () => {
+    queryMocks.relatedResponse = {
+      items: Array.from({ length: 4 }, (_, index) => createProductCardFixture({ id: `related-${index}`, title: `Related Bag ${index}` })),
+    };
+    renderWithClient(<ProductDetailPage productId="product-1" />);
+    await waitFor(() => expect(screen.getAllByText(/^Related Bag /)).toHaveLength(4));
+    expect(queryMocks.relatedQueryFn).toHaveBeenCalledWith({ productId: "product-1", locale: "en", limit: 4 });
   });
 
   it("renders related and recently viewed products while excluding the current product", async () => {

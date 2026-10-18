@@ -22,6 +22,7 @@ import type {
   CatalogCategorySpecRecord,
   CatalogCategoryListItem,
   CatalogProductListItem,
+  CatalogPublicCard,
   ICatalogRepository,
   PaginatedResult,
   ProductListingFacets,
@@ -544,7 +545,7 @@ export class CatalogService {
     return this.repo.findActiveBrands()
   }
 
-  async listPublicProducts(filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
+  async listPublicProducts(filters: PublicListProductsData): Promise<PaginatedResult<CatalogPublicCard>> {
     this.logger.debug('CatalogService.listPublicProducts', { filters })
     const locale = resolveContentLocale(filters.locale)
     const listFilters = this.normalizeListFilters(filters)
@@ -554,15 +555,15 @@ export class CatalogService {
       status: 'ACTIVE',
       publicOnly: true,
     } as const
-    const cacheFilters = { ...normalizedFilters, locale }
+    const cacheFilters = { ...normalizedFilters, locale, view: 'public-card-v1' }
 
-    const result = !this.cache ? await this.repo.findProducts(normalizedFilters) : await this.cache.remember(
+    const result = !this.cache ? await this.repo.findPublicProducts(normalizedFilters) : await this.cache.remember(
       this.cache.keys.productList(cacheFilters),
-      () => this.repo.findProducts(normalizedFilters),
+      () => this.repo.findPublicProducts(normalizedFilters),
       { ttlSeconds: this.cache.ttl().product },
     )
     const facets = await this.loadProductFacets(normalizedFilters)
-    const data = (await this.attachPublicProductMetrics(result.data)).map((product) => this.localizeProduct(product, locale))
+    const data = (await this.attachPublicProductMetrics(result.data)).map((product) => this.localizePublicCard(product, locale))
     return {
       ...result,
       data,
@@ -571,7 +572,7 @@ export class CatalogService {
     }
   }
 
-  async listPublicShopProducts(shopId: string, filters: PublicListProductsData): Promise<PaginatedResult<CatalogProductListItem>> {
+  async listPublicShopProducts(shopId: string, filters: PublicListProductsData): Promise<PaginatedResult<CatalogPublicCard>> {
     this.logger.debug('CatalogService.listPublicShopProducts', { shopId, filters })
     const sort = ['newest', 'price_asc', 'price_desc'].includes(filters.sort ?? '') ? filters.sort : 'newest'
     const normalized = { ...filters, shopId, sort, limit: filters.limit ?? 12, page: filters.page ?? 1, cursor: undefined }
@@ -616,16 +617,16 @@ export class CatalogService {
     return request
   }
 
-  async listRelatedProducts(id: string, data: RelatedProductsData = {}): Promise<CatalogProductListItem[]> {
+  async listRelatedProducts(id: string, data: RelatedProductsData = {}): Promise<CatalogPublicCard[]> {
     this.logger.debug('CatalogService.listRelatedProducts', { id, limit: data.limit })
     const locale = resolveContentLocale(data.locale)
     const limit = this.normalizeRelatedLimit(data.limit)
-    const product = await this.repo.findProductById(id)
-    if (!product || product.status !== 'ACTIVE' || product.deletedAt || product.shop.status !== 'ACTIVE') {
+    const product = await this.repo.findPublicRelatedSource(id)
+    if (!product) {
       throw new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     }
     const related = await this.repo.findRelatedProducts(product, limit)
-    return (await this.attachPublicProductMetrics(related)).map((item) => this.preparePublicProduct(item, locale))
+    return (await this.attachPublicProductMetrics(related)).map((item) => this.localizePublicCard(item, locale))
   }
 
   async listAdminProducts(filters: SellerListProductsData) {
@@ -1423,13 +1424,62 @@ export class CatalogService {
     }
   }
 
+  private localizePublicCard(product: CatalogPublicCard, locale: ContentLocale): CatalogPublicCard {
+    return {
+      ...product,
+      title: localizedText(locale, { th: product.titleTh, en: product.titleEn, fallback: product.title }) ?? product.title,
+      category: product.category ? {
+        ...product.category,
+        name: localizedText(locale, { th: product.category.nameTh, en: product.category.nameEn, fallback: product.category.name }) ?? product.category.name,
+      } : null,
+      brand: product.brand ? {
+        ...product.brand,
+        name: localizedText(locale, { th: product.brand.nameTh, en: product.brand.nameEn, fallback: product.brand.name }) ?? product.brand.name,
+      } : null,
+      variants: product.variants.map((variant) => ({
+        ...variant,
+        title: localizedText(locale, { th: variant.titleTh, en: variant.titleEn, fallback: variant.title }) ?? variant.title,
+        optionValues: variant.optionValues.map((link) => ({
+          ...link,
+          optionValue: {
+            ...link.optionValue,
+            value: localizedText(locale, {
+              th: link.optionValue.valueTh, en: link.optionValue.valueEn, fallback: link.optionValue.value,
+            }) ?? link.optionValue.value,
+            option: {
+              ...link.optionValue.option,
+              name: localizedText(locale, {
+                th: link.optionValue.option.nameTh, en: link.optionValue.option.nameEn, fallback: link.optionValue.option.name,
+              }) ?? link.optionValue.option.name,
+            },
+          },
+        })),
+      })),
+      options: product.options.map((option) => ({
+        ...option,
+        name: localizedText(locale, { th: option.nameTh, en: option.nameEn, fallback: option.name }) ?? option.name,
+        values: option.values.map((value) => ({
+          ...value,
+          value: localizedText(locale, { th: value.valueTh, en: value.valueEn, fallback: value.value }) ?? value.value,
+        })),
+      })),
+    }
+  }
+
   private async loadProductFacets(filters: Parameters<ICatalogRepository['findProductFacets']>[0]): Promise<ProductListingFacets> {
     try {
       // Facets share the listing invalidation namespace, so price, stock and
       // catalog mutations refresh both rather than retaining stale filter ranges.
       return this.cache
         ? await this.cache.remember(
-          this.cache.keys.productList({ ...filters, view: 'facets' }),
+          this.cache.keys.productList({
+            ...filters,
+            page: undefined,
+            limit: undefined,
+            cursor: undefined,
+            sort: undefined,
+            view: 'facets',
+          }),
           () => this.repo.findProductFacets(filters),
           { ttlSeconds: this.cache.ttl().product },
         )
@@ -1471,7 +1521,7 @@ export class CatalogService {
     this.validateVariantShippingFields(data)
   }
 
-  private async attachPublicProductMetrics<T extends CatalogProductListItem>(products: T[]): Promise<T[]> {
+  private async attachPublicProductMetrics<T extends { id: string }>(products: T[]): Promise<Array<T & Required<Pick<CatalogProductListItem, 'rating' | 'ratingSummary' | 'soldCount'>>>> {
     const metrics = await this.getPublicProductMetrics(products.map((product) => product.id))
     const metricsByProductId = new Map(metrics.map((metric) => [metric.productId, metric]))
     return products.map((product) => {

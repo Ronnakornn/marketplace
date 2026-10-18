@@ -12,7 +12,7 @@ import {
   invalidatePublicProductQueries,
 } from "#/features/product/queries";
 
-type CatalogProductsResponse = Treaty.Data<ReturnType<typeof api.api.catalog.products.get>>;
+type CatalogProductsResponse = Treaty.Data<ReturnType<typeof api.api.admin.catalog.products.get>>;
 export type CatalogProduct = CatalogProductsResponse extends { data: (infer T)[] } ? T : never;
 export type CatalogVariant = CatalogProduct["variants"][number];
 type AdminCategoriesResponse = Treaty.Data<ReturnType<typeof api.api.admin.categories.get>>;

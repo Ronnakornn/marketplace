@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'node:crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '#generated/client/client.ts'
-import { PrismaCartRepository } from './cart.repository.ts'
+import { PrismaCartRepository, type CartItemDetail } from './cart.repository.ts'
 import { CartService } from './cart.service.ts'
 
 const url = process.env.COMMERCE_TEST_DATABASE_URL
@@ -25,8 +25,84 @@ describe.skipIf(!url)('active cart creation on PostgreSQL', () => {
     const shop = await prisma.shop.create({ data: { ownerId: user.id, sellerProfileId: profile.id, name: 'Test shop', slug: tag, contactEmail: user.email, contactPhone: '0800000000', status: 'ACTIVE' } })
     const product = await prisma.product.create({ data: { shopId: shop.id, title: 'Test item', slug: tag, status: 'ACTIVE' } })
     const variant = await prisma.productVariant.create({ data: { productId: product.id, sku: tag, title: 'Default', price: 1000n, inventory: { create: { quantityOnHand: 10 } } } })
-    return { user, variant }
+    return { user, product, shop, variant }
   }
+
+  it('omits oversized catalog descriptions from every cart read while retaining localized purchase data and all images', async () => {
+    const { user, product, shop, variant } = await fixture()
+    const description = 'Long catalog detail '.repeat(1000)
+    await prisma.product.update({ where: { id: product.id }, data: {
+      titleTh: 'สินค้าทดสอบ', titleEn: 'English item',
+      description, descriptionTh: description, descriptionEn: description,
+      metaDescription: description, warrantyInfo: description,
+    } })
+    await prisma.productVariant.update({ where: { id: variant.id }, data: {
+      titleTh: 'แบบทดสอบ', titleEn: 'English variant',
+      weightGrams: 500, lengthMm: 100,
+    } })
+    await prisma.inventory.update({ where: { variantId: variant.id }, data: { quantityReserved: 2 } })
+    const images = [
+      { url: 'https://example.test/secondary.webp', isPrimary: false, sortOrder: 0 },
+      { url: 'https://example.test/primary.webp', isPrimary: true, sortOrder: 7 },
+      { url: 'https://example.test/other.webp', isPrimary: false, sortOrder: 2 },
+    ]
+    await prisma.productImage.createMany({ data: images.map(image => ({ ...image, productId: product.id, altText: description })) })
+    const repo = new PrismaCartRepository(context, prisma)
+    const initialCart = await repo.findOrCreateActiveCart(user.id)
+    const created = await repo.createItem({ cartId: initialCart.id, variantId: variant.id, quantity: 1, unitPrice: 900n, currency: 'THB' })
+    const updated = await repo.updateItem(created.id, { quantity: 2, unitPrice: 900n, currency: 'THB' })
+    const active = await repo.findActiveCartByUserId(user.id)
+    const existing = await repo.findOrCreateActiveCart(user.id)
+    const locked = await repo.withLockedActiveCart(user.id, async cart => cart)
+    const single = await repo.findVariantForCart(variant.id)
+    const batch = await repo.findVariantsForCart([variant.id])
+    expect(single).not.toBeNull()
+    expect(batch).toHaveLength(1)
+    function assertPurchaseData(value: CartItemDetail['variant'] | undefined | null) {
+      expect(value).toMatchObject({
+        id: variant.id, sku: variant.sku, title: 'Default', titleTh: 'แบบทดสอบ', titleEn: 'English variant',
+        price: 1000n, currency: 'THB', status: 'ACTIVE',
+        inventory: { quantityOnHand: 10, quantityReserved: 2 },
+        product: {
+          id: product.id, title: 'Test item', titleTh: 'สินค้าทดสอบ', titleEn: 'English item',
+          slug: product.slug, status: 'ACTIVE', deletedAt: null,
+          shop: { id: shop.id, name: shop.name, slug: shop.slug, status: 'ACTIVE', deletedAt: null },
+        },
+      })
+      expect(value?.product).not.toHaveProperty('description')
+      expect(value?.product).not.toHaveProperty('descriptionTh')
+      expect(value?.product).not.toHaveProperty('descriptionEn')
+      expect(value?.product).not.toHaveProperty('metaDescription')
+      expect(value?.product).not.toHaveProperty('warrantyInfo')
+      expect(value).not.toHaveProperty('weightGrams')
+      expect(value).not.toHaveProperty('lengthMm')
+      expect(value?.inventory).toEqual({ quantityOnHand: 10, quantityReserved: 2 })
+      expect(value?.product.images).toHaveLength(3)
+      expect(value?.product.images).toEqual(expect.arrayContaining(images))
+      expect(value?.product.images[0]).toEqual(images[1])
+      expect(value?.product.images.every(image => Object.keys(image).sort().join(',') === 'isPrimary,sortOrder,url')).toBe(true)
+    }
+    for (const value of [created.variant, updated.variant, active?.items[0]?.variant, existing.items[0]?.variant, locked.items[0]?.variant, single, batch[0]]) {
+      assertPurchaseData(value)
+    }
+    const { items, ...cartScalars } = locked
+    expect(cartScalars).toEqual(await prisma.cart.findUniqueOrThrow({ where: { id: initialCart.id } }))
+    const { variant: hydratedVariant, ...itemScalars } = items[0]!
+    assertPurchaseData(hydratedVariant)
+    expect(itemScalars).toEqual(await prisma.cartItem.findUniqueOrThrow({ where: { id: created.id } }))
+    const service = new CartService(context, repo)
+    for (const locale of ['th', 'en']) {
+      const response = await service.getCart(user, locale)
+      expect(response.subtotal).toBe(1800n)
+      expect(response.shops[0]?.items[0]).toMatchObject({
+        product: { title: locale === 'th' ? 'สินค้าทดสอบ' : 'English item', imageUrl: images[1]!.url },
+        variant: { title: locale === 'th' ? 'แบบทดสอบ' : 'English variant', price: 1000n },
+        quantity: 2, unitPrice: 900n, availableQuantity: 8,
+      })
+    }
+    await expect(service.updateItem(user, created.id, { quantity: 9 })).rejects.toMatchObject({ code: 'CART_STOCK_UNAVAILABLE' })
+  })
+
   it('concurrent first visits share one cart and later reads retain items added to it', async () => {
     const { user, variant } = await fixture()
     const visits = 6

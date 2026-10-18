@@ -71,6 +71,8 @@ function createCategorySpec(overrides: Record<string, unknown> = {}) {
 
 function createContainer() {
   return {
+    appContext: { logger: { warn: vi.fn() } },
+    reviewService: { getRatingSummary: vi.fn() },
     catalogService: {
       listCategories: vi.fn(async () => [createCategory()]),
       listCategorySpecs: vi.fn(async () => [createCategorySpec({ isActive: true })]),
@@ -124,6 +126,38 @@ function createApp(container = createContainer()) {
 }
 
 describe('catalog monetary HTTP boundaries', () => {
+  it('boots a localized slug once and reads rating summary with its canonical UUID', async () => {
+    const container = createContainer()
+    const product = { id: '22222222-2222-4222-8222-222222222222', title: 'Bag', variants: [{ price: 9007199254740993n }] }
+    const ratingSummary = { averageRating: 4.5, totalReviewCount: 2, distribution: { 1: 0, 2: 0, 3: 0, 4: 1, 5: 1 } }
+    container.catalogService.getPublicProductDetail.mockResolvedValue(product)
+    container.reviewService.getRatingSummary.mockResolvedValue(ratingSummary)
+    const response = await createApp(container).handle(new Request('http://localhost/api/products/canvas-bag/boot?locale=en'))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ product: { ...product, variants: [{ price: '9007199254740993' }] }, ratingSummary })
+    expect(container.catalogService.getPublicProductDetail.mock.calls).toEqual([['canvas-bag', 'en']])
+    expect(container.reviewService.getRatingSummary.mock.calls).toEqual([[product.id]])
+  })
+
+  it('keeps a visible product available when the optional boot summary fails', async () => {
+    const container = createContainer()
+    const product = { id: '22222222-2222-4222-8222-222222222222', title: 'Bag' }
+    container.catalogService.getPublicProductDetail.mockResolvedValue(product)
+    container.reviewService.getRatingSummary.mockRejectedValue(new Error('Rating unavailable'))
+    const response = await createApp(container).handle(new Request(`http://localhost/api/products/${product.id}/boot`))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ product })
+    expect(container.appContext.logger.warn).toHaveBeenCalledWith('Product boot rating summary failed', expect.objectContaining({ productId: product.id }))
+  })
+
+  it('does not load a summary or conceal a catalog error for a hidden boot product', async () => {
+    const container = createContainer()
+    container.catalogService.getPublicProductDetail.mockRejectedValue(new CatalogServiceError('Product not found', 404, 'PRODUCT_NOT_FOUND'))
+    const response = await createApp(container).handle(new Request('http://localhost/api/products/hidden-bag/boot'))
+    expect(response.status).toBe(404)
+    expect(container.reviewService.getRatingSummary).not.toHaveBeenCalled()
+  })
+
   it.each(['/api/products', '/api/catalog/products', '/api/products/p1', '/api/catalog/products/p1', '/api/products/p1/related', '/api/catalog/products/p1/related'])('preserves exact raw Prisma money for %s', async (path) => {
     const container = createContainer()
     const value = { items: [{ price: 9007199254740993n, quantity: 2 }] }
@@ -136,8 +170,8 @@ describe('catalog monetary HTTP boundaries', () => {
   })
 
   it.each(['/api/products', '/api/catalog/products'])('rejects invalid catalog pagination before querying through %s', async path => {
-    const findProducts = vi.fn(async () => ({ data: [], meta: { nextCursor: null, totalCount: 0, hasNextPage: false } }))
-    const catalogService = new CatalogService({ logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }, config: { environment: 'test' } }, { findProducts } as never)
+    const findPublicProducts = vi.fn(async () => ({ data: [], meta: { nextCursor: null, totalCount: 0, hasNextPage: false } }))
+    const catalogService = new CatalogService({ logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }, config: { environment: 'test' } }, { findPublicProducts } as never)
     const app = createApp({ catalogService })
     for (const query of ['page=0', 'page=-1', 'page=1.5', 'page=9007199254740993', 'page=1e100', 'limit=0', 'limit=1.5', 'limit=1e100']) {
       const response = await app.handle(new Request(`http://localhost${path}?${query}`))
@@ -145,10 +179,10 @@ describe('catalog monetary HTTP boundaries', () => {
     }
     const overflow = await app.handle(new Request(`http://localhost${path}?page=2147483647&limit=50`))
     expect(overflow.status, await overflow.clone().text()).toBe(400)
-    expect(findProducts).not.toHaveBeenCalled()
+    expect(findPublicProducts).not.toHaveBeenCalled()
     const supported = await app.handle(new Request(`http://localhost${path}?page=2147483647&limit=1`))
     expect(supported.status, await supported.clone().text()).toBe(200)
-    expect(findProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 2_147_483_647, limit: 1 }))
+    expect(findPublicProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 2_147_483_647, limit: 1 }))
   })
 })
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppContext } from '#server/context/app-context.ts'
-import { CacheService, type CacheClient } from '#server/modules/cache'
+import { CacheInvalidation, CacheService, type CacheClient } from '#server/modules/cache'
 import type { ISearchRepository, SearchProductRecord } from './search.repository.ts'
 import { SearchService } from './search.service.ts'
 
@@ -47,7 +47,7 @@ function createCacheService() {
       keys.forEach((key) => store.delete(key))
       return keys.length
     }),
-    scan: vi.fn(async (): Promise<[string, string[]]> => ['0', []]),
+    scan: vi.fn(async (): Promise<[string, string[]]> => ['0', [...store.keys()]]),
   }
   return new CacheService(createAppContext(), {
     enabled: true,
@@ -369,5 +369,56 @@ describe('SearchService', () => {
     await service.searchProducts({ q: 'tee', sort: 'rating' })
 
     expect(repo.findSearchPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('shares exact facet values across pages, page sizes, cursors, sort and locale', async () => {
+    service = new SearchService(createAppContext(), repo, createCacheService())
+    const facets = { categories: [], brands: [], price: { min: 1000n, max: 9007199254740993n, currency: 'THB' } }
+    vi.mocked(repo.findProductFacets).mockResolvedValue(facets)
+
+    const first = await service.searchProducts({ q: ' cotton ', page: 1, limit: 1, locale: 'th' })
+    const next = await service.searchProducts({ q: 'cotton', page: 2, limit: 2, sort: 'price_asc', locale: 'en' })
+    const cursor = await service.searchProducts({ q: 'cotton', cursor: 'product-two', sort: 'rating' })
+
+    expect([first.facets, next.facets, cursor.facets]).toEqual([facets, facets, facets])
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(1)
+    expect(repo.findSearchPage).toHaveBeenCalledTimes(3)
+  })
+
+  it('keeps facet caches separate for every repository filter', async () => {
+    service = new SearchService(createAppContext(), repo, createCacheService())
+    for (const filter of [
+      {}, { q: 'cotton' }, { categoryId: 'fashion' }, { brandId: 'brand-one' },
+      { shopId: 'shop-one' }, { minPrice: 100 }, { maxPrice: 2000 },
+      { attributeFilters: 'material:cotton' }, { inStock: true },
+    ]) await service.searchProducts(filter)
+
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(9)
+  })
+
+  it('refreshes shared facets through existing catalog invalidation', async () => {
+    const cache = createCacheService()
+    service = new SearchService(createAppContext(), repo, cache)
+    await service.searchProducts({ q: 'cotton' })
+    await service.searchProducts({ q: 'cotton', page: 2 })
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(1)
+
+    const updated = { categories: [], brands: [], price: { min: 2000n, max: 3000n, currency: 'THB' } }
+    vi.mocked(repo.findProductFacets).mockResolvedValue(updated)
+    await new CacheInvalidation(cache).invalidateCatalogDiscoveryAndSearch()
+
+    expect((await service.searchProducts({ q: 'cotton' })).facets).toEqual(updated)
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries failed facet loads on another page instead of caching their fallback', async () => {
+    service = new SearchService(createAppContext(), repo, createCacheService())
+    vi.mocked(repo.findProductFacets).mockRejectedValueOnce(new Error('temporary failure'))
+    await service.searchProducts({ q: 'cotton' })
+    const facets = { categories: [], brands: [], price: { min: 1000n, max: 2000n, currency: 'THB' } }
+    vi.mocked(repo.findProductFacets).mockResolvedValue(facets)
+
+    expect((await service.searchProducts({ q: 'cotton', page: 2 })).facets).toEqual(facets)
+    expect(repo.findProductFacets).toHaveBeenCalledTimes(2)
   })
 })
